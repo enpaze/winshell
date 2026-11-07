@@ -196,7 +196,7 @@ public sealed partial class Shell : IDisposable
 
     private static void Run(ShellConfiguration configuration, ShellOptions options)
     {
-        InstanceStart.Run(new InstanceLaunch(
+        Environment.ExitCode = InstanceStart.Run(new InstanceLaunch(
                 Environment.ProcessPath!,
                 [.. Environment.GetCommandLineArgs().Skip(1)],
                 options.ShellId,

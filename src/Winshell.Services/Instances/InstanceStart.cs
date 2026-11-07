@@ -4,45 +4,6 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>How a start ended. A failure carries the reason a person sees.</summary>
-internal enum InstanceStartStatus
-{
-    /// <summary>The host ran, and the instance was closed afterwards.</summary>
-    Ran,
-
-    /// <summary><c>-d</c> started the next process and this one returned.</summary>
-    Detached,
-
-    /// <summary><c>--no-duplicate</c> found this shell already running and returned.</summary>
-    Duplicate,
-
-    /// <summary>The start could not become an instance. <see cref="InstanceResult.Reason"/> says why.</summary>
-    Failed
-}
-
-/// <summary>The outcome of <see cref="InstanceStart.Run"/>.</summary>
-/// <param name="Status">What the start did.</param>
-/// <param name="Reason">The message a failed start reports, or null when it did not fail.</param>
-internal readonly record struct InstanceResult(InstanceStartStatus Status, string? Reason)
-{
-    /// <summary>The host ran.</summary>
-    public static InstanceResult Ran { get; } = new(InstanceStartStatus.Ran, null);
-
-    /// <summary>This process started another and returned.</summary>
-    public static InstanceResult Detached { get; } = new(InstanceStartStatus.Detached, null);
-
-    /// <summary>This shell was already running.</summary>
-    public static InstanceResult Duplicate { get; } = new(InstanceStartStatus.Duplicate, null);
-
-    /// <summary>Reports <paramref name="reason"/> and leaves the process exit code at 1.</summary>
-    public static InstanceResult Reported(string reason)
-    {
-        StartupError.Report(reason, null);
-        Environment.ExitCode = 1;
-        return new InstanceResult(InstanceStartStatus.Failed, reason);
-    }
-}
-
 /// <summary>What <see cref="InstanceStart"/> needs before it can become an instance. The host supplies the rest.</summary>
 /// <param name="Program">This process's program. A <c>-d</c> start launches it again.</param>
 /// <param name="Arguments">The program's own command line, without the program path.</param>
@@ -110,18 +71,23 @@ internal sealed class InstanceSession
 internal static class InstanceStart
 {
     /// <summary>
-    /// Runs the start. <paramref name="host"/> is called only when this process is the instance. A failure reports
-    /// itself. A duplicate returns without a message.
+    /// The exit code of a start that could not become an instance, or whose shell failed, and said why. A supervisor
+    /// does not start it again: a new start would only repeat it.
     /// </summary>
-    public static InstanceResult Run(InstanceLaunch launch, Action<InstanceSession> host)
+    public const int CouldNotStart = 1;
+
+    /// <summary>
+    /// Runs the start and returns this process's exit code: 0, or <see cref="CouldNotStart"/> once the failure is
+    /// reported. <paramref name="host"/> is called only when this process is the instance. A duplicate returns 0
+    /// without a message.
+    /// </summary>
+    public static int Run(InstanceLaunch launch, Action<InstanceSession> host)
     {
         var arguments = ShellArguments.Parse(launch.Arguments);
         // The parent of -d returns at once. It must not hold the mutex, or the child looks like a duplicate of it.
         // The child keeps --after and waits itself, so a reload's handoff still lets the old process go first.
         if (arguments.Daemonize)
-            return Detach(launch.Program, arguments.Detached) is { } error
-                ? InstanceResult.Reported(error)
-                : InstanceResult.Detached;
+            return Detach(launch.Program, arguments.Detached) is { } error ? Reported(error) : 0;
 
         // A reload: the shell before this one lets go of the taskbar, the hotkeys and the tray first.
         // One that has already gone, or is still here after the wait, does not stop this start.
@@ -136,7 +102,7 @@ internal static class InstanceStart
             ? DuplicateHold.TryClaim(locations, identity.ShellId)
             : default;
         if (arguments.NoDuplicate && !duplicate.Acquired)
-            return InstanceResult.Duplicate;
+            return 0;
 
         var instance = ShellInstance.Open(identity.ShellId, launch.Program, launch.Log, arguments.Verbose);
         launch.Prepare?.Invoke(instance);
@@ -148,7 +114,7 @@ internal static class InstanceStart
         if (instance.OpenPipe() is { } pipeError)
         {
             instance.Abandon();
-            return InstanceResult.Reported(pipeError);
+            return Reported(pipeError);
         }
 
         var session = new InstanceSession(instance, identity, arguments, launch.Log, launch.Program);
@@ -167,9 +133,13 @@ internal static class InstanceStart
             instance.Close();
         }
 
-        return session.Failure is { } failure
-            ? InstanceResult.Reported(failure.Message)
-            : InstanceResult.Ran;
+        return session.Failure is { } failure ? Reported(failure.Message) : 0;
+    }
+
+    private static int Reported(string reason)
+    {
+        StartupError.Report(reason, null);
+        return CouldNotStart;
     }
 
     /// <summary>
