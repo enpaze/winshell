@@ -413,7 +413,7 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
             }
         }
 
-        if (Math.Abs(CursorNow().X - now.X) <= 1 && Math.Abs(CursorNow().Y - now.Y) <= 1)
+        if (PointerInput.Cursor() is { } cursor && Math.Abs(cursor.X - now.X) <= 1 && Math.Abs(cursor.Y - now.Y) <= 1)
             Cursor.MoveTo(back.X, back.Y);
         return stepped;
     }
