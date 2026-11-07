@@ -7,6 +7,9 @@
     <Project Path="src/Winshell.Package/Winshell.Package.csproj" />
     <Project Path="src/Winshell/Winshell.csproj" />
   </Folder>
+  <Folder Name="/examples/">
+    <Project Path="examples/omarchy-style/OmarchyStyle.csproj" />
+  </Folder>
   <Folder Name="/templates/">
     <Project Path="templates/Winshell.Templates.csproj" />
   </Folder>
