@@ -189,7 +189,7 @@ winland reload
 
 ## See what you changed
 
-`winshell inspect` is how to verify a visual change. It reads a running shell from inside, so it needs no mouse and no keyboard, and it does not move the user's pointer or focus. Winshell has no shell of its own, so run one that shows the change: a project made with `dotnet new winshell`, as the [configuration guide](configuration.md#create-one) shows, with the change in it. A test can start the probe shell in `tests/Winshell.Tests/ProbeShell.cs` instead. Run it under "Live UI with Winland running", with private `WINSHELL_CONFIG_DIR` and `WINSHELL_LOCAL_DIR`, and pass `--pid`:
+`winshell inspect` is how to verify a visual change. It reads a running shell from inside, so its `tree`, `screenshot`, `record`, `click` and `hover` need no mouse and no keyboard, and they do not move the user's pointer or focus. Winshell has no shell of its own, so run one that shows the change: a project made with `dotnet new winshell`, as the [configuration guide](configuration.md#create-one) shows, with the change in it. A test can start the probe shell in `tests/Winshell.Tests/ProbeShell.cs` instead. Run it under "Live UI with Winland running", with private `WINSHELL_CONFIG_DIR` and `WINSHELL_LOCAL_DIR`, and pass `--pid`:
 
 ```powershell
 winshell run -d -p .\MyShell                                  # build and start the shell
@@ -202,7 +202,18 @@ winshell inspect --pid <pid> record out.mp4 --for 5s PanelView --frames frames
 
 `winshell list` shows the process id. Look at the screenshot, and check values in the tree rather than trusting that the code ran. The tree marks the element keyboard focus is on with `"focused": true`. A name finds only elements that are not collapsed, as Narrator does, so a control kept collapsed beside a visible twin does not make the name ambiguous.
 
-`winshell inspect hover` shows a control's hover look only: a `PointerEntered` handler needs a real pointer, or a method of its own that a test can call.
+`winshell inspect hover` shows a control's hover look only: a `PointerEntered` handler needs a real pointer.
+
+For hover, a press, keyboard focus or an animation, use real input. Record in the background, `point` at the element, then look at the contact sheet:
+
+```powershell
+$record = Start-Process winshell -NoNewWindow -PassThru -ArgumentList 'inspect', '--pid', <pid>, 'record', 'hover.mp4', '--for', '5s', 'PanelView', '--frames', 'frames'
+winshell inspect --pid <pid> point TrayChevron PanelView      # the mouse stays on it: PointerEntered and the hover look run
+winshell inspect --pid <pid> leave                            # the cursor goes back, and PointerExited runs
+$record.WaitForExit()                                         # then read frames\contact-sheet.png
+```
+
+`focus`, `press [--right]`, `scroll` and `key` work the same way. They move the user's real cursor, so they refuse while anyone has used the PC in the last 3 seconds, and before each mouse event they check that no other window is on top at the element. Run them only in a live session, never at someone's active desktop. A test does not inject input of its own, but a slow test may run these commands. The [command-line reference](reference/command-line.md) lists each command and refusal.
 
 ## Run the shell from source
 
@@ -321,7 +332,7 @@ Reading Bluetooth state uses Windows adapter and device-enumeration properties, 
 
 ## Hotkeys
 
-Tests may register an unused chord such as Ctrl+Alt+Shift+F24 and may install a keyboard hook while a Windows-key hotkey is enabled or a key sequence is in progress. Each test removes the registration and the hook before it ends. Tests do not inject keystrokes or change keyboard settings. See [hotkeys](reference/winshell-input.md).
+Tests may register an unused chord such as Ctrl+Alt+Shift+F24 and may install a keyboard hook while a Windows-key hotkey is enabled or a key sequence is in progress. Each test removes the registration and the hook before it ends. Tests do not inject keystrokes of their own or change keyboard settings. A slow test may run `winshell inspect`'s real input commands, which keep to the rules under [See what you changed](#see-what-you-changed). See [hotkeys](reference/winshell-input.md).
 
 ## Checks only a live session can do
 

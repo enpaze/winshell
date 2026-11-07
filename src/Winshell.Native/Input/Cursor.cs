@@ -7,6 +7,7 @@ internal static class Cursor
     /// <summary>Moves the pointer to a point on the screen, in physical pixels.</summary>
     internal static bool MoveTo(int x, int y)
     {
+        SentInput.Mark();
         return PInvoke.SetCursorPos(x, y);
     }
 }

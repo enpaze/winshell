@@ -55,7 +55,7 @@ Many agents work on this repo at once.
 
 Before running slow tests, a shell, or packaging that opens windows, follow [Live UI with Winland running](docs/development.md#live-ui-with-winland-running). Run one live session at a time, leave the user's workspaces as they are, and drop the `ignore` rule with `winland reload` in `finally`.
 
-For a visual change, follow [See what you changed](docs/development.md#see-what-you-changed): run a shell built from the `winshell` template, or the probe shell, with the change, inspect it, view its screenshot, and check the tree.
+For a visual change, follow [See what you changed](docs/development.md#see-what-you-changed): run a shell built from the `winshell` template, or the probe shell, with the change, inspect it, view its screenshot, and check the tree. For hover, a press, focus or an animation, record with `winshell inspect record` in the background, `point` at the element, then look at the contact sheet.
 
 ## Agent skills
 

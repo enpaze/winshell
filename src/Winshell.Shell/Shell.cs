@@ -51,6 +51,7 @@ public sealed partial class Shell : IDisposable
     private readonly ShellArguments _arguments;
     private bool _nextStarted;
     private bool _disposed;
+    private RealInput? _input;
 
     private Shell(IEventLoop loop, ShellOptions options, InstanceSession session)
     {
@@ -96,6 +97,9 @@ public sealed partial class Shell : IDisposable
     public ShellOptions Options { get; }
 
     internal ShellPlatform Platform { get; }
+
+    /// <summary>The real input of <c>winshell inspect</c>, made by its first command. It gives a held cursor back on dispose.</summary>
+    internal RealInput Input => _input ??= new RealInput(Loop);
 
     /// <summary>Winshell's own notices.</summary>
     internal ShellNotices Notices { get; }
@@ -353,7 +357,7 @@ public sealed partial class Shell : IDisposable
             return;
         _disposed = true;
         // The platform goes last, closing every window that is left.
-        DisposeEach([Notices, .. ServicesInStopOrder, Platform]);
+        DisposeEach([_input, Notices, .. ServicesInStopOrder, Platform]);
     }
 
     /// <summary>

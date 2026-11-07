@@ -17,6 +17,8 @@ internal static class InspectCommand
         // The shell writes the file, so a relative path must mean what it means here.
         var rest = args.Skip(1).Select((arg, i) => args[0] == "screenshot" && i == 0 ? Path.GetFullPath(arg) : arg)
             .ToList();
+        if (options.Right)
+            rest.Insert(0, "--right");
         return await InstanceCall.PrintAsync(info, IpcRequest.ForInspect(args[0], rest));
     }
 
