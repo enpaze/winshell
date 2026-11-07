@@ -335,6 +335,7 @@ Real mixed-DPI movement, Acrylic composition, Narrator speech, native toast plac
 ├── docs/
 │   ├── agents/                      # How the engineering skills use this repo
 │   ├── reference/                   # A page per namespace
+│   ├── research/                    # Research notes that a tracked decision builds on
 │   ├── *.md                         # The configuration guide and troubleshooting
 │   └── development.md               # Setup, environment, and every command
 ├── examples/
