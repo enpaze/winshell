@@ -337,6 +337,8 @@ Real mixed-DPI movement, Acrylic composition, Narrator speech, native toast plac
 │   ├── reference/                   # A page per namespace
 │   ├── *.md                         # The configuration guide and troubleshooting
 │   └── development.md               # Setup, environment, and every command
+├── examples/
+│   └── omarchy-style/               # A configuration in the style of Omarchy's top bar; the solution builds it
 ├── packaging/
 │   ├── logo.svg                     # The app logo; scripts/render-logo.cs renders its PNGs and winshell.ico
 │   ├── msix/                        # The Microsoft Store package's manifest and assets
