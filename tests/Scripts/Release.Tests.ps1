@@ -58,6 +58,27 @@ Describe 'Checking the version winshell.exe reports' {
     }
 }
 
+Describe 'Checking the Winshell package a release carries' {
+    BeforeEach {
+        $script:Release = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $script:Release | Out-Null
+    }
+
+    It 'accepts packages/Winshell.1.2.3.nupkg alone for 1.2.3' {
+        New-Item -ItemType File -Force -Path (Join-Path $script:Release 'packages/Winshell.1.2.3.nupkg') | Out-Null
+        { Assert-WinshellPackage $script:Release '1.2.3' 'the zip' } | Should -Not -Throw
+    }
+
+    It 'stops at <Case> for 1.2.3' -ForEach @(
+        @{ Case = 'no packages folder'; Packages = @() }
+        @{ Case = 'another version'; Packages = @('Winshell.1.2.2.nupkg') }
+        @{ Case = 'another version beside it'; Packages = @('Winshell.1.2.2.nupkg', 'Winshell.1.2.3.nupkg') }
+    ) {
+        foreach ($name in $Packages) { New-Item -ItemType File -Force -Path (Join-Path $script:Release "packages/$name") | Out-Null }
+        { Assert-WinshellPackage $script:Release '1.2.3' 'the zip' } | Should -Throw 'the zip has *, not packages/Winshell.1.2.3.nupkg'
+    }
+}
+
 Describe 'Packing a zip' {
     It 'orders entries by ordinal path under a culture that sorts differently, and dates them the day it is given' {
         $dir = Join-Path $TestDrive 'files'
