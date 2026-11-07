@@ -136,6 +136,10 @@ _Avoid_: power profile, overlay scheme, power plan
 The brightness setting of a connected monitor.
 _Avoid_: backlight
 
+**CPU usage**:
+How busy the processors are: the share of time all cores together spent busy, from 0 to 100 %. Task Manager calls it CPU.
+_Avoid_: load, CPU load, utilization
+
 **Tray icon**:
 An app's icon in the notification area, which the app adds, changes and removes itself.
 _Avoid_: status notifier item, SNI, indicator

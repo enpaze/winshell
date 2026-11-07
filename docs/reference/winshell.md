@@ -194,6 +194,7 @@ The running shell: its screens and services. There is one in a process. Each ser
 | `ColorScheme` | [ColorScheme](#colorscheme) | The color scheme every window follows. |
 | `ConfigDir` | string, read-only | The folder of this configuration's program, where its own files are. |
 | `ConfigRoot` | string, read-only | The config folder: `%APPDATA%\winshell`, or `WINSHELL_CONFIG_DIR` when it is set. |
+| `Cpu` | [CpuService](winshell-cpu.md#cpuservice), read-only | How busy the processors are, measured only while something listens. |
 | `Current` | [Shell](#shell), static, read-only | The shell of this process. Reading it before Run has started it throws. |
 | `DataDir` | string, read-only | This shell's data folder, which exists once read. |
 | `ExplorerTaskbar` | [ExplorerTaskbarService](winshell-explorertaskbar.md#explorertaskbarservice), read-only | Whether Explorer's taskbar is hidden. Winshell shows it again when it exits. |
