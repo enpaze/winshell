@@ -18,7 +18,7 @@ internal interface IPowerModeBackend : IDisposable
 
     /// <summary>
     /// Sets the slider for the supply in use: DC while on battery, AC otherwise. Returns the Windows error, or 0. This
-    /// changes the power mode, not the power plan.
+    /// changes the power mode, not the power plan. <paramref name="mode"/> is a defined level; the service checks.
     /// </summary>
     uint Set(PowerModeLevel mode);
 }
@@ -73,8 +73,6 @@ internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
 
     public uint Set(PowerModeLevel mode)
     {
-        if (!Enum.IsDefined(mode))
-            return 87;
         var result = PowerMode.SetUserConfigured(PowerSupply.OnBattery(), ToGuid(mode));
         Changed?.Invoke();
         return result;
