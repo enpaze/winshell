@@ -18,9 +18,9 @@ internal static class DevCommand
             return 1;
         }
 
-        if (project.Downloaded() is { } file)
+        if (project.Blocked() is { } blocked)
         {
-            Console.Error.WriteLine($"{file}: {ZoneIdentifier.Blocked(file)}");
+            Console.Error.WriteLine(blocked);
             return 1;
         }
 

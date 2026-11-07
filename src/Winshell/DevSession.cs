@@ -60,9 +60,7 @@ internal static class DevSession
         foreach (var argument in new[]
                      { "watch", "--non-interactive", "--project", project.ProjectFile, "run", "--no-launch-profile" })
             start.ArgumentList.Add(argument);
-        // Its lines are what DevOutput reads, in the one form it knows.
-        start.Environment["DOTNET_CLI_UI_LANGUAGE"] = "en";
-        start.Environment["DOTNET_WATCH_SUPPRESS_EMOJIS"] = "1";
+        DevOutput.Prepare(start.Environment);
         start.Environment[Shell.DevProjectVariable] = project.Folder;
         using var buildRequest =
             new EventWaitHandle(false, EventResetMode.AutoReset, XamlReload.BuildRequest(project.Folder));
@@ -104,8 +102,7 @@ internal static class DevSession
                     return null;
                 }
 
-                // No key reaches dotnet watch, so its Ctrl+R hint would point at a key that does nothing.
-                if (line != "dotnet watch : Press Ctrl+R to restart.")
+                if (DevOutput.Shows(line))
                     Console.WriteLine(line);
                 if (output.Read(line) is { } notice)
                     await Show(project, notice);

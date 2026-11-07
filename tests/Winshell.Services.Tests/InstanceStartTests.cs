@@ -15,8 +15,6 @@ public sealed class InstanceStartTests
 {
     private const string Program = @"C:\shells\mine.exe";
 
-    private static readonly object ExitCode = new();
-
     private static string ShellId()
     {
         return "start-" + Guid.NewGuid().ToString("N");
@@ -28,21 +26,26 @@ public sealed class InstanceStartTests
         return new InstanceLaunch(program, args, shellId, null, null, null, new Log(), prepare);
     }
 
-    /// <summary>Restores the process exit code. A failed start sets it, and other tests share this process.</summary>
-    private static InstanceResult Start(InstanceLaunch launch, Action<InstanceSession> host)
+    /// <summary>
+    /// The start's exit code, and the lines of standard error, where a failed start says why. Other tests in this
+    /// process may write there too, so a test looks for its line among them.
+    /// </summary>
+    private static (int Code, string[] Error) Start(InstanceLaunch launch, Action<InstanceSession> host)
     {
-        lock (ExitCode)
+        var error = new StringWriter();
+        var previous = Console.Error;
+        Console.SetError(error);
+        int code;
+        try
         {
-            var previous = Environment.ExitCode;
-            try
-            {
-                return InstanceStart.Run(launch, host);
-            }
-            finally
-            {
-                Environment.ExitCode = previous;
-            }
+            code = InstanceStart.Run(launch, host);
         }
+        finally
+        {
+            Console.SetError(previous);
+        }
+
+        return (code, error.ToString().Split(Environment.NewLine));
     }
 
     private static InstanceInfo Read(string id)
@@ -77,8 +80,7 @@ public sealed class InstanceStartTests
             var result = Start(Launch(shellId, Program, ["--no-duplicate"]), _ => hosted = true);
 
             Assert.False(hosted);
-            Assert.Equal(InstanceStartStatus.Duplicate, result.Status);
-            Assert.Null(result.Reason);
+            Assert.Equal(0, result.Code);
         }
         finally
         {
@@ -96,8 +98,9 @@ public sealed class InstanceStartTests
         var result = Start(Launch(ShellId(), program, ["-d"]), _ => hosted = true);
 
         Assert.False(hosted);
-        Assert.Equal(InstanceStartStatus.Failed, result.Status);
-        Assert.StartsWith($"Could not start \"{program}\":", result.Reason, StringComparison.Ordinal);
+        Assert.Equal(InstanceStart.CouldNotStart, result.Code);
+        Assert.Contains(result.Error,
+            line => line.StartsWith($"Could not start \"{program}\":", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -119,7 +122,7 @@ public sealed class InstanceStartTests
         });
 
         Assert.True(hosted);
-        Assert.Equal(InstanceStartStatus.Ran, result.Status);
+        Assert.Equal(0, result.Code);
     }
 
     [Fact]
@@ -132,18 +135,18 @@ public sealed class InstanceStartTests
             CreateNoWindow = true
         })!;
         using var started = new ManualResetEventSlim();
-        InstanceResult result = default;
+        var code = -1;
         Exception? error = null;
         var thread = new Thread(() =>
             {
                 try
                 {
-                    result = Start(Launch(ShellId(), Program,
+                    code = Start(Launch(ShellId(), Program,
                         ["--after", replaced.Id.ToString(CultureInfo.InvariantCulture)]), session =>
                     {
                         started.Set();
                         session.Serve(new EventQueue(), new FakeInstanceControl());
-                    });
+                    }).Code;
                 }
                 catch (Exception e)
                 {
@@ -165,7 +168,7 @@ public sealed class InstanceStartTests
             await Join(thread);
 
             Assert.Null(error);
-            Assert.Equal(InstanceStartStatus.Ran, result.Status);
+            Assert.Equal(0, code);
         }
         finally
         {
@@ -207,8 +210,8 @@ public sealed class InstanceStartTests
             }), _ => hosted = true);
 
             Assert.False(hosted);
-            Assert.Equal(InstanceStartStatus.Failed, result.Status);
-            Assert.Equal("The control pipe is already taken.", result.Reason);
+            Assert.Equal(InstanceStart.CouldNotStart, result.Code);
+            Assert.Contains("The control pipe is already taken.", result.Error);
             Assert.False(Directory.Exists(ShellLocations.Current.Instances.DirOf(id!)));
         }
         finally
@@ -232,8 +235,7 @@ public sealed class InstanceStartTests
             published = Read(id);
         });
 
-        Assert.Equal(InstanceStartStatus.Ran, result.Status);
-        Assert.Null(result.Reason);
+        Assert.Equal(0, result.Code);
         Assert.NotNull(published);
         Assert.Equal(shellId, published.ShellId);
         Assert.Equal(Environment.ProcessId, published.Pid);

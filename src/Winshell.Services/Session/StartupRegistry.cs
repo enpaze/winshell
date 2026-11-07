@@ -34,8 +34,6 @@ internal sealed class WindowsStartupRegistry(
     string runKey = SignInEntry.RunKey,
     string approvedKey = SignInEntry.ApprovedKey) : IStartupRegistry
 {
-    public string Command => command;
-
     public bool IsRegistered()
     {
         return Try(() => SignInEntry.RegisteredCommand(runKey) is not null);

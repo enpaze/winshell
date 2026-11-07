@@ -260,8 +260,8 @@ internal sealed partial class ConfigurationProject
     {
         try
         {
-            if (Downloaded() is { } file)
-                return $"{file}: {ZoneIdentifier.Blocked(file)}";
+            if (Blocked() is { } blocked)
+                return blocked;
             if (noBuild)
                 return File.Exists(Program) ? null : $"{Name} has not been built. Run winshell run once to build it.";
             return NeedsBuild() ? Build(run) : null;
@@ -292,6 +292,12 @@ internal sealed partial class ConfigurationProject
             .Where(file => Path.GetExtension(file).ToUpperInvariant() is ".CSPROJ" or ".PROPS" or ".TARGETS")
             .Order(StringComparer.Ordinal)
             .FirstOrDefault(ZoneIdentifier.IsDownloaded);
+    }
+
+    /// <summary>What a person sees when <see cref="Downloaded"/> finds a file, or null when it finds none.</summary>
+    public string? Blocked()
+    {
+        return Downloaded() is { } file ? $"{file}: {ZoneIdentifier.Blocked(file)}" : null;
     }
 
     /// <summary>Runs a program and collects what it prints, up to a limit. The streams get a short wait after it exits, because a build server that outlives it keeps them open. They have threads of their own, so a busy pool cannot lose the last lines.</summary>
