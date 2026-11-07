@@ -44,8 +44,8 @@ Describe 'install.ps1 and uninstall.ps1' {
             $name = Get-ReleaseZipName $Version "win-$script:Arch"
             $zip = [IO.Compression.ZipFile]::Open((Join-Path $folder $name), 'Create')
             try {
-                foreach ($exe in 'winshell.exe', 'winshellw.exe') {
-                    $writer = [IO.StreamWriter]::new($zip.CreateEntry($exe).Open())
+                foreach ($file in 'winshell.exe', 'winshellw.exe', "packages/Winshell.$Version.nupkg") {
+                    $writer = [IO.StreamWriter]::new($zip.CreateEntry($file).Open())
                     try { $writer.Write($Version) } finally { $writer.Dispose() }
                 }
             } finally { $zip.Dispose() }
@@ -141,6 +141,7 @@ Describe 'install.ps1 and uninstall.ps1' {
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match 'Verifying SHA256'
         Get-Text (Join-Path $p.Bin 'winshellw.exe') | Should -Be '0.6.0'
+        Get-Text (Join-Path $p.Bin 'packages\Winshell.0.6.0.nupkg') | Should -Be '0.6.0'
         Get-Text $p.PathFile | Should -Be "C:\Windows;C:\Tools;$($p.Bin)"
         $link = (New-Object -ComObject WScript.Shell).CreateShortcut($p.Shortcut)
         $link.TargetPath | Should -Be (Join-Path $p.Bin 'winshellw.exe')

@@ -38,6 +38,17 @@ function Assert-WinshellVersion([string] $Exe, [string] $Version) {
     $reported
 }
 
+# Stops unless the packages folder in $Dir, an unpacked release, holds the Winshell package of $Version and nothing else.
+# $What names the release in the message.
+function Assert-WinshellPackage([string] $Dir, [string] $Version, [string] $What) {
+    $expected = "Winshell.$Version.nupkg"
+    $found = @(Get-ChildItem -LiteralPath (Join-Path $Dir 'packages') -File -ErrorAction SilentlyContinue | ForEach-Object Name)
+    if (($found -join ', ') -cne $expected) {
+        $has = if ($found) { "packages/$($found -join ', packages/')" } else { 'no package' }
+        throw "$What has $has, not packages/$expected"
+    }
+}
+
 # A zip of a folder whose bytes depend only on the files and the day: entries sorted by path, each dated that day.
 function New-Zip([string] $dir, [string] $zip, [datetime] $day) {
     if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }

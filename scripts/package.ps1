@@ -7,15 +7,16 @@
 #   pwsh scripts/package.ps1 -Verify          only checks what artifacts/ already has
 #
 # Publishing is a self-contained, trimmed ReadyToRun build of src/Winshell for each runtime, so no .NET install is needed
-# and sign-in does less JIT work.
+# and sign-in does less JIT work. Each folder also gets packages/Winshell.<version>.nupkg, the package scripts/pack.ps1
+# makes, which a configuration builds against.
 # Packing makes winshell-<version>-<runtime>.zip for each, SHA256SUMS.txt, the winget manifests in winget/<version>/
 # and, zipped, in winget-manifests.zip, and copies install.ps1 and uninstall.ps1 next to them. It also makes
 # winshell-<version>.msixbundle for the Microsoft Store, unsigned, from packaging/msix/ and the identity -IdentityName,
 # -Publisher and -PublisherDisplayName give it. That needs makeappx.exe from the Windows SDK. The same files pack to the
 # same bytes: entries are in ordinal path order and dated the day of the commit, which is also the manifests'
 # ReleaseDate.
-# Verifying checks that every file a release uploads is there, the checksums, that each zip's binaries are for its
-# architecture, that the x64 winshell.exe runs, reports the version, runs every winshell doctor check, and that the
+# Verifying checks that every file a release uploads is there, the checksums, that each zip and Store package carries
+# the Winshell package of its version and no other, that each zip's binaries are for its architecture, that the x64 winshell.exe runs, reports the version, runs every winshell doctor check, and that the
 # manifests pass the validator wingetcreate runs before it submits them.
 param(
     [switch] $Publish,
@@ -102,6 +103,16 @@ function Get-PackageVersion {
 function Get-Sha256([string] $path) { (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() }
 
 if ($Publish) {
+    # The Winshell package a configuration builds against, for packages/ next to winshell.exe. NuGet dates its entries
+    # by the clock and the files' times, so they are dated the day of the commit, as the zips' are.
+    $packed = Assert-Inside (Join-Path $Out 'pack') $Out
+    if (Test-Path -LiteralPath $packed) { Remove-Item -LiteralPath $packed -Recurse -Force }
+    & (Join-Path $PSScriptRoot 'pack.ps1') -Out $packed -Version $Version
+    $package = Join-Path $packed "Winshell.$Version.nupkg"
+    $archive = [IO.Compression.ZipFile]::Open($package, [IO.Compression.ZipArchiveMode]::Update)
+    try {
+        foreach ($entry in $archive.Entries) { $entry.LastWriteTime = [DateTimeOffset]::new($releaseDay, [TimeSpan]::Zero) }
+    } finally { $archive.Dispose() }
     foreach ($rid in $Runtime) {
         $dir = Assert-Inside (Join-Path $publishRoot $rid) $publishRoot
         if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force }
@@ -132,6 +143,8 @@ if ($Publish) {
         [IO.File]::WriteAllBytes((Join-Path $dir 'winshellw.exe'), $gui)
         $pri = Join-Path $dir 'winshell.pri'
         if (Test-Path -LiteralPath $pri) { Copy-Item -LiteralPath $pri -Destination (Join-Path $dir 'winshellw.pri') -Force }
+        New-Item -ItemType Directory -Path (Join-Path $dir 'packages') | Out-Null
+        Copy-Item -LiteralPath $package -Destination (Join-Path $dir 'packages')
     }
 }
 
@@ -274,6 +287,7 @@ if ($Verify) {
         $dir = Assert-Inside (Join-Path $verifyRoot $rid) $Out
         if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force }
         [IO.Compression.ZipFile]::ExtractToDirectory($zip, $dir)
+        Assert-WinshellPackage $dir $Version $name
         foreach ($binary in 'winshell.exe', 'hostfxr.dll', 'coreclr.dll', 'winshell.dll') {
             $path = Join-Path $dir $binary
             if (-not (Test-Path -LiteralPath $path)) { throw "$name has no $binary at its root" }
@@ -372,6 +386,7 @@ public static extern IntPtr WinGetValidateManifest(string manifestPath, [Marshal
         $expected = "$IdentityName|$Publisher|$(Get-PackageVersion)|$($rid -replace '^win-', '')"
         $actual = "$($identity.Name)|$($identity.Publisher)|$($identity.Version)|$($identity.ProcessorArchitecture)"
         if ($actual -cne $expected) { throw "The $rid package's identity is $actual, not $expected" }
+        Assert-WinshellPackage $dir $Version "The $rid package"
         foreach ($pair in @(@('winshell.exe', 3), @('winshellw.exe', 2))) {
             $bytes = [IO.File]::ReadAllBytes((Join-Path $dir $pair[0]))
             $subsystem = [BitConverter]::ToUInt16($bytes, (Get-PeLayout $bytes).Subsystem)
