@@ -146,6 +146,14 @@ A picture in memory: BGRA, one byte a channel, top row first, with no gap betwee
 | `Width` | int, read-only | The width in pixels. |
 | `EncodePng()` | byte[] | The picture as a PNG file. Blocks while Windows encodes it. |
 
+## PixelImageExtensions
+
+Pictures in memory as sources WinUI can show.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `ToImageSource([PixelImage](#pixelimage) image)` | ImageSource, static | Makes a new source for a WinUI `Image`, with the picture's pixel size and colors. Call on the UI thread. The pixels are copied and premultiplied when needed; the picture is unchanged. A source that keeps its own copy of the pixels. |
+
 ## PopupWindow
 
 A frameless window placed next to another window.
