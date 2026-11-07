@@ -16,7 +16,7 @@ Releases are currently unsigned. Custom configurations may break between release
 
 ## Get started
 
-Start with the [configuration guide](docs/configuration.md). It makes a shell with `dotnet new winshell` and runs it with `winshell run`. Until there is a configuration, `winshell run` starts nothing.
+`winshell new` lists the starter and the examples, and `winshell new <name>` copies one into your config folder. Run it with `winshell run -c <name>`. Until there is a configuration, `winshell run` starts nothing. The [configuration guide](docs/configuration.md) builds a shell up from one panel.
 
 Stop a shell with `winshell kill`. If something goes wrong, run `winshell doctor` or read [troubleshooting](docs/troubleshooting.md).
 

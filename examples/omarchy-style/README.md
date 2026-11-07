@@ -16,6 +16,8 @@ Hover the clock, a tray icon or a status glyph for what it shows.
 
 ## Run it
 
+<!-- winshell new leaves this section out -->
+
 From a clone of Winshell, with `winshell` [built from that clone](../../docs/development.md#build-from-source):
 
 ```powershell
@@ -25,6 +27,8 @@ winshell run --path examples/omarchy-style
 The project references Winshell's source, so the repo's own check builds it.
 
 ## Use it as your own configuration
+
+<!-- winshell new leaves this section out -->
 
 Copy the folder out of the repo, then reference the `Winshell` package instead of the source. In `OmarchyStyle.csproj`, delete the `<Import>` of `Winshell.props` and replace the `<ProjectReference>` with:
 

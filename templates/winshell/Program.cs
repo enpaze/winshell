@@ -6,6 +6,6 @@ internal static class Program
     [STAThread]
     private static void Main()
     {
-        Shell.Run<AppShell>(new ShellOptions { ShellId = "MyShell" });
+        Shell.Run<AppShell>();
     }
 }

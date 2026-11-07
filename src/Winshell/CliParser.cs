@@ -139,6 +139,15 @@ internal static class CliParser
                                              --no-color         print without color
                                        """;
 
+    private const string NewUsage = """
+                                    winshell new [<name>] [-p <folder>]
+                                      With no name, lists the starter and the examples this release can copy.
+                                      With a name, copies that one into {config-root}\<name>, ready for
+                                      winshell run -c <name>. Its project references this release's Winshell package.
+                                      -p, --path <folder>    copy into this folder instead
+                                      A folder that exists and isn't empty is refused, and nothing changes.
+                                    """;
+
     private const string Summary = """
                                    winshell {version}: a desktop shell for Windows 11
 
@@ -162,6 +171,7 @@ internal static class CliParser
                                                                               look at a running shell, or act on it
                                           winshell doctor [config options] [-j] [--no-color]
                                                                               check this PC's setup for Winshell
+                                          winshell new [<name>] [-p <folder>] list the examples, or copy one to start from
                                           winshell help [command]             print this summary, or that command's help
 
                                    Config selection:
@@ -226,6 +236,7 @@ internal static class CliParser
             PathOption, ConfigOption, JsonOption,
             Option.Flag(new CommandWord("--no-color"), o => o with { NoColor = true })
         ]),
+        Entry("new", NewUsage, WordRule.One, [PathOption]),
         Entry("help", Summary, WordRule.Topic, [])
     ];
 
