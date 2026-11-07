@@ -20,6 +20,7 @@ public sealed record WinlandEvent(string Name, string Data)
 /// <summary>A Monitor as Winland reports it.</summary>
 public sealed class WinlandMonitor : ObservableObject
 {
+    private readonly WinlandService _ipc;
     private int _id = -1;
     private string _name = "";
     private string _description = "";
@@ -29,8 +30,9 @@ public sealed class WinlandMonitor : ObservableObject
     private WinlandWorkspace? _activeWorkspace;
     private JsonElement? _lastIpcObject;
 
-    internal WinlandMonitor()
+    internal WinlandMonitor(WinlandService ipc)
     {
+        _ipc = ipc;
     }
 
     /// <summary>Winland's number for the Monitor. -1 until Winland reports it.</summary>
@@ -68,6 +70,27 @@ public sealed class WinlandMonitor : ObservableObject
 
     /// <summary>The Monitor's entry from Winland's last monitor list. Null before the first one.</summary>
     public JsonElement? LastIpcObject => _lastIpcObject;
+
+    /// <summary>
+    /// Shows the Workspace number on this Monitor, creating it if it does not exist yet. If this Monitor is not
+    /// focused, focuses it first in the same request. A failure is logged.
+    /// </summary>
+    /// <param name="number">The positive Workspace number on this Monitor.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="number"/> is zero or negative.</exception>
+    public void ActivateWorkspace(int number)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(number);
+        ActivateWorkspace(number.ToString(CultureInfo.InvariantCulture));
+    }
+
+    internal void ActivateWorkspace(string name)
+    {
+        if (this != _ipc.FocusedMonitor)
+            _ipc.Send(
+                $"[[BATCH]]dispatch focusmonitor {(_id >= 0 ? _id.ToString(CultureInfo.InvariantCulture) : _name)};dispatch workspace {name}");
+        else
+            _ipc.Dispatch("workspace " + name);
+    }
 
     internal void UpdateInitial(int id, string name, string description)
     {
@@ -157,9 +180,8 @@ public sealed class WinlandWorkspace : ObservableObject
     /// </summary>
     public void Activate()
     {
-        if (!IsSpecial && _monitor is { Id: >= 0 } monitor && monitor != _ipc.FocusedMonitor)
-            _ipc.Send(
-                $"[[BATCH]]dispatch focusmonitor {monitor.Id.ToString(CultureInfo.InvariantCulture)};dispatch workspace {_name}");
+        if (!IsSpecial && _monitor is { Id: >= 0 } monitor)
+            monitor.ActivateWorkspace(_name);
         else
             _ipc.Dispatch("workspace " + _name);
     }

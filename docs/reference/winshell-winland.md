@@ -34,6 +34,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Width` | int, read-only | The width in physical pixels. |
 | `X` | int, read-only | The left edge on the virtual screen, in physical pixels. |
 | `Y` | int, read-only | The top edge on the virtual screen, in physical pixels. |
+| `ActivateWorkspace(int number)` | void | Shows the Workspace number on this Monitor, creating it if it does not exist yet. If this Monitor is not focused, focuses it first in the same request. A failure is logged. Throws ArgumentOutOfRangeException when number is zero or negative. |
 
 ## WinlandService
 
