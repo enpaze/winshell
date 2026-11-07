@@ -57,3 +57,36 @@ Describe 'Checking the version winshell.exe reports' {
         { Assert-WinshellVersion $exe '1.2.3' } | Should -Throw '*not version 1.2.3*'
     }
 }
+
+Describe 'Packing a zip' {
+    It 'orders entries by ordinal path under a culture that sorts differently, and dates them the day it is given' {
+        $dir = Join-Path $TestDrive 'files'
+        New-Item -ItemType Directory -Path (Join-Path $dir 'sub') | Out-Null
+        foreach ($name in 'y', 'i', [string][char]0x012F, 'sub/a', 'Z') {
+            Set-Content -LiteralPath (Join-Path $dir $name) -Value $name
+        }
+        $zip = Join-Path $TestDrive 'out.zip'
+        $culture = [Threading.Thread]::CurrentThread.CurrentCulture
+        [Threading.Thread]::CurrentThread.CurrentCulture = [Globalization.CultureInfo]::GetCultureInfo('lt-LT')
+        try { New-Zip $dir $zip ([datetime]::new(2026, 11, 2)) } finally { [Threading.Thread]::CurrentThread.CurrentCulture = $culture }
+
+        $archive = [IO.Compression.ZipFile]::OpenRead($zip)
+        try {
+            $archive.Entries.FullName -join ',' | Should -BeExactly "Z,i,sub/a,y,$([char]0x012F)"
+            $archive.Entries.LastWriteTime.Date | Select-Object -Unique | Should -Be ([datetime]::new(2026, 11, 2))
+        } finally { $archive.Dispose() }
+    }
+}
+
+Describe 'Reading a PE header' {
+    It 'finds the machine and subsystem .NET reads from this PowerShell' {
+        $path = (Get-Process -Id $PID).Path
+        $bytes = [IO.File]::ReadAllBytes($path)
+        $stream = [IO.File]::OpenRead($path)
+        try { $headers = [Reflection.PortableExecutable.PEHeaders]::new($stream) } finally { $stream.Dispose() }
+        $layout = Get-PeLayout $bytes
+
+        [BitConverter]::ToUInt16($bytes, $layout.Machine) | Should -Be ([int] $headers.CoffHeader.Machine)
+        [BitConverter]::ToUInt16($bytes, $layout.Subsystem) | Should -Be ([int] $headers.PEHeader.Subsystem)
+    }
+}

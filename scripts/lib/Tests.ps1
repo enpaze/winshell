@@ -66,7 +66,6 @@ function Invoke-DotnetTest {
 function Invoke-TestRun {
     param(
         [string] $Tier = 'Fast',
-        [Parameter(Mandatory)][int] $ProjectCount,
         [int] $Seed = 0
     )
     if ($Seed -eq 0) { $Seed = Get-Random -Minimum 1 -Maximum ([int]::MaxValue) }
@@ -76,7 +75,7 @@ function Invoke-TestRun {
         $run = Get-TestRun -Tier $Tier
         $exit = Invoke-DotnetTest -Project $run.Project -Filter $run.Filter -ResultsDirectory $results -Seed $Seed -Serial:($Tier -in 'Slow', 'All')
         if ($exit -ne 0) { return $exit }
-        $outcome = Read-TestResult -Directory $results -ProjectCount $ProjectCount
+        $outcome = Read-TestResult -Directory $results -ProjectCount $run.ProjectCount
         if ($outcome.Passed -gt 0 -and $outcome.Failed -eq 0 -and $outcome.Complete) { return 0 }
         Write-Host 'A test failed, no test ran, or a test project wrote no results.'
         return 1

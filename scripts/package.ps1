@@ -71,34 +71,6 @@ function Assert-Inside([string] $path, [string] $parent) {
     $full
 }
 
-# A zip of a folder whose bytes depend only on the files: entries sorted by path, each dated the release day.
-function New-Zip([string] $dir, [string] $zip) {
-    if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
-    # Ordinal, not the current culture: lt-LT orders "y" after "į". A dictionary keeps names that differ only in case.
-    $paths = [Collections.Generic.Dictionary[string, string]]::new([StringComparer]::Ordinal)
-    foreach ($file in Get-ChildItem -LiteralPath $dir -File -Recurse) {
-        $paths[[IO.Path]::GetRelativePath($dir, $file.FullName).Replace('\', '/')] = $file.FullName
-    }
-    $names = [string[]]::new($paths.Count)
-    $paths.Keys.CopyTo($names, 0)
-    [Array]::Sort($names, [StringComparer]::Ordinal)
-    $stream = [IO.File]::Open($zip, [IO.FileMode]::CreateNew)
-    try {
-        $archive = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Create)
-        try {
-            foreach ($name in $names) {
-                $entry = $archive.CreateEntry($name, [IO.Compression.CompressionLevel]::Optimal)
-                $entry.LastWriteTime = [DateTimeOffset]::new($releaseDay, [TimeSpan]::Zero)
-                $to = $entry.Open()
-                try {
-                    $from = [IO.File]::OpenRead($paths[$name])
-                    try { $from.CopyTo($to) } finally { $from.Dispose() }
-                } finally { $to.Dispose() }
-            }
-        } finally { $archive.Dispose() }
-    } finally { $stream.Dispose() }
-}
-
 # Runs winshell doctor from an unpacked zip, on folders of its own. A library a check uses that the release left out or
 # cut makes that check say it could not check, and fails only here, because tests run the build and not the zip.
 function Test-Doctor([string] $exe, [string] $work) {
@@ -125,13 +97,6 @@ function Test-Doctor([string] $exe, [string] $work) {
 function Get-PackageVersion {
     $parts = $Version.Split('.')
     "$([int] $parts[0] + 1).$($parts[1]).$($parts[2]).0"
-}
-
-# Where a PE file's Machine and Subsystem fields are. e_lfanew, at 0x3C, points at the "PE\0\0" signature; the 20-byte
-# COFF header follows it, and Subsystem is 68 bytes into the optional header after that.
-function Get-PeLayout([byte[]] $bytes) {
-    $coff = [BitConverter]::ToInt32($bytes, 0x3C) + 4
-    @{ Machine = $coff; Subsystem = $coff + 20 + 68 }
 }
 
 function Get-Sha256([string] $path) { (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() }
@@ -176,7 +141,7 @@ if ($Pack) {
         $dir = Join-Path $publishRoot $rid
         if (-not (Test-Path -LiteralPath (Join-Path $dir 'winshell.exe'))) { throw "No winshell.exe in $dir. Run with -Publish first." }
         $zip = Join-Path $Out (Get-ReleaseZipName $Version $rid)
-        New-Zip $dir $zip
+        New-Zip $dir $zip $releaseDay
         $sums[(Split-Path -Leaf $zip)] = Get-Sha256 $zip
     }
     # The format sha256sum -c reads: the hash, two spaces, the file name.
@@ -259,7 +224,7 @@ ReleaseNotesUrl: https://github.com/$Repository/releases/tag/v$Version
 ManifestType: defaultLocale
 ManifestVersion: $schema
 "@ | Set-Content -LiteralPath (Join-Path $wingetDir "$id.locale.en-US.yaml")
-    New-Zip $wingetDir (Join-Path $Out 'winget-manifests.zip')
+    New-Zip $wingetDir (Join-Path $Out 'winget-manifests.zip') $releaseDay
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'install.ps1'), (Join-Path $PSScriptRoot 'uninstall.ps1') -Destination $Out
 
     # The Microsoft Store package: one .msix per architecture, bundled. The Store signs it.

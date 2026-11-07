@@ -37,3 +37,38 @@ function Assert-WinshellVersion([string] $Exe, [string] $Version) {
     }
     $reported
 }
+
+# A zip of a folder whose bytes depend only on the files and the day: entries sorted by path, each dated that day.
+function New-Zip([string] $dir, [string] $zip, [datetime] $day) {
+    if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
+    # Ordinal, not the current culture: lt-LT orders "y" after U+012F, i with ogonek. A dictionary keeps names that differ only in case.
+    $paths = [Collections.Generic.Dictionary[string, string]]::new([StringComparer]::Ordinal)
+    foreach ($file in Get-ChildItem -LiteralPath $dir -File -Recurse) {
+        $paths[[IO.Path]::GetRelativePath($dir, $file.FullName).Replace('\', '/')] = $file.FullName
+    }
+    $names = [string[]]::new($paths.Count)
+    $paths.Keys.CopyTo($names, 0)
+    [Array]::Sort($names, [StringComparer]::Ordinal)
+    $stream = [IO.File]::Open($zip, [IO.FileMode]::CreateNew)
+    try {
+        $archive = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Create)
+        try {
+            foreach ($name in $names) {
+                $entry = $archive.CreateEntry($name, [IO.Compression.CompressionLevel]::Optimal)
+                $entry.LastWriteTime = [DateTimeOffset]::new($day, [TimeSpan]::Zero)
+                $to = $entry.Open()
+                try {
+                    $from = [IO.File]::OpenRead($paths[$name])
+                    try { $from.CopyTo($to) } finally { $from.Dispose() }
+                } finally { $to.Dispose() }
+            }
+        } finally { $archive.Dispose() }
+    } finally { $stream.Dispose() }
+}
+
+# Where a PE file's Machine and Subsystem fields are. e_lfanew, at 0x3C, points at the "PE\0\0" signature; the 20-byte
+# COFF header follows it, and Subsystem is 68 bytes into the optional header after that.
+function Get-PeLayout([byte[]] $bytes) {
+    $coff = [BitConverter]::ToInt32($bytes, 0x3C) + 4
+    @{ Machine = $coff; Subsystem = $coff + 20 + 68 }
+}
