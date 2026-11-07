@@ -37,6 +37,16 @@ public sealed partial class Shell
     private WindowListService? _windows;
     private WinlandService? _winland;
 
+    /// <summary>
+    /// A service goes before the ones it reads: Winland reads the window list, which reads the virtual desktops.
+    /// Explorer's taskbar may go before or after the tray: its restore moves the tray out of the way itself.
+    /// </summary>
+    private IDisposable?[] ServicesInStopOrder =>
+    [
+        _winland, _windows, _virtualDesktops, _apps, _audio, _bluetooth, _brightness, _explorerTaskbar, _media,
+        _networking, _notifications, _power, _powerMode, _systemTray, _hotkeys
+    ];
+
     /// <summary>The apps Start lists.</summary>
     public AppsService Apps => _apps ??= new AppsService(Loop, Log);
 

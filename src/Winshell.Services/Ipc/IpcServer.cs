@@ -298,7 +298,7 @@ internal sealed class IpcServer : IDisposable
             finally
             {
                 if (request.Op == IpcOps.Reload && response.Ok)
-                    _loop.Post(_control.Reloaded);
+                    _loop.Post(_control.Quit);
             }
         }
         catch (IOException)

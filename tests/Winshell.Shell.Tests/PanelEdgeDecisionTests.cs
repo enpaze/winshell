@@ -299,7 +299,7 @@ public class PanelEdgeDecisionTests
         edge.Set(panel);
         Assert.Equal(1, desktop.Registers);
 
-        edge.ExplorerRestarted();
+        edge.OnMessage(new WindowMessage(TaskbarWindows.Created, 0, 0));
 
         Assert.Equal(1, desktop.Removes);
         Assert.Equal(1, desktop.Reserves);
