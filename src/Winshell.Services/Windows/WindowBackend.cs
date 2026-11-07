@@ -248,13 +248,11 @@ internal sealed class WindowBackend : IWindowBackend
     {
         var minimized = Win32.IsIconic(hwnd);
         var maximized = !minimized && Win32.IsZoomed(hwnd);
-        var monitor = Win32.MonitorFromWindow(hwnd, Win32.MONITOR_DEFAULTTONEAREST);
-        var mi = default(MonitorInfo);
-        var device = monitor != 0 && Monitors.TryRead(monitor, out mi) ? mi.Device : "";
-        var fullscreen = false;
-        if (!minimized && device.Length > 0 && Win32.GetWindowRect(hwnd, out var rect))
-            fullscreen =
-                WindowRules.CoversMonitor((long)Win32.GetWindowLongPtr(hwnd, Win32.GWL_STYLE), rect, mi.Bounds);
+        var monitor = Screens.Of(hwnd);
+        var device = monitor?.Id ?? "";
+        var fullscreen = !minimized && monitor is not null && Win32.GetWindowRect(hwnd, out var rect) &&
+                         WindowRules.CoversMonitor((long)Win32.GetWindowLongPtr(hwnd, Win32.GWL_STYLE), rect,
+                             monitor.Bounds);
 
         // The property can arrive after the window is first shown, so it is read every time.
         var property = AppUserModelIds.OfWindow(hwnd);
@@ -302,8 +300,7 @@ internal sealed class WindowBackend : IWindowBackend
             return;
         if (Screens.Find(deviceName) is not { } target)
             return;
-        var sourceHandle = Win32.MonitorFromWindow(hwnd, Win32.MONITOR_DEFAULTTONEAREST);
-        var source = sourceHandle == 0 ? null : Screens.Read(sourceHandle);
+        var source = Screens.Of(hwnd);
         if (source is null || source.Id == target.Id)
             return;
         if (!Win32.GetWindowRect(hwnd, out var current))

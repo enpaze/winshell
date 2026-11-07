@@ -107,6 +107,7 @@ public static class Doctor
             DoctorProbe.PreferencesProblem(context.Locations.ConfigRoot) is { } preferences)
             configuration[0] = WithPreferences(configuration[0], preferences);
         var instances = ListedInstances(context.Locations.Instances);
+        var monitors = new Lazy<IReadOnlyList<DoctorScreens.MonitorFacts>>(DoctorProbe.Monitors);
         DoctorCheck[] checks =
         [
             Guard("windows", "Windows",
@@ -125,10 +126,10 @@ public static class Doctor
                 instances.Where(i => DoctorProbe.IsElevated(i.Pid)).Select(i => i.Id).ToList(),
                 Environment.IsPrivilegedProcess)),
             Guard("appBars", "App bars",
-                () => DoctorScreens.AppBars(DoctorProbe.Monitors(), DoctorProbe.EdgeWindows())),
+                () => DoctorScreens.AppBars(monitors.Value, DoctorProbe.EdgeWindows())),
             Guard("dpi", "DPI",
                 () => DoctorScreens.Dpi(ThreadDpi.IsPerMonitorV2(), DoctorProbe.CompatibilityLayers(process),
-                    DoctorProbe.Monitors())),
+                    monitors.Value)),
             Guard("signIn", "Sign-in", () =>
             {
                 if (Packaging.IsPackaged)
