@@ -4,11 +4,11 @@ Research for [#1718](https://github.com/enpaze/winshell/issues/1718), the first 
 
 The facts come from Microsoft Learn, Raymond Chen's Microsoft blog, the Windows SDK 10.0.26100.0 headers, and [microsoft/microsoft-ui-xaml](https://github.com/microsoft/microsoft-ui-xaml) at commit `78c72df`. The results come from two throwaway probes, which are not committed. Both ran on Windows 11 Pro 10.0.26200, on one 2560×1600 screen at 150% scale, with Windows App SDK 2.6.4.
 
-- **Input probe.** A WinUI 3 window with three `Button`s. It logged `PointerEntered`, `PointerExited`, `PointerPressed`, `PointerReleased`, `PointerWheelChanged`, `KeyDown`, `GotFocus` with its `FocusState`, `Click`, `RightTapped`, and each `CommonStates` visual state.
+- **Input probe.** A WinUI 3 window with two `Button`s, and a third in the last Shift+Tab run. It logged `PointerEntered`, `PointerExited`, `PointerPressed`, `PointerReleased`, `PointerWheelChanged`, `KeyDown`, `GotFocus` with its `FocusState`, `Click`, `RightTapped`, and each `CommonStates` visual state.
   - **Steps.** Each candidate ran the same steps: move into the window, move onto a button, press, right press, wheel, leave, Tab, Space.
-  - **Two runs each.** Posted messages, `SendInput` and `InputInjector` each ran once from a second process and once from a background thread inside the window's process. The pen ran from a second process only.
-  - **In front.** For those runs the probe took the foreground the way Winshell's focus takeover does (`KeyInput.Tap`, then `SetForegroundWindow`).
-  - **In the background.** A final keyboard run gave the window `WS_EX_NOACTIVATE`, left it in the background, and grabbed it with Windows.Graphics.Capture (WGC).
+  - **Two runs each.** Posted messages, `SendInput` and `InputInjector` each ran once from a second process and once from a background thread inside the window's process. The pen ran from a second process only. The in-process run that posted to the top-level window came from an earlier build of the probe, with no Space step.
+  - **In front.** For those runs the probe took the foreground like the fallback in Winshell's focus takeover: `KeyInput.Tap`, then `SetForegroundWindow`.
+  - **Inactive.** A final keyboard run gave the window `WS_EX_NOACTIVATE` and left it inactive. It was not topmost, but `WindowFromPoint` at the button found the probe, so nothing covered it there. That run grabbed it with Windows.Graphics.Capture (WGC).
 - **Media probe.** It used CsWin32 with `allowMarshaling: false`, as `Winshell.Native` does, to drive the Media Foundation sink writer. It timed frames with a copy of the repo's WGC interop.
 
 ## Input
@@ -24,15 +24,15 @@ The facts come from Microsoft Learn, Raymond Chen's Microsoft blog, the Windows 
 | `KeyDown`, Tab moves focus | Yes | Yes | Yes |
 | Focus in `FocusState.Keyboard` | Yes, and the focus rectangle shows | Yes; rectangle not checked | Yes; rectangle not checked |
 | Space clicks the focused button | Only when posted to the input site | Yes | Yes |
-| Shift+Tab moves focus back | No: Shift is ignored, focus moves forward | Not tried | Not tried |
+| Shift+Tab moves focus back | No: the Shift state is ignored, and focus moves forward | Not tried | Not tried |
 | Moves the user's cursor | No | Yes | Yes |
-| From another process | Same as in-process | Same as in-process | Same as in-process |
+| From another process | Same as in-process, for the input site | Same as in-process | Same as in-process |
 | Needs the window in front | No, for keys | Pointer: unobscured. Keys: foreground | Same as `SendInput` |
 
 - **Posted messages** went to the top-level `WinUIDesktopWin32WindowClass` or to its `InputSiteWindowClass` child, the "input site".
   - **Mouse.** `WM_MOUSEMOVE`, `WM_LBUTTONDOWN`/`UP`, `WM_RBUTTONDOWN`/`UP`, `WM_MOUSEWHEEL` and `WM_MOUSELEAVE` raised nothing, to either window.
   - **Keys.** `WM_KEYDOWN`/`WM_KEYUP` for Tab raised `KeyDown` and moved focus in `FocusState.Keyboard`. Space posted to the input site clicked the focused button. Space posted to the top-level window did nothing.
-  - **Background.** On the background `WS_EX_NOACTIVATE` window, Tab and Space to the input site worked the same. A WGC frame showed the focus rectangle around the button.
+  - **Inactive.** On the inactive `WS_EX_NOACTIVATE` window, Tab and Space to the input site worked the same. A WGC frame showed the focus rectangle around the button.
   - **Shift+Tab.** A posted Shift down, Tab, Shift up raised `KeyDown` for both keys, but focus moved forward.
 - **`SendInput` and `InputInjector`** behaved the same, event for event, from either process. `InputInjector.TryCreate()` returned an injector in an unpackaged, non-elevated process with no capability declared, and its input reached another unpackaged process.
 - **Behind another window.** In an early run the probe was behind the user's maximized window. The injected move, clicks and wheel went to that window instead, and the probe saw nothing. Real input goes to whatever window is under the point. That run's log was overwritten later.
@@ -61,10 +61,10 @@ The facts come from Microsoft Learn, Raymond Chen's Microsoft blog, the Windows 
 ### What it means for Winshell
 
 - **Pointer input** (`point`, `press`, `press --right`, `scroll`) needs `SendInput` or `InputInjector`. Both move the user's cursor. I5's "the cursor goes back" therefore means saving the cursor position and restoring it with `Cursor.MoveTo` (`SetCursorPos`) afterwards. The restore should end the hover with a `PointerExited`, but the probe did not check that.
-- **A real press activates the window under it**, unless the window has `WS_EX_NOACTIVATE` or answers `MA_NOACTIVATE`. Winshell decides that per window, in `HostFocusEffects` and `HostMessages`.
+- **A real press activates the window under it**, unless the window has `WS_EX_NOACTIVATE` or answers [WM_MOUSEACTIVATE](https://learn.microsoft.com/en-us/windows/win32/inputdev/wm-mouseactivate) with `MA_NOACTIVATE`. Winshell decides that per window, in `HostFocusEffects` and `HostMessages`.
 - **Keyboard input** (`key`, and Tab-driven `focus`) works by posting `WM_KEYDOWN`/`WM_KEYUP` to the window's input site.
-  - It works for plain keys, leaves the cursor and the foreground alone, and reaches a background `WS_EX_NOACTIVATE` window.
-  - Modifiers don't take effect.
+  - It works for plain keys, leaves the cursor and the foreground alone, and reaches an inactive `WS_EX_NOACTIVATE` window.
+  - The Shift state was ignored. By the same cause, other modifiers should be too. Setting the key state from inside the shell (`SetKeyboardState`) before posting was not tried.
   - Real keys from `SendInput` go to the foreground window. A Winshell panel can have `WS_EX_NOACTIVATE` (`HostFocusEffects`) and never be in front, so its keys would reach the user's app instead.
 - **Where to inject.** The probe got the same result from inside the process and from another one, so either works. Inside the shell is simpler:
   - The shell already has the element's place and its window.
@@ -84,8 +84,8 @@ The facts come from Microsoft Learn, Raymond Chen's Microsoft blog, the Windows 
 ### Recommendation
 
 - **Pointer: `SendInput`.** Use absolute virtual-desktop coordinates, run it inside the shell behind the `WindowFromPoint` check, then restore the cursor. Prefer it to `InputInjector`. The result is the same, `SendInput` is already declared, and its unpackaged use is documented, while `InputInjector`'s is not and has open bug reports.
-- **Keyboard: posted messages.** Post `WM_KEYDOWN`/`WM_KEYUP` to the window's input site for plain keys. For a chord with a modifier, use `SendInput`, and only while the shell's window is in front. Otherwise refuse with a message that says why.
-- **`focus <name>`: Tab until it lands.** Post Tab until `FocusManager.GetFocusedElement` is the named element, with a limit. That is real input, aimed by name, and the probe saw it draw the focus rectangle in a background window.
+- **Keyboard: posted messages.** Post `WM_KEYDOWN`/`WM_KEYUP` to the window's input site for plain keys. For a chord with a modifier, use `SendInput`, and only while the shell's window is in front. Otherwise refuse with a message that says why. That `SendInput` path is untested, so #1720 probes it first.
+- **`focus <name>`: Tab until it lands.** Post Tab until `FocusManager.GetFocusedElement` is the named element, with a limit. That is real input, aimed by name, and the probe saw it draw the focus rectangle in an inactive window.
 - **Not the pen.** It moves no cursor, but it reports `PointerDeviceType.Pen`, has no wheel, and its hover expires without updates.
 
 ## Recording
@@ -96,7 +96,7 @@ The facts come from Microsoft Learn, Raymond Chen's Microsoft blog, the Windows 
   - A static WinUI window in the background gave 1 frame in 2 s.
   - The whole screen, with ordinary activity, gave 6 frames in 2 s, 80 to 558 ms apart.
 - **Timestamps share a clock with the shell.** The first frame's `SystemRelativeTime` came 5–7 ms after `Stopwatch.GetTimestamp()` read at start, so they are on one timeline.
-- **WGC captures a background window's own pixels.** The frame of the background probe showed its content and focus rectangle, not the windows over it.
+- **WGC captures an inactive window.** The frame of the inactive probe showed its content and its focus rectangle.
 - **The sink writer encodes BGRA to H.264.** It accepted `MFVideoFormat_RGB32` input for an `MFVideoFormat_H264` stream, with hardware transforms allowed and throttling off. With `MF_MT_DEFAULT_STRIDE` set to `width × 4`, top-down rows like WGC's came out the right way up.
 - **The output is constant rate.** Each test used sample time `k × 10⁷/fps` and duration `10⁷/fps`, and every file was Constrained Baseline.
   - 90 frames at 1280×720 and 30 fps: ffprobe reported `r_frame_rate=30/1`, `avg_frame_rate=30/1`, 90 frames and 3.000 s, with frames 33.3 ms apart.
@@ -135,7 +135,7 @@ The facts come from Microsoft Learn, Raymond Chen's Microsoft blog, the Windows 
 
 ### What it means for Winshell
 
-- **"Every frame Windows presents" is every frame WGC delivers**, which seems to be every visible change. A stall or a one-frame flicker shows in the kept frames' timestamps, as I2 wants. Without `--fps`, the MP4's constant rate is the target screen's `ScreenInfo.RefreshRate`, and keeping every frame stays at or under it.
+- **"Every frame Windows presents" is every frame WGC delivers**, which seems to be every visible change. A stall or a one-frame flicker shows in the kept frames' timestamps, as I2 wants. Without `--fps`, the MP4's constant rate is the target screen's `ScreenInfo.RefreshRate`, and keeping every frame should stay at or under it.
 - **The current `CaptureSession` can't record.** It samples the latest frame on a 16–1000 ms timer, and its readback can finish a tick late, so it drops frames by design. That is right for previews.
   - Recording needs `FrameArrived` on the free-threaded pool's thread.
   - That thread copies each kept frame out of the pool at once and disposes it, so held buffers never stall capture.
@@ -161,7 +161,7 @@ The facts come from Microsoft Learn, Raymond Chen's Microsoft blog, the Windows 
 
 - **The docs forbid real input for verification.** The Migration and delivery section of `docs/architecture.md` says: *"Never inject real user input for verification."* I5 and I7's recipe (`point`, then read the contact sheet) do exactly that. `docs/development.md` also says *"Tests do not inject keystrokes"*. #1720 has to change both lines before the recipe lands, and before a slow test injects input.
 - **`point` and `leave` against "the cursor goes back".** If the cursor goes back as soon as `point` returns, the hover ends with it, and `leave` has nothing left to do. One reading keeps both: the cursor stays on the element from `point` until `leave`, or until the next pointer command, which restores it. #1720 needs that settled.
-- **Keyboard without the foreground can't take modifiers.** For non-activating panels, `key` and `focus` go through posted key messages, which raise the routed events and draw the focus rectangle. A chord like Ctrl+S or Shift+Tab can't be sent that way. I6's `key <keys>` either refuses such chords on a window that isn't in front, or limits itself to plain keys.
+- **Keyboard without the foreground can't take modifiers.** For non-activating panels, `key` and `focus` go through posted key messages, which raise the routed events and draw the focus rectangle. Shift+Tab doesn't work that way, and other chords such as Ctrl+S very likely don't either. I6's `key <keys>` either refuses such chords on a window that isn't in front, or limits itself to plain keys.
 - **"Refuses a target that isn't visible"** can only be checked per point, with `WindowFromPoint`. A window can be on screen while another window, such as a toast or a popup, covers the one element.
 
 ## Not verified
@@ -172,6 +172,7 @@ The facts come from Microsoft Learn, Raymond Chen's Microsoft blog, the Windows 
 - Injection across integrity levels, such as into an elevated shell.
 - `Focus(FocusState.Keyboard)` drawing the focus rectangle. The source says it does; the probe did not call it.
 - That a configuration built from the template runs per-monitor v2 aware.
+- That WGC captures a covered window's own pixels, rather than the windows over it.
 - What WGC does with new frames while every pool buffer is held.
 - Encoding real screen content, sizes above 2560×1600, more than one screen, and machines without a hardware H.264 encoder.
 - The `MediaTranscoder` path.
