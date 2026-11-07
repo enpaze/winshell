@@ -5,7 +5,7 @@ public sealed class BuildNoticeTests : IDisposable
 {
     private const string Mine = @"C:\mine\Mine.csproj";
 
-    private readonly string _dir = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _dir = TempFolder.NewPath();
     private readonly CrashReports _crashes;
     private readonly ShellNotices _notices;
 

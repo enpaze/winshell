@@ -6,7 +6,7 @@ namespace Winshell.Tests;
 [Trait("Category", "Slow")]
 public sealed class RedirectedOutputTests : IDisposable
 {
-    private readonly string _dir = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _dir = TempFolder.NewPath();
 
     [Fact]
     public void Text_outside_the_console_code_page_survives_stdout_and_stderr()

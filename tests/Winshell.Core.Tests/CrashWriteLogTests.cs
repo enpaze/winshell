@@ -4,7 +4,7 @@ namespace Winshell.Core.Tests;
 public sealed class CrashWriteLogTests : IDisposable
 {
     private readonly string _dir =
-        Path.Combine(Path.GetTempPath(), "winshell-crash-write-log", Guid.NewGuid().ToString("N"));
+        TempFolder.NewPath();
 
     private readonly List<string> _lines = [];
 

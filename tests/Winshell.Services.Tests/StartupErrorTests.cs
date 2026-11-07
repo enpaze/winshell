@@ -18,7 +18,7 @@ public class StartupErrorTests
     [Fact]
     public void A_path_opens_that_folder_and_a_missing_root_opens_nothing()
     {
-        var root = Path.Combine(Path.GetTempPath(), "winshell-startup-error-" + Guid.NewGuid().ToString("N"));
+        var root = TempFolder.NewPath();
         var path = Path.Combine(root, "MyShell.exe");
         Directory.CreateDirectory(root);
         try

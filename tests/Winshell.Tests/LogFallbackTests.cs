@@ -9,7 +9,7 @@ namespace Winshell.Tests;
 public sealed class LogFallbackTests : IDisposable
 {
     private const string StoppedId = "abc123stopped";
-    private readonly string _root = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _root = TempFolder.NewPath();
     private readonly string _run;
 
     public LogFallbackTests()

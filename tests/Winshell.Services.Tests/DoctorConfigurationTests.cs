@@ -8,7 +8,7 @@ namespace Winshell.Services.Tests;
 /// </summary>
 public sealed class DoctorConfigurationTests : IDisposable
 {
-    private readonly string _root = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _root = TempFolder.NewPath();
 
     public DoctorConfigurationTests()
     {

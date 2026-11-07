@@ -5,7 +5,7 @@ namespace Winshell.Tests;
 public sealed class ConfigPathTests : IDisposable
 {
     private readonly string _root =
-        Path.Combine(Path.GetTempPath(), "winshell-config-tests", Guid.NewGuid().ToString("N"));
+        TempFolder.NewPath();
 
     public ConfigPathTests()
     {

@@ -17,7 +17,7 @@ public sealed class ReloadCommandTests : IDisposable, IClassFixture<ReloadComman
     // Each test runs a build, which can take minutes on a busy runner.
     private const int BuildTimeout = 600_000;
 
-    private readonly string _dir = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _dir = TempFolder.NewPath();
     private readonly string _local;
     private readonly string _config;
     private readonly OwnProbe _probe;
@@ -30,7 +30,7 @@ public sealed class ReloadCommandTests : IDisposable, IClassFixture<ReloadComman
     /// </summary>
     public sealed class OwnProbe : IDisposable
     {
-        private readonly string _dir = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+        private readonly string _dir = TempFolder.NewPath();
 
         public OwnProbe()
         {

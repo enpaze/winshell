@@ -15,7 +15,7 @@ namespace Winshell.ShellTests;
 [Trait("Category", "Slow")]
 public sealed class InspectorTests : IDisposable
 {
-    private readonly string _dir = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _dir = TempFolder.NewPath();
 
     public InspectorTests()
     {

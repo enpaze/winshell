@@ -18,6 +18,6 @@ public sealed class ShellImageTests
     [Fact]
     public void A_path_with_no_item_has_no_icon()
     {
-        Assert.Null(ShellImage.Load(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "missing.exe"), 32));
+        Assert.Null(ShellImage.Load(Path.Combine(TempFolder.NewPath(), "missing.exe"), 32));
     }
 }

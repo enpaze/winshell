@@ -30,7 +30,7 @@ public class ShellLocationTests
     [Fact]
     public void An_override_is_a_fully_qualified_root()
     {
-        var dir = Path.Combine(Path.GetTempPath(), "winshell-override");
+        var dir = TempFolder.NewPath();
         var profile = Environment.SpecialFolder.LocalApplicationData;
 
         Assert.Equal(dir, ShellLocations.RootFrom(dir, profile));

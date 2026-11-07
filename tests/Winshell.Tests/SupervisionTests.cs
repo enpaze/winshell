@@ -13,7 +13,7 @@ namespace Winshell.Tests;
 [Trait("Category", "Slow")]
 public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeBuild>
 {
-    private readonly string _dir = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _dir = TempFolder.NewPath();
     private readonly List<Process> _started = [];
     private readonly StringBuilder _printed = new();
     private readonly bool _taskbarHidden = ExplorerTaskbarRecovery.AnyHidden();

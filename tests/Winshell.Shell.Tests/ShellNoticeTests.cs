@@ -8,7 +8,7 @@ namespace Winshell.ShellTests;
 [Trait("Category", "Slow")]
 public sealed class ShellNoticeTests : IDisposable
 {
-    private readonly string _dir = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _dir = TempFolder.NewPath();
     private readonly ManualEventLoop _loop = new();
     private readonly List<string> _logged = [];
     private readonly List<Notice> _shown = [];

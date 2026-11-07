@@ -31,7 +31,7 @@ public class CliErrorTests
     [Fact]
     public void With_nothing_running_list_says_how_to_start_one_and_kill_does_not()
     {
-        var local = ("WINSHELL_LOCAL_DIR", Path.Combine(Path.GetTempPath(), "winshell-cli-error-absent-local"));
+        var local = ("WINSHELL_LOCAL_DIR", TempFolder.NewPath());
         var list = WinshellCli.Run(["list"], local);
         var kill = WinshellCli.Run(["kill"], local);
 
@@ -44,6 +44,6 @@ public class CliErrorTests
     {
         return WinshellCli.Run(
             args,
-            ("WINSHELL_CONFIG_DIR", Path.Combine(Path.GetTempPath(), "winshell-cli-error-absent")));
+            ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));
     }
 }

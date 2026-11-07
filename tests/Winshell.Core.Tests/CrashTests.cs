@@ -6,7 +6,7 @@ namespace Winshell.Core.Tests;
 public sealed class CrashTests : IDisposable
 {
     private readonly string _folder =
-        Path.Combine(Path.GetTempPath(), "winshell-crash-tests", Guid.NewGuid().ToString("N"));
+        TempFolder.NewPath();
 
     public void Dispose()
     {

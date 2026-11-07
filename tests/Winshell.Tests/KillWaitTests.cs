@@ -7,7 +7,7 @@ namespace Winshell.Tests;
 [Trait("Category", "Slow")]
 public sealed class KillWaitTests : IDisposable, IClassFixture<ProbeBuild>
 {
-    private readonly string _dir = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _dir = TempFolder.NewPath();
     private readonly List<Process> _started = [];
 
     [Fact]

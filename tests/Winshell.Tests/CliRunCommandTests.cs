@@ -20,7 +20,7 @@ public class CliRunCommandTests
     [Fact]
     public void Run_with_a_missing_path_fails_before_a_shell_starts()
     {
-        var missing = Path.Combine(Path.GetTempPath(), "winshell-cli-run-missing-" + Guid.NewGuid().ToString("N"));
+        var missing = TempFolder.NewPath();
         var result = Run(["run", "-p", missing]);
 
         result.AssertExitCode(1);
@@ -35,7 +35,7 @@ public class CliRunCommandTests
     [InlineData("--no-duplicate")]
     public void Run_with_no_configuration_exits_0_says_nothing_and_starts_nothing(string args)
     {
-        var root = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+        var root = TempFolder.NewPath();
         var config = Path.Combine(root, "config");
         var local = Path.Combine(root, "local");
         Directory.CreateDirectory(config);
@@ -60,7 +60,7 @@ public class CliRunCommandTests
     [Fact]
     public void No_duplicate_exits_quietly_before_building_when_the_project_already_runs()
     {
-        var root = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+        var root = TempFolder.NewPath();
         try
         {
             // A project that cannot build: a run that reaches the build exits 1. Its shell runs from shell.next.
@@ -101,6 +101,6 @@ public class CliRunCommandTests
     {
         return WinshellCli.Run(
             args,
-            ("WINSHELL_CONFIG_DIR", Path.Combine(Path.GetTempPath(), "winshell-cli-run-absent")));
+            ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));
     }
 }

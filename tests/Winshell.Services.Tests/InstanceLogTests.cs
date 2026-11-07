@@ -6,7 +6,7 @@ namespace Winshell.Services.Tests;
 /// </summary>
 public sealed class InstanceLogTests : IDisposable
 {
-    private readonly string _dir = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _dir = TempFolder.NewPath();
 
     public InstanceLogTests()
     {

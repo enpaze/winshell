@@ -12,7 +12,7 @@ public sealed class DevCommandTests : IDisposable
 {
     private static readonly TimeSpan BuildPatience = TimeSpan.FromSeconds(140);
 
-    private readonly string _dir = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _dir = TempFolder.NewPath();
     private readonly StringBuilder _printed = new();
     private Process? _dev;
 
