@@ -108,7 +108,7 @@ public sealed class InspectCommandTests : IDisposable, IClassFixture<ProbeBuild>
         var video = Path.Combine(_dir, "panel.mp4");
         var frames = Path.Combine(_dir, "frames");
 
-        var result = Run("record", video, "--for", "1s", "ProbePage", "--fps", "30", "--frames", frames);
+        var result = Run("record", video, "--for", "3s", "ProbePage", "--fps", "30", "--frames", frames);
 
         Assert.Equal("", result.Error);
         result.AssertExitCode(0);

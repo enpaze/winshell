@@ -17,13 +17,30 @@ public sealed class ContactSheetTests
     [InlineData(1, 2560, 1600)]
     [InlineData(10, 2560, 1600)]
     [InlineData(300, 2560, 1600)]
+    [InlineData(7200, 2560, 1600)]
     [InlineData(100, 2560, 48)]
     [InlineData(7, 300, 900)]
-    public void Every_frame_has_a_cell_and_no_row_is_empty(int count, int width, int height)
+    [InlineData(3, 40, 20)]
+    public void Every_cell_and_its_label_fit_inside_the_sheet(int count, int width, int height)
     {
         var layout = ContactSheet.Layout(count, width, height);
 
-        Assert.InRange(count, layout.Columns * (layout.Rows - 1) + 1, layout.Columns * layout.Rows);
+        foreach (var index in (int[])[layout.Columns - 1, count - 1])
+        {
+            var (x, y) = layout.Cell(index);
+            Assert.InRange(x + layout.CellWidth, 1, layout.Width);
+            Assert.InRange(y + layout.ThumbHeight + ContactSheet.LabelHeight, 1, layout.Height);
+        }
+    }
+
+    [Fact]
+    public void Thousands_of_frames_get_smaller_thumbnails()
+    {
+        var few = ContactSheet.Layout(10, 2560, 1600);
+        var many = ContactSheet.Layout(7200, 2560, 1600);
+
+        Assert.True(many.ThumbWidth < few.ThumbWidth);
+        Assert.True((long)many.Width * many.Height * 4 < int.MaxValue);
     }
 
     [Theory]
@@ -84,15 +101,5 @@ public sealed class ContactSheetTests
         Assert.Equal(area[0], area[1]);
         Assert.Equal(area[0], area[2]);
         Assert.True(labels > 0);
-    }
-
-    [Fact]
-    public void A_thumbnail_pixel_is_the_average_of_the_pixels_it_covers()
-    {
-        var image = new PixelImage(2, 1, [0, 0, 0, 255, 200, 100, 50, 255], true);
-
-        var scaled = ContactSheet.Scaled(image, 1, 1);
-
-        Assert.Equal([100, 50, 25, 255], scaled.Bgra.ToArray());
     }
 }

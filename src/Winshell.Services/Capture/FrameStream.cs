@@ -37,7 +37,7 @@ internal sealed class FrameStream : IDisposable
     /// Each frame, premultiplied, with the time the compositor drew it on the clock <see cref="TimeProvider.GetTimestamp"/>
     /// reads. Called on the pool's thread, one frame at a time.
     /// </param>
-    /// <param name="ended">Called once when the target closes, with null, or when a frame can't be read, with why.</param>
+    /// <param name="ended">Called when the target closes, with null, or when a frame can't be read, with why.</param>
     public FrameStream(CaptureTarget target, Log log, Action<PixelImage, TimeSpan> frame, Action<Exception?> ended)
     {
         _log = log;
@@ -56,19 +56,49 @@ internal sealed class FrameStream : IDisposable
                 throw new InvalidOperationException("The window or screen has nothing to capture.");
             (_device, _context) = WindowsCaptureBackend.CreateDevice();
             _winrtDevice = CaptureInterop.CreateDevice(_device);
-            // Two buffers: each frame leaves the pool before the next is drawn into it.
-            _pool = Direct3D11CaptureFramePool.CreateFreeThreaded(_winrtDevice, Format, 2, _poolSize);
-            _pool.FrameArrived += OnFrameArrived;
-            _session = _pool.CreateCaptureSession(_item);
-            // Leave the system's capture border on. No borderless capability or consent bypass.
-            _session.IsCursorCaptureEnabled = true;
             _item.Closed += OnClosed;
-            _session.StartCapture();
+            StartSession();
         }
         catch
         {
             Dispose();
             throw;
+        }
+    }
+
+    /// <summary>A new pool of <see cref="_poolSize"/> and a session on it. Called under the gate, or before any frame.</summary>
+    private void StartSession()
+    {
+        // Two buffers: each frame leaves the pool before the next is drawn into it.
+        _pool = Direct3D11CaptureFramePool.CreateFreeThreaded(_winrtDevice, Format, 2, _poolSize);
+        _pool.FrameArrived += OnFrameArrived;
+        _session = _pool.CreateCaptureSession(_item);
+        // Leave the system's capture border on. No borderless capability or consent bypass.
+        _session.IsCursorCaptureEnabled = true;
+        _session.StartCapture();
+    }
+
+    /// <summary>
+    /// Starts again at the target's new size, off the pool's thread. A static source may not draw again after the pool
+    /// alone is recreated, so the session starts again too, as <see cref="WindowsCaptureBackend"/> does.
+    /// </summary>
+    private void Restart()
+    {
+        try
+        {
+            lock (_gate)
+            {
+                if (_pool is not { } pool)
+                    return;
+                pool.FrameArrived -= OnFrameArrived;
+                _session?.Dispose();
+                pool.Dispose();
+                StartSession();
+            }
+        }
+        catch (Exception e)
+        {
+            _ended(e);
         }
     }
 
@@ -83,32 +113,36 @@ internal sealed class FrameStream : IDisposable
         {
             lock (_gate)
             {
-                if (_pool is null)
+                if (!ReferenceEquals(_pool, pool))
                     return;
                 using var frame = pool.TryGetNextFrame();
                 if (frame is null)
                     return;
-                var image = Copy(frame);
-                // A resized target draws into the old buffers until the pool takes the new size.
+                // A resized target draws into the old buffers until the pool takes the new size. A frame that grew
+                // past them is cut off, so it is dropped, and the next comes at the new size.
                 var size = frame.ContentSize;
                 if (size.Width > 0 && size.Height > 0 &&
                     (size.Width != _poolSize.Width || size.Height != _poolSize.Height))
                 {
+                    var grew = size.Width > _poolSize.Width || size.Height > _poolSize.Height;
                     _poolSize = size;
-                    pool.Recreate(_winrtDevice, Format, 2, size);
+                    _ = Task.Run(Restart);
+                    if (grew)
+                        return;
                 }
 
-                if (image is not null)
+                if (Copy(frame) is { } image)
                     _frame(image, frame.SystemRelativeTime);
             }
         }
-        catch (Exception e) when (CaptureFailure.IsExpected(e))
+        catch (Exception e)
         {
+            // Nothing may go back into Windows' thread. The recording ends and says why.
             _ended(e);
         }
     }
 
-    /// <summary>The frame's content in memory: what of it the buffer holds, when it was drawn for an older size.</summary>
+    /// <summary>The frame's content in memory.</summary>
     private PixelImage? Copy(Direct3D11CaptureFrame frame)
     {
         using var texture = CaptureInterop.Texture(frame.Surface);

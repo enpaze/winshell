@@ -5,7 +5,7 @@ namespace Winshell.Native;
 
 /// <summary>
 /// An H.264 MP4 file at a constant frame rate, written by Media Foundation's sink writer from top-down BGRA frames of
-/// one size. Frame <c>k</c> starts at <c>k / rate</c> seconds. One thread writes, then disposes. A file that
+/// one size. Frame <c>k</c> starts at <c>k / rate</c> seconds. One caller at a time writes, then disposes. A file that
 /// <see cref="Finish"/> did not end is not playable.
 /// </summary>
 internal sealed unsafe class Mp4Writer : IDisposable
@@ -51,7 +51,8 @@ internal sealed unsafe class Mp4Writer : IDisposable
         try
         {
             PInvoke.MFCreateAttributes(&attributes, 2).ThrowOnFailure();
-            // Throttling would hold a write back to the encoder's pace. The caller already writes off the capture thread.
+            // Hardware encoders are off unless allowed. Throttling would hold each write back to the encoder's pace; the
+            // caller already writes off the capture thread.
             attributes->SetUINT32(PInvoke.MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, 1);
             attributes->SetUINT32(PInvoke.MF_SINK_WRITER_DISABLE_THROTTLING, 1);
             IMFSinkWriter* writer = null;

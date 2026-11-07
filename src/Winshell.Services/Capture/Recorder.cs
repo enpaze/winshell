@@ -25,7 +25,10 @@ internal sealed record Recording(
 /// <param name="Rate">The video's frames a second: <see cref="Recording.Rate"/>, or less when the encoder refused it.</param>
 /// <param name="Length">How long it recorded: the length asked for, or less when the target closed first.</param>
 /// <param name="Captured">The frames Windows delivered.</param>
-/// <param name="Kept">The frames <see cref="Recording.Fps"/> kept, each in the video and in the frames folder.</param>
+/// <param name="Kept">
+/// The frames <see cref="Recording.Fps"/> kept, each in the frames folder. The video shows the last of those that fall in
+/// one of its frames.
+/// </param>
 /// <param name="VideoFrames">The video's frames, with repeats.</param>
 /// <param name="Closed">Whether the target closed before the end.</param>
 internal sealed record Recorded(
@@ -83,7 +86,8 @@ internal static class Recorder
                        frames.Writer.TryWrite((frame, at));
                }, e => ended.TrySetResult(e)))
         {
-            var finished = await Task.WhenAny(Task.Delay(recording.Length, time), ended.Task);
+            // An encoder that fails ends the recording at once, rather than after frames nobody reads pile up.
+            var finished = await Task.WhenAny(Task.Delay(recording.Length, time), ended.Task, encoding);
             length = finished == ended.Task ? Since(time, time.GetTimestamp()) - start : recording.Length;
             closed = finished == ended.Task && ended.Task.Result is null;
         }
@@ -113,6 +117,8 @@ internal static class Recorder
             ConstantRate<PixelImage>? pace = null;
             var thumbnails = new List<(PixelImage, TimeSpan)>();
             var pngs = new List<Task>();
+            var lastName = "";
+            var repeats = 0;
             await foreach (var (frame, at) in frames.ReadAllAsync())
             {
                 if (video is null)
@@ -133,7 +139,11 @@ internal static class Recorder
                 if (recording.Frames is { } folder)
                 {
                     thumbnails.Add((ContactSheet.Thumbnail(frame), at));
-                    var file = Path.Combine(folder, FileName(at));
+                    // Two frames can share a millisecond. The second is 000123_2.png, which sorts after the first.
+                    var name = FileName(at);
+                    repeats = name == lastName ? repeats + 1 : 1;
+                    lastName = name;
+                    var file = Path.Combine(folder, repeats == 1 ? $"{name}.png" : $"{name}_{repeats}.png");
                     pngs.Add(Task.Run(() => File.WriteAllBytesAsync(file, frame.EncodePng())));
                 }
             }
@@ -175,10 +185,10 @@ internal static class Recorder
             }
     }
 
-    /// <summary>A kept frame's PNG: its milliseconds since the start, six digits or more, so the names sort in order.</summary>
+    /// <summary>A kept frame's name: its milliseconds since the start, six digits or more, so the names sort in order.</summary>
     private static string FileName(TimeSpan at)
     {
-        return $"{ContactSheet.Milliseconds(at):D6}.png";
+        return $"{ContactSheet.Milliseconds(at):D6}";
     }
 
     /// <summary>

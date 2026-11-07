@@ -40,6 +40,9 @@ internal static class ContactSheet
 
     private const int MaxThumbWidth = 1280;
 
+    // A long recording gets smaller thumbnails, so the thumbnails together hold about this many pixels at most.
+    private const int SheetPixels = 24_000_000;
+
     // Wide enough for a label up to "#9999 999999 ms", 16 minutes in.
     private const int MinCellWidth = 15 * (GlyphWidth + 1) * Scale;
 
@@ -51,14 +54,16 @@ internal static class ContactSheet
 
     /// <summary>
     /// The grid for <paramref name="count"/> frames of <paramref name="width"/> by <paramref name="height"/> pixels:
-    /// thumbnails no bigger than the frames, in about as many columns as rows make a square sheet.
+    /// thumbnails no bigger than the frames, smaller when there are thousands, in about as many columns as rows make a
+    /// square sheet.
     /// </summary>
     public static SheetLayout Layout(int count, int width, int height)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
-        var scale = Math.Min(1, Math.Min(Math.Sqrt((double)ThumbPixels / ((double)width * height)),
+        var pixels = Math.Min(ThumbPixels, SheetPixels / count);
+        var scale = Math.Min(1, Math.Min(Math.Sqrt((double)pixels / ((double)width * height)),
             (double)MaxThumbWidth / width));
         var thumbWidth = Math.Max(1, (int)Math.Round(width * scale));
         var thumbHeight = Math.Max(1, (int)Math.Round(height * scale));
@@ -118,7 +123,7 @@ internal static class ContactSheet
     /// <paramref name="image"/> at <paramref name="width"/> by <paramref name="height"/>, no bigger than it is. Each
     /// pixel is the average of the pixels it covers.
     /// </summary>
-    internal static PixelImage Scaled(PixelImage image, int width, int height)
+    private static PixelImage Scaled(PixelImage image, int width, int height)
     {
         width = Math.Min(width, image.Width);
         height = Math.Min(height, image.Height);

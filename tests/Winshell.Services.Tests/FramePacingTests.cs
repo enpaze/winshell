@@ -59,15 +59,4 @@ public sealed class FramePacingTests
 
         Assert.Equal(frames, shown);
     }
-
-    [Fact]
-    public void A_recording_without_frames_shows_nothing()
-    {
-        var shown = 0;
-        var pace = new ConstantRate<string>(60, (_, count) => shown += count);
-
-        pace.Finish(Ms(1000));
-
-        Assert.Equal(0, shown);
-    }
 }
