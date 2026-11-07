@@ -15,9 +15,9 @@ internal sealed record FloatingPlacement(
     Size MaximumSize,
     bool Maximized,
     bool Minimized,
-    bool Fullscreen = false,
-    HostWindow? Owner = null,
-    bool StateRequested = false);
+    bool Fullscreen,
+    HostWindow? Owner,
+    bool StateRequested);
 
 /// <summary>How a floating window sits on its screen: framed at a size, minimized, maximized or fullscreen.</summary>
 internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : IWindowPlacer

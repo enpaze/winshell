@@ -133,7 +133,9 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
         var (msg, wParam) = (message.Id, message.WParam);
         if (msg == TaskbarWindows.Created)
         {
-            ExplorerRestarted();
+            // Explorer restarted and forgot every app bar.
+            Remove();
+            desktop.Post(Place);
             return 0;
         }
 
@@ -157,13 +159,6 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
         }
 
         return 0;
-    }
-
-    /// <summary>Explorer restarted and forgot every app bar: drop the edge and place the panel again.</summary>
-    internal void ExplorerRestarted()
-    {
-        Remove();
-        desktop.Post(Place);
     }
 
     /// <summary>The edge a panel with these anchors reserves: the one it spans, or none for a corner or the whole screen.</summary>

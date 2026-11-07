@@ -8,12 +8,10 @@ internal interface IInstanceControl
 
     /// <summary>
     /// Reloads the shell. <paramref name="program"/> is the build to start when the running one kept its folder, and
-    /// null starts this program again. Null when it worked, or else why not, for the client.
+    /// null starts this program again. Null when it worked, or else why not, for the client. A reload that worked is
+    /// followed by <see cref="Quit"/> once the client has that answer.
     /// </summary>
     string? Reload(string? program);
-
-    /// <summary>Runs after a client has the answer to a reload that worked, which a shell that goes on to end has to wait for.</summary>
-    void Reloaded();
 
     /// <summary>Ends the shell.</summary>
     void Quit();

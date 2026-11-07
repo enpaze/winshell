@@ -22,7 +22,6 @@ internal sealed class ShellPlatform : IDisposable
 
     private readonly List<HostWindow> _windows = [];
     private readonly SystemChanges _systemChanges = new();
-    private readonly List<ScreenInfo> _screens;
     private readonly NativeWindow? _broadcasts;
     private readonly FullscreenApps _fullscreenApps;
     private IDisposable? _relayout;
@@ -37,8 +36,7 @@ internal sealed class ShellPlatform : IDisposable
     {
         Loop = loop;
         Log = log;
-        _screens = Winshell.Screens.Enumerate().Select(m => m.Info).ToList();
-        Screens = new ObservableCollection<ScreenInfo>(_screens);
+        Screens = new ObservableCollection<ScreenInfo>(Winshell.Screens.Enumerate().Select(m => m.Info));
         ReadTheme();
         _uiSettings = new UISettings();
         _uiSettings.ColorValuesChanged += OnColorValuesChanged;
@@ -161,10 +159,8 @@ internal sealed class ShellPlatform : IDisposable
     private void RefreshScreens()
     {
         var next = Winshell.Screens.Enumerate().Select(m => m.Info).ToList();
-        if (next.SequenceEqual(_screens))
+        if (next.SequenceEqual(Screens))
             return;
-        _screens.Clear();
-        _screens.AddRange(next);
         Screens.Sync(next, s => s.Id, s => s.Id, s => s, (_, _) => { });
         for (var i = 0; i < next.Count; i++)
             if (Screens[i] != next[i])

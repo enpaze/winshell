@@ -10,8 +10,6 @@ internal sealed class FakeInstanceControl : IInstanceControl
 
     public int Reloads { get; private set; }
 
-    public int Answered { get; private set; }
-
     public int Quits { get; private set; }
 
     public string? BuildError { get; private set; }
@@ -24,11 +22,6 @@ internal sealed class FakeInstanceControl : IInstanceControl
     {
         Reloads++;
         return ReloadError;
-    }
-
-    public void Reloaded()
-    {
-        Answered++;
     }
 
     public void Quit()

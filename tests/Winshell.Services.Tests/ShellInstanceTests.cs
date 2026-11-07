@@ -183,7 +183,7 @@ public sealed class ShellInstanceTests
     }
 
     [Fact]
-    public async Task A_reload_that_worked_runs_what_follows_once_the_client_has_its_answer()
+    public async Task A_reload_that_worked_quits_the_shell_once_the_client_has_its_answer()
     {
         var control = new FakeInstanceControl();
         var (pipe, loop, server) = Serve(control);
@@ -192,7 +192,7 @@ public sealed class ShellInstanceTests
         var response = await Pumping(loop, () => Ask(pipe, IpcRequest.ForReload()));
 
         Assert.True(response.Ok);
-        await Wait.UntilAsync(() => control.Answered == 1, "what follows the reload", () => loop.RunDue());
+        await Wait.UntilAsync(() => control.Quits == 1, "the quit after the reload", () => loop.RunDue());
     }
 
     [Fact]
@@ -206,7 +206,7 @@ public sealed class ShellInstanceTests
 
         Assert.Equal((false, "It did not start."), (response.Ok, response.Error));
         loop.RunDue();
-        Assert.Equal(0, control.Answered);
+        Assert.Equal(0, control.Quits);
     }
 
     [Fact]

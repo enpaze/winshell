@@ -119,12 +119,10 @@ public sealed class WinlandServiceTests
         var editor = service.Windows.Single(window => window.Address == "10");
         var browser = service.Windows.Single(window => window.Address == "20");
         Assert.Null(editor.Window);
-        Assert.Null(service.WindowList);
 
         var changes = Watch(editor);
         service.Attach(list);
 
-        Assert.Same(list, service.WindowList);
         Assert.Same(list.Windows.Single(window => window.Hwnd == 0x10), editor.Window);
         Assert.Equal([nameof(WinlandWindow.Window)], changes);
         Assert.Null(browser.Window);

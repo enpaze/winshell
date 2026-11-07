@@ -81,9 +81,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
     /// </summary>
     public string? LogPath => _logPath;
 
-    /// <summary>The shell's window list, when one is in use. <see cref="WinlandWindow.Window"/> is resolved from it.</summary>
-    internal WindowListService? WindowList => _windows;
-
     /// <summary>Resolves windows from this list. Null clears them. The list is not created just to answer a window.</summary>
     internal void Attach(WindowListService? windows)
     {

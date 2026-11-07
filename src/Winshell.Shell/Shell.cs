@@ -352,13 +352,8 @@ public sealed partial class Shell : IDisposable
         if (_disposed)
             return;
         _disposed = true;
-        // A service goes before the ones it reads: Winland reads the window list, which reads the virtual desktops.
-        // Explorer's taskbar may go before or after the tray: its restore moves the tray out of the way itself.
         // The platform goes last, closing every window that is left.
-        DisposeEach([
-            Notices, _winland, _windows, _virtualDesktops, _apps, _audio, _bluetooth, _brightness, _explorerTaskbar,
-            _media, _networking, _notifications, _power, _powerMode, _systemTray, _hotkeys, Platform
-        ]);
+        DisposeEach([Notices, .. ServicesInStopOrder, Platform]);
     }
 
     /// <summary>
@@ -392,11 +387,6 @@ public sealed partial class Shell : IDisposable
         public string? Reload(string? program)
         {
             return shell.StartNext(program);
-        }
-
-        public void Reloaded()
-        {
-            shell.Quit();
         }
 
         public void Quit()
