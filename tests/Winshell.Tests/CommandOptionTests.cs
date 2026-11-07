@@ -15,6 +15,8 @@ public class CommandOptionTests
     [InlineData("-d kill", "winshell kill does not take \"-d\".")]
     [InlineData("reload --no-build", "winshell reload does not take \"--no-build\".")]
     [InlineData("inspect --force tree", "winshell inspect does not take \"--force\".")]
+    [InlineData("inspect screenshot out.png --fps 30", "winshell inspect screenshot does not take \"--fps\".")]
+    [InlineData("inspect tree --screen", "winshell inspect tree does not take \"--screen\".")]
     [InlineData("dev -j", "winshell dev does not take \"-j\".")]
     [InlineData("doctor --pid 5", "winshell doctor does not take \"--pid\".")]
     [InlineData("run -j", "winshell run does not take \"-j\".")]
@@ -54,6 +56,12 @@ public class CommandOptionTests
     [InlineData("log -t ten", "-t needs a whole number.")]
     [InlineData("kill --pid", "--pid needs a value.")]
     [InlineData("log --tail", "--tail needs a value.")]
+    [InlineData("inspect record out.mp4 --for", "--for needs a value.")]
+    [InlineData("inspect record out.mp4 --for 0", "--for needs a time, such as 5s or 500ms.")]
+    [InlineData("inspect record out.mp4 --for 5m", "--for needs a time, such as 5s or 500ms.")]
+    [InlineData("inspect record out.mp4 --for -1s", "--for needs a time, such as 5s or 500ms.")]
+    [InlineData("inspect record out.mp4 --for 1s --fps 0", "--fps needs a whole number above 0.")]
+    [InlineData("inspect record out.mp4 --for 1s --fps 2.5", "--fps needs a whole number.")]
     public void A_bad_option_argument_or_number_is_named(string line, string message)
     {
         var args = line.Split(' ').Select(word => word == "''" ? "" : word).ToArray();

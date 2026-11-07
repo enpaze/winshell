@@ -18,7 +18,7 @@ namespace Winshell;
 /// <summary>
 /// <c>winshell inspect</c>: what is on screen, seen from inside the shell. It reads the live XAML tree, and acts through
 /// the same automation peers Narrator uses, so nothing here reaches Windows' input queue. A window is named by its
-/// content's type, or its place in <see cref="Tree"/>'s list.
+/// content's type, or its place in <see cref="Tree"/>'s list. For a recording it only names what to capture.
 /// </summary>
 internal static class Inspector
 {
@@ -34,6 +34,7 @@ internal static class Inspector
             "screenshot" when args.Count > 0 => await Screenshot(Shown(shell, window), args[0], shell.IsDark),
             "click" when args.Count > 0 => Click(Find(shell, command, args[0], window), args[0]),
             "hover" when args.Count > 0 => Hover(Find(shell, command, args[0], window), args[0]),
+            "record" => RecordTarget(shell, args),
             _ => throw new IpcException($"Unknown inspect command {command}.")
         };
     }
@@ -304,6 +305,47 @@ internal static class Inspector
         if (element is Control control && VisualStateManager.GoToState(control, "PointerOver", false))
             return $"Hovering {name}";
         throw new IpcException($"{name} is a {element.GetType().Name}, which has no hover look.");
+    }
+
+    /// <summary>
+    /// What <c>winshell inspect record</c> captures, as JSON: a window's handle, or 0 and a screen's id, and the refresh
+    /// rate of the screen it shows on. A window is named as for a screenshot; <c>--screen n</c> names a screen by its
+    /// place in <see cref="Shell.Screens"/>. The command line records it, so encoding never slows the shell it watches.
+    /// </summary>
+    private static string RecordTarget(Shell shell, IReadOnlyList<string> args)
+    {
+        var screens = shell.Screens;
+        if (screens.Count == 0)
+            throw new IpcException("No screen is connected.");
+        nint handle = 0;
+        ScreenInfo screen;
+        if (args is ["--screen", var number])
+        {
+            if (!int.TryParse(number, out var index) || index < 0 || index >= screens.Count)
+                throw new IpcException(
+                    $"There is no screen {number}. Screens are numbered from 0, the primary one first, and there are {screens.Count}.");
+            screen = screens[index];
+        }
+        else
+        {
+            handle = Window(shell, args).Host?.Handle ?? 0;
+            if (handle == 0)
+                throw new IpcException("That window has no native window to record.");
+            var on = Screens.Of(handle)?.Id;
+            screen = screens.FirstOrDefault(candidate => candidate.Id == on) ?? screens[0];
+        }
+
+        using var stream = new MemoryStream();
+        using (var json = new Utf8JsonWriter(stream))
+        {
+            json.WriteStartObject();
+            json.WriteNumber("window", handle);
+            json.WriteString("screen", screen.Id);
+            json.WriteNumber("refreshRate", screen.RefreshRate);
+            json.WriteEndObject();
+        }
+
+        return Encoding.UTF8.GetString(stream.ToArray());
     }
 
     /// <summary>

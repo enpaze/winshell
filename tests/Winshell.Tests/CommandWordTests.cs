@@ -43,6 +43,7 @@ public class CommandWordTests
     [InlineData("inspect screenshot", "winshell inspect screenshot needs a file.")]
     [InlineData("inspect click", "winshell inspect click needs a name.")]
     [InlineData("inspect hover", "winshell inspect hover needs a name.")]
+    [InlineData("inspect record --for 1s", "winshell inspect record needs a file.")]
     public void A_command_without_the_words_it_needs_names_them(string line, string message)
     {
         var e = Assert.Throws<ArgumentException>(() => CliParser.Parse(line.Split(' ')));
