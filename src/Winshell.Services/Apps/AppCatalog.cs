@@ -8,7 +8,7 @@ using Winshell.Native;
 
 namespace Winshell.Apps;
 
-/// <summary>The apps and the usage from one scan.</summary>
+/// <summary>The apps and the usage from one read.</summary>
 internal sealed class AppSnapshot
 {
     public static readonly AppSnapshot Empty = new([],
@@ -23,24 +23,12 @@ internal sealed class AppSnapshot
     public IReadOnlyList<AppRecord> Entries { get; }
 
     public IReadOnlyDictionary<string, AppUsage> Usage { get; }
-
-    public bool SameAs(AppSnapshot other)
-    {
-        if (Entries.Count != other.Entries.Count || Usage.Count != other.Usage.Count)
-            return false;
-        if (!Entries.SequenceEqual(other.Entries))
-            return false;
-        foreach (var (key, value) in Usage)
-            if (!other.Usage.TryGetValue(key, out var theirs) || theirs != value)
-                return false;
-        return true;
-    }
 }
 
 /// <summary>
-/// The Start menu of some Programs folders and the installed packages, and how its apps open. Each scan reads each
-/// folder, the packages and the usage; a read that fails keeps what the last good one found, and is warned once until
-/// it reads again.
+/// The Start menu of some Programs folders and the installed packages, and how its apps open. Each read reads each
+/// folder, the packages and the usage; one that fails keeps what the last good one found, and is warned once until it
+/// reads again.
 /// </summary>
 /// <param name="log">Where failed reads are reported.</param>
 /// <param name="folders">The Programs folders, the common one first: <see cref="ProgramsFolders"/>.</param>
@@ -61,20 +49,11 @@ internal sealed class AppCatalog(
         ];
     }
 
-    // Installers write many files at once, so a scan waits until they have been quiet this long.
-    private static readonly TimeSpan Debounce = TimeSpan.FromSeconds(1);
-
     private readonly object _gate = new();
     private readonly Dictionary<string, DirectoryWatch> _watches = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _lost = new(StringComparer.OrdinalIgnoreCase);
-    private readonly AutoResetEvent _wake = new(false);
     private PackageCatalog? _packages;
-    private Thread? _scanThread;
-    private readonly long _made = TimeProvider.System.GetTimestamp();
-    private long _quietUntil = long.MinValue;
     private bool _started, _disposed;
-    private volatile bool _stop;
-    private volatile AppSnapshot _snapshot = AppSnapshot.Empty;
 
     private readonly Source<IReadOnlyList<AppRecord>>[] _shortcuts =
     [
@@ -88,10 +67,8 @@ internal sealed class AppCatalog(
     private readonly Source<IReadOnlyDictionary<string, AppUsage>> _usage =
         new(log, "Could not read how often apps are used", usage, AppSnapshot.Empty.Usage);
 
-    /// <summary>Raised on a background thread after a scan changed the list or the usage.</summary>
+    /// <summary>Raised on any thread when a Programs folder or the installed packages changed.</summary>
     public event Action? Changed;
-
-    public AppSnapshot Snapshot => _snapshot;
 
     public void Start()
     {
@@ -102,9 +79,6 @@ internal sealed class AppCatalog(
             _started = true;
         }
 
-        _scanThread = new Thread(ScanLoop) { IsBackground = true, Name = "App scan" };
-        _scanThread.Start();
-        Poke(TimeSpan.Zero);
         foreach (var folder in folders.Where(Directory.Exists))
             Arm(folder);
         try
@@ -120,6 +94,12 @@ internal sealed class AppCatalog(
         }
     }
 
+    /// <summary>Reads on its own thread: PackageManager and the shortcut files can block.</summary>
+    public Task<AppSnapshot> ReadAsync()
+    {
+        return OwnThread.Run(Read);
+    }
+
     public void Dispose()
     {
         lock (_gate)
@@ -129,9 +109,6 @@ internal sealed class AppCatalog(
             _disposed = true;
         }
 
-        _stop = true;
-        _wake.Set();
-        _scanThread?.Join();
         foreach (var watch in _watches.Values)
             watch.Dispose();
         _watches.Clear();
@@ -142,17 +119,15 @@ internal sealed class AppCatalog(
             _packages.PackageUpdating -= OnUpdating;
             _packages = null;
         }
-
-        _wake.Dispose();
     }
 
     private void Arm(string folder)
     {
-        // FileSystemWatcher delivers on a pool worker. A busy pool can hold a change, and the scan behind it, forever.
+        // FileSystemWatcher delivers on a pool worker. A busy pool can hold a change, and the read behind it, forever.
         var watch = DirectoryWatch.Start(
             folder,
             DirectoryWatch.FileChanges | DirectoryWatch.NameChanges,
-            _ => Poke(Debounce),
+            _ => Changed?.Invoke(),
             () => Lost(folder),
             true);
         if (watch is null)
@@ -174,12 +149,12 @@ internal sealed class AppCatalog(
             _lost.Add(folder);
         }
 
-        Poke(Debounce);
+        Changed?.Invoke();
     }
 
     /// <summary>
-    /// A watch ends when its folder goes away or its buffer overflows, and reports nothing after that. A scan arms it
-    /// again first, so that scan sees whatever the old watch missed. A folder still missing waits for a later scan.
+    /// A watch ends when its folder goes away or its buffer overflows, and reports nothing after that. A read arms it
+    /// again first, so that read sees whatever the old watch missed. A folder still missing waits for a later read.
     /// </summary>
     private void RearmLost()
     {
@@ -203,92 +178,24 @@ internal sealed class AppCatalog(
     private void OnInstalling(PackageCatalog sender, PackageInstallingEventArgs args)
     {
         if (args.IsComplete)
-            Soon();
+            Changed?.Invoke();
     }
 
     private void OnUninstalling(PackageCatalog sender, PackageUninstallingEventArgs args)
     {
         if (args.IsComplete)
-            Soon();
+            Changed?.Invoke();
     }
 
     private void OnUpdating(PackageCatalog sender, PackageUpdatingEventArgs args)
     {
         if (args.IsComplete)
-            Soon();
+            Changed?.Invoke();
     }
 
-    /// <summary>Milliseconds since this catalog was made. The scan thread sleeps on a real wait handle, so this is real time too.</summary>
-    private long Clock => (long)TimeProvider.System.GetElapsedTime(_made).TotalMilliseconds;
-
-    private void Poke(TimeSpan delay)
+    private AppSnapshot Read()
     {
-        lock (_gate)
-        {
-            if (_disposed)
-                return;
-            var until = Clock + (long)delay.TotalMilliseconds;
-            if (until > _quietUntil)
-                _quietUntil = until;
-        }
-
-        _wake.Set();
-    }
-
-    private void Soon()
-    {
-        Poke(Debounce);
-    }
-
-    private void ScanLoop()
-    {
-        while (!_stop)
-        {
-            _wake.WaitOne();
-            if (_stop)
-                return;
-            while (!_stop)
-            {
-                int waitMs;
-                lock (_gate)
-                {
-                    var remain = _quietUntil - Clock;
-                    waitMs = remain <= 0 ? 0 : (int)Math.Min(remain, int.MaxValue);
-                }
-
-                if (waitMs == 0)
-                    break;
-                if (!_wake.WaitOne(waitMs))
-                    break;
-            }
-
-            if (_stop)
-                return;
-            ScanOnce();
-        }
-    }
-
-    private void ScanOnce()
-    {
-        try
-        {
-            RearmLost();
-            var snapshot = Take();
-            var changed = !_snapshot.SameAs(snapshot);
-            _snapshot = snapshot;
-            if (changed)
-                Changed?.Invoke();
-        }
-#pragma warning disable CA1031 // A failed scan keeps the last list. The next file event tries again.
-        catch (Exception e)
-#pragma warning restore CA1031
-        {
-            log.Warn("apps", e.Message);
-        }
-    }
-
-    private AppSnapshot Take()
-    {
+        RearmLost();
         // The user's folder comes after the common one, so Combine keeps its shortcut of an id both have.
         var shortcuts = _shortcuts.SelectMany(folder => folder.Read()).ToList();
         return new AppSnapshot(AppIndex.Combine(shortcuts, _packaged.Read()), _usage.Read());
@@ -338,7 +245,7 @@ internal sealed class AppCatalog(
         return AppIdentity.OpenAppsFolder(appUserModelId);
     }
 
-    /// <summary>One read of a scan, and what its last good read found.</summary>
+    /// <summary>One source of a read, and what its last good read found.</summary>
     private sealed class Source<T>(Log log, string what, Func<T> read, T empty)
     {
         private readonly MonitorWarning _warning = new(log, "apps", what);
@@ -382,7 +289,7 @@ internal static class PackagedApps
             catch (Exception e) when (e is COMException or UnauthorizedAccessException or ArgumentException
                                           or FileNotFoundException or IOException or InvalidOperationException)
             {
-                // A package being installed or removed can fail to answer; the next scan reads it again.
+                // A package being installed or removed can fail to answer; the next read reads it again.
                 log.Warn("apps", $"Skipped a package that did not answer: {e.Message}");
             }
 

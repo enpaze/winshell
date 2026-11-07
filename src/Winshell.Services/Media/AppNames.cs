@@ -19,39 +19,30 @@ internal sealed class AppNames(IEventLoop loop, Log log, Func<string, string> de
         if (_names.TryGetValue(appId, out var name))
             return name;
         name = _names[appId] = AppIdentity.FallbackName(appId);
-        LookUp(appId);
+        _ = LookUpAsync(appId);
         return name;
     }
 
-    private void LookUp(string appId)
+    private async Task LookUpAsync(string appId)
     {
-        // Not the thread pool: a busy pool held the name back.
-        var thread = new Thread(() =>
+        string name;
+        try
         {
-            string name;
-            try
-            {
-                name = describe(appId);
-            }
+            name = await OwnThread.Run(() => describe(appId)).ConfigureAwait(false);
+        }
 #pragma warning disable CA1031 // A failed lookup keeps the fallback name.
-            catch (Exception e)
+        catch (Exception e)
 #pragma warning restore CA1031
-            {
-                var message = e.Message;
-                loop.Post(() => log.Warn("media", $"Cannot name {appId}: {message}"));
-                return;
-            }
-
-            loop.Post(() =>
-            {
-                _names[appId] = name;
-                named();
-            });
-        })
         {
-            IsBackground = true,
-            Name = "Media app name"
-        };
-        thread.Start();
+            var message = e.Message;
+            loop.Post(() => log.Warn("media", $"Cannot name {appId}: {message}"));
+            return;
+        }
+
+        loop.Post(() =>
+        {
+            _names[appId] = name;
+            named();
+        });
     }
 }

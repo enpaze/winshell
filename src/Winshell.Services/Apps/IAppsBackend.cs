@@ -6,14 +6,14 @@ namespace Winshell.Apps;
 /// </summary>
 internal interface IAppsBackend : IDisposable
 {
-    /// <summary>Raised on any thread after a scan changed <see cref="Snapshot"/>.</summary>
+    /// <summary>Raised on any thread when the apps or their usage may have changed. A read after it sees the change.</summary>
     event Action? Changed;
 
-    /// <summary>The apps and the usage from the latest scan, the apps combined and in name order. Empty before the first.</summary>
-    AppSnapshot Snapshot { get; }
-
-    /// <summary>Starts scanning and following changes. Does nothing when it already has.</summary>
+    /// <summary>Starts following changes. Does nothing when it already has.</summary>
     void Start();
+
+    /// <summary>The apps and their usage, the apps combined and in name order. A read that blocks runs off the caller's thread.</summary>
+    Task<AppSnapshot> ReadAsync();
 
     /// <summary>Opens a shortcut through the shell, in <paramref name="startIn"/> when that folder exists. Null when it opened.</summary>
     string? OpenShortcut(string path, string startIn);

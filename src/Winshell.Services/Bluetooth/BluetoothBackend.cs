@@ -84,7 +84,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
     ];
 
     private readonly object _lock = new();
-    private readonly SemaphoreSlim _readGate = new(1, 1);
     private readonly Dictionary<string, BluetoothEndpointInfo> _nearby = new(StringComparer.Ordinal);
     private readonly Dictionary<string, DeviceInformation> _pairingEndpoints = new(StringComparer.Ordinal);
 
@@ -179,7 +178,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
 
     public async Task<BluetoothSnapshot> ReadAsync(CancellationToken cancellation)
     {
-        await _readGate.WaitAsync(cancellation).ConfigureAwait(false);
         try
         {
             lock (_lock)
@@ -210,8 +208,7 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
 
             WatchRadio(adapter.DeviceId, radio);
             cancellation.ThrowIfCancellationRequested();
-            // These queries can block. Their own thread keeps them off the shell's thread and off the pool.
-            var visibility = await OffUi(() => (
+            var visibility = await OwnThread.Run(() => (
                 Discoverable: BluetoothRadios.IsDiscoverable(),
                 Pairable: BluetoothRadios.IsConnectable())).ConfigureAwait(false);
             var adapterInfo = new BluetoothAdapterInfo(adapter.DeviceId, name,
@@ -259,10 +256,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
         {
             StopDiscovery();
             throw;
-        }
-        finally
-        {
-            _readGate.Release();
         }
     }
 
@@ -355,7 +348,7 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
             ObjectDisposedException.ThrowIf(_disposed, this);
         }
 
-        return OffUi(() =>
+        return OwnThread.Run(() =>
         {
             if (BluetoothRadios.IsDiscoverable() == discoverable)
                 return null;
@@ -375,7 +368,7 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
             ObjectDisposedException.ThrowIf(_disposed, this);
         }
 
-        return OffUi(() =>
+        return OwnThread.Run(() =>
         {
             if (BluetoothRadios.IsConnectable() == pairable)
                 return null;
@@ -385,12 +378,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
 
     private const string DiscoveryUnchanged = "Windows did not change Bluetooth discovery.";
     private const string ConnectionsUnchanged = "Windows did not change incoming Bluetooth connections.";
-
-    private static Task<T> OffUi<T>(Func<T> call)
-    {
-        return Task.Factory.StartNew(call, CancellationToken.None,
-            TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
-    }
 
     public void StartDiscovery()
     {

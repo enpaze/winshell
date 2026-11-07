@@ -4,7 +4,7 @@ using Winshell.Apps;
 namespace Winshell.Services.Tests;
 
 /// <summary>
-/// The Start menu's list over a fake backend, which supplies the scans and the launch outcomes, so nothing reads this
+/// The Start menu's list over a fake backend, which supplies the reads and the launch outcomes, so nothing reads this
 /// PC's Start menu and nothing is launched. Jump lists and recent documents read the test's own reader and folder.
 /// </summary>
 public sealed class AppsServiceTests : IDisposable
@@ -46,20 +46,20 @@ public sealed class AppsServiceTests : IDisposable
         return rows.ToDictionary(row => row.Id, row => row.Usage, StringComparer.OrdinalIgnoreCase);
     }
 
-    /// <summary>A service over a backend whose first scan finds <paramref name="apps"/>, in name order as a scan lists them.</summary>
+    /// <summary>A service over a backend whose first read finds <paramref name="apps"/>, in name order as a read lists them.</summary>
     private AppsService Start(IReadOnlyList<AppRecord> apps, Dictionary<string, AppUsage>? usage = null)
     {
-        _backend.FirstScan = new AppSnapshot(apps, usage ?? Usage());
+        _backend.Snapshot = new AppSnapshot(apps, usage ?? Usage());
         var service = new AppsService(_loop, _log, _backend);
         _loop.Process();
         return service;
     }
 
-    /// <summary>A later scan, reported as the scan thread reports it and applied on the loop.</summary>
-    private void Scan(IReadOnlyList<AppRecord> apps, Dictionary<string, AppUsage>? usage = null)
+    /// <summary>A change the backend reports, read once it has been quiet for a second.</summary>
+    private void Change(IReadOnlyList<AppRecord> apps, Dictionary<string, AppUsage>? usage = null)
     {
         _backend.Show(new AppSnapshot(apps, usage ?? Usage()));
-        _loop.Process();
+        _loop.Advance(TimeSpan.FromSeconds(1));
     }
 
     private static List<string> Names(IEnumerable<AppEntry> entries)
@@ -92,7 +92,7 @@ public sealed class AppsServiceTests : IDisposable
         Assert.Equal(["Beta"], Names(apps.Recent));
         Assert.Equal(["Beta"], Names(apps.Frequent));
 
-        Scan([App("Alpha")], usage);
+        Change([App("Alpha")], usage);
 
         Assert.Same(alpha, Assert.Single(apps.Apps));
         Assert.Empty(apps.Recent);
@@ -102,7 +102,7 @@ public sealed class AppsServiceTests : IDisposable
         // A launch from the entry that left is not counted when the app comes back.
         beta.Launch();
         _loop.Process();
-        Scan([App("Alpha"), App("Beta")], usage);
+        Change([App("Alpha"), App("Beta")], usage);
         Assert.Equal(3, apps.ById("Beta!App")!.RunCount);
     }
 
@@ -190,12 +190,41 @@ public sealed class AppsServiceTests : IDisposable
     }
 
     [Fact]
+    public void Changes_are_read_once_they_have_been_quiet_for_a_second()
+    {
+        using var apps = Start([App("Alpha")]);
+
+        _backend.Show(new AppSnapshot([App("Alpha"), App("Beta")], Usage()));
+        _loop.Advance(TimeSpan.FromMilliseconds(900));
+        _backend.Show(new AppSnapshot([App("Alpha"), App("Beta"), App("Gamma")], Usage()));
+        _loop.Advance(TimeSpan.FromMilliseconds(900));
+        Assert.Equal(["Alpha"], Names(apps.Apps));
+
+        _loop.Advance(TimeSpan.FromMilliseconds(100));
+        Assert.Equal(["Alpha", "Beta", "Gamma"], Names(apps.Apps));
+    }
+
+    [Fact]
+    public void A_failed_read_is_warned_and_the_next_change_reads_again()
+    {
+        _backend.Failure = new InvalidCastException("read broke");
+        using var apps = Start([App("Alpha")]);
+        Assert.Equal(["apps: read broke"], _warnings);
+        Assert.Empty(apps.Apps);
+
+        _backend.Failure = null;
+        Change([App("Alpha")]);
+
+        Assert.Equal(["Alpha"], Names(apps.Apps));
+    }
+
+    [Fact]
     public void A_disposed_service_stops_following_the_backend()
     {
         var apps = Start([App("Alpha")]);
 
         apps.Dispose();
-        Scan([]);
+        Change([]);
 
         Assert.Single(apps.Apps);
     }
@@ -290,15 +319,16 @@ public sealed class AppsServiceTests : IDisposable
         }
     }
 
-    /// <summary>Supplies the scans and the launch outcomes. It opens nothing and records what it was asked to open.</summary>
+    /// <summary>Supplies the reads and the launch outcomes. It opens nothing and records what it was asked to open.</summary>
     private sealed class FakeBackend : IAppsBackend
     {
         public event Action? Changed;
 
-        public AppSnapshot Snapshot { get; private set; } = AppSnapshot.Empty;
+        /// <summary>What a read finds.</summary>
+        public AppSnapshot Snapshot { get; set; } = AppSnapshot.Empty;
 
-        /// <summary>What the scan that <see cref="Start"/> begins finds. Like a new catalog, the backend is empty until then.</summary>
-        public AppSnapshot FirstScan { get; set; } = AppSnapshot.Empty;
+        /// <summary>What a read throws instead, when set.</summary>
+        public Exception? Failure { get; set; }
 
         public Task<string?> Activation { get; set; } = Task.FromResult<string?>(null);
 
@@ -318,7 +348,11 @@ public sealed class AppsServiceTests : IDisposable
 
         public void Start()
         {
-            Show(FirstScan);
+        }
+
+        public Task<AppSnapshot> ReadAsync()
+        {
+            return Failure is null ? Task.FromResult(Snapshot) : Task.FromException<AppSnapshot>(Failure);
         }
 
         public string? OpenShortcut(string path, string startIn)
