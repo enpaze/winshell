@@ -8,9 +8,13 @@ namespace Winshell.Apps;
 /// </summary>
 public sealed class AppsService : ObservableObject, IDisposable
 {
+    // Installers write many files at once, so a read waits until they have been quiet this long.
+    private static readonly TimeSpan Debounce = TimeSpan.FromSeconds(1);
+
     private readonly IEventLoop _loop;
     private readonly Log _log;
     private readonly IAppsBackend _backend;
+    private readonly StateReader<AppSnapshot> _reader;
     private readonly Dictionary<string, AppEntry> _byId = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, AppUsage> _bumps = new(StringComparer.OrdinalIgnoreCase);
     private IReadOnlyList<AppRecord> _entries = [];
@@ -18,6 +22,7 @@ public sealed class AppsService : ObservableObject, IDisposable
     private IReadOnlyDictionary<string, AppUsage> _usage =
         new Dictionary<string, AppUsage>(StringComparer.OrdinalIgnoreCase);
 
+    private IDisposable? _quiet;
     private bool _disposed;
 
     internal AppsService(IEventLoop loop, Log log, IAppsBackend? backend = null)
@@ -26,9 +31,10 @@ public sealed class AppsService : ObservableObject, IDisposable
         _log = log;
         _backend = backend ?? new AppCatalog(log, AppCatalog.ProgramsFolders(), () => PackagedApps.Read(log),
             () => AppUsageReader.Read(loop.Time.GetUtcNow()));
+        _reader = new StateReader<AppSnapshot>(_ => _backend.ReadAsync(), Apply, loop, new MonitorWarning(log, "apps"));
         _backend.Changed += OnChanged;
         _backend.Start();
-        Apply();
+        _reader.Request();
     }
 
     /// <summary>The apps that are shown in Start, by name.</summary>
@@ -61,14 +67,17 @@ public sealed class AppsService : ObservableObject, IDisposable
 
     private void OnChanged()
     {
-        _loop.Post(Apply);
+        _loop.Post(() =>
+        {
+            if (_disposed)
+                return;
+            _quiet?.Dispose();
+            _quiet = _loop.Schedule(Debounce, _reader.Request);
+        });
     }
 
-    private void Apply()
+    private void Apply(AppSnapshot snapshot)
     {
-        if (_disposed)
-            return;
-        var snapshot = _backend.Snapshot;
         _entries = snapshot.Entries;
         _usage = snapshot.Usage;
         var ids = _entries.Select(entry => entry.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -125,8 +134,9 @@ public sealed class AppsService : ObservableObject, IDisposable
         if (_disposed)
             return;
         _disposed = true;
+        _quiet?.Dispose();
         _backend.Changed -= OnChanged;
-        _backend.Dispose();
+        _reader.Stop(_backend.Dispose);
     }
 }
 

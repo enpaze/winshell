@@ -15,18 +15,13 @@ internal sealed class NotificationAppIcons(IEventLoop loop, Log log, Cancellatio
     /// </summary>
     public void Read(string appKey, string label, IAppLogoSource source, Action<string> landed)
     {
-        // Not the thread pool: the logo read blocks on Windows, and publishing the url has to run even when every
-        // pool thread is busy.
-        var thread = new Thread(() =>
-        {
-            var url = Claim(appKey, label, source);
-            loop.Post(() => landed(url));
-        })
-        {
-            IsBackground = true,
-            Name = "Notification icon"
-        };
-        thread.Start();
+        _ = LandAsync(OwnThread.Run(() => Claim(appKey, label, source)), landed);
+    }
+
+    private async Task LandAsync(Task<string> claim, Action<string> landed)
+    {
+        var url = await claim.ConfigureAwait(false);
+        loop.Post(() => landed(url));
     }
 
     private string Claim(string appKey, string label, IAppLogoSource source)
