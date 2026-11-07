@@ -11,8 +11,8 @@ namespace OmarchyStyle;
 internal sealed class Watcher : IDisposable
 {
     private readonly Action<Watcher> _render;
-    private readonly HashSet<INotifyPropertyChanged> _objects = [];
-    private readonly HashSet<INotifyCollectionChanged> _lists = [];
+    private readonly HashSet<INotifyPropertyChanged> _objects = new(ReferenceEqualityComparer.Instance);
+    private readonly HashSet<INotifyCollectionChanged> _lists = new(ReferenceEqualityComparer.Instance);
     private bool _disposed;
 
     public Watcher(Action<Watcher> render)
