@@ -55,7 +55,7 @@ public sealed partial class PanelView : UserControl, IDisposable
         _watchers.Add(new Watcher(ShowBluetooth));
         _watchers.Add(new Watcher(ShowNetwork));
         _watchers.Add(new Watcher(ShowAudio));
-        _watchers.Add(new Watcher(ShowScreen));
+        ShowScreen();
         _watchers.Add(new Watcher(ShowBattery));
     }
 
@@ -72,20 +72,21 @@ public sealed partial class PanelView : UserControl, IDisposable
     {
         var winland = watch.Read(_shell.Winland);
         Workspaces.Children.Clear();
-        Workspaces.Visibility = winland.ProcessId == 0 ? Visibility.Collapsed : Visibility.Visible;
-        if (winland.ProcessId == 0)
-            return;
-
         // Winland numbers workspaces per monitor, so the panel shows its own screen's: 1 to 5 always, and any other
-        // that exists.
-        var monitor = winland.MonitorFor(_screen);
-        if (monitor is not null)
-            watch.Read(monitor);
+        // that exists. None while Winland isn't running or has no monitor for this screen.
+        if ((winland.ProcessId == 0 ? null : winland.MonitorFor(_screen)) is not { } monitor)
+        {
+            Workspaces.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        Workspaces.Visibility = Visibility.Visible;
+        watch.Read(monitor);
         var own = watch.Read(winland.Workspaces).Where(w => watch.Read(w).Monitor == monitor && w.Id > 0).ToList();
         foreach (var id in own.Select(w => w.Id).Concat(Enumerable.Range(1, 5)).Distinct().Order())
         {
             var workspace = own.Find(w => w.Id == id);
-            var shown = monitor?.ActiveWorkspace?.Id == id;
+            var shown = monitor.ActiveWorkspace?.Id == id;
             var occupied = workspace is not null && watch.Read(workspace.Windows).Count > 0;
             var button = new Button
             {
@@ -98,7 +99,7 @@ public sealed partial class PanelView : UserControl, IDisposable
             {
                 if (workspace is not null)
                     workspace.Activate();
-                else if (monitor is null || monitor.Focused)
+                else if (monitor.Focused)
                     winland.Dispatch("workspace " + id.ToString(CultureInfo.InvariantCulture));
                 else
                     // A workspace that doesn't exist yet can only be made on the focused monitor, and Winshell can't
@@ -134,7 +135,7 @@ public sealed partial class PanelView : UserControl, IDisposable
         Overflow.Visibility = _overflowCount > 0 ? Visibility.Visible : Visibility.Collapsed;
         Tray.Visibility = items.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         if (_overflowOpen)
-            OverflowClip.Width = _overflowCount * Slot;
+            SlideOverflow(_overflowCount * Slot);
     }
 
     private Button TrayButton(SystemTrayItem item)
@@ -245,9 +246,10 @@ public sealed partial class PanelView : UserControl, IDisposable
         Show(Audio, Glyphs.Audio(device), device.Description + ": " + level);
     }
 
-    private void ShowScreen(Watcher watch)
+    private void ShowScreen()
     {
-        var several = watch.Read(_shell.Screens).Count > 1;
+        // A change of screens makes every panel again, so this is read once.
+        var several = _shell.Screens.Count > 1;
         Show(Screen, several ? Glyphs.Screens : Glyphs.Screen, _screen.Model.Length > 0 ? _screen.Model : _screen.Name);
     }
 

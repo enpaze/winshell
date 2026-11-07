@@ -12,7 +12,7 @@ One panel, 26 pixels high, along the top of every screen. It reserves that edge,
 - **Centre:** the day and time, such as `Saturday 20:25`, in your Windows regional format.
 - **Right:** on the primary screen, the tray. Hovering its chevron slides out the icons Windows keeps in its overflow. Then Bluetooth, the network, audio, the screen and the battery; each opens its Windows Settings page when clicked. The battery is left out on a PC without one.
 
-Hover any glyph for what it stands for.
+Hover the clock, a tray icon or a status glyph for what it shows.
 
 ## Run it
 
@@ -36,5 +36,5 @@ The package is not published yet, so pack it from the same clone and point NuGet
 
 ## Credits
 
-- The look, the sizes, the glyph choices and the colors come from [Omarchy v4.5.0](https://github.com/omacom/omarchy/tree/v4.5.0) by David Heinemeier Hansson, under the MIT licence. No Omarchy code, logo or font is copied: the Windows glyph stands where Omarchy's logo is.
+- The look, the sizes, the glyph choices and the colors come from [Omarchy v4.5.0](https://github.com/omacom/omarchy/tree/v4.5.0) by David Heinemeier Hansson, under the MIT licence. The rules for which glyph each status shows follow Omarchy's widgets; no Omarchy file, logo or font is included, and the Windows glyph stands where Omarchy's logo is.
 - [JetBrainsMono Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases/tag/v3.5.1), from Nerd Fonts v3.5.1, ships in `Fonts/`: the Regular weight only. JetBrains Mono is under the SIL Open Font License 1.1, in [Fonts/OFL.txt](Fonts/OFL.txt). Its icon sets keep their own licences, which [Fonts/README.md](Fonts/README.md) lists.

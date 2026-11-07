@@ -11,8 +11,9 @@ namespace OmarchyStyle;
 internal sealed class Watcher : IDisposable
 {
     private readonly Action<Watcher> _render;
-    private readonly List<INotifyPropertyChanged> _objects = [];
-    private readonly List<INotifyCollectionChanged> _lists = [];
+    private readonly HashSet<INotifyPropertyChanged> _objects = [];
+    private readonly HashSet<INotifyCollectionChanged> _lists = [];
+    private bool _disposed;
 
     public Watcher(Action<Watcher> render)
     {
@@ -25,13 +26,12 @@ internal sealed class Watcher : IDisposable
     {
         if (source is INotifyCollectionChanged list)
         {
-            list.CollectionChanged += OnChanged;
-            _lists.Add(list);
+            if (_lists.Add(list))
+                list.CollectionChanged += OnChanged;
         }
-        else
+        else if (_objects.Add(source))
         {
             source.PropertyChanged += OnChanged;
-            _objects.Add(source);
         }
 
         return source;
@@ -39,12 +39,8 @@ internal sealed class Watcher : IDisposable
 
     public void Dispose()
     {
-        foreach (var source in _objects)
-            source.PropertyChanged -= OnChanged;
-        foreach (var list in _lists)
-            list.CollectionChanged -= OnChanged;
-        _objects.Clear();
-        _lists.Clear();
+        _disposed = true;
+        Forget();
     }
 
     private void OnChanged(object? sender, EventArgs e)
@@ -54,7 +50,20 @@ internal sealed class Watcher : IDisposable
 
     private void Render()
     {
-        Dispose();
+        // An event already being raised still reaches a watcher that has just been disposed.
+        if (_disposed)
+            return;
+        Forget();
         _render(this);
+    }
+
+    private void Forget()
+    {
+        foreach (var source in _objects)
+            source.PropertyChanged -= OnChanged;
+        foreach (var list in _lists)
+            list.CollectionChanged -= OnChanged;
+        _objects.Clear();
+        _lists.Clear();
     }
 }

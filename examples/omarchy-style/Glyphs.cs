@@ -46,13 +46,13 @@ internal static class Glyphs
         if (form is "headphone" or "headset")
             return "\U000F02CB";
         if (device.Muted)
-            return "";
+            return "\uEEE8";
         return device.Volume switch
         {
-            >= 0.67 => "",
-            >= 0.34 => "",
-            > 0 => "",
-            _ => ""
+            >= 0.67 => "\uF028",
+            >= 0.34 => "\uF027",
+            > 0 => "\uF026",
+            _ => "\uEEE8"
         };
     }
 
