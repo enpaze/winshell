@@ -27,7 +27,7 @@ public sealed class XamlReloadTests : IDisposable
     private const string Open =
         """<UserControl x:Class="Winshell.ShellTests.LivePanel" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" """;
 
-    private readonly string _dir = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _dir = TempFolder.NewPath();
 
     public XamlReloadTests()
     {

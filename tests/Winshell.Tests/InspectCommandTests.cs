@@ -8,7 +8,7 @@ namespace Winshell.Tests;
 [Trait("Category", "Slow")]
 public sealed class InspectCommandTests : IDisposable, IClassFixture<ProbeBuild>
 {
-    private readonly string _dir = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _dir = TempFolder.NewPath();
     private readonly Process _shell;
     private readonly string _pid;
 

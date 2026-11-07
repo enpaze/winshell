@@ -4,19 +4,28 @@ namespace Winshell.TestSupport;
 
 /// <summary>
 /// A new folder under <c>%TEMP%\winshell-tests</c>, deleted on dispose. Every test program prunes folders a crashed
-/// run left there once at startup; a folder from today stays.
+/// run left there once at startup; a folder from today stays. A test gets every temp path here: the ban list rejects
+/// <c>Path.GetTempPath</c> anywhere else.
 /// </summary>
 internal sealed class TempFolder : IDisposable
 {
-    private static readonly string Root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "winshell-tests");
+#pragma warning disable RS0030 // The one root every test folder lives under.
+    internal static readonly string Root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "winshell-tests");
+#pragma warning restore RS0030
 
     public TempFolder()
     {
-        Path = System.IO.Path.Combine(Root, Guid.NewGuid().ToString("N"));
+        Path = NewPath();
         Directory.CreateDirectory(Path);
     }
 
     public string Path { get; }
+
+    /// <summary>A folder path under <see cref="Root"/> that nothing has made yet, for a fixture that deletes its own folder.</summary>
+    public static string NewPath()
+    {
+        return System.IO.Path.Combine(Root, Guid.NewGuid().ToString("N"));
+    }
 
     public void Dispose()
     {

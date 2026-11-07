@@ -6,7 +6,7 @@ namespace Winshell.Services.Tests;
 
 public sealed class ConfigurationProjectTests : IDisposable
 {
-    private readonly string _root = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _root = TempFolder.NewPath();
     private readonly List<string> _commands = [];
 
     public ConfigurationProjectTests()
@@ -539,9 +539,10 @@ public sealed class ConfigurationProjectTests : IDisposable
     public async Task A_server_that_outlives_its_build_does_not_hold_up_the_result()
     {
         // The server outlives the wait below, so a Run that waited for it to close its output would not be done in time.
+        // It keeps the folder as its working folder past the test, so the startup prune deletes the folder.
+        var folder = Directory.CreateDirectory(TempFolder.NewPath()).FullName;
         var run = Task.Run(() =>
-            ConfigurationProject.Run("cmd", ["/c", "start /b ping -n 60 127.0.0.1 >nul & echo built"],
-                Path.GetTempPath()));
+            ConfigurationProject.Run("cmd", ["/c", "start /b ping -n 60 127.0.0.1 >nul & echo built"], folder));
 
         Wait.Until(() => run.IsCompleted, "the result while the server still runs");
 

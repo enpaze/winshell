@@ -14,7 +14,7 @@ public sealed class CrashReportSafetyTests : IDisposable
     private const int Keep = 50;
 
     private readonly string _root =
-        Path.Combine(Path.GetTempPath(), "winshell-crash-tests", Guid.NewGuid().ToString("N"));
+        TempFolder.NewPath();
 
     public CrashReportSafetyTests()
     {

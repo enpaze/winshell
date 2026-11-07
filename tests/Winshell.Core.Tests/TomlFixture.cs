@@ -5,7 +5,7 @@ internal sealed class TomlFixture : IDisposable
 {
     public TomlFixture(string? text = null, string name = "settings.toml")
     {
-        Directory = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+        Directory = TempFolder.NewPath();
         System.IO.Directory.CreateDirectory(Directory);
         FilePath = Path.Combine(Directory, name);
         Log = new Log { Sink = (_, _, message) => Messages.Add(message) };

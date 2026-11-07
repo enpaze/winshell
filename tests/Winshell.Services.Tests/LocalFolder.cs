@@ -9,6 +9,6 @@ internal static class LocalFolder
     internal static void Set()
     {
         Environment.SetEnvironmentVariable("WINSHELL_LOCAL_DIR",
-            Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N")));
+            TempFolder.NewPath());
     }
 }

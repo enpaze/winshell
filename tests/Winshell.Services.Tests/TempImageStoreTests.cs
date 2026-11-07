@@ -13,7 +13,7 @@ public sealed class TempImageStoreTests
     [InlineData(true)]
     public void Cleanup_leaves_files_reached_through_a_directory_link_alone(bool linkedRoot)
     {
-        var directory = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+        var directory = TempFolder.NewPath();
         var cache = Path.Combine(directory, "cache");
         var elsewhere = Path.Combine(directory, "elsewhere");
         Directory.CreateDirectory(cache);

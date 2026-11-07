@@ -15,7 +15,7 @@ public sealed class DoctorCommandTests : IDisposable
     ];
 
     private readonly string _root =
-        Path.Combine(Path.GetTempPath(), "winshell-doctor-tests", Guid.NewGuid().ToString("N"));
+        TempFolder.NewPath();
 
     public DoctorCommandTests()
     {

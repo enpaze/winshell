@@ -10,7 +10,7 @@ namespace Winshell.Services.Tests;
 public sealed class DoctorEvidenceTests : IDisposable
 {
     private readonly string _dir =
-        Path.Combine(Path.GetTempPath(), "winshell-doctor-evidence", Guid.NewGuid().ToString("N"));
+        TempFolder.NewPath();
 
     public DoctorEvidenceTests()
     {

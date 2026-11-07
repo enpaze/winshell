@@ -227,7 +227,7 @@ public sealed class CaptureSessionTests
     [Fact]
     public void A_saved_png_never_overwrites_a_file_and_never_goes_to_a_remote_url()
     {
-        var directory = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+        var directory = TempFolder.NewPath();
         Directory.CreateDirectory(directory);
         var path = Path.Combine(directory, "test.png");
         var loop = new ManualEventLoop();

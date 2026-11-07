@@ -7,7 +7,7 @@ namespace Winshell.Core.Tests;
 public sealed class CrashFollowUpTests : IDisposable
 {
     private readonly string _dir =
-        Path.Combine(Path.GetTempPath(), "winshell-crash-follow-up", Guid.NewGuid().ToString("N"));
+        TempFolder.NewPath();
 
     public CrashFollowUpTests()
     {

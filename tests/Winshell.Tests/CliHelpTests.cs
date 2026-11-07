@@ -38,6 +38,6 @@ public class CliHelpTests
     {
         return WinshellCli.Run(
             args,
-            ("WINSHELL_CONFIG_DIR", Path.Combine(Path.GetTempPath(), "winshell-cli-help-absent")));
+            ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));
     }
 }

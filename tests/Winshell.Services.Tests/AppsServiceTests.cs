@@ -10,7 +10,7 @@ namespace Winshell.Services.Tests;
 public sealed class AppsServiceTests : IDisposable
 {
     private readonly string _folder =
-        Path.Combine(Path.GetTempPath(), "winshell-apps-tests", Guid.NewGuid().ToString("N"));
+        TempFolder.NewPath();
 
     private readonly ManualEventLoop _loop = new();
     private readonly FakeBackend _backend = new();

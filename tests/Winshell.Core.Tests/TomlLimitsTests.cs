@@ -123,7 +123,7 @@ public sealed class TomlLimitsTests
     [Fact]
     public void Loading_a_file_names_what_went_wrong()
     {
-        var dir = Directory.CreateTempSubdirectory("winshell-toml-load-");
+        var dir = Directory.CreateDirectory(TempFolder.NewPath());
         var missing = Path.Combine(dir.FullName, "missing.toml");
         var bad = Path.Combine(dir.FullName, "bad.toml");
         var big = Path.Combine(dir.FullName, "big.toml");

@@ -17,26 +17,21 @@ public class CliUsageTests
     [Fact]
     public void Tail_of_int_max_prints_the_file()
     {
-        var path = Path.Combine(Path.GetTempPath(), "winshell-cli-usage-" + Guid.NewGuid().ToString("N") + ".log");
+        using var dir = new TempFolder();
+        var path = Path.Combine(dir.Path, "usage.log");
         File.WriteAllText(path, "one\r\ntwo\r\n");
-        try
-        {
-            var result = Run(["log", path, "--tail", "2147483647"]);
 
-            result.AssertExitCode(0);
-            Assert.Equal("", result.Error);
-            Assert.Equal("one" + Environment.NewLine + "two" + Environment.NewLine, result.Output);
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        var result = Run(["log", path, "--tail", "2147483647"]);
+
+        result.AssertExitCode(0);
+        Assert.Equal("", result.Error);
+        Assert.Equal("one" + Environment.NewLine + "two" + Environment.NewLine, result.Output);
     }
 
     private static ChildProcess Run(string[] args)
     {
         return WinshellCli.Run(
             args,
-            ("WINSHELL_CONFIG_DIR", Path.Combine(Path.GetTempPath(), "winshell-cli-usage-absent")));
+            ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));
     }
 }

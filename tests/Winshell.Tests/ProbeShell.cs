@@ -112,7 +112,7 @@ internal static class ProbeShell
                 return;
             // One folder per checkout. The project names this checkout's source, so two sharing a folder break each other's build.
             var checkout = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Repo.Root)))[..12];
-            Volatile.Write(ref _program, Build(Path.Combine(Path.GetTempPath(), "winshell-probe-shell-" + checkout)));
+            Volatile.Write(ref _program, Build(Path.Combine(TempFolder.Root, "probe-shell-" + checkout)));
         }
     }
 
@@ -135,6 +135,8 @@ internal static class ProbeShell
     {
         var root = Repo.Root;
         Directory.CreateDirectory(folder);
+        // The folder outlives a run, and the startup prune keeps only a folder written to today.
+        Directory.SetLastWriteTimeUtc(folder, DateTime.UtcNow);
         // The probe sits outside the repo. Without this, dotnet picks a newer SDK and rebuilds the shell from scratch.
         WriteIfDifferent(Path.Combine(folder, "global.json"), File.ReadAllText(Path.Combine(root, "global.json")));
         var project = Path.Combine(folder, "Probe.csproj");

@@ -3,7 +3,7 @@ namespace Winshell.Core.Tests;
 public sealed class DirectoryWatchTests : IDisposable
 {
     private readonly string _directory =
-        Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+        TempFolder.NewPath();
 
     public DirectoryWatchTests()
     {

@@ -454,7 +454,7 @@ public sealed class AppIndexTests
 
     private static string Temp()
     {
-        var path = Path.Combine(Path.GetTempPath(), "winshell-tests", Guid.NewGuid().ToString("N"));
+        var path = TempFolder.NewPath();
         Directory.CreateDirectory(path);
         return path;
     }

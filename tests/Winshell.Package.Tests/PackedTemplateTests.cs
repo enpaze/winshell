@@ -52,7 +52,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         var why = project!.Prepare(false, ConfigurationProject.Run);
         Assert.True(why is null, why);
 
-        var dir = Path.Combine(Path.GetTempPath(), "winshell-package-tests", Guid.NewGuid().ToString("N"));
+        var dir = TempFolder.NewPath();
         (string Name, string Value)[] folders =
         [
             ("WINSHELL_CONFIG_DIR", Path.Combine(dir, "config")),
@@ -147,7 +147,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
 public sealed class PackedTemplates : IDisposable
 {
     private readonly string _work =
-        Path.Combine(Path.GetTempPath(), "winshell-package-tests", Guid.NewGuid().ToString("N"));
+        TempFolder.NewPath();
 
     public PackedTemplates()
     {
@@ -262,7 +262,7 @@ public sealed class PackedTemplates : IDisposable
             names.Where(name => name.StartsWith("lib/", StringComparison.Ordinal)).Order(StringComparer.Ordinal));
         AssertProps(zip, packageDir);
 
-        var extracted = Path.Combine(Path.GetTempPath(), "winshell-package-tests", Guid.NewGuid().ToString("N"));
+        var extracted = TempFolder.NewPath();
         Directory.CreateDirectory(extracted);
         foreach (var library in libraries.Where(name => name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)))
         {

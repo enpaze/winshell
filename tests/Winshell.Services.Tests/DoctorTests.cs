@@ -19,7 +19,7 @@ namespace Winshell.Services.Tests;
 public sealed class DoctorTests : IDisposable
 {
     private readonly string _dir =
-        Path.Combine(Path.GetTempPath(), "winshell-doctor-tests", Guid.NewGuid().ToString("N"));
+        TempFolder.NewPath();
 
     public DoctorTests()
     {
