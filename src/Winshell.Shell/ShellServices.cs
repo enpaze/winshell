@@ -1,6 +1,7 @@
 using Winshell.Apps;
 using Winshell.Audio;
 using Winshell.Bluetooth;
+using Winshell.Cpu;
 using Winshell.ExplorerTaskbar;
 using Winshell.Input;
 using Winshell.Media;
@@ -21,6 +22,7 @@ public sealed partial class Shell
     private AudioService? _audio;
     private BluetoothService? _bluetooth;
     private BrightnessService? _brightness;
+    private CpuService? _cpu;
     private ExplorerTaskbarService? _explorerTaskbar;
     private HotkeyRegistrar? _hotkeys;
     private JumpListService? _jumpLists;
@@ -43,7 +45,7 @@ public sealed partial class Shell
     /// </summary>
     private IDisposable?[] ServicesInStopOrder =>
     [
-        _winland, _windows, _virtualDesktops, _apps, _audio, _bluetooth, _brightness, _explorerTaskbar, _media,
+        _winland, _windows, _virtualDesktops, _apps, _audio, _bluetooth, _brightness, _cpu, _explorerTaskbar, _media,
         _networking, _notifications, _power, _powerMode, _systemTray, _hotkeys
     ];
 
@@ -58,6 +60,9 @@ public sealed partial class Shell
 
     /// <summary>The brightness of the connected monitors that report one.</summary>
     public BrightnessService Brightness => _brightness ??= new BrightnessService(Loop, Log, Platform.Screens);
+
+    /// <summary>How busy the processors are, measured only while something listens.</summary>
+    public CpuService Cpu => _cpu ??= new CpuService(Loop);
 
     /// <summary>Whether Explorer's taskbar is hidden. Winshell shows it again when it exits.</summary>
     public ExplorerTaskbarService ExplorerTaskbar => _explorerTaskbar ??= new ExplorerTaskbarService(Loop, Log);

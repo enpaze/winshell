@@ -11,6 +11,7 @@ See also the [command line](command-line.md).
 | [Winshell.Audio](winshell-audio.md) | Playback and recording devices, sessions, volume, mute and levels. |
 | [Winshell.Bluetooth](winshell-bluetooth.md) | The Bluetooth adapter, paired and nearby devices, pairing and connecting. |
 | [Winshell.Capture](winshell-capture.md) | A still or a live capture of a window or a screen. |
+| [Winshell.Cpu](winshell-cpu.md) | How busy the processors are. |
 | [Winshell.Diagnostics](winshell-diagnostics.md) | The checks `winshell doctor` prints. Reading a project does not build it. |
 | [Winshell.ExplorerTaskbar](winshell-explorertaskbar.md) | Whether Explorer's taskbar is hidden while this shell runs. |
 | [Winshell.Input](winshell-input.md) | A hotkey that works anywhere in Windows. |
