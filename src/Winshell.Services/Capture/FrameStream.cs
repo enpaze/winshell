@@ -118,17 +118,13 @@ internal sealed class FrameStream : IDisposable
                 using var frame = pool.TryGetNextFrame();
                 if (frame is null)
                     return;
-                // A resized target draws into the old buffers until the pool takes the new size. A frame that grew
-                // past them is cut off, so it is dropped, and the next comes at the new size.
+                // A resized target draws into the old buffers until the pool takes the new size.
                 var size = frame.ContentSize;
                 if (size.Width > 0 && size.Height > 0 &&
                     (size.Width != _poolSize.Width || size.Height != _poolSize.Height))
                 {
-                    var grew = size.Width > _poolSize.Width || size.Height > _poolSize.Height;
                     _poolSize = size;
                     _ = Task.Run(Restart);
-                    if (grew)
-                        return;
                 }
 
                 if (Copy(frame) is { } image)
@@ -142,14 +138,17 @@ internal sealed class FrameStream : IDisposable
         }
     }
 
-    /// <summary>The frame's content in memory.</summary>
+    /// <summary>
+    /// The frame's content in memory, or null when its buffer, made for an older size, cuts the content off. The next
+    /// frame comes at the new size.
+    /// </summary>
     private PixelImage? Copy(Direct3D11CaptureFrame frame)
     {
         using var texture = CaptureInterop.Texture(frame.Surface);
         var desc = texture.Description;
-        var width = (int)Math.Min(desc.Width, (uint)Math.Max(0, frame.ContentSize.Width));
-        var height = (int)Math.Min(desc.Height, (uint)Math.Max(0, frame.ContentSize.Height));
-        if (width == 0 || height == 0)
+        var width = frame.ContentSize.Width;
+        var height = frame.ContentSize.Height;
+        if (width <= 0 || height <= 0 || width > desc.Width || height > desc.Height)
             return null;
         if (_staging is not { } staging || staging.Description.Width != width || staging.Description.Height != height)
         {
