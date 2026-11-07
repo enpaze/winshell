@@ -72,8 +72,9 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
         Win32.GetClientRect(Handle, out var rc);
         var origin = new POINT();
         Win32.ClientToScreen(Handle, ref origin);
-        var (device, monitor) = Screens.Of(Handle);
-        _origin = DesktopSpace.ToLogical(origin, monitor, Scale);
+        var monitor = Screens.Of(Handle);
+        var device = monitor?.Id ?? "";
+        _origin = DesktopSpace.ToLogical(origin, monitor?.Bounds ?? default, Scale);
         var width = Math.Max(1, rc.Width);
         var height = Math.Max(1, rc.Height);
         host.Presentation.FitIsland(width, height);

@@ -305,15 +305,15 @@ public sealed class FloatingWindowFullscreenTests
 
     private static void AssertCoversMonitor(nint hwnd)
     {
-        var (_, bounds) = Screens.Of(hwnd);
+        var monitor = Screens.Of(hwnd);
+        Assert.NotNull(monitor);
+        var bounds = monitor.Bounds;
         var rect = Outer(hwnd);
         Assert.InRange(rect.Left, bounds.Left - 1, bounds.Left + 1);
         Assert.InRange(rect.Top, bounds.Top - 1, bounds.Top + 1);
         Assert.InRange(rect.Right, bounds.Right - 1, bounds.Right + 1);
         Assert.InRange(rect.Bottom, bounds.Bottom - 1, bounds.Bottom + 1);
         Assert.Equal(0u, Style(hwnd) & (uint)(WINDOW_STYLE.WS_CAPTION | WINDOW_STYLE.WS_THICKFRAME));
-        var monitor = Screens.Read(Win32.MonitorFromWindow(hwnd, Win32.MONITOR_DEFAULTTONEAREST));
-        Assert.NotNull(monitor);
         // A taskbar that is showing makes the work area smaller. The window then extends past it.
         if (!monitor.Work.Equals(monitor.Bounds))
             Assert.True(

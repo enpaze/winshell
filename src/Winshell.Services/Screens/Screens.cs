@@ -9,6 +9,9 @@ namespace Winshell;
 /// </summary>
 internal sealed record MonitorGeometry(nint Handle, string Id, RECT Bounds, RECT Work, double Scale, bool IsPrimary)
 {
+    /// <summary>The device name without its <c>\\.\</c> prefix, such as <c>DISPLAY1</c>.</summary>
+    public string Name => Id.Replace(@"\\.\", "", StringComparison.Ordinal);
+
     /// <summary>The area a window on this monitor lays out in: the work area, or the whole monitor when that area has no size.</summary>
     public RECT Area => Work.Width > 0 && Work.Height > 0 ? Work : Bounds;
 
@@ -20,25 +23,18 @@ internal sealed record MonitorGeometry(nint Handle, string Id, RECT Bounds, RECT
 }
 
 /// <summary>
-/// A described monitor: its identity, its device interface path such as
-/// <c>\\?\DISPLAY#AUS32A8#5&amp;15335277&amp;0&amp;UID184582#{...}</c> ("" when Windows has none), and its physical
-/// rectangles and scale.
+/// A described monitor: its handle, its identity, and its device interface path such as
+/// <c>\\?\DISPLAY#AUS32A8#5&amp;15335277&amp;0&amp;UID184582#{...}</c> ("" when Windows has none).
 /// </summary>
-internal sealed record ConnectedMonitor(
-    nint Handle,
-    ScreenInfo Info,
-    string InterfacePath,
-    RECT Bounds,
-    RECT Work,
-    double Scale)
+internal sealed record ConnectedMonitor(nint Handle, ScreenInfo Info, string InterfacePath)
 {
     /// <summary>The monitor's PnP model code, such as <c>AUS32A8</c>, or "" when Windows names none.</summary>
     public string ModelCode => Screens.ModelCode(InterfacePath);
 }
 
 /// <summary>
-/// Reads the connected monitors. <see cref="List"/>, <see cref="Find"/>, <see cref="Primary"/> and <see cref="Read"/>
-/// read only their geometry. <see cref="Describe"/> adds the names, model, size and refresh rate of one, and
+/// Reads the connected monitors. <see cref="List"/>, <see cref="Find"/>, <see cref="Primary"/>, <see cref="Read"/>
+/// and <see cref="Of"/> read only their geometry. <see cref="Describe"/> adds the names, model, size and refresh rate of one, and
 /// <see cref="Enumerate"/> describes them all.
 /// </summary>
 internal static class Screens
@@ -87,10 +83,9 @@ internal static class Screens
         var device = monitor.Id;
         var (model, id) = DisplayDevice.Monitor(device);
         var size = MonitorSize.Read(id);
-        var name = device.Replace(@"\\.\", "", StringComparison.Ordinal);
         var info = new ScreenInfo(
             device,
-            name,
+            monitor.Name,
             model,
             Manufacturer(ModelCode(id)),
             Serial(id),
@@ -101,15 +96,16 @@ internal static class Screens
             size.HeightMm,
             RefreshRate(device),
             monitor.IsPrimary);
-        return new ConnectedMonitor(monitor.Handle, info, id, monitor.Bounds, monitor.Work, monitor.Scale);
+        return new ConnectedMonitor(monitor.Handle, info, id);
     }
 
-    /// <summary>The device name and physical bounds of the monitor a window is on, without reading the rest.</summary>
-    public static (string Device, RECT Bounds) Of(nint hwnd)
+    /// <summary>
+    /// The geometry of the monitor a window is on, or the nearest one when it is on none; null when the window has
+    /// no handle or that monitor is gone.
+    /// </summary>
+    public static MonitorGeometry? Of(nint hwnd)
     {
-        if (!Monitors.TryRead(Win32.MonitorFromWindow(hwnd, Win32.MONITOR_DEFAULTTONEAREST), out var mi))
-            return ("", default);
-        return (mi.Device, mi.Bounds);
+        return hwnd == 0 ? null : Read(Win32.MonitorFromWindow(hwnd, Win32.MONITOR_DEFAULTTONEAREST));
     }
 
     /// <summary>The PnP model code, such as <c>GSM5B7F</c>, in an interface path like <c>\\?\DISPLAY#GSM5B7F#...</c>.</summary>

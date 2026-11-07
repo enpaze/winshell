@@ -131,8 +131,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
         if (_fullscreen && Handle != 0)
         {
             // The default maximum is the work area, which would stop the window short of the taskbar.
-            var (_, bounds) = Screens.Of(Handle);
-            if (bounds.Width <= 0 || bounds.Height <= 0)
+            if (Screens.Of(Handle)?.Bounds is not { Width: > 0, Height: > 0 } bounds)
                 return null;
             info.ptMaxPosition.X = bounds.Left;
             info.ptMaxPosition.Y = bounds.Top;
@@ -227,7 +226,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
 
         SetStyle(saved.Style);
         Reframe();
-        var monitor = Screens.Find(saved.MonitorId) ?? CurrentMonitor();
+        var monitor = Screens.Find(saved.MonitorId) ?? Screens.Of(Handle);
         var scale = host.Placement.Scale > 0 ? host.Placement.Scale : saved.Scale;
         if (monitor is not null && saved.Matches(monitor.Id, monitor.Bounds, scale) && saved.HasPlacement)
         {
@@ -285,7 +284,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
 
     private SavedFloatingPlace CapturePlace()
     {
-        var monitor = CurrentMonitor();
+        var monitor = Screens.Of(Handle);
         var dpi = Win32.GetDpiForWindow(Handle);
         var scale = dpi == 0 ? monitor?.Scale ?? host.Placement.Scale : dpi / 96.0;
         if (scale <= 0)
@@ -361,10 +360,8 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
     {
         if (Handle == 0)
             return;
-        var (_, bounds) = Screens.Of(Handle);
-        if (bounds.Width <= 0 || bounds.Height <= 0)
-            return;
-        PlaceOuter(bounds);
+        if (Screens.Of(Handle)?.Bounds is { Width: > 0, Height: > 0 } bounds)
+            PlaceOuter(bounds);
     }
 
     private void PlaceOuter(RECT rect)
@@ -372,14 +369,6 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
         host.Placement.Move(rect, 0,
             (uint)(SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE |
                    SET_WINDOW_POS_FLAGS.SWP_FRAMECHANGED));
-    }
-
-    private MonitorGeometry? CurrentMonitor()
-    {
-        if (Handle == 0)
-            return null;
-        var handle = Win32.MonitorFromWindow(Handle, Win32.MONITOR_DEFAULTTONEAREST);
-        return handle == 0 ? null : Screens.Read(handle);
     }
 
     private void ReportState()
@@ -399,8 +388,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
             return _fullscreen;
         if (!Win32.GetWindowRect(Handle, out var rect))
             return _fullscreen;
-        var (_, bounds) = Screens.Of(Handle);
-        if (bounds.Width <= 0 || bounds.Height <= 0)
+        if (Screens.Of(Handle)?.Bounds is not { Width: > 0, Height: > 0 } bounds)
             return _fullscreen;
         return WindowRules.CoversMonitor((long)Win32.GetWindowLongPtr(Handle, Win32.GWL_STYLE), rect, bounds);
     }

@@ -14,7 +14,7 @@ public class BrightnessPanelTests
         var instance = @"DISPLAY\AUS32A8\5&15335277&0&UID184582_0";
         var info = new ScreenInfo(@"\\.\DISPLAY1", "DISPLAY1", "Laptop panel", "AUS", "", default, default, 1, 0, 0,
             60, true);
-        var screen = new ConnectedMonitor(1, info, interfacePath, default, default, 1);
+        var screen = new ConnectedMonitor(1, info, interfacePath);
 
         var monitors = BrightnessBackend.Combine([screen], [new BrightnessBackend.WmiPanel(instance, 0, 100, 60)],
             _ => null, []);

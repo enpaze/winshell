@@ -133,9 +133,7 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
     /// <summary>The edge a taskbar window sits on, from where it is on its monitor. Explorer did not say.</summary>
     private static AppBarEdge EdgeOf(nint hwnd, RECT window)
     {
-        var monitor = Monitors.TryRead(Win32.MonitorFromWindow(hwnd, Win32.MONITOR_DEFAULTTONEAREST), out var info)
-            ? info.Bounds
-            : window;
+        var monitor = Screens.Of(hwnd)?.Bounds ?? window;
         if (window.Height <= window.Width)
             return Math.Abs(window.Top - monitor.Top) < Math.Abs(monitor.Bottom - window.Bottom)
                 ? AppBarEdge.Top

@@ -126,8 +126,8 @@ internal static class DoctorProbe
 
     public static IReadOnlyList<DoctorScreens.MonitorFacts> Monitors()
     {
-        return Screens.Enumerate()
-            .Select(m => new DoctorScreens.MonitorFacts(m.Info.Name, m.Bounds.Left, m.Bounds.Top, m.Bounds.Right,
+        return Screens.List()
+            .Select(m => new DoctorScreens.MonitorFacts(m.Name, m.Bounds.Left, m.Bounds.Top, m.Bounds.Right,
                 m.Bounds.Bottom, m.Work.Left, m.Work.Top, m.Work.Right, m.Work.Bottom, m.Scale))
             .ToList();
     }
