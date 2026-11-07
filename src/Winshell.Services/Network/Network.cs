@@ -1,11 +1,12 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 
 namespace Winshell.Network;
 
 /// <summary>A network of an adapter. Wi-Fi networks are <see cref="WifiNetwork"/> objects.</summary>
 public class Network : ObservableObject
 {
+    private const string WiredConnects = "Windows manages wired connections automatically.";
+
     private readonly DeviceAction _action;
     private NetworkInfo _info;
     private string _error = "";
@@ -81,26 +82,16 @@ public class Network : ObservableObject
         _ = ForgetAsync();
     }
 
-    // These two block until Windows answers, so they run off the calling thread.
     internal Task DisconnectAsync()
     {
-        return RunAsync(() => Task.Run(() =>
-        {
-            if (Device.Type != DeviceType.Wifi || !Device.Backend.Disconnect(Device.NativeId))
-                throw new NotSupportedException("Windows cannot disconnect this adapter through WiFiAdapter.");
-        }));
+        return RunAsync(() => Device.Backend.DisconnectAsync(Device.NativeId));
     }
 
     internal Task ForgetAsync()
     {
-        return RunAsync(() => Task.Run(() =>
-        {
-            if (Device.Type != DeviceType.Wifi)
-                throw new NotSupportedException("Only saved Wi-Fi profiles can be forgotten.");
-            var error = Device.Backend.Forget(Device.NativeId, Name);
-            if (error != 0)
-                throw new Win32Exception((int)error);
-        }));
+        return RunAsync(() => Device.Type == DeviceType.Wifi
+            ? Device.Backend.ForgetAsync(Device.NativeId, Name)
+            : Task.FromResult<string?>("Only saved Wi-Fi profiles can be forgotten."));
     }
 
     internal Task ConnectAsync(string? password)
@@ -108,10 +99,9 @@ public class Network : ObservableObject
         return RunAsync(async () =>
         {
             if (Device.Type != DeviceType.Wifi)
-                throw new NotSupportedException("Windows manages wired connections automatically.");
+                return WiredConnects;
             var failure = await Device.Backend.ConnectAsync(Device.NativeId, Name, password).ConfigureAwait(false);
-            if (failure is { } reason)
-                throw new InvalidOperationException(reason.ToString());
+            return failure?.ToString();
         });
     }
 
@@ -120,17 +110,15 @@ public class Network : ObservableObject
         return RunAsync(async () =>
         {
             if (profile is null || profile.Removed || !ReferenceEquals(profile.Network, this))
-                throw new InvalidOperationException("That saved profile is not on this network.");
+                return "That saved profile is not on this network.";
             if (Device.Type != DeviceType.Wifi)
-                throw new NotSupportedException("Windows manages wired connections automatically.");
-            var failure = await Device.Backend.ConnectProfileAsync(Device.NativeId, profile.Name, profile.Hidden)
+                return WiredConnects;
+            return await Device.Backend.ConnectProfileAsync(Device.NativeId, profile.Name, profile.Hidden)
                 .ConfigureAwait(false);
-            if (failure is { } message)
-                throw new InvalidOperationException(message);
         });
     }
 
-    private Task RunAsync(Func<Task> action)
+    private Task RunAsync(Func<Task<string?>> action)
     {
         if (Removed)
             return Task.CompletedTask;
@@ -138,11 +126,7 @@ public class Network : ObservableObject
         {
             Changed(nameof(Busy));
             Set(ref _error, "", nameof(Error));
-        }, async () =>
-        {
-            await action().ConfigureAwait(false);
-            return null;
-        }, error =>
+        }, action, error =>
         {
             if (Removed)
                 return;

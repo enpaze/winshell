@@ -1,5 +1,3 @@
-using System.ComponentModel;
-
 namespace Winshell.Network;
 
 /// <summary>A saved WLAN profile for one network. It is not a Windows connection profile, and it never holds a key.</summary>
@@ -110,11 +108,7 @@ public sealed class WifiProfile : ObservableObject
 
     internal Task ForgetAsync()
     {
-        return WriteAsync(() => Task.Run(() =>
-        {
-            var error = _network.Device.Backend.Forget(_network.Device.NativeId, _info.Name);
-            return error == 0 ? null : new Win32Exception((int)error).Message;
-        }));
+        return WriteAsync(() => _network.Device.Backend.ForgetAsync(_network.Device.NativeId, _info.Name));
     }
 
     internal void Update(WifiProfileInfo info)

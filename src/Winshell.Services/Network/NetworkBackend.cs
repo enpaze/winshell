@@ -506,21 +506,22 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         };
     }
 
-    /// <summary>Disconnects a Wi-Fi device. False when Windows gave no access to it.</summary>
-    public bool Disconnect(Guid device)
+    /// <summary>Fails for an adapter Windows gave no access to, which includes every wired one.</summary>
+    public Task<string?> DisconnectAsync(Guid device)
     {
-        if (Adapter(device) is not { } adapter)
-            return false;
-        adapter.Disconnect();
-        Refresh();
-        return true;
+        return Task.Run<string?>(() =>
+        {
+            if (Adapter(device) is not { } adapter)
+                return "Windows cannot disconnect this adapter through WiFiAdapter.";
+            adapter.Disconnect();
+            Refresh();
+            return null;
+        });
     }
 
-    public uint Forget(Guid device, string name)
+    public Task<string?> ForgetAsync(Guid device, string profileName)
     {
-        var error = Wlan.DeleteProfile(device, name);
-        Refresh();
-        return error;
+        return CallWlan(() => _profiles.Delete(device, profileName));
     }
 
     public Task<string?> SetProfileAutoConnectAsync(Guid device, string profileName, bool autoConnect)
@@ -536,9 +537,15 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
     /// <summary>Connects in profile mode. The call returns when Windows accepts the request, and the snapshot that follows reports the association.</summary>
     public Task<string?> ConnectProfileAsync(Guid device, string profileName, bool hidden)
     {
+        return CallWlan(() => _profiles.Connect(device, profileName, hidden));
+    }
+
+    /// <summary>Makes a WLAN call off the calling thread, since it blocks until Windows answers.</summary>
+    private Task<string?> CallWlan(Func<uint> call)
+    {
         return Task.Run(() =>
         {
-            var error = _profiles.Connect(device, profileName, hidden);
+            var error = call();
             Refresh();
             return error == 0 ? null : WifiProfileEdit.WindowsMessage(error);
         });

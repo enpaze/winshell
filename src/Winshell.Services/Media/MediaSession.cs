@@ -112,13 +112,13 @@ public sealed class MediaSession : ObservableObject
         {
             if (!_session.PositionSupported)
             {
-                Warn("Cannot set the position of {0} because position is not supported.");
+                Warn($"Cannot set the position of {AppName} because position is not supported.");
                 return;
             }
 
             if (!_session.CanSeek)
             {
-                Warn("Cannot set the position of {0} because CanSeek is false.");
+                Warn($"Cannot set the position of {AppName} because CanSeek is false.");
                 return;
             }
 
@@ -194,22 +194,22 @@ public sealed class MediaSession : ObservableObject
                     if (_session.CanStop)
                         _session.Stop();
                     else
-                        Warn("Cannot set the playback state of {0} to Stopped because CanStop is false.");
+                        Warn($"Cannot set the playback state of {AppName} to Stopped because CanStop is false.");
                     break;
                 case MediaPlaybackState.Playing:
                     if (_session.CanPlay)
                         _session.Play();
                     else
-                        Warn("Cannot set the playback state of {0} to Playing because CanPlay is false.");
+                        Warn($"Cannot set the playback state of {AppName} to Playing because CanPlay is false.");
                     break;
                 case MediaPlaybackState.Paused:
                     if (_session.CanPause)
                         _session.Pause();
                     else
-                        Warn("Cannot set the playback state of {0} to Paused because CanPause is false.");
+                        Warn($"Cannot set the playback state of {AppName} to Paused because CanPause is false.");
                     break;
                 default:
-                    Warn($"Cannot set the playback state of {{0}} to unknown value {(int)value}.");
+                    Warn($"Cannot set the playback state of {AppName} to unknown value {(int)value}.");
                     break;
             }
         }
@@ -237,7 +237,7 @@ public sealed class MediaSession : ObservableObject
         {
             if (!_session.LoopSupported)
             {
-                Warn("Cannot set the loop state of {0} because loop state is not supported.");
+                Warn($"Cannot set the loop state of {AppName} because loop state is not supported.");
                 return;
             }
 
@@ -245,7 +245,7 @@ public sealed class MediaSession : ObservableObject
                 return;
             if (!Enum.IsDefined(value))
             {
-                Warn($"Cannot set the loop state of {{0}} to unknown value {(int)value}.");
+                Warn($"Cannot set the loop state of {AppName} to unknown value {(int)value}.");
                 return;
             }
 
@@ -267,7 +267,7 @@ public sealed class MediaSession : ObservableObject
             if (value < MinRate || value > MaxRate)
             {
                 Warn(
-                    $"Cannot set the rate of {{0}} to {value.ToString(CultureInfo.InvariantCulture)}, outside of {MinRate.ToString(CultureInfo.InvariantCulture)} to {MaxRate.ToString(CultureInfo.InvariantCulture)}.");
+                    $"Cannot set the rate of {AppName} to {value.ToString(CultureInfo.InvariantCulture)}, outside of {MinRate.ToString(CultureInfo.InvariantCulture)} to {MaxRate.ToString(CultureInfo.InvariantCulture)}.");
                 return;
             }
 
@@ -292,7 +292,7 @@ public sealed class MediaSession : ObservableObject
         {
             if (!_session.ShuffleSupported)
             {
-                Warn("Cannot set shuffle for {0} because shuffle is not supported.");
+                Warn($"Cannot set shuffle for {AppName} because shuffle is not supported.");
                 return;
             }
 
@@ -341,7 +341,7 @@ public sealed class MediaSession : ObservableObject
     {
         if (!_session.CanGoNext)
         {
-            Warn("Cannot call Next() on {0} because CanGoNext is false.");
+            Warn($"Cannot call Next() on {AppName} because CanGoNext is false.");
             return;
         }
 
@@ -353,7 +353,7 @@ public sealed class MediaSession : ObservableObject
     {
         if (!_session.CanGoPrevious)
         {
-            Warn("Cannot call Previous() on {0} because CanGoPrevious is false.");
+            Warn($"Cannot call Previous() on {AppName} because CanGoPrevious is false.");
             return;
         }
 
@@ -365,7 +365,7 @@ public sealed class MediaSession : ObservableObject
     {
         if (!_session.CanSeek)
         {
-            Warn("Cannot call Seek() on {0} because CanSeek is false.");
+            Warn($"Cannot call Seek() on {AppName} because CanSeek is false.");
             return;
         }
 
@@ -408,7 +408,7 @@ public sealed class MediaSession : ObservableObject
         }
         else
         {
-            Warn("Cannot call SwitchTo() on {0} because CanSwitchTo is false.");
+            Warn($"Cannot call SwitchTo() on {AppName} because CanSwitchTo is false.");
         }
     }
 
@@ -441,7 +441,7 @@ public sealed class MediaSession : ObservableObject
     {
         if (window == 0)
         {
-            Warn("Cannot call SwitchTo() on {0} because it has no window.");
+            Warn($"Cannot call SwitchTo() on {AppName} because it has no window.");
             return;
         }
 
@@ -452,12 +452,12 @@ public sealed class MediaSession : ObservableObject
 
     private void CannotSwitch(string reason)
     {
-        _log.Warn("media", $"Cannot call SwitchTo() on {AppName}: {reason}");
+        Warn($"Cannot call SwitchTo() on {AppName}: {reason}");
     }
 
     private void Warn(string message)
     {
-        _log.Warn("media", string.Format(CultureInfo.InvariantCulture, message, AppName));
+        _log.Warn("media", message);
     }
 
     private object?[] Read()

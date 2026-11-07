@@ -505,11 +505,11 @@ public sealed class NetworkingServiceTests
         session.Loop.Process();
         Assert.Equal((AdapterId, "Office"), Assert.Single(session.Backend.Clears));
 
-        session.Backend.ForgetError = 5;
+        session.Backend.ForgetError = "Access is denied.";
         await profile.ForgetAsync();
         session.Loop.Process();
         Assert.Equal((AdapterId, "Office"), Assert.Single(session.Backend.Forgets));
-        Assert.Equal([new Win32Exception(5).Message], failed);
+        Assert.Equal(["Access is denied."], failed);
         Assert.DoesNotContain(Secret, profile.Error);
     }
 
@@ -583,39 +583,6 @@ public sealed class NetworkingServiceTests
         Assert.Empty(session.Backend.Calls);
     }
 
-    [Theory]
-    [InlineData("disconnect")]
-    [InlineData("forget")]
-    public async Task Disconnecting_and_forgetting_return_before_windows_answers(string action)
-    {
-        using var session = new Session(Snapshot(Wifi()));
-        var network = session.Network;
-        using var windows = new ManualResetEventSlim();
-        session.Backend.Answer = windows;
-        Task? running = null;
-        try
-        {
-            // The shell calls these on its UI thread, which must not wait for Windows.
-            var cancellation = TestContext.Current.CancellationToken;
-            await Task.Run(
-                    () => { running = action == "disconnect" ? network.DisconnectAsync() : network.ForgetAsync(); },
-                    cancellation)
-                .WaitAsync(TimeSpan.FromSeconds(5), cancellation);
-            Assert.False(running!.IsCompleted); // Set by the call that just returned.
-            Assert.True(network.Busy);
-        }
-        finally
-        {
-            windows.Set();
-        }
-
-        await running;
-        session.Loop.Process();
-        Assert.False(network.Busy);
-        Assert.Equal("", network.Error);
-        Assert.Equal([action], session.Backend.Calls);
-    }
-
     private sealed class Session : IDisposable
     {
         public Session(NetworkSnapshot snapshot, IRadioAccess? radioAccess = null)
@@ -684,7 +651,7 @@ public sealed class NetworkingServiceTests
 
         public TaskCompletionSource<string?>? ConnectGate { get; set; }
 
-        public uint ForgetError { get; set; }
+        public string? ForgetError { get; set; }
 
         public bool Disposed { get; private set; }
 
@@ -724,23 +691,18 @@ public sealed class NetworkingServiceTests
                 : ConnectTask ?? Task.FromResult(ConnectResult);
         }
 
-        /// <summary>Holds Disconnect and Forget until it is set, as Windows does until it answers.</summary>
-        public ManualResetEventSlim? Answer { get; set; }
-
-        public bool Disconnect(Guid device)
+        public Task<string?> DisconnectAsync(Guid device)
         {
-            Answer?.Wait(TestContext.Current.CancellationToken);
             Calls.Add("disconnect");
             Assert.Equal(AdapterId, device);
-            return true;
+            return Task.FromResult<string?>(null);
         }
 
-        public uint Forget(Guid device, string profileName)
+        public Task<string?> ForgetAsync(Guid device, string profileName)
         {
-            Answer?.Wait(TestContext.Current.CancellationToken);
             Calls.Add("forget");
             Forgets.Add((device, profileName));
-            return ForgetError;
+            return Task.FromResult(ForgetError);
         }
 
         public Task<string?> SetProfileAutoConnectAsync(Guid device, string profileName, bool autoConnect)

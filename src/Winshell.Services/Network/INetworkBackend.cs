@@ -15,8 +15,12 @@ internal interface INetworkBackend : IDisposable
 
     Task ScanAsync(Guid device);
     Task<ConnectionFailReason?> ConnectAsync(Guid device, string ssid, string? password);
-    bool Disconnect(Guid device);
-    uint Forget(Guid device, string profileName);
+
+    /// <summary>Disconnects a Wi-Fi adapter. Null when Windows accepted it.</summary>
+    Task<string?> DisconnectAsync(Guid device);
+
+    /// <summary>Deletes a saved profile by its name. Null when Windows deleted it.</summary>
+    Task<string?> ForgetAsync(Guid device, string profileName);
 
     /// <summary>Sets the profile's connection mode. Null when Windows accepted it or it was already that mode.</summary>
     Task<string?> SetProfileAutoConnectAsync(Guid device, string profileName, bool autoConnect);
