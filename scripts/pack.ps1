@@ -1,6 +1,7 @@
 #requires -Version 7.0
 # Packs the Winshell library a configuration references, and the dotnet new templates, into artifacts/packages/.
-# Nothing here publishes, and no workflow calls this. See docs/development.md.
+# Nothing here publishes. scripts/package.ps1 calls this to put the library in each release folder, and the Package
+# tests call it to build a shell from the template. See docs/development.md.
 param(
     [string] $Out = 'artifacts/packages',
     # Defaults to the release in .release-please-manifest.json.
