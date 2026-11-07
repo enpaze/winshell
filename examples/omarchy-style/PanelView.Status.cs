@@ -38,12 +38,10 @@ public sealed partial class PanelView
             .Where(d => watch.Read(d).Connected)
             .OrderBy(d => d.Type == DeviceType.Wired ? 0 : 1)
             .FirstOrDefault();
-        // Profiles also lists saved Wi-Fi profiles that aren't connected
-        // (https://github.com/enpaze/winshell/issues/1696), so the panel takes the one that reaches a network.
         var profile = device is null
             ? null
             : watch.Read(networking.Profiles).Select(watch.Read)
-                .FirstOrDefault(p => p.AdapterId == device.Id && p.Connectivity > NetworkConnectivity.None);
+                .FirstOrDefault(p => p.AdapterId == device.Id);
         var portal = networking.Connectivity == NetworkConnectivity.CaptivePortal;
         var restricted = device is not null && (portal || networking.Connectivity == NetworkConnectivity.LocalAccess);
         var name = profile?.Name ?? device?.Name;
