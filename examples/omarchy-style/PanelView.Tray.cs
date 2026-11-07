@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
+using Winshell;
 using Winshell.Tray;
 
 namespace OmarchyStyle;
@@ -37,7 +38,7 @@ public sealed partial class PanelView
             {
                 Width = IconSize,
                 Height = IconSize,
-                Source = icon is null ? null : TrayIcons.ToBitmap(icon)
+                Source = icon?.ToImageSource()
             }
         };
         AutomationProperties.SetName(button, item.AppName);

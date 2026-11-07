@@ -41,7 +41,6 @@ The project references Winshell's source, so the repo's own check builds it.
 | [TokyoNight.xaml](TokyoNight.xaml) | Defines the style's brushes and bundled font. |
 | [Glyphs.cs](Glyphs.cs) | Names each glyph with its Nerd Fonts name and chooses status glyphs. |
 | [Watcher.cs](Watcher.cs) | Renders a section again when a service object or list it read changes; [#1706](https://github.com/enpaze/winshell/issues/1706) will replace it with automatic tracking. |
-| [TrayIcons.cs](TrayIcons.cs) | Converts Winshell's tray pixels into a WinUI bitmap. |
 | [OmarchyStyle.csproj](OmarchyStyle.csproj) | References Winshell and copies the font files beside the program. |
 | [Fonts/README.md](Fonts/README.md) | Records the bundled font's source and licences. |
 

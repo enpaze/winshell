@@ -42,18 +42,7 @@ public sealed partial class PanelView
                 Opacity = shown || occupied ? 1 : 0.5
             };
             AutomationProperties.SetName(button, "Workspace " + id.ToString(CultureInfo.CurrentCulture));
-            button.Click += (_, _) =>
-            {
-                if (workspace is not null)
-                    workspace.Activate();
-                else if (monitor.Focused)
-                    winland.Dispatch("workspace " + id.ToString(CultureInfo.InvariantCulture));
-                else
-                    // A workspace that doesn't exist yet can only be made on the focused monitor, and Winshell can't
-                    // yet focus another and show it in one request (https://github.com/enpaze/winshell/issues/1694).
-                    // This click focuses the monitor; the next one shows the workspace.
-                    winland.Dispatch("focusmonitor " + monitor.Id.ToString(CultureInfo.InvariantCulture));
-            };
+            button.Click += (_, _) => monitor.ActivateWorkspace(id);
             Workspaces.Children.Add(button);
         }
     }
