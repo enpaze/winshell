@@ -4,27 +4,40 @@ A configuration is a .NET project that references the Winshell package and build
 
 ## Create one
 
-You need the [.NET SDK](https://dotnet.microsoft.com/download), PowerShell 7 and Git. The `dotnet new` template and the `Winshell` package a configuration references are not published yet, so you pack them from a clone of Winshell. Use a `winshell` [built from that clone](development.md#build-from-source), so the two are the same release.
+You need the [.NET SDK](https://dotnet.microsoft.com/download). `winshell new` lists what it can copy: the starter, which is one panel along the bottom of the screen, and each example, such as the Omarchy-style panel. `winshell new <name>` copies one into your config folder:
+
+```powershell
+winshell new
+winshell new starter
+winshell run -c starter
+```
+
+The copy goes to `%APPDATA%\winshell\<name>`, or under `WINSHELL_CONFIG_DIR`. `--path <folder>` puts it somewhere else. A folder that exists and isn't empty is refused. The copy's project references the `Winshell` package of the same release as `winshell`. A release keeps that package in a `packages` folder beside `winshell.exe`, and the copy's `nuget.config` adds that folder as a source. Its shell id comes from its folder, so two copies keep their data apart.
+
+Winshell builds to `bin\shell` in the project folder when a source is newer, then starts that program. `--no-build` runs the program the last build left, and does not build. A failed build does not start the last good build.
+
+### From a clone
+
+The `Winshell` package is not published, so a `winshell` [built from a clone](development.md#build-from-source) has none beside it, and `winshell new` says so. Pack it from that clone, which needs PowerShell 7 and Git:
 
 ```powershell
 git clone https://github.com/enpaze/winshell.git
 cd winshell
 pwsh scripts/pack.ps1
-dotnet new install .\artifacts\packages\Winshell.Templates.<version>.nupkg
 ```
 
-`scripts/pack.ps1` writes both packages to `artifacts\packages`, and `<version>` is the release in their names. Then make the project beside the clone, and tell NuGet where the `Winshell` package is:
+`scripts/pack.ps1` writes the `Winshell` package and the `dotnet new` template to `artifacts\packages`, and `<version>` is the release in their names. Then make the project beside the clone, and tell NuGet where the `Winshell` package is:
 
 ```powershell
 cd ..
-dotnet new winshell -n MyShell
+winshell new starter --path MyShell
 cd MyShell
 dotnet new nugetconfig
 dotnet nuget add source ..\winshell\artifacts\packages --name winshell --configfile nuget.config
 winshell run --path .
 ```
 
-Winshell builds to `MyShell\bin\shell` when a source is newer, then starts that program. `--no-build` runs the program the last build left, and does not build. A failed build does not start the last good build.
+`dotnet new install .\winshell\artifacts\packages\Winshell.Templates.<version>.nupkg`, then `dotnet new winshell -n MyShell`, makes the same starter.
 
 A downloaded project is refused before any build. Winshell looks for a `Zone.Identifier` stream on the `.csproj` and on `.props` and `.targets` beside it. Unblock the file (right-click > Properties > Unblock, or `Unblock-File`) if you trust it. `git clone` writes no zone, so it is not caught.
 
@@ -44,7 +57,7 @@ A configuration is a .NET project. Winshell looks for a `.csproj` in this order.
 
 ## The program
 
-`Shell.Run` runs until the shell quits. `ShellId` in `ShellOptions` names the data, state and cache folders.
+`Shell.Run` runs until the shell quits. `ShellId` in `ShellOptions` names the data, state and cache folders. Without it, as in the starter, a configuration in the config folder is named after its folder, and any other after its path.
 
 ```csharp
 Shell.Run<AppShell>(new ShellOptions { ShellId = "MyShell" });
