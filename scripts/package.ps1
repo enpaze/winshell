@@ -16,8 +16,9 @@
 # same bytes: entries are in ordinal path order and dated the day of the commit, which is also the manifests'
 # ReleaseDate.
 # Verifying checks that every file a release uploads is there, the checksums, that each zip and Store package carries
-# the Winshell package of its version and no other, that each zip's binaries are for its architecture, that the x64 winshell.exe runs, reports the version, runs every winshell doctor check, and that the
-# manifests pass the validator wingetcreate runs before it submits them.
+# the Winshell package of its version and no other, that each zip's binaries are for its architecture, that the x64
+# winshell.exe runs, reports the version, runs every winshell doctor check, and that the manifests pass the validator
+# wingetcreate runs before it submits them.
 param(
     [switch] $Publish,
     [switch] $Pack,
