@@ -6,7 +6,7 @@ A Winshell configuration that draws the top bar of [Omarchy](https://github.com/
 
 ## What it shows
 
-One panel along the top of every screen, sized by `PanelHeight` in [PanelView.xaml](PanelView.xaml). It reserves that edge, and Explorer's taskbar is hidden while the shell runs; Winshell shows the taskbar again when the shell quits. The colors are Tokyo Night's, defined in [TokyoNight.xaml](TokyoNight.xaml), with an alert color for a network that can't reach the internet, whatever the Windows theme is.
+One panel along the top of every screen, sized by `PanelHeight` in [PanelStyles.xaml](PanelStyles.xaml). It reserves that edge, and Explorer's taskbar is hidden while the shell runs; Winshell shows the taskbar again when the shell quits. The colors are Tokyo Night's, defined in [TokyoNight.xaml](TokyoNight.xaml), with an alert color for a network that can't reach the internet, whatever the Windows theme is.
 
 - **Left:** the Windows glyph, then Winland's workspaces on that screen: 1 to 5 always, and any other that exists. An empty one is dimmed, the shown one is the tiling glyph, and a click shows it. Without Winland running there are no workspaces.
 - **Centre:** the day and time, such as `Saturday 20:25`, in your Windows regional format.
@@ -32,8 +32,9 @@ The project references Winshell's source, so the repo's own check builds it.
 | --- | --- |
 | [Program.cs](Program.cs) | Starts the shell with this configuration's identity. |
 | [AppShell.cs](AppShell.cs) | Hides Explorer's taskbar and places a panel on each screen. |
-| [PanelView.xaml](PanelView.xaml) | Lays out the sections, names the sizes and Settings pages, and defines the button and tooltip styles. |
-| [PanelView.xaml.cs](PanelView.xaml.cs) | Sets up the watchers and clock, disposes them, and shares the glyph and tooltip helpers. |
+| [PanelView.xaml](PanelView.xaml) | Lays out the left, centre and right sections and names the Settings pages. |
+| [PanelStyles.xaml](PanelStyles.xaml) | Merges Tokyo Night, names the sizes, and defines the button template and tooltip styles. |
+| [PanelView.xaml.cs](PanelView.xaml.cs) | Sets up the clock, refreshes the glyphs and watchers when the layout loads, disposes them, and shares the glyph and tooltip helpers. |
 | [PanelView.Workspaces.cs](PanelView.Workspaces.cs) | Chooses and draws this screen's workspace buttons and handles their clicks. |
 | [PanelView.Tray.cs](PanelView.Tray.cs) | Draws the tray icons and slides out the overflow on hover. |
 | [PanelView.Status.cs](PanelView.Status.cs) | Draws Bluetooth, network, audio, screen and battery status and opens Settings. |
@@ -47,7 +48,8 @@ The project references Winshell's source, so the repo's own check builds it.
 ## Change it
 
 - **Colors and font:** replace [TokyoNight.xaml](TokyoNight.xaml) with another style dictionary using the same resource names.
-- **Size:** edit the named resources at the top of [PanelView.xaml](PanelView.xaml): `PanelHeight` for the panel and its reserved edge, `SlotWidth` for status and tray buttons, `IconSize` for tray icons, `PanelFontSize` for text and glyphs, `WorkspaceWidth` for workspace buttons, and `PanelInset` for the edges. The C# reads these resources too.
+- **Size and controls:** edit [PanelStyles.xaml](PanelStyles.xaml) for the button template, tooltip styles and named sizes: `PanelHeight` for the panel and its reserved edge, `SlotWidth` for status and tray buttons, `IconSize` for tray icons, `PanelFontSize` for text and glyphs, `WorkspaceWidth` for workspace buttons, and `PanelInset` for the edges. The C# reads these resources too.
+- **Live-edit the layout:** run `winshell dev --path examples/omarchy-style` and save [PanelView.xaml](PanelView.xaml). Its markup avoids `x:Bind` so live editing keeps working without a rebuild or restart; C# sets the Windows and tray chevron glyphs when the layout loads. Edits to the resource dictionaries rebuild and restart the shell; see [Develop a shell](../../docs/configuration.md#develop-a-shell).
 - **Add a section:** copy the audio button in [PanelView.xaml](PanelView.xaml) and `ShowAudio` in [PanelView.Status.cs](PanelView.Status.cs), then add its watcher in [PanelView.xaml.cs](PanelView.xaml.cs). Give the button its own name and Settings URI in `Tag`.
 - **Keep the taskbar:** delete `shell.ExplorerTaskbar.Hidden = true;` in [AppShell.cs](AppShell.cs).
 

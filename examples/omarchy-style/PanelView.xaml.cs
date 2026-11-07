@@ -37,10 +37,20 @@ public sealed partial class PanelView : UserControl, IDisposable
         _clock = DispatcherQueue.GetForCurrentThread().CreateTimer();
         _clock.IsRepeating = false;
         _clock.Tick += (_, _) => ShowTime();
+    }
+
+    private void OnLayoutLoaded(object sender, RoutedEventArgs e)
+    {
+        // Live XAML editing replaces the layout's elements, while this view and its clock stay alive.
+        WindowsGlyph.Text = Glyphs.Windows;
+        TrayChevron.Content = Glyphs.TrayChevron;
         ShowTime();
 
+        foreach (var watcher in _watchers)
+            watcher.Dispose();
+        _watchers.Clear();
         _watchers.Add(new Watcher(ShowWorkspaces));
-        if (screen.IsPrimary)
+        if (_screen.IsPrimary)
             _watchers.Add(new Watcher(ShowTray));
         _watchers.Add(new Watcher(ShowBluetooth));
         _watchers.Add(new Watcher(ShowNetwork));
