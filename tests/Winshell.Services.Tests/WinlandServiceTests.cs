@@ -430,6 +430,46 @@ public sealed class WinlandServiceTests
         ], _backend.Sent);
     }
 
+    [Theory]
+    [InlineData(0, 3, "dispatch workspace 3")]
+    [InlineData(0, 5, "dispatch workspace 5")]
+    [InlineData(1, 3, "[[BATCH]]dispatch focusmonitor 1;dispatch workspace 3")]
+    [InlineData(1, 5, "[[BATCH]]dispatch focusmonitor 1;dispatch workspace 5")]
+    public void A_monitor_shows_an_existing_or_missing_workspace_in_one_request(int monitorId, int number,
+        string request)
+    {
+        using var service = Connected();
+        _backend.Sent.Clear();
+
+        service.Monitors.Single(m => m.Id == monitorId).ActivateWorkspace(number);
+
+        Assert.Equal([request], _backend.Sent);
+    }
+
+    [Fact]
+    public void A_monitor_can_show_a_workspace_before_its_id_is_reported()
+    {
+        using var service = new WinlandService(_loop, Log.Default, _backend);
+        var screen = new ScreenInfo(@"\\.\DISPLAY2", "DISPLAY2", "", "", "", default, default, 1, 0, 0, 60, false);
+
+        service.MonitorFor(screen)!.ActivateWorkspace(5);
+
+        Assert.Equal([@"[[BATCH]]dispatch focusmonitor \\.\DISPLAY2;dispatch workspace 5"], _backend.Sent);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void A_monitor_rejects_a_nonpositive_workspace_number(int number)
+    {
+        using var service = Connected();
+        _backend.Sent.Clear();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => service.Monitors[0].ActivateWorkspace(number));
+
+        Assert.Empty(_backend.Sent);
+    }
+
     [Fact]
     public void The_pipe_path_is_what_Winland_says()
     {

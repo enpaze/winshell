@@ -560,7 +560,7 @@ public sealed class WinlandService : ObservableObject, IDisposable
         var monitor = _monitorList.FirstOrDefault(m => m.Name == name);
         if (monitor is not null || !create)
             return monitor;
-        monitor = new WinlandMonitor();
+        monitor = new WinlandMonitor(this);
         monitor.UpdateInitial(id, name, "");
         _monitorList.Add(monitor);
         return monitor;
