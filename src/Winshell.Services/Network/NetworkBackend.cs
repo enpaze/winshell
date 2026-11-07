@@ -283,7 +283,8 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
 
     private NetworkSnapshot ReadState()
     {
-        var profiles = WinNetworkInformation.GetConnectionProfiles().Where(p => p.NetworkAdapter is not null).ToList();
+        var connections = new NetworkConnections(WinNetworkInformation.GetConnectionProfiles()
+            .Where(p => p.NetworkAdapter is not null).Select(ReadConnection));
         var wlanStates = Wlan.InterfaceStates();
 
         var devices = new List<NetworkDeviceInfo>();
@@ -305,7 +306,7 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
                 continue;
 
             var up = nic.OperationalStatus == OperationalStatus.Up;
-            var profile = profiles.FirstOrDefault(p => p.NetworkAdapter.NetworkAdapterId == id);
+            var profile = connections.ForAdapter(id)?.Profile;
             var address = MacAddress.Format(nic.GetPhysicalAddress().GetAddressBytes());
             var hasLink = row.MediaConnected;
             var speed = (uint)Math.Min(uint.MaxValue, row.LinkSpeed / 1_000_000);
@@ -314,7 +315,7 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
             {
                 var state = up ? ConnectionState.Connected : ConnectionState.Disconnected;
                 NetworkInfo[] networks = hasLink
-                    ? [new NetworkInfo(profile?.ProfileName ?? nic.Name, state, true, 0, WifiSecurityType.Unknown)]
+                    ? [new NetworkInfo(profile?.Name ?? nic.Name, state, true, 0, WifiSecurityType.Unknown)]
                     : [];
                 devices.Add(new NetworkDeviceInfo(id, type, nic.Name, address, state, hasLink, hasLink ? speed : 0,
                     networks));
@@ -336,7 +337,7 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
                         ? ConnectionState.Connected
                         : ConnectionState.Disconnected;
                 devices.Add(new NetworkDeviceInfo(id, type, nic.Name, address, state, false, 0,
-                    ReadWifiNetworks(id, state, profile), MapDeviceMode(Wlan.OperationMode(id))));
+                    ReadWifiNetworks(id, state, connections), MapDeviceMode(Wlan.OperationMode(id))));
             }
         }
 
@@ -350,57 +351,36 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
             wifi = RadioReading.Read([.. _radios.Select(static radio => new WindowsRadio(radio))]);
         }
 
-        var connectionProfiles = profiles.Select(p =>
-        {
-            var cost = p.GetConnectionCost();
-            return new NetworkProfileInfo(p.NetworkAdapter.NetworkAdapterId + ":" + p.ProfileName, p.ProfileName,
-                p.NetworkAdapter.NetworkAdapterId, MapConnectivity(p.GetNetworkConnectivityLevel()),
-                MapCost(cost.NetworkCostType), cost.Roaming, cost.OverDataLimit,
-                p.GetSignalBars() is { } bars ? bars / 5.0 : null);
-        }).ToArray();
-        return new NetworkSnapshot(true, devices, connectivity, wifi, connectionProfiles, _access,
+        return new NetworkSnapshot(true, devices, connectivity, wifi, connections.Profiles, _access,
             ReadAirplaneMode());
     }
 
-    private List<NetworkInfo> ReadWifiNetworks(Guid id, ConnectionState deviceState, ConnectionProfile? profile)
+    private static NetworkConnectionInfo ReadConnection(ConnectionProfile profile)
+    {
+        var cost = profile.GetConnectionCost();
+        var info = new NetworkProfileInfo(profile.NetworkAdapter.NetworkAdapterId + ":" + profile.ProfileName,
+            profile.ProfileName, profile.NetworkAdapter.NetworkAdapterId,
+            MapConnectivity(profile.GetNetworkConnectivityLevel()), MapCost(cost.NetworkCostType), cost.Roaming,
+            cost.OverDataLimit, profile.GetSignalBars() is { } bars ? bars / 5.0 : null);
+        var ssid = ConnectedSsid(profile);
+        return new NetworkConnectionInfo(info, ssid,
+            ssid is null ? WifiSecurityType.Unknown : Security(profile.NetworkSecuritySettings));
+    }
+
+    private List<NetworkInfo> ReadWifiNetworks(Guid id, ConnectionState deviceState, NetworkConnections connections)
     {
         var saved = ReadSavedProfiles(id);
-        var connectedSsid = profile is null ? null : ConnectedSsid(profile);
-        var networks = new Dictionary<string, NetworkInfo>(StringComparer.Ordinal);
         WiFiAdapter? adapter;
         lock (_lock)
         {
             _wifiAdapters.TryGetValue(id, out adapter);
         }
 
-        if (adapter is not null)
-            foreach (var network in adapter.NetworkReport.AvailableNetworks)
-            {
-                // A hidden network has no name to show or connect by.
-                if (string.IsNullOrEmpty(network.Ssid))
-                    continue;
-                var strength = Math.Clamp(2 * (network.NetworkRssiInDecibelMilliwatts + 100), 0, 100) / 100;
-                if (networks.TryGetValue(network.Ssid, out var seen) && seen.SignalStrength >= strength)
-                    continue;
-                var state = network.Ssid == connectedSsid ? deviceState : ConnectionState.Disconnected;
-                var profiles = ProfilesFor(saved, network.Ssid);
-                networks[network.Ssid] = new NetworkInfo(network.Ssid, state, profiles.Length > 0, strength,
-                    Security(network.SecuritySettings), profiles);
-            }
-
-        if (connectedSsid is not null && !networks.ContainsKey(connectedSsid))
-        {
-            var bars = profile!.GetSignalBars() is { } b ? b / 5.0 : 0;
-            var profiles = ProfilesFor(saved, connectedSsid);
-            networks[connectedSsid] = new NetworkInfo(connectedSsid, deviceState, profiles.Length > 0, bars,
-                Security(profile.NetworkSecuritySettings), profiles);
-        }
-
-        return
-        [
-            .. networks.Values.OrderByDescending(n => n.State == ConnectionState.Connected)
-                .ThenByDescending(n => n.SignalStrength)
-        ];
+        var scanned = adapter?.NetworkReport.AvailableNetworks.Select(network => new NetworkInfo(network.Ssid,
+            ConnectionState.Disconnected, false,
+            Math.Clamp(2 * (network.NetworkRssiInDecibelMilliwatts + 100), 0, 100) / 100,
+            Security(network.SecuritySettings))) ?? [];
+        return connections.WifiNetworks(id, deviceState, scanned, saved);
     }
 
     /// <summary>Reads each saved profile without asking for its key. A profile that cannot be read is kept, with <see cref="WifiProfileInfo.Loaded"/> false.</summary>
@@ -427,11 +407,6 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         }
 
         return saved;
-    }
-
-    private static WifiProfileInfo[] ProfilesFor(List<WifiProfileInfo> saved, string ssid)
-    {
-        return saved.Where(p => WifiProfiles.Matches(p, ssid)).ToArray();
     }
 
     private static string? ConnectedSsid(ConnectionProfile profile)

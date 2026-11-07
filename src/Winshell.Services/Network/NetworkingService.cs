@@ -40,7 +40,10 @@ public sealed class NetworkingService : ObservableObject, IDisposable
     /// <summary>The PC's Wi-Fi and Ethernet adapters. Virtual adapters, VPNs and Bluetooth are left out.</summary>
     public ObservableCollection<NetworkDevice> Devices { get; } = [];
 
-    /// <summary>The Windows connection profiles that are on an adapter now.</summary>
+    /// <summary>
+    /// The Windows connection profiles connected on an adapter now, local-only and captive-portal ones included.
+    /// A saved profile that is not connected is left out.
+    /// </summary>
     public ObservableCollection<NetworkProfile> Profiles { get; } = [];
 
     /// <summary>

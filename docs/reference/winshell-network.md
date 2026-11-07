@@ -122,7 +122,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 
 ## NetworkProfile
 
-A Windows connection profile reported by NetworkInformation, not a saved WLAN credential.
+A Windows connection profile connected on an adapter now, not a saved WLAN credential.
 
 Has the members of [ObservableObject](winshell.md#observableobject).
 
@@ -152,7 +152,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Connectivity` | [NetworkConnectivity](#networkconnectivity), read-only | What the connection Windows uses for the internet can reach. NetworkConnectivity.None without such a connection. |
 | `Devices` | ObservableCollection of [NetworkDevice](#networkdevice), read-only | The PC's Wi-Fi and Ethernet adapters. Virtual adapters, VPNs and Bluetooth are left out. |
 | `Error` | string, read-only | Why the last read, access request or Wi-Fi radio change failed. Empty when none did. |
-| `Profiles` | ObservableCollection of [NetworkProfile](#networkprofile), read-only | The Windows connection profiles that are on an adapter now. |
+| `Profiles` | ObservableCollection of [NetworkProfile](#networkprofile), read-only | The Windows connection profiles connected on an adapter now, local-only and captive-portal ones included. A saved profile that is not connected is left out. |
 | `Ready` | bool, read-only | Whether the first read has finished. False again while the last read failed, and Error says why. |
 | `RequestingAccess` | bool, read-only | Whether an access request is waiting for Windows. RequestAccess does nothing until it ends. |
 | `WifiEnabled` | bool | Whether at least one Wi-Fi radio is on. Setting it asks Windows to turn on or off every Wi-Fi radio the last read found, and the value stays what Windows last reported until a later read shows the radios changed. |
