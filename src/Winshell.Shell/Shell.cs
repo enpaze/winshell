@@ -196,7 +196,7 @@ public sealed partial class Shell : IDisposable
 
     private static void Run(ShellConfiguration configuration, ShellOptions options)
     {
-        Environment.ExitCode = InstanceStart.Run(new InstanceLaunch(
+        var code = InstanceStart.Run(new InstanceLaunch(
                 Environment.ProcessPath!,
                 [.. Environment.GetCommandLineArgs().Skip(1)],
                 options.ShellId,
@@ -206,6 +206,9 @@ public sealed partial class Shell : IDisposable
                 Log.Default,
                 instance => instance.Crashing = () => _current?.ReleaseForCrash()),
             session => RunHost(configuration, options, session));
+        // Only a start that failed sets it, so an exit code the configuration set itself still reaches the supervisor.
+        if (code != 0)
+            Environment.ExitCode = code;
     }
 
     /// <summary>The WinUI host. <see cref="InstanceStart"/> calls it once this process owns its pipe.</summary>
