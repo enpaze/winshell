@@ -1,0 +1,10 @@
+<ResourceDictionary
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Omarchy's Tokyo Night style, whatever the Windows theme is. -->
+  <SolidColorBrush x:Key="PanelBackground" Color="#1a1b26" />
+  <SolidColorBrush x:Key="PanelForeground" Color="#a9b1d6" />
+  <SolidColorBrush x:Key="PanelAlert" Color="#f7768e" />
+  <!-- The font file ships next to the program, so it needs no install. -->
+  <FontFamily x:Key="PanelFont">ms-appx:///Fonts/JetBrainsMonoNerdFont-Regular.ttf#JetBrainsMono NF</FontFamily>
+</ResourceDictionary>

@@ -32,8 +32,8 @@ public sealed class AppShell : ShellConfiguration
             {
                 Screen = screen,
                 Anchors = Edges.Left | Edges.Right | Edges.Top,
-                Height = PanelView.Size,
-                ReservedSize = PanelView.Size,
+                Height = view.Size,
+                ReservedSize = view.Size,
                 Content = view,
                 Visible = true
             }, view));

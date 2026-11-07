@@ -1,92 +1,105 @@
 <UserControl
   x:Class="OmarchyStyle.PanelView"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="using:OmarchyStyle">
   <UserControl.Resources>
-    <!-- Omarchy's Tokyo Night style, whatever the Windows theme is. -->
-    <SolidColorBrush x:Key="PanelBackground" Color="#1a1b26" />
-    <SolidColorBrush x:Key="PanelForeground" Color="#a9b1d6" />
-    <SolidColorBrush x:Key="PanelAlert" Color="#f7768e" />
-    <!-- The font file ships next to the program, so it needs no install. -->
-    <FontFamily x:Key="PanelFont">ms-appx:///Fonts/JetBrainsMonoNerdFont-Regular.ttf#JetBrainsMono NF</FontFamily>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="TokyoNight.xaml" />
+      </ResourceDictionary.MergedDictionaries>
 
-    <!-- A slot that shrinks a little while pressed: no hover fill and no corners. -->
-    <Style x:Key="PanelButton" TargetType="Button">
-      <Setter Property="Width" Value="27" />
-      <Setter Property="Height" Value="26" />
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Foreground" Value="{StaticResource PanelForeground}" />
-      <Setter Property="FontFamily" Value="{StaticResource PanelFont}" />
-      <Setter Property="FontSize" Value="12" />
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="Button">
-            <Grid Background="{TemplateBinding Background}">
-              <VisualStateManager.VisualStateGroups>
-                <VisualStateGroup x:Name="CommonStates">
-                  <VisualStateGroup.Transitions>
-                    <VisualTransition GeneratedDuration="0:0:0.16">
-                      <VisualTransition.GeneratedEasingFunction>
-                        <ExponentialEase EasingMode="EaseOut" Exponent="6" />
-                      </VisualTransition.GeneratedEasingFunction>
-                    </VisualTransition>
-                  </VisualStateGroup.Transitions>
-                  <VisualState x:Name="Normal" />
-                  <VisualState x:Name="PointerOver" />
-                  <VisualState x:Name="Pressed">
-                    <Storyboard>
-                      <DoubleAnimation Storyboard.TargetName="Scale" Storyboard.TargetProperty="ScaleX" To="0.9" Duration="0" />
-                      <DoubleAnimation Storyboard.TargetName="Scale" Storyboard.TargetProperty="ScaleY" To="0.9" Duration="0" />
-                    </Storyboard>
-                  </VisualState>
-                  <VisualState x:Name="Disabled" />
-                </VisualStateGroup>
-              </VisualStateManager.VisualStateGroups>
-              <ContentPresenter
-                Content="{TemplateBinding Content}"
-                Foreground="{TemplateBinding Foreground}"
-                FontFamily="{TemplateBinding FontFamily}"
-                FontSize="{TemplateBinding FontSize}"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                RenderTransformOrigin="0.5,0.5">
-                <ContentPresenter.RenderTransform>
-                  <ScaleTransform x:Name="Scale" />
-                </ContentPresenter.RenderTransform>
-              </ContentPresenter>
-            </Grid>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
-    </Style>
+      <x:Double x:Key="PanelHeight">26</x:Double>
+      <x:Double x:Key="SlotWidth">27</x:Double>
+      <x:Double x:Key="IconSize">12</x:Double>
+      <x:Double x:Key="PanelFontSize">12</x:Double>
+      <x:Double x:Key="WorkspaceWidth">20</x:Double>
+      <Thickness x:Key="PanelInset">8,0</Thickness>
 
-    <Style x:Key="WorkspaceButton" TargetType="Button" BasedOn="{StaticResource PanelButton}">
-      <Setter Property="Width" Value="20" />
-    </Style>
+      <!-- A slot that shrinks a little while pressed: no hover fill and no corners. -->
+      <Style x:Key="PanelButton" TargetType="Button">
+        <Setter Property="Width" Value="{StaticResource SlotWidth}" />
+        <Setter Property="Height" Value="{StaticResource PanelHeight}" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource PanelForeground}" />
+        <Setter Property="FontFamily" Value="{StaticResource PanelFont}" />
+        <Setter Property="FontSize" Value="{StaticResource PanelFontSize}" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Button">
+              <Grid Background="{TemplateBinding Background}">
+                <VisualStateManager.VisualStateGroups>
+                  <VisualStateGroup x:Name="CommonStates">
+                    <VisualStateGroup.Transitions>
+                      <VisualTransition GeneratedDuration="0:0:0.16">
+                        <VisualTransition.GeneratedEasingFunction>
+                          <ExponentialEase EasingMode="EaseOut" Exponent="6" />
+                        </VisualTransition.GeneratedEasingFunction>
+                      </VisualTransition>
+                    </VisualStateGroup.Transitions>
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="PointerOver" />
+                    <VisualState x:Name="Pressed">
+                      <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="Scale" Storyboard.TargetProperty="ScaleX" To="0.9" Duration="0" />
+                        <DoubleAnimation Storyboard.TargetName="Scale" Storyboard.TargetProperty="ScaleY" To="0.9" Duration="0" />
+                      </Storyboard>
+                    </VisualState>
+                    <VisualState x:Name="Disabled" />
+                  </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+                <ContentPresenter
+                  Content="{TemplateBinding Content}"
+                  Foreground="{TemplateBinding Foreground}"
+                  FontFamily="{TemplateBinding FontFamily}"
+                  FontSize="{TemplateBinding FontSize}"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  RenderTransformOrigin="0.5,0.5">
+                  <ContentPresenter.RenderTransform>
+                    <ScaleTransform x:Name="Scale" />
+                  </ContentPresenter.RenderTransform>
+                </ContentPresenter>
+              </Grid>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
 
-    <Style x:Key="PanelToolTip" TargetType="ToolTip">
-      <Setter Property="Background" Value="{StaticResource PanelBackground}" />
-      <Setter Property="Foreground" Value="{StaticResource PanelForeground}" />
-      <Setter Property="BorderBrush" Value="{StaticResource PanelForeground}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="0" />
-      <Setter Property="Padding" Value="9,6" />
-      <Setter Property="FontFamily" Value="{StaticResource PanelFont}" />
-      <Setter Property="FontSize" Value="12" />
-    </Style>
+      <Style x:Key="WorkspaceButton" TargetType="Button" BasedOn="{StaticResource PanelButton}">
+        <Setter Property="Width" Value="{StaticResource WorkspaceWidth}" />
+      </Style>
+
+      <Style x:Key="PanelToolTip" TargetType="ToolTip">
+        <Setter Property="Background" Value="{StaticResource PanelBackground}" />
+        <Setter Property="Foreground" Value="{StaticResource PanelForeground}" />
+        <Setter Property="FontFamily" Value="{StaticResource PanelFont}" />
+        <Setter Property="FontSize" Value="{StaticResource PanelFontSize}" />
+        <Setter Property="BorderBrush" Value="{StaticResource PanelForeground}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Padding" Value="9,6" />
+      </Style>
+    </ResourceDictionary>
   </UserControl.Resources>
+  <UserControl.FontFamily>
+    <StaticResource ResourceKey="PanelFont" />
+  </UserControl.FontFamily>
+  <UserControl.FontSize>
+    <StaticResource ResourceKey="PanelFontSize" />
+  </UserControl.FontSize>
+  <UserControl.Foreground>
+    <StaticResource ResourceKey="PanelForeground" />
+  </UserControl.Foreground>
 
-  <Grid Background="{StaticResource PanelBackground}">
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="8,0,0,0">
+  <Grid Background="{StaticResource PanelBackground}" Padding="{StaticResource PanelInset}">
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
       <TextBlock
-        Width="27"
-        Text="&#xF05B3;"
+        Width="{StaticResource SlotWidth}"
+        Text="{x:Bind local:Glyphs.Windows}"
         TextAlignment="Center"
-        VerticalAlignment="Center"
-        Foreground="{StaticResource PanelForeground}"
-        FontFamily="{StaticResource PanelFont}"
-        FontSize="12" />
+        VerticalAlignment="Center" />
       <StackPanel x:Name="Workspaces" Orientation="Horizontal" Spacing="1" Margin="0,0,1.5,0" />
     </StackPanel>
 
@@ -94,12 +107,9 @@
       x:Name="Clock"
       HorizontalAlignment="Center"
       VerticalAlignment="Center"
-      Padding="8.5,0"
-      Foreground="{StaticResource PanelForeground}"
-      FontFamily="{StaticResource PanelFont}"
-      FontSize="12" />
+      Padding="8.5,0" />
 
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,8,0">
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
       <StackPanel x:Name="Tray" Orientation="Horizontal" Visibility="Collapsed">
         <!-- Hovering the chevron slides the icons Windows keeps in its overflow out beside it. -->
         <StackPanel
@@ -108,18 +118,18 @@
           Background="Transparent"
           PointerEntered="OnOverflowEntered"
           PointerExited="OnOverflowExited">
-          <Button x:Name="TrayChevron" Style="{StaticResource PanelButton}" Content="&#xF053;" />
+          <Button x:Name="TrayChevron" Style="{StaticResource PanelButton}" Content="{x:Bind local:Glyphs.TrayChevron}" />
           <Grid x:Name="OverflowClip" Width="0">
             <StackPanel x:Name="OverflowItems" Orientation="Horizontal" HorizontalAlignment="Left" />
           </Grid>
         </StackPanel>
         <StackPanel x:Name="PinnedItems" Orientation="Horizontal" />
       </StackPanel>
-      <Button x:Name="Bluetooth" Style="{StaticResource PanelButton}" Click="OnBluetoothClick" />
-      <Button x:Name="Network" Style="{StaticResource PanelButton}" Click="OnNetworkClick" />
-      <Button x:Name="Audio" Style="{StaticResource PanelButton}" Click="OnAudioClick" />
-      <Button x:Name="Screen" Style="{StaticResource PanelButton}" Click="OnScreenClick" />
-      <Button x:Name="Battery" Style="{StaticResource PanelButton}" Click="OnBatteryClick" />
+      <Button x:Name="Bluetooth" Style="{StaticResource PanelButton}" Tag="ms-settings:bluetooth" Click="OnSettingsClick" />
+      <Button x:Name="Network" Style="{StaticResource PanelButton}" Tag="ms-settings:network-status" Click="OnSettingsClick" />
+      <Button x:Name="Audio" Style="{StaticResource PanelButton}" Tag="ms-settings:sound" Click="OnSettingsClick" />
+      <Button x:Name="Screen" Style="{StaticResource PanelButton}" Tag="ms-settings:display" Click="OnSettingsClick" />
+      <Button x:Name="Battery" Style="{StaticResource PanelButton}" Tag="ms-settings:powersleep" Click="OnSettingsClick" />
     </StackPanel>
   </Grid>
 </UserControl>
