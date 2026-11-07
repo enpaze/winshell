@@ -1,6 +1,6 @@
 namespace Winshell.Network;
 
-/// <summary>A Windows connection profile reported by NetworkInformation, not a saved WLAN credential.</summary>
+/// <summary>A Windows connection profile connected on an adapter now, not a saved WLAN credential.</summary>
 public sealed class NetworkProfile : ObservableObject
 {
     private NetworkProfileInfo _info;
