@@ -63,7 +63,7 @@ try {
         dotnet build scripts/generate-reference.cs --nologo
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }
-    $exit = Invoke-TestRun -Tier $Tier -ProjectCount $run.ProjectCount -Seed $Seed
+    $exit = Invoke-TestRun -Tier $Tier -Seed $Seed
     if ($exit -ne 0) { exit $exit }
     if ($full) {
         # -CI writes testResults.xml into the checkout; inspect the result instead.

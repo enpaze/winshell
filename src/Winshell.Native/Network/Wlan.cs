@@ -125,7 +125,6 @@ internal static unsafe class Wlan
 
     /// <summary>
     /// The interface operation mode, one <c>DOT11_OPERATION_MODE_*</c> value, or null when Windows does not answer.
-    /// A failure does not throw. The buffer <c>WlanQueryInterface</c> returns is freed on every path, including failure.
     /// </summary>
     /// <remarks>
     /// <c>wlan_intf_opcode_bss_type</c> is not queried: Windows 11 can answer it with <c>dot11_BSS_type_any</c> for a
@@ -144,12 +143,6 @@ internal static unsafe class Wlan
                 || data == null || size < sizeof(uint))
                 return null;
             return *(uint*)data;
-        }
-#pragma warning disable CA1031 // A failed mode query is Unknown and must not fail the snapshot.
-        catch (Exception e) when (e is not OutOfMemoryException)
-#pragma warning restore CA1031
-        {
-            return null;
         }
         finally
         {

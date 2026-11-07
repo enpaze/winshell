@@ -1,4 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- The WinUI host settings a configuration gets from the template package. -->
+  <Import Project="..\Winshell.Package\buildTransitive\Winshell.props" />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>winshell</AssemblyName>
@@ -10,19 +12,12 @@
          winshell.exe. A publish for an architecture keeps its own: sharing obj would give arm64 the x64 ReadyToRun code. -->
     <AppendRuntimeIdentifierToOutputPath Condition="'$(RuntimeIdentifier)' == ''">false</AppendRuntimeIdentifierToOutputPath>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
-    <UseWinUI>true</UseWinUI>
-    <WindowsPackageType>None</WindowsPackageType>
-    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <!-- The build writes the merged resource index beside the bin output. The targets this project imports never
          publish it, and WinUI cannot find its XAML without the copy named after the exe. -->
     <ProjectPriFileName>winshell.pri</ProjectPriFileName>
     <ProjectPriFullPath>$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\$(ProjectPriFileName)</ProjectPriFullPath>
     <!-- UseWinUI would infer a windowed exe. The installer turns a console winshell.exe into winshellw.exe. -->
     <DisableWinExeOutputInference>true</DisableWinExeOutputInference>
-    <!-- A shell mostly waits. PGO keeps instrumenting code it will never make hot, and a background GC thread saves pauses
-         nobody sees on so small a heap. Together they cost a third of an idle shell's CPU. -->
-    <TieredPGO>false</TieredPGO>
-    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <!-- Winshell.Shell, Winshell.Services and Winshell.Core write XML doc files for the reference pages. A release does not ship them. -->
     <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
   </PropertyGroup>

@@ -88,7 +88,20 @@ Describe 'Reading test results' {
 }
 
 Describe 'Running a tier' {
+    BeforeAll {
+        # A solution of this many test projects, which each write one results file.
+        function Set-Solution([int] $Projects) {
+            $paths = (1..$Projects | ForEach-Object { "<Project Path=`"tests/T$_.Tests/T$_.Tests.csproj`" />" }) -join ''
+            Set-Content -LiteralPath (Join-Path $TestDrive 'winshell.slnx') -Value "<Solution>$paths</Solution>"
+        }
+        $script:RealRoot = $script:Root
+        $script:Root = $TestDrive
+    }
+
+    AfterAll { $script:Root = $script:RealRoot }
+
     BeforeEach {
+        Set-Solution 1
         $script:Exit = 0
         $script:Rows = @('Ns.Class.Good=Passed')
         Mock Invoke-DotnetTest {
@@ -98,40 +111,41 @@ Describe 'Running a tier' {
     }
 
     It 'passes when every test passes' {
-        Invoke-TestRun -ProjectCount 1 -Seed 7 | Should -Be 0
+        Invoke-TestRun -Seed 7 | Should -Be 0
         Should -Invoke Invoke-DotnetTest -Times 1 -Exactly -ParameterFilter { $Seed -eq 7 }
     }
 
     It 'fails on a failed test, once, with nothing run again' {
         $script:Rows = @('Ns.Class.Good=Passed', 'Ns.Class.Bad=Failed')
         $script:Exit = 1
-        Invoke-TestRun -ProjectCount 1 | Should -Be 1
+        Invoke-TestRun | Should -Be 1
         Should -Invoke Invoke-DotnetTest -Times 1 -Exactly
     }
 
     It 'fails a run that exits 0 having run no tests' {
         $script:Rows = @()
-        Invoke-TestRun -ProjectCount 1 | Should -Be 1
+        Invoke-TestRun | Should -Be 1
     }
 
     It 'fails when a results file reports failure despite exit code 0' {
         $script:Rows = @('Ns.Class.Good=Passed', 'Ns.Class.Bad=Failed')
-        Invoke-TestRun -ProjectCount 1 | Should -Be 1
+        Invoke-TestRun | Should -Be 1
     }
 
     It 'fails a run that exits 0 with a test project missing' {
-        Invoke-TestRun -ProjectCount 2 | Should -Be 1
+        Set-Solution 2
+        Invoke-TestRun | Should -Be 1
     }
 
     It 'chooses a seed of its own and prints it' {
         Mock Write-Host { }
-        Invoke-TestRun -ProjectCount 1 | Should -Be 0
+        Invoke-TestRun | Should -Be 0
         Should -Invoke Write-Host -ParameterFilter { $Object -match 'Test order seed: \d+' }
     }
 
     It 'prints how to play back the tier it ran' {
         Mock Write-Host { }
-        Invoke-TestRun -Tier Fast -ProjectCount 1 -Seed 7 | Should -Be 0
+        Invoke-TestRun -Tier Fast -Seed 7 | Should -Be 0
         Should -Invoke Write-Host -ParameterFilter { $Object -match 'check\.ps1 -Tier Fast -Seed 7' }
     }
 }
