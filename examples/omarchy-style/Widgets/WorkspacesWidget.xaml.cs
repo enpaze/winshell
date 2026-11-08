@@ -7,7 +7,10 @@ using Winshell.Winland;
 
 namespace OmarchyStyle;
 
-/// <summary>Winland's workspaces on this widget's own screen: 1 to 5 always, and any other that exists.</summary>
+/// <summary>
+/// Winland's workspaces on this widget's own screen: 1 to 5 always, and any other that exists. A vertical area stacks
+/// the buttons.
+/// </summary>
 public sealed partial class WorkspacesWidget : IDisposable
 {
     private readonly Shell _shell;
@@ -17,6 +20,13 @@ public sealed partial class WorkspacesWidget : IDisposable
     public WorkspacesWidget(WidgetContext context)
     {
         InitializeComponent();
+        if (context.Orientation == Orientation.Vertical)
+        {
+            Buttons.Orientation = Orientation.Vertical;
+            Buttons.Margin = new Thickness(0);
+            HorizontalAlignment = HorizontalAlignment.Center;
+        }
+
         _shell = context.Shell;
         Loaded += (_, _) =>
         {

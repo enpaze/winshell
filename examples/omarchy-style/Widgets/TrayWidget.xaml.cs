@@ -7,7 +7,10 @@ using Winshell.Tray;
 
 namespace OmarchyStyle;
 
-/// <summary>The tray on the primary screen. On any other screen the widget takes no space.</summary>
+/// <summary>
+/// The tray on the primary screen. On any other screen the widget takes no space. A vertical area cannot run the
+/// horizontal overflow, so the widget refuses to be created there.
+/// </summary>
 public sealed partial class TrayWidget : IDisposable
 {
     private readonly Shell _shell;
@@ -19,6 +22,8 @@ public sealed partial class TrayWidget : IDisposable
 
     public TrayWidget(WidgetContext context)
     {
+        if (context.Orientation == Orientation.Vertical)
+            throw new UnsupportedWidgetException("Needs a horizontal bar.");
         InitializeComponent();
         _shell = context.Shell;
         Loaded += (_, _) =>
