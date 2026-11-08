@@ -160,6 +160,10 @@ _Avoid_: input language, input method, IME
 The image Windows draws on the desktop, how that image is fitted, and the color behind it. Each screen can have its own image. Windows keeps it, including after the shell exits.
 _Avoid_: background, desktop background, backdrop
 
+**Privacy use**:
+An app Windows reports as using the microphone, the camera, or location right now. A desktop app has the program's path. The shell's own microphone meter is one of these apps, and it is marked so a configuration can tell it is this shell.
+_Avoid_: permission, consent, recent activity
+
 ## The language
 
 **Namespace**:
