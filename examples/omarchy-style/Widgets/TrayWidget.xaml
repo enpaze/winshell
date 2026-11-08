@@ -2,7 +2,7 @@
   x:Class="OmarchyStyle.TrayWidget"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <!-- Shown on the primary screen only. Hovering the chevron slides the icons Windows keeps in its overflow out beside it. -->
+  <!-- Shown on the primary screen only. Hovering the chevron slides the overflow out beside it, or downwards when the stacks run vertically. -->
   <StackPanel x:Name="Tray" Orientation="Horizontal" Visibility="Collapsed">
     <StackPanel
       x:Name="Overflow"
