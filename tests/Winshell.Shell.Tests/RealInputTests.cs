@@ -181,7 +181,8 @@ public sealed class RealInputTests
             await Send(shell, "press", "Go");
             await Signal(clicked);
 
-            return (states, clicks, before, Cursor());
+            // Snapshot on the UI thread before closing the panel can raise more state changes.
+            return (states.ToArray(), clicks, before, Cursor());
         });
 
         Assert.Contains("PointerOver", states);
