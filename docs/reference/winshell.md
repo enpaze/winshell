@@ -229,6 +229,7 @@ The running shell: its screens and services. There is one in a process. Each ser
 | `SystemTray` | [SystemTray](winshell-tray.md#systemtray), read-only | The notification area. Only one running instance in the Windows session owns it. |
 | `Version` | string, static, read-only | The Winshell release this program is built on. |
 | `VirtualDesktops` | [VirtualDesktopsService](winshell-windows.md#virtualdesktopsservice), read-only | The virtual desktops Task View shows. |
+| `Wallpaper` | [WallpaperService](winshell-wallpaper.md#wallpaperservice), read-only | The desktop wallpaper: each screen's image, the fit and the background color. |
 | `WindowList` | [WindowListService](winshell-windows.md#windowlistservice), read-only | The app windows the taskbar and Alt+Tab list. |
 | `Winland` | [WinlandService](winshell-winland.md#winlandservice), read-only | The Winland window manager's Monitors, Workspaces and windows. The lists are empty while it is not running. |
 | `CachePath(string path)` | string | A path in CacheDir. |

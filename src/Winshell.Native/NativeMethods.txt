@@ -223,3 +223,9 @@ GetKeyboardLayoutList
 GetLocaleInfoEx
 LCIDToLocaleName
 GetGUIThreadInfo
+
+// Desktop wallpaper: each screen's image, the fit and the background color. One block, so later
+// NativeMethods.txt edits can rebase around it. IDesktopWallpaper is declared in Wallpaper/DesktopWallpaper.cs:
+// generating it pulls IShellItemArray, and that pulls IMoniker, whose friendly methods use the banned ComTypes
+// interfaces. Settings uses this local COM server; SystemParametersInfo cannot give each screen its own image.
+DESKTOP_WALLPAPER_POSITION

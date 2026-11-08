@@ -156,6 +156,10 @@ _Avoid_: global shortcut, keybind, accelerator, bind
 One way to type that Windows has installed. It has a short label, such as EN, and the name Windows shows for that layout, such as United States-International. The current layout is the foreground window's. Switching reaches that window, as Win+Space does.
 _Avoid_: input language, input method, IME
 
+**Wallpaper**:
+The image Windows draws on the desktop, how that image is fitted, and the color behind it. Each screen can have its own image. Windows keeps it, including after the shell exits.
+_Avoid_: background, desktop background, backdrop
+
 ## The language
 
 **Namespace**:
