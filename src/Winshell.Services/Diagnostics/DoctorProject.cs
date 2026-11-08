@@ -27,7 +27,7 @@ internal static class DoctorProject
         if (project is null)
             return new DoctorCheck("project", "Project", CheckStatus.Warn,
                 "No configuration project, so winshell run starts nothing.",
-                "Make one with dotnet new winshell, as the configuration guide shows.");
+                "Run winshell new to make one.");
         return new DoctorCheck("project", "Project", CheckStatus.Pass, project.ProjectFile);
     }
 
