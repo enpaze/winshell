@@ -31,6 +31,7 @@ public sealed class RealInputTests
     private static void Quiet()
     {
         var started = TimeProvider.System.GetTimestamp();
+        // The wait ends itself at Patience; Wait's own limit is only past that, so it never fails the test first.
         Wait.Until(() => !Used(out _) || TimeProvider.System.GetElapsedTime(started) > Patience,
             "the PC to be left alone", Patience + Patience);
         if (Used(out var idle))
@@ -41,6 +42,7 @@ public sealed class RealInputTests
     private static bool Used(out uint idle)
     {
         var now = Win32.GetTickCount();
+        // When Windows won't say, the commands refuse, so this counts as used.
         var last = SentInput.LastInput() ?? now;
         idle = unchecked(now - last);
         return RealInput.UserActive(now, last, SentInput.Recent);
