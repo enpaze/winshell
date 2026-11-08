@@ -32,7 +32,7 @@ public sealed class ToastMessage : ObservableObject
     public string AppId
     {
         get;
-        set => Set(ref field, value);
+        set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
     /// <summary>The first line. Required.</summary>
@@ -40,7 +40,7 @@ public sealed class ToastMessage : ObservableObject
     public string Title
     {
         get;
-        set => Set(ref field, value);
+        set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
     /// <summary>The text under the title, as plain text.</summary>
@@ -48,7 +48,7 @@ public sealed class ToastMessage : ObservableObject
     public string Body
     {
         get;
-        set => Set(ref field, value);
+        set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
     /// <summary>An absolute protocol URI Windows opens when the user clicks the toast. Without one, the toast is informational.</summary>
@@ -56,7 +56,7 @@ public sealed class ToastMessage : ObservableObject
     public string ActivationUri
     {
         get;
-        set => Set(ref field, value);
+        set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
     /// <summary>An optional Windows replacement identifier, at most 64 characters.</summary>
@@ -64,7 +64,7 @@ public sealed class ToastMessage : ObservableObject
     public string Tag
     {
         get;
-        set => Set(ref field, value);
+        set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
     /// <summary>An optional Windows replacement group, at most 64 characters. Needs a <see cref="Tag"/>.</summary>
@@ -72,7 +72,7 @@ public sealed class ToastMessage : ObservableObject
     public string Group
     {
         get;
-        set => Set(ref field, value);
+        set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
     /// <summary>Whether the toast plays no sound.</summary>
@@ -173,7 +173,7 @@ public sealed class ToastAction : ObservableObject
     public string Text
     {
         get;
-        set => Set(ref field, value);
+        set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
     /// <summary>The absolute protocol URI Windows opens when the user clicks the button.</summary>
@@ -181,6 +181,15 @@ public sealed class ToastAction : ObservableObject
     public string ActivationUri
     {
         get;
-        set => Set(ref field, value);
+        set => Set(ref field, Strings.OrEmpty(value));
     } = "";
+}
+
+/// <summary>A null from a caller without nullable checks is empty, as an unset field is.</summary>
+file static class Strings
+{
+    internal static string OrEmpty(string? value)
+    {
+        return value ?? "";
+    }
 }
