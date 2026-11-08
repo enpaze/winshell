@@ -4,6 +4,11 @@
   <PropertyGroup>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
+    <!-- xUnit answers discovery by running this program with -assemblyInfo and waiting 60 seconds for it to
+         exit. The SDK module initializer loads the self-contained runtime before that process can print anything,
+         and on a busy runner the load misses the limit. WindowsAppRuntimeStartup loads the runtime for a real run
+         and skips the probe. Leave the undocked initializer compiled in: that startup calls it. -->
+    <WindowsAppSdkAutoInitialize>false</WindowsAppSdkAutoInitialize>
   </PropertyGroup>
   <!-- DocsTests compiles the reference generator as a library: the feature lets its #: lines through, and the
        constant leaves out its top-level statements. -->
