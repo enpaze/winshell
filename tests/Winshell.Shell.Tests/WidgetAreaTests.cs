@@ -8,6 +8,98 @@ namespace Winshell.ShellTests;
 public sealed class WidgetAreaTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Popup_content_follows_its_area_until_the_widget_is_removed(bool disposeArea)
+    {
+        await ShellFixture.On(async _ =>
+        {
+            var name = Guid.NewGuid().ToString();
+            WidgetContext? input = null;
+            Widgets.Register(name, context =>
+            {
+                input = context;
+                return new DisposableWidget();
+            });
+            using var area = new WidgetArea
+            {
+                Theme = new Uri("ms-appx:///WidgetTheme.xaml"),
+                RequestedTheme = ElementTheme.Light,
+                FontFamily = new FontFamily("Consolas"),
+                FontSize = 23,
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.Crimson),
+                Defaults = [new(name)]
+            };
+            var parent = new Grid { RequestedTheme = ElementTheme.Light, Children = { area } };
+            using var window = new PanelWindow { Width = 180, Height = 90, Content = parent, Visible = true };
+            await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
+            var content = (StackPanel)Microsoft.UI.Xaml.Markup.XamlReader.Load("""
+                <StackPanel xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                    <TextBlock Text="popup" />
+                </StackPanel>
+                """);
+            var text = (TextBlock)content.Children[0];
+            text.Resources["widget-owned"] = "keep";
+            var root = input!.StylePopup(content);
+            var second = input.StylePopup(new TextBlock { Text = "second popup" });
+            using var popup = new PopupWindow { Rect = new Rect(200, 100, 200, 90), Content = root, Visible = true };
+            using var another = new PopupWindow { Rect = new Rect(410, 100, 200, 90), Content = second, Visible = true };
+            await ShellFixture.LaidOut(text).WaitAsync(TestContext.Current.CancellationToken);
+
+            Assert.Equal("widget theme", root.Resources["WidgetThemeMessage"]);
+            Assert.Equal("widget theme", second.Resources["WidgetThemeMessage"]);
+            Assert.Equal("keep", text.Resources["widget-owned"]);
+            Assert.Equal(ElementTheme.Light, root.RequestedTheme);
+            Assert.Equal(Microsoft.UI.Colors.DarkRed, Assert.IsType<SolidColorBrush>(content.Background).Color);
+            Assert.Equal("Consolas", text.FontFamily.Source);
+            Assert.Equal(23, text.FontSize);
+            Assert.Equal(Microsoft.UI.Colors.Crimson, Assert.IsType<SolidColorBrush>(text.Foreground).Color);
+
+            area.RequestedTheme = ElementTheme.Dark;
+            await Wait.UntilAsync(() => root.ActualTheme == ElementTheme.Dark && second.ActualTheme == ElementTheme.Dark,
+                "both popup windows to follow the area's dark theme");
+            Assert.Equal(ElementTheme.Dark, root.RequestedTheme);
+            Assert.Equal(Microsoft.UI.Colors.LightGreen, Assert.IsType<SolidColorBrush>(content.Background).Color);
+            area.RequestedTheme = ElementTheme.Default;
+            await Wait.UntilAsync(() => root.ActualTheme == ElementTheme.Light,
+                "the popup to follow the area's inherited light theme");
+            Assert.Equal(ElementTheme.Light, root.RequestedTheme);
+            area.RequestedTheme = ElementTheme.Dark;
+            await Wait.UntilAsync(() => root.ActualTheme == ElementTheme.Dark, "the popup to return to dark");
+            area.FontFamily = new FontFamily("Georgia");
+            area.FontSize = 27;
+            area.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
+            Assert.Equal("Georgia", text.FontFamily.Source);
+            Assert.Equal(27, text.FontSize);
+            Assert.Equal(Microsoft.UI.Colors.LimeGreen, Assert.IsType<SolidColorBrush>(text.Foreground).Color);
+            area.Theme = null;
+            Assert.False(root.Resources.ContainsKey("WidgetThemeMessage"));
+            area.Theme = new Uri("ms-appx:///WidgetTheme.xaml");
+            Assert.Equal("widget theme", root.Resources["WidgetThemeMessage"]);
+
+            if (disposeArea)
+                area.Dispose();
+            else
+                area.Defaults = [];
+            area.RequestedTheme = ElementTheme.Light;
+            area.FontFamily = new FontFamily("Arial");
+            area.FontSize = 12;
+            area.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Blue);
+            if (!disposeArea)
+                area.Theme = null;
+            await Wait.UntilAsync(() => area.ActualTheme == ElementTheme.Light, "the area to return to light");
+            Assert.Equal(ElementTheme.Dark, root.RequestedTheme);
+            Assert.Equal("Georgia", text.FontFamily.Source);
+            Assert.Equal(27, text.FontSize);
+            Assert.Equal(Microsoft.UI.Colors.LimeGreen, Assert.IsType<SolidColorBrush>(text.Foreground).Color);
+            Assert.Equal("widget theme", root.Resources["WidgetThemeMessage"]);
+            Assert.Throws<ObjectDisposedException>(() => input.StylePopup(new TextBlock()));
+            return true;
+        });
+    }
+
+    [Theory]
     [InlineData(Orientation.Horizontal)]
     [InlineData(Orientation.Vertical)]
     public async Task Placements_are_arranged_in_order_with_their_own_inputs(Orientation orientation)
@@ -217,6 +309,7 @@ public sealed class WidgetAreaTests
         await ShellFixture.On(async shell =>
         {
             var path = Path.Combine(shell.ConfigRoot, "widgets", shell.ShellId + ".toml");
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.Delete(path);
             var name = "area" + Guid.NewGuid().ToString("N");
             var widget = Guid.NewGuid().ToString();

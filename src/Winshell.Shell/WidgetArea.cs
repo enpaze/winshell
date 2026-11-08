@@ -17,7 +17,10 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     private readonly WidgetPlacements _file;
     private readonly long _nameChanged;
     private ResourceDictionary? _theme;
+    private readonly List<WidgetContext> _contexts = [];
     private bool _disposed;
+
+    internal event Action? ThemeChanged;
 
     /// <summary>Creates an empty, horizontal area.</summary>
     public WidgetArea()
@@ -77,6 +80,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
             _theme = next;
             if (next is not null)
                 Resources.MergedDictionaries.Add(next);
+            ThemeChanged?.Invoke();
         }
     }
 
@@ -96,15 +100,17 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         ClearWidgets();
         foreach (var placement in _override ?? _defaults)
         {
-            var context = new WidgetContext(Shell.Current, Orientation,
+            var context = new WidgetContext(Shell.Current, this,
                 placement.Settings ?? ReadOnlyDictionary<string, object>.Empty);
             UIElement widget;
             try
             {
                 widget = Widgets.Create(placement.Widget, context);
+                _contexts.Add(context);
             }
             catch (Exception e) when (e is not OutOfMemoryException)
             {
+                context.StopStyling();
                 Shell.Current.Log.Error("widgets", $"Could not create {placement.Widget} in area '{Name}': {e}");
                 widget = new TextBlock { Text = $"{placement.Widget}: {e.Message}" };
             }
@@ -115,6 +121,9 @@ public sealed partial class WidgetArea : UserControl, IDisposable
 
     private void ClearWidgets()
     {
+        foreach (var context in _contexts)
+            context.StopStyling();
+        _contexts.Clear();
         var widgets = _panel.Children.OfType<IDisposable>().ToArray();
         _panel.Children.Clear();
         Shell.DisposeEach(widgets);
