@@ -13,7 +13,7 @@ internal sealed record ShellIdentity(string ShellId, string DataDir, string Stat
     private IReadOnlyList<(string From, string To)> Earlier { get; init; } = [];
 
     /// <summary>The identity of a shell defined by <paramref name="program"/>.</summary>
-    /// <param name="program">A full path. A relative folder is next to it, and a program a reload built in <c>bin\shell.next</c> counts as in <c>bin\shell</c>.</param>
+    /// <param name="program">A full path. A relative folder is in its project when the program is in <c>bin\shell</c> or <c>bin\shell.next</c>, and next to the program otherwise.</param>
     /// <param name="locations">The folders: configurations in <see cref="ShellLocations.ConfigRoot"/>, which can be empty when there is none, and the named folders under its local root.</param>
     /// <param name="shellId">The id it asks for. Null names it after where it is.</param>
     /// <param name="dataDir">Another data folder. Null is the one named after the id. <paramref name="stateDir"/> and <paramref name="cacheDir"/> are the same.</param>
@@ -24,12 +24,14 @@ internal sealed record ShellIdentity(string ShellId, string DataDir, string Stat
     {
         var id = shellId ?? DefaultId(program, locations.ConfigRoot);
         var earlier = shellId is null ? Hashed(program) : id;
-        var shellDir = Path.GetDirectoryName(ConfigurationProject.InOutputFolder(program) ?? program)!;
+        // A rebuild deletes bin\shell, so a relative folder of a program there is in the project. Anywhere else it
+        // stays next to the program.
+        var relativeTo = ConfigurationProject.FolderOf(program) ?? Path.GetDirectoryName(program)!;
         var moves = new List<(string, string)>();
 
         string Folder(string? given, string root)
         {
-            if (Expand(given, root, shellDir) is { } folder)
+            if (Expand(given, root, relativeTo) is { } folder)
                 return folder;
             if (earlier != id)
                 moves.Add((Path.Combine(root, "by-shell", earlier), Path.Combine(root, "by-shell", id)));
@@ -90,19 +92,19 @@ internal sealed record ShellIdentity(string ShellId, string DataDir, string Stat
     }
 
     /// <summary>
-    /// A given folder is relative to <paramref name="shellDir"/>, and <c>%NAME%</c> is expanded.
+    /// A given folder is relative to <paramref name="relativeTo"/>, and <c>%NAME%</c> is expanded.
     /// <c>$BASE</c> is the folder Winshell would have used for that kind of data.
     /// </summary>
-    private static string? Expand(string? folder, string baseDir, string shellDir)
+    private static string? Expand(string? folder, string baseDir, string relativeTo)
     {
         if (folder is null)
             return null;
         var text = Environment.ExpandEnvironmentVariables(folder.Replace("$BASE", baseDir, StringComparison.Ordinal));
-        // An empty folder fails in GetFullPath, and does not read as the shell folder.
+        // An empty folder fails in GetFullPath, and does not read as the folder a relative path is in.
         if (text.Length == 0)
             return Path.GetFullPath(text);
         if (!Path.IsPathRooted(text))
-            text = Path.Combine(shellDir, text);
+            text = Path.Combine(relativeTo, text);
         return Path.GetFullPath(text);
     }
 }

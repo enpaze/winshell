@@ -59,6 +59,8 @@ A configuration is a .NET project. Winshell looks for a `.csproj` in this order.
 
 `Shell.Run` runs until the shell quits. `ShellId` in `ShellOptions` names the data, state and cache folders. Without it, as in the starter, a configuration in the config folder is named after its folder, and any other after its path.
 
+`DataDir`, `StateDir` and `CacheDir` replace those folders. A relative path is in the project folder, so `data` is `<project>\data`, and a rebuild of `bin\shell` leaves it there. A program a reload built in `bin\shell.next` uses that same folder. A program in neither keeps a relative path next to itself. `%NAME%` expands, and `$BASE` is the folder above `by-shell`, such as `%LOCALAPPDATA%\winshell\data`.
+
 ```csharp
 Shell.Run<AppShell>(new ShellOptions { ShellId = "MyShell" });
 ```

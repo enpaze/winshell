@@ -18,9 +18,10 @@ public sealed record ShellOptions
     public string? ShellId { get; init; }
 
     /// <summary>
-    /// Another folder for <see cref="Shell.DataDir"/>. A relative path is next to the program, and a program a reload
-    /// built in <c>bin\shell.next</c> counts as in <c>bin\shell</c>. <c>%NAME%</c> expands, and <c>$BASE</c> is the
-    /// folder above <c>by-shell</c>, such as <c>%LOCALAPPDATA%\winshell\data</c>.
+    /// Another folder for <see cref="Shell.DataDir"/>. A relative path is in the configuration's project folder, so a
+    /// rebuild of <c>bin\shell</c> leaves it, and a program a reload built in <c>bin\shell.next</c> uses that same
+    /// folder. A program in neither resolves a relative path next to itself. <c>%NAME%</c> expands, and <c>$BASE</c>
+    /// is the folder above <c>by-shell</c>, such as <c>%LOCALAPPDATA%\winshell\data</c>.
     /// </summary>
     public string? DataDir { get; init; }
 

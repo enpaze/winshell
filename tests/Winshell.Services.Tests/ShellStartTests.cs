@@ -159,15 +159,26 @@ public sealed class ShellStartTests
     }
 
     [Fact]
-    public void A_relative_folder_is_next_to_the_program_in_its_build_folder_from_either_build()
+    public void A_relative_folder_is_in_the_project_or_next_to_a_program_outside_its_build()
     {
-        string DataOf(string program)
-        {
-            return ShellIdentity.Resolve(program, Locations, "id", "data", null, null).DataDir;
-        }
+        var built = ShellIdentity.Resolve(@"C:\shells\mine\bin\shell\Mine.exe", Locations, "id", "data", "state",
+            "cache");
 
-        Assert.Equal(@"C:\shells\mine\bin\shell\data", DataOf(@"C:\shells\mine\bin\shell\Mine.exe"));
-        Assert.Equal(@"C:\shells\mine\bin\shell\data", DataOf(@"C:\shells\mine\bin\shell.next\Mine.exe"));
+        Assert.Equal(@"C:\shells\mine\data", built.DataDir);
+        Assert.Equal(@"C:\shells\mine\state", built.StateDir);
+        Assert.Equal(@"C:\shells\mine\cache", built.CacheDir);
+
+        var reloaded = ShellIdentity.Resolve(@"C:\shells\mine\bin\shell.next\Mine.exe", Locations, "id", "data",
+            "state", "cache");
+
+        Assert.Equal(@"C:\shells\mine\data", reloaded.DataDir);
+        Assert.Equal(@"C:\shells\mine\state", reloaded.StateDir);
+        Assert.Equal(@"C:\shells\mine\cache", reloaded.CacheDir);
+
+        // A program that is not in bin\shell or bin\shell.next keeps the folder beside itself.
+        var loose = ShellIdentity.Resolve(@"C:\shells\mine\bin\Debug\Mine.exe", Locations, "id", "data", null, null);
+
+        Assert.Equal(@"C:\shells\mine\bin\Debug\data", loose.DataDir);
     }
 
     [Fact]
