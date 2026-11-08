@@ -9,10 +9,10 @@ namespace Winshell.Power;
 public enum BrightnessConnection
 {
     /// <summary>A built-in panel, such as a laptop screen, set through WMI.</summary>
-    Internal = 0,
+    [PublicAPI] Internal = 0,
 
     /// <summary>An external monitor, set over DDC/CI.</summary>
-    External = 1
+    [PublicAPI] External = 1
 }
 
 internal sealed record BrightnessInfo(

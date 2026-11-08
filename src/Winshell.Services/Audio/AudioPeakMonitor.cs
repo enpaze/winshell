@@ -24,6 +24,7 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
 
     /// <summary>Creates an enabled monitor with no node. Pass the shell's loop, <c>Shell.Current.Loop</c>.</summary>
     /// <param name="loop">The loop the meter is read on.</param>
+    [PublicAPI]
     public AudioPeakMonitor(IEventLoop loop)
     {
         _loop = loop;
@@ -33,6 +34,7 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
     /// The device or session to meter. Null meters nothing. When the node leaves Windows, <see cref="Peak"/> goes to 0
     /// and the lists empty.
     /// </summary>
+    [PublicAPI]
     public AudioNode? Node
     {
         get => _node;
@@ -48,6 +50,7 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
     }
 
     /// <summary>Whether the monitor reads the meter. While it is false, <see cref="Peak"/> is 0 and the lists are empty.</summary>
+    [PublicAPI]
     public bool Enabled
     {
         get => _enabled;
@@ -59,12 +62,15 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
     }
 
     /// <summary>The highest of <see cref="Peaks"/>, from 0 to 1.</summary>
+    [PublicAPI]
     public double Peak => _peak;
 
     /// <summary>The peak of each channel since the last read, from 0 to 1.</summary>
+    [PublicAPI]
     public IReadOnlyList<double> Peaks => _peaks;
 
     /// <summary>The speaker position of each entry of <see cref="Peaks"/>.</summary>
+    [PublicAPI]
     public IReadOnlyList<AudioChannel> Channels => _channels;
 
     private void Restart()
@@ -149,6 +155,7 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
     }
 
     /// <summary>Stops reading the meter and closes the recording stream it keeps open.</summary>
+    [PublicAPI]
     public void Dispose()
     {
         _disposed = true;

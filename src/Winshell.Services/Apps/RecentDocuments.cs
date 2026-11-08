@@ -3,7 +3,8 @@ namespace Winshell.Apps;
 /// <summary>A shortcut in the Recent folder: its name without <c>.lnk</c>, and its path.</summary>
 /// <param name="Name">The shortcut's file name without <c>.lnk</c>, usually the document's name.</param>
 /// <param name="Path">The full path of the shortcut, which opens the document.</param>
-public sealed record RecentDocument(string Name, string Path);
+[method: PublicAPI]
+public sealed record RecentDocument([property: PublicAPI] string Name, [property: PublicAPI] string Path);
 
 /// <summary>
 /// Recent documents Windows already keeps as shortcuts in the Recent folder.
@@ -26,6 +27,7 @@ public sealed class RecentDocuments
     /// Shortcuts whose name contains every word of <paramref name="query"/>, newest first, at most 20.
     /// A blank query matches nothing and does not read a folder. The path is not searched.
     /// </summary>
+    [PublicAPI]
     public IReadOnlyList<RecentDocument> Search(string query)
     {
         var words = query.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);

@@ -4,101 +4,101 @@ namespace Winshell.Network;
 public enum NetworkConnectivity
 {
     /// <summary>Not read yet, or the last read failed.</summary>
-    Unknown,
+    [PublicAPI] Unknown,
 
     /// <summary>No connection.</summary>
-    None,
+    [PublicAPI] None,
 
     /// <summary>Limited internet access, usually until someone signs in on a captive portal page.</summary>
-    CaptivePortal,
+    [PublicAPI] CaptivePortal,
 
     /// <summary>The local network only, without the internet.</summary>
-    LocalAccess,
+    [PublicAPI] LocalAccess,
 
     /// <summary>The internet.</summary>
-    InternetAccess
+    [PublicAPI] InternetAccess
 }
 
 /// <summary>How a connection's data is charged, as Windows reports it.</summary>
 public enum NetworkCost
 {
     /// <summary>Windows does not know the cost.</summary>
-    Unknown,
+    [PublicAPI] Unknown,
 
     /// <summary>Data is not limited.</summary>
-    Unrestricted,
+    [PublicAPI] Unrestricted,
 
     /// <summary>Data is free up to a limit.</summary>
-    Fixed,
+    [PublicAPI] Fixed,
 
     /// <summary>Data is charged by the byte.</summary>
-    Variable
+    [PublicAPI] Variable
 }
 
 /// <summary>Whether Windows lets Winshell scan and connect Wi-Fi networks.</summary>
 public enum NetworkAccessStatus
 {
     /// <summary>Not asked yet, or the last request failed.</summary>
-    Unspecified,
+    [PublicAPI] Unspecified,
 
     /// <summary>Windows allows scanning and connecting.</summary>
-    Allowed,
+    [PublicAPI] Allowed,
 
     /// <summary>The user denied access.</summary>
-    DeniedByUser,
+    [PublicAPI] DeniedByUser,
 
     /// <summary>Windows denied access, or refused a scan.</summary>
-    DeniedBySystem
+    [PublicAPI] DeniedBySystem
 }
 
 /// <summary>The state of the PC's Wi-Fi radios, taken together.</summary>
 public enum WifiRadioState
 {
     /// <summary>No Wi-Fi radio was found, Windows would not list them, or none reports its state.</summary>
-    Unknown,
+    [PublicAPI] Unknown,
 
     /// <summary>At least one Wi-Fi radio is on.</summary>
-    On,
+    [PublicAPI] On,
 
     /// <summary>No Wi-Fi radio is on, and at least one can be turned on.</summary>
-    Off,
+    [PublicAPI] Off,
 
     /// <summary>
     /// No Wi-Fi radio is on or off, and at least one is disabled, as by a hardware switch, so software can't turn one on.
     /// </summary>
-    Disabled
+    [PublicAPI] Disabled
 }
 
 /// <summary>Whether airplane mode is on.</summary>
 public enum AirplaneModeState
 {
     /// <summary>Windows has no airplane mode setting, or it could not be read.</summary>
-    Unknown,
+    [PublicAPI] Unknown,
 
     /// <summary>Airplane mode is off.</summary>
-    Off,
+    [PublicAPI] Off,
 
     /// <summary>Airplane mode is on.</summary>
-    On
+    [PublicAPI] On
 }
 
 /// <summary>How far an adapter, or a network on it, is in connecting.</summary>
 public enum ConnectionState
 {
     /// <summary>Windows reported a state that is none of the others.</summary>
-    Unknown,
+    [PublicAPI] Unknown,
 
     /// <summary>The adapter is finding, joining or signing in to the network.</summary>
-    Connecting,
+    [PublicAPI] Connecting,
 
     /// <summary>The adapter is connected.</summary>
-    Connected,
+    [PublicAPI] Connected,
 
     /// <summary>The adapter is leaving the network.</summary>
-    Disconnecting,
+    [PublicAPI] Disconnecting,
 
     /// <summary>The adapter is not connected.</summary>
-    Disconnected
+    [PublicAPI] Disconnected
 }
 
 /// <summary>
@@ -108,83 +108,83 @@ public enum ConnectionState
 public enum ConnectionFailReason
 {
     /// <summary>A failure that is none of the others.</summary>
-    Unknown,
+    [PublicAPI] Unknown,
 
     /// <summary>The network refused the password or the saved credentials.</summary>
-    InvalidPassword,
+    [PublicAPI] InvalidPassword,
 
     /// <summary>The network did not answer in time.</summary>
-    Timeout,
+    [PublicAPI] Timeout,
 
     /// <summary>The network is not in the last scan, or Windows has not given access to the adapter.</summary>
-    NetworkUnavailable,
+    [PublicAPI] NetworkUnavailable,
 
     /// <summary>The network signs in with a method Windows can't use here.</summary>
-    UnsupportedAuthentication
+    [PublicAPI] UnsupportedAuthentication
 }
 
 /// <summary>The kind of a network adapter.</summary>
 public enum DeviceType
 {
     /// <summary>Neither Wi-Fi nor Ethernet. No listed device has this type.</summary>
-    None,
+    [PublicAPI] None,
 
     /// <summary>A Wi-Fi adapter.</summary>
-    Wifi,
+    [PublicAPI] Wifi,
 
     /// <summary>An Ethernet adapter.</summary>
-    Wired
+    [PublicAPI] Wired
 }
 
 /// <summary>How a Wi-Fi network or a saved profile is secured.</summary>
 public enum WifiSecurityType
 {
     /// <summary>WPA3-Enterprise in 192-bit mode.</summary>
-    Wpa3SuiteB192,
+    [PublicAPI] Wpa3SuiteB192,
 
     /// <summary>WPA3-Personal, which signs in with SAE.</summary>
-    Sae,
+    [PublicAPI] Sae,
 
     /// <summary>WPA2-Enterprise, or WPA3-Enterprise without 192-bit mode.</summary>
-    Wpa2Eap,
+    [PublicAPI] Wpa2Eap,
 
     /// <summary>WPA2-Personal, with a password.</summary>
-    Wpa2Psk,
+    [PublicAPI] Wpa2Psk,
 
     /// <summary>WPA-Enterprise.</summary>
-    WpaEap,
+    [PublicAPI] WpaEap,
 
     /// <summary>WPA-Personal, with a password.</summary>
-    WpaPsk,
+    [PublicAPI] WpaPsk,
 
     /// <summary>WEP, with a fixed key.</summary>
-    StaticWep,
+    [PublicAPI] StaticWep,
 
     /// <summary>Enhanced Open: encrypted, with no password.</summary>
-    Owe,
+    [PublicAPI] Owe,
 
     /// <summary>Open: no password and no encryption.</summary>
-    Open,
+    [PublicAPI] Open,
 
     /// <summary>Windows did not report the security, or it is none of the others.</summary>
-    Unknown
+    [PublicAPI] Unknown
 }
 
 /// <summary>The 802.11 mode of a <see cref="WifiDevice"/>. Windows never reports <see cref="Mesh"/> or <see cref="AdHoc"/>.</summary>
 public enum WifiDeviceMode
 {
     /// <summary>Windows reported no mode, or a mode that is none of the others.</summary>
-    Unknown,
+    [PublicAPI] Unknown,
 
     /// <summary>The adapter hosts a network, as Mobile hotspot does.</summary>
-    AccessPoint,
+    [PublicAPI] AccessPoint,
 
     /// <summary>An 802.11s mesh. Never reported.</summary>
-    Mesh,
+    [PublicAPI] Mesh,
 
     /// <summary>The adapter joins networks as a client.</summary>
-    Station,
+    [PublicAPI] Station,
 
     /// <summary>A peer-to-peer ad hoc network. Never reported.</summary>
-    AdHoc
+    [PublicAPI] AdHoc
 }

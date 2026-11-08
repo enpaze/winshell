@@ -7,9 +7,11 @@ namespace Winshell;
 
 /// <summary>The comment written above a key the file does not have yet. A line break starts another comment line.</summary>
 [AttributeUsage(AttributeTargets.Property)]
+[method: PublicAPI]
 public sealed class TomlCommentAttribute(string text) : Attribute
 {
     /// <summary>The comment's text, without the leading <c>#</c>.</summary>
+    [PublicAPI]
     public string Text { get; } = text;
 }
 
@@ -81,6 +83,7 @@ public abstract class TomlFile : ObservableObject, IDisposable
     }
 
     /// <summary>Why the file could not be read, as <c>path[line:column]: message</c>, or empty when the last read parsed.</summary>
+    [PublicAPI]
     public string Error
     {
         get => _error;
@@ -92,6 +95,7 @@ public abstract class TomlFile : ObservableObject, IDisposable
     }
 
     /// <summary>Whether the file is there and parses. Without it the properties keep the values they had.</summary>
+    [PublicAPI]
     public bool Loaded
     {
         get => _loaded;
@@ -99,6 +103,7 @@ public abstract class TomlFile : ObservableObject, IDisposable
     }
 
     /// <summary>Writes the file now, adding the keys it does not have, or making it and its folder when there is none.</summary>
+    [PublicAPI]
     public void Save()
     {
         Write();
@@ -387,6 +392,7 @@ public abstract class TomlFile : ObservableObject, IDisposable
     }
 
     /// <summary>Stops following the file. A write that was on its way runs now.</summary>
+    [PublicAPI]
     public void Dispose()
     {
         if (_disposed)

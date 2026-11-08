@@ -10,6 +10,7 @@ namespace Winshell;
 public abstract class ObservableObject : INotifyPropertyChanged
 {
     /// <summary>Raised when a property's value changes, with the property's name.</summary>
+    [PublicAPI]
     public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>Sets a field and reports the change when the value differs.</summary>

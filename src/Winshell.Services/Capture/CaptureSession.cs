@@ -24,6 +24,7 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     /// </summary>
     /// <param name="loop">The loop frames are read and events raised on.</param>
     /// <param name="log">Where a capture teardown that fails is reported: the shell's log.</param>
+    [PublicAPI]
     public CaptureSession(IEventLoop loop, Log log)
         : this(loop, () => new WindowsCaptureBackend(log))
     {
@@ -36,12 +37,14 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     }
 
     /// <summary>A new frame arrived. <see cref="Frame"/> is that frame.</summary>
+    [PublicAPI]
     public event Action? FrameReady;
 
     /// <summary>
     /// What to capture: an <see cref="AppWindow"/> from <see cref="WindowListService"/>, or a
     /// <see cref="CaptureTarget"/>. Changing it stops capture. Closing the app window clears this and stops capture.
     /// </summary>
+    [PublicAPI]
     public CaptureTarget? Target
     {
         get => _target;
@@ -57,21 +60,27 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     }
 
     /// <summary>Whether a capture is in progress, from a successful <see cref="Start"/> until it stops.</summary>
+    [PublicAPI]
     public bool Running => _backend is not null;
 
     /// <summary>The latest frame, in physical pixels, or null before one arrives and after a stop.</summary>
+    [PublicAPI]
     public PixelImage? Frame => _frame;
 
     /// <summary>Whether <see cref="Frame"/> holds a frame.</summary>
+    [PublicAPI]
     public bool HasFrame => _frame is not null;
 
     /// <summary>Why the last start or export failed, or why a running capture failed. Empty after a successful start or export.</summary>
+    [PublicAPI]
     public string Error => _error;
 
     /// <summary>The size of <see cref="Frame"/> in physical pixels, or zero without a frame.</summary>
+    [PublicAPI]
     public Size PixelSize => new(_frame?.Width ?? 0, _frame?.Height ?? 0);
 
     /// <summary>Applied on the next start. Previews omit the pointer by default.</summary>
+    [PublicAPI]
     public bool IncludeCursor
     {
         get => _includeCursor;
@@ -79,6 +88,7 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     }
 
     /// <summary>Minimum time between frame reads; 16–1000 ms. Frames stay on D3D until consumed.</summary>
+    [PublicAPI]
     public int FrameInterval
     {
         get => _frameInterval;
@@ -86,6 +96,7 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     }
 
     /// <summary>Starts capturing <see cref="Target"/>, after stopping a capture in progress. On failure <see cref="Error"/> says why.</summary>
+    [PublicAPI]
     public bool Start()
     {
         if (_disposed)
@@ -145,6 +156,7 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     }
 
     /// <summary>Stops capturing and drops the current frame.</summary>
+    [PublicAPI]
     public void Stop()
     {
         _generation++;
@@ -171,6 +183,7 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     /// Saves the current frame as a PNG to a new file. Takes a local path or <c>file://</c> URL. Never overwrites a file,
     /// and does not create folders.
     /// </summary>
+    [PublicAPI]
     public bool SaveToFile(string path)
     {
         try
@@ -192,6 +205,7 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     }
 
     /// <summary>Copies the current frame to the Windows clipboard, owned by an open window of this program.</summary>
+    [PublicAPI]
     public bool CopyToClipboard(nint owner)
     {
         try
@@ -256,6 +270,7 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     /// Stops capturing, drops the current frame, and stops watching the target window. <see cref="Start"/> returns
     /// false after this.
     /// </summary>
+    [PublicAPI]
     public void Dispose()
     {
         _disposed = true;

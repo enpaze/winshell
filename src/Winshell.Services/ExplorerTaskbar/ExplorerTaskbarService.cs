@@ -25,6 +25,7 @@ public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
     }
 
     /// <summary>Whether Explorer's taskbar is hidden and its screen edge is released.</summary>
+    [PublicAPI]
     public bool Hidden
     {
         get
@@ -62,6 +63,7 @@ public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
     }
 
     /// <summary>Shows Explorer's taskbar again when this shell had hidden it.</summary>
+    [PublicAPI]
     public void Dispose()
     {
         Restore();

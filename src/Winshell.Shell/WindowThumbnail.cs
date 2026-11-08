@@ -17,7 +17,7 @@ namespace Winshell;
 public sealed class WindowThumbnail : FrameworkElement
 {
     /// <summary>The app window to preview, from <see cref="WindowListService.Windows"/>. Null shows nothing.</summary>
-    public static readonly DependencyProperty WindowProperty = DependencyProperty.Register(
+    [PublicAPI] public static readonly DependencyProperty WindowProperty = DependencyProperty.Register(
         nameof(Window),
         typeof(AppWindow),
         typeof(WindowThumbnail),
@@ -29,7 +29,7 @@ public sealed class WindowThumbnail : FrameworkElement
     /// While true, Windows shows <see cref="Window"/> at full size and hides the others. It stays off when the user
     /// turned peek off, and it ends when this element unloads or the window goes.
     /// </summary>
-    public static readonly DependencyProperty PeekProperty = DependencyProperty.Register(
+    [PublicAPI] public static readonly DependencyProperty PeekProperty = DependencyProperty.Register(
         nameof(Peek),
         typeof(bool),
         typeof(WindowThumbnail),
@@ -45,6 +45,7 @@ public sealed class WindowThumbnail : FrameworkElement
     /// <summary>
     /// A thumbnail with no window, which shows nothing. It takes no clicks, and screen readers skip it.
     /// </summary>
+    [PublicAPI]
     public WindowThumbnail()
     {
         _shell = new ShellWindowWatch(OnShellChanged);
@@ -56,6 +57,7 @@ public sealed class WindowThumbnail : FrameworkElement
     }
 
     /// <summary>The app window to preview, from <see cref="WindowListService.Windows"/>. Null shows nothing.</summary>
+    [PublicAPI]
     public AppWindow? Window
     {
         get => (AppWindow?)GetValue(WindowProperty);
@@ -66,6 +68,7 @@ public sealed class WindowThumbnail : FrameworkElement
     /// While true, Windows shows <see cref="Window"/> at full size and hides the others. It stays off when the user
     /// turned peek off, and it ends when this element unloads or the window goes.
     /// </summary>
+    [PublicAPI]
     public bool Peek
     {
         get => (bool)GetValue(PeekProperty);

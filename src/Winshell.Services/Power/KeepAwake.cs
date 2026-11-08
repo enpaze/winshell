@@ -13,12 +13,14 @@ public sealed class KeepAwake : ObservableObject, IDisposable
 
     /// <summary>Creates a keep-awake that is off until <see cref="Enabled"/> is set.</summary>
     /// <param name="log">Where a power request Windows refuses is reported: the shell's log.</param>
+    [PublicAPI]
     public KeepAwake(Log log)
     {
         _log = log;
     }
 
     /// <summary>Whether this keep-awake holds the screen on and the PC awake. False by default.</summary>
+    [PublicAPI]
     public bool Enabled
     {
         get => _enabled;
@@ -51,6 +53,7 @@ public sealed class KeepAwake : ObservableObject, IDisposable
     }
 
     /// <summary>Turns this keep-awake off, so it no longer holds the PC awake.</summary>
+    [PublicAPI]
     public void Dispose()
     {
         Enabled = false;

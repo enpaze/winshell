@@ -8,9 +8,11 @@ namespace Winshell.Winland;
 /// <summary>One line of the event stream.</summary>
 /// <param name="Name">The event's name, before <c>&gt;&gt;</c>, such as <c>workspacev2</c>.</param>
 /// <param name="Data">The text after <c>&gt;&gt;</c>.</param>
-public sealed record WinlandEvent(string Name, string Data)
+[method: PublicAPI]
+public sealed record WinlandEvent([property: PublicAPI] string Name, [property: PublicAPI] string Data)
 {
     /// <summary>Splits <see cref="Data"/> at commas into that many strings. The last keeps any further commas, and missing ones are empty.</summary>
+    [PublicAPI]
     public IReadOnlyList<string> Parse(int argumentCount)
     {
         return WinlandProtocol.ParseArgs(Data, argumentCount);
@@ -36,39 +38,50 @@ public sealed class WinlandMonitor : ObservableObject
     }
 
     /// <summary>Winland's number for the Monitor. -1 until Winland reports it.</summary>
+    [PublicAPI]
     public int Id => _id;
 
     /// <summary>The Windows display name, such as <c>\\.\DISPLAY1</c>, which is the screen's id.</summary>
+    [PublicAPI]
     public string Name => _name;
 
     /// <summary>
     /// The Monitor's make, model and serial number, joined by spaces, or its friendly name when it reports no model or
     /// serial. A <c>desc:</c> rule in Winland's config matches this.
     /// </summary>
+    [PublicAPI]
     public string Description => _description;
 
     /// <summary>The left edge on the virtual screen, in physical pixels.</summary>
+    [PublicAPI]
     public int X => _x;
 
     /// <summary>The top edge on the virtual screen, in physical pixels.</summary>
+    [PublicAPI]
     public int Y => _y;
 
     /// <summary>The width in physical pixels.</summary>
+    [PublicAPI]
     public int Width => _width;
 
     /// <summary>The height in physical pixels.</summary>
+    [PublicAPI]
     public int Height => _height;
 
     /// <summary>The Monitor's DPI divided by 96, such as 1.5 at 150%.</summary>
+    [PublicAPI]
     public double Scale => _scale;
 
     /// <summary>Whether this is <see cref="WinlandService.FocusedMonitor"/>.</summary>
+    [PublicAPI]
     public bool Focused => _focused;
 
     /// <summary>The Workspace shown on the Monitor, or null.</summary>
+    [PublicAPI]
     public WinlandWorkspace? ActiveWorkspace => _activeWorkspace;
 
     /// <summary>The Monitor's entry from Winland's last monitor list. Null before the first one.</summary>
+    [PublicAPI]
     public JsonElement? LastIpcObject => _lastIpcObject;
 
     /// <summary>
@@ -77,6 +90,7 @@ public sealed class WinlandMonitor : ObservableObject
     /// </summary>
     /// <param name="number">The positive Workspace number on this Monitor.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="number"/> is zero or negative.</exception>
+    [PublicAPI]
     public void ActivateWorkspace(int number)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(number);
@@ -143,33 +157,43 @@ public sealed class WinlandWorkspace : ObservableObject
     }
 
     /// <summary>The Workspace number. A named Workspace gets a negative id, and <c>special:special</c> gets -99.</summary>
+    [PublicAPI]
     public int Id => _id;
 
     /// <summary>The Workspace's name: its number, a name, or <c>special:</c> and a name.</summary>
+    [PublicAPI]
     public string Name => _name;
 
     /// <summary>The same as <see cref="Name"/>.</summary>
+    [PublicAPI]
     public string Address => _address;
 
     /// <summary>The Monitor the Workspace belongs to, or null when Winland has not said.</summary>
+    [PublicAPI]
     public WinlandMonitor? Monitor => _monitor;
 
     /// <summary>Whether the Workspace is shown on its Monitor.</summary>
+    [PublicAPI]
     public bool Active => _active;
 
     /// <summary>Whether this is <see cref="WinlandService.FocusedWorkspace"/>.</summary>
+    [PublicAPI]
     public bool Focused => _focused;
 
     /// <summary>Whether a window on it is urgent while the Workspace is not focused.</summary>
+    [PublicAPI]
     public bool Urgent => _urgent;
 
     /// <summary>Whether a window on the Workspace is fullscreen.</summary>
+    [PublicAPI]
     public bool HasFullscreen => _hasFullscreen;
 
     /// <summary>The windows on the Workspace, in the order they arrived there.</summary>
+    [PublicAPI]
     public ObservableCollection<WinlandWindow> Windows { get; } = [];
 
     /// <summary>The Workspace's entry from Winland's last workspace list. Null before the first one.</summary>
+    [PublicAPI]
     public JsonElement? LastIpcObject => _lastIpcObject;
 
     internal bool IsSpecial => WinlandProtocol.IsSpecial(_name);
@@ -178,6 +202,7 @@ public sealed class WinlandWorkspace : ObservableObject
     /// Shows the Workspace. A Workspace number means that number on the focused Monitor in Winland, so the
     /// Workspace's own Monitor is focused first when it is another one.
     /// </summary>
+    [PublicAPI]
     public void Activate()
     {
         if (!IsSpecial && _monitor is { Id: >= 0 } monitor)
@@ -255,30 +280,39 @@ public sealed class WinlandWindow : ObservableObject
     }
 
     /// <summary>The window handle in hexadecimal, without <c>0x</c>.</summary>
+    [PublicAPI]
     public string Address => _address == 0 ? "" : _address.ToString("x", CultureInfo.InvariantCulture);
 
     /// <summary>The window handle, which names the same window in <c>Winshell.Windows</c>.</summary>
+    [PublicAPI]
     public nint Handle => (nint)_address;
 
     /// <summary>The same window in <see cref="WindowListService"/>, or null when that list is not in use or has no such window.</summary>
+    [PublicAPI]
     public AppWindow? Window => _service.FindWindow(Handle);
 
     /// <summary>The window's title, as Winland last reported it.</summary>
+    [PublicAPI]
     public string Title => _title;
 
     /// <summary>The Workspace the window is on, or null when Winland has not said.</summary>
+    [PublicAPI]
     public WinlandWorkspace? Workspace => _workspace;
 
     /// <summary>The Monitor of the window's Workspace, or null.</summary>
+    [PublicAPI]
     public WinlandMonitor? Monitor => _monitor;
 
     /// <summary>Whether this is <see cref="WinlandService.ActiveWindow"/>.</summary>
+    [PublicAPI]
     public bool Activated => _activated;
 
     /// <summary>Whether Winland marked the window urgent. It clears when the window is activated or its Workspace is focused.</summary>
+    [PublicAPI]
     public bool Urgent => _urgent;
 
     /// <summary>The window's entry from Winland's last window list. Null before the first one.</summary>
+    [PublicAPI]
     public JsonElement? LastIpcObject => _lastIpcObject;
 
     internal ulong RawAddress => _address;

@@ -70,9 +70,11 @@ public sealed class WindowListService : ObservableObject, IDisposable
     }
 
     /// <summary>The windows, in the order they opened.</summary>
+    [PublicAPI]
     public ObservableCollection<AppWindow> Windows { get; } = [];
 
     /// <summary>The listed window that has the focus, or owns the window that has it. Null when none does.</summary>
+    [PublicAPI]
     public AppWindow? ActiveWindow => _activeWindow;
 
     /// <summary>The window with this handle, or null when it is not listed.</summary>
@@ -250,6 +252,7 @@ public sealed class WindowListService : ObservableObject, IDisposable
     }
 
     /// <summary>Stops following the windows. The list stays as it was.</summary>
+    [PublicAPI]
     public void Dispose()
     {
         _disposed = true;
@@ -284,39 +287,50 @@ public sealed class AppWindow : ObservableObject
     internal nint Owner => _info.Owner;
 
     /// <summary>The window's title, as its title bar shows it. May be empty.</summary>
+    [PublicAPI]
     public string Title => _info.Title;
 
     /// <summary>The AppUserModelID the window carries, or its process package's, or its program's name in lower case.</summary>
+    [PublicAPI]
     public string AppId => _info.AppId;
 
     /// <summary>The full path of the program that owns the window, or empty when it cannot be read.</summary>
+    [PublicAPI]
     public string Executable => _info.Executable;
 
     /// <summary>A path an icon is read from: a packaged app's Start icon, or the program's own icon.</summary>
+    [PublicAPI]
     public string Icon => _info.Icon;
 
     /// <summary>The virtual desktop this window is on, or empty when Windows does not report one. This uses the supported desktop API.</summary>
+    [PublicAPI]
     public string DesktopId => _backend.DesktopId(Hwnd);
 
     /// <summary>The desktop in <see cref="VirtualDesktopsService.Desktops"/> whose id is <see cref="DesktopId"/>, when that list is loaded.</summary>
+    [PublicAPI]
     public VirtualDesktop? Desktop => _desktops?.Find(DesktopId);
 
     /// <summary>Whether this is <see cref="WindowListService.ActiveWindow"/>.</summary>
+    [PublicAPI]
     public bool Activated => _activated;
 
     /// <summary>
     /// Whether the window flashed to ask for attention, as a chat or a finished download does, and has not been
     /// activated since. The taskbar shows this as a highlighted button.
     /// </summary>
+    [PublicAPI]
     public bool Attention => _attention;
 
     /// <summary>The listed window that owns this one, as a main window owns its dialog, or null.</summary>
+    [PublicAPI]
     public AppWindow? Parent => _parent;
 
     /// <summary>The screen the window is on: the one Windows says it is nearest.</summary>
+    [PublicAPI]
     public IReadOnlyList<ScreenInfo> Screens => _backend.Screen(_info.Monitor) is { } screen ? [screen] : [];
 
     /// <summary>Whether the window is maximized. Setting it maximizes the window, or restores it.</summary>
+    [PublicAPI]
     public bool Maximized
     {
         get => _info.Maximized;
@@ -324,6 +338,7 @@ public sealed class AppWindow : ObservableObject
     }
 
     /// <summary>Whether the window is minimized. Setting it minimizes the window, or restores it.</summary>
+    [PublicAPI]
     public bool Minimized
     {
         get => _info.Minimized;
@@ -331,30 +346,36 @@ public sealed class AppWindow : ObservableObject
     }
 
     /// <summary>Whether the window covers its screen without a frame. Windows has no request that puts another program's window into fullscreen.</summary>
+    [PublicAPI]
     public bool Fullscreen => _info.Fullscreen;
 
     /// <summary>The window closed. This comes after it has left <see cref="WindowListService.Windows"/>.</summary>
+    [PublicAPI]
     public event EventHandler? Closed;
 
     /// <summary>Brings the window to the front and focuses it, restoring it first when it is minimized.</summary>
+    [PublicAPI]
     public void Activate()
     {
         _backend.Activate(Hwnd);
     }
 
     /// <summary>Asks the window to close, as its close button does. The program can still keep it open.</summary>
+    [PublicAPI]
     public void Close()
     {
         _backend.Close(Hwnd);
     }
 
     /// <summary>Moves the window onto a monitor. Its logical size stays, and a maximized window is maximized again there.</summary>
+    [PublicAPI]
     public void MoveTo(ScreenInfo? screen)
     {
         _backend.MoveToMonitor(Hwnd, screen?.Id ?? "");
     }
 
     /// <summary>Moves the window onto a virtual desktop. This uses the supported desktop API.</summary>
+    [PublicAPI]
     public void MoveToDesktop(VirtualDesktop? desktop)
     {
         if (desktop is null || !Guid.TryParse(desktop.Id, out var id) || id == Guid.Empty)

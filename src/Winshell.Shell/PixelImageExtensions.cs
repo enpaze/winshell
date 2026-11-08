@@ -13,6 +13,7 @@ public static class PixelImageExtensions
     /// </summary>
     /// <param name="image">The picture to show.</param>
     /// <returns>A source that keeps its own copy of the pixels.</returns>
+    [PublicAPI]
     public static ImageSource ToImageSource(this PixelImage image)
     {
         ArgumentNullException.ThrowIfNull(image);
