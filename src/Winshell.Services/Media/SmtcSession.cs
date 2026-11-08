@@ -15,10 +15,8 @@ internal sealed class SmtcSession
     private DateTimeOffset _positionTime;
     private double _position;
 
-    public SmtcSession(IEventLoop loop, Log log, int id, string appId, string appName, ISmtcLink link)
+    public SmtcSession(IEventLoop loop, Log log, string appId, string appName, ISmtcLink link)
     {
-        // The session list still passes this number. Nothing here reads it.
-        _ = id;
         AppId = appId;
         AppName = appName;
         _time = loop.Time;

@@ -19,7 +19,6 @@ internal sealed class SmtcSessions : IMediaSessions
     private TypedEventHandler<GlobalSystemMediaTransportControlsSessionManager, SessionsChangedEventArgs>?
         _sessionsChanged;
 
-    private int _nextId = 1;
 
     internal SmtcSessions(IEventLoop loop, Log log,
         Func<IAsyncOperation<GlobalSystemMediaTransportControlsSessionManager>> request)
@@ -96,7 +95,7 @@ internal sealed class SmtcSessions : IMediaSessions
                 continue;
             }
 
-            var session = new SmtcSession(_loop, _log, _nextId++, ids[i], _names.Get(ids[i]),
+            var session = new SmtcSession(_loop, _log, ids[i], _names.Get(ids[i]),
                 new SmtcSessionLink(_loop, _log, incoming[i]));
             _sessions.Add(session);
             SessionAdded?.Invoke(session);

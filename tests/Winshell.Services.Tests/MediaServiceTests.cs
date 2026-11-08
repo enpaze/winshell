@@ -34,7 +34,7 @@ public sealed class MediaServiceTests
     /// <summary>A session with no Windows behind it. Its commands land on the link.</summary>
     private SmtcSession Native(RecordingLink link, string appId = "test")
     {
-        return new SmtcSession(_loop, _log, 0, appId, appId, link);
+        return new SmtcSession(_loop, _log, appId, appId, link);
     }
 
     private sealed class RecordingLink : ISmtcLink
