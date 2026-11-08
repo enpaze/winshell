@@ -32,10 +32,7 @@ internal sealed record PowerSnapshot(
     bool Ready,
     PowerDeviceInfo Display,
     IReadOnlyList<PowerDeviceInfo> Devices,
-    bool OnBattery)
-{
-    public static readonly PowerSnapshot Initial = new(false, PowerDeviceInfo.NoBattery, [], false);
-}
+    bool OnBattery);
 
 internal interface IPowerBackend : IDisposable
 {
@@ -54,7 +51,7 @@ internal interface IPowerBackend : IDisposable
 /// <param name="log">Where a battery Windows cannot open is reported.</param>
 internal sealed class PowerBackend(Log log) : IPowerBackend
 {
-    private readonly object _batteriesLock = new();
+    private readonly Lock _batteriesLock = new();
 
     private readonly Dictionary<string, (WinBattery Battery, string Name)> _batteries = new(StringComparer.Ordinal);
 

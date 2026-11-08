@@ -8,13 +8,6 @@ public sealed class ToastMessage : ObservableObject
 {
     private readonly IEventLoop _loop;
     private readonly INotificationBackend _backend;
-    private string _appId = "";
-    private string _title = "";
-    private string _body = "";
-    private string _activationUri = "";
-    private string _tag = "";
-    private string _group = "";
-    private bool _silent;
     private string _error = "";
 
     /// <summary>Creates an empty toast whose <see cref="Failed"/> event is raised on the given event loop.</summary>
@@ -38,56 +31,56 @@ public sealed class ToastMessage : ObservableObject
     [PublicAPI]
     public string AppId
     {
-        get => _appId;
-        set => Set(ref _appId, value ?? "");
-    }
+        get;
+        set => Set(ref field, Strings.OrEmpty(value));
+    } = "";
 
     /// <summary>The first line. Required.</summary>
     [PublicAPI]
     public string Title
     {
-        get => _title;
-        set => Set(ref _title, value ?? "");
-    }
+        get;
+        set => Set(ref field, Strings.OrEmpty(value));
+    } = "";
 
     /// <summary>The text under the title, as plain text.</summary>
     [PublicAPI]
     public string Body
     {
-        get => _body;
-        set => Set(ref _body, value ?? "");
-    }
+        get;
+        set => Set(ref field, Strings.OrEmpty(value));
+    } = "";
 
     /// <summary>An absolute protocol URI Windows opens when the user clicks the toast. Without one, the toast is informational.</summary>
     [PublicAPI]
     public string ActivationUri
     {
-        get => _activationUri;
-        set => Set(ref _activationUri, value ?? "");
-    }
+        get;
+        set => Set(ref field, Strings.OrEmpty(value));
+    } = "";
 
     /// <summary>An optional Windows replacement identifier, at most 64 characters.</summary>
     [PublicAPI]
     public string Tag
     {
-        get => _tag;
-        set => Set(ref _tag, value ?? "");
-    }
+        get;
+        set => Set(ref field, Strings.OrEmpty(value));
+    } = "";
 
     /// <summary>An optional Windows replacement group, at most 64 characters. Needs a <see cref="Tag"/>.</summary>
     [PublicAPI]
     public string Group
     {
-        get => _group;
-        set => Set(ref _group, value ?? "");
-    }
+        get;
+        set => Set(ref field, Strings.OrEmpty(value));
+    } = "";
 
     /// <summary>Whether the toast plays no sound.</summary>
     [PublicAPI]
     public bool Silent
     {
-        get => _silent;
-        set => Set(ref _silent, value);
+        get;
+        set => Set(ref field, value);
     }
 
     /// <summary>Why the last send failed. Cleared by a send that passes validation.</summary>
@@ -175,22 +168,28 @@ public sealed class ToastMessage : ObservableObject
 /// <summary>A button on a toast.</summary>
 public sealed class ToastAction : ObservableObject
 {
-    private string _text = "";
-    private string _activationUri = "";
-
     /// <summary>The button's label. Required.</summary>
     [PublicAPI]
     public string Text
     {
-        get => _text;
-        set => Set(ref _text, value ?? "");
-    }
+        get;
+        set => Set(ref field, Strings.OrEmpty(value));
+    } = "";
 
     /// <summary>The absolute protocol URI Windows opens when the user clicks the button.</summary>
     [PublicAPI]
     public string ActivationUri
     {
-        get => _activationUri;
-        set => Set(ref _activationUri, value ?? "");
+        get;
+        set => Set(ref field, Strings.OrEmpty(value));
+    } = "";
+}
+
+/// <summary>A null from a caller without nullable checks is empty, as an unset field is.</summary>
+file static class Strings
+{
+    internal static string OrEmpty(string? value)
+    {
+        return value ?? "";
     }
 }

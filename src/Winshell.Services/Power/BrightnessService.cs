@@ -129,8 +129,12 @@ public sealed class BrightnessService : ObservableObject, IDisposable
 
     private void OnScreensChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        var workAreaOnly = e is { Action: NotifyCollectionChangedAction.Replace, OldItems: [ScreenInfo old] }
-                           && e.NewItems is [ScreenInfo now]
+        var workAreaOnly = e is
+                           {
+                               Action: NotifyCollectionChangedAction.Replace,
+                               OldItems: [ScreenInfo old],
+                               NewItems: [ScreenInfo now]
+                           }
                            && old with { WorkArea = now.WorkArea } == now;
         if (!workAreaOnly)
             _reader.Request();
