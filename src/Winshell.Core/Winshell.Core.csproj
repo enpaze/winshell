@@ -9,6 +9,9 @@
     <PackageReference Include="Tomlyn" />
   </ItemGroup>
   <ItemGroup>
+    <Using Include="JetBrains.Annotations" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="Winshell.Services" />
     <InternalsVisibleTo Include="Winshell.Shell" />
     <InternalsVisibleTo Include="Winshell.Core.Tests" />

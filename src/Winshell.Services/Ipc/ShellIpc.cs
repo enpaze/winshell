@@ -38,6 +38,7 @@ public sealed class ShellIpc
     /// Dispose the result to take it away. A later handler for the same function replaces this one.
     /// </summary>
     /// <exception cref="ArgumentException">The handler takes or returns a type IPC can't pass.</exception>
+    [PublicAPI]
     public IDisposable Handle(string target, string function, Delegate handler)
     {
         ArgumentException.ThrowIfNullOrEmpty(target);
@@ -56,6 +57,7 @@ public sealed class ShellIpc
 
     /// <summary>Lets <c>winshell ipc prop get</c> read a value. Dispose the result to take it away.</summary>
     /// <exception cref="ArgumentException"><typeparamref name="T"/> is a type IPC can't pass.</exception>
+    [PublicAPI]
     public IDisposable Property<T>(string target, string property, Func<T> read)
     {
         ArgumentException.ThrowIfNullOrEmpty(target);
@@ -67,6 +69,7 @@ public sealed class ShellIpc
     }
 
     /// <summary>A signal <c>winshell ipc wait</c> and <c>listen</c> can follow.</summary>
+    [PublicAPI]
     public IpcSignal Signal(string target, string signal)
     {
         ArgumentException.ThrowIfNullOrEmpty(target);
@@ -234,9 +237,11 @@ public sealed class IpcSignal : IIpcMember
     }
 
     /// <summary>The signal's name, which <c>winshell ipc wait</c> and <c>listen</c> take.</summary>
+    [PublicAPI]
     public string Name { get; }
 
     /// <summary>Tells every <c>winshell ipc wait</c> and <c>listen</c> following this signal, with <paramref name="value"/>.</summary>
+    [PublicAPI]
     public void Emit(string value = "")
     {
         foreach (var listener in _listeners.ToArray())

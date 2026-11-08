@@ -14,6 +14,7 @@ public sealed class PanelWindow : ShellWindow
     private PanelEdge? _edge;
 
     /// <summary>A hidden panel of the running shell, anchored to no edge until <see cref="Anchors"/> is set.</summary>
+    [PublicAPI]
     public PanelWindow()
         : this(Shell.Current)
     {
@@ -27,6 +28,7 @@ public sealed class PanelWindow : ShellWindow
     private protected override WindowKind Kind => WindowKind.Panel;
 
     /// <summary>The edges the panel sticks to. Two opposite edges stretch it across the screen.</summary>
+    [PublicAPI]
     public Edges Anchors
     {
         get => _anchors;
@@ -40,6 +42,7 @@ public sealed class PanelWindow : ShellWindow
     /// <summary>
     /// The gap, in logical pixels, between the panel and each edge it is anchored to. Other edges' margins are unused.
     /// </summary>
+    [PublicAPI]
     public Thickness Margins
     {
         get => _margins;
@@ -51,6 +54,7 @@ public sealed class PanelWindow : ShellWindow
     }
 
     /// <summary>How much of its edge the panel reserves, in logical pixels, so maximized windows stay out of it.</summary>
+    [PublicAPI]
     public double ReservedSize
     {
         get => _reservedSize;
@@ -62,6 +66,7 @@ public sealed class PanelWindow : ShellWindow
     }
 
     /// <summary>Lays the panel out on the whole screen, over the taskbar and other bars, and reserves nothing. False keeps it in the work area.</summary>
+    [PublicAPI]
     public bool CoversScreen
     {
         get => _coversScreen;
@@ -73,6 +78,7 @@ public sealed class PanelWindow : ShellWindow
     }
 
     /// <summary>Stays above normal windows. False puts it below them, as a wallpaper is.</summary>
+    [PublicAPI]
     public bool AboveWindows
     {
         get => _aboveWindows;
@@ -84,6 +90,7 @@ public sealed class PanelWindow : ShellWindow
     }
 
     /// <summary>Whether the panel can take the keyboard. A panel that cannot never takes activation from the app in front.</summary>
+    [PublicAPI]
     public bool Focusable
     {
         get => _focusable;

@@ -15,6 +15,7 @@ public sealed record ShellOptions
     /// The name that identifies this configuration across runs. It names its data, state and cache folders. Without
     /// it, a program in the config folder is named after its folder, and one anywhere else after its path.
     /// </summary>
+    [PublicAPI]
     public string? ShellId { get; init; }
 
     /// <summary>
@@ -23,12 +24,15 @@ public sealed record ShellOptions
     /// folder. A program in neither resolves a relative path next to itself. <c>%NAME%</c> expands, and <c>$BASE</c>
     /// is the folder above <c>by-shell</c>, such as <c>%LOCALAPPDATA%\winshell\data</c>.
     /// </summary>
+    [PublicAPI]
     public string? DataDir { get; init; }
 
     /// <summary>Another folder for <see cref="Shell.StateDir"/>, read as <see cref="DataDir"/> is.</summary>
+    [PublicAPI]
     public string? StateDir { get; init; }
 
     /// <summary>Another folder for <see cref="Shell.CacheDir"/>, read as <see cref="DataDir"/> is.</summary>
+    [PublicAPI]
     public string? CacheDir { get; init; }
 }
 
@@ -36,6 +40,7 @@ public sealed record ShellOptions
 public abstract class ShellConfiguration
 {
     /// <summary>Runs once, on the shell's thread, after WinUI has started.</summary>
+    [PublicAPI]
     public abstract void Start(Shell shell);
 }
 
@@ -85,16 +90,20 @@ public sealed partial class Shell : IDisposable
     internal static Shell? Running => _current;
 
     /// <summary>The shell of this process. Reading it before <see cref="Run{T}"/> has started it throws.</summary>
+    [PublicAPI]
     public static Shell Current =>
         _current ?? throw new InvalidOperationException("The shell has not started. Call Shell.Run first.");
 
     /// <summary>The shell's thread. Post work from other threads to it before touching windows or services.</summary>
+    [PublicAPI]
     public IEventLoop Loop { get; }
 
     /// <summary>This instance's log, which <c>winshell log</c> shows.</summary>
+    [PublicAPI]
     public Log Log { get; }
 
     /// <summary>The options the configuration passed to <see cref="Run{T}"/>.</summary>
+    [PublicAPI]
     public ShellOptions Options { get; }
 
     internal ShellPlatform Platform { get; }
@@ -106,39 +115,51 @@ public sealed partial class Shell : IDisposable
     internal ShellNotices Notices { get; }
 
     /// <summary>The Winshell release this program is built on.</summary>
+    [PublicAPI]
     public static string Version => ProductVersion.Current.Text;
 
     /// <summary>The name that identifies this configuration across runs.</summary>
+    [PublicAPI]
     public string ShellId => _identity.ShellId;
 
     /// <summary>What <c>winshell ipc</c> reaches in this shell.</summary>
+    [PublicAPI]
     public ShellIpc Ipc { get; }
 
     /// <summary>The folder of this configuration's program, where its own files are.</summary>
+    [PublicAPI]
     public string ConfigDir => Path.GetDirectoryName(Environment.ProcessPath)!;
 
     /// <summary>The config folder: <c>%APPDATA%\winshell</c>, or <c>WINSHELL_CONFIG_DIR</c> when it is set.</summary>
+    [PublicAPI]
     public string ConfigRoot => ShellLocations.Current.ConfigRoot;
 
     /// <summary>This instance's log file, or empty when it writes none.</summary>
+    [PublicAPI]
     public string LogPath { get; }
 
     /// <summary>This shell's data folder, which exists once read.</summary>
+    [PublicAPI]
     public string DataDir => Ensure(_identity.DataDir);
 
     /// <summary>This shell's state folder, which exists once read.</summary>
+    [PublicAPI]
     public string StateDir => Ensure(_identity.StateDir);
 
     /// <summary>This shell's cache folder, which exists once read.</summary>
+    [PublicAPI]
     public string CacheDir => Ensure(_identity.CacheDir);
 
     /// <summary>The connected screens. The primary screen comes first.</summary>
+    [PublicAPI]
     public ObservableCollection<ScreenInfo> Screens => Platform.Screens;
 
     /// <summary>Whether windows are dark. <see cref="ColorScheme"/> overrides Windows mode, and <see cref="ColorScheme.System"/> follows it.</summary>
+    [PublicAPI]
     public bool IsDark => Platform.IsDark;
 
     /// <summary>The color scheme every window follows.</summary>
+    [PublicAPI]
     public ColorScheme ColorScheme
     {
         get => Platform.ColorScheme;
@@ -146,6 +167,7 @@ public sealed partial class Shell : IDisposable
     }
 
     /// <summary>The accent every window follows, as <c>#RRGGBB</c>, or <c>""</c> to follow Windows.</summary>
+    [PublicAPI]
     public string AccentColor
     {
         get => Platform.AccentColor;
@@ -153,27 +175,32 @@ public sealed partial class Shell : IDisposable
     }
 
     /// <summary>The accent Windows is using, as <c>#RRGGBB</c>.</summary>
+    [PublicAPI]
     public string SystemAccent => Platform.SystemAccent;
 
     /// <summary>A path in <see cref="ConfigDir"/>.</summary>
+    [PublicAPI]
     public string ConfigPath(string path)
     {
         return Path.Combine(ConfigDir, path);
     }
 
     /// <summary>A path in <see cref="DataDir"/>.</summary>
+    [PublicAPI]
     public string DataPath(string path)
     {
         return Path.Combine(DataDir, path);
     }
 
     /// <summary>A path in <see cref="StateDir"/>.</summary>
+    [PublicAPI]
     public string StatePath(string path)
     {
         return Path.Combine(StateDir, path);
     }
 
     /// <summary>A path in <see cref="CacheDir"/>.</summary>
+    [PublicAPI]
     public string CachePath(string path)
     {
         return Path.Combine(CacheDir, path);
@@ -193,6 +220,7 @@ public sealed partial class Shell : IDisposable
     /// start keeps <c>--after</c>. <typeparamref name="T"/> is a <see cref="ShellConfiguration"/> with a public
     /// parameterless constructor.
     /// </summary>
+    [PublicAPI]
     public static void Run<T>(ShellOptions? options = null)
         where T : ShellConfiguration, new()
     {
@@ -280,6 +308,7 @@ public sealed partial class Shell : IDisposable
     /// Replaces this instance with a new process of the same program, which takes over once this one has gone.
     /// False when that process did not start: the shell then keeps running.
     /// </summary>
+    [PublicAPI]
     public bool Reload()
     {
         if (StartNext() is not null)
@@ -319,6 +348,7 @@ public sealed partial class Shell : IDisposable
     /// Ends the shell. Its windows close and <see cref="Run{T}"/> returns. Something that fails to stop is logged and
     /// reported, and the shell ends anyway.
     /// </summary>
+    [PublicAPI]
     public void Quit()
     {
         try
@@ -352,6 +382,7 @@ public sealed partial class Shell : IDisposable
     /// Closes Winshell's notices, stops the services, and closes every window. One that throws doesn't stop the rest:
     /// its exception is thrown once all have stopped. <see cref="Quit"/> does this and also ends the shell.
     /// </summary>
+    [PublicAPI]
     public void Dispose()
     {
         if (_disposed)

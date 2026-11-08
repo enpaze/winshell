@@ -20,16 +20,17 @@ namespace Winshell;
 /// <param name="PhysicalHeightMm">The height of the picture, in millimeters, as the monitor reports it. 0 when unknown.</param>
 /// <param name="RefreshRate">The refresh rate in hertz, or 60 when Windows does not say.</param>
 /// <param name="IsPrimary">Whether this is the primary monitor, which Windows puts at the origin.</param>
+[method: PublicAPI]
 public sealed record ScreenInfo(
-    string Id,
-    string Name,
-    string Model,
-    string Manufacturer,
-    string SerialNumber,
-    Rect Geometry,
-    Rect WorkArea,
-    double DevicePixelRatio,
-    double PhysicalWidthMm,
-    double PhysicalHeightMm,
-    int RefreshRate,
-    bool IsPrimary);
+    [property: PublicAPI] string Id,
+    [property: PublicAPI] string Name,
+    [property: PublicAPI] string Model,
+    [property: PublicAPI] string Manufacturer,
+    [property: PublicAPI] string SerialNumber,
+    [property: PublicAPI] Rect Geometry,
+    [property: PublicAPI] Rect WorkArea,
+    [property: PublicAPI] double DevicePixelRatio,
+    [property: PublicAPI] double PhysicalWidthMm,
+    [property: PublicAPI] double PhysicalHeightMm,
+    [property: PublicAPI] int RefreshRate,
+    [property: PublicAPI] bool IsPrimary);

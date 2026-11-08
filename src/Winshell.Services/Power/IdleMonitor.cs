@@ -32,6 +32,7 @@ public sealed class IdleMonitor : ObservableObject, IDisposable
     /// <summary>
     /// Whether the monitor watches for idle. While false, <see cref="IsIdle"/> is false. True by default.
     /// </summary>
+    [PublicAPI]
     public bool Enabled
     {
         get => _enabled;
@@ -43,6 +44,7 @@ public sealed class IdleMonitor : ObservableObject, IDisposable
     }
 
     /// <summary>The seconds without input after which <see cref="IsIdle"/> turns on.</summary>
+    [PublicAPI]
     public double Timeout
     {
         get => _timeout;
@@ -54,6 +56,7 @@ public sealed class IdleMonitor : ObservableObject, IDisposable
     }
 
     /// <summary>When a <see cref="KeepAwake"/> is on, this monitor does not report idle.</summary>
+    [PublicAPI]
     public bool RespectKeepAwake
     {
         get => _respectKeepAwake;
@@ -63,6 +66,7 @@ public sealed class IdleMonitor : ObservableObject, IDisposable
     /// <summary>
     /// Whether there has been no input for <see cref="Timeout"/> seconds. False while <see cref="Timeout"/> is 0.
     /// </summary>
+    [PublicAPI]
     public bool IsIdle => _isIdle;
 
     private static double IdleSeconds()
@@ -114,6 +118,7 @@ public sealed class IdleMonitor : ObservableObject, IDisposable
     }
 
     /// <summary>Stops checking for idle.</summary>
+    [PublicAPI]
     public void Dispose()
     {
         _disposed = true;

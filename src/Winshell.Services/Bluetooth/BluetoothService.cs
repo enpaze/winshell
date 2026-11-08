@@ -44,38 +44,48 @@ public sealed class BluetoothService : ObservableObject, IDisposable
     }
 
     /// <summary>Starting or stopping discovery failed.</summary>
+    [PublicAPI]
     public event Action<string>? OperationFailed;
 
     internal IBluetoothBackend Backend { get; }
 
     /// <summary>The default adapter Windows returns, or null when there is none.</summary>
+    [PublicAPI]
     public BluetoothAdapter? DefaultAdapter => _adapter;
 
     /// <summary>Only the <see cref="DefaultAdapter"/>, or empty when there is none.</summary>
+    [PublicAPI]
     public ObservableCollection<BluetoothAdapter> Adapters { get; } = [];
 
     /// <summary>
     /// The paired devices and the nearby ones found during discovery: connected first, then paired, then by name.
     /// Empty when there is no adapter.
     /// </summary>
+    [PublicAPI]
     public ObservableCollection<BluetoothDevice> Devices { get; } = [];
 
     /// <summary>The paired devices, in the order of <see cref="Devices"/>.</summary>
+    [PublicAPI]
     public ObservableCollection<BluetoothDevice> PairedDevices { get; } = [];
 
     /// <summary>The present unpaired devices found during discovery.</summary>
+    [PublicAPI]
     public ObservableCollection<BluetoothDevice> NearbyDevices { get; } = [];
 
     /// <summary>A read has completed. A completed read can have no adapter.</summary>
+    [PublicAPI]
     public bool Ready => _snapshot.Ready;
 
     /// <summary>Whether Windows is looking for nearby devices, after <see cref="StartDiscovery"/>.</summary>
+    [PublicAPI]
     public bool Discovering => _snapshot.Discovering;
 
     /// <summary>Why the last read, or starting or stopping discovery, failed. Empty when it succeeded.</summary>
+    [PublicAPI]
     public string Error => _error;
 
     /// <summary>Reads adapter and device state, and again at every change Windows reports, until <see cref="StopMonitoring"/>. Nothing is read before this.</summary>
+    [PublicAPI]
     public void StartMonitoring()
     {
         if (_disposed)
@@ -116,6 +126,7 @@ public sealed class BluetoothService : ObservableObject, IDisposable
     }
 
     /// <summary>Stops watching Windows. A later <see cref="StartMonitoring"/> starts again.</summary>
+    [PublicAPI]
     public void StopMonitoring()
     {
         IDisposable? poll;
@@ -144,6 +155,7 @@ public sealed class BluetoothService : ObservableObject, IDisposable
     }
 
     /// <summary>Reads the state now, rather than at the next change Windows reports.</summary>
+    [PublicAPI]
     public void Refresh()
     {
         _reader.Request();
@@ -167,12 +179,14 @@ public sealed class BluetoothService : ObservableObject, IDisposable
     }
 
     /// <summary>Starts looking for nearby devices. Needs an adapter that is on.</summary>
+    [PublicAPI]
     public void StartDiscovery()
     {
         SetDiscovery(true);
     }
 
     /// <summary>Stops looking, and clears the unpaired devices it found.</summary>
+    [PublicAPI]
     public void StopDiscovery()
     {
         SetDiscovery(false);
@@ -338,6 +352,7 @@ public sealed class BluetoothService : ObservableObject, IDisposable
     }
 
     /// <summary>Stops monitoring and discovery, and cancels a running pairing.</summary>
+    [PublicAPI]
     public void Dispose()
     {
         lock (_gate)

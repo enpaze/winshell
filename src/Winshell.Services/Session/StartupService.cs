@@ -60,6 +60,7 @@ public sealed class StartupService : ObservableObject
     /// Whether this shell can register itself to run at sign-in. False when a packaged shell has no startup task, and
     /// false when this process is a configuration program that no <c>winshell.exe</c> is supervising.
     /// </summary>
+    [PublicAPI]
     public bool Available => _registry is not null;
 
     /// <summary>
@@ -67,6 +68,7 @@ public sealed class StartupService : ObservableObject
     /// it when the entry starts another install or another configuration points the entry here: this install's
     /// <c>winshell.exe run</c> of this configuration.
     /// </summary>
+    [PublicAPI]
     public bool RunAtSignIn
     {
         get => _runs;
@@ -93,6 +95,7 @@ public sealed class StartupService : ObservableObject
     /// <summary>
     /// True when the entry is there but Windows' Startup apps page turned it off. Only that page can turn it back on.
     /// </summary>
+    [PublicAPI]
     public bool TurnedOffInWindows => _turnedOff;
 
     /// <summary>
@@ -100,9 +103,11 @@ public sealed class StartupService : ObservableObject
     /// another folder, as after an update unzipped somewhere new, or a different configuration.
     /// <see cref="RunAtSignIn"/> is false until it is set.
     /// </summary>
+    [PublicAPI]
     public bool RegisteredElsewhere => _elsewhere;
 
     /// <summary>Reads the entry again, after the user may have changed it in Windows.</summary>
+    [PublicAPI]
     public void Refresh()
     {
         var registered = _registry?.IsRegistered() ?? false;

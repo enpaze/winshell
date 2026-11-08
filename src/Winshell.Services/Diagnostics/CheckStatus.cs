@@ -4,11 +4,11 @@ namespace Winshell.Diagnostics;
 public enum CheckStatus
 {
     /// <summary>Nothing is wrong.</summary>
-    Pass,
+    [PublicAPI] Pass,
 
     /// <summary>Winshell runs, but something may not work as expected.</summary>
-    Warn,
+    [PublicAPI] Warn,
 
     /// <summary>Something stops Winshell from working. <c>winshell doctor</c> exits with 1.</summary>
-    Fail
+    [PublicAPI] Fail
 }

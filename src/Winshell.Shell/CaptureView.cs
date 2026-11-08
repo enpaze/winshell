@@ -18,7 +18,7 @@ namespace Winshell;
 public sealed class CaptureView : Panel
 {
     /// <summary>The capture to show. Null shows nothing.</summary>
-    public static readonly DependencyProperty SessionProperty = DependencyProperty.Register(
+    [PublicAPI] public static readonly DependencyProperty SessionProperty = DependencyProperty.Register(
         nameof(Session),
         typeof(CaptureSession),
         typeof(CaptureView),
@@ -33,6 +33,7 @@ public sealed class CaptureView : Panel
     private WriteableBitmap? _bitmap;
 
     /// <summary>A view with no session, which shows nothing.</summary>
+    [PublicAPI]
     public CaptureView()
     {
         _shell = new ShellWindowWatch(OnShellChanged);
@@ -42,6 +43,7 @@ public sealed class CaptureView : Panel
     }
 
     /// <summary>The capture to show. Null shows nothing.</summary>
+    [PublicAPI]
     public CaptureSession? Session
     {
         get => (CaptureSession?)GetValue(SessionProperty);

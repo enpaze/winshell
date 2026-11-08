@@ -18,6 +18,7 @@ public sealed class JumpListService
     /// The recent and frequent documents for an AppUserModelID. A blank id is not read. The same object is returned
     /// for an id, with its properties updated from the latest read.
     /// </summary>
+    [PublicAPI]
     public AppJumpList ForApp(string appId)
     {
         if (!_byId.TryGetValue(appId, out var list))
@@ -47,9 +48,11 @@ public sealed class AppJumpList : ObservableObject
     }
 
     /// <summary>False when the recent and frequent lists cannot be read.</summary>
+    [PublicAPI]
     public bool Available => _available;
 
     /// <summary>Document names, recent first. Empty when the list cannot be read, or when it was read and has none.</summary>
+    [PublicAPI]
     public IReadOnlyList<string> Destinations => _destinations;
 
     internal void Apply(bool available, IReadOnlyList<string> destinations)

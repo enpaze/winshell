@@ -11,6 +11,7 @@ public static class ShellImage
     /// </param>
     /// <param name="size">The width and height asked for, in pixels. The icon can be larger; a smaller one is scaled up.</param>
     /// <returns>The icon, premultiplied, or null when the shell has none for the item.</returns>
+    [PublicAPI]
     public static PixelImage? Load(string shellPath, int size)
     {
         ArgumentNullException.ThrowIfNull(shellPath);
