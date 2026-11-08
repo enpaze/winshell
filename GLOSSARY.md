@@ -88,7 +88,23 @@ _Avoid_: blur, wallpaper, effect
 
 **Control**:
 A WinUI control.
-_Avoid_: widget, item
+_Avoid_: widget (that is placed in a widget area), item
+
+**Widget**:
+A piece of UI a widget area creates by name from a placement's settings. It can come from the configuration, an example, or a separate project; it is not the Windows 11 Widgets board.
+_Avoid_: module, applet, plugin
+
+**Widget area**:
+A control a shell author puts anywhere in a window. It shows its placements in order, in one orientation, and styles them.
+_Avoid_: slot, zone, bar
+
+**Placement**:
+One widget in a widget area, with its own settings. One widget can have several placements.
+_Avoid_: instance (that is a running shell process), item
+
+**Placement file**:
+The user's TOML file that lists a widget area's placements in place of the author's defaults. It survives shell updates.
+_Avoid_: layout file, widget config
 
 **Theme**:
 Light or dark, whether a contrast theme is on, the accent color and the system colors, as Windows reports them. A shell can choose light or dark and its own accent on top; a contrast theme still wins.
