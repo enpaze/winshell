@@ -21,7 +21,7 @@ One running process of a shell. A reload replaces it. The CLI lists, logs, and k
 _Avoid_: generation, session
 
 **Windows session**:
-The signed-in Windows user session the shell runs in. Windows locks and unlocks it; the shell can only ask it to lock.
+The signed-in Windows user session the shell runs in. The shell can ask Windows to lock it, sign out, restart, shut the PC down, sleep, or hibernate. Windows locks and unlocks the session and shows its own prompts.
 _Avoid_: logon session, user session
 
 **Reload**:

@@ -1,16 +1,23 @@
 # Winshell.Session
 
-Locking the Windows session, and running at sign-in. Reach them from `Shell.Current.Session` and `Shell.Current.Startup`.
+The Windows session, and running at sign-in. Reach them from `Shell.Current.Session` and `Shell.Current.Startup`.
 
 <!-- generated below: dotnet run scripts/generate-reference.cs -->
 
 ## SessionService
 
-The signed-in Windows session the shell runs in. Lock asks Windows to lock it, and Windows' own lock screen takes over. Winshell never draws a lock screen or asks for the Windows password.
+The signed-in Windows session the shell runs in. Lock, SignOut, Restart, ShutDown, Sleep and Hibernate ask Windows, and Windows' own screens and prompts take over. Winshell never draws a lock screen, asks for the Windows password, or confirms the action. A configuration that wants a confirmation asks for it itself.
 
 | Member | Type | Description |
 | --- | --- | --- |
+| `HibernateAvailable` | bool, read-only | Whether hibernate is turned on for this PC, so a menu can hide Hibernate when it cannot. |
+| `SleepAvailable` | bool, read-only | Whether this PC can sleep, including Modern Standby, so a menu can hide Sleep when it cannot. |
+| `Hibernate()` | bool | Asks Windows to hibernate. Returns whether Windows took the request. HibernateAvailable is false when hibernate is turned off. |
 | `Lock()` | bool | Asks Windows to lock the session, as Win+L does. Returns whether Windows took the request; the lock itself happens a moment later, in Windows. |
+| `Restart()` | bool | Asks Windows to restart the PC. Apps are not forced closed. Registered apps come back after sign-in only when the user has that setting on. Returns whether Windows took the request. |
+| `ShutDown()` | bool | Asks Windows to shut the PC down and power it off, requesting fast startup so that setting can apply. Apps are not forced closed. Returns whether Windows took the request. |
+| `SignOut()` | bool | Asks Windows to sign out of the session. An app with unsaved work can still hold it up, and Windows shows its own prompt. Apps come back after the next sign-in only when the user has that setting on. Returns whether Windows took the request. |
+| `Sleep()` | bool | Asks Windows to sleep, on a Modern Standby PC or one that sleeps with S3. Returns whether Windows took the request. |
 
 ## StartupService
 
