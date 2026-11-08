@@ -1,6 +1,6 @@
 # Winshell.Keyboard
 
-The keyboard layouts Windows has installed. Reach it from `Shell.Current.KeyboardLayout`.
+The keyboard layouts Windows has installed. Reach it from `Shell.Current.KeyboardLayouts`.
 
 <!-- generated below: dotnet run scripts/generate-reference.cs -->
 

@@ -209,7 +209,7 @@ The running shell: its screens and services. There is one in a process. Each ser
 | `Ipc` | [ShellIpc](#shellipc), read-only | What `winshell ipc` reaches in this shell. |
 | `IsDark` | bool, read-only | Whether windows are dark. ColorScheme overrides Windows mode, and ColorScheme.System follows it. |
 | `JumpLists` | [JumpListService](winshell-apps.md#jumplistservice), read-only | The recent and frequent documents of an app, as its jump list shows them. |
-| `KeyboardLayout` | [KeyboardLayoutService](winshell-keyboard.md#keyboardlayoutservice), read-only | The installed keyboard layouts, and the one the foreground window is using. Read only while something listens. |
+| `KeyboardLayouts` | [KeyboardLayoutService](winshell-keyboard.md#keyboardlayoutservice), read-only | The installed keyboard layouts, and the one the foreground window is using. Read only while something listens. |
 | `Log` | [Log](#log), read-only | This instance's log, which `winshell log` shows. |
 | `LogPath` | string, read-only | This instance's log file, or empty when it writes none. |
 | `Loop` | [IEventLoop](#ieventloop), read-only | The shell's thread. Post work from other threads to it before touching windows or services. |
