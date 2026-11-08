@@ -74,7 +74,7 @@ internal sealed class PrivacyBackend : IPrivacyBackend
     private readonly List<RegistryKey> _keys = [];
     private readonly Dictionary<string, string> _packageNames = new(StringComparer.OrdinalIgnoreCase);
     private readonly AutoResetEvent _event = new(false);
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly MicrophoneWatch _microphones;
     private RegisteredWaitHandle? _wait;
     private bool _watching;
@@ -251,7 +251,7 @@ internal sealed class PrivacyBackend : IPrivacyBackend
         {
             long value => (ulong)value,
             int value => (uint)value,
-            byte[] bytes when bytes.Length >= 8 => BitConverter.ToUInt64(bytes, 0),
+            byte[] { Length: >= 8 } bytes => BitConverter.ToUInt64(bytes, 0),
             _ => 0
         };
     }

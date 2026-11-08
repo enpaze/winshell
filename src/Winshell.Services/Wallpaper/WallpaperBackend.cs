@@ -53,7 +53,7 @@ internal sealed class WallpaperBackend : IWallpaperBackend
     private readonly Log _log;
     private readonly List<RegistryKey> _keys = [];
     private readonly AutoResetEvent _event = new(false);
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private RegisteredWaitHandle? _wait;
     private bool _disposed;
     private int _loggedUnavailable;
