@@ -1,5 +1,8 @@
 namespace Winshell.TestSupport;
 
+// Each test project compiles this file, so a use in another project is invisible here.
+// ReSharper disable UnusedType.Global
+// ReSharper disable UnusedMember.Global
 /// <summary>The repository these tests were built from.</summary>
 internal static class Repo
 {
@@ -18,3 +21,5 @@ internal static class Repo
         throw new InvalidOperationException("The tests run outside the repository.");
     }
 }
+// ReSharper restore UnusedMember.Global
+// ReSharper restore UnusedType.Global

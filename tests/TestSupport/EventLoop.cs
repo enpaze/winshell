@@ -2,12 +2,13 @@ using System.Collections.Concurrent;
 
 namespace Winshell.TestSupport;
 
+// Partial so TimerEntry can cross the WinRT ABI. CsWinRT1028 requires its parent type to be partial too.
 /// <summary>
 /// Posted work and timers for tests, on real time unless a clock is given. A test calls <see cref="RunDue"/> when
 /// work may be ready, and reads <see cref="NextDue"/> to see when the next timer is due. <see cref="ManualEventLoop"/>
 /// moves time itself.
 /// </summary>
-internal class EventQueue(TimeProvider time) : IEventLoop
+internal partial class EventQueue(TimeProvider time) : IEventLoop
 {
     private readonly ConcurrentQueue<Action> _posted = new();
     private readonly Queue<Action> _batch = new();
@@ -16,6 +17,10 @@ internal class EventQueue(TimeProvider time) : IEventLoop
     private long _sequence;
     private int _cancelled;
 
+    // Each test project compiles this file, so a use in another project is invisible here.
+    // ReSharper disable UnusedMember.Global
+    // ReSharper disable EventNeverSubscribedTo.Global
+    // ReSharper disable MemberCanBeProtected.Global
     public EventQueue() : this(TimeProvider.System)
     {
     }
@@ -27,7 +32,10 @@ internal class EventQueue(TimeProvider time) : IEventLoop
     /// <summary>Time since the loop was made, which <see cref="NextDue"/> counts from.</summary>
     public TimeSpan Now => time.GetElapsedTime(_started);
 
-    public Log Log { get; set; } = Log.Default;
+    // EventLoopContractTests assigns this when it constructs the loop.
+    // ReSharper disable once MemberCanBePrivate.Global
+    // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
+    public Log Log { get; init; } = Log.Default;
 
     /// <summary>
     /// Raised with what posted work or a timer threw, after it is logged. The loop goes on.
@@ -111,11 +119,15 @@ internal class EventQueue(TimeProvider time) : IEventLoop
         return ran;
     }
 
+    // ReSharper restore MemberCanBeProtected.Global
+    // ReSharper restore EventNeverSubscribedTo.Global
+    // ReSharper restore UnusedMember.Global
+
     /// <summary>
     /// Runs the posted work queued so far and leaves timers for <see cref="RunDue"/>. Work posted by this batch
     /// waits for the next pass. A handler that calls back in runs the rest of its own batch in order.
     /// </summary>
-    internal bool RunPosted()
+    private bool RunPosted()
     {
         if (_batch.Count == 0)
             while (_posted.TryDequeue(out var queued))
@@ -196,7 +208,9 @@ internal class EventQueue(TimeProvider time) : IEventLoop
         return false;
     }
 
-    private sealed class TimerEntry(EventQueue queue, Action action) : IDisposable
+    // CsWinRT1028 requires partial. The WinUI test projects generate the other part.
+    // ReSharper disable once PartialTypeWithSinglePart
+    private sealed partial class TimerEntry(EventQueue queue, Action action) : IDisposable
     {
         private static readonly Action Dropped = static () => { };
 
@@ -217,6 +231,10 @@ internal class EventQueue(TimeProvider time) : IEventLoop
     }
 }
 
+// Each test project compiles this file, so a use in another project is invisible here.
+// ReSharper disable UnusedType.Global
+// ReSharper disable UnusedMember.Global
+// ReSharper disable MemberCanBePrivate.Global
 /// <summary>An event loop for tests: time moves only when the test advances it. It starts at 2026-01-01 UTC.</summary>
 internal sealed class ManualEventLoop : EventQueue
 {
@@ -263,3 +281,6 @@ internal sealed class ManualEventLoop : EventQueue
             _clock.Advance(at - Now);
     }
 }
+// ReSharper restore MemberCanBePrivate.Global
+// ReSharper restore UnusedMember.Global
+// ReSharper restore UnusedType.Global
