@@ -199,6 +199,185 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         Assert.Contains("PackedShell.ClockWidget", registration, StringComparison.Ordinal);
     }
 
+    [Fact(Timeout = PatienceMs)]
+    public void The_template_ignores_widgets_props()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        var gitignore = File.ReadAllText(Path.Combine(Path.GetDirectoryName(templates.SmallProject)!, ".gitignore"));
+        Assert.Contains("widgets.props", gitignore, StringComparison.Ordinal);
+    }
+
+    [Fact(Timeout = PatienceMs)]
+    public void Installed_widgets_props_registers_a_library_widget()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        using var root = new TempFolder();
+        File.Copy(Path.Combine(Repo.Root, "global.json"), Path.Combine(root.Path, "global.json"));
+        var shellDir = Path.Combine(root.Path, "shell");
+        Directory.CreateDirectory(shellDir);
+        var projectFile = CopyTemplate(shellDir);
+        var libDir = Path.Combine(root.Path, "lib");
+        Directory.CreateDirectory(libDir);
+        File.Copy(Path.Combine(shellDir, "nuget.config"), Path.Combine(libDir, "nuget.config"));
+        var version = XDocument.Load(projectFile).Descendants("PackageReference")
+            .Single(element => element.Attribute("Include")!.Value == "Winshell")
+            .Attribute("Version")!.Value;
+        var libProject = Path.Combine(libDir, "WidgetLib.csproj");
+        File.WriteAllText(libProject, $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <OutputType>Library</OutputType>
+                <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+                <Nullable>enable</Nullable>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+              </PropertyGroup>
+              <ItemGroup>
+                <PackageReference Include="Winshell" Version="{{version}}" />
+              </ItemGroup>
+              <ItemGroup>
+                <WinshellWidget Include="clock" Type="WidgetLib.ClockWidget" />
+              </ItemGroup>
+            </Project>
+            """);
+        File.WriteAllText(Path.Combine(libDir, "ClockWidget.cs"), """
+            using Microsoft.UI.Xaml.Controls;
+            using Winshell;
+
+            namespace WidgetLib;
+
+            public sealed class ClockWidget : UserControl
+            {
+                public ClockWidget(WidgetContext context) =>
+                    Content = new TextBlock { Text = "installed:" + (string)context.Settings["value"] };
+            }
+            """);
+        File.WriteAllText(Path.Combine(shellDir, "widgets.props"), """
+            <Project>
+              <ItemGroup>
+                <ProjectReference Include="..\lib\WidgetLib.csproj" />
+                <WinshellWidget Include="clock" Type="WidgetLib.ClockWidget" />
+              </ItemGroup>
+            </Project>
+            """);
+        File.WriteAllText(Path.Combine(shellDir, "AppShell.cs"), """
+            using Microsoft.UI.Xaml.Controls;
+            using Winshell;
+
+            namespace PackedShell;
+
+            public sealed class AppShell : ShellConfiguration
+            {
+                public override void Start(Shell shell)
+                {
+                    var area = new WidgetArea
+                    {
+                        Defaults = [new("clock", new Dictionary<string, object> { ["value"] = "one" })]
+                    };
+                    var window = new PanelWindow { Width = 250, Height = 80, Content = area, Visible = true };
+                    window.Closed += area.Dispose;
+                }
+            }
+            """);
+
+        var library = ConfigurationProject.Run(
+            "dotnet", ["build", libProject, "-warnaserror", "--nologo"], libDir);
+        Assert.True(library.ExitCode == 0, library.Output);
+        Assert.Empty(Directory.GetFiles(libDir, "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
+        var listed = ConfigurationProject.Run(
+            "dotnet", ["msbuild", libProject, "-getItem:WinshellWidget", "--nologo"], libDir);
+        Assert.True(listed.ExitCode == 0, listed.Output);
+        Assert.Contains("clock", listed.Output, StringComparison.Ordinal);
+        Assert.Contains("WidgetLib.ClockWidget", listed.Output, StringComparison.Ordinal);
+
+        Run(projectFile, (pid, environment) =>
+        {
+            ChildProcess? tree = null;
+            Wait.Until(() =>
+            {
+                tree = WinshellCli.Run(["inspect", "--pid", pid, "tree"], environment);
+                return tree.Code == 0 && tree.Output.Contains("installed:one", StringComparison.Ordinal);
+            }, "the widget from widgets.props to populate the window");
+            Assert.Contains("installed:one", tree!.Output, StringComparison.Ordinal);
+        });
+        var registration = File.ReadAllText(Assert.Single(Directory.GetFiles(
+            Path.Combine(shellDir, "obj"), "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories)));
+        Assert.Contains("\"clock\"", registration, StringComparison.Ordinal);
+        Assert.Contains("WidgetLib.ClockWidget", registration, StringComparison.Ordinal);
+        Assert.Empty(Directory.GetFiles(libDir, "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
+    }
+
+    [Fact(Timeout = PatienceMs)]
+    public void A_project_property_selects_the_widgets_file()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        BuildSelectedWidgetsFile(commandLine: false);
+    }
+
+    [Fact(Timeout = PatienceMs)]
+    public void A_command_line_property_selects_the_widgets_file()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        BuildSelectedWidgetsFile(commandLine: true);
+    }
+
+    /// <summary>
+    /// <c>widgets.props</c> names a type the generator rejects. The build succeeds only when
+    /// <c>WinshellWidgetsFile</c> imports <c>staged.props</c> instead. The build runs from the parent directory, so a
+    /// relative path has to be beside the project and not the working directory.
+    /// </summary>
+    private void BuildSelectedWidgetsFile(bool commandLine)
+    {
+        using var root = new TempFolder();
+        File.Copy(Path.Combine(Repo.Root, "global.json"), Path.Combine(root.Path, "global.json"));
+        var shellDir = Path.Combine(root.Path, "shell");
+        Directory.CreateDirectory(shellDir);
+        var projectFile = CopyTemplate(shellDir);
+        File.WriteAllText(Path.Combine(shellDir, "widgets.props"), """
+            <Project>
+              <ItemGroup>
+                <WinshellWidget Include="from-default" Type="Not A Type()" />
+              </ItemGroup>
+            </Project>
+            """);
+        File.WriteAllText(Path.Combine(shellDir, "staged.props"), """
+            <Project>
+              <ItemGroup>
+                <WinshellWidget Include="from-staged" Type="PackedShell.StagedWidget" />
+              </ItemGroup>
+            </Project>
+            """);
+        File.WriteAllText(Path.Combine(shellDir, "StagedWidget.cs"), """
+            using Microsoft.UI.Xaml.Controls;
+            using Winshell;
+
+            namespace PackedShell;
+
+            public sealed class StagedWidget : UserControl
+            {
+                public StagedWidget(WidgetContext context) =>
+                    Content = new TextBlock { Text = (string)context.Settings["value"] };
+            }
+            """);
+        var arguments = new List<string> { "build", projectFile, "-warnaserror", "--nologo" };
+        if (commandLine)
+            arguments.Add($"-p:WinshellWidgetsFile={Path.Combine(shellDir, "staged.props")}");
+        else
+        {
+            var document = XDocument.Load(projectFile);
+            document.Root!.Add(new XElement("PropertyGroup", new XElement("WinshellWidgetsFile", "staged.props")));
+            document.Save(projectFile);
+        }
+
+        var built = ConfigurationProject.Run("dotnet", arguments, root.Path);
+        Assert.True(built.ExitCode == 0, built.Output);
+        var registration = File.ReadAllText(Assert.Single(Directory.GetFiles(
+            Path.Combine(shellDir, "obj"), "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories)));
+        Assert.Contains("\"from-staged\"", registration, StringComparison.Ordinal);
+        Assert.Contains("PackedShell.StagedWidget", registration, StringComparison.Ordinal);
+        Assert.DoesNotContain("from-default", registration, StringComparison.Ordinal);
+    }
+
     private string CopyTemplate(string folder)
     {
         foreach (var file in Directory.GetFiles(Path.GetDirectoryName(templates.SmallProject)!))
@@ -474,13 +653,18 @@ public sealed class PackedTemplates : IDisposable
 
     private static void AssertProps(ZipArchive zip, string packageDir)
     {
-        const string path = "buildTransitive/Winshell.props";
+        AssertPacked(zip, packageDir, "buildTransitive/Winshell.props");
+        AssertPacked(zip, packageDir, "buildTransitive/Winshell.targets");
+    }
+
+    private static void AssertPacked(ZipArchive zip, string packageDir, string path)
+    {
         var entry = zip.GetEntry(path);
         Assert.NotNull(entry);
         using var stream = entry.Open();
         using var reader = new StreamReader(stream);
         var packed = reader.ReadToEnd().Replace("\r\n", "\n", StringComparison.Ordinal);
-        var source = File.ReadAllText(Path.Combine(packageDir, "buildTransitive", "Winshell.props"))
+        var source = File.ReadAllText(Path.Combine(packageDir, path.Replace('/', Path.DirectorySeparatorChar)))
             .Replace("\r\n", "\n", StringComparison.Ordinal);
         Assert.Equal(source, packed);
     }

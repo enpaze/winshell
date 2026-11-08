@@ -1,0 +1,15 @@
+<Project>
+  <!-- After the project body. Winshell.props says why. A relative WinshellWidgetsFile is beside the project,
+       including when the build's working directory is somewhere else. The Windows App SDK's own default turns an
+       executable self-contained and announces that on every build. Shells were already self-contained, without the
+       announcement. The flag only gates that message. -->
+  <PropertyGroup>
+    <_WindowsAppSDKSelfContainedSetByDefault>false</_WindowsAppSDKSelfContainedSetByDefault>
+  </PropertyGroup>
+  <PropertyGroup>
+    <_WinshellWidgetsPath>$(WinshellWidgetsFile)</_WinshellWidgetsPath>
+    <_WinshellWidgetsPath Condition="'$(_WinshellWidgetsPath)' != '' and !$([System.IO.Path]::IsPathRooted('$(_WinshellWidgetsPath)'))">$(MSBuildProjectDirectory)\$(_WinshellWidgetsPath)</_WinshellWidgetsPath>
+  </PropertyGroup>
+  <Import Project="$(_WinshellWidgetsPath)" Condition="'$(_WinshellWidgetsPath)' != '' and Exists('$(_WinshellWidgetsPath)')" />
+</Project>
+

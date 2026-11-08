@@ -3,7 +3,9 @@
     <SupportedOSPlatformVersion>10.0.22621.0</SupportedOSPlatformVersion>
     <UseWinUI>true</UseWinUI>
     <WindowsPackageType>None</WindowsPackageType>
-    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- The Windows App SDK makes an executable self-contained once the project has set OutputType, and it refuses
+         the same setting on a library. This file is read before that choice, so setting it here would make a widget
+         library self-contained and the library would not build. -->
     <!-- Windows bitmap-scales a program that does not declare this, so a shell is blurry on a scaled screen and its
          coordinates are not physical pixels. A project that sets ApplicationManifest keeps its own. The Windows App
          SDK merges this into the manifest it embeds. -->
@@ -14,12 +16,39 @@
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
   </PropertyGroup>
 
+  <!-- Installed widgets live in widgets.props beside the project: ProjectReference and WinshellWidget items. This
+       file is read before the project body, so the default stays conditional. A project property or
+       -p:WinshellWidgetsFile replaces it, and Winshell.targets imports that path after the project body. NuGet
+       imports Winshell.targets itself; importing it again is an error. A project that imports this file directly
+       has no such import, so it is scheduled here. A relative path is resolved in Winshell.targets. -->
+  <PropertyGroup>
+    <WinshellWidgetsFile Condition="'$(WinshellWidgetsFile)' == ''">$(MSBuildProjectDirectory)\widgets.props</WinshellWidgetsFile>
+    <!-- An empty root would make StartsWith true for every path. '|' is not a directory prefix. -->
+    <_WinshellPackageRoot Condition="'$(NuGetPackageRoot)' != ''">$(NuGetPackageRoot)</_WinshellPackageRoot>
+    <_WinshellPackageRoot Condition="'$(_WinshellPackageRoot)' == ''">|</_WinshellPackageRoot>
+    <_WinshellImportedFromPackage Condition="$(MSBuildThisFileDirectory.StartsWith('$(_WinshellPackageRoot)'))">true</_WinshellImportedFromPackage>
+  </PropertyGroup>
+  <Choose>
+    <When Condition="'$(_WinshellImportedFromPackage)' != 'true' and '$(AfterMicrosoftNETSdkTargets)' == ''">
+      <PropertyGroup>
+        <AfterMicrosoftNETSdkTargets>$(MSBuildThisFileDirectory)Winshell.targets</AfterMicrosoftNETSdkTargets>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(_WinshellImportedFromPackage)' != 'true' and !$(AfterMicrosoftNETSdkTargets.Contains('Winshell.targets'))">
+      <PropertyGroup>
+        <AfterMicrosoftNETSdkTargets>$(AfterMicrosoftNETSdkTargets);$(MSBuildThisFileDirectory)Winshell.targets</AfterMicrosoftNETSdkTargets>
+      </PropertyGroup>
+    </When>
+  </Choose>
+
   <!-- A WinshellWidget item names a widget and the type the build constructs for it. WinUI compiles once before
        CoreCompile, so the file has to exist before PrepareForBuild; a later target misses that pass. An inline task
        does what plain MSBuild cannot: compare names case-sensitively (item batching ignores case), escape a name that
        contains a quote, a backslash or a new line, and reject a type whose text would break a condition. The task is
        compiled only when the project has items. With none, the target still replaces a generated file an item left
-       behind. -->
+       behind. It runs only for an executable: a library may list items for a tool to read, and must not register
+       them a second time. OutputType is the project's, set after this file is read, so the condition is on the
+       target, which runs after the project body. A property set here would still see the SDK's earlier default. -->
   <UsingTask TaskName="WinshellGenerateWidgetRegistration" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
       <Widgets ParameterType="Microsoft.Build.Framework.ITaskItem[]" />
@@ -84,7 +113,7 @@
     </Task>
   </UsingTask>
 
-  <Target Name="WinshellGenerateWidgets" BeforeTargets="PrepareForBuild">
+  <Target Name="WinshellGenerateWidgets" BeforeTargets="PrepareForBuild" Condition="'$(OutputType)' == 'Exe' or '$(OutputType)' == 'WinExe'">
     <PropertyGroup>
       <_WinshellWidgetRegistrationFile>$(IntermediateOutputPath)WinshellWidgetRegistration.g.cs</_WinshellWidgetRegistrationFile>
     </PropertyGroup>

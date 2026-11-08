@@ -104,6 +104,25 @@ A [WidgetArea](reference/winshell.md#widgetarea) can go anywhere in a window. Li
 
 `Include` is the case-sensitive placement name; `Type` is the C# type name of a WinUI element with a constructor that takes a `WidgetContext`. The build generates direct factory registrations that run before `Main`, without reflection. A missing type, a type that is not a C# type name, and a duplicate name fail the build, and the error names the widget. Names are escaped for C# automatically. You can still call `Widgets.Register` directly for factories that need custom construction.
 
+### Installed widgets
+
+Installed widgets live in `widgets.props`, beside the project file. When that file exists, the build imports it, so `dotnet build`, Visual Studio and `winshell run` include the same widgets. The file is ordinary MSBuild:
+
+```xml
+<Project>
+  <ItemGroup>
+    <ProjectReference Include="..\clock-widget\ClockWidget.csproj" />
+    <WinshellWidget Include="clock" Type="ClockWidget.Clock" />
+  </ItemGroup>
+</Project>
+```
+
+`winshell widget install`, `winshell widget remove` and `winshell widget update` write this file. The template ignores it, and so does the Omarchy example, so an install stays out of the shell's source.
+
+Set `WinshellWidgetsFile` to import a different file. A property in the project does, and so does `dotnet build -p:WinshellWidgetsFile=...`. A relative path is resolved from the project directory. The default is `widgets.props` in the project directory. Installing builds against a staged copy this way and replaces `widgets.props` only when that build succeeds.
+
+The build writes registration code only for an executable, an `OutputType` of `Exe` or `WinExe`. A widget library can list `WinshellWidget` items so `dotnet msbuild -getItem:WinshellWidget` can read them, and that library does not register the widgets. The configuration that references the library does. Registering one name from both fails when the shell starts.
+
 For example, define this widget in your project's `MyShell` namespace:
 
 ```csharp
