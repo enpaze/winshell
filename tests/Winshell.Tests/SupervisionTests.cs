@@ -211,7 +211,9 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
 
     private ChildProcess Cli(params string[] args)
     {
+#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
         return WinshellCli.Run(args, Folders);
+#pragma warning restore CsWinRT1030
     }
 
     public void Dispose()

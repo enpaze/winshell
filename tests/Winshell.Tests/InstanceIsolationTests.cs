@@ -9,7 +9,7 @@ namespace Winshell.Tests;
 /// Runs several winshell instances at once, as separate processes, and checks that they keep apart: each has its own
 /// id, pipe and log, each answers for itself, and one that crashes or has a broken config leaves the others running.
 /// </summary>
-public sealed class InstanceIsolationTests : IDisposable, IClassFixture<ProbeBuild>
+public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<Process> _started = [];
@@ -117,7 +117,9 @@ public sealed class InstanceIsolationTests : IDisposable, IClassFixture<ProbeBui
     /// <summary>Runs the winshell CLI and returns what it printed.</summary>
     private string Winshell(params string[] args)
     {
+#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
         var result = WinshellCli.Run(args, ("WINSHELL_LOCAL_DIR", Local));
+#pragma warning restore CsWinRT1030
         result.AssertExitCode(0);
         return result.Output;
     }

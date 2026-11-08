@@ -12,7 +12,9 @@ public class VersionTests
     public void The_cli_prints_the_release_please_version(string line)
     {
         var manifest = ManifestVersion();
+#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
         var result = WinshellCli.Run(line.Split(' '));
+#pragma warning restore CsWinRT1030
         result.AssertExitCode(0);
         result.AssertNoError();
         Assert.Matches($"^winshell {Regex.Escape(manifest)}(\\+\\S+)?\\r?\\n$", result.Output);

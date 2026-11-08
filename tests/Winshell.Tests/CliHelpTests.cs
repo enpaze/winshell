@@ -29,8 +29,10 @@ public class CliHelpTests
 
     private static ChildProcess Run(string[] args)
     {
+#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
         return WinshellCli.Run(
             args,
             ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));
+#pragma warning restore CsWinRT1030
     }
 }

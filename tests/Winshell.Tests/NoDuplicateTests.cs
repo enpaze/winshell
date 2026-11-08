@@ -9,7 +9,7 @@ namespace Winshell.Tests;
 /// <c>--no-duplicate</c> holds a per-shell-id mutex for the life of the shell, so a second start exits
 /// even when the first has not written instance.json yet. Two programs with different shell ids both stay.
 /// </summary>
-public sealed class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>
+public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly string _local;
@@ -151,7 +151,9 @@ public sealed class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>
 
     private ChildProcess Run(params string[] args)
     {
+#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
         return WinshellCli.Run(args, ("WINSHELL_CONFIG_DIR", _config), ("WINSHELL_LOCAL_DIR", _local));
+#pragma warning restore CsWinRT1030
     }
 
     public void Dispose()
@@ -174,6 +176,8 @@ public sealed class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>
                     if (!process.HasExited)
                         process.Kill(true);
                 }
+                // The process can exit between the check and Kill.
+                // ReSharper disable once EmptyGeneralCatchClause
                 catch (Exception)
                 {
                 }
@@ -186,7 +190,7 @@ public sealed class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>
         {
             Directory.Delete(_dir, true);
         }
-        catch (Exception)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
         }
     }

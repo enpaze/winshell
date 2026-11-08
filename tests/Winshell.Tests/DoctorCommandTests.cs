@@ -5,7 +5,7 @@ using System.Text.Json;
 namespace Winshell.Tests;
 
 /// <summary><c>winshell doctor</c> as a process. Every config is under a temp folder this class creates. It never builds.</summary>
-public sealed class DoctorCommandTests : IDisposable
+public sealed partial class DoctorCommandTests : IDisposable
 {
     private static readonly string[] Ids =
     [
@@ -160,7 +160,9 @@ public sealed class DoctorCommandTests : IDisposable
     /// <summary>Runs winshell.exe with the config folder overridden to a folder of this class's.</summary>
     private static ChildProcess RunIn(string configRoot, params string[] args)
     {
+#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
         return WinshellCli.Run(args, (ShellLocations.ConfigVariable, configRoot));
+#pragma warning restore CsWinRT1030
     }
 
     public void Dispose()

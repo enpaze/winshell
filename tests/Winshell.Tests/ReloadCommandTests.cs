@@ -11,7 +11,7 @@ namespace Winshell.Tests;
 /// tells it to show the notice. These tests edit and rebuild the probe, so they build one of their own that no other test
 /// starts. A probe can hide Explorer's real taskbar, which is put back however a test ends.
 /// </summary>
-public sealed class ReloadCommandTests : IDisposable, IClassFixture<ReloadCommandTests.OwnProbe>
+public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<ReloadCommandTests.OwnProbe>
 {
     // Each test runs a build, which can take minutes on a busy runner.
     private const int BuildTimeout = 600_000;
@@ -27,7 +27,9 @@ public sealed class ReloadCommandTests : IDisposable, IClassFixture<ReloadComman
     /// The probe these tests build and edit, once for the class. The shared one is built first, so that no other build
     /// of the src/ projects is still to come when <c>winshell reload</c> runs one.
     /// </summary>
-    public sealed class OwnProbe : IDisposable
+    // xUnit constructs this class fixture.
+    // ReSharper disable once ClassNeverInstantiated.Global
+    public sealed partial class OwnProbe : IDisposable
     {
         private readonly string _dir = TempFolder.NewPath();
 
@@ -288,7 +290,9 @@ public sealed class ReloadCommandTests : IDisposable, IClassFixture<ReloadComman
 
     private ChildProcess Run(params string[] args)
     {
+#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
         return WinshellCli.Run(args, ("WINSHELL_CONFIG_DIR", _config), ("WINSHELL_LOCAL_DIR", _local));
+#pragma warning restore CsWinRT1030
     }
 
     public void Dispose()
@@ -320,6 +324,8 @@ public sealed class ReloadCommandTests : IDisposable, IClassFixture<ReloadComman
                 {
                     process.Kill(true);
                 }
+                // The process can exit between the check and Kill.
+                // ReSharper disable once EmptyGeneralCatchClause
                 catch (Exception)
                 {
                 }

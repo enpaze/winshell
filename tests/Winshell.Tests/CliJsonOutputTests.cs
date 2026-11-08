@@ -8,7 +8,7 @@ namespace Winshell.Tests;
 /// <c>list --json</c> is a bare array of the command's own fields, and <c>ipc show -j</c> is JSON for the
 /// targets. Neither is the on-disk instance file.
 /// </summary>
-public sealed class CliJsonOutputTests : IDisposable, IClassFixture<ProbeBuild>
+public sealed partial class CliJsonOutputTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
     private Process? _started;
@@ -54,8 +54,10 @@ public sealed class CliJsonOutputTests : IDisposable, IClassFixture<ProbeBuild>
 
     private ChildProcess Run(params string[] args)
     {
+#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
         return WinshellCli.Run(args, ("WINSHELL_LOCAL_DIR", Local),
             ("WINSHELL_CONFIG_DIR", Path.Combine(_dir, "config")));
+#pragma warning restore CsWinRT1030
     }
 
     public void Dispose()

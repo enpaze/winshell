@@ -41,8 +41,10 @@ public class CliRunCommandTests
         Directory.CreateDirectory(local);
         try
         {
+#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
             var result = WinshellCli.Run(args.Split(' '), ("WINSHELL_CONFIG_DIR", config),
                 ("WINSHELL_LOCAL_DIR", local));
+#pragma warning restore CsWinRT1030
 
             Assert.Equal((0, "", ""), (result.Code, result.Output, result.Error));
             var listed = WinshellCli.Run(["list", "--json"], ("WINSHELL_CONFIG_DIR", config),
@@ -98,8 +100,10 @@ public class CliRunCommandTests
 
     private static ChildProcess Run(string[] args)
     {
+#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
         return WinshellCli.Run(
             args,
             ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));
+#pragma warning restore CsWinRT1030
     }
 }
