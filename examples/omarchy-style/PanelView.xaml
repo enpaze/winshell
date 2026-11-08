@@ -20,7 +20,8 @@
     <StaticResource ResourceKey="PanelForeground" />
   </UserControl.Foreground>
 
-  <Grid Background="{StaticResource PanelBackground}" Padding="{StaticResource PanelInset}" Loaded="OnLayoutLoaded">
+  <Grid x:Name="Root" Background="{StaticResource PanelBackground}" Padding="{StaticResource PanelInset}"
+        Loaded="OnLayoutLoaded">
     <shell:WidgetArea x:Name="StartArea" Theme="ms-appx:///TokyoNight.xaml" HorizontalAlignment="Left"
                       VerticalAlignment="Stretch" />
     <shell:WidgetArea x:Name="CenterArea" Theme="ms-appx:///TokyoNight.xaml" HorizontalAlignment="Center"

@@ -1,13 +1,15 @@
 using System.Globalization;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Winshell;
 
 namespace OmarchyStyle;
 
 /// <summary>
 /// The day and time, such as <c>Saturday 20:25</c>, in the Windows regional format. An optional <c>timezone</c> setting
-/// names another zone, such as <c>UTC</c>; without one the clock shows local time.
+/// names another zone, such as <c>UTC</c>; without one the clock shows local time. A vertical area cannot fit the
+/// line, so the widget refuses to be created there.
 /// </summary>
 public sealed partial class ClockWidget : IDisposable
 {
@@ -17,6 +19,8 @@ public sealed partial class ClockWidget : IDisposable
 
     public ClockWidget(WidgetContext context)
     {
+        if (context.Orientation == Orientation.Vertical)
+            throw new UnsupportedWidgetException("Needs a horizontal bar.");
         InitializeComponent();
         _zone = Zone(context);
         _clock = DispatcherQueue.GetForCurrentThread().CreateTimer();
