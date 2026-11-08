@@ -4,7 +4,7 @@ using Windows.Win32.UI.Input.KeyboardAndMouse;
 namespace Winshell.Native;
 
 /// <summary>Injects keys with <c>SendInput</c>.</summary>
-internal static unsafe class KeyInput
+internal static class KeyInput
 {
     /// <summary>Unassigned virtual key. The same value AutoHotkey uses for its menu mask.</summary>
     private const VIRTUAL_KEY Unassigned = (VIRTUAL_KEY)0xE8;

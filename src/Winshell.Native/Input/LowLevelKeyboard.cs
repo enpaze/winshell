@@ -16,7 +16,7 @@ internal readonly record struct HookedKey(int VirtualKey, bool Up);
 internal static unsafe class LowLevelKeyboard
 {
     private static readonly Lock Gate = new();
-    private static Slot? Owner;
+    private static Slot? _owner;
 
     /// <summary>
     /// Installs the hook. Null when one is already installed or Windows refused it. Disposing the result removes it.
@@ -34,19 +34,19 @@ internal static unsafe class LowLevelKeyboard
         var slot = new Slot(onKey, failed, lost);
         lock (Gate)
         {
-            if (Owner is not null)
+            if (_owner is not null)
                 return null;
-            Volatile.Write(ref Owner, slot);
+            Volatile.Write(ref _owner, slot);
         }
 
         // The procedure can run before Start returns. Do not hold the gate while waiting for the thread.
         var thread = HookThread.Start(Win32.WH_KEYBOARD_LL, &Proc, "Winshell keyboard hook", () => OnLost(slot));
         lock (Gate)
         {
-            if (!ReferenceEquals(Owner, slot) || thread is null)
+            if (!ReferenceEquals(_owner, slot) || thread is null)
             {
-                if (ReferenceEquals(Owner, slot))
-                    Volatile.Write(ref Owner, null);
+                if (ReferenceEquals(_owner, slot))
+                    Volatile.Write(ref _owner, null);
 
                 thread?.Stop();
                 return null;
@@ -62,9 +62,9 @@ internal static unsafe class LowLevelKeyboard
         Action? lost;
         lock (Gate)
         {
-            if (!ReferenceEquals(Owner, slot))
+            if (!ReferenceEquals(_owner, slot))
                 return;
-            Volatile.Write(ref Owner, null);
+            Volatile.Write(ref _owner, null);
             lost = slot.Lost;
         }
 
@@ -74,7 +74,9 @@ internal static unsafe class LowLevelKeyboard
     [UnmanagedCallersOnly]
     private static nint Proc(int code, nint wParam, nint lParam)
     {
-        if (code >= 0 && lParam != 0 && Volatile.Read(ref Owner) is { } owner)
+        // The hook procedure reads the slot without Gate, so a key cannot wait on the lock.
+        // ReSharper disable once InconsistentlySynchronizedField
+        if (code >= 0 && lParam != 0 && Volatile.Read(ref _owner) is { } owner)
         {
             var info = (KBDLLHOOKSTRUCT*)lParam;
             var key = new HookedKey((int)info->vkCode, (info->flags & KBDLLHOOKSTRUCT_FLAGS.LLKHF_UP) != 0);
@@ -105,10 +107,10 @@ internal static unsafe class LowLevelKeyboard
             HookThread? thread;
             lock (Gate)
             {
-                if (!ReferenceEquals(Owner, this))
+                if (!ReferenceEquals(_owner, this))
                     return;
                 thread = _thread;
-                Volatile.Write(ref Owner, null);
+                Volatile.Write(ref _owner, null);
             }
 
             thread?.Stop();

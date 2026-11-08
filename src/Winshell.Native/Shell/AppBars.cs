@@ -69,7 +69,8 @@ internal static class AppBars
     internal static bool TryPosition(nint window, out AppBarEdge edge, out RECT bounds)
     {
         var data = Data(window);
-        if (Win32.SHAppBarMessage(Win32.ABM_GETTASKBARPOS, ref data) != 0 && data.rc.Width > 0 && data.rc.Height > 0)
+        if (Win32.SHAppBarMessage(Win32.ABM_GETTASKBARPOS, ref data) != 0 &&
+            data.rc is { Width: > 0, Height: > 0 })
         {
             edge = From(data.uEdge);
             bounds = data.rc;
