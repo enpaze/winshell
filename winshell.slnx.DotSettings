@@ -51,4 +51,7 @@
   &lt;Xaml.RemoveRedundantBindingModeAttribute&gt;False&lt;/Xaml.RemoveRedundantBindingModeAttribute&gt;
   &lt;Xaml.RemoveRedundantGridSpanAttribut&gt;False&lt;/Xaml.RemoveRedundantGridSpanAttribut&gt;
 &lt;/Profile&gt;</s:String>
+  <!-- Capitals in a PascalCase name: P/Invoke entry points such as SHAppBarMessage, and WinUI. -->
+  <s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/Abbreviations/=SH/@EntryIndexedValue">SH</s:String>
+  <s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/Abbreviations/=UI/@EntryIndexedValue">UI</s:String>
 </wpf:ResourceDictionary>
