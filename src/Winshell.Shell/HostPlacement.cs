@@ -174,7 +174,6 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
             Edges.Top | Edges.Right => 5,
             Edges.Bottom => 6,
             Edges.Bottom | Edges.Left => 7,
-            Edges.Bottom | Edges.Right => 8,
             _ => 8
         };
         Win32.ReleaseCapture();

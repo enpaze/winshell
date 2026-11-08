@@ -3,7 +3,7 @@ using Windows.Foundation;
 namespace Winshell;
 
 /// <summary>A normal window with a title bar.</summary>
-public sealed class FloatingWindow : ShellWindow
+public sealed partial class FloatingWindow : ShellWindow
 {
     private string _title = "";
     private Size _minimumSize;
@@ -38,7 +38,7 @@ public sealed class FloatingWindow : ShellWindow
         get => _title;
         set
         {
-            if (Set(ref _title, value ?? ""))
+            if (Set(ref _title, value))
                 OnPlacementChanged();
         }
     }

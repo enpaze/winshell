@@ -25,7 +25,7 @@ internal sealed record PanelPlacement(
 /// </summary>
 internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
 {
-    internal static readonly uint Message = Win32.WM_APP + 1;
+    private static readonly uint Message = Win32.WM_APP + 1;
 
     private static readonly ConcurrentDictionary<IPanelDesktop, byte> Held = new();
 

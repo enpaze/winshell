@@ -246,9 +246,13 @@ internal static class Inspector
     /// <summary>What the open popups of a window show, such as a flyout or a menu, which its content's tree does not hold.</summary>
     private static List<UIElement> Popups(UIElement content)
     {
-        return content.XamlRoot is { } root
-            ? [.. VisualTreeHelper.GetOpenPopupsForXamlRoot(root).Select(popup => popup.Child).OfType<UIElement>()]
-            : [];
+        if (content.XamlRoot is not { } root)
+            return [];
+        var open = new List<UIElement>();
+        foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(root))
+            if (popup.Child is { } child)
+                open.Add(child);
+        return open;
     }
 
     /// <summary>

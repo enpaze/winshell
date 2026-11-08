@@ -3,9 +3,10 @@ using Microsoft.UI.Dispatching;
 namespace Winshell;
 
 /// <summary>The WinUI thread as an event loop. What posted work or a timer throws is logged, and the loop goes on.</summary>
-internal sealed class DispatcherLoop(DispatcherQueue queue, Log log) : IEventLoop
+internal sealed partial class DispatcherLoop(DispatcherQueue queue, Log log) : IEventLoop
 {
-    // A timer nothing holds is collected and never fires, and a caller need not keep the handle.
+    // Each timer stays reachable from here: one nothing else holds is collected and never fires.
+    // ReSharper disable once CollectionNeverQueried.Local
     private readonly HashSet<DispatcherQueueTimer> _timers = [];
 
     public TimeProvider Time => TimeProvider.System;
@@ -61,7 +62,7 @@ internal sealed class DispatcherLoop(DispatcherQueue queue, Log log) : IEventLoo
         }
     }
 
-    private sealed class Timer(DispatcherLoop loop, DispatcherQueueTimer timer) : IDisposable
+    private sealed partial class Timer(DispatcherLoop loop, DispatcherQueueTimer timer) : IDisposable
     {
         public void Dispose()
         {

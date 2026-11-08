@@ -15,7 +15,7 @@ namespace Winshell;
 /// the bitmap, on the thread that delivered it, so the session's loop is this window's. The view lets go of the
 /// session when it leaves the tree.
 /// </summary>
-public sealed class CaptureView : Panel
+public sealed partial class CaptureView : Panel
 {
     /// <summary>The capture to show. Null shows nothing.</summary>
     [PublicAPI] public static readonly DependencyProperty SessionProperty = DependencyProperty.Register(
@@ -24,8 +24,7 @@ public sealed class CaptureView : Panel
         typeof(CaptureView),
         new PropertyMetadata(null,
             (sender, args) =>
-                ((CaptureView)sender).OnSessionChanged((CaptureSession?)args.OldValue,
-                    (CaptureSession?)args.NewValue)));
+                ((CaptureView)sender).OnSessionChanged((CaptureSession?)args.NewValue)));
 
     private readonly Image _image = new() { Stretch = Stretch.Uniform };
     private CaptureSession? _subscribed;
@@ -90,7 +89,7 @@ public sealed class CaptureView : Panel
         _shell.Detach();
     }
 
-    private void OnSessionChanged(CaptureSession? previous, CaptureSession? next)
+    private void OnSessionChanged(CaptureSession? next)
     {
         if (IsLoaded)
             Subscribe(next);

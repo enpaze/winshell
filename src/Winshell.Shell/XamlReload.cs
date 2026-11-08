@@ -24,7 +24,6 @@ internal static partial class XamlReload
     private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
     private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(50);
     private static readonly Dictionary<string, string> Saved = [];
-    private static DirectoryWatch? _watch;
     private static IDisposable? _waiting;
 
     /// <summary>
@@ -40,7 +39,8 @@ internal static partial class XamlReload
     /// <summary>Follows the <c>.xaml</c> files under a project's folder, for the life of the process.</summary>
     public static void Watch(Shell shell, string folder)
     {
-        _watch = DirectoryWatch.Start(
+        // The watch thread roots what it runs, for the life of the process, so nothing here holds it.
+        _ = DirectoryWatch.Start(
             folder,
             DirectoryWatch.FileChanges,
             name =>

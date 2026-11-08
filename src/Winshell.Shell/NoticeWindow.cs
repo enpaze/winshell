@@ -15,7 +15,7 @@ namespace Winshell;
 /// it. Pointing at it, or having the keyboard, holds a timed notice open. It is built here and not in XAML so that it
 /// needs nothing from a configuration.
 /// </summary>
-internal sealed class NoticeWindow : IDisposable
+internal sealed partial class NoticeWindow : IDisposable
 {
     private const double NoticeWidth = 364;
 
@@ -106,10 +106,10 @@ internal sealed class NoticeWindow : IDisposable
             _window.Focus();
             close.Focus(FocusState.Programmatic);
         };
-        root.PointerEntered += (_, _) => Held(ref _pointer, true);
-        root.PointerExited += (_, _) => Held(ref _pointer, false);
-        root.GotFocus += (_, _) => Held(ref _keyboard, true);
-        root.LostFocus += (_, _) => Held(ref _keyboard, false);
+        root.PointerEntered += (_, _) => Held(out _pointer, true);
+        root.PointerExited += (_, _) => Held(out _pointer, false);
+        root.GotFocus += (_, _) => Held(out _keyboard, true);
+        root.LostFocus += (_, _) => Held(out _keyboard, false);
         root.KeyDown += (_, e) =>
         {
             if (e.Key != VirtualKey.Escape)
@@ -131,7 +131,7 @@ internal sealed class NoticeWindow : IDisposable
         };
     }
 
-    private void Held(ref bool flag, bool on)
+    private void Held(out bool flag, bool on)
     {
         flag = on;
         Hold();

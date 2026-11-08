@@ -16,7 +16,7 @@ namespace Winshell;
 /// posted to the window's input site, which reaches that window only. <c>point</c> leaves the cursor on the element
 /// until <c>leave</c>, the next of these commands, <see cref="HoldLimit"/>, or the user moving the mouse.
 /// </summary>
-internal sealed class RealInput(IEventLoop loop) : IDisposable
+internal sealed partial class RealInput(IEventLoop loop) : IDisposable
 {
     /// <summary>How long the PC must have gone without the user's input before anything is sent.</summary>
     private static readonly TimeSpan Quiet = TimeSpan.FromSeconds(3);
@@ -267,7 +267,7 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         _hold = null;
         hold?.Timer?.Dispose();
         var away = _away ?? (hold is null ? null : (hold.Back, hold.At));
-        if (away is ({ } back, { } at) && IsAt(at))
+        if (away is var (back, at) && IsAt(at))
             PutBack(back);
         _away = null;
     }
@@ -596,7 +596,7 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         public ITimer? Timer { get; set; }
     }
 
-    private sealed class Turned(RealInput input) : IDisposable
+    private sealed partial class Turned(RealInput input) : IDisposable
     {
         public void Dispose()
         {
@@ -605,7 +605,7 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
     }
 
     /// <summary>Whether an element raised one of some pointer events, handled or not, while this is undisposed.</summary>
-    private sealed class Sighting : IDisposable
+    private sealed partial class Sighting : IDisposable
     {
         private readonly UIElement _element;
         private readonly RoutedEvent[] _events;

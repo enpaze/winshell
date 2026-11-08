@@ -32,7 +32,7 @@ internal sealed record Notice(
 /// <c>winshell ipc call notice dismiss</c> closes whichever one is showing. Nothing is sent anywhere: the button opens a
 /// file on this PC, and never runs one.
 /// </summary>
-internal sealed class ShellNotices : IDisposable
+internal sealed partial class ShellNotices : IDisposable
 {
     /// <summary>How long a crash notice stays, as a long Windows notification does.</summary>
     public static readonly TimeSpan CrashTimeout = TimeSpan.FromSeconds(25);
@@ -102,7 +102,7 @@ internal sealed class ShellNotices : IDisposable
     }
 
     /// <summary>The notice for a file that does not read, while what came from it before keeps working.</summary>
-    public static Notice ForConfigError(string error, string file)
+    private static Notice ForConfigError(string error, string file)
     {
         return new Notice(
             NoticeKind.ConfigError,

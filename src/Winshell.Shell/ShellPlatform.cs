@@ -15,7 +15,7 @@ using Winshell.Windows;
 namespace Winshell;
 
 /// <summary>What every native window of one process shares: the screens, the theme, and the clicks that close popups.</summary>
-internal sealed class ShellPlatform : IDisposable
+internal sealed partial class ShellPlatform : IDisposable
 {
     /// <summary>The accent followed when Windows' cannot be read: its default blue.</summary>
     private const string DefaultAccent = "#0078D4";
@@ -163,6 +163,8 @@ internal sealed class ShellPlatform : IDisposable
             return;
         Screens.Sync(next, s => s.Id, s => s.Id, s => s, (_, _) => { });
         for (var i = 0; i < next.Count; i++)
+            // The indexer raises a change on every assignment, so an equal record stays where it is.
+            // ReSharper disable once RedundantCheckBeforeAssignment
             if (Screens[i] != next[i])
                 Screens[i] = next[i];
         WorkAreaMayHaveChanged();
@@ -316,9 +318,9 @@ internal sealed class ShellPlatform : IDisposable
     /// Whether Windows mode is dark, from the Personalize values, where <c>0</c> is dark. A missing Windows-mode value
     /// follows app mode, and a missing pair is light.
     /// </summary>
-    internal static bool WindowsModeDark(object? systemValue, object? appsValue)
+    private static bool WindowsModeDark(object? systemValue, object? appsValue)
     {
-        return systemValue is int systemLight ? systemLight == 0 : appsValue is int appsLight && appsLight == 0;
+        return systemValue is int systemLight ? systemLight == 0 : appsValue is 0;
     }
 
     public void Dispose()
