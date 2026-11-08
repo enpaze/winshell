@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Windows.UI;
 
 namespace Winshell.Services.Tests;
@@ -70,7 +71,7 @@ public sealed class ShellIpcTests
     {
         var ipc = Ipc();
         var flags = new List<bool>();
-        ipc.Handle("t", "set", (bool flag) => flags.Add(flag));
+        ipc.Handle("t", "set", flags.Add);
 
         ipc.Call("t", "set", [on]);
         ipc.Call("t", "set", [other]);
@@ -83,7 +84,7 @@ public sealed class ShellIpcTests
     {
         var ipc = Ipc();
         var ran = false;
-        ipc.Handle("t", "one", (string text) => ran = true);
+        ipc.Handle("t", "one", (string _) => ran = true);
 
         Assert.Equal("Function t.one takes 1 argument, 0 given.",
             Assert.Throws<IpcException>(() => ipc.Call("t", "one", [])).Message);
@@ -107,6 +108,8 @@ public sealed class ShellIpcTests
     public void A_color_that_is_not_hex_is_refused()
     {
         var ipc = Ipc();
+        // The refusal names this parameter: "Argument color is not a color".
+        // ReSharper disable once UnusedParameter.Local
         ipc.Handle("t", "paint", (Color color) => { });
 
         Assert.Equal("Argument color is not a color: 12.",
@@ -118,11 +121,11 @@ public sealed class ShellIpcTests
     {
         Delegate[] unpassable =
         [
-            (object value) => { },
+            (object _) => { },
             () => new object(),
-            (string[] many) => { },
+            (string[] _) => { },
             () => Task.CompletedTask,
-            (long big) => { }
+            (long _) => { }
         ];
 
         foreach (var handler in unpassable)
@@ -160,7 +163,10 @@ public sealed class ShellIpcTests
     public void Show_lists_targets_in_order_with_their_declared_types()
     {
         var ipc = Ipc();
+        // Show lists the names page and tab; the body only returns the result.
+        // ReSharper disable UnusedParameter.Local
         ipc.Handle("settings", "open", (string page, int tab) => true);
+        // ReSharper restore UnusedParameter.Local
         ipc.Property("settings", "page", () => "home");
         ipc.Signal("settings", "changed");
         ipc.Handle("audio", "mute", () => { });
@@ -175,11 +181,11 @@ public sealed class ShellIpcTests
     public void A_property_reads_its_value_each_time()
     {
         var ipc = Ipc();
-        var value = 1;
-        ipc.Property("t", "value", () => value);
+        var value = new StrongBox<int>(1);
+        ipc.Property("t", "value", () => value.Value);
 
         Assert.Equal("1", ipc.GetProperty("t", "value"));
-        value = 2;
+        value.Value = 2;
         Assert.Equal("2", ipc.GetProperty("t", "value"));
     }
 

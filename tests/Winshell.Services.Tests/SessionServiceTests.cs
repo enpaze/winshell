@@ -134,9 +134,7 @@ public sealed class SessionServiceTests
     [Fact]
     public void A_refused_write_keeps_the_state_Windows_has_and_warns()
     {
-        var startup = new StartupService(_log, new FakeRegistry { Accepts = false });
-
-        startup.RunAtSignIn = true;
+        var startup = new StartupService(_log, new FakeRegistry { Accepts = false }) { RunAtSignIn = true };
 
         Assert.False(startup.RunAtSignIn);
         Assert.Equal(["startup: Windows did not let Winshell register to run at sign-in."], _warnings);
@@ -161,9 +159,7 @@ public sealed class SessionServiceTests
     [Fact]
     public void Without_a_registry_it_is_unavailable_and_registers_nothing()
     {
-        var startup = new StartupService(_log, null);
-
-        startup.RunAtSignIn = true;
+        var startup = new StartupService(_log, null) { RunAtSignIn = true };
 
         Assert.False(startup.Available);
         Assert.False(startup.RunAtSignIn);
@@ -226,7 +222,7 @@ public sealed class SessionServiceTests
 
         public bool Elsewhere { get; set; }
 
-        public bool Accepts { get; set; } = true;
+        public bool Accepts { get; init; } = true;
 
         public int Writes { get; private set; }
 

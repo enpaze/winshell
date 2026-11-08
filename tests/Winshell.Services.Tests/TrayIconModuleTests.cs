@@ -8,7 +8,7 @@ public sealed class TrayIconModuleTests
     [Theory]
     [InlineData(@"C:\Windows\System32\shell32.dll")]
     [InlineData(@"\\?\C:\Windows\System32\shell32.dll")]
-    [InlineData(@"d:/apps/app.exe")]
+    [InlineData("d:/apps/app.exe")]
     [InlineData("shell32.dll")]
     [InlineData("")]
     public void A_local_path_is_accepted(string path)

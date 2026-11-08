@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
@@ -8,15 +9,15 @@ public sealed class TrayCursorTests
     public void Moving_into_the_menu_keeps_the_pointer_where_the_user_left_it()
     {
         var loop = new ManualEventLoop();
-        (int X, int Y) pointer = (100, 100);
-        using var cursor = new TrayCursor(loop, () => pointer, point => pointer = point);
+        var pointer = new StrongBox<(int X, int Y)>((100, 100));
+        using var cursor = new TrayCursor(loop, () => pointer.Value, point => pointer.Value = point);
 
         cursor.Place((500, 500));
-        Assert.Equal((500, 500), pointer);
-        pointer = (520, 540);
+        Assert.Equal((500, 500), pointer.Value);
+        pointer.Value = (520, 540);
         loop.Advance(TimeSpan.FromMilliseconds(400));
 
-        Assert.Equal((520, 540), pointer);
+        Assert.Equal((520, 540), pointer.Value);
     }
 
     [Fact]

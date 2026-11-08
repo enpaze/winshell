@@ -33,7 +33,8 @@ public sealed class ShellInstanceTests
         await using var client = new NamedPipeClientStream(".", pipe, PipeDirection.InOut, PipeOptions.Asynchronous);
         await client.ConnectAsync(3000, TestContext.Current.CancellationToken);
         using var reader = new StreamReader(client, Encoding.UTF8);
-        await using var writer = new StreamWriter(client, new UTF8Encoding(false)) { AutoFlush = true };
+        await using var writer = new StreamWriter(client, new UTF8Encoding(false));
+        writer.AutoFlush = true;
         await writer.WriteLineAsync(line);
         return await reader.ReadLineAsync(TestContext.Current.CancellationToken);
     }

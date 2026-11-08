@@ -21,7 +21,7 @@ internal sealed class FakeRadio(RadioKind kind, RadioState state) : IDeviceRadio
     public RadioAccessStatus Result { get; set; } = RadioAccessStatus.Allowed;
     public bool Reach { get; set; } = true;
     public Exception? Failure { get; set; }
-    public TaskCompletionSource<RadioAccessStatus>? Gate { get; set; }
+    public TaskCompletionSource<RadioAccessStatus>? Gate { get; init; }
     public int Sets { get; private set; }
 
     public async Task<RadioAccessStatus> SetStateAsync(RadioState next)

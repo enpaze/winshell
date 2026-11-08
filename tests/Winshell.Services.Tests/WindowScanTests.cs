@@ -15,6 +15,8 @@ public sealed class WindowScanTests
             {
                 var hwnd = Win32.CreateWindowExW(0, "STATIC", "", 0, 0, 0, 1, 1, 0, 0, Win32.GetModuleHandleW(null), 0);
                 made.SetResult(hwnd);
+                // The owner thread is joined before the event is disposed, so this wait has returned.
+                // ReSharper disable once AccessToDisposedClosure
                 release.Wait();
                 Win32.DestroyWindow(hwnd);
             })

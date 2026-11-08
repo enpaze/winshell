@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Winshell.Native;
 using Winshell.Network;
@@ -264,11 +265,11 @@ public sealed class WifiProfileTests
 
         AssertNoWrite(
             "<WLANProfile><name>Office</name><connectionMode>auto</connectionMode><connectionMode>auto</connectionMode></WLANProfile>",
-            WifiProfileXml.Rejected, false);
+            WifiProfileXml.Rejected);
         AssertNoWrite("<WLANProfile><name>Office</name></WLANProfile>", WifiProfileXml.Rejected, true);
         AssertNoWrite("<WLANProfile><name>Office</name><connectionMode/></WLANProfile>", WifiProfileXml.Rejected, true);
         AssertNoWrite("<WLANProfile><name>Office</name><connectionMode><![CDATA[auto]]></connectionMode></WLANProfile>",
-            WifiProfileXml.Rejected, false);
+            WifiProfileXml.Rejected);
     }
 
     [Theory]
@@ -368,31 +369,33 @@ public sealed class WifiProfileTests
         using var hold = new ManualResetEventSlim();
         var firstInside = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var secondInside = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var inFlight = 0;
-        var max = 0;
+        var inFlight = new StrongBox<int>(0);
+        var max = new StrongBox<int>(0);
 
         var first = queue.RunAsync(() => Enter(firstInside));
         await firstInside.Task;
         var second = queue.RunAsync(() => Enter(secondInside));
-        Assert.Equal(1, Volatile.Read(ref inFlight));
+        Assert.Equal(1, Volatile.Read(ref inFlight.Value));
         hold.Set();
         Assert.Equal(1, await first);
         await secondInside.Task;
         Assert.Equal(1, await second);
-        Assert.Equal(1, max);
+        Assert.Equal(1, max.Value);
 
         int Enter(TaskCompletionSource inside)
         {
-            var now = Interlocked.Increment(ref inFlight);
+            var now = Interlocked.Increment(ref inFlight.Value);
             int seen;
             do
             {
-                seen = Volatile.Read(ref max);
-            } while (now > seen && Interlocked.CompareExchange(ref max, now, seen) != seen);
+                seen = Volatile.Read(ref max.Value);
+            } while (now > seen && Interlocked.CompareExchange(ref max.Value, now, seen) != seen);
 
             inside.SetResult();
+            // Both queued writes have returned from this wait before the event is disposed.
+            // ReSharper disable once AccessToDisposedClosure
             hold.Wait(TestContext.Current.CancellationToken);
-            Interlocked.Decrement(ref inFlight);
+            Interlocked.Decrement(ref inFlight.Value);
             return now;
         }
     }
