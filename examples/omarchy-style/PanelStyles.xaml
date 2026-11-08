@@ -18,9 +18,9 @@
     <Setter Property="Height" Value="{StaticResource PanelHeight}" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="{StaticResource PanelForeground}" />
-    <Setter Property="FontFamily" Value="{StaticResource PanelFont}" />
-    <Setter Property="FontSize" Value="{StaticResource PanelFontSize}" />
+    <Setter Property="Foreground" Value="{ThemeResource PanelForeground}" />
+    <Setter Property="FontFamily" Value="{ThemeResource PanelFont}" />
+    <Setter Property="FontSize" Value="{ThemeResource PanelFontSize}" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
@@ -67,6 +67,14 @@
 
   <Style x:Key="WorkspaceButton" TargetType="Button" BasedOn="{StaticResource PanelButton}">
     <Setter Property="Width" Value="{StaticResource WorkspaceWidth}" />
+  </Style>
+
+  <!-- Applied once a text widget is in the area. A ThemeResource in the widget's own markup is resolved before that. -->
+  <Style x:Key="PanelText" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{ThemeResource PanelFont}" />
+    <Setter Property="FontSize" Value="{ThemeResource PanelFontSize}" />
+    <Setter Property="Foreground" Value="{ThemeResource PanelForeground}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
   <Style x:Key="PanelToolTip" TargetType="ToolTip">
