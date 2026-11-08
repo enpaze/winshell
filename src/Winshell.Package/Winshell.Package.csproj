@@ -27,10 +27,6 @@
       <Pack>true</Pack>
       <PackagePath>buildTransitive/Winshell.props</PackagePath>
     </None>
-    <None Update="buildTransitive\Winshell.targets">
-      <Pack>true</Pack>
-      <PackagePath>buildTransitive/Winshell.targets</PackagePath>
-    </None>
     <None Update="buildTransitive\app.manifest">
       <Pack>true</Pack>
       <PackagePath>buildTransitive/app.manifest</PackagePath>

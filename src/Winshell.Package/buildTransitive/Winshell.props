@@ -3,9 +3,8 @@
     <SupportedOSPlatformVersion>10.0.22621.0</SupportedOSPlatformVersion>
     <UseWinUI>true</UseWinUI>
     <WindowsPackageType>None</WindowsPackageType>
-    <!-- The Windows App SDK makes an executable self-contained once the project has set OutputType, and it refuses
-         the same setting on a library. This file is read before that choice, so setting it here would make a widget
-         library self-contained and the library would not build. -->
+    <!-- Leave WindowsAppSDKSelfContained unset. The SDK defaults it to true for any project that is not a library,
+         so an executable stays self-contained and a widget library builds. -->
     <!-- Windows bitmap-scales a program that does not declare this, so a shell is blurry on a scaled screen and its
          coordinates are not physical pixels. A project that sets ApplicationManifest keeps its own. The Windows App
          SDK merges this into the manifest it embeds. -->
@@ -17,29 +16,13 @@
   </PropertyGroup>
 
   <!-- Installed widgets live in widgets.props beside the project: ProjectReference and WinshellWidget items. This
-       file is read before the project body, so the default stays conditional. A project property or
-       -p:WinshellWidgetsFile replaces it, and Winshell.targets imports that path after the project body. NuGet
-       imports Winshell.targets itself; importing it again is an error. A project that imports this file directly
-       has no such import, so it is scheduled here. A relative path is resolved in Winshell.targets. -->
+       file is read before the project body, so the default stays conditional and -p:WinshellWidgetsFile replaces it.
+       The path must be absolute, since a relative Exists resolves against this file's own folder. Items imported
+       here still reach the build. -->
   <PropertyGroup>
     <WinshellWidgetsFile Condition="'$(WinshellWidgetsFile)' == ''">$(MSBuildProjectDirectory)\widgets.props</WinshellWidgetsFile>
-    <!-- An empty root would make StartsWith true for every path. '|' is not a directory prefix. -->
-    <_WinshellPackageRoot Condition="'$(NuGetPackageRoot)' != ''">$(NuGetPackageRoot)</_WinshellPackageRoot>
-    <_WinshellPackageRoot Condition="'$(_WinshellPackageRoot)' == ''">|</_WinshellPackageRoot>
-    <_WinshellImportedFromPackage Condition="$(MSBuildThisFileDirectory.StartsWith('$(_WinshellPackageRoot)'))">true</_WinshellImportedFromPackage>
   </PropertyGroup>
-  <Choose>
-    <When Condition="'$(_WinshellImportedFromPackage)' != 'true' and '$(AfterMicrosoftNETSdkTargets)' == ''">
-      <PropertyGroup>
-        <AfterMicrosoftNETSdkTargets>$(MSBuildThisFileDirectory)Winshell.targets</AfterMicrosoftNETSdkTargets>
-      </PropertyGroup>
-    </When>
-    <When Condition="'$(_WinshellImportedFromPackage)' != 'true' and !$(AfterMicrosoftNETSdkTargets.Contains('Winshell.targets'))">
-      <PropertyGroup>
-        <AfterMicrosoftNETSdkTargets>$(AfterMicrosoftNETSdkTargets);$(MSBuildThisFileDirectory)Winshell.targets</AfterMicrosoftNETSdkTargets>
-      </PropertyGroup>
-    </When>
-  </Choose>
+  <Import Project="$(WinshellWidgetsFile)" Condition="Exists('$(WinshellWidgetsFile)')" />
 
   <!-- A WinshellWidget item names a widget and the type the build constructs for it. WinUI compiles once before
        CoreCompile, so the file has to exist before PrepareForBuild; a later target misses that pass. An inline task

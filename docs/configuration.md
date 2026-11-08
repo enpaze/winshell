@@ -119,7 +119,7 @@ Installed widgets live in `widgets.props`, beside the project file. When that fi
 
 `winshell widget install`, `winshell widget remove` and `winshell widget update` write this file. The template ignores it, and so does the Omarchy example, so an install stays out of the shell's source.
 
-Set `WinshellWidgetsFile` to import a different file. A property in the project does, and so does `dotnet build -p:WinshellWidgetsFile=...`. A relative path is resolved from the project directory. The default is `widgets.props` in the project directory. Installing builds against a staged copy this way and replaces `widgets.props` only when that build succeeds.
+Set `WinshellWidgetsFile` to an absolute path to import a different file: `dotnet build -p:WinshellWidgetsFile=...`. A relative path is resolved from the folder that contains `Winshell.props`, not from the project. The default is `widgets.props` in the project directory. Installing builds against a staged copy this way and replaces `widgets.props` only when that build succeeds.
 
 The build writes registration code only for an executable, an `OutputType` of `Exe` or `WinExe`. A widget library can list `WinshellWidget` items so `dotnet msbuild -getItem:WinshellWidget` can read them, and that library does not register the widgets. The configuration that references the library does. Registering one name from both fails when the shell starts.
 

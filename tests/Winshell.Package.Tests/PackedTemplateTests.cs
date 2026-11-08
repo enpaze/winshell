@@ -308,26 +308,12 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     }
 
     [Fact(Timeout = PatienceMs)]
-    public void A_project_property_selects_the_widgets_file()
-    {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        BuildSelectedWidgetsFile(commandLine: false);
-    }
-
-    [Fact(Timeout = PatienceMs)]
     public void A_command_line_property_selects_the_widgets_file()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        BuildSelectedWidgetsFile(commandLine: true);
-    }
-
-    /// <summary>
-    /// <c>widgets.props</c> names a type the generator rejects. The build succeeds only when
-    /// <c>WinshellWidgetsFile</c> imports <c>staged.props</c> instead. The build runs from the parent directory, so a
-    /// relative path has to be beside the project and not the working directory.
-    /// </summary>
-    private void BuildSelectedWidgetsFile(bool commandLine)
-    {
+        // widgets.props names a type the generator rejects. The build succeeds only when -p:WinshellWidgetsFile
+        // imports staged.props instead. The path is absolute: a relative Exists resolves against Winshell.props,
+        // not the project. The build runs from the parent directory.
         using var root = new TempFolder();
         File.Copy(Path.Combine(Repo.Root, "global.json"), Path.Combine(root.Path, "global.json"));
         var shellDir = Path.Combine(root.Path, "shell");
@@ -359,17 +345,9 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
                     Content = new TextBlock { Text = (string)context.Settings["value"] };
             }
             """);
-        var arguments = new List<string> { "build", projectFile, "-warnaserror", "--nologo" };
-        if (commandLine)
-            arguments.Add($"-p:WinshellWidgetsFile={Path.Combine(shellDir, "staged.props")}");
-        else
-        {
-            var document = XDocument.Load(projectFile);
-            document.Root!.Add(new XElement("PropertyGroup", new XElement("WinshellWidgetsFile", "staged.props")));
-            document.Save(projectFile);
-        }
-
-        var built = ConfigurationProject.Run("dotnet", arguments, root.Path);
+        var staged = Path.Combine(shellDir, "staged.props");
+        var built = ConfigurationProject.Run(
+            "dotnet", ["build", projectFile, "-warnaserror", "--nologo", $"-p:WinshellWidgetsFile={staged}"], root.Path);
         Assert.True(built.ExitCode == 0, built.Output);
         var registration = File.ReadAllText(Assert.Single(Directory.GetFiles(
             Path.Combine(shellDir, "obj"), "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories)));
@@ -654,7 +632,6 @@ public sealed class PackedTemplates : IDisposable
     private static void AssertProps(ZipArchive zip, string packageDir)
     {
         AssertPacked(zip, packageDir, "buildTransitive/Winshell.props");
-        AssertPacked(zip, packageDir, "buildTransitive/Winshell.targets");
     }
 
     private static void AssertPacked(ZipArchive zip, string packageDir, string path)
