@@ -4,6 +4,6 @@ namespace Winshell.Package;
 /// Not packed. The package carries <c>Winshell.Native</c>, <c>Winshell.Core</c>, <c>Winshell.Services</c> and
 /// <c>Winshell.Shell</c>, not this assembly.
 /// </summary>
-internal static class PackageMarker
-{
-}
+// The project needs a compilation unit; nothing references this type.
+// ReSharper disable once UnusedType.Global
+internal static class PackageMarker;

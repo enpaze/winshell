@@ -1,5 +1,6 @@
-using MyShell;
 using Winshell;
+
+namespace MyShell;
 
 internal static class Program
 {

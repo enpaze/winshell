@@ -64,22 +64,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         var process = Start(project.Program, folders, output);
         try
         {
-            var pid = process.Id.ToString(CultureInfo.InvariantCulture);
-            Wait.Until(() =>
-                {
-                    if (process.HasExited)
-                        Assert.Fail($"The shell exited with {process.ExitCode}: {output}");
-                    return Listed(folders).Any(row => row.GetProperty("pid").GetInt32() == process.Id);
-                }, $"instance {pid} in winshell list");
-
-            var log = WinshellCli.Run(["log", "--pid", pid], folders);
-            log.AssertExitCode(0);
-            Assert.Contains($"Winshell {templates.Version} on Windows", log.Output, StringComparison.Ordinal);
-
-            var killed = WinshellCli.Run(["kill", "--pid", pid], folders);
-            killed.AssertExitCode(0);
-            Wait.Until(() => process.HasExited, "winshell kill to stop the shell");
-            ChildProcess.Exited("The packed shell", process, output).AssertExitCode(0);
+            ListAndKill(process, folders, output);
         }
         finally
         {
@@ -98,6 +83,29 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             {
             }
         }
+    }
+
+    /// <summary>
+    /// Lists the shell, reads its log and kills it. The caller disposes <paramref name="process"/> after this returns.
+    /// </summary>
+    private void ListAndKill(Process process, (string Name, string Value)[] folders, StringBuilder output)
+    {
+        var pid = process.Id.ToString(CultureInfo.InvariantCulture);
+        Wait.Until(() =>
+            {
+                if (process.HasExited)
+                    Assert.Fail($"The shell exited with {process.ExitCode}: {output}");
+                return Listed(folders).Any(row => row.GetProperty("pid").GetInt32() == process.Id);
+            }, $"instance {pid} in winshell list");
+
+        var log = WinshellCli.Run(["log", "--pid", pid], folders);
+        log.AssertExitCode(0);
+        Assert.Contains($"Winshell {templates.Version} on Windows", log.Output, StringComparison.Ordinal);
+
+        var killed = WinshellCli.Run(["kill", "--pid", pid], folders);
+        killed.AssertExitCode(0);
+        Wait.Until(() => process.HasExited, "winshell kill to stop the shell");
+        ChildProcess.Exited("The packed shell", process, output).AssertExitCode(0);
     }
 
     private static Process Start(string exe, (string Name, string Value)[] environment, StringBuilder output)
@@ -141,6 +149,8 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
 }
 
 /// <summary>One pack and one copy of the template, shared by the tests that use it.</summary>
+// xUnit constructs this fixture through IClassFixture; the test project never calls new.
+// ReSharper disable once ClassNeverInstantiated.Global
 public sealed class PackedTemplates : IDisposable
 {
     private readonly string _work =
