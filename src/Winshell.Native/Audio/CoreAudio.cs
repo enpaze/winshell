@@ -117,19 +117,21 @@ internal static class CoreAudio
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IMMDeviceEnumerator
 {
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
     void EnumAudioEndpoints(EDataFlow flow, DEVICE_STATE stateMask, out IMMDeviceCollection devices);
 
     [PreserveSig]
     int GetDefaultAudioEndpoint(EDataFlow flow, ERole role, out IMMDevice device);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     [PreserveSig]
     int GetDevice([MarshalAs(UnmanagedType.LPWStr)] string id, out IMMDevice device);
 
     void RegisterEndpointNotificationCallback(IMMNotificationClient client);
 
     void UnregisterEndpointNotificationCallback(IMMNotificationClient client);
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
 
 [ComImport]
@@ -137,9 +139,13 @@ internal interface IMMDeviceEnumerator
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IMMDeviceCollection
 {
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
     void GetCount(out uint count);
 
     void Item(uint index, out IMMDevice device);
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
 
 [ComImport]
@@ -147,6 +153,8 @@ internal interface IMMDeviceCollection
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IMMDevice
 {
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
     void Activate(ref Guid iid, CLSCTX clsCtx, nint activationParams,
         [MarshalAs(UnmanagedType.IUnknown)] out object instance);
 
@@ -154,9 +162,9 @@ internal interface IMMDevice
 
     void GetId([MarshalAs(UnmanagedType.LPWStr)] out string id);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void GetState(out uint state);
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
 
 [ComImport]
@@ -164,50 +172,19 @@ internal interface IMMDevice
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IMMNotificationClient
 {
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
-    void OnDeviceStateChanged(
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        [MarshalAs(UnmanagedType.LPWStr)] string deviceId,
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        uint newState);
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
+    void OnDeviceStateChanged([MarshalAs(UnmanagedType.LPWStr)] string deviceId, uint newState);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
-    void OnDeviceAdded(
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        [MarshalAs(UnmanagedType.LPWStr)] string deviceId);
+    void OnDeviceAdded([MarshalAs(UnmanagedType.LPWStr)] string deviceId);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
-    void OnDeviceRemoved(
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        [MarshalAs(UnmanagedType.LPWStr)] string deviceId);
+    void OnDeviceRemoved([MarshalAs(UnmanagedType.LPWStr)] string deviceId);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
-    void OnDefaultDeviceChanged(
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        EDataFlow flow,
-        ERole role,
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        [MarshalAs(UnmanagedType.LPWStr)] string? defaultDeviceId);
+    void OnDefaultDeviceChanged(EDataFlow flow, ERole role, [MarshalAs(UnmanagedType.LPWStr)] string? defaultDeviceId);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
-    void OnPropertyValueChanged(
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        [MarshalAs(UnmanagedType.LPWStr)] string deviceId,
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        PROPERTYKEY key);
+    void OnPropertyValueChanged([MarshalAs(UnmanagedType.LPWStr)] string deviceId, PROPERTYKEY key);
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
 
 [ComImport]
@@ -215,34 +192,26 @@ internal interface IMMNotificationClient
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioEndpointVolume
 {
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
     void RegisterControlChangeNotify(IAudioEndpointVolumeCallback notify);
 
     void UnregisterControlChangeNotify(IAudioEndpointVolumeCallback notify);
 
     void GetChannelCount(out uint count);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void SetMasterVolumeLevel(float levelDb, ref Guid context);
 
     void SetMasterVolumeLevelScalar(float level, ref Guid context);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void GetMasterVolumeLevel(out float levelDb);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void GetMasterVolumeLevelScalar(out float level);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void SetChannelVolumeLevel(uint channel, float levelDb, ref Guid context);
 
     void SetChannelVolumeLevelScalar(uint channel, float level, ref Guid context);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void GetChannelVolumeLevel(uint channel, out float levelDb);
 
     void GetChannelVolumeLevelScalar(uint channel, out float level);
@@ -250,6 +219,8 @@ internal interface IAudioEndpointVolume
     void SetMute([MarshalAs(UnmanagedType.Bool)] bool mute, ref Guid context);
 
     void GetMute([MarshalAs(UnmanagedType.Bool)] out bool mute);
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
 
 [ComImport]
@@ -257,13 +228,12 @@ internal interface IAudioEndpointVolume
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioEndpointVolumeCallback
 {
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
     [PreserveSig]
-    int OnNotify(
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        nint data);
+    int OnNotify(nint data);
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
 
 [ComImport]
@@ -271,18 +241,18 @@ internal interface IAudioEndpointVolumeCallback
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioMeterInformation
 {
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
     [PreserveSig]
     int GetPeakValue(out float peak);
 
-    // The caller discards this HRESULT.
-    // ReSharper disable once UnusedMethodReturnValue.Global
     [PreserveSig]
     int GetMeteringChannelCount(out uint count);
 
     [PreserveSig]
     int GetChannelsPeakValues(uint count, [Out] [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] float[] peaks);
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
 
 [ComImport]
@@ -290,45 +260,37 @@ internal interface IAudioMeterInformation
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioClient
 {
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
     [PreserveSig]
     int Initialize(AUDCLNT_SHAREMODE shareMode, uint streamFlags, long bufferDuration, long periodicity, nint format,
         nint sessionGuid);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     [PreserveSig]
     int GetBufferSize(out uint frames);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     [PreserveSig]
     int GetStreamLatency(out long latency);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     [PreserveSig]
     int GetCurrentPadding(out uint frames);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     [PreserveSig]
     int IsFormatSupported(AUDCLNT_SHAREMODE shareMode, nint format, out nint closest);
 
     [PreserveSig]
     int GetMixFormat(out nint format);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     [PreserveSig]
     int GetDevicePeriod(out long defaultPeriod, out long minimumPeriod);
 
     [PreserveSig]
     int Start();
 
-    // The caller discards this HRESULT.
-    // ReSharper disable once UnusedMethodReturnValue.Global
     [PreserveSig]
     int Stop();
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
 
 [ComImport]
@@ -336,12 +298,10 @@ internal interface IAudioClient
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioSessionManager2
 {
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
     void GetAudioSessionControl(nint sessionGuid, uint flags, out IAudioSessionControl2 control);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void GetSimpleAudioVolume(nint sessionGuid, uint flags, out ISimpleAudioVolume volume);
 
     void GetSessionEnumerator(out IAudioSessionEnumerator sessions);
@@ -349,6 +309,8 @@ internal interface IAudioSessionManager2
     void RegisterSessionNotification(IAudioSessionNotification notification);
 
     void UnregisterSessionNotification(IAudioSessionNotification notification);
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
 
 [ComImport]
@@ -356,9 +318,13 @@ internal interface IAudioSessionManager2
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioSessionEnumerator
 {
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
     void GetCount(out int count);
 
     void GetSession(int index, out IAudioSessionControl2 session);
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
 
 [ComImport]
@@ -366,29 +332,21 @@ internal interface IAudioSessionEnumerator
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioSessionControl2
 {
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
     // IAudioSessionControl
     void GetState(out AudioSessionState state);
 
     void GetDisplayName([MarshalAs(UnmanagedType.LPWStr)] out string name);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void SetDisplayName([MarshalAs(UnmanagedType.LPWStr)] string name, ref Guid context);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void GetIconPath([MarshalAs(UnmanagedType.LPWStr)] out string path);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void SetIconPath([MarshalAs(UnmanagedType.LPWStr)] string path, ref Guid context);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void GetGroupingParam(out Guid param);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void SetGroupingParam(ref Guid param, ref Guid context);
 
     void RegisterAudioSessionNotification(IAudioSessionEvents events);
@@ -396,9 +354,6 @@ internal interface IAudioSessionControl2
     void UnregisterAudioSessionNotification(IAudioSessionEvents events);
 
     // IAudioSessionControl2
-
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void GetSessionIdentifier([MarshalAs(UnmanagedType.LPWStr)] out string id);
 
     void GetSessionInstanceIdentifier([MarshalAs(UnmanagedType.LPWStr)] out string id);
@@ -407,6 +362,8 @@ internal interface IAudioSessionControl2
 
     [PreserveSig]
     int IsSystemSoundsSession();
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
 
 [ComImport]
@@ -414,10 +371,12 @@ internal interface IAudioSessionControl2
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioSessionNotification
 {
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
     [PreserveSig]
     int OnSessionCreated(IAudioSessionControl2 session);
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
 
 [ComImport]
@@ -425,82 +384,30 @@ internal interface IAudioSessionNotification
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioSessionEvents
 {
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
     [PreserveSig]
-    int OnDisplayNameChanged(
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        [MarshalAs(UnmanagedType.LPWStr)] string name,
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        ref Guid context);
+    int OnDisplayNameChanged([MarshalAs(UnmanagedType.LPWStr)] string name, ref Guid context);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     [PreserveSig]
-    int OnIconPathChanged(
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        [MarshalAs(UnmanagedType.LPWStr)] string path,
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        ref Guid context);
+    int OnIconPathChanged([MarshalAs(UnmanagedType.LPWStr)] string path, ref Guid context);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     [PreserveSig]
-    int OnSimpleVolumeChanged(
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        float volume,
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        [MarshalAs(UnmanagedType.Bool)] bool mute,
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        ref Guid context);
+    int OnSimpleVolumeChanged(float volume, [MarshalAs(UnmanagedType.Bool)] bool mute, ref Guid context);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     [PreserveSig]
-    int OnChannelVolumeChanged(
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        uint count,
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        nint volumes,
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        uint changedChannel,
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        ref Guid context);
+    int OnChannelVolumeChanged(uint count, nint volumes, uint changedChannel, ref Guid context);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     [PreserveSig]
-    int OnGroupingParamChanged(
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        ref Guid param,
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        ref Guid context);
+    int OnGroupingParamChanged(ref Guid param, ref Guid context);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     [PreserveSig]
     int OnStateChanged(AudioSessionState state);
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     [PreserveSig]
-    int OnSessionDisconnected(
-        // The signature matches Windows.
-        // ReSharper disable once UnusedParameter.Global
-        int reason);
+    int OnSessionDisconnected(int reason);
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
 
 [ComImport]
@@ -508,6 +415,8 @@ internal interface IAudioSessionEvents
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface ISimpleAudioVolume
 {
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
     void SetMasterVolume(float level, ref Guid context);
 
     void GetMasterVolume(out float level);
@@ -515,6 +424,8 @@ internal interface ISimpleAudioVolume
     void SetMute([MarshalAs(UnmanagedType.Bool)] bool mute, ref Guid context);
 
     void GetMute([MarshalAs(UnmanagedType.Bool)] out bool mute);
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
 
 /// <summary>
@@ -526,46 +437,30 @@ internal interface ISimpleAudioVolume
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IPolicyConfig
 {
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
+    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
+    // ReSharper disable UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
     void GetMixFormat();
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void GetDeviceFormat();
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void ResetDeviceFormat();
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void SetDeviceFormat();
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void GetProcessingPeriod();
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void SetProcessingPeriod();
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void GetShareMode();
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void SetShareMode();
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void GetPropertyValue();
 
-    // COM vtable slot; deleting it shifts later methods.
-    // ReSharper disable once UnusedMember.Global
     void SetPropertyValue();
 
     [PreserveSig]
     int SetDefaultEndpoint([MarshalAs(UnmanagedType.LPWStr)] string deviceId, ERole role);
+
+    // ReSharper restore UnusedMember.Global, UnusedParameter.Global, UnusedMethodReturnValue.Global
 }
