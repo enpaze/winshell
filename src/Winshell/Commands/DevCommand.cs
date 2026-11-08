@@ -14,7 +14,7 @@ internal static class DevCommand
 
         if (project is null)
         {
-            Console.Error.WriteLine("winshell dev needs a configuration project. Run dotnet new winshell to make one.");
+            Console.Error.WriteLine("winshell dev needs a configuration project. Run winshell new to make one.");
             return 1;
         }
 
