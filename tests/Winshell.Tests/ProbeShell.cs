@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 
 namespace Winshell.Tests;
 
@@ -38,7 +37,8 @@ internal static class ProbeShell
     internal static Process Start(string config, string local, string? shellId = null, string? program = null)
     {
         var process = Launch(config, local, [], shellId, program: program);
-        Wait.Until(() => Listed(config, local).Contains(process.Id), $"probe {process.Id} in winshell list");
+        Wait.Until(() => new Instances(Path.Combine(local, "run")).List(false).Any(row => row.Info.Pid == process.Id),
+            $"probe {process.Id} to publish its instance");
         return process;
     }
 
@@ -90,15 +90,6 @@ internal static class ProbeShell
         info.Environment["WINSHELL_CONFIG_DIR"] = config;
         info.Environment["WINSHELL_LOCAL_DIR"] = local;
         return ChildProcess.Run(info, TimeSpan.FromSeconds(20));
-    }
-
-    private static HashSet<int> Listed(string config, string local)
-    {
-        var result = WinshellCli.Run(["list", "--json"], ("WINSHELL_CONFIG_DIR", config),
-            ("WINSHELL_LOCAL_DIR", local));
-        result.AssertExitCode(0);
-        using var json = JsonDocument.Parse(result.Output);
-        return json.RootElement.EnumerateArray().Select(row => row.GetProperty("pid").GetInt32()).ToHashSet();
     }
 
     internal static void Ensure()

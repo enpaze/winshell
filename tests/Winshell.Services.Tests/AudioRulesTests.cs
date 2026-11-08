@@ -6,7 +6,6 @@ using Winshell.Native;
 namespace Winshell.Services.Tests;
 
 /// <summary>The default playback device, so it needs one: on a PC without any, the test says so and skips.</summary>
-[Trait("Category", "Slow")]
 public sealed class AudioRulesTests
 {
     [Fact]

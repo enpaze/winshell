@@ -7,7 +7,6 @@ using Windows.Win32;
 namespace Winshell.Tests;
 
 /// <summary>The real <c>winshell dev</c>, on a real project, editing its source.</summary>
-[Trait("Category", "Slow")]
 public sealed class DevCommandTests : IDisposable
 {
     private static readonly TimeSpan BuildPatience = TimeSpan.FromSeconds(140);
@@ -131,15 +130,24 @@ public sealed class DevCommandTests : IDisposable
                                                                     """);
     }
 
-    private string Shown()
+    private async Task<string> Shown()
     {
-        return WinshellCli.Run(["ipc", "call", "probe", "label"], Folders).Output.Trim();
+        return (await ReadValue("label")).Text;
     }
 
-    private (int Code, string Text) Value()
+    private Task<(int Code, string Text)> Value()
     {
-        var result = CallValue();
-        return (result.Code, result.Output.Trim());
+        return ReadValue("value");
+    }
+
+    private async Task<(int Code, string Text)> ReadValue(string member)
+    {
+        var instance = new Instances(Path.Combine(_dir, "local", "run")).List(false).SingleOrDefault().Info;
+        if (instance is null)
+            return (1, "");
+        var answer = await InstanceCall.AskAsync(instance, IpcRequest.ForCall("probe", member, []),
+            TestContext.Current.CancellationToken);
+        return answer.Response is { Ok: true } response ? (0, response.Value?.Trim() ?? "") : (1, "");
     }
 
     private ChildProcess CallValue()
@@ -149,16 +157,12 @@ public sealed class DevCommandTests : IDisposable
 
     private string InstanceId()
     {
-        var (_, output, _) = WinshellCli.Run(["list", "-j"], Folders);
-        using var listed = JsonDocument.Parse(output);
-        return listed.RootElement.EnumerateArray().Single().GetProperty("id").GetString() ?? "";
+        return new Instances(Path.Combine(_dir, "local", "run")).List(false).Single().Info.Id;
     }
 
     private int ShellProcess()
     {
-        var (_, output, _) = WinshellCli.Run(["list", "-j"], Folders);
-        using var listed = JsonDocument.Parse(output);
-        return listed.RootElement.EnumerateArray().Single().GetProperty("pid").GetInt32();
+        return new Instances(Path.Combine(_dir, "local", "run")).List(false).Single().Info.Pid;
     }
 
     /// <param name="ownGroup">
@@ -229,68 +233,23 @@ public sealed class DevCommandTests : IDisposable
         Assert.Contains("dotnet new winshell", result.Error, StringComparison.Ordinal);
     }
 
-    [Fact(Timeout = 170_000)]
-    public void Ctrl_Break_stops_dotnet_watch_and_the_shell()
+    // One watch host covers in-place edits, a failed edit, a rebuild and graceful console shutdown.
+    [Fact(Timeout = 300_000)]
+    public async Task Edits_rebuilds_and_Ctrl_Break_keep_the_watch_lifecycle_correct()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         Assert.True(ProcessConsole.Window() != 0 || PInvoke.GetConsoleProcessList(new uint[1]) > 0,
             "The test program has no console to send a Ctrl+Break on.");
         StartDev(true);
-        Wait.Until(() => Value() == (0, "one"), "the first build", BuildPatience);
-        Assert.Contains(FromProject(), p => p.StartsWith("Dev.exe ", StringComparison.Ordinal));
-        var id = InstanceId();
-
-        // Ctrl+C reaches every process on the console, this test's too. Ctrl+Break can be sent to one process group.
-        Assert.True(PInvoke.GenerateConsoleCtrlEvent(CtrlBreakEvent, (uint)_dev!.Id), "Ctrl+Break was not sent.");
-
-        Assert.True(_dev.WaitForExit(TimeSpan.FromSeconds(30)), "winshell dev did not exit.");
-        Wait.Until(() => FromProject().Count == 0, "dotnet watch and the shell to end", TimeSpan.FromSeconds(30));
-        // The shell quit, as winshell kill asks it to, before dotnet watch ended: a shell that is only ended marks no exit.
-        var record = File.ReadAllText(Path.Combine(_dir, "local", "run", id, "instance.json"));
-        Assert.NotNull(JsonSerializer.Deserialize(record, InstanceJson.Default.InstanceInfo)?.ExitedAt);
-    }
-
-    [Fact(Timeout = 170_000)]
-    public void The_console_shows_what_dotnet_watch_says_but_not_its_Ctrl_R_hint()
-    {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        StartDev();
-        Wait.Until(() => Value() == (0, "one"), "the first build", BuildPatience);
-
+        await Wait.UntilAsync(async () => await Value() == (0, "one"), "the first build", BuildPatience);
         Assert.True(Printed("dotnet watch : "), "winshell dev printed nothing of dotnet watch's.");
         Assert.False(Printed("Ctrl+R") || Printed("Ctrl + R"), "winshell dev printed dotnet watch's Ctrl+R hint.");
-    }
-
-    // Two builds: the first start, and the one the XAML needs.
-    [Fact(Timeout = 300_000)]
-    public void Xaml_that_needs_a_build_lets_the_shell_quit_before_it_starts_again()
-    {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        StartDev();
-        Wait.Until(() => Value() == (0, "one"), "the first build", BuildPatience);
+        Assert.Contains(FromProject(), p => p.StartsWith("Dev.exe ", StringComparison.Ordinal));
         var shell = ShellProcess();
         var id = InstanceId();
-
-        Label("two", true);
-        Wait.Until(() => Printed("Building, because the XAML you saved needs it."), "the build the XAML needs");
-        Wait.Until(() => Shown() == "two", "the shell to start again", BuildPatience);
-
-        Assert.NotEqual(shell, ShellProcess());
-        // The shell quit, as winshell kill asks it to: a shell that is only ended marks no exit.
-        var record = File.ReadAllText(Path.Combine(_dir, "local", "run", id, "instance.json"));
-        Assert.NotNull(JsonSerializer.Deserialize(record, InstanceJson.Default.InstanceInfo)?.ExitedAt);
-    }
-
-    [Fact(Timeout = 170_000)]
-    public void An_edit_reaches_the_running_shell_and_a_broken_one_leaves_it_running()
-    {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        StartDev();
-        Wait.Until(() => Value() == (0, "one"), "the first build", BuildPatience);
-        var shell = ShellProcess();
         // The first edit also warms the compiler up.
         Mark("""=> "two";""");
-        Wait.Until(() => Value().Text == "two", "the first edit", BuildPatience);
+        await Wait.UntilAsync(async () => (await Value()).Text == "two", "the first edit", BuildPatience);
 
         Mark("""=> "broken" """);
         Wait.Until(() => Printed("error CS1002"), "the compile error");
@@ -302,13 +261,30 @@ public sealed class DevCommandTests : IDisposable
                 .Contains("Your configuration did not build", StringComparison.Ordinal), "the notice");
 
         Mark("""=> "three";""");
-        Wait.Until(() => Value().Text == "three", "the fix", BuildPatience);
+        await Wait.UntilAsync(async () => (await Value()).Text == "three", "the fix", BuildPatience);
 
         Assert.Equal(shell, ShellProcess());
 
         Label("two");
-        Wait.Until(() => Shown() == "two", "the XAML edit", BuildPatience);
+        await Wait.UntilAsync(async () => await Shown() == "two", "the XAML edit", BuildPatience);
         Assert.Equal(shell, ShellProcess());
+
+        Label("three", true);
+        Wait.Until(() => Printed("Building, because the XAML you saved needs it."), "the build the XAML needs");
+        await Wait.UntilAsync(async () => await Shown() == "three", "the shell to start again", BuildPatience);
+        Assert.NotEqual(shell, ShellProcess());
+        // A rebuild lets the old shell quit before replacing it: a forced end would not mark this record.
+        var record = File.ReadAllText(Path.Combine(_dir, "local", "run", id, "instance.json"));
+        Assert.NotNull(JsonSerializer.Deserialize(record, InstanceJson.Default.InstanceInfo)?.ExitedAt);
+        var restartedId = InstanceId();
+
+        // Ctrl+C reaches every process on the console, this test's too. Ctrl+Break reaches only this process group.
+        Assert.True(PInvoke.GenerateConsoleCtrlEvent(CtrlBreakEvent, (uint)_dev!.Id), "Ctrl+Break was not sent.");
+        Assert.True(_dev.WaitForExit(TimeSpan.FromSeconds(30)), "winshell dev did not exit.");
+        Wait.Until(() => FromProject().Count == 0, "dotnet watch and the shell to end", TimeSpan.FromSeconds(30));
+        // Shutdown also asks the replacement shell to quit before ending watch.
+        record = File.ReadAllText(Path.Combine(_dir, "local", "run", restartedId, "instance.json"));
+        Assert.NotNull(JsonSerializer.Deserialize(record, InstanceJson.Default.InstanceInfo)?.ExitedAt);
     }
 
     private const uint CtrlBreakEvent = 1;

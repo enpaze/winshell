@@ -2,7 +2,7 @@ namespace Winshell.ShellTests;
 
 /// <summary>
 /// Which windows take the keyboard, and what each kind does as a result, against a stand-in for the native window.
-/// What a real window does with those answers is in the Slow tests.
+/// What a real window does with those answers is covered by the native window tests.
 /// </summary>
 public class WindowFocusTests
 {

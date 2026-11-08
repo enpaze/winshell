@@ -14,11 +14,10 @@ permissions:
 
 # The main build, test and lint jobs live here. changes selects what a PR or main push needs, so prose runs only links.
 #
-# A pull request cancels its older run. Each push to main gets its own group, because a group holds only one pending run:
-# a shared one would drop the ci run of a commit in a burst of merges.
+# A new push cancels the superseded run on the same branch, including main and manual runs.
 concurrency:
-  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   changes:
@@ -42,15 +41,12 @@ jobs:
       - uses: ./.github/actions/changes # zizmor: ignore[self-repository]
         id: changes
 
-  ci:
-    # The ruleset requires this job by name. Rename it there too if you rename it here.
-    name: ci
+  quality:
+    name: quality
     needs: changes
     if: ${{ !cancelled() && github.event.pull_request.draft != true }}
     runs-on: windows-2025
     timeout-minutes: 20
-    outputs:
-      built: ${{ steps.build.outcome }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -80,60 +76,73 @@ jobs:
         if: needs.changes.outputs.code != 'false' || needs.changes.outputs.docs == 'true'
       - uses: ./.github/actions/powershell # zizmor: ignore[self-repository]
         if: needs.changes.outputs.code != 'false'
-      - name: Build
-        id: build
-        if: needs.changes.outputs.code != 'false'
-        shell: pwsh
-        run: dotnet build .\winshell.slnx -warnaserror --nologo
       - name: Check
         if: needs.changes.outputs.code != 'false'
         timeout-minutes: 15
         shell: pwsh
         run: |
           $env:PSModulePath = "$(Join-Path $env:RUNNER_TEMP 'psmodules');$env:PSModulePath"
-          ./scripts/check.ps1 -NoBuild
+          ./scripts/resharper.ps1 -Mode Check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet build scripts/generate-reference.cs --nologo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Import-Module Pester -RequiredVersion 5.6.1
+          $result = Invoke-Pester -Path tests/Scripts -PassThru
+          if ($result.Result -ne 'Passed') { exit 1 }
       - name: Check compiled documentation
         if: needs.changes.outputs.code == 'false' && needs.changes.outputs.docs == 'true'
         shell: pwsh
         run: ./scripts/check.ps1 -Tier Docs
-  stop:
-    # Code that doesn't compile has nothing for slow to prove, so its runner goes back. It is a separate job so that ci,
-    # which runs the code under test, gets no token that can cancel a run.
-    name: stop
-    needs: ci
-    if: ${{ failure() && github.event_name == 'pull_request' && needs.ci.outputs.built == 'failure' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      actions: write # cancels this run
-    steps:
-      - name: Cancel the rest of this run
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RUN: ${{ github.run_id }}
-        run: gh run cancel "$RUN"
-
-  slow:
-    # The tests that start winshell.exe or open a real window. The ruleset requires this job by name.
-    name: slow
+  tests:
+    name: tests (${{ matrix.shard }}/4)
     needs: changes
     if: ${{ !cancelled() && github.event.pull_request.draft != true && needs.changes.outputs.code != 'false' }}
     runs-on: windows-2025
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      TEST_SHARD: ${{ matrix.shard }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       # The pinned actionlint cannot parse self-repository syntax; local actions use this checkout.
       - uses: ./.github/actions/prepare # zizmor: ignore[self-repository]
-      - name: Build
+      - name: Build the suite shard
         shell: pwsh
-        run: dotnet build .\winshell.slnx -warnaserror --nologo
-      - name: Slow tests
-        timeout-minutes: 10
+        run: |
+          . ./scripts/lib/Tests.ps1
+          $testRun = Get-TestRun -Shard $env:TEST_SHARD
+          foreach ($project in $testRun.Projects) {
+            dotnet build $project -warnaserror --nologo
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Run the suite shard
         shell: pwsh
-        run: ./scripts/check.ps1 -NoBuild -Tier Slow
+        run: |
+          . ./scripts/lib/Tests.ps1
+          exit (Invoke-TestRun -Shard $env:TEST_SHARD)
+
+  ci:
+    # The single required test check fails if any suite shard or quality check failed or was cancelled.
+    name: ci
+    needs: [quality, tests, installer]
+    if: ${{ always() && github.event.pull_request.draft != true }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check results
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          TEST_RESULT: ${{ needs.tests.result }}
+          INSTALLER_RESULT: ${{ needs.installer.result }}
+        run: |
+          test "$QUALITY_RESULT" = success
+          test "$TEST_RESULT" = success || test "$TEST_RESULT" = skipped
+          test "$INSTALLER_RESULT" = success || test "$INSTALLER_RESULT" = skipped
 
   actionlint:
     # actionlint catches broken expressions, typos and shell errors in .github/workflows/. zizmor audits .github/ for

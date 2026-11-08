@@ -5,7 +5,6 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Slow")]
 public sealed class ShellNoticeTests : IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();

@@ -21,7 +21,6 @@ public sealed class LivePanel : UserControl
     }
 }
 
-[Trait("Category", "Slow")]
 public sealed class XamlReloadTests : IDisposable
 {
     private const string Open =

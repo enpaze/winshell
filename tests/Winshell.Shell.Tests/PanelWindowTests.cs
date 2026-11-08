@@ -9,7 +9,6 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Slow")]
 public sealed class PanelWindowTests
 {
     private static PanelWindow Panel(FrameworkElement content)

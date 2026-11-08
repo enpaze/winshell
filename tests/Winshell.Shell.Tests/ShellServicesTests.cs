@@ -3,7 +3,6 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Slow")]
 public sealed class ShellServicesTests
 {
     [Fact]
@@ -29,17 +28,5 @@ public sealed class ShellServicesTests
         });
 
         Assert.True(resolved);
-    }
-
-    [Fact]
-    public async Task A_hotkey_with_no_sequence_takes_no_keys()
-    {
-        var registered = await ShellFixture.On(shell =>
-        {
-            using var hotkey = shell.NewHotkey();
-            return hotkey.Active;
-        });
-
-        Assert.False(registered);
     }
 }

@@ -4,7 +4,6 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Slow")]
 public sealed class PanelReloadTests
 {
     public sealed class Edited : Grid

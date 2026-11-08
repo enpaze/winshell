@@ -10,7 +10,6 @@ namespace Winshell.Tests;
 /// <c>winshell run</c> supervises the probe as a configuration's program. The probe hides Explorer's real taskbar when a
 /// test asks, so these tests take the taskbar from the desktop they run on, and put it back however they end.
 /// </summary>
-[Trait("Category", "Slow")]
 public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
@@ -194,7 +193,8 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
     private int NextShell(int previous)
     {
         var pid = 0;
-        Wait.Until(() => (pid = Listed().FirstOrDefault(p => p != previous)) != 0, "the shell in winshell list");
+        Wait.Until(() => (pid = new Instances(Path.Combine(_dir, "local", "run")).List(false)
+            .Select(row => row.Info.Pid).FirstOrDefault(p => p != previous)) != 0, "the shell to publish its instance");
         return pid;
     }
 

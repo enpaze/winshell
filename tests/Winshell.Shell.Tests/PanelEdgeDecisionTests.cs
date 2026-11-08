@@ -4,7 +4,7 @@ namespace Winshell.ShellTests;
 
 /// <summary>
 /// Where a panel sits and which edge it holds, against a stand-in for the desktop. What a real window does with those
-/// answers is in the Slow tests that need one.
+/// answers is covered by the native panel tests.
 /// </summary>
 public class PanelEdgeDecisionTests
 {

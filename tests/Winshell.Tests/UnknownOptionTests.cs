@@ -4,7 +4,6 @@ namespace Winshell.Tests;
 /// A bad command line exits 2 with only its message, before a shell starts. <see cref="CommandOptionTests"/> and
 /// <see cref="CommandWordTests"/> own each message.
 /// </summary>
-[Trait("Category", "Slow")]
 public class UnknownOptionTests
 {
     [Fact]

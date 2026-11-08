@@ -11,7 +11,6 @@ namespace Winshell.Services.Tests;
 /// zero never produces that refusal: any process may take the foreground, so the test says so instead of waiting
 /// out its patience. The same when the holder sends input and never becomes the foreground.
 /// </summary>
-[Trait("Category", "Slow")]
 public sealed class FocusTakeoverTests
 {
     /// <summary>How often Windows may hand over the foreground with no key tap before that is the machine, not a race.</summary>

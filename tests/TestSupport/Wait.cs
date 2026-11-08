@@ -62,6 +62,22 @@ internal static class Wait
         }
     }
 
+    /// <summary>Waits on an asynchronous observation, such as a request to another process's control pipe.</summary>
+    internal static async Task UntilAsync(Func<Task<bool>> done, string what, TimeSpan? patience = null)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var started = TimeProvider.System.GetTimestamp();
+        var pause = FirstPause;
+        while (!await done())
+        {
+            Assert.True(TimeProvider.System.GetElapsedTime(started) < (patience ?? Patience), $"Timed out: {what}");
+#pragma warning disable RS0030 // This is the one place a test waits on time.
+            await Task.Delay(pause, token);
+#pragma warning restore RS0030
+            pause = Next(pause);
+        }
+    }
+
     /// <summary>
     /// Gives something that must not happen the time to happen. On a slow machine this can miss a bug, but it can't fail
     /// a test that should pass. Never use it to wait for something that should happen: that is <see cref="Until"/>.

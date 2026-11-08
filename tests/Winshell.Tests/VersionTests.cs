@@ -3,7 +3,6 @@ using System.Text.RegularExpressions;
 
 namespace Winshell.Tests;
 
-[Trait("Category", "Slow")]
 public class VersionTests
 {
     // list only reads, so a version option it ignored could not change this PC.

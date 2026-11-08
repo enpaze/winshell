@@ -2,11 +2,11 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Slow")]
 public sealed class PixelImageSourceTests
 {
     [Theory]
@@ -29,6 +29,8 @@ public sealed class PixelImageSourceTests
                 VerticalAlignment = VerticalAlignment.Top,
                 Source = picture.ToImageSource()
             };
+            var loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            image.Loaded += (_, _) => loaded.TrySetResult();
             var screen = shell.Screens[0].Geometry;
             using var popup = new PopupWindow
             {
@@ -36,7 +38,24 @@ public sealed class PixelImageSourceTests
                 Content = new Grid { Children = { image } }
             };
             popup.Visible = true;
-            await ShellFixture.LaidOut(image).WaitAsync(TestContext.Current.CancellationToken);
+            await loaded.Task.WaitAsync(TestContext.Current.CancellationToken);
+            // Loaded precedes composition. Capture only once the visual has reached a render pass.
+            var composing = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            void Rendering(object? sender, object args)
+            {
+                composing.TrySetResult();
+            }
+
+            CompositionTarget.Rendering += Rendering;
+            try
+            {
+                await composing.Task.WaitAsync(TestContext.Current.CancellationToken);
+            }
+            finally
+            {
+                CompositionTarget.Rendering -= Rendering;
+            }
 
             var rendered = new RenderTargetBitmap();
             await rendered.RenderAsync(image, 2, 2).AsTask(TestContext.Current.CancellationToken);

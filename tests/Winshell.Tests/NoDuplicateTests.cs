@@ -9,7 +9,6 @@ namespace Winshell.Tests;
 /// <c>--no-duplicate</c> holds a per-shell-id mutex for the life of the shell, so a second start exits
 /// even when the first has not written instance.json yet. Two programs with different shell ids both stay.
 /// </summary>
-[Trait("Category", "Slow")]
 public sealed class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
@@ -63,9 +62,11 @@ public sealed class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>
         var winner = ReferenceEquals(loser, first) ? second : first;
         AssertExitedQuietly(loser);
 
-        Wait.Until(() => Listed().Any(i => i.GetProperty("pid").GetInt32() == winner.Id), $"instance {winner.Id}");
+        Wait.Until(() => Running().Any(i => i.Pid == winner.Id), $"instance {winner.Id}");
         Assert.False(winner.HasExited);
-        Assert.DoesNotContain(Listed(), i => i.GetProperty("pid").GetInt32() == loser.Id);
+        var listed = Listed();
+        Assert.Contains(listed, i => i.GetProperty("pid").GetInt32() == winner.Id);
+        Assert.DoesNotContain(listed, i => i.GetProperty("pid").GetInt32() == loser.Id);
     }
 
     [Fact]
@@ -73,7 +74,7 @@ public sealed class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>
     {
         ProbeShell.Detach(_config, _local, ["--no-duplicate", "-d"]).AssertExitCode(0);
 
-        Wait.Until(() => Listed().Any(i => i.GetProperty("shellId").GetString() == "probe"), "the background shell");
+        Wait.Until(() => Running().Any(i => i.ShellId == "probe"), "the background shell");
         var pid = Listed().Single(i => i.GetProperty("shellId").GetString() == "probe").GetProperty("pid").GetInt32();
         var child = Process.GetProcessById(pid);
         _started.Add(child);
@@ -86,7 +87,7 @@ public sealed class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>
     private Process Start(bool duplicate, string? shellId = null)
     {
         var process = Launch(duplicate, shellId);
-        Wait.Until(() => Listed().Any(i => i.GetProperty("pid").GetInt32() == process.Id),
+        Wait.Until(() => Running().Any(i => i.Pid == process.Id),
             $"instance {process.Id} in winshell list");
         return process;
     }
@@ -141,6 +142,11 @@ public sealed class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>
         result.AssertExitCode(0);
         using var json = JsonDocument.Parse(result.Output);
         return json.RootElement.EnumerateArray().Select(e => e.Clone()).ToList();
+    }
+
+    private List<InstanceInfo> Running()
+    {
+        return new Instances(Path.Combine(_local, "run")).List(false).Select(row => row.Info).ToList();
     }
 
     private ChildProcess Run(params string[] args)
