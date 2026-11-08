@@ -1,8 +1,6 @@
-using Microsoft.UI.Xaml.Controls;
-
 namespace MyShell;
 
-public sealed partial class PanelView : UserControl
+public sealed partial class PanelView
 {
     public PanelView()
     {

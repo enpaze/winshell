@@ -49,7 +49,7 @@ internal static class Program
 /// </summary>
 internal static partial class ReferencePages
 {
-    public const string Marker = "<!-- generated below: dotnet run scripts/generate-reference.cs -->";
+    private const string Marker = "<!-- generated below: dotnet run scripts/generate-reference.cs -->";
 
     private const BindingFlags Declared =
         BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
@@ -117,7 +117,7 @@ internal static partial class ReferencePages
     /// <summary>One namespace's page: links to included types, and the /// comments of every member.</summary>
     private sealed class Page(string ns, HashSet<Type> included, Dictionary<string, XElement> docs)
     {
-        private readonly NullabilityInfoContext nullability = new();
+        private readonly NullabilityInfoContext _nullability = new();
 
         public string Section(Type type)
         {
@@ -183,7 +183,7 @@ internal static partial class ReferencePages
             {
                 // A property has a getter or a setter.
                 var accessor = property.GetMethod ?? property.SetMethod!;
-                var kind = Name(property.PropertyType, nullability.Create(property).ReadState) +
+                var kind = Name(property.PropertyType, _nullability.Create(property).ReadState) +
                            (accessor.IsStatic ? ", static" : "");
                 if (property.SetMethod is not { IsPublic: true } setter)
                     kind += ", read-only";
@@ -196,7 +196,7 @@ internal static partial class ReferencePages
             foreach (var field in type.GetFields(Declared).Where(member => !Skip(member))
                          .OrderBy(member => member.Name, StringComparer.Ordinal))
             {
-                var kind = Name(field.FieldType, nullability.Create(field).ReadState) +
+                var kind = Name(field.FieldType, _nullability.Create(field).ReadState) +
                            (field.IsStatic ? ", static" : "");
                 yield return (field.Name, kind, "F:" + Id(type) + "." + field.Name);
             }
@@ -214,7 +214,7 @@ internal static partial class ReferencePages
                 var generic = method.IsGenericMethod
                     ? "<" + string.Join(", ", method.GetGenericArguments().Select(t => t.Name)) + ">"
                     : "";
-                var kind = Name(method.ReturnType, nullability.Create(method.ReturnParameter).ReadState) +
+                var kind = Name(method.ReturnType, _nullability.Create(method.ReturnParameter).ReadState) +
                            (method.IsStatic ? ", static" : "");
                 yield return ($"{method.Name}{generic}({Parameters(method)})", kind, Id(method));
             }
@@ -224,7 +224,8 @@ internal static partial class ReferencePages
         {
             return string.Join(", ", method.GetParameters().Select(parameter =>
             {
-                var text = $"{Name(parameter.ParameterType, nullability.Create(parameter).ReadState)} {parameter.Name}";
+                var text =
+                    $"{Name(parameter.ParameterType, _nullability.Create(parameter).ReadState)} {parameter.Name}";
                 return parameter.HasDefaultValue ? $"{text} = {Literal(parameter)}" : text;
             }));
         }
@@ -426,7 +427,7 @@ internal static partial class ReferencePages
     {
         var included = new HashSet<Type>();
         foreach (var type in assemblies.SelectMany(assembly => assembly.GetExportedTypes())
-                     .Where(type => type.IsPublic && !type.IsNested))
+                     .Where(type => type is { IsPublic: true, IsNested: false }))
             if (type.Namespace is "Winshell" ||
                 type.Namespace?.StartsWith("Winshell.", StringComparison.Ordinal) == true)
                 included.Add(type);
@@ -443,7 +444,7 @@ internal static partial class ReferencePages
                     continue;
                 if (related.IsGenericParameter || related.Name.StartsWith('<') || related.IsByRef || related.IsPointer)
                     continue;
-                if (!related.IsPublic && !related.IsNestedPublic)
+                if (related is { IsPublic: false, IsNestedPublic: false })
                     continue;
                 if (included.Add(related))
                     queue.Enqueue(related);
