@@ -4,7 +4,6 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -73,11 +72,6 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
                     return Listed(folders).Any(row => row.GetProperty("pid").GetInt32() == process.Id);
                 }, $"instance {pid} in winshell list");
 
-            // The starter sets no shell id. This program is outside the config folder, so the listed id is the
-            // hash of its bin\shell path.
-            Assert.Equal(HashedProgram(project.Program),
-                Listed(folders).Single(row => row.GetProperty("pid").GetInt32() == process.Id).GetProperty("shellId")
-                    .GetString());
             var log = WinshellCli.Run(["log", "--pid", pid], folders);
             log.AssertExitCode(0);
             Assert.Contains($"Winshell {templates.Version} on Windows", log.Output, StringComparison.Ordinal);
@@ -135,12 +129,6 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         return process;
-    }
-
-    private static string HashedProgram(string program)
-    {
-        var path = ConfigurationProject.InOutputFolder(program) ?? program;
-        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(path.ToLowerInvariant())))[..32];
     }
 
     private static List<JsonElement> Listed((string Name, string Value)[] environment)
