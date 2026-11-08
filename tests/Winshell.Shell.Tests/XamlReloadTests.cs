@@ -5,23 +5,28 @@ using Microsoft.UI.Xaml.Controls;
 namespace Winshell.ShellTests;
 
 /// <summary>A control as the XAML compiler leaves it, with fields for its names and a handler to connect.</summary>
-public sealed class LivePanel : UserControl
+public sealed partial class LivePanel : UserControl
 {
 #pragma warning disable CA1805 // Only a reload assigns it, which the compiler can't see and would otherwise reject.
+    // A reload assigns this field; readonly would reject that write.
+    // ReSharper disable once FieldCanBeMadeReadOnly.Global
     internal TextBlock? Label = null;
 #pragma warning restore CA1805
 
-    public int Remembered { get; set; }
+    public int Remembered { get; init; }
 
     public int Clicks { get; private set; }
 
+    // The saved markup names this handler, and the parameters are the event's signature.
+    // ReSharper disable UnusedMember.Local, UnusedParameter.Local
     private void OnClick(object sender, RoutedEventArgs e)
     {
         Clicks++;
     }
+    // ReSharper restore UnusedMember.Local, UnusedParameter.Local
 }
 
-public sealed class XamlReloadTests : IDisposable
+public sealed partial class XamlReloadTests : IDisposable
 {
     private const string Open =
         """<UserControl x:Class="Winshell.ShellTests.LivePanel" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" """;

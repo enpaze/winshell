@@ -4,17 +4,19 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Winshell.ShellTests;
 
-public sealed class PanelReloadTests
+public sealed partial class PanelReloadTests
 {
-    public sealed class Edited : Grid
+    private sealed partial class Edited : Grid
     {
-        public static int Built { get; private set; }
+        private static int Built { get; set; }
 
         public Edited()
         {
             Built++;
         }
 
+        // The compiler closure in this method is the edit the closure test reloads.
+        // ReSharper disable once UnusedMember.Local
         public Func<int> Counter()
         {
             var seen = Built;
@@ -22,7 +24,7 @@ public sealed class PanelReloadTests
         }
     }
 
-    public sealed class Throws : Grid
+    private sealed partial class Throws : Grid
     {
         public static bool Fail { get; set; }
 
@@ -33,12 +35,14 @@ public sealed class PanelReloadTests
         }
     }
 
-    public sealed class Takes(int size) : Grid
+    private sealed partial class Takes(int size) : Grid
     {
+        // Nothing reads this. The constructor argument is what stops a reload from replacing the content.
+        // ReSharper disable once UnusedMember.Local
         public int Size { get; } = size;
     }
 
-    public sealed class Disposable : Grid, IDisposable
+    private sealed partial class Disposable : Grid, IDisposable
     {
         public bool Disposed { get; private set; }
 
@@ -118,8 +122,10 @@ public sealed class PanelReloadTests
         Assert.True(built);
     }
 
-    public sealed class NestedRoot : Grid
+    private sealed partial class NestedRoot : Grid
     {
+        // PanelReload rebuilds the panel by invoking this constructor through reflection.
+        // ReSharper disable once UnusedMember.Local
         public NestedRoot()
         {
         }

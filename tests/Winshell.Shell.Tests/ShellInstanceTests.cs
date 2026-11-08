@@ -45,7 +45,7 @@ public sealed class ShellInstanceTests
 
         shell.Log.Warn("test", "sync --password SENTINEL-PASSWORD");
 
-        using var stream = new FileStream(info.Log, FileMode.Open, FileAccess.Read,
+        await using var stream = new FileStream(info.Log, FileMode.Open, FileAccess.Read,
             FileShare.ReadWrite | FileShare.Delete);
         using var reader = new StreamReader(stream);
         var text = await reader.ReadToEndAsync(TestContext.Current.CancellationToken);

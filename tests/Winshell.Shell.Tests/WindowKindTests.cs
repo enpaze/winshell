@@ -18,11 +18,9 @@ public sealed class WindowKindTests
         {
             var screen = shell.Screens[0].Geometry;
             var content = new Grid();
-            using var popup = new PopupWindow
-            {
-                Rect = new Rect(screen.X + 60, screen.Y + 60, 200, 120),
-                Content = content
-            };
+            using var popup = new PopupWindow();
+            popup.Rect = new Rect(screen.X + 60, screen.Y + 60, 200, 120);
+            popup.Content = content;
             popup.Visible = true;
             await ShellFixture.LaidOut(content);
             Win32.GetWindowRect(popup.Host!.Handle, out var r);
@@ -38,12 +36,10 @@ public sealed class WindowKindTests
         var dismissed = await ShellFixture.On(async shell =>
         {
             var screen = shell.Screens[0].Geometry;
-            using var popup = new PopupWindow
-            {
-                Rect = new Rect(screen.X + 60, screen.Y + 60, 200, 120),
-                GrabFocus = true,
-                Content = new Grid()
-            };
+            using var popup = new PopupWindow();
+            popup.Rect = new Rect(screen.X + 60, screen.Y + 60, 200, 120);
+            popup.GrabFocus = true;
+            popup.Content = new Grid();
             var heard = 0;
             popup.Dismissed += () => heard++;
             popup.Visible = true;
@@ -63,12 +59,10 @@ public sealed class WindowKindTests
         var heard = await ShellFixture.On(async shell =>
         {
             var screen = shell.Screens[0].Geometry;
-            using var popup = new PopupWindow
-            {
-                Rect = new Rect(screen.X + 60, screen.Y + 60, 200, 120),
-                GrabFocus = true,
-                Content = new Grid()
-            };
+            using var popup = new PopupWindow();
+            popup.Rect = new Rect(screen.X + 60, screen.Y + 60, 200, 120);
+            popup.GrabFocus = true;
+            popup.Content = new Grid();
             var count = 0;
             popup.Dismissed += () => count++;
             popup.Visible = true;
@@ -97,12 +91,10 @@ public sealed class WindowKindTests
             };
             var opened = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             flyout.Opened += (_, _) => opened.TrySetResult();
-            using var popup = new PopupWindow
-            {
-                Rect = new Rect(screen.X + 60, screen.Y + 60, 200, 48),
-                GrabFocus = true,
-                Content = button
-            };
+            using var popup = new PopupWindow();
+            popup.Rect = new Rect(screen.X + 60, screen.Y + 60, 200, 48);
+            popup.GrabFocus = true;
+            popup.Content = button;
             var heard = 0;
             popup.Dismissed += () => heard++;
             popup.Visible = true;
@@ -176,7 +168,10 @@ public sealed class WindowKindTests
         {
             using var window = create(shell);
             window.Visible = true;
-            using var app = new FloatingWindow { Width = 300, Height = 200, Content = new Grid() };
+            using var app = new FloatingWindow();
+            app.Width = 300;
+            app.Height = 200;
+            app.Content = new Grid();
             app.Visible = true;
             await Task.Yield();
             var front = app.Host!.Handle;
@@ -195,7 +190,11 @@ public sealed class WindowKindTests
         var read = await ShellFixture.On(async _ =>
         {
             var content = new Grid();
-            using var window = new FloatingWindow { Title = "Notes", Width = 500, Height = 300, Content = content };
+            using var window = new FloatingWindow();
+            window.Title = "Notes";
+            window.Width = 500;
+            window.Height = 300;
+            window.Content = content;
             window.Visible = true;
             await ShellFixture.LaidOut(content);
             return (window.ActualWidth, window.ActualHeight, Win32Title(window.Host!.Handle));
@@ -217,11 +216,12 @@ public sealed class WindowKindTests
             };
             var opened = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             flyout.Opened += (_, _) => opened.TrySetResult();
-            using var panel = new PanelWindow
-            {
-                Anchors = Edges.Top | Edges.Left, Margins = new Thickness(40, 40, 0, 0), Width = 200, Height = 48,
-                Content = button
-            };
+            using var panel = new PanelWindow();
+            panel.Anchors = Edges.Top | Edges.Left;
+            panel.Margins = new Thickness(40, 40, 0, 0);
+            panel.Width = 200;
+            panel.Height = 48;
+            panel.Content = button;
             panel.Visible = true;
             await ShellFixture.LaidOut(button);
             flyout.ShowAt(button);

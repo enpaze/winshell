@@ -12,7 +12,7 @@ public class WindowFocusTests
         private bool? _activation;
         private bool _grabbing;
 
-        public List<string> Effects { get; } = [];
+        private List<string> Effects { get; } = [];
 
         public void AllowActivation(bool allow)
         {

@@ -26,7 +26,8 @@ public sealed class PanelMenuTests
 
             await ShellFixture.On(shell =>
             {
-                using var panel = new PanelWindow { Content = new Grid() };
+                using var panel = new PanelWindow();
+                panel.Content = new Grid();
                 using var host = new HostWindow(shell.Platform, WindowKind.Panel, panel);
                 var foreground = Win32.GetForegroundWindow();
                 Assert.True(menu.Shows);
@@ -92,7 +93,7 @@ public sealed class PanelMenuTests
                 _ = PInvoke.AppendMenu(menu, MENU_ITEM_FLAGS.MF_STRING, 1, "Item");
                 _ = PInvoke.TrackPopupMenuEx(menu,
                     (uint)(TRACK_POPUP_MENU_FLAGS.TPM_RETURNCMD | TRACK_POPUP_MENU_FLAGS.TPM_NONOTIFY), 0, 0,
-                    (HWND)owner, null);
+                    (HWND)owner);
                 _closed.SetResult();
             }
             finally

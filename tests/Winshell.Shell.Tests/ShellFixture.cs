@@ -52,7 +52,7 @@ internal static class ShellFixture
 
     /// <summary>
     /// Keeps every other shell action out until <paramref name="action"/> finishes. A test that opens a window from the
-    /// control pipe, rather than from <see cref="On"/>, holds this across that window's whole life.
+    /// control pipe, rather than from <see cref="On{T}(Func{Shell, T})"/>, holds this across that window's whole life.
     /// </summary>
     public static Task Hold(Func<Task> action)
     {

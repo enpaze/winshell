@@ -74,7 +74,7 @@ public sealed class RealInputTests
         };
     }
 
-    private static async Task<string> Send(Shell shell, string command, params string[] args)
+    private static async Task Send(Shell shell, string command, params string[] args)
     {
         try
         {
@@ -83,7 +83,6 @@ public sealed class RealInputTests
                 said.StartsWith("The mouse moved since point", StringComparison.Ordinal) ||
                 (said.StartsWith("Nothing is pointed at", StringComparison.Ordinal) && command == "leave"))
                 Assert.Skip(said);
-            return said;
         }
         catch (IpcException e) when (e.Message.StartsWith("Someone used the mouse", StringComparison.Ordinal) ||
                                      e.Message == "The mouse moved, so nothing more was sent.")
