@@ -27,6 +27,10 @@
       <Pack>true</Pack>
       <PackagePath>buildTransitive/Winshell.props</PackagePath>
     </None>
+    <None Update="buildTransitive\app.manifest">
+      <Pack>true</Pack>
+      <PackagePath>buildTransitive/app.manifest</PackagePath>
+    </None>
   </ItemGroup>
 
   <!-- Private so the package does not depend on separate Winshell module packages. The assemblies are included below. -->

@@ -4,6 +4,10 @@
     <UseWinUI>true</UseWinUI>
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- Windows bitmap-scales a program that does not declare this, so a shell is blurry on a scaled screen and its
+         coordinates are not physical pixels. A project that sets ApplicationManifest keeps its own. The Windows App
+         SDK merges this into the manifest it embeds. -->
+    <ApplicationManifest Condition="'$(ApplicationManifest)' == ''">$(MSBuildThisFileDirectory)app.manifest</ApplicationManifest>
     <!-- A shell mostly waits. PGO keeps instrumenting code it will never make hot, and a background GC thread saves pauses
          nobody sees on so small a heap. Together they cost a third of an idle shell's CPU. -->
     <TieredPGO>false</TieredPGO>
