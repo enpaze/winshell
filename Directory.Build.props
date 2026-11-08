@@ -16,6 +16,14 @@
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
+  <!-- ReSharper's namespace check uses this root, not the project name. Core, Services and Shell
+       share the Winshell namespace; the shell tests use one identifier. A Services feature folder
+       adds the next segment itself. -->
+  <PropertyGroup>
+    <RootNamespace Condition="'$(MSBuildProjectName)' == 'Winshell.Core' or '$(MSBuildProjectName)' == 'Winshell.Shell' or '$(MSBuildProjectName)' == 'Winshell.Services'">Winshell</RootNamespace>
+    <RootNamespace Condition="'$(MSBuildProjectName)' == 'Winshell.Shell.Tests'">Winshell.ShellTests</RootNamespace>
+  </PropertyGroup>
+
   <!-- The product version is the release-please manifest. -p:Version= overrides it.
        A build that cannot read the manifest is 0.0.0-dev. Projects are not packable unless they opt in. -->
   <PropertyGroup>

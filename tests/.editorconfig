@@ -1,0 +1,20 @@
+[*.cs]
+# A test's name is a sentence, with underscores for spaces. Severity stays none so the build's
+# naming analyzer does not require that of every method; ReSharper reads the style below.
+dotnet_naming_rule.sentence_test_method.symbols = sentence_test_method
+dotnet_naming_rule.sentence_test_method.style = sentence_test_method_style
+dotnet_naming_rule.sentence_test_method.severity = none
+dotnet_naming_rule.sentence_test_method.resharper_description = A test's name is a sentence, with underscores for spaces
+dotnet_naming_rule.sentence_test_method.resharper_style = Aa_bb
+
+dotnet_naming_symbols.sentence_test_method.applicable_kinds = method
+dotnet_naming_symbols.sentence_test_method.applicable_accessibilities = *
+dotnet_naming_symbols.sentence_test_method.resharper_applicable_kinds = test_member
+dotnet_naming_symbols.sentence_test_method.resharper_required_modifiers = static, instance
+
+dotnet_naming_style.sentence_test_method_style.capitalization = first_word_upper
+dotnet_naming_style.sentence_test_method_style.word_separator = _
+
+[Winshell.Services.Tests/TrayBackendTests.cs]
+# The window procedure index is the Windows constant, quoted by its Windows name.
+resharper_csharp_naming_rule.private_constants = AaBb,AA_BB

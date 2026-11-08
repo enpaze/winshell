@@ -53,6 +53,16 @@ dotnet_diagnostic.CS4014.severity = error
 # A test has no reason to leave xUnit's synchronization context.
 dotnet_diagnostic.CA2007.severity = none
 
+[src/Winshell.Native/**.cs]
+# Windows ABI names keep the Windows spelling. Winshell's own names stay PascalCase.
+resharper_csharp_naming_rule.constants = AaBb,AA_BB
+resharper_csharp_naming_rule.static_readonly = AaBb,AA_BB
+resharper_csharp_naming_rule.types_and_namespaces = AaBb,AA_BB
+
+[src/Winshell.Services/Tray/TrayProtocol.cs]
+# NOTIFYICONDATA flags keep their Windows names beside this file's PascalCase constants.
+resharper_csharp_naming_rule.constants = AaBb,AA_BB
+
 [{*.go,Makefile,*.mk}]
 indent_style = tab
 

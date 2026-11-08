@@ -31,6 +31,10 @@ Cleanup repeats until the selected files stop changing, failing if the profile d
 
 Template sources are analyzed in a temporary solution against the current source libraries. The original template project keeps its package reference and version placeholder. Packed-template and live UI validation remain separate checks. Inspection reports suggestions, warnings and errors; it exits 1 when any remain and does not hide existing findings behind a baseline. Inspection is a local command, not a CI gate.
 
+The namespace ReSharper expects is the project's `RootNamespace`, then each folder that is a namespace provider. `Directory.Build.props` sets that root to `Winshell` for Core, Services and Shell, and to `Winshell.ShellTests` for the shell tests. Core's folders and Native's feature folders are not providers, so that code stays in `Winshell` and `Winshell.Native`. A Services folder is a provider only when the namespace is `Winshell` plus the folder, as in `Winshell.Network`. `Config`, `Images`, `Instances`, `Ipc` and `Screens` stay in `Winshell`. `PropVariant` stays in `Windows.Win32.System.Com.StructuredStorage`, the namespace CsWin32 generates, so that file still disagrees with its folder.
+
+In Native, a constant, a static readonly field or a type may use the Windows spelling (`ABE_BOTTOM`, `POINT`) as well as PascalCase. `SH` and `UI` stay capitals, so `SHAppBarMessage` and `WinUI` do too. The tray protocol's Windows flags, and a test that quotes `GWLP_WNDPROC`, may use that spelling. A test method's name is a sentence with underscores for spaces. A local constant, a private field and the template's `Program` stay under the ordinary rules.
+
 ## Build from source
 
 You need Git and the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0):
