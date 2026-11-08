@@ -321,6 +321,8 @@ public sealed class CrashReportSafetyTests : IDisposable
         var writing = true;
         var reader = new Thread(() =>
             {
+                // The writer clears this flag to stop the reader.
+                // ReSharper disable once AccessToModifiedClosure
                 while (Volatile.Read(ref writing))
                     foreach (var file in Directory.GetFiles(folder))
                         try
