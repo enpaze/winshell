@@ -35,7 +35,6 @@ public sealed class WallpaperServiceTests
         List<string?> heard = [];
         wallpaper.PropertyChanged += (_, e) => heard.Add(e.PropertyName);
         var left = wallpaper.Screens[0];
-        var right = wallpaper.Screens[1];
 
         Assert.False(wallpaper.SetImage(left, @"C:\wall\a.jpg"));
         Assert.Empty(backend.Images);
@@ -81,7 +80,7 @@ public sealed class WallpaperServiceTests
         wallpaper.PropertyChanged += (_, e) => heard.Add(e.PropertyName);
         var reads = backend.Reads;
 
-        backend.Snapshot = backend.Snapshot with { Fit = WallpaperFit.Tile };
+        backend.Current = backend.Current with { Fit = WallpaperFit.Tile };
         backend.Raise();
         loop.Process();
         Assert.Equal(WallpaperFit.Fill, wallpaper.Fit);
@@ -94,12 +93,12 @@ public sealed class WallpaperServiceTests
         Assert.Equal(reads + 1, backend.Reads);
 
         heard.Clear();
-        backend.Snapshot = backend.Snapshot with
+        backend.Current = backend.Current with
         {
             Monitors =
             [
-                backend.Snapshot.Monitors[0] with { Image = @"C:\wall\e.jpg" },
-                backend.Snapshot.Monitors[1]
+                backend.Current.Monitors[0] with { Image = @"C:\wall\e.jpg" },
+                backend.Current.Monitors[1]
             ],
             Background = new WallpaperColor(9, 9, 9)
         };
@@ -154,7 +153,7 @@ public sealed class WallpaperServiceTests
         Assert.Equal(images, backend.Images.Count);
         Assert.Equal(fits, backend.Fits.Count);
         Assert.Equal(colors, backend.Colors.Count);
-        backend.Snapshot = backend.Snapshot with { Fit = WallpaperFit.Span };
+        backend.Current = backend.Current with { Fit = WallpaperFit.Span };
         backend.Raise();
         loop.Advance(Settled);
         Assert.Equal(WallpaperFit.Fill, wallpaper.Fit);
@@ -176,7 +175,7 @@ public sealed class WallpaperServiceTests
         Assert.Equal([WallpaperFit.Fill], backend.Fits);
         Assert.Equal([new WallpaperColor(0, 0, 0)], backend.Colors);
 
-        backend.Snapshot = Snapshot();
+        backend.Current = Snapshot();
         backend.Raise();
         loop.Advance(Settled);
         Assert.Equal(@"C:\wall\a.jpg", wallpaper.Screens[0].Image);
@@ -188,7 +187,7 @@ public sealed class WallpaperServiceTests
 
         List<string?> heard = [];
         wallpaper.PropertyChanged += (_, e) => heard.Add(e.PropertyName);
-        backend.Snapshot = WallpaperSnapshot.Unavailable;
+        backend.Current = WallpaperSnapshot.Unavailable;
         backend.Raise();
         loop.Advance(Settled);
         Assert.Equal(@"C:\wall\a.jpg", wallpaper.Screens[0].Image);
@@ -209,7 +208,7 @@ public sealed class WallpaperServiceTests
 
     private sealed class FakeWallpaperBackend(WallpaperSnapshot snapshot) : IWallpaperBackend
     {
-        public WallpaperSnapshot Snapshot { get; set; } = snapshot;
+        public WallpaperSnapshot Current { get; set; } = snapshot;
 
         public int Reads { get; private set; }
 
@@ -231,7 +230,7 @@ public sealed class WallpaperServiceTests
         public WallpaperSnapshot Read()
         {
             Reads++;
-            return Snapshot;
+            return Current;
         }
 
         public bool SetImage(string? monitorId, string image)
@@ -239,9 +238,9 @@ public sealed class WallpaperServiceTests
             Images.Add((monitorId, image));
             if (!Accepts)
                 return false;
-            Snapshot = Snapshot with
+            Current = Current with
             {
-                Monitors = Snapshot.Monitors.Select(monitor =>
+                Monitors = Current.Monitors.Select(monitor =>
                         monitorId is null || monitor.MonitorId == monitorId ? monitor with { Image = image } : monitor)
                     .ToArray()
             };
@@ -253,7 +252,7 @@ public sealed class WallpaperServiceTests
             Fits.Add(fit);
             if (!Accepts)
                 return false;
-            Snapshot = Snapshot with { Fit = fit };
+            Current = Current with { Fit = fit };
             return true;
         }
 
@@ -262,7 +261,7 @@ public sealed class WallpaperServiceTests
             Colors.Add(color);
             if (!Accepts)
                 return false;
-            Snapshot = Snapshot with { Background = color };
+            Current = Current with { Background = color };
             return true;
         }
 

@@ -22,9 +22,9 @@ public sealed class PrivacyServiceTests
         backend.Consent.Add(new ConsentRecord(PrivacyCapability.Camera, true,
             "Microsoft.WindowsCamera_8wekyb3d8bbwe", 20, 0, "Camera"));
         backend.Consent.Add(new ConsentRecord(PrivacyCapability.Microphone, false,
-            @"C:#Windows#System32#SoundRecorder.exe", 30, 10, ""));
+            "C:#Windows#System32#SoundRecorder.exe", 30, 10, ""));
         backend.Consent.Add(new ConsentRecord(PrivacyCapability.Location, false,
-            @"C:#Apps#Maps.exe", 5, 5, "Maps"));
+            "C:#Apps#Maps.exe", 5, 5, "Maps"));
         backend.Consent.Add(new ConsentRecord(PrivacyCapability.Location, false, "brave.exe", 8, 0, ""));
         backend.Consent.Add(new ConsentRecord(PrivacyCapability.Location, false, "Shell.exe", 9, 0, ""));
         using var privacy = new PrivacyService(loop, new Log(), backend);
@@ -77,7 +77,7 @@ public sealed class PrivacyServiceTests
         Assert.Equal(@"C:\Apps\Meet.exe", meet.Path);
 
         backend.Consent.Add(new ConsentRecord(PrivacyCapability.Microphone, false,
-            @"C:#shell#Shell.exe", 40, 0, "Shell"));
+            "C:#shell#Shell.exe", 40, 0, "Shell"));
         backend.Raise();
         loop.Advance(Settle);
         Assert.Equal(2, privacy.Microphone.Count);
@@ -194,9 +194,9 @@ public sealed class PrivacyServiceTests
 
         public List<MicrophoneCapture> Captures { get; } = [];
 
-        public string ProgramPath { get; set; } = ShellPath;
+        public string ProgramPath { get; init; } = ShellPath;
 
-        public string PackageFamilyName { get; set; } = "";
+        public string PackageFamilyName { get; init; } = "";
 
         public int Reads { get; private set; }
 
