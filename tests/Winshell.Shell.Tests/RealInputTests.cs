@@ -50,7 +50,7 @@ public sealed class RealInputTests
             return await Inspector.Run(shell, command, args);
         }
         catch (IpcException e) when (e.Message.StartsWith("Someone used the mouse", StringComparison.Ordinal) ||
-                                     e.Message.Contains("moved", StringComparison.Ordinal))
+                                     e.Message == "The mouse moved, so nothing more was sent.")
         {
             Assert.Skip(e.Message);
             throw;

@@ -28,7 +28,10 @@ internal static unsafe class KeyInput
             inputs[i].Anonymous.ki.dwExtraInfo = Marker;
         }
 
-        SentInput.Send(inputs, 1);
+        fixed (INPUT* first = inputs)
+        {
+            _ = PInvoke.SendInput((uint)inputs.Length, first, sizeof(INPUT));
+        }
     }
 
     /// <summary>

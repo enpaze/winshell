@@ -51,6 +51,9 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
     private Hold? _hold;
     private bool _busy;
 
+    /// <summary>Where the cursor goes back to while a command has it away, and where that command put it.</summary>
+    private (POINT Back, POINT At)? _away;
+
     /// <summary>What became of the cursor when it went back.</summary>
     private enum Given
     {
@@ -98,7 +101,7 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         var hold = _hold;
         return await Release() switch
         {
-            null => "Nothing was pointed at.",
+            null => "Nothing is pointed at: there was no point, or it has ended.",
             Given.Back => "The cursor is back where it was.",
             Given.BackStillHovered =>
                 $"The cursor is back where it was, but {hold!.Target.Name} may keep its hover look until the mouse moves.",
@@ -241,15 +244,19 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         return $"Pressed {sequence.Text}";
     }
 
-    /// <summary>A held cursor goes back as the shell ends, with no time to step off the element first.</summary>
+    /// <summary>
+    /// A cursor a command or a <c>point</c> has away goes back as the shell ends, with no time to step off the element
+    /// first.
+    /// </summary>
     public void Dispose()
     {
-        if (_hold is not { } hold)
-            return;
+        var hold = _hold;
         _hold = null;
-        hold.Timer?.Dispose();
-        if (IsAt(hold.At))
-            Cursor.MoveTo(hold.Back.X, hold.Back.Y);
+        hold?.Timer?.Dispose();
+        var away = _away ?? (hold is null ? null : (hold.Back, hold.At));
+        if (away is ({ } back, { } at) && IsAt(at))
+            PutBack(back);
+        _away = null;
     }
 
     /// <summary>
@@ -368,9 +375,11 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
             {
                 for (var attempt = 0; attempt * Retry < Arrival && !come.Seen.IsCompleted; attempt++)
                 {
-                    at = target.At with { X = target.At.X + attempt % 2 };
-                    RefuseAt(target, at);
-                    Sent(PointerInput.MoveTo(at));
+                    var next = target.At with { X = target.At.X + attempt % 2 };
+                    RefuseAt(target, next);
+                    _away = (back, next);
+                    Sent(PointerInput.MoveTo(next));
+                    at = next;
                     await Task.WhenAny(come.Seen, Task.Delay(Retry, loop.Time));
                 }
 
@@ -387,10 +396,17 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         }
         catch (IpcException)
         {
-            if (IsAt(at))
-                Cursor.MoveTo(back.X, back.Y);
+            if (_away is not null && IsAt(at))
+                PutBack(back);
+            _away = null;
             throw;
         }
+    }
+
+    /// <summary>Puts the cursor at <paramref name="back"/>, and keeps the time, so the move isn't taken for the user's.</summary>
+    private static void PutBack(POINT back)
+    {
+        SentInput.Around(() => Cursor.MoveTo(back.X, back.Y));
     }
 
     /// <summary>Posts Tab and waits up to a second for keyboard focus to move. False when it didn't.</summary>
@@ -449,7 +465,11 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
     private async Task<Given> GiveBack(Target target, POINT back, POINT left)
     {
         if (!IsAt(left))
+        {
+            _away = null;
             return Given.Taken;
+        }
+
         var stepped = false;
         var now = left;
         if (Off(target) is { } off)
@@ -458,6 +478,7 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
             try
             {
                 RefuseAt(target, off);
+                _away = (back, off);
                 Sent(PointerInput.MoveTo(off));
                 now = off;
                 await Task.WhenAny(go.Seen, Task.Delay(Arrival, loop.Time));
@@ -469,29 +490,39 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
             }
         }
 
+        _away = null;
         if (PointerInput.Cursor() is not { } cursor || Math.Abs(cursor.X - now.X) > 1 || Math.Abs(cursor.Y - now.Y) > 1)
             return Given.Taken;
-        Cursor.MoveTo(back.X, back.Y);
+        PutBack(back);
         return stepped ? Given.Back : Given.BackStillHovered;
     }
 
-    /// <summary>A spot in the target's window, on top there, where XAML finds something other than the element.</summary>
+    /// <summary>
+    /// A spot in the target's window, on top there, where XAML finds something other than the element. Best is one
+    /// where it finds nothing, or only what holds the element, which has the pointer already: there no other control
+    /// gets a hover it would keep.
+    /// </summary>
     private static POINT? Off(Target target)
     {
         if (target.Element.XamlRoot is not { Content: { } content } root)
             return null;
         var (width, height) = (root.Size.Width, root.Size.Height);
+        POINT? other = null;
         for (var row = 0; row < 5; row++)
         for (var column = 0; column < 5; column++)
         {
             var at = new Point((column + 0.5) * width / 5, (row + 0.5) * height / 5);
-            if (Holds(target.Element, VisualTreeHelper.FindElementsInHostCoordinates(at, content).FirstOrDefault()))
+            var hit = VisualTreeHelper.FindElementsInHostCoordinates(at, content).FirstOrDefault();
+            if (Holds(target.Element, hit) ||
+                OnScreen(target.Window, root, at) is not { } point ||
+                !Ours(PointerInput.RootWindowAt(point), target.Window))
                 continue;
-            if (OnScreen(target.Window, root, at) is { } point && Ours(PointerInput.RootWindowAt(point), target.Window))
+            if (hit is not FrameworkElement framed || Holds(framed, target.Element))
                 return point;
+            other ??= point;
         }
 
-        return null;
+        return other;
     }
 
     /// <summary>Ends a <c>point</c>, and says what became of the cursor, or null when nothing was held.</summary>

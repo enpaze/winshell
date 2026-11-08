@@ -4,8 +4,10 @@ using Windows.Win32.UI.Input.KeyboardAndMouse;
 namespace Winshell.Native;
 
 /// <summary>
-/// When this process last sent input of its own, as <c>GetTickCount</c> times, so a check for the user's input can tell
-/// theirs apart: <c>GetLastInputInfo</c> counts both, and keeps only the newest.
+/// When <c>winshell inspect</c>'s real input was last sent, as <c>GetTickCount</c> times, so its check for the user's
+/// input can tell theirs apart: <c>GetLastInputInfo</c> counts both, and keeps only the newest. Only those sends are
+/// kept. Each comes right after that check, so it can't hide the user's input; another send, such as a focus
+/// takeover's, could.
 /// </summary>
 internal static unsafe class SentInput
 {
