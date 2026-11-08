@@ -261,6 +261,15 @@ public sealed class DevCommandTests : IDisposable
             .ToList();
     }
 
+    /// <summary>
+    /// Waits for this watch's build nodes to exit. Without reuse they exit a moment after the build, which on a busy PC
+    /// can be after the shell is up. A node kept for reuse stays idle for minutes, so it still fails the wait.
+    /// </summary>
+    private void NodesExit()
+    {
+        Wait.Until(() => IdleNodes().Count == 0, "winshell dev's MSBuild nodes to exit");
+    }
+
     private static bool Reaches(int pid, Dictionary<int, int> parent, int root)
     {
         var seen = new HashSet<int>();
@@ -349,8 +358,7 @@ public sealed class DevCommandTests : IDisposable
         var reuse = await ReadValue("reuse");
         Assert.Equal(0, reuse.Code);
         Assert.Equal("", reuse.Text);
-        var idle = IdleNodes();
-        Assert.True(idle.Count == 0, "winshell dev left an idle MSBuild node: " + string.Join(", ", idle));
+        NodesExit();
         var shell = ShellProcess();
         var id = InstanceId();
         // Start opens this shortcut. The app has to outlive the rebuild and the end of winshell dev.
@@ -389,8 +397,7 @@ public sealed class DevCommandTests : IDisposable
             return await Shown() == "three";
         }, "the shell to start again", BuildPatience);
         Assert.NotEqual(shell, ShellProcess());
-        idle = IdleNodes();
-        Assert.True(idle.Count == 0, "winshell dev left an idle MSBuild node: " + string.Join(", ", idle));
+        NodesExit();
         reuse = await ReadValue("reuse");
         Assert.Equal(0, reuse.Code);
         Assert.Equal("", reuse.Text);
