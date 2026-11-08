@@ -1,5 +1,5 @@
 name: Changes
-description: Which checks this pull request or push to main needs, as scripts/ci-changes.ps1 decides. Needs a checkout.
+description: Which checks this pull request or push to main needs, as scripts/ci-changes.ps1 decides, or every check for a run by hand. Needs a checkout.
 
 outputs:
   code:
@@ -21,6 +21,7 @@ runs:
       shell: pwsh
       env:
         GH_TOKEN: ${{ github.token }}
+        EVENT: ${{ github.event_name }}
         REPO: ${{ github.repository }}
         PR: ${{ github.event.number }}
         BEFORE: ${{ github.event.before }}
@@ -28,14 +29,18 @@ runs:
       run: |
         $ErrorActionPreference = 'Stop'
         $files = Join-Path $env:RUNNER_TEMP 'changed-files.json'
-        if ($env:PR) {
+        if ($env:EVENT -eq 'workflow_dispatch') {
+          # A run by hand has no change to compare against, and ci-changes.ps1 runs every check for an empty list.
+          $rows = @()
+          $limit = 3000
+        } elseif ($env:PR) {
           $rows = @(gh api --paginate "repos/$env:REPO/pulls/$env:PR/files?per_page=100" --jq '.[] | @json')
           $limit = 3000
         } else {
           $rows = @(gh api "repos/$env:REPO/compare/$env:BEFORE...$env:AFTER" --jq '.files[] | @json')
           $limit = 300
         }
-        if ($LASTEXITCODE -ne 0) { throw 'Could not read changed files.' }
+        if ($env:EVENT -ne 'workflow_dispatch' -and $LASTEXITCODE -ne 0) { throw 'Could not read changed files.' }
         $changed = @($rows | ForEach-Object { $_ | ConvertFrom-Json })
         ConvertTo-Json -InputObject $changed -Depth 10 | Set-Content -LiteralPath $files
         ./scripts/ci-changes.ps1 -Files $files -MaxFiles $limit |
