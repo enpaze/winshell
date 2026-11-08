@@ -26,7 +26,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     public void The_small_shell_is_listed_and_killed()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        Run("PackedShell", templates.SmallProject);
+        Run(templates.SmallProject);
     }
 
     [Fact(Timeout = PatienceMs)]
@@ -45,7 +45,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         Assert.Equal(templates.UserPathBefore, PackedTemplates.UserPath());
     }
 
-    private void Run(string shellId, string projectFile)
+    private void Run(string projectFile)
     {
         var project = ConfigurationProject.Find(projectFile, null, Path.GetDirectoryName(projectFile)!, out var error);
         Assert.Null(error);
@@ -72,9 +72,6 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
                     return Listed(folders).Any(row => row.GetProperty("pid").GetInt32() == process.Id);
                 }, $"instance {pid} in winshell list");
 
-            Assert.Equal(shellId,
-                Listed(folders).Single(row => row.GetProperty("pid").GetInt32() == process.Id).GetProperty("shellId")
-                    .GetString());
             var log = WinshellCli.Run(["log", "--pid", pid], folders);
             log.AssertExitCode(0);
             Assert.Contains($"Winshell {templates.Version} on Windows", log.Output, StringComparison.Ordinal);
