@@ -144,8 +144,59 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         document.Save(project);
         var result = ConfigurationProject.Run("dotnet", ["build", project, "-warnaserror", "--nologo"], folder.Path);
         Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains("bad-widget", result.Output, StringComparison.Ordinal);
         Assert.Contains(diagnostic, result.Output, StringComparison.Ordinal);
+        if (diagnostic.StartsWith("error CS", StringComparison.Ordinal))
+        {
+            // The compiler cites the generated file. That line carries the item name and the type.
+            var generated = Assert.Single(Directory.GetFiles(Path.Combine(folder.Path, "obj"),
+                "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
+            var source = File.ReadAllText(generated);
+            Assert.Contains("WinshellWidgetRegistration.g.cs", result.Output, StringComparison.Ordinal);
+            Assert.Contains("\"bad-widget\"", source, StringComparison.Ordinal);
+            Assert.Contains(type, source, StringComparison.Ordinal);
+        }
+        else
+        {
+            Assert.Contains("bad-widget", result.Output, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact(Timeout = PatienceMs)]
+    public void A_widget_item_builds_inside_a_git_repository()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        using var folder = new TempFolder();
+        var projectFile = CopyTemplate(folder.Path);
+        var document = XDocument.Load(projectFile);
+        document.Root!.Add(new XElement("ItemGroup",
+            new XElement("WinshellWidget", new XAttribute("Include", "clock"),
+                new XAttribute("Type", "PackedShell.ClockWidget"))));
+        document.Save(projectFile);
+        File.WriteAllText(Path.Combine(folder.Path, "AppShell.cs"), """
+            using Microsoft.UI.Xaml.Controls;
+            using Winshell;
+            namespace PackedShell;
+            public sealed class AppShell : ShellConfiguration
+            {
+                public override void Start(Shell shell) { }
+            }
+            public sealed class ClockWidget : UserControl
+            {
+                public ClockWidget(WidgetContext context) => Content = new TextBlock { Text = "clock" };
+            }
+            """);
+        // SourceLink embeds the registration file when a repository ignores it, which is how a .NET checkout treats
+        // obj/. The other widget builds use a temp folder that is not a repository, so they never reach that failure.
+        File.WriteAllText(Path.Combine(folder.Path, ".gitignore"), "bin/\nobj/\n");
+        var git = ConfigurationProject.Run("git", ["init"], folder.Path);
+        Assert.True(git.ExitCode == 0, git.Output);
+        var built = ConfigurationProject.Run(
+            "dotnet", ["build", projectFile, "-c", "Release", "-warnaserror", "--nologo"], folder.Path);
+        Assert.True(built.ExitCode == 0, built.Output);
+        var registration = File.ReadAllText(Assert.Single(Directory.GetFiles(Path.Combine(folder.Path, "obj"),
+            "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories)));
+        Assert.Contains("\"clock\"", registration, StringComparison.Ordinal);
+        Assert.Contains("PackedShell.ClockWidget", registration, StringComparison.Ordinal);
     }
 
     private string CopyTemplate(string folder)

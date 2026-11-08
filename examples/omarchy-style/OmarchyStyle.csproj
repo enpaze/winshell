@@ -8,9 +8,6 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>OmarchyStyle</RootNamespace>
-    <!-- The registration file's #line names are not files. A git checkout embeds untracked sources, and the compiler
-         then fails trying to open those names. -->
-    <EmbedUntrackedSources>false</EmbedUntrackedSources>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
   </PropertyGroup>
