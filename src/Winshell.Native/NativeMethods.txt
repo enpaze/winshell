@@ -202,3 +202,16 @@ HSHELL_REDRAW
 HSHELL_HIGHBIT
 
 ProcessIdToSessionId
+
+// Session power actions: sign out, restart, shut down, sleep and hibernate. One block, so later
+// NativeMethods.txt edits can rebase around it.
+ExitWindowsEx
+InitiateShutdownW
+AdjustTokenPrivileges
+LookupPrivilegeValueW
+GetCurrentProcess
+SetSuspendState
+GetPwrCapabilities
+CallNtPowerInformation
+SHUTDOWN_REASON
+SHUTDOWN_FLAGS

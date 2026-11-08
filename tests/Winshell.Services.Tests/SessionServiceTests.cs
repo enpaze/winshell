@@ -3,7 +3,7 @@ using Winshell.Session;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>Locking and sign-in, each over a fake. Nothing here changes this PC.</summary>
+/// <summary>The Windows session and sign-in, each over a fake. Nothing here changes this PC.</summary>
 public sealed class SessionServiceTests
 {
     private readonly List<string> _warnings = [];
@@ -38,6 +38,60 @@ public sealed class SessionServiceTests
         Assert.False(new SessionService(_log, new FakeSessionBackend(false)).Lock());
 
         Assert.Equal(["session: Windows did not lock the session."], _warnings);
+    }
+
+    [Fact]
+    public void Each_action_asks_Windows_once()
+    {
+        var windows = new FakeSessionBackend(true);
+        var session = new SessionService(_log, windows);
+
+        Assert.True(session.SignOut());
+        Assert.True(session.Restart());
+        Assert.True(session.ShutDown());
+        Assert.True(session.Sleep());
+        Assert.True(session.Hibernate());
+
+        Assert.Equal(["sign out", "restart", "shut down", "sleep", "hibernate"], windows.Actions);
+        Assert.Empty(_warnings);
+    }
+
+    [Fact]
+    public void Each_action_reports_when_Windows_refuses()
+    {
+        var session = new SessionService(_log, new FakeSessionBackend(false));
+
+        Assert.False(session.SignOut());
+        Assert.False(session.Restart());
+        Assert.False(session.ShutDown());
+        Assert.False(session.Sleep());
+        Assert.False(session.Hibernate());
+
+        Assert.Equal([
+            "session: Windows did not sign out.",
+            "session: Windows did not restart.",
+            "session: Windows did not shut down.",
+            "session: Windows did not sleep.",
+            "session: Windows did not hibernate."
+        ], _warnings);
+    }
+
+    [Fact]
+    public void Sleep_and_hibernate_availability_is_what_Windows_reports()
+    {
+        var asleep = new FakeSessionBackend(true) { SleepAvailable = true, HibernateAvailable = false };
+        var session = new SessionService(_log, asleep);
+
+        Assert.True(session.SleepAvailable);
+        Assert.False(session.HibernateAvailable);
+
+        var hibernates = new FakeSessionBackend(true) { SleepAvailable = false, HibernateAvailable = true };
+        session = new SessionService(_log, hibernates);
+
+        Assert.False(session.SleepAvailable);
+        Assert.True(session.HibernateAvailable);
+        Assert.Equal(0, asleep.Calls + hibernates.Calls);
+        Assert.Empty(_warnings);
     }
 
     [Fact]
@@ -120,9 +174,46 @@ public sealed class SessionServiceTests
     {
         public int Calls { get; private set; }
 
+        public List<string> Actions { get; } = [];
+
+        public bool SleepAvailable { get; init; }
+
+        public bool HibernateAvailable { get; init; }
+
         public bool Lock()
         {
+            return Answer("lock");
+        }
+
+        public bool SignOut()
+        {
+            return Answer("sign out");
+        }
+
+        public bool Restart()
+        {
+            return Answer("restart");
+        }
+
+        public bool ShutDown()
+        {
+            return Answer("shut down");
+        }
+
+        public bool Sleep()
+        {
+            return Answer("sleep");
+        }
+
+        public bool Hibernate()
+        {
+            return Answer("hibernate");
+        }
+
+        private bool Answer(string action)
+        {
             Calls++;
+            Actions.Add(action);
             return accepts;
         }
     }
