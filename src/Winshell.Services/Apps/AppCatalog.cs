@@ -205,7 +205,12 @@ internal sealed class AppCatalog(
     {
         try
         {
-            var start = new ProcessStartInfo(path) { UseShellExecute = true };
+            // dotnet watch puts this process in a kill-on-close job and does not allow breakaway, so a
+            // ShellExecute from here would end the app when the dev session rebuilds or exits. Explorer is
+            // already running outside that job and opens the shortcut, including its Start in folder.
+            var explorer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe");
+            var start = new ProcessStartInfo(explorer, $"\"{path}\"")
+                { UseShellExecute = false, CreateNoWindow = true };
             if (startIn.Length > 0 && Directory.Exists(startIn))
                 start.WorkingDirectory = startIn;
             using var _ = Process.Start(start);

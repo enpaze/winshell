@@ -164,4 +164,4 @@ winshell dev --path .
 - **Code that doesn't compile** shows in a notice on screen, and the last version that did keeps running. The notice goes when the next save compiles. Before the first successful build there is no shell to show it, so the error is in the console.
 - **A TOML or XAML file with an error** shows in the same notice, and what came from it before stays in use. Without `winshell dev` it goes to the log.
 
-Desktop apps you start from the shell under `winshell dev` end, unsaved work and all, when `winshell dev` builds and starts the shell again or when it ends. `dotnet watch` runs the shell in a Windows job object, and what the shell starts joins that job. Run the shell with `winshell run` to keep them open.
+Desktop apps you open from the shell stay open when `winshell dev` builds and starts the shell again, and when `winshell dev` ends, as they do after `winshell kill`.
