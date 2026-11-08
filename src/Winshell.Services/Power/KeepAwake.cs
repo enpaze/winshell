@@ -8,7 +8,6 @@ public sealed class KeepAwake : ObservableObject, IDisposable
     private static int _active;
 
     private readonly Log _log;
-    private bool _enabled;
     private PowerRequest? _request;
 
     /// <summary>Creates a keep-awake that is off until <see cref="Enabled"/> is set.</summary>
@@ -23,10 +22,10 @@ public sealed class KeepAwake : ObservableObject, IDisposable
     [PublicAPI]
     public bool Enabled
     {
-        get => _enabled;
+        get;
         set
         {
-            if (!Set(ref _enabled, value))
+            if (!Set(ref field, value))
                 return;
             Interlocked.Add(ref _active, value ? 1 : -1);
             if (value)

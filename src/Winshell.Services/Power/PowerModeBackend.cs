@@ -31,16 +31,16 @@ internal interface IPowerModeBackend : IDisposable
 internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
 {
     /// <summary><c>GUID_POWER_MODE_BEST_EFFICIENCY</c>.</summary>
-    internal static readonly Guid BestEfficiency = new("961cc777-2547-4f9d-8174-7d86181b8a7a");
+    private static readonly Guid BestEfficiency = new("961cc777-2547-4f9d-8174-7d86181b8a7a");
 
     /// <summary><c>GUID_POWER_MODE_BEST_PERFORMANCE</c>.</summary>
-    internal static readonly Guid BestPerformance = new("ded574b5-45a0-4f42-8737-46345c09c238");
+    private static readonly Guid BestPerformance = new("ded574b5-45a0-4f42-8737-46345c09c238");
 
     /// <summary>
     /// <c>GUID_POWER_MODE_PERFORMANCE</c>, which Windows documents as deprecated. It is a performance
     /// mode, so a read reports Best performance. A write never sends it.
     /// </summary>
-    internal static readonly Guid DeprecatedPerformance = new("3af9b8d9-7c97-431d-ad78-34a8bfea439f");
+    private static readonly Guid DeprecatedPerformance = new("3af9b8d9-7c97-431d-ad78-34a8bfea439f");
 
     private int _effective = (int)EffectivePowerMode.Balanced;
     private bool _watching;
@@ -104,7 +104,7 @@ internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
         };
     }
 
-    internal static EffectivePowerMode EffectiveFrom(int mode)
+    private static EffectivePowerMode EffectiveFrom(int mode)
     {
         return Enum.IsDefined((EffectivePowerMode)mode) ? (EffectivePowerMode)mode : EffectivePowerMode.Balanced;
     }

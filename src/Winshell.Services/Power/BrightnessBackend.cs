@@ -23,10 +23,7 @@ internal sealed record BrightnessInfo(
     int Maximum,
     int Current);
 
-internal sealed record BrightnessSnapshot(bool Ready, IReadOnlyList<BrightnessInfo> Monitors)
-{
-    public static readonly BrightnessSnapshot Initial = new(false, []);
-}
+internal sealed record BrightnessSnapshot(bool Ready, IReadOnlyList<BrightnessInfo> Monitors);
 
 internal interface IBrightnessBackend : IDisposable
 {
@@ -234,13 +231,15 @@ internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
     {
         using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM WmiMonitorBrightnessMethods");
         using var results = searcher.Get();
+        // This instance query yields ManagementObject; a class object would be a schema query.
+        // ReSharper disable once PossibleInvalidCastExceptionInForeachLoop
         foreach (ManagementObject monitor in results)
             using (monitor)
             {
                 if (!string.Equals(monitor["InstanceName"] as string, instance, StringComparison.OrdinalIgnoreCase))
                     continue;
                 // A timeout in seconds, then the level; WmiMonitorBrightness levels run from 0 to 100.
-                monitor.InvokeMethod("WmiSetBrightness", new object[] { 1u, (byte)brightness });
+                monitor.InvokeMethod("WmiSetBrightness", [1u, (byte)brightness]);
                 return null;
             }
 
@@ -275,7 +274,7 @@ internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
 /// </summary>
 internal sealed class BrightnessWriter(Func<string, int, string?> write, Log log, Action? drained = null)
 {
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private readonly Dictionary<string, (int Brightness, Action<string> Failed)> _pending = [];
     private readonly HashSet<string> _running = [];
 

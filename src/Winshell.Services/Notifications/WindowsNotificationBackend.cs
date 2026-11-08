@@ -66,6 +66,8 @@ internal sealed class WindowsNotificationBackend : INotificationBackend
     {
         try
         {
+            // WinRT type name for ApiInformation, not a Winshell.Windows reference.
+            // ReSharper disable once MultipleResolveCandidatesInText
             if (ApiInformation.IsTypePresent("Windows.UI.Shell.FocusSessionManager") && FocusSessionManager.IsSupported)
                 return FocusSessionManager.GetDefault().IsFocusActive ? NotificationState.On : NotificationState.Off;
         }
@@ -80,7 +82,11 @@ internal sealed class WindowsNotificationBackend : INotificationBackend
     {
         try
         {
+            // WinRT type name for ApiInformation, not a Winshell.Windows reference.
+            // ReSharper disable once MultipleResolveCandidatesInText
             if (ApiInformation.IsPropertyPresent("Windows.UI.Notifications.ToastNotificationManagerForUser",
+                    // WinRT property name on that type, not Winshell.Notifications.NotificationMode.
+                    // ReSharper disable once NotResolvedInText
                     "NotificationMode"))
                 return MapMode((int)ToastNotificationManager.GetDefault().NotificationMode);
         }
