@@ -4,7 +4,7 @@ using System.Globalization;
 namespace Winshell.Tests;
 
 /// <summary><c>winshell kill</c> waits until the instance's process has exited.</summary>
-public sealed class KillWaitTests : IDisposable, IClassFixture<ProbeBuild>
+public sealed partial class KillWaitTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<Process> _started = [];
@@ -37,8 +37,10 @@ public sealed class KillWaitTests : IDisposable, IClassFixture<ProbeBuild>
 
     private ChildProcess Run(params string[] args)
     {
+#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
         return WinshellCli.Run(args, ("WINSHELL_LOCAL_DIR", Path.Combine(_dir, "local")),
             ("WINSHELL_CONFIG_DIR", Path.Combine(_dir, "config")));
+#pragma warning restore CsWinRT1030
     }
 
     public void Dispose()
@@ -51,6 +53,8 @@ public sealed class KillWaitTests : IDisposable, IClassFixture<ProbeBuild>
                 {
                     process.Kill(true);
                 }
+                // The process can exit between the check and Kill.
+                // ReSharper disable once EmptyGeneralCatchClause
                 catch (Exception)
                 {
                 }

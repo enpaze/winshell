@@ -6,7 +6,7 @@ namespace Winshell.Tests;
 /// <c>log</c> may show a stopped instance, and a selector never adopts a different one. The instances are folders
 /// <see cref="Instances.List"/> reads, so this does not start a shell.
 /// </summary>
-public sealed class LogFallbackTests : IDisposable
+public sealed partial class LogFallbackTests : IDisposable
 {
     private const string StoppedId = "abc123stopped";
     private readonly string _root = TempFolder.NewPath();

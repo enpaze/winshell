@@ -4,7 +4,7 @@ namespace Winshell.Tests;
 /// The supervisor's policy against fake shells and a fake clock. Supervision runs on a pool thread, so a test waits for a
 /// shell to start, for the supervisor to wait on the clock, or for supervision to end before it acts or asserts.
 /// </summary>
-public sealed class ShellSupervisorTests
+public sealed partial class ShellSupervisorTests
 {
     private const int AccessViolation = -1073741819;
     private static readonly TimeSpan Tick = TimeSpan.FromTicks(1);
@@ -241,7 +241,7 @@ public sealed class ShellSupervisorTests
     /// <summary>What the supervisor started, stopped and restored, in order.</summary>
     private sealed class Shells
     {
-        private readonly object _gate = new();
+        private readonly Lock _gate = new();
         private readonly List<string> _events = [];
         private readonly List<Child> _children = [];
         private readonly SemaphoreSlim _started = new(0);
@@ -312,7 +312,7 @@ public sealed class ShellSupervisorTests
         }
     }
 
-    private sealed class Child(Shells shells) : IShellChild
+    private sealed partial class Child(Shells shells) : IShellChild
     {
         private readonly TaskCompletionSource<int> _exit = new();
 

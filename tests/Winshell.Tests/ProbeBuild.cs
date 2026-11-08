@@ -4,6 +4,8 @@ namespace Winshell.Tests;
 /// Builds <see cref="ProbeShell"/> as a class fixture, before the class's first test. The build takes minutes on a busy
 /// machine. Inside a test it would spend that test's deadline, and the deadline of every test waiting for it.
 /// </summary>
+// xUnit constructs this class fixture.
+// ReSharper disable once ClassNeverInstantiated.Global
 public sealed class ProbeBuild
 {
     public ProbeBuild()

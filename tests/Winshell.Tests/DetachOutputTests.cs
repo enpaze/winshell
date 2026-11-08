@@ -6,7 +6,7 @@ namespace Winshell.Tests;
 /// A <c>-d</c> start returns at once, and the shell it leaves behind holds nothing of its caller: output read to the end
 /// ends when the start does. The probe has no windows.
 /// </summary>
-public sealed class DetachOutputTests : IDisposable, IClassFixture<ProbeBuild>
+public sealed partial class DetachOutputTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
 

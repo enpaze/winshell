@@ -40,6 +40,8 @@ public class InstanceCallTests
         var other = ProductVersion.Current.Major == 9 ? "1.0.0" : "9.9.9";
         var answering = ReadThen(shell, () =>
         {
+            // The write runs, and is awaited, before this pipe is disposed.
+            // ReSharper disable once AccessToDisposedClosure
             using var writer = new StreamWriter(shell, new UTF8Encoding(false), leaveOpen: true);
             writer.WriteLine($$"""{"ok":true,"winshell":"{{other}}"}""");
         });

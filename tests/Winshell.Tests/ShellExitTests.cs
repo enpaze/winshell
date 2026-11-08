@@ -8,7 +8,7 @@ namespace Winshell.Tests;
 /// Ending a shell under <c>winshell run</c>, with what its supervisor reads when it exits. The test is the shell and its
 /// supervisor: it serves the control pipe here for a process of its own, which it ends when the shell would exit.
 /// </summary>
-public sealed class ShellExitTests : IDisposable
+public sealed partial class ShellExitTests : IDisposable
 {
     private readonly string _pipe = "winshell-test-" + Guid.NewGuid().ToString("N");
 
@@ -43,7 +43,9 @@ public sealed class ShellExitTests : IDisposable
         var quit = ShellExit.QuitAsync(Instance, ExitIntent.Reload, Patient, ShellExit.Ending.Never);
         await asked;
 
+#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
         await ExitAsync(pipe);
+#pragma warning restore CsWinRT1030
 
         Assert.True((await quit).Exited);
         Assert.Equal(ExitIntent.Reload, _supervision.Intent);
@@ -65,7 +67,9 @@ public sealed class ShellExitTests : IDisposable
         var secondQuit = ShellExit.QuitAsync(Instance, second, Patient, ShellExit.Ending.Never);
         await secondAsked;
 
+#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
         await ExitAsync(firstPipe, secondPipe);
+#pragma warning restore CsWinRT1030
 
         Assert.True((await firstQuit).Exited);
         Assert.True((await secondQuit).Exited);
