@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
 
+// CsWin32's generated interfaces bind to this namespace.
+// ReSharper disable once CheckNamespace
 namespace Windows.Win32.System.Com.StructuredStorage;
 
 /// <summary>

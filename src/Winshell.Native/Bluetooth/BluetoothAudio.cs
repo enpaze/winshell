@@ -16,12 +16,14 @@ internal static class BluetoothAudio
         using var device = Win32.CreateFileW(filterPath, 0xC0000000, 3, 0, 3, 0, 0);
         if (device.IsInvalid)
             return false;
-        var request = new KSIDENTIFIER();
-        request.Set = PropertySet;
-        request.Id = (uint)(connect
-            ? KSPROPERTY_BTAUDIO.KSPROPERTY_ONESHOT_RECONNECT
-            : KSPROPERTY_BTAUDIO.KSPROPERTY_ONESHOT_DISCONNECT);
-        request.Flags = PInvoke.KSPROPERTY_TYPE_GET;
+        var request = new KSIDENTIFIER
+        {
+            Set = PropertySet,
+            Id = (uint)(connect
+                ? KSPROPERTY_BTAUDIO.KSPROPERTY_ONESHOT_RECONNECT
+                : KSPROPERTY_BTAUDIO.KSPROPERTY_ONESHOT_DISCONNECT),
+            Flags = PInvoke.KSPROPERTY_TYPE_GET
+        };
         uint returned;
         return PInvoke.DeviceIoControl(new HANDLE(device.DangerousGetHandle()), PInvoke.IOCTL_KS_PROPERTY,
             &request, (uint)sizeof(KSIDENTIFIER), null, 0, &returned, null);

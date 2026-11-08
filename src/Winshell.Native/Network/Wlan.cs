@@ -9,7 +9,6 @@ namespace Winshell.Native;
 /// <summary>A WLAN interface state, as <c>WLAN_INTERFACE_STATE</c> numbers it. Services reads this, not the generated enum.</summary>
 internal enum WlanInterfaceState
 {
-    NotReady = 0,
     Connected = 1,
     AdHocNetworkFormed = 2,
     Disconnecting = 3,
@@ -22,8 +21,7 @@ internal enum WlanInterfaceState
 /// <summary>The parts of wlanapi that WinRT does not cover: interface states, saved profiles and change notifications.</summary>
 internal static unsafe class Wlan
 {
-    private static readonly object HandleLock = new();
-    private static HANDLE _handle;
+    private static readonly Lock HandleLock = new();
     private static bool _opened;
     private static Action? _changed;
 
@@ -35,18 +33,18 @@ internal static unsafe class Wlan
             lock (HandleLock)
             {
                 if (_opened)
-                    return _handle;
+                    return field;
                 _opened = true;
                 try
                 {
                     if (PInvoke.WlanOpenHandle(2, out _, out var handle) == 0)
-                        _handle = handle;
+                        field = handle;
                 }
                 catch (DllNotFoundException)
                 {
                 }
 
-                return _handle;
+                return field;
             }
         }
     }
@@ -167,7 +165,7 @@ internal static unsafe class Wlan
     }
 
     /// <summary>Per-user and group-policy bits. A plaintext-key bit is not one of them and is not kept.</summary>
-    internal const uint ProfileFlagMask = PInvoke.WLAN_PROFILE_USER | PInvoke.WLAN_PROFILE_GROUP_POLICY;
+    private const uint ProfileFlagMask = PInvoke.WLAN_PROFILE_USER | PInvoke.WLAN_PROFILE_GROUP_POLICY;
 
     internal static uint ProfileWriteFlags(uint flags)
     {
@@ -185,9 +183,8 @@ internal static unsafe class Wlan
         var handle = Handle;
         if (handle.IsNull)
             return (uint)WIN32_ERROR.ERROR_SERVICE_NOT_ACTIVE;
-        PWSTR text = default;
         var requested = ProfileReadFlags();
-        var error = PInvoke.WlanGetProfile(handle, interfaceGuid, profileName, out text, ref requested, out _);
+        var error = PInvoke.WlanGetProfile(handle, interfaceGuid, profileName, out var text, ref requested, out _);
         if (text.Value == null)
             return error == 0 ? (uint)WIN32_ERROR.ERROR_NOT_FOUND : error;
         try

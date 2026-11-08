@@ -10,6 +10,6 @@ internal static unsafe class PackageIdentity
     internal static bool Exists()
     {
         uint length = 0;
-        return PInvoke.GetCurrentPackageFullName(&length, default) != WIN32_ERROR.APPMODEL_ERROR_NO_PACKAGE;
+        return PInvoke.GetCurrentPackageFullName(&length) != WIN32_ERROR.APPMODEL_ERROR_NO_PACKAGE;
     }
 }

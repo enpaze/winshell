@@ -76,8 +76,8 @@ internal static class SessionPower
     internal static void ReadAvailability(out bool sleep, out bool hibernate)
     {
         var power = Read();
-        sleep = power.Sleep;
-        hibernate = power.Hibernate;
+        sleep = power.CanSleep;
+        hibernate = power.CanHibernate;
     }
 
     private readonly struct PowerCaps
@@ -86,9 +86,9 @@ internal static class SessionPower
 
         internal bool ModernStandby { get; init; }
 
-        internal bool Sleep { get; init; }
+        internal bool CanSleep { get; init; }
 
-        internal bool Hibernate { get; init; }
+        internal bool CanHibernate { get; init; }
     }
 
     private static unsafe PowerCaps Read()
@@ -101,8 +101,8 @@ internal static class SessionPower
         {
             Known = true,
             ModernStandby = modern,
-            Sleep = (bool)caps.SystemS1 || (bool)caps.SystemS2 || (bool)caps.SystemS3 || modern,
-            Hibernate = (bool)caps.SystemS4 && (bool)caps.HiberFilePresent
+            CanSleep = caps.SystemS1 || caps.SystemS2 || caps.SystemS3 || modern,
+            CanHibernate = caps.SystemS4 && caps.HiberFilePresent
         };
     }
 
@@ -128,7 +128,7 @@ internal static class SessionPower
     /// its own prompt and an app can still stop it. Another signed-in user makes Windows refuse, rather than be
     /// signed out by force.
     /// </summary>
-    private static unsafe bool Shutdown(SHUTDOWN_FLAGS flags)
+    private static bool Shutdown(SHUTDOWN_FLAGS flags)
     {
         return PInvoke.InitiateShutdown(null, null, 0, flags, Planned) == (uint)WIN32_ERROR.ERROR_SUCCESS;
     }

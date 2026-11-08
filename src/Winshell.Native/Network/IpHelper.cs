@@ -17,7 +17,7 @@ internal static class IpHelper
             PInvoke.GetIfEntry2(ref row) != 0)
             return null;
         var flags = row.InterfaceAndOperStatusFlags;
-        return new InterfaceRow(flags.HardwareInterface && !flags.FilterInterface,
+        return new InterfaceRow(flags is { HardwareInterface: true, FilterInterface: false },
             row.MediaConnectState == NET_IF_MEDIA_CONNECT_STATE.MediaConnectStateConnected,
             Math.Max(row.ReceiveLinkSpeed, row.TransmitLinkSpeed));
     }

@@ -30,7 +30,7 @@ internal static class ProcessImage
             var seen = new HashSet<uint>();
             for (var depth = 0; depth < 8 && seen.Add(id); depth++)
             {
-                if (ParentOf(id) is not uint parent || parent == 0 || parent == id)
+                if (ParentOf(id) is not { } parent || parent == 0 || parent == id)
                     return null;
                 if (TryRead(parent) is { } image && matches(image))
                     return image;

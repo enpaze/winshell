@@ -68,7 +68,7 @@ internal static class DocumentLists
     /// <summary>The name the jump list shows. A shell link that is not a shell item contributes its file name.</summary>
     private static string? NameAt(IObjectArray array, uint index, Guid itemId, Guid linkId)
     {
-        if (array.GetAt(index, in itemId, out var item) >= 0 && item is not null)
+        if (array.GetAt(index, in itemId, out var item) >= 0)
             try
             {
                 if (item is IShellItem shell && shell.GetDisplayName(0, out var name) >= 0 &&
@@ -80,7 +80,7 @@ internal static class DocumentLists
                 Com.Release(item);
             }
 
-        if (array.GetAt(index, in linkId, out var link) >= 0 && link is not null)
+        if (array.GetAt(index, in linkId, out var link) >= 0)
             try
             {
                 if (link is IShellLinkW shellLink)
