@@ -82,7 +82,6 @@ public sealed partial class EventLoopContractTests
     private static async Task ADisposedTimerDoesNotFire(LoopRun run)
     {
         // The callbacks write these counters, and the test reads them after Settle.
-        // ReSharper disable AccessToModifiedClosure
         var cancelled = 0;
         var kept = 0;
         var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -93,7 +92,6 @@ public sealed partial class EventLoopContractTests
             finished.SetResult();
         });
         timer.Dispose();
-        // ReSharper restore AccessToModifiedClosure
 
         await run.Settle(TimeSpan.FromMilliseconds(50), finished.Task);
 
@@ -112,7 +110,6 @@ public sealed partial class EventLoopContractTests
             run.Loop.Post(() =>
             {
                 // The callback sets ran, and the assertion reads it after Settle.
-                // ReSharper disable once AccessToModifiedClosure
                 Interlocked.Exchange(ref ran, 1);
                 finished.SetResult();
             });

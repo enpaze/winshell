@@ -125,7 +125,6 @@ public class AppBarReservationTests
         // The query always offers the whole edge and Explorer always grants less: the case the review found looping.
         var offer = Bottom;
         // The next Place reads offer after this test replaces it; a copy would keep the first rectangle.
-        // ReSharper disable once AccessToModifiedClosure
         var placement = new Placement(new AppBarReservation(), () => offer) { Grant = _ => AboveOther };
         placement.Place();
         Assert.True(placement.Settle() <= 1);
@@ -146,7 +145,6 @@ public class AppBarReservationTests
         var other = 0;
         // The query leaves out another bar's height; the grant is what was asked for.
         // The closure reads other after this test changes it, so the panel follows the other bar.
-        // ReSharper disable once AccessToModifiedClosure
         var placement = new Placement(reservation, () => other == 0 ? Bottom : AboveOther);
         placement.Place();
         placement.Settle();
@@ -174,7 +172,6 @@ public class AppBarReservationTests
         var placement = new Placement(reservation, () => Bottom)
         {
             // The grant reads other when its callback runs, after this test clears it.
-            // ReSharper disable once AccessToModifiedClosure
             Grant = asked => other == 0 ? asked : AboveOther
         };
         placement.Place();

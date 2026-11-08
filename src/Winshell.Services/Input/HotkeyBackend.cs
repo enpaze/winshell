@@ -64,7 +64,6 @@ internal sealed class HotkeyBackend(IEventLoop loop, Action<Exception> failed) :
         hook = LowLevelKeyboard.Start(key => onKey(key.VirtualKey, key.Up), failed, () => loop.Post(() =>
         {
             // The lost callback must see the hook Start returns; that assignment follows this lambda.
-            // ReSharper disable once AccessToModifiedClosure
             var current = hook;
             if (current is null || !ReferenceEquals(_hook, current))
                 return;

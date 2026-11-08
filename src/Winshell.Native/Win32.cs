@@ -341,7 +341,6 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; FloatingFrame, HostPlacement, HostFocusEffects and ExplorerTaskbarBackend discard it.
     public static partial bool ShowWindow(nint hwnd, int cmd);
 
     [LibraryImport("user32.dll")]
@@ -364,7 +363,6 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; TopLevelWindows.List discards it.
     public static unsafe partial bool EnumWindows(delegate* unmanaged<nint, nint, int> callback, nint data);
 
     [LibraryImport("user32.dll")]
@@ -380,12 +378,10 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; HostPlacement and TrayWindow discard it.
     public static partial bool SetLayeredWindowAttributes(nint hwnd, uint key, byte alpha, uint flags);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; HostPlacement discards it.
     public static partial bool GetClientRect(nint hwnd, out RECT rect);
 
     [LibraryImport("user32.dll")]
@@ -400,7 +396,6 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; FloatingFrame discards it.
     public static partial bool SetWindowTextW(nint hwnd, string text);
 
     [LibraryImport("user32.dll")]
@@ -412,16 +407,13 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; HookThread.Stop discards it.
     public static partial bool PostThreadMessageW(uint thread, uint msg, nint wParam, nint lParam);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; FocusTakeoverTests discards it.
     public static partial bool TranslateMessage(in MSG msg);
 
     [LibraryImport("user32.dll")]
-    // ReSharper disable once UnusedMethodReturnValue.Global LRESULT; TrayBackendTests and FocusTakeoverTests discard it.
     public static partial nint DispatchMessageW(in MSG msg);
 
     [LibraryImport("user32.dll")]
@@ -435,13 +427,11 @@ internal static partial class Win32
     public const uint SMTO_ABORTIFHUNG = 0x2;
 
     [LibraryImport("user32.dll")]
-    // ReSharper disable once UnusedMethodReturnValue.Global LRESULT; NativeMenu and TrayWindow discard it.
     public static partial nint SendMessageTimeoutW(nint hwnd, uint msg, nint wParam, nint lParam, uint flags,
         uint timeout, out nint result);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; HostPlacement discards it.
     public static partial bool ReleaseCapture();
 
     [LibraryImport("user32.dll")]
@@ -471,7 +461,6 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; HotkeyTarget and KeyInput discard it.
     public static partial bool UnregisterHotKey(nint hwnd, int id);
 
     [LibraryImport("user32.dll")]
@@ -496,7 +485,6 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; Monitors.List discards it.
     public static unsafe partial bool EnumDisplayMonitors(nint hdc, nint clip,
         delegate* unmanaged<nint, nint, RECT*, nint, int> callback, nint data);
 
@@ -509,12 +497,10 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; FloatingFrame discards it.
     public static partial bool AdjustWindowRectExForDpi(ref RECT rect, uint style,
         [MarshalAs(UnmanagedType.Bool)] bool menu, uint exStyle, uint dpi);
 
     [LibraryImport("shcore.dll")]
-    // ReSharper disable once UnusedMethodReturnValue.Global HRESULT; Screens discards it.
     public static partial int GetDpiForMonitor(nint monitor, int type, out uint dpiX, out uint dpiY);
 
     [LibraryImport("shell32.dll")]
@@ -524,7 +510,6 @@ internal static partial class Win32
     public static partial uint RegisterWindowMessageW(string name);
 
     [LibraryImport("user32.dll")]
-    // ReSharper disable once UnusedMethodReturnValue.Global Success code; HostPlacement discards it.
     public static partial int SetWindowRgn(nint hwnd, nint region, [MarshalAs(UnmanagedType.Bool)] bool redraw);
 
     [LibraryImport("gdi32.dll")]
@@ -537,18 +522,15 @@ internal static partial class Win32
     public static partial int GetObjectW(nint handle, int size, out BITMAP bitmap);
 
     [LibraryImport("dwmapi.dll")]
-    // ReSharper disable once UnusedMethodReturnValue.Global HRESULT; HostPresentation discards it.
     public static partial int DwmSetWindowAttribute(nint hwnd, int attribute, in int value, int size);
 
     [LibraryImport("dwmapi.dll")]
-    // ReSharper disable once UnusedMethodReturnValue.Global HRESULT; HostPresentation discards the border-color result.
     public static partial int DwmSetWindowAttribute(nint hwnd, int attribute, in uint value, int size);
 
     [LibraryImport("dwmapi.dll")]
     public static partial int DwmUpdateThumbnailProperties(nint thumbnail, in DWM_THUMBNAIL_PROPERTIES properties);
 
     [LibraryImport("dwmapi.dll")]
-    // ReSharper disable once UnusedMethodReturnValue.Global HRESULT; HostPresentation discards it.
     public static partial int DwmExtendFrameIntoClientArea(nint hwnd, in MARGINS margins);
 
     [LibraryImport("shell32.dll")]
@@ -561,7 +543,6 @@ internal static partial class Win32
     public static partial nint CommandLineToArgvW(string commandLine, out int count);
 
     [LibraryImport("kernel32.dll")]
-    // ReSharper disable once UnusedMethodReturnValue.Global HLOCAL; NamedPipeServer and CommandLine discard it.
     public static partial nint LocalFree(nint memory);
 
     [LibraryImport("kernel32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
@@ -588,7 +569,6 @@ internal static partial class Win32
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; PowerRequest discards it.
     public static partial bool PowerClearRequest(nint request, int type);
 
     [LibraryImport("user32.dll")]
@@ -601,7 +581,6 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; HookThread discards it.
     public static partial bool UnhookWindowsHookEx(nint hook);
 
     [LibraryImport("user32.dll")]
@@ -611,7 +590,6 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; WinEventHook discards it.
     public static partial bool UnhookWinEvent(nint hook);
 
     [LibraryImport("user32.dll")]
@@ -641,7 +619,6 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; ClipboardImage discards it.
     public static partial bool CloseClipboard();
 
     [LibraryImport("user32.dll")]
@@ -659,7 +636,6 @@ internal static partial class Win32
 
     [LibraryImport("kernel32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    // ReSharper disable once UnusedMethodReturnValue.Global BOOL; ClipboardImage discards it.
     public static partial bool GlobalUnlock(nint mem);
 
     [LibraryImport("user32.dll")]

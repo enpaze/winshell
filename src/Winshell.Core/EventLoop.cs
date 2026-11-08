@@ -4,17 +4,14 @@ namespace Winshell;
 public interface IEventLoop
 {
     /// <summary>Runs the action on the loop's thread. Safe to call from any thread.</summary>
-    [PublicAPI]
     void Post(Action action);
 
     /// <summary>Runs the action once after the delay, on the loop's thread. Dispose to cancel.</summary>
-    [PublicAPI]
     IDisposable Schedule(TimeSpan delay, Action action);
 
     /// <summary>
     /// The clock the shell's objects read. A timer it creates runs on another thread: use <see cref="Schedule"/> for
     /// work on the loop.
     /// </summary>
-    [PublicAPI]
     TimeProvider Time { get; }
 }

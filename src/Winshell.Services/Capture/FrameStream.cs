@@ -1,9 +1,9 @@
+using Vortice.Direct3D11;
+using Vortice.Mathematics;
 using Windows.Graphics;
 using Windows.Graphics.Capture;
 using Windows.Graphics.DirectX;
 using Windows.Graphics.DirectX.Direct3D11;
-using Vortice.Direct3D11;
-using Vortice.Mathematics;
 using Winshell.Native;
 
 namespace Winshell.Capture;
@@ -75,7 +75,6 @@ internal sealed class FrameStream : IDisposable
     /// </summary>
     public bool OnScreen =>
         // The crop is written once before this object is returned, so this read never overlaps that write.
-        // ReSharper disable once InconsistentlySynchronizedField
         _crop is not null;
 
     /// <summary>
@@ -100,7 +99,6 @@ internal sealed class FrameStream : IDisposable
                 throw new InvalidOperationException(
                     "Windows refused to capture the window by itself, and it is on no screen to capture instead.");
             // Written once before StartCapture, so no frame callback can read the crop during this store.
-            // ReSharper disable once InconsistentlySynchronizedField
             _crop = crop;
             return CaptureInterop.CreateItem(0, screen.Handle);
         }

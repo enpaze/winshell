@@ -5,5 +5,4 @@ namespace Winshell.Package;
 /// <c>Winshell.Shell</c>, not this assembly.
 /// </summary>
 // The project needs a compilation unit; nothing references this type.
-// ReSharper disable once UnusedType.Global
 internal static class PackageMarker;

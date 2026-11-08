@@ -393,7 +393,6 @@ public sealed class WifiProfileTests
 
             inside.SetResult();
             // Both queued writes have returned from this wait before the event is disposed.
-            // ReSharper disable once AccessToDisposedClosure
             hold.Wait(TestContext.Current.CancellationToken);
             Interlocked.Decrement(ref inFlight.Value);
             return now;

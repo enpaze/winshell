@@ -7,9 +7,6 @@
     <ProjectReference Include="..\Winshell.Native\Winshell.Native.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="JetBrains.Annotations" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="System.Management" />
     <PackageReference Include="Vortice.Direct3D11" />
     <PackageReference Include="Vortice.DXGI" />

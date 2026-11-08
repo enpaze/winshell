@@ -13,62 +13,62 @@ internal enum AudioNodeType
 public enum AudioChannel
 {
     /// <summary>A channel whose position Windows does not give.</summary>
-    [PublicAPI] Unknown,
+    Unknown,
 
     /// <summary>The only channel of a mono stream.</summary>
-    [PublicAPI] Mono,
+    Mono,
 
     /// <summary>Front left.</summary>
-    [PublicAPI] FrontLeft,
+    FrontLeft,
 
     /// <summary>Front right.</summary>
-    [PublicAPI] FrontRight,
+    FrontRight,
 
     /// <summary>Front center.</summary>
-    [PublicAPI] FrontCenter,
+    FrontCenter,
 
     /// <summary>The subwoofer, for low-frequency effects.</summary>
-    [PublicAPI] LowFrequency,
+    LowFrequency,
 
     /// <summary>Back left.</summary>
-    [PublicAPI] BackLeft,
+    BackLeft,
 
     /// <summary>Back right.</summary>
-    [PublicAPI] BackRight,
+    BackRight,
 
     /// <summary>Front, between left and center.</summary>
-    [PublicAPI] FrontLeftOfCenter,
+    FrontLeftOfCenter,
 
     /// <summary>Front, between right and center.</summary>
-    [PublicAPI] FrontRightOfCenter,
+    FrontRightOfCenter,
 
     /// <summary>Back center.</summary>
-    [PublicAPI] BackCenter,
+    BackCenter,
 
     /// <summary>Side left.</summary>
-    [PublicAPI] SideLeft,
+    SideLeft,
 
     /// <summary>Side right.</summary>
-    [PublicAPI] SideRight,
+    SideRight,
 
     /// <summary>Above the listener.</summary>
-    [PublicAPI] TopCenter,
+    TopCenter,
 
     /// <summary>Top front left.</summary>
-    [PublicAPI] TopFrontLeft,
+    TopFrontLeft,
 
     /// <summary>Top front center.</summary>
-    [PublicAPI] TopFrontCenter,
+    TopFrontCenter,
 
     /// <summary>Top front right.</summary>
-    [PublicAPI] TopFrontRight,
+    TopFrontRight,
 
     /// <summary>Top back left.</summary>
-    [PublicAPI] TopBackLeft,
+    TopBackLeft,
 
     /// <summary>Top back center.</summary>
-    [PublicAPI] TopBackCenter,
+    TopBackCenter,
 
     /// <summary>Top back right.</summary>
-    [PublicAPI] TopBackRight
+    TopBackRight
 }

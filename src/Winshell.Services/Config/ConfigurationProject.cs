@@ -325,7 +325,7 @@ internal sealed partial class ConfigurationProject
                             lines.Add(line);
                         }
                 })
-                { IsBackground = true };
+            { IsBackground = true };
             reader.Start();
             return reader;
         }

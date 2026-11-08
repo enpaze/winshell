@@ -6,7 +6,6 @@ namespace Winshell;
 internal sealed partial class DispatcherLoop(DispatcherQueue queue, Log log) : IEventLoop
 {
     // Each timer stays reachable from here: one nothing else holds is collected and never fires.
-    // ReSharper disable once CollectionNeverQueried.Local
     private readonly HashSet<DispatcherQueueTimer> _timers = [];
 
     public TimeProvider Time => TimeProvider.System;

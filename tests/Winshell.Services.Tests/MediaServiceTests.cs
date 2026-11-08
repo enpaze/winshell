@@ -227,7 +227,6 @@ public sealed class MediaServiceTests
         var changes = Watch(Session());
 
         // The names are the properties this check asserts were raised.
-        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         void Raised(params string[] names)
         {
             Assert.Superset(names.ToHashSet(), changes.ToHashSet());
@@ -294,7 +293,7 @@ public sealed class MediaServiceTests
     {
         var session = Session();
         _native.ApplyPlayback(new SmtcPlayback(Paused)
-            { CanPlay = true, CanPause = true, CanStop = true, CanGoNext = true, CanGoPrevious = true });
+        { CanPlay = true, CanPause = true, CanStop = true, CanGoNext = true, CanGoPrevious = true });
         Assert.True(session.CanTogglePlaying);
 
         session.Play();
@@ -388,7 +387,7 @@ public sealed class MediaServiceTests
         Assert.Equal(MediaLoopState.None, session.LoopState);
 
         _native.ApplyPlayback(new SmtcPlayback(Playing)
-            { Shuffle = true, LoopState = MediaLoopState.List, ShuffleSupported = true, LoopSupported = true });
+        { Shuffle = true, LoopState = MediaLoopState.List, ShuffleSupported = true, LoopSupported = true });
         Assert.True(session.Shuffle);
         Assert.Equal(MediaLoopState.List, session.LoopState);
 

@@ -68,9 +68,7 @@ internal readonly record struct AccentShades(
         var d = max - min;
         var l = (max + min) / 2;
         // max is one of these channels, so asking which one it was is exact.
-        // ReSharper disable CompareOfFloatsByEqualityOperator
         var h = d == 0 ? -1 : max == r ? ((g - b) / d % 6 + 6) % 6 : max == g ? (b - r) / d + 2 : (r - g) / d + 4;
-        // ReSharper restore CompareOfFloatsByEqualityOperator
         var s = d == 0 ? 0 : d / (1 - Math.Abs(2 * l - 1));
         return (h < 0 ? -1 : h / 6, s, l);
     }

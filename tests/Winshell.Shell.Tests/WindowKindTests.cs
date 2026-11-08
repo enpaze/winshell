@@ -1,10 +1,10 @@
-using Windows.Foundation;
-using Windows.Win32;
-using Windows.Win32.Foundation;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+using Windows.Foundation;
+using Windows.Win32;
+using Windows.Win32.Foundation;
 using Winshell.Native;
 
 namespace Winshell.ShellTests;
@@ -86,7 +86,8 @@ public sealed class WindowKindTests
             var button = new Button { Content = "Open", Width = 80, Height = 32 };
             var flyout = new Flyout
             {
-                Content = new TextBlock { Text = "Flyout", Height = 300 }, ShouldConstrainToRootBounds = false,
+                Content = new TextBlock { Text = "Flyout", Height = 300 },
+                ShouldConstrainToRootBounds = false,
                 Placement = FlyoutPlacementMode.Bottom
             };
             var opened = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -211,7 +212,8 @@ public sealed class WindowKindTests
             var button = new Button { Content = "Open", Width = 80, Height = 32 };
             var flyout = new Flyout
             {
-                Content = new TextBlock { Text = "Flyout" }, ShouldConstrainToRootBounds = false,
+                Content = new TextBlock { Text = "Flyout" },
+                ShouldConstrainToRootBounds = false,
                 Placement = FlyoutPlacementMode.Bottom
             };
             var opened = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

@@ -9,10 +9,10 @@ namespace Winshell.Power;
 public enum BrightnessConnection
 {
     /// <summary>A built-in panel, such as a laptop screen, set through WMI.</summary>
-    [PublicAPI] Internal = 0,
+    Internal = 0,
 
     /// <summary>An external monitor, set over DDC/CI.</summary>
-    [PublicAPI] External = 1
+    External = 1
 }
 
 internal sealed record BrightnessInfo(
@@ -232,7 +232,6 @@ internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
         using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM WmiMonitorBrightnessMethods");
         using var results = searcher.Get();
         // This instance query yields ManagementObject; a class object would be a schema query.
-        // ReSharper disable once PossibleInvalidCastExceptionInForeachLoop
         foreach (ManagementObject monitor in results)
             using (monitor)
             {

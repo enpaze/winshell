@@ -1,7 +1,3 @@
-using Windows.Foundation;
-using Windows.Graphics;
-using Windows.System;
-using Windows.Win32.Graphics.Dwm;
 using Microsoft.UI;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Composition.SystemBackdrops;
@@ -10,6 +6,10 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Windows.Foundation;
+using Windows.Graphics;
+using Windows.System;
+using Windows.Win32.Graphics.Dwm;
 using WinRT;
 using Winshell.Native;
 
@@ -135,7 +135,7 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
         if (backdrop != WindowBackdrop.None && _xaml is not null)
         {
             _backdropConfig = new SystemBackdropConfiguration
-                { IsInputActive = true, Theme = platform.BackdropTheme, IsHighContrast = platform.IsHighContrast };
+            { IsInputActive = true, Theme = platform.BackdropTheme, IsHighContrast = platform.IsHighContrast };
             ISystemBackdropControllerWithTargets controller = backdrop switch
             {
                 WindowBackdrop.Acrylic => new DesktopAcrylicController(),

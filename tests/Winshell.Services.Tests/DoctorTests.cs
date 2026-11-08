@@ -3,12 +3,12 @@ using System.Security.Principal;
 using System.Text.Json;
 using Winshell.Diagnostics;
 using Winshell.Session;
-using StartupTaskState = Windows.ApplicationModel.StartupTaskState;
 using static Winshell.Diagnostics.Doctor;
 using static Winshell.Diagnostics.DoctorCrashes;
 using static Winshell.Diagnostics.DoctorReport;
 using static Winshell.Diagnostics.DoctorScreens;
 using static Winshell.Diagnostics.DoctorSignIn;
+using StartupTaskState = Windows.ApplicationModel.StartupTaskState;
 
 namespace Winshell.Services.Tests;
 

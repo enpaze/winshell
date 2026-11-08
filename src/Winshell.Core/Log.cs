@@ -4,19 +4,19 @@ namespace Winshell;
 public enum LogLevel
 {
     /// <summary>Detail for tracking down a problem. Kept only when the shell runs with <c>--verbose</c>.</summary>
-    [PublicAPI] Debug,
+    Debug,
 
     /// <summary>Normal progress worth recording.</summary>
-    [PublicAPI] Info,
+    Info,
 
     /// <summary>Something went wrong and the shell carried on.</summary>
-    [PublicAPI] Warn,
+    Warn,
 
     /// <summary>An operation failed.</summary>
-    [PublicAPI] Error,
+    Error,
 
     /// <summary>A failure that ends the process.</summary>
-    [PublicAPI] Fatal
+    Fatal
 }
 
 /// <summary>Writes messages as <c> WARN category: message</c>.</summary>
@@ -25,7 +25,7 @@ public sealed class Log
     /// <summary>
     /// This process's log. In a running shell it writes to the instance's log, which <c>winshell log</c> shows.
     /// </summary>
-    [PublicAPI] public static readonly Log Default = new();
+    public static readonly Log Default = new();
 
     private readonly Lock _lock = new();
     private Action<LogLevel, string>? _file;
@@ -56,7 +56,6 @@ public sealed class Log
     /// <param name="level">How serious the message is.</param>
     /// <param name="category">A short word for the part of the shell the message is about. May be empty.</param>
     /// <param name="message">The text of the message.</param>
-    [PublicAPI]
     public void Write(LogLevel level, string category, string message)
     {
         if (level < _minimum)
@@ -99,28 +98,24 @@ public sealed class Log
     /// <summary>
     /// Writes a <see cref="LogLevel.Debug"/> message, kept only when the shell runs with <c>--verbose</c>.
     /// </summary>
-    [PublicAPI]
     public void Debug(string category, string message)
     {
         Write(LogLevel.Debug, category, message);
     }
 
     /// <summary>Writes a <see cref="LogLevel.Info"/> message.</summary>
-    [PublicAPI]
     public void Info(string category, string message)
     {
         Write(LogLevel.Info, category, message);
     }
 
     /// <summary>Writes a <see cref="LogLevel.Warn"/> message.</summary>
-    [PublicAPI]
     public void Warn(string category, string message)
     {
         Write(LogLevel.Warn, category, message);
     }
 
     /// <summary>Writes a <see cref="LogLevel.Error"/> message.</summary>
-    [PublicAPI]
     public void Error(string category, string message)
     {
         Write(LogLevel.Error, category, message);

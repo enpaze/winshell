@@ -28,7 +28,6 @@ public class IpcBoundsTests
                 try
                 {
                     // The write is awaited before this method disposes the client.
-                    // ReSharper disable once AccessToDisposedClosure
                     client.Write(payload);
                 }
                 catch (IOException)

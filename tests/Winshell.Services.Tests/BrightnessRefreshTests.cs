@@ -66,19 +66,15 @@ public class BrightnessRefreshTests
             (_, _) =>
             {
                 // The writer and the test share writes; the test only sets the initial zero.
-                // ReSharper disable once AccessToModifiedClosure
                 Interlocked.Increment(ref writes);
                 // The writer thread signals started before either handle is disposed.
-                // ReSharper disable once AccessToDisposedClosure
                 started.Release();
                 // The writer thread blocks on release and finishes before it is disposed.
-                // ReSharper disable once AccessToDisposedClosure
                 release.Wait(TimeSpan.FromSeconds(10));
                 return null;
             },
             Log.Default,
             // The writer increments drained when the queue empties; the test only sets the initial zero.
-            // ReSharper disable once AccessToModifiedClosure
             () => Interlocked.Increment(ref drained));
 
         writer.Request("DISPLAY1", 10, _ => { });

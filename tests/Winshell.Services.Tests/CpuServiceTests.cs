@@ -25,7 +25,6 @@ public sealed class CpuServiceTests
         using var cpu = new CpuService(loop, backend);
         List<(string? Name, double Usage)> heard = [];
         // The handler runs on Advance, before the service is disposed, and records the usage from that event.
-        // ReSharper disable once AccessToDisposedClosure
         cpu.PropertyChanged += (_, e) => heard.Add((e.PropertyName, cpu.Usage));
         Assert.Equal(0, cpu.Usage);
 

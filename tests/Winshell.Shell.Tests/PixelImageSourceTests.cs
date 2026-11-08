@@ -1,9 +1,9 @@
 using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.Foundation;
 
 namespace Winshell.ShellTests;
 

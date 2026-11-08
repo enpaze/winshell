@@ -39,7 +39,8 @@ internal sealed record ShellIdentity(string ShellId, string DataDir, string Stat
         }
 
         return new ShellIdentity(id, Folder(dataDir, locations.DataRoot), Folder(stateDir, locations.StateRoot),
-            Folder(cacheDir, locations.CacheRoot)) { Earlier = moves };
+            Folder(cacheDir, locations.CacheRoot))
+        { Earlier = moves };
     }
 
     /// <summary>

@@ -16,7 +16,6 @@ public sealed class WifiProfile : ObservableObject
     }
 
     /// <summary>Setting <see cref="AutoConnect"/>, <see cref="ClearPassword"/> or <see cref="Forget"/> failed.</summary>
-    [PublicAPI]
     public event Action<string>? OperationFailed;
 
     internal Network Network => _network;
@@ -26,22 +25,18 @@ public sealed class WifiProfile : ObservableObject
     internal bool Removed { get; private set; }
 
     /// <summary>The adapter's ID and the profile's name, joined by a colon.</summary>
-    [PublicAPI]
     public string Id => _info.Id;
 
     /// <summary>The profile's name in Windows. Usually the SSID, but it can differ.</summary>
-    [PublicAPI]
     public string Name => _info.Name;
 
     /// <summary>The SSID the profile connects to. Empty when <see cref="Loaded"/> is false.</summary>
-    [PublicAPI]
     public string Ssid => _info.Ssid;
 
     /// <summary>
     /// Whether the connection mode is automatic. Setting it changes only that element, and the value stays what the
     /// last read reported until a later read shows the change.
     /// </summary>
-    [PublicAPI]
     public bool AutoConnect
     {
         get => _info.AutoConnect;
@@ -57,27 +52,22 @@ public sealed class WifiProfile : ObservableObject
     /// How the profile's network is secured. <see cref="WifiSecurityType.Unknown"/> when <see cref="Loaded"/> is
     /// false.
     /// </summary>
-    [PublicAPI]
     public WifiSecurityType Security => _info.Security;
 
     /// <summary>Whether the profile has a key element. The key text is not read.</summary>
-    [PublicAPI]
     public bool HasPassword => _info.HasPassword;
 
     /// <summary>
     /// Whether the profile could be read. When false, only <see cref="Id"/> and <see cref="Name"/> are set.
     /// </summary>
-    [PublicAPI]
     public bool Loaded => _info.Loaded;
 
     /// <summary>Why the last change failed, or else why the profile can't be read. Empty when neither did.</summary>
-    [PublicAPI]
     public string Error => ShownError;
 
     private string ShownError => _actionError.Length > 0 ? _actionError : _info.Error;
 
     /// <summary>The profile's fields. There is no key in the result.</summary>
-    [PublicAPI]
     public Dictionary<string, object?> Read()
     {
         return new Dictionary<string, object?>
@@ -93,14 +83,12 @@ public sealed class WifiProfile : ObservableObject
     }
 
     /// <summary>Removes every key element and writes the profile back. The key text is not read.</summary>
-    [PublicAPI]
     public void ClearPassword()
     {
         _ = ClearPasswordAsync();
     }
 
     /// <summary>Deletes this saved profile by its profile name.</summary>
-    [PublicAPI]
     public void Forget()
     {
         _ = ForgetAsync();

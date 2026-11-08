@@ -1,6 +1,6 @@
 using System.Text;
-using Windows.ApplicationModel;
 using Microsoft.Win32;
+using Windows.ApplicationModel;
 using Winshell.Native;
 
 namespace Winshell.Session;
@@ -64,7 +64,6 @@ internal static class SignInEntry
     internal readonly record struct SignInLaunch(
         string? Program,
         string? Path,
-        // ReSharper disable once MemberHidesStaticFromOuterClass The launch's -c name, not the Run value Name.
         string? Name)
     {
         /// <summary>Whether the command names a configuration with <c>-p</c> or <c>-c</c>.</summary>

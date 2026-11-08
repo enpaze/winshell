@@ -14,10 +14,8 @@ namespace Winshell;
 internal sealed record CrashReport(
     string Path,
     // The report file names where the runtime failed, and the record keeps that place.
-    // ReSharper disable once NotAccessedPositionalProperty.Global
     string Where,
     // The report file includes the exception, and the record keeps that exception.
-    // ReSharper disable once NotAccessedPositionalProperty.Global
     Exception Error,
     bool Fatal)
 {

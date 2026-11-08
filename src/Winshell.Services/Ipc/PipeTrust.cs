@@ -1,7 +1,7 @@
 using System.IO.Pipes;
 using System.Security.Principal;
-using Windows.Win32.Foundation;
 using Microsoft.Win32.SafeHandles;
+using Windows.Win32.Foundation;
 using Winshell.Native;
 
 namespace Winshell;

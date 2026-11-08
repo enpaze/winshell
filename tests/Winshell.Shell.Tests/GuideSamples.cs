@@ -7,7 +7,6 @@ namespace Winshell.ShellTests;
 /// in this file. Nothing here runs, and none of it opens a window.
 /// </summary>
 // Guide samples. DocsTests matches their text; the suite does not call them.
-// ReSharper disable UnusedMember.Global
 public static class GuideSamples
 {
     private static IDisposable? _registration;
@@ -51,7 +50,6 @@ public static class GuideSamples
             shell.Log.Warn("shell", "Reload did not start.");
     }
 }
-// ReSharper restore UnusedMember.Global
 
 /// <summary>The smallest shell: one panel. The <c>winshell</c> template does the same with its own view.</summary>
 public sealed class AppShell : ShellConfiguration
@@ -64,7 +62,6 @@ public sealed class AppShell : ShellConfiguration
 }
 
 // The configuration guide's sample: DocsTests matches this text, and the suite never passes it across the WinRT ABI.
-// ReSharper disable UnusedType.Global, UnusedMember.Global
 #pragma warning disable CsWinRT1028
 public sealed class ShellPreferences(string path, IEventLoop loop) : TomlFile(path, loop)
 {
@@ -76,4 +73,3 @@ public sealed class ShellPreferences(string path, IEventLoop loop) : TomlFile(pa
     } = "system";
 }
 #pragma warning restore CsWinRT1028
-// ReSharper restore UnusedType.Global, UnusedMember.Global

@@ -22,7 +22,7 @@ internal static class ParentProcessWatch
                 parent.WaitForExit();
                 Process.GetCurrentProcess().Kill();
             })
-            { IsBackground = true, Name = "Parent process watch" }.Start();
+        { IsBackground = true, Name = "Parent process watch" }.Start();
     }
 
     private static Process? Parent()

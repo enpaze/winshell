@@ -38,33 +38,27 @@ public sealed class AppsService : ObservableObject, IDisposable
     }
 
     /// <summary>The apps that are shown in Start, by name.</summary>
-    [PublicAPI]
     public ObservableCollection<AppEntry> Apps { get; } = [];
 
     /// <summary>Visible apps Windows has a last-used time for, newest first.</summary>
-    [PublicAPI]
     public ObservableCollection<AppEntry> Recent { get; } = [];
 
     /// <summary>Visible apps with a use count, most used first.</summary>
-    [PublicAPI]
     public ObservableCollection<AppEntry> Frequent { get; } = [];
 
     /// <summary>An entry by its id: a shortcut's path under Programs, or a packaged app's AppUserModelID. Includes hidden entries.</summary>
-    [PublicAPI]
     public AppEntry? ById(string id)
     {
         return _byId.GetValueOrDefault(id);
     }
 
     /// <summary>Finds an app by id, then by the app id a window carries, then by display name. Includes hidden entries.</summary>
-    [PublicAPI]
     public AppEntry? Find(string name)
     {
         return AppIndex.Find(_entries, name) is { } found ? _byId[found.Id] : null;
     }
 
     /// <summary>Visible apps the query matches, best first. A blank query matches nothing.</summary>
-    [PublicAPI]
     public IReadOnlyList<AppEntry> Search(string query)
     {
         return AppIndex.Search(_entries, query, UsageFor, _loop.Time.GetUtcNow().ToUnixTimeMilliseconds())
@@ -135,7 +129,6 @@ public sealed class AppsService : ObservableObject, IDisposable
     }
 
     /// <summary>Stops following changes to the Start menu and the installed apps.</summary>
-    [PublicAPI]
     public void Dispose()
     {
         if (_disposed)
@@ -169,68 +162,53 @@ public sealed class AppEntry : ObservableObject
     internal Action<AppRecord>? Launched { get; set; }
 
     /// <summary>A shortcut's path under Programs, such as <c>Accessories/Notepad</c>, or a packaged app's AppUserModelID.</summary>
-    [PublicAPI]
     public string Id { get; }
 
     /// <summary>
     /// The name Start shows: the shortcut's file name without <c>.lnk</c>, or the packaged app's display name.
     /// </summary>
-    [PublicAPI]
     public string Name => _entry.Name;
 
     /// <summary>The shortcut's comment, or the packaged app's description. May be empty.</summary>
-    [PublicAPI]
     public string Description => _entry.Description;
 
     /// <summary>A path an icon is read from: the shortcut, or <c>shell:AppsFolder\&lt;id&gt;</c> for a packaged app.</summary>
-    [PublicAPI]
     public string Icon => _entry.Path;
 
     /// <summary>The program the shortcut opens, or <c>shell:AppsFolder\&lt;id&gt;</c> for a packaged app.</summary>
-    [PublicAPI]
     public string Target => _entry.Target;
 
     /// <summary>The shortcut's arguments. Empty for a packaged app.</summary>
-    [PublicAPI]
     public string Arguments => _entry.Arguments;
 
     /// <summary>A command line that describes how the app is opened.</summary>
-    [PublicAPI]
     public string CommandLine => _entry.CommandLine;
 
     /// <summary>The shortcut's Start in folder.</summary>
-    [PublicAPI]
     public string StartIn => _entry.StartIn;
 
     /// <summary>The AppUserModelID the app's windows carry, or its program's name in lower case.</summary>
-    [PublicAPI]
     public string AppId => _entry.AppId;
 
     /// <summary>The Start menu folders the shortcut is in. Empty for a packaged app.</summary>
-    [PublicAPI]
     public IReadOnlyList<string> Folders => _entry.Folders;
 
     /// <summary>True for an uninstaller or a document shortcut. Hidden apps stay out of <c>Apps</c>, <c>Search</c>, <c>Recent</c> and <c>Frequent</c>.</summary>
-    [PublicAPI]
     public bool Hidden => _entry.Hidden;
 
     /// <summary>True when the app came from PackageManager.</summary>
-    [PublicAPI]
     public bool Packaged => _entry.Packaged;
 
     /// <summary>How many times Windows, or <see cref="Launch"/>, has run the app.</summary>
-    [PublicAPI]
     public int RunCount => _usage.RunCount;
 
     /// <summary>When the app was last used, in Unix milliseconds, or 0 when Windows has no record.</summary>
-    [PublicAPI]
     public long LastUsed => _usage.LastUsedUnixMilliseconds;
 
     /// <summary>
     /// Opens the app as the Start menu does, through its shortcut or its AppUserModelID. A packaged app starts in
     /// the background, so this returns before it is up.
     /// </summary>
-    [PublicAPI]
     public void Launch()
     {
         var entry = _entry;

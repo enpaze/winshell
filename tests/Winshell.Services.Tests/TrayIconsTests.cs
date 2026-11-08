@@ -54,7 +54,8 @@ public sealed class TrayIconsTests
     {
         _icons.Apply(Call(TrayProtocol.Add, TrayProtocol.NIF_STATE) with
         {
-            State = TrayProtocol.NIS_HIDDEN, StateMask = TrayProtocol.NIS_HIDDEN
+            State = TrayProtocol.NIS_HIDDEN,
+            StateMask = TrayProtocol.NIS_HIDDEN
         });
         var icon = Assert.Single(_icons.Icons);
         Assert.True(icon.Hidden);
@@ -64,7 +65,8 @@ public sealed class TrayIconsTests
 
         _icons.Apply(Call(TrayProtocol.Modify, TrayProtocol.NIF_STATE) with
         {
-            State = 0, StateMask = TrayProtocol.NIS_HIDDEN
+            State = 0,
+            StateMask = TrayProtocol.NIS_HIDDEN
         });
         Assert.False(icon.Hidden);
     }
@@ -78,7 +80,9 @@ public sealed class TrayIconsTests
 
         _icons.Apply(Call(TrayProtocol.Modify, TrayProtocol.NIF_INFO) with
         {
-            InfoTitle = "Backup", Info = "Done", InfoFlags = 1
+            InfoTitle = "Backup",
+            Info = "Done",
+            InfoFlags = 1
         });
         // An empty text takes the balloon down.
         _icons.Apply(Call(TrayProtocol.Modify, TrayProtocol.NIF_INFO) with { InfoTitle = "Backup", Info = "" });
@@ -111,7 +115,8 @@ public sealed class TrayIconsTests
         // A balloon timeout of 4 is not interface version 4.
         _icons.Apply(Call(TrayProtocol.Add, TrayProtocol.NIF_INFO) with
         {
-            Info = "Hi", TimeoutOrVersion = TrayProtocol.Version4
+            Info = "Hi",
+            TimeoutOrVersion = TrayProtocol.Version4
         });
         var icon = Assert.Single(_icons.Icons);
         Assert.Equal(0u, icon.Version);
@@ -121,7 +126,8 @@ public sealed class TrayIconsTests
 
         _icons.Apply(Call(TrayProtocol.Modify, TrayProtocol.NIF_INFO) with
         {
-            Info = "Again", TimeoutOrVersion = TrayProtocol.Version
+            Info = "Again",
+            TimeoutOrVersion = TrayProtocol.Version
         });
         Assert.Equal(TrayProtocol.Version4, icon.Version);
     }

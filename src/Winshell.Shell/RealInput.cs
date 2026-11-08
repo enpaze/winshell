@@ -1,7 +1,7 @@
-using Windows.Foundation;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Windows.Foundation;
 using Winshell.Input;
 using Winshell.Native;
 
@@ -364,7 +364,8 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
     {
         var point = new POINT
         {
-            X = (int)Math.Round(at.X * root.RasterizationScale), Y = (int)Math.Round(at.Y * root.RasterizationScale)
+            X = (int)Math.Round(at.X * root.RasterizationScale),
+            Y = (int)Math.Round(at.Y * root.RasterizationScale)
         };
         return Win32.ClientToScreen(window, ref point) ? point : null;
     }
@@ -539,18 +540,18 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         var (width, height) = (root.Size.Width, root.Size.Height);
         POINT? other = null;
         for (var row = 0; row < 5; row++)
-        for (var column = 0; column < 5; column++)
-        {
-            var at = new Point((column + 0.5) * width / 5, (row + 0.5) * height / 5);
-            var hit = VisualTreeHelper.FindElementsInHostCoordinates(at, content).FirstOrDefault();
-            if (Holds(target.Element, hit) ||
-                OnScreen(target.Window, root, at) is not { } point ||
-                !Ours(PointerInput.RootWindowAt(point), target.Window))
-                continue;
-            if (hit is not FrameworkElement framed || Holds(framed, target.Element))
-                return point;
-            other ??= point;
-        }
+            for (var column = 0; column < 5; column++)
+            {
+                var at = new Point((column + 0.5) * width / 5, (row + 0.5) * height / 5);
+                var hit = VisualTreeHelper.FindElementsInHostCoordinates(at, content).FirstOrDefault();
+                if (Holds(target.Element, hit) ||
+                    OnScreen(target.Window, root, at) is not { } point ||
+                    !Ours(PointerInput.RootWindowAt(point), target.Window))
+                    continue;
+                if (hit is not FrameworkElement framed || Holds(framed, target.Element))
+                    return point;
+                other ??= point;
+            }
 
         return other;
     }

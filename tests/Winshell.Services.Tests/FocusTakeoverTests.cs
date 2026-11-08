@@ -57,14 +57,11 @@ public sealed class FocusTakeoverTests
                 // The holder gives up once its taps have not made it the foreground. That is the precondition
                 // failing, not a reason to sit out the rest of the patience.
                 // The wait returns before this method disposes the handle.
-                // ReSharper disable once AccessToDisposedClosure
                 if (blocked.WaitOne(0))
                     Assert.Fail("Could not establish the precondition: the focus holder sent input and never " +
                                 "became the foreground. " + errors);
                 // The wait returns before this method disposes the holder and these handles.
-                // ReSharper disable AccessToDisposedClosure
                 var refusal = Observe(holder, steady, tapped, window.Handle, errors);
-                // ReSharper restore AccessToDisposedClosure
                 if (refusal != Refusal.Granted)
                     return refusal == Refusal.Refused;
                 // Each grant is Focus.Take without the key tap. If that keeps working, the tap is not what moved
@@ -84,9 +81,7 @@ public sealed class FocusTakeoverTests
                 TimeSpan.FromSeconds(5), () =>
                 {
                     // The holder is still the process this check reads; the method disposes it after the wait.
-                    // ReSharper disable once AccessToDisposedClosure
                     if (holder.HasExited)
-                        // ReSharper disable once AccessToDisposedClosure
                         Assert.Fail("The focus holder exited early (" + holder.ExitCode + "). " + errors);
                 });
             passed = true;

@@ -234,11 +234,9 @@ public sealed class AppIndexTests
             var link = Path.Combine(folder, "Probe.lnk");
             WriteLink(link, Cmd(), "", "", "probe");
             // Until calls this before apps is disposed.
-            // ReSharper disable once AccessToDisposedClosure
             Until(loop, () => Listed(apps, "Probe"), "the new shortcut");
             File.Delete(link);
             // Until calls this before apps is disposed.
-            // ReSharper disable once AccessToDisposedClosure
             Until(loop, () => !Listed(apps, "Probe"), "the removed shortcut to go");
         }
         finally
@@ -259,16 +257,13 @@ public sealed class AppIndexTests
         try
         {
             // Until calls this before apps is disposed.
-            // ReSharper disable once AccessToDisposedClosure
             Until(loop, () => Listed(apps, "First"), "the first read");
             Directory.Delete(folder, true);
             Directory.CreateDirectory(folder);
             // Until calls this before apps is disposed.
-            // ReSharper disable once AccessToDisposedClosure
             Until(loop, () => !Listed(apps, "First"), "the shortcut in the recreated folder to go");
             WriteLink(Path.Combine(folder, "Second.lnk"), Cmd(), "", "", "second");
             // Until calls this before apps is disposed.
-            // ReSharper disable once AccessToDisposedClosure
             Until(loop, () => Listed(apps, "Second"), "the shortcut in the recreated folder");
         }
         finally
@@ -286,13 +281,10 @@ public sealed class AppIndexTests
         var catalog = new AppCatalog(new Log(), [], () =>
         {
             // The read signals reading before it is disposed.
-            // ReSharper disable once AccessToDisposedClosure
             reading.Set();
             // The read blocks on release and finishes before it is disposed.
-            // ReSharper disable once AccessToDisposedClosure
             release.Wait(TimeSpan.FromSeconds(10));
             // The read publishes ended for the test, which only sets the initial false.
-            // ReSharper disable once AccessToModifiedClosure
             Volatile.Write(ref ended, true);
             return [];
         }, () => new Dictionary<string, AppUsage>(StringComparer.OrdinalIgnoreCase));

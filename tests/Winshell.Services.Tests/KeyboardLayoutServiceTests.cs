@@ -22,7 +22,7 @@ public sealed class KeyboardLayoutServiceTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeKeyboardBackend(English, International, Burmese, Uncoded)
-            { CurrentId = International.Id };
+        { CurrentId = International.Id };
         using var keyboard = new KeyboardLayoutService(loop, backend);
         keyboard.PropertyChanged += Ignore;
 

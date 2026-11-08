@@ -25,7 +25,9 @@ internal static class DoctorReport
             if (color)
                 label = check.Status switch
                 {
-                    CheckStatus.Pass => "\e[32m", CheckStatus.Warn => "\e[33m", _ => "\e[31m"
+                    CheckStatus.Pass => "\e[32m",
+                    CheckStatus.Warn => "\e[33m",
+                    _ => "\e[31m"
                 } + label + "\e[0m";
             text.AppendLine(CultureInfo.InvariantCulture, $"  {label}  {check.Title.PadRight(width)}{check.Message}");
             if (check.Fix is not null)

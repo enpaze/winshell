@@ -13,13 +13,12 @@ namespace Winshell.Diagnostics;
 /// <param name="Status">How the check came out.</param>
 /// <param name="Message">What the check found.</param>
 /// <param name="Fix">How to fix what is wrong, or null when nothing is or there is nothing to do.</param>
-[method: PublicAPI]
 public sealed record DoctorCheck(
-    [property: PublicAPI] string Id,
-    [property: PublicAPI] string Title,
-    [property: PublicAPI] CheckStatus Status,
-    [property: PublicAPI] string Message,
-    [property: PublicAPI] string? Fix = null);
+    string Id,
+    string Title,
+    CheckStatus Status,
+    string Message,
+    string? Fix = null);
 
 /// <summary>A running Winshell, as the instance list has it.</summary>
 internal sealed record DoctorInstance(string Id, int Pid, string ConfigPath, string LogPath);
@@ -265,7 +264,6 @@ public static class Doctor
     /// Every check, for the shell running in this process. A configuration project's program is checked in its own
     /// folder. Any other program is checked in <paramref name="configRoot"/>. Nothing is built.
     /// </summary>
-    [PublicAPI]
     public static IReadOnlyList<DoctorCheck> ForThisProcess(string configRoot)
     {
         return Report(
@@ -341,7 +339,6 @@ public static class Doctor
     }
 
     /// <summary>The status as <c>winshell doctor</c> writes it: <c>pass</c>, <c>warn</c> or <c>fail</c>.</summary>
-    [PublicAPI]
     public static string StatusName(CheckStatus status)
     {
         return status switch

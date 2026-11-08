@@ -16,29 +16,29 @@ internal enum WindowKind
 public enum ColorScheme
 {
     /// <summary>Follows the light or dark mode set in Windows.</summary>
-    [PublicAPI] System,
+    System,
 
     /// <summary>Light, whatever Windows is set to.</summary>
-    [PublicAPI] Light,
+    Light,
 
     /// <summary>Dark, whatever Windows is set to.</summary>
-    [PublicAPI] Dark
+    Dark
 }
 
 /// <summary>What a window shows behind its content: nothing, or a Windows 11 material.</summary>
 public enum WindowBackdrop
 {
     /// <summary>No material: what the content does not cover is transparent.</summary>
-    [PublicAPI] None,
+    None,
 
     /// <summary>Mica, tinted by the desktop background, as Windows Settings uses.</summary>
-    [PublicAPI] Mica,
+    Mica,
 
     /// <summary>Acrylic, a blur of what is behind the window, as Windows' flyouts use.</summary>
-    [PublicAPI] Acrylic,
+    Acrylic,
 
     /// <summary>Mica Alt, a stronger tint of Mica, as tabbed title bars use.</summary>
-    [PublicAPI] MicaAlt
+    MicaAlt
 }
 
 /// <summary>How a window's corners are drawn.</summary>
@@ -48,14 +48,14 @@ public enum WindowCorners
     /// The kind's own: a floating window's are Windows' choice, a popup with a backdrop is rounded, and the rest are
     /// square.
     /// </summary>
-    [PublicAPI] Default,
+    Default,
 
     /// <summary>Square corners.</summary>
-    [PublicAPI] Square,
+    Square,
 
     /// <summary>Rounded corners.</summary>
-    [PublicAPI] Round,
+    Round,
 
     /// <summary>Corners with a smaller rounding.</summary>
-    [PublicAPI] RoundSmall
+    RoundSmall
 }

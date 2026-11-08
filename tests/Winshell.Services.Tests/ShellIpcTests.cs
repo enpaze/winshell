@@ -109,7 +109,6 @@ public sealed class ShellIpcTests
     {
         var ipc = Ipc();
         // The refusal names this parameter: "Argument color is not a color".
-        // ReSharper disable once UnusedParameter.Local
         ipc.Handle("t", "paint", (Color color) => { });
 
         Assert.Equal("Argument color is not a color: 12.",
@@ -164,9 +163,7 @@ public sealed class ShellIpcTests
     {
         var ipc = Ipc();
         // Show lists the names page and tab; the body only returns the result.
-        // ReSharper disable UnusedParameter.Local
         ipc.Handle("settings", "open", (string page, int tab) => true);
-        // ReSharper restore UnusedParameter.Local
         ipc.Property("settings", "page", () => "home");
         ipc.Signal("settings", "changed");
         ipc.Handle("audio", "mute", () => { });

@@ -5,17 +5,17 @@ namespace Winshell;
 public enum Edges
 {
     /// <summary>No edge.</summary>
-    [PublicAPI] None = 0,
+    None = 0,
 
     /// <summary>The top edge.</summary>
-    [PublicAPI] Top = 1,
+    Top = 1,
 
     /// <summary>The left edge.</summary>
-    [PublicAPI] Left = 2,
+    Left = 2,
 
     /// <summary>The right edge.</summary>
-    [PublicAPI] Right = 4,
+    Right = 4,
 
     /// <summary>The bottom edge.</summary>
-    [PublicAPI] Bottom = 8
+    Bottom = 8
 }

@@ -222,7 +222,7 @@ public sealed partial class DevCommandTests : IDisposable
                             _printed.AppendLine(line);
                         }
                 })
-                { IsBackground = true }.Start();
+            { IsBackground = true }.Start();
     }
 
     /// <summary>Every process this project started: dotnet watch, the build, and the shell, by command line or path.</summary>

@@ -1,14 +1,14 @@
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Security;
-using Windows.UI;
-using Windows.UI.ViewManagement;
-using Windows.Win32.UI.WindowsAndMessaging;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.Win32;
+using Windows.UI;
+using Windows.UI.ViewManagement;
+using Windows.Win32.UI.WindowsAndMessaging;
 using Winshell.Native;
 using Winshell.Windows;
 
@@ -164,7 +164,6 @@ internal sealed partial class ShellPlatform : IDisposable
         Screens.Sync(next, s => s.Id, s => s.Id, s => s, (_, _) => { });
         for (var i = 0; i < next.Count; i++)
             // The indexer raises a change on every assignment, so an equal record stays where it is.
-            // ReSharper disable once RedundantCheckBeforeAssignment
             if (Screens[i] != next[i])
                 Screens[i] = next[i];
         WorkAreaMayHaveChanged();

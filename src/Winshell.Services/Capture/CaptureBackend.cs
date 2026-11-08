@@ -6,21 +6,18 @@ namespace Winshell.Capture;
 /// <summary>A source in physical pixels. Monitor ids are Windows display device names.</summary>
 /// <param name="Window">The handle of the window to capture, or 0 for a screen.</param>
 /// <param name="MonitorId">The <see cref="ScreenInfo.Id"/> of the screen to capture, or empty for a window.</param>
-[method: PublicAPI]
-public sealed record CaptureTarget([property: PublicAPI] nint Window, [property: PublicAPI] string MonitorId)
+public sealed record CaptureTarget(nint Window, string MonitorId)
 {
     /// <summary>The app window this was made from, or null for a handle or a screen.</summary>
     internal AppWindow? Source { get; private init; }
 
     /// <summary>A top-level window, by its handle.</summary>
-    [PublicAPI]
     public static CaptureTarget ForWindow(nint window)
     {
         return new CaptureTarget(window, "");
     }
 
     /// <summary>An <see cref="AppWindow"/> from <see cref="WindowListService"/>. The caller does not need its handle.</summary>
-    [PublicAPI]
     public static CaptureTarget ForWindow(AppWindow window)
     {
         ArgumentNullException.ThrowIfNull(window);
@@ -37,7 +34,6 @@ public sealed record CaptureTarget([property: PublicAPI] nint Window, [property:
     }
 
     /// <summary>A whole screen, by its <see cref="ScreenInfo.Id"/>.</summary>
-    [PublicAPI]
     public static CaptureTarget ForScreen(ScreenInfo screen)
     {
         return new CaptureTarget(0, screen.Id);

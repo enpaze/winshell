@@ -82,7 +82,7 @@ jobs:
         shell: pwsh
         run: |
           $env:PSModulePath = "$(Join-Path $env:RUNNER_TEMP 'psmodules');$env:PSModulePath"
-          ./scripts/resharper.ps1 -Mode Check
+          ./scripts/format.ps1 -VerifyNoChanges
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet build scripts/generate-reference.cs --nologo
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

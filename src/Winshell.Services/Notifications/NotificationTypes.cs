@@ -4,48 +4,48 @@ namespace Winshell.Notifications;
 public enum NotificationAccessStatus
 {
     /// <summary>The user has not answered yet, or the first read has not finished.</summary>
-    [PublicAPI] Unspecified,
+    Unspecified,
 
     /// <summary>The user allowed access.</summary>
-    [PublicAPI] Allowed,
+    Allowed,
 
     /// <summary>The user denied access. It can be allowed again in Windows Settings.</summary>
-    [PublicAPI] Denied,
+    Denied,
 
     /// <summary>Windows cannot give access, such as when the shell runs without a package identity.</summary>
-    [PublicAPI] Unavailable,
+    Unavailable,
 
     /// <summary>An access request is waiting for the user's answer.</summary>
-    [PublicAPI] Requesting
+    Requesting
 }
 
 /// <summary>Whether a Windows setting is on.</summary>
 public enum NotificationState
 {
     /// <summary>Windows does not say, or this version of Windows does not have the setting.</summary>
-    [PublicAPI] Unknown,
+    Unknown,
 
     /// <summary>The setting is off.</summary>
-    [PublicAPI] Off,
+    Off,
 
     /// <summary>The setting is on.</summary>
-    [PublicAPI] On
+    On
 }
 
 /// <summary>Which notifications Windows shows, as do not disturb sets it.</summary>
 public enum NotificationMode
 {
     /// <summary>Windows does not say, or this version of Windows does not report it.</summary>
-    [PublicAPI] Unknown = -1,
+    Unknown = -1,
 
     /// <summary>Every notification shows.</summary>
-    [PublicAPI] Unrestricted,
+    Unrestricted,
 
     /// <summary>Only notifications from priority apps and people show.</summary>
-    [PublicAPI] PriorityOnly,
+    PriorityOnly,
 
     /// <summary>Only alarms show.</summary>
-    [PublicAPI] AlarmsOnly
+    AlarmsOnly
 }
 
 internal sealed record IncomingToast(

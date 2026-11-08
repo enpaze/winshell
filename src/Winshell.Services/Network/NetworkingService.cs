@@ -35,31 +35,26 @@ public sealed class NetworkingService : ObservableObject, IDisposable
     }
 
     /// <summary>An access request or a radio change failed.</summary>
-    [PublicAPI]
     public event Action<string>? OperationFailed;
 
     /// <summary>The PC's Wi-Fi and Ethernet adapters. Virtual adapters, VPNs and Bluetooth are left out.</summary>
-    [PublicAPI]
     public ObservableCollection<NetworkDevice> Devices { get; } = [];
 
     /// <summary>
     /// The Windows connection profiles connected on an adapter now, local-only and captive-portal ones included.
     /// A saved profile that is not connected is left out.
     /// </summary>
-    [PublicAPI]
     public ObservableCollection<NetworkProfile> Profiles { get; } = [];
 
     /// <summary>
     /// Whether the first read has finished. False again while the last read failed, and <see cref="Error"/> says why.
     /// </summary>
-    [PublicAPI]
     public bool Ready => _snapshot.Ready;
 
     /// <summary>
     /// Whether at least one Wi-Fi radio is on. Setting it asks Windows to turn on or off every Wi-Fi radio the last read
     /// found, and the value stays what Windows last reported until a later read shows the radios changed.
     /// </summary>
-    [PublicAPI]
     public bool WifiEnabled
     {
         get => _snapshot.WifiEnabled;
@@ -67,50 +62,41 @@ public sealed class NetworkingService : ObservableObject, IDisposable
     }
 
     /// <summary>The state of the Wi-Fi radios, taken together.</summary>
-    [PublicAPI]
     public WifiRadioState WifiState => _snapshot.WifiState;
 
     /// <summary>Whether at least one Wi-Fi radio is on or off, not disabled, so software can turn it on.</summary>
-    [PublicAPI]
     public bool WifiHardwareEnabled => _snapshot.WifiHardwareEnabled;
 
     /// <summary>
     /// Whether Windows lets Winshell scan and connect Wi-Fi. <see cref="NetworkAccessStatus.Unspecified"/> until
     /// <see cref="RequestAccess"/> has an answer.
     /// </summary>
-    [PublicAPI]
     public NetworkAccessStatus AccessStatus => _snapshot.Access;
 
     /// <summary>Airplane mode, read from the registry on a best-effort basis.</summary>
-    [PublicAPI]
     public AirplaneModeState AirplaneMode => _snapshot.AirplaneMode;
 
     /// <summary>
     /// What the connection Windows uses for the internet can reach. <see cref="NetworkConnectivity.None"/> without
     /// such a connection.
     /// </summary>
-    [PublicAPI]
     public NetworkConnectivity Connectivity => _snapshot.Connectivity;
 
     /// <summary>Why the last read, access request or Wi-Fi radio change failed. Empty when none did.</summary>
-    [PublicAPI]
     public string Error => _error;
 
     /// <summary>
     /// Whether an access request is waiting for Windows. <see cref="RequestAccess"/> does nothing until it ends.
     /// </summary>
-    [PublicAPI]
     public bool RequestingAccess => _access.Running;
 
     /// <summary>Reads the adapters, profiles, radios and connectivity again soon.</summary>
-    [PublicAPI]
     public void Refresh()
     {
         _reader.Request();
     }
 
     /// <summary>Asks Windows for Wi-Fi access, which may show consent UI. Call it from a user action.</summary>
-    [PublicAPI]
     public void RequestAccess()
     {
         _ = RequestAccessAsync();
@@ -197,7 +183,6 @@ public sealed class NetworkingService : ObservableObject, IDisposable
     }
 
     /// <summary>Stops following network changes. Its devices, networks and profiles then ignore actions.</summary>
-    [PublicAPI]
     public void Dispose()
     {
         _disposed = true;

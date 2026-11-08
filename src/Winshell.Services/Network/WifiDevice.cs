@@ -13,23 +13,18 @@ public sealed class WifiDevice : NetworkDevice
     }
 
     /// <summary>A scan failed.</summary>
-    [PublicAPI]
     public event Action<string>? OperationFailed;
 
     /// <summary>The adapter's 802.11 mode.</summary>
-    [PublicAPI]
     public WifiDeviceMode Mode => Info.Mode;
 
     /// <summary>Whether a scan is running. <see cref="Scan"/> does nothing until it ends.</summary>
-    [PublicAPI]
     public bool Scanning => _scan.Running;
 
     /// <summary>Why the last scan failed. Empty while a scan runs and after one succeeds.</summary>
-    [PublicAPI]
     public string Error => _error;
 
     /// <summary>Scans once and updates <see cref="NetworkDevice.Networks"/>. Needs <see cref="NetworkingService.RequestAccess"/> first.</summary>
-    [PublicAPI]
     public void Scan()
     {
         _ = ScanAsync();

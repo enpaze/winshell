@@ -78,9 +78,12 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
         // This process id already belongs to the live record, but the stale file names a different process start.
         instances.Write(live with
         {
-            Id = reusedId, ShellId = "reused", LaunchTime = live.LaunchTime.AddMinutes(1),
+            Id = reusedId,
+            ShellId = "reused",
+            LaunchTime = live.LaunchTime.AddMinutes(1),
             Pipe = "winshell-" + reusedId,
-            Log = Path.Combine(reusedDir, "log.txt"), ProcessStart = 1
+            Log = Path.Combine(reusedDir, "log.txt"),
+            ProcessStart = 1
         });
 
         var rows = Listed().Where(i => i.GetProperty("pid").GetInt32() == process.Id).ToList();

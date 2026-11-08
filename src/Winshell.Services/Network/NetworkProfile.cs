@@ -11,43 +11,33 @@ public sealed class NetworkProfile : ObservableObject
     }
 
     /// <summary>The adapter's ID and the profile's name, joined by a colon.</summary>
-    [PublicAPI]
     public string Id => _info.Id;
 
     /// <summary>The profile's name, as Windows shows the connection. For Wi-Fi it is usually the SSID.</summary>
-    [PublicAPI]
     public string Name => _info.Name;
 
     /// <summary>The <see cref="NetworkDevice.Id"/> of the adapter the profile is on.</summary>
-    [PublicAPI]
     public string AdapterId => _info.AdapterId.ToString();
 
     /// <summary>What this connection can reach.</summary>
-    [PublicAPI]
     public NetworkConnectivity Connectivity => _info.Connectivity;
 
     /// <summary>How this connection's data is charged.</summary>
-    [PublicAPI]
     public NetworkCost Cost => _info.Cost;
 
     /// <summary>True for a fixed or variable cost, roaming, or an exceeded data limit.</summary>
-    [PublicAPI]
     public bool Metered => IsMetered(_info);
 
     /// <summary>Whether the connection is roaming, outside its provider's own network.</summary>
-    [PublicAPI]
     public bool Roaming => _info.Roaming;
 
     /// <summary>Whether the connection has used more data than its plan's limit.</summary>
-    [PublicAPI]
     public bool OverDataLimit => _info.OverDataLimit;
 
     /// <summary>Whether Windows reports a signal for this connection. False for a wired one.</summary>
-    [PublicAPI]
     public bool SignalAvailable => _info.SignalStrength.HasValue;
 
     /// <summary>The signal strength, from 0 to 1. 0 when <see cref="SignalAvailable"/> is false.</summary>
-    [PublicAPI]
     public double SignalStrength => _info.SignalStrength ?? 0;
 
     private static bool IsMetered(NetworkProfileInfo info)
@@ -68,7 +58,6 @@ public sealed class NetworkProfile : ObservableObject
         Changed(old.OverDataLimit != info.OverDataLimit, nameof(OverDataLimit));
         Changed(old.SignalStrength.HasValue != info.SignalStrength.HasValue, nameof(SignalAvailable));
         // A stored reading: notify when the number changes, not when it passes a tolerance.
-        // ReSharper disable once CompareOfFloatsByEqualityOperator
         Changed((old.SignalStrength ?? 0) != (info.SignalStrength ?? 0), nameof(SignalStrength));
     }
 }

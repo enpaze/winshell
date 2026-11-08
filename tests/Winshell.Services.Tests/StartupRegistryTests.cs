@@ -3,8 +3,8 @@ using System.Text;
 using Microsoft.Win32;
 using Winshell.Diagnostics;
 using Winshell.Session;
-using StartupTaskState = Windows.ApplicationModel.StartupTaskState;
 using static Winshell.Diagnostics.DoctorSignIn;
+using StartupTaskState = Windows.ApplicationModel.StartupTaskState;
 
 namespace Winshell.Services.Tests;
 

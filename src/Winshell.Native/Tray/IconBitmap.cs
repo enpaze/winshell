@@ -53,7 +53,11 @@ internal static unsafe class IconBitmap
         {
             bmiHeader = new BITMAPINFOHEADER
             {
-                biSize = (uint)sizeof(BITMAPINFOHEADER), biWidth = size, biHeight = -size, biPlanes = 1, biBitCount = 32
+                biSize = (uint)sizeof(BITMAPINFOHEADER),
+                biWidth = size,
+                biHeight = -size,
+                biPlanes = 1,
+                biBitCount = 32
             }
         };
         var dc = PInvoke.CreateCompatibleDC();

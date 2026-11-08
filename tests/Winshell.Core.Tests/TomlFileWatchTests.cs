@@ -14,7 +14,6 @@ public sealed class TomlFileWatchTests
         public bool On
         {
             // TomlFile reads this key through the getter when it writes the file.
-            // ReSharper disable once UnusedMember.Local
             get;
             set => Set(ref field, value);
         } = true;
@@ -37,7 +36,6 @@ public sealed class TomlFileWatchTests
         File.WriteAllText(fixture.FilePath, "name = \"by hand\"\n");
 
         // The wait reads this file before the method disposes it.
-        // ReSharper disable once AccessToDisposedClosure
         Wait.Until(() => settings.Name == "by hand", "the hand edit", fixture.Loop.Process);
         Assert.Equal([thread], threads);
         Assert.Empty(fixture.Messages);
@@ -54,7 +52,6 @@ public sealed class TomlFileWatchTests
         File.WriteAllText(fixture.FilePath, "name = \"by hand\"\n");
 
         // The wait reads this file before the method disposes it.
-        // ReSharper disable once AccessToDisposedClosure
         Wait.Until(() => settings.Name == "by hand", "the hand edit after a write", fixture.Loop.Process);
     }
 
@@ -89,7 +86,6 @@ public sealed class TomlFileWatchTests
         File.WriteAllText(fixture.FilePath, "name = \"ok\"\n");
 
         // The wait reads this file before the method disposes it.
-        // ReSharper disable once AccessToDisposedClosure
         Wait.Until(() => settings.Name == "ok", "the fixed file", fixture.Loop.Process);
         Assert.Equal("", settings.Error);
         Assert.True(settings.Loaded);
@@ -109,7 +105,6 @@ public sealed class TomlFileWatchTests
         File.WriteAllText(path, "name = \"by hand\"\n");
 
         // The wait reads this file before the method disposes it.
-        // ReSharper disable once AccessToDisposedClosure
         Wait.Until(() => settings.Name == "by hand", "the save before the watch moved", fixture.Loop.Process);
         Assert.Contains("name = \"by hand\"", File.ReadAllText(path), StringComparison.Ordinal);
     }
@@ -128,7 +123,6 @@ public sealed class TomlFileWatchTests
         File.WriteAllText(Path.Combine(directory, "settings.toml"), "name = \"by hand\"");
 
         // The wait reads this file before the method disposes it.
-        // ReSharper disable once AccessToDisposedClosure
         Wait.Until(() => settings.Name == "by hand", "the file in the new folder", fixture.Loop.Process);
         Assert.True(settings.Loaded);
         Assert.Empty(fixture.Messages);
@@ -147,14 +141,12 @@ public sealed class TomlFileWatchTests
 
         Directory.Delete(directory, true);
         // The wait reads this file before the method disposes it.
-        // ReSharper disable once AccessToDisposedClosure
         Wait.Until(() => !settings.Loaded, "the deleted folder", fixture.Loop.Process);
 
         Directory.CreateDirectory(directory);
         File.WriteAllText(path, "name = \"second\"");
 
         // The wait reads this file before the method disposes it.
-        // ReSharper disable once AccessToDisposedClosure
         Wait.Until(() => settings.Name == "second", "the file in the new folder", fixture.Loop.Process);
         Assert.Empty(fixture.Messages);
     }
@@ -169,7 +161,6 @@ public sealed class TomlFileWatchTests
         File.Delete(fixture.FilePath);
 
         // The wait reads this file before the method disposes it.
-        // ReSharper disable once AccessToDisposedClosure
         Wait.Until(() => !settings.Loaded, "the deleted file", fixture.Loop.Process);
         Assert.Equal("first", settings.Name);
         Assert.Empty(fixture.Messages);
@@ -188,7 +179,6 @@ public sealed class TomlFileWatchTests
         using var fixture = new TomlFixture("name = \"first\"");
         using var settings = Open(fixture);
         // This event is disposed last, after the watch stops posting.
-        // ReSharper disable once AccessToDisposedClosure
         fixture.Loop.Woken += () => woken.Set();
 
         File.WriteAllText(fixture.FilePath, "name = \"second\"");

@@ -16,7 +16,6 @@ public sealed partial class PanelReloadTests
         }
 
         // The compiler closure in this method is the edit the closure test reloads.
-        // ReSharper disable once UnusedMember.Local
         public Func<int> Counter()
         {
             var seen = Built;
@@ -38,7 +37,6 @@ public sealed partial class PanelReloadTests
     private sealed partial class Takes(int size) : Grid
     {
         // Nothing reads this. The constructor argument is what stops a reload from replacing the content.
-        // ReSharper disable once UnusedMember.Local
         public int Size { get; } = size;
     }
 
@@ -125,7 +123,6 @@ public sealed partial class PanelReloadTests
     private sealed partial class NestedRoot : Grid
     {
         // PanelReload rebuilds the panel by invoking this constructor through reflection.
-        // ReSharper disable once UnusedMember.Local
         public NestedRoot()
         {
         }

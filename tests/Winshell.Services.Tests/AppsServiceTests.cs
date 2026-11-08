@@ -148,7 +148,6 @@ public sealed class AppsServiceTests : IDisposable
         _backend.Activation = activation.Task;
         var posts = 0;
         // The woken callback increments posts while the test reads it; the test only sets the initial zero.
-        // ReSharper disable once AccessToModifiedClosure
         _loop.Woken += () => Interlocked.Increment(ref posts);
 
         // Activation is still running. A launch that waited for it would never finish, and nothing reaches the loop yet.

@@ -11,7 +11,6 @@ namespace Winshell.Capture;
 internal sealed record SheetLayout(
     int Columns,
     // The grid's shape includes the row count. Equality uses it, and Height is built from it.
-    // ReSharper disable once NotAccessedPositionalProperty.Global
     int Rows,
     int ThumbWidth,
     int ThumbHeight,
@@ -143,14 +142,14 @@ internal static class ContactSheet
                 var right = Math.Max(left + 1, (int)((long)(x + 1) * image.Width / width));
                 long b = 0, g = 0, r = 0, a = 0;
                 for (var sy = top; sy < bottom; sy++)
-                for (var sx = left; sx < right; sx++)
-                {
-                    var at = (sy * image.Width + sx) * 4;
-                    b += source[at];
-                    g += source[at + 1];
-                    r += source[at + 2];
-                    a += source[at + 3];
-                }
+                    for (var sx = left; sx < right; sx++)
+                    {
+                        var at = (sy * image.Width + sx) * 4;
+                        b += source[at];
+                        g += source[at + 1];
+                        r += source[at + 2];
+                        a += source[at + 3];
+                    }
 
                 var count = (bottom - top) * (right - left);
                 var to = (y * width + x) * 4;
@@ -169,17 +168,17 @@ internal static class ContactSheet
     {
         var pixels = image.Bgra;
         for (var row = 0; row < image.Height; row++)
-        for (var column = 0; column < image.Width; column++)
-        {
-            var from = (row * image.Width + column) * 4;
-            var to = ((y + row) * sheetWidth + x + column) * 4;
-            var alpha = pixels[from + 3];
-            for (var channel = 0; channel < 3; channel++)
+            for (var column = 0; column < image.Width; column++)
             {
-                var color = image.Premultiplied ? pixels[from + channel] : pixels[from + channel] * alpha / 255;
-                sheet[to + channel] = (byte)Math.Min(255, color + sheet[to + channel] * (255 - alpha) / 255);
+                var from = (row * image.Width + column) * 4;
+                var to = ((y + row) * sheetWidth + x + column) * 4;
+                var alpha = pixels[from + 3];
+                for (var channel = 0; channel < 3; channel++)
+                {
+                    var color = image.Premultiplied ? pixels[from + channel] : pixels[from + channel] * alpha / 255;
+                    sheet[to + channel] = (byte)Math.Min(255, color + sheet[to + channel] * (255 - alpha) / 255);
+                }
             }
-        }
     }
 
     private static void Write(byte[] sheet, int sheetWidth, string text, int x, int y)
@@ -188,17 +187,17 @@ internal static class ContactSheet
         {
             var glyph = Glyphs[letter];
             for (var row = 0; row < GlyphHeight; row++)
-            for (var column = 0; column < GlyphWidth; column++)
-            {
-                if (glyph[row][column] != '#')
-                    continue;
-                for (var dy = 0; dy < Scale; dy++)
-                for (var dx = 0; dx < Scale && x + column * Scale + dx < sheetWidth; dx++)
+                for (var column = 0; column < GlyphWidth; column++)
                 {
-                    var to = ((y + row * Scale + dy) * sheetWidth + x + column * Scale + dx) * 4;
-                    sheet[to] = sheet[to + 1] = sheet[to + 2] = Ink;
+                    if (glyph[row][column] != '#')
+                        continue;
+                    for (var dy = 0; dy < Scale; dy++)
+                        for (var dx = 0; dx < Scale && x + column * Scale + dx < sheetWidth; dx++)
+                        {
+                            var to = ((y + row * Scale + dy) * sheetWidth + x + column * Scale + dx) * 4;
+                            sheet[to] = sheet[to + 1] = sheet[to + 2] = Ink;
+                        }
                 }
-            }
 
             x += (GlyphWidth + 1) * Scale;
         }

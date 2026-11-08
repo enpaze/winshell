@@ -170,22 +170,22 @@ internal static partial class XamlReload
         var handlers = new List<(string, string, MethodInfo)>();
         var count = 0;
         foreach (var element in root.DescendantsAndSelf())
-        foreach (var attribute in element.Attributes().Where(a => a.Name.Namespace == XNamespace.None).ToList())
-        {
-            if (type.GetMethod(attribute.Value, Members) is not { } method || method.GetParameters().Length != 2)
-                continue;
-            attribute.Remove();
-            if (element == root)
-                continue;
-            var name = element.Attribute(X + "Name")?.Value;
-            if (name is null)
+            foreach (var attribute in element.Attributes().Where(a => a.Name.Namespace == XNamespace.None).ToList())
             {
-                name = $"Handler{count++}";
-                element.SetAttributeValue(X + "Name", name);
-            }
+                if (type.GetMethod(attribute.Value, Members) is not { } method || method.GetParameters().Length != 2)
+                    continue;
+                attribute.Remove();
+                if (element == root)
+                    continue;
+                var name = element.Attribute(X + "Name")?.Value;
+                if (name is null)
+                {
+                    name = $"Handler{count++}";
+                    element.SetAttributeValue(X + "Name", name);
+                }
 
-            handlers.Add((name, attribute.Name.LocalName, method));
-        }
+                handlers.Add((name, attribute.Name.LocalName, method));
+            }
 
         return handlers;
     }

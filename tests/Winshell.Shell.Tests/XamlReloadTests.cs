@@ -9,7 +9,6 @@ public sealed partial class LivePanel : UserControl
 {
 #pragma warning disable CA1805 // Only a reload assigns it, which the compiler can't see and would otherwise reject.
     // A reload assigns this field; readonly would reject that write.
-    // ReSharper disable once FieldCanBeMadeReadOnly.Global
     internal TextBlock? Label = null;
 #pragma warning restore CA1805
 
@@ -18,12 +17,10 @@ public sealed partial class LivePanel : UserControl
     public int Clicks { get; private set; }
 
     // The saved markup names this handler, and the parameters are the event's signature.
-    // ReSharper disable UnusedMember.Local, UnusedParameter.Local
     private void OnClick(object sender, RoutedEventArgs e)
     {
         Clicks++;
     }
-    // ReSharper restore UnusedMember.Local, UnusedParameter.Local
 }
 
 public sealed partial class XamlReloadTests : IDisposable

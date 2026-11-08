@@ -18,7 +18,6 @@ public sealed partial class FloatingWindow : ShellWindow
     /// <summary>
     /// A hidden window of the running shell, 640 by 480 unless <c>Width</c> and <c>Height</c> say otherwise.
     /// </summary>
-    [PublicAPI]
     public FloatingWindow()
         : this(Shell.Current)
     {
@@ -32,7 +31,6 @@ public sealed partial class FloatingWindow : ShellWindow
     private protected override WindowKind Kind => WindowKind.Floating;
 
     /// <summary>The text in the title bar and on the taskbar.</summary>
-    [PublicAPI]
     public string Title
     {
         get => _title;
@@ -46,7 +44,6 @@ public sealed partial class FloatingWindow : ShellWindow
     /// <summary>
     /// The smallest size the user can drag the window to, in logical pixels. A width or height of 0 sets no limit.
     /// </summary>
-    [PublicAPI]
     public Size MinimumSize
     {
         get => _minimumSize;
@@ -60,7 +57,6 @@ public sealed partial class FloatingWindow : ShellWindow
     /// <summary>
     /// The largest size the user can drag the window to, in logical pixels. A width or height of 0 sets no limit.
     /// </summary>
-    [PublicAPI]
     public Size MaximumSize
     {
         get => _maximumSize;
@@ -75,7 +71,6 @@ public sealed partial class FloatingWindow : ShellWindow
     /// Whether the window is maximized. It follows the user's own maximize and restore. Setting it true leaves
     /// <see cref="Fullscreen"/>.
     /// </summary>
-    [PublicAPI]
     public bool Maximized
     {
         get => _maximized;
@@ -95,7 +90,6 @@ public sealed partial class FloatingWindow : ShellWindow
     }
 
     /// <summary>Whether the window is minimized. It follows the user's own minimize and restore.</summary>
-    [PublicAPI]
     public bool Minimized
     {
         get => _minimized;
@@ -107,7 +101,6 @@ public sealed partial class FloatingWindow : ShellWindow
     }
 
     /// <summary>Whether the window is borderless and covering its monitor. A minimized fullscreen window stays fullscreen.</summary>
-    [PublicAPI]
     public bool Fullscreen
     {
         get => _fullscreen;
@@ -122,7 +115,6 @@ public sealed partial class FloatingWindow : ShellWindow
     /// The window this one stays above and closes with. It can be set before that window exists, or changed later. A
     /// window can't own itself or a window that owns it.
     /// </summary>
-    [PublicAPI]
     public FloatingWindow? Owner
     {
         get => _owner;

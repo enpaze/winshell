@@ -46,9 +46,9 @@ internal sealed partial class ShellApplication(Action started) : Application, IX
             .Select(Assembly.Load)
             .Prepend(entry);
         foreach (var assembly in assemblies)
-        foreach (var type in assembly.GetExportedTypes())
-            if (type.Name == "XamlMetaDataProvider" && typeof(IXamlMetadataProvider).IsAssignableFrom(type) &&
-                !type.IsAbstract)
-                yield return (IXamlMetadataProvider)Activator.CreateInstance(type)!;
+            foreach (var type in assembly.GetExportedTypes())
+                if (type.Name == "XamlMetaDataProvider" && typeof(IXamlMetadataProvider).IsAssignableFrom(type) &&
+                    !type.IsAbstract)
+                    yield return (IXamlMetadataProvider)Activator.CreateInstance(type)!;
     }
 }

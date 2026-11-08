@@ -4,9 +4,6 @@
     <UseWinUI>true</UseWinUI>
   </PropertyGroup>
   <ItemGroup>
-    <Using Include="JetBrains.Annotations" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" />
     <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" />
     <InternalsVisibleTo Include="Winshell" />

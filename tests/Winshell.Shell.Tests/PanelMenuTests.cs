@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
+using Microsoft.UI.Xaml.Controls;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.WindowsAndMessaging;
-using Microsoft.UI.Xaml.Controls;
 using Winshell.Native;
 
 namespace Winshell.ShellTests;

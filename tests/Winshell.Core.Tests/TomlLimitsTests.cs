@@ -62,7 +62,6 @@ public sealed class TomlLimitsTests
         File.WriteAllBytes(fixture.FilePath, oversized);
 
         // The wait reads this file before the method disposes it.
-        // ReSharper disable once AccessToDisposedClosure
         Wait.Until(() => settings.Error.Length > 0, "the file past the limit", fixture.Loop.Process);
         Assert.Equal("kept", settings.Name);
         Assert.Contains("above the limit", settings.Error, StringComparison.Ordinal);
@@ -86,7 +85,6 @@ public sealed class TomlLimitsTests
         File.WriteAllBytes(fixture.FilePath, accented);
 
         // The wait reads this file before the method disposes it.
-        // ReSharper disable once AccessToDisposedClosure
         Wait.Until(() => settings.Error.Length > 0, "the file past the limit", fixture.Loop.Process);
         Assert.Equal("kept", settings.Name);
         Assert.Contains("above the limit", settings.Error, StringComparison.Ordinal);
@@ -99,13 +97,11 @@ public sealed class TomlLimitsTests
         using var settings = new Settings(fixture.FilePath, fixture.Loop, fixture.Log);
         File.WriteAllText(fixture.FilePath, "name = \"" + new string('x', Megabyte) + "\"\n");
         // The wait reads this file before the method disposes it.
-        // ReSharper disable once AccessToDisposedClosure
         Wait.Until(() => settings.Error.Length > 0, "the file past the limit", fixture.Loop.Process);
 
         File.WriteAllText(fixture.FilePath, "name = \"kept\"");
 
         // The wait reads this file before the method disposes it.
-        // ReSharper disable once AccessToDisposedClosure
         Wait.Until(() => settings.Error.Length == 0, "the file back under the limit", fixture.Loop.Process);
     }
 
@@ -120,7 +116,6 @@ public sealed class TomlLimitsTests
         File.WriteAllBytes(fixture.FilePath, bomb);
 
         // The wait reads this file before the method disposes it.
-        // ReSharper disable once AccessToDisposedClosure
         Wait.Until(() => settings.Error.Length > 0, "the file nested too deep", fixture.Loop.Process);
         Assert.Equal("kept", settings.Name);
         Assert.Contains("maximum depth of 64", settings.Error, StringComparison.Ordinal);

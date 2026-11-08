@@ -54,7 +54,6 @@ public sealed partial class KillWaitTests : IDisposable, IClassFixture<ProbeBuil
                     process.Kill(true);
                 }
                 // The process can exit between the check and Kill.
-                // ReSharper disable once EmptyGeneralCatchClause
                 catch (Exception)
                 {
                 }

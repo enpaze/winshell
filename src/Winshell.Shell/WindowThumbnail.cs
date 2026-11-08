@@ -1,9 +1,9 @@
 using System.ComponentModel;
-using Windows.Foundation;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Media;
+using Windows.Foundation;
 using Winshell.Native;
 using Winshell.Windows;
 
@@ -17,7 +17,7 @@ namespace Winshell;
 public sealed partial class WindowThumbnail : FrameworkElement
 {
     /// <summary>The app window to preview, from <see cref="WindowListService.Windows"/>. Null shows nothing.</summary>
-    [PublicAPI] public static readonly DependencyProperty WindowProperty = DependencyProperty.Register(
+    public static readonly DependencyProperty WindowProperty = DependencyProperty.Register(
         nameof(Window),
         typeof(AppWindow),
         typeof(WindowThumbnail),
@@ -29,7 +29,7 @@ public sealed partial class WindowThumbnail : FrameworkElement
     /// While true, Windows shows <see cref="Window"/> at full size and hides the others. It stays off when the user
     /// turned peek off, and it ends when this element unloads or the window goes.
     /// </summary>
-    [PublicAPI] public static readonly DependencyProperty PeekProperty = DependencyProperty.Register(
+    public static readonly DependencyProperty PeekProperty = DependencyProperty.Register(
         nameof(Peek),
         typeof(bool),
         typeof(WindowThumbnail),
@@ -45,7 +45,6 @@ public sealed partial class WindowThumbnail : FrameworkElement
     /// <summary>
     /// A thumbnail with no window, which shows nothing. It takes no clicks, and screen readers skip it.
     /// </summary>
-    [PublicAPI]
     public WindowThumbnail()
     {
         _shell = new ShellWindowWatch(OnShellChanged);
@@ -57,7 +56,6 @@ public sealed partial class WindowThumbnail : FrameworkElement
     }
 
     /// <summary>The app window to preview, from <see cref="WindowListService.Windows"/>. Null shows nothing.</summary>
-    [PublicAPI]
     public AppWindow? Window
     {
         get => (AppWindow?)GetValue(WindowProperty);
@@ -68,7 +66,6 @@ public sealed partial class WindowThumbnail : FrameworkElement
     /// While true, Windows shows <see cref="Window"/> at full size and hides the others. It stays off when the user
     /// turned peek off, and it ends when this element unloads or the window goes.
     /// </summary>
-    [PublicAPI]
     public bool Peek
     {
         get => (bool)GetValue(PeekProperty);

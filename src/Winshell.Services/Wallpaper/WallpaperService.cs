@@ -34,17 +34,14 @@ public sealed class WallpaperService : ObservableObject, IDisposable
     /// Each screen's wallpaper, in the order Windows lists the monitors. Empty when the desktop wallpaper cannot
     /// be read.
     /// </summary>
-    [PublicAPI]
     public IReadOnlyList<WallpaperScreen> Screens => _screens;
 
     /// <summary>How the image is fitted. The same fit is used on every screen.</summary>
-    [PublicAPI]
     public WallpaperFit Fit => _fit;
 
     /// <summary>
     /// The color behind the image, and the color of a screen with no image. The same color is used on every screen.
     /// </summary>
-    [PublicAPI]
     public WallpaperColor Background => _background;
 
     /// <summary>
@@ -52,7 +49,6 @@ public sealed class WallpaperService : ObservableObject, IDisposable
     /// screen, an empty path and the image already there are ignored. Returns whether Windows was asked. Call it on
     /// the loop's thread. <paramref name="image"/> is the full path of an image file.
     /// </summary>
-    [PublicAPI]
     public bool SetImage(WallpaperScreen screen, string image)
     {
         ArgumentNullException.ThrowIfNull(screen);
@@ -72,7 +68,6 @@ public sealed class WallpaperService : ObservableObject, IDisposable
     /// ignored. Returns whether Windows was asked. Call it on the loop's thread. <paramref name="image"/> is the
     /// full path of an image file.
     /// </summary>
-    [PublicAPI]
     public bool SetImage(string image)
     {
         ArgumentNullException.ThrowIfNull(image);
@@ -91,7 +86,6 @@ public sealed class WallpaperService : ObservableObject, IDisposable
     /// reading succeeds, the fit shown is not one Windows reported, so setting it still asks Windows. Returns whether
     /// Windows was asked. Call it on the loop's thread.
     /// </summary>
-    [PublicAPI]
     public bool SetFit(WallpaperFit fit)
     {
         if (_disposed || !Enum.IsDefined(fit) || (_known && fit == _fit))
@@ -107,7 +101,6 @@ public sealed class WallpaperService : ObservableObject, IDisposable
     /// color shown is not one Windows reported, so setting it still asks Windows. Returns whether Windows was asked.
     /// Call it on the loop's thread.
     /// </summary>
-    [PublicAPI]
     public bool SetBackground(WallpaperColor color)
     {
         if (_disposed || (_known && color == _background))
@@ -119,7 +112,6 @@ public sealed class WallpaperService : ObservableObject, IDisposable
     }
 
     /// <summary>Stops watching the wallpaper, and a later set does nothing.</summary>
-    [PublicAPI]
     public void Dispose()
     {
         if (_disposed)

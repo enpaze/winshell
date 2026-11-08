@@ -138,7 +138,10 @@ internal sealed class Example
         var output = new StringBuilder();
         var settings = new XmlWriterSettings
         {
-            OmitXmlDeclaration = true, Indent = true, IndentChars = "  ", NewLineChars = "\n"
+            OmitXmlDeclaration = true,
+            Indent = true,
+            IndentChars = "  ",
+            NewLineChars = "\n"
         };
         using (var writer = XmlWriter.Create(output, settings))
         {

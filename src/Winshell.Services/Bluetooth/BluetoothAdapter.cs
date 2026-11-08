@@ -17,30 +17,24 @@ public sealed class BluetoothAdapter : ObservableObject
     }
 
     /// <summary>A radio, discoverable or incoming-connection change failed, with the same text as <see cref="Error"/>.</summary>
-    [PublicAPI]
     public event Action<string>? OperationFailed;
 
     /// <summary>The adapter's Windows device id.</summary>
-    [PublicAPI]
     public string Id => _info.Id;
 
     /// <summary>The adapter's name as Windows gives it, or <c>Bluetooth</c> when it gives none.</summary>
-    [PublicAPI]
     public string Name => _info.Name;
 
     /// <summary>The adapter's Bluetooth address, such as <c>00:1A:7D:DA:71:13</c>.</summary>
-    [PublicAPI]
     public string Address => _info.Address;
 
     /// <summary>The state of the adapter's radio.</summary>
-    [PublicAPI]
     public BluetoothAdapterState State => _info.State;
 
     /// <summary>
     /// Whether the radio is on: <see cref="State"/> is <see cref="BluetoothAdapterState.On"/>. Setting it asks
     /// Windows to turn the radio on or off; the value changes when a later read sees the radio did.
     /// </summary>
-    [PublicAPI]
     public bool Enabled
     {
         get => ReportsOn;
@@ -51,7 +45,6 @@ public sealed class BluetoothAdapter : ObservableObject
     /// Whether other devices can find this PC. Setting it to true also turns on <see cref="Pairable"/>. The value
     /// changes when a later read sees Windows did.
     /// </summary>
-    [PublicAPI]
     public bool Discoverable
     {
         get => _info.Discoverable;
@@ -62,7 +55,6 @@ public sealed class BluetoothAdapter : ObservableObject
     /// Whether Windows accepts incoming connections. Setting it to false also turns off <see cref="Discoverable"/>. The
     /// value changes when a later read sees Windows did.
     /// </summary>
-    [PublicAPI]
     public bool Pairable
     {
         get => _info.Pairable;
@@ -73,7 +65,6 @@ public sealed class BluetoothAdapter : ObservableObject
     /// Why the last radio, discoverable or incoming-connection change failed. Empty after one succeeds, and when the
     /// adapter's state changes.
     /// </summary>
-    [PublicAPI]
     public string Error => _error;
 
     internal bool ReportsOn => _info.State == BluetoothAdapterState.On;
