@@ -320,6 +320,7 @@ Has the members of [ObservableObject](#observableobject).
 | `Dispose()` | void | Closes the window for good and releases its native window. It can't be shown again. |
 | `Focus()` | void | Takes the keyboard, if this kind of window may. A panel takes it only while focusable, and a popup only while it grabs focus. |
 | `MapToScreen(double x, double y)` | (int, int) | A point in logical window coordinates, in physical pixels on the virtual desktop. |
+| `Of(UIElement element)` | [ShellWindow](#shellwindow)?, static | The shell window element is drawn in, or null when it is not in one yet. A widget is created before its area is in a window, so one that depends on the screen calls this from its loaded event. The window's root holds the window. A table keyed on the `XamlRoot` would not: the wrapper of a `XamlRoot` goes in a collection, and the next read of it is another object. That window, or null when element is not drawn in one. |
 | `Raise()` | void | Puts the window above the others at its level, without focusing it. |
 | `StartSystemMove()` | void | Lets the user move the window by dragging, as a title bar does. Call it when a pointer button goes down. |
 | `StartSystemResize([Edges](#edges) edges)` | void | Lets the user resize the window by dragging an edge or a corner, as its border does. Call it when a pointer button goes down. Two adjacent edges, such as top and left, name a corner. Any other combination resizes from the bottom-right corner. |

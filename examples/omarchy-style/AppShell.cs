@@ -27,7 +27,7 @@ public sealed class AppShell : ShellConfiguration
         _panels.Clear();
         foreach (var screen in shell.Screens)
         {
-            var view = new PanelView(shell, screen);
+            var view = new PanelView();
             _panels.Add((new PanelWindow
             {
                 Screen = screen,

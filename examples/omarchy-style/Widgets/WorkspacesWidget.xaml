@@ -1,0 +1,6 @@
+<UserControl
+  x:Class="OmarchyStyle.WorkspacesWidget"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <StackPanel x:Name="Buttons" Orientation="Horizontal" Spacing="1" Margin="0,0,1.5,0" />
+</UserControl>

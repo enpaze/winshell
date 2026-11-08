@@ -1,0 +1,20 @@
+<UserControl
+  x:Class="OmarchyStyle.TrayWidget"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Shown on the primary screen only. Hovering the chevron slides the icons Windows keeps in its overflow out beside it. -->
+  <StackPanel x:Name="Tray" Orientation="Horizontal" Visibility="Collapsed">
+    <StackPanel
+      x:Name="Overflow"
+      Orientation="Horizontal"
+      Background="Transparent"
+      PointerEntered="OnOverflowEntered"
+      PointerExited="OnOverflowExited">
+      <Button x:Name="TrayChevron" />
+      <Grid x:Name="OverflowClip" Width="0">
+        <StackPanel x:Name="OverflowItems" Orientation="Horizontal" HorizontalAlignment="Left" />
+      </Grid>
+    </StackPanel>
+    <StackPanel x:Name="PinnedItems" Orientation="Horizontal" />
+  </StackPanel>
+</UserControl>

@@ -31,10 +31,14 @@ public abstract class ShellWindow : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// The shell window an element is drawn in. Its root holds that, and a table keyed on the <c>XamlRoot</c> would not:
-    /// the wrapper of a <c>XamlRoot</c> goes in a collection, and the next read of it is another object.
+    /// The shell window <paramref name="element"/> is drawn in, or null when it is not in one yet. A widget is created
+    /// before its area is in a window, so one that depends on the screen calls this from its loaded event. The window's
+    /// root holds the window. A table keyed on the <c>XamlRoot</c> would not: the wrapper of a <c>XamlRoot</c> goes in a
+    /// collection, and the next read of it is another object.
     /// </summary>
-    internal static ShellWindow? Of(UIElement element)
+    /// <param name="element">An element of a shell window, or any element.</param>
+    /// <returns>That window, or null when <paramref name="element"/> is not drawn in one.</returns>
+    public static ShellWindow? Of(UIElement element)
     {
         return (element.XamlRoot?.Content as FrameworkElement)?.Tag as ShellWindow;
     }

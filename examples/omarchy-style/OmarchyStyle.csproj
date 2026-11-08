@@ -8,6 +8,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>OmarchyStyle</RootNamespace>
+    <!-- The registration file's #line names are not files. A git checkout embeds untracked sources, and the compiler
+         then fails trying to open those names. -->
+    <EmbedUntrackedSources>false</EmbedUntrackedSources>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
   </PropertyGroup>
@@ -17,5 +20,17 @@
   <ItemGroup>
     <!-- JetBrainsMono Nerd Font, its licence and its icon sets' licences, copied next to the program. -->
     <Content Include="Fonts\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <!-- Each name is the placement's widget, and the type is constructed with the placement's WidgetContext. -->
+  <ItemGroup>
+    <WinshellWidget Include="windows" Type="OmarchyStyle.WindowsWidget" />
+    <WinshellWidget Include="workspaces" Type="OmarchyStyle.WorkspacesWidget" />
+    <WinshellWidget Include="clock" Type="OmarchyStyle.ClockWidget" />
+    <WinshellWidget Include="tray" Type="OmarchyStyle.TrayWidget" />
+    <WinshellWidget Include="bluetooth" Type="OmarchyStyle.BluetoothWidget" />
+    <WinshellWidget Include="network" Type="OmarchyStyle.NetworkWidget" />
+    <WinshellWidget Include="audio" Type="OmarchyStyle.AudioWidget" />
+    <WinshellWidget Include="screen" Type="OmarchyStyle.ScreenWidget" />
+    <WinshellWidget Include="battery" Type="OmarchyStyle.BatteryWidget" />
   </ItemGroup>
 </Project>

@@ -8,4 +8,39 @@
   <!-- The font file ships next to the program, so it needs no install. -->
   <!-- This dictionary is merged by Source; WinUI builds FontFamily from its content string. -->
   <FontFamily x:Key="PanelFont">ms-appx:///Fonts/JetBrainsMonoNerdFont-Regular.ttf#JetBrainsMono NF</FontFamily>
+
+  <!-- WinUI looks up a stock control's brushes in the theme dictionaries, ahead of the keys above. The same Tokyo
+       Night values are the fallback for every theme, so a stock button stays this color whatever Windows is using. -->
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Default">
+      <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#a9b1d6" />
+      <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="#9aa5ce" />
+      <SolidColorBrush x:Key="TextFillColorTertiaryBrush" Color="#565f89" />
+      <SolidColorBrush x:Key="TextFillColorDisabledBrush" Color="#414868" />
+      <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#7aa2f7" />
+      <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#89b4fa" />
+      <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#7dcfff" />
+      <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="#7aa2f7" />
+      <SolidColorBrush x:Key="AccentTextFillColorSecondaryBrush" Color="#7aa2f7" />
+      <SolidColorBrush x:Key="AccentTextFillColorTertiaryBrush" Color="#7aa2f7" />
+      <SolidColorBrush x:Key="ControlFillColorDefaultBrush" Color="#24283b" />
+      <SolidColorBrush x:Key="ControlFillColorSecondaryBrush" Color="#292e42" />
+      <SolidColorBrush x:Key="ControlFillColorTertiaryBrush" Color="#3b4261" />
+      <SolidColorBrush x:Key="ControlFillColorDisabledBrush" Color="#1f2335" />
+      <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="#3b4261" />
+      <SolidColorBrush x:Key="ControlElevationBorderBrush" Color="#3b4261" />
+      <SolidColorBrush x:Key="ButtonForeground" Color="#a9b1d6" />
+      <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#a9b1d6" />
+      <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#9aa5ce" />
+      <StaticResource x:Key="ButtonBackground" ResourceKey="ControlFillColorDefaultBrush" />
+      <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="ControlFillColorSecondaryBrush" />
+      <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="ControlFillColorTertiaryBrush" />
+      <StaticResource x:Key="ButtonBorderBrush" ResourceKey="ControlStrokeColorDefaultBrush" />
+      <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="ControlStrokeColorDefaultBrush" />
+      <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#565f89" />
+      <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Fonts/JetBrainsMonoNerdFont-Regular.ttf#JetBrainsMono NF</FontFamily>
+      <x:Double x:Key="ControlContentThemeFontSize">12</x:Double>
+      <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
 </ResourceDictionary>

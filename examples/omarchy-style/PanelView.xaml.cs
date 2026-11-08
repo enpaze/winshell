@@ -1,93 +1,61 @@
-using System.Globalization;
-using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Automation;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Winshell;
 
 namespace OmarchyStyle;
 
 /// <summary>
-/// The panel on one screen: the Windows glyph and Winland's workspaces on the left, the clock in the middle, and the
-/// tray and the status of Bluetooth, the network, audio, the screen and the battery on the right.
+/// The panel on one screen. Three widget areas hold the bar: the Windows glyph and workspaces at the start, the clock
+/// in the center, and the tray and status glyphs at the end. With no placement file those are the defaults.
 /// </summary>
 public sealed partial class PanelView : IDisposable
 {
     /// <summary>The panel's height, which it also reserves.</summary>
     public double Size => (double)Resources["PanelHeight"];
 
-    private readonly Shell _shell;
-    private readonly ScreenInfo _screen;
-    private readonly List<Watcher> _watchers = [];
-    private readonly DispatcherQueueTimer _clock;
-    private readonly Style _toolTip;
-    private readonly Brush _foreground;
-    private readonly Brush _alert;
+    private WidgetArea[] _areas = [];
 
-    public PanelView(Shell shell, ScreenInfo screen)
+    public PanelView()
     {
         InitializeComponent();
-        _shell = shell;
-        _screen = screen;
-        _toolTip = (Style)Resources["PanelToolTip"];
-        _foreground = (Brush)Resources["PanelForeground"];
-        _alert = (Brush)Resources["PanelAlert"];
-
-        _clock = DispatcherQueue.GetForCurrentThread().CreateTimer();
-        _clock.IsRepeating = false;
-        _clock.Tick += (_, _) => ShowTime();
+        // Widgets are created here, before the panel is in a window. A screen-aware widget reads its screen once loaded.
+        Place();
     }
 
     private void OnLayoutLoaded(object sender, RoutedEventArgs e)
     {
-        // Live XAML editing replaces the layout's elements, while this view and its clock stay alive.
-        WindowsGlyph.Text = Glyphs.Windows;
-        TrayChevron.Content = Glyphs.TrayChevron;
-        ShowTime();
+        // Live XAML editing replaces the areas. The first load uses the ones the constructor placed.
+        if (_areas.Length == 3 && ReferenceEquals(_areas[0], StartArea) && ReferenceEquals(_areas[1], CenterArea) &&
+            ReferenceEquals(_areas[2], EndArea))
+            return;
+        Place();
+    }
 
-        foreach (var watcher in _watchers)
-            watcher.Dispose();
-        _watchers.Clear();
-        _watchers.Add(new Watcher(ShowWorkspaces));
-        if (_screen.IsPrimary)
-            _watchers.Add(new Watcher(ShowTray));
-        _watchers.Add(new Watcher(ShowBluetooth));
-        _watchers.Add(new Watcher(ShowNetwork));
-        _watchers.Add(new Watcher(ShowAudio));
-        ShowScreen();
-        _watchers.Add(new Watcher(ShowBattery));
+    private void Place()
+    {
+        foreach (var area in _areas)
+            area.Dispose();
+        Fill(StartArea, "start", new Placement("windows"), new Placement("workspaces"));
+        Fill(CenterArea, "center", new Placement("clock"));
+        Fill(EndArea, "end",
+            new Placement("tray"), new Placement("bluetooth"), new Placement("network"), new Placement("audio"),
+            new Placement("screen"), new Placement("battery"));
+        _areas = [StartArea, CenterArea, EndArea];
+    }
+
+    private void Fill(WidgetArea area, string name, params Placement[] placements)
+    {
+        area.Name = name;
+        area.FontFamily = (FontFamily)Resources["PanelFont"];
+        area.FontSize = (double)Resources["PanelFontSize"];
+        area.Foreground = (Brush)Resources["PanelForeground"];
+        area.Defaults = placements;
     }
 
     public void Dispose()
     {
-        _clock.Stop();
-        foreach (var watcher in _watchers)
-            watcher.Dispose();
-    }
-
-    private void ShowTime()
-    {
-        var now = DateTime.Now;
-        Clock.Text = now.ToString("dddd HH:mm", CultureInfo.CurrentCulture);
-        SetToolTip(Clock, now.ToString("D", CultureInfo.CurrentCulture));
-        _clock.Interval = TimeSpan.FromSeconds(60 - now.Second) - TimeSpan.FromMilliseconds(now.Millisecond);
-        _clock.Start();
-    }
-
-    private void Show(Button button, string glyph, string toolTip, bool alert = false)
-    {
-        button.Content = glyph;
-        button.Foreground = alert ? _alert : _foreground;
-        AutomationProperties.SetName(button, toolTip);
-        SetToolTip(button, toolTip);
-    }
-
-    private void SetToolTip(DependencyObject element, string text)
-    {
-        if (ToolTipService.GetToolTip(element) is ToolTip tip)
-            tip.Content = text;
-        else
-            ToolTipService.SetToolTip(element, new ToolTip { Content = text, Style = _toolTip });
+        foreach (var area in _areas)
+            area.Dispose();
+        _areas = [];
     }
 }

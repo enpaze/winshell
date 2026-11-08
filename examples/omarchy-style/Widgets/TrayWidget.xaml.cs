@@ -7,15 +7,55 @@ using Winshell.Tray;
 
 namespace OmarchyStyle;
 
-public sealed partial class PanelView
+/// <summary>The tray on the primary screen. On any other screen the widget takes no space.</summary>
+public sealed partial class TrayWidget : IDisposable
 {
-    private double SlotWidth => (double)Resources["SlotWidth"];
-    private double IconSize => (double)Resources["IconSize"];
+    private readonly Shell _shell;
+    private ScreenInfo? _screen;
+    private Watcher? _watcher;
+    private bool _disposed;
     private int _overflowCount;
     private bool _overflowOpen;
 
-    private void ShowTray(Watcher watch)
+    public TrayWidget(WidgetContext context)
     {
+        InitializeComponent();
+        _shell = context.Shell;
+        Loaded += (_, _) =>
+        {
+            if (_disposed)
+                return;
+            TrayChevron.Style = Bar.Resource<Style>(this, "PanelButton");
+            TrayChevron.Content = Glyphs.TrayChevron;
+            var screen = Bar.Screen(this, _shell);
+            if (screen is null || !screen.IsPrimary)
+            {
+                Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            _screen = screen;
+            Visibility = Visibility.Visible;
+            _watcher?.Dispose();
+            _watcher = new Watcher(Show);
+        };
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _watcher?.Dispose();
+        _watcher = null;
+    }
+
+    private double SlotWidth => Bar.Resource<double>(this, "SlotWidth");
+
+    private double IconSize => Bar.Resource<double>(this, "IconSize");
+
+    private void Show(Watcher watch)
+    {
+        if (_screen is null)
+            return;
         var items = watch.Read(_shell.SystemTray.Items).Select(watch.Read).ToList();
         PinnedItems.Children.Clear();
         OverflowItems.Children.Clear();
@@ -30,10 +70,10 @@ public sealed partial class PanelView
 
     private Button TrayButton(SystemTrayItem item)
     {
-        var icon = item.IconAt((int)Math.Round(IconSize * _screen.DevicePixelRatio)) ?? item.Icon;
+        var icon = item.IconAt((int)Math.Round(IconSize * _screen!.DevicePixelRatio)) ?? item.Icon;
         var button = new Button
         {
-            Style = (Style)Resources["PanelButton"],
+            Style = Bar.Resource<Style>(this, "PanelButton"),
             Content = new Image
             {
                 Width = IconSize,
@@ -42,7 +82,7 @@ public sealed partial class PanelView
             }
         };
         AutomationProperties.SetName(button, item.AppName);
-        SetToolTip(button, item.Tooltip.Length > 0 ? item.Tooltip : item.AppName);
+        Bar.Tip(button, item.Tooltip.Length > 0 ? item.Tooltip : item.AppName, this);
         button.Click += (_, _) => item.Click();
         button.RightTapped += (_, _) => item.Display();
         return button;
