@@ -1,6 +1,6 @@
 namespace Winshell.ShellTests;
 
-public sealed class ServiceTeardownTests
+public sealed partial class ServiceTeardownTests
 {
     [Fact]
     public void A_service_that_throws_on_dispose_lets_the_rest_stop_then_its_exception_is_thrown()
@@ -14,7 +14,7 @@ public sealed class ServiceTeardownTests
         Assert.Equal(["first", "last"], stopped);
     }
 
-    private sealed class Stops(string name, List<string> stopped) : IDisposable
+    private sealed partial class Stops(string name, List<string> stopped) : IDisposable
     {
         public void Dispose()
         {
@@ -22,7 +22,7 @@ public sealed class ServiceTeardownTests
         }
     }
 
-    private sealed class Throws : IDisposable
+    private sealed partial class Throws : IDisposable
     {
         public void Dispose()
         {

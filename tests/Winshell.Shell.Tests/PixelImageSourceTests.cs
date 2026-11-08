@@ -32,11 +32,9 @@ public sealed class PixelImageSourceTests
             var loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             image.Loaded += (_, _) => loaded.TrySetResult();
             var screen = shell.Screens[0].Geometry;
-            using var popup = new PopupWindow
-            {
-                Rect = new Rect(screen.X + 40, screen.Y + 40, 80, 80),
-                Content = new Grid { Children = { image } }
-            };
+            using var popup = new PopupWindow();
+            popup.Rect = new Rect(screen.X + 40, screen.Y + 40, 80, 80);
+            popup.Content = new Grid { Children = { image } };
             popup.Visible = true;
             await loaded.Task.WaitAsync(TestContext.Current.CancellationToken);
             // Loaded precedes composition. Capture only once the visual has reached a render pass.

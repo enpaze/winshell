@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Winshell.ShellTests;
 
-public sealed class ShellNoticeTests : IDisposable
+public sealed partial class ShellNoticeTests : IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly ManualEventLoop _loop = new();
@@ -82,7 +82,7 @@ public sealed class ShellNoticeTests : IDisposable
         Assert.Equal(NoticeKind.BuildError, _notices.Current?.Kind);
     }
 
-    private sealed class Closes(ShellNoticeTests test) : IDisposable
+    private sealed partial class Closes(ShellNoticeTests test) : IDisposable
     {
         public void Dispose()
         {
