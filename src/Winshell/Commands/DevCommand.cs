@@ -8,19 +8,20 @@ internal static class DevCommand
             out var error);
         if (error is not null)
         {
-            Console.Error.WriteLine(error);
+            await Console.Error.WriteLineAsync(error);
             return 1;
         }
 
         if (project is null)
         {
-            Console.Error.WriteLine("winshell dev needs a configuration project. Run winshell new to make one.");
+            await Console.Error.WriteLineAsync(
+                "winshell dev needs a configuration project. Run winshell new to make one.");
             return 1;
         }
 
         if (project.Blocked() is { } blocked)
         {
-            Console.Error.WriteLine(blocked);
+            await Console.Error.WriteLineAsync(blocked);
             return 1;
         }
 

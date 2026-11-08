@@ -13,8 +13,8 @@ internal static class KillCommand
         if (!quit.Exited)
         {
             if (quit.Answer.Problem($"Instance {info.Id} refused") is { } problem)
-                Console.Error.WriteLine(problem);
-            Console.Error.WriteLine(options.Force
+                await Console.Error.WriteLineAsync(problem);
+            await Console.Error.WriteLineAsync(options.Force
                 ? $"Could not end instance {info.Id}."
                 : $"Instance {info.Id} is still running. Use --force to end it.");
             return 1;

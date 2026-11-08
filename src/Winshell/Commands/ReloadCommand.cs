@@ -11,7 +11,7 @@ internal static class ReloadCommand
         if (project is not null)
             if (project.Prepare(false, ConfigurationProject.Run) is { } reason)
             {
-                Console.Error.WriteLine(reason);
+                await Console.Error.WriteLineAsync(reason);
                 await BuildNotice.Show(info, reason, project.ProjectFile);
                 return 1;
             }
@@ -21,7 +21,7 @@ internal static class ReloadCommand
             // Its supervisor starts the last build and owns it, so the shell only quits. Without a project there is none.
             if (project is null)
             {
-                Console.Error.WriteLine(
+                await Console.Error.WriteLineAsync(
                     $"Could not find the project that builds instance {info.Id}, so it was not reloaded.");
                 return 1;
             }
@@ -31,7 +31,7 @@ internal static class ReloadCommand
                 ShellExit.Ending.IfAccepted);
             if (!quit.Exited)
             {
-                Console.Error.WriteLine(Failure(info, quit.Answer) ?? $"Could not end instance {info.Id}.");
+                await Console.Error.WriteLineAsync(Failure(info, quit.Answer) ?? $"Could not end instance {info.Id}.");
                 return 1;
             }
 
@@ -44,7 +44,7 @@ internal static class ReloadCommand
         var answer = await InstanceCall.AskAsync(info, IpcRequest.ForReload(project?.Program));
         if (Failure(info, answer) is { } refusal)
         {
-            Console.Error.WriteLine(refusal);
+            await Console.Error.WriteLineAsync(refusal);
             return 1;
         }
 

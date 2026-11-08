@@ -10,7 +10,7 @@ internal static class InstanceSelection
     internal const string NoneRunning = "No running instances. Start one with winshell run.";
 
     /// <summary>What <c>kill</c> says when nothing runs. It wanted nothing running, so it gets no hint to start one.</summary>
-    internal const string NoneToKill = "No running instances.";
+    private const string NoneToKill = "No running instances.";
 
     /// <summary>What the command accepts: a stopped instance as a fallback, and the sentence when nothing qualifies.</summary>
     internal readonly record struct Question(string None, bool StoppedFallback)
@@ -97,7 +97,7 @@ internal static class InstanceSelection
                 return Result.Miss(error);
             var match = project!.InstancesOf(ConfigurationBuild.Run, instances).FirstOrDefault();
             return match is null
-                ? Result.Miss($"No running instance of {project!.Program}.")
+                ? Result.Miss($"No running instance of {project.Program}.")
                 : Result.Found(match);
         }
 

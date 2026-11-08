@@ -77,10 +77,22 @@ internal static class RunCommand
         // pool thread subscribes and SystemEvents makes a thread of its own.
         void Stop()
         {
-            stop.Cancel();
+            try
+            {
+                // The handler has to cancel this source. A call already in flight can land after dispose, which is ignored.
+                // ReSharper disable once AccessToDisposedClosure
+                stop.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // This method has left and disposed the source.
+            }
+
             try
             {
 #pragma warning disable VSTHRD002 // A handler must finish before Windows ends this process. Supervision runs on the pool.
+                // Registered before the task exists, so this wait has to see the assignment below.
+                // ReSharper disable once AccessToModifiedClosure
                 supervision?.Wait(TimeSpan.FromSeconds(4));
             }
             catch (AggregateException)
@@ -102,7 +114,15 @@ internal static class RunCommand
         using var interrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, Signal);
         using var breaks = PosixSignalRegistration.Create(PosixSignal.SIGQUIT, Signal);
         using var close = PosixSignalRegistration.Create(PosixSignal.SIGHUP, Signal);
-        Task.Run(() => SystemEvents.SessionEnded += SessionEnded).GetAwaiter().GetResult();
+        try
+        {
+            Task.Run(() => SystemEvents.SessionEnded += SessionEnded, stop.Token).GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException)
+        {
+            // Ctrl+C landed before the session hook. The token is already cancelled.
+        }
+
         try
         {
             supervision = supervisor.RunAsync(stop.Token);

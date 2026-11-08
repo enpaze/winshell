@@ -104,7 +104,7 @@ internal sealed class Example
             return "";
         using var stream = Open(readme.Resource);
         var title = Read(stream).Split('\n').FirstOrDefault(line => line.StartsWith("# ", StringComparison.Ordinal));
-        return title?[2..].Trim() ?? "";
+        return title is not { } heading ? "" : heading[2..].Trim();
     }
 
     /// <summary>

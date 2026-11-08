@@ -24,7 +24,7 @@ internal enum ExitIntent
 /// its supervisor reads when it exits. The CLI and the supervisor are separate processes, so the intent is a named event
 /// for each of Stop and Reload, which the supervisor makes for the shell's process id.
 /// </summary>
-internal static class ShellExit
+internal static partial class ShellExit
 {
     /// <summary>How long ending an instance waits for its answer to the quit, and then for it to exit.</summary>
     internal sealed record Patience(TimeSpan Ask, TimeSpan Wait)
@@ -59,7 +59,7 @@ internal static class ShellExit
     internal readonly record struct Outcome(bool Exited, InstanceCall.Answer Answer);
 
     /// <summary>The supervisor's side of one shell, from its start until the supervisor has read its intent.</summary>
-    internal sealed class Supervision(int pid) : IDisposable
+    internal sealed partial class Supervision(int pid) : IDisposable
     {
         private readonly EventWaitHandle
             _stop = new(false, EventResetMode.ManualReset, EventName(ExitIntent.Stop, pid));

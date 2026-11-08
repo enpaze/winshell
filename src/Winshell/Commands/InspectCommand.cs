@@ -34,7 +34,7 @@ internal static class InspectCommand
         var answer = await InstanceCall.AskAsync(info, IpcRequest.ForInspect("record", named));
         if (answer.Response is not { Ok: true, Value: { } value })
         {
-            Console.Error.WriteLine(answer.Problem(null));
+            await Console.Error.WriteLineAsync(answer.Problem(null));
             return 1;
         }
 
@@ -54,7 +54,7 @@ internal static class InspectCommand
         }
         catch (Exception e) when (CaptureFailure.IsExpected(e))
         {
-            Console.Error.WriteLine($"Could not record: {e.Message}");
+            await Console.Error.WriteLineAsync($"Could not record: {e.Message}");
             return 1;
         }
     }

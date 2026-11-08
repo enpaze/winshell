@@ -14,10 +14,10 @@ internal static class CliParser
     {
         var line = new Line(args);
         line.Read();
-        if (line.Help)
-            return new CliOptions { Command = line.Command, ShowHelp = true };
-        if (line.Command is not (null or "help") && line.Version)
-            return new CliOptions { Command = line.Command, ShowVersion = true };
+        if (line.RequestsHelp)
+            return new CliOptions { Command = line.CommandName, ShowHelp = true };
+        if (line.CommandName is not (null or "help") && line.Version)
+            return new CliOptions { Command = line.CommandName, ShowVersion = true };
         return Finish(line);
     }
 
@@ -310,7 +310,7 @@ internal static class CliParser
     {
         var options = Apply(line);
         var positional = line.Positional;
-        if (line.Command is not { } name)
+        if (line.CommandName is not { } name)
         {
             if (positional.Count > 0)
                 throw Unexpected(positional[0]);
@@ -345,10 +345,10 @@ internal static class CliParser
 
         return options with
         {
-            Command = line.Command,
+            Command = line.CommandName,
             Arguments = [.. line.Args],
             ShowVersion = line.Version,
-            ShellStartAllowed = line.Command is null && line.Uses.All(use => RunEntry.Accepts(use.Option)),
+            ShellStartAllowed = line.CommandName is null && line.Uses.All(use => RunEntry.Accepts(use.Option)),
             Positional = [.. positional],
             Rest = [.. line.Rest],
             ChildArguments = BackgroundChild(line, options)
@@ -364,7 +364,7 @@ internal static class CliParser
         if (!options.Daemonize)
             return [];
         var child = line.Child.ToList();
-        if (line.Command is null)
+        if (line.CommandName is null)
             child.Insert(0, CommandWords.Run);
         if (!options.NoBuild)
             child.Insert(0, CommandWords.NoBuild.Long);
@@ -375,7 +375,7 @@ internal static class CliParser
     {
         var options = new CliOptions();
         ArgumentException? error = null;
-        var command = line.Command is null ? null : Commands[line.Command];
+        var command = line.CommandName is null ? null : Commands[line.CommandName];
         foreach (var use in line.Uses)
         {
             if (use.Option is null)
@@ -601,9 +601,9 @@ internal static class CliParser
     {
         public string[] Args { get; } = args;
 
-        public string? Command { get; private set; }
+        public string? CommandName { get; private set; }
 
-        public bool Help { get; private set; }
+        public bool RequestsHelp { get; private set; }
 
         public bool Version { get; private set; }
 
@@ -632,7 +632,7 @@ internal static class CliParser
 
                 if (token == CommandWords.End)
                 {
-                    if (Command is null or CommandWords.Run)
+                    if (CommandName is null or CommandWords.Run)
                     {
                         Rest.AddRange(Args.Skip(i));
                         Child.AddRange(Args.Skip(i));
@@ -669,14 +669,14 @@ internal static class CliParser
                     }
 
                     if (option == HelpOption)
-                        Help = true;
+                        RequestsHelp = true;
                     else if (option == VersionOption)
                         Version = true;
                     continue;
                 }
 
                 // To inspect, a negative number is a word, the steps of scroll, and not an option.
-                if (token.StartsWith('-') && !(Command == "inspect" && int.TryParse(token,
+                if (token.StartsWith('-') && !(CommandName == "inspect" && int.TryParse(token,
                         NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out _)))
                 {
                     Uses.Add(new Use(token, null, null, false));
@@ -684,18 +684,18 @@ internal static class CliParser
                     continue;
                 }
 
-                if (Command is null)
+                if (CommandName is null)
                 {
                     if (!Commands.ContainsKey(token))
                         throw UnknownCommand(token);
-                    Command = token;
+                    CommandName = token;
                     Child.Add(token);
                     continue;
                 }
 
                 Positional.Add(token);
                 Child.Add(token);
-                if (Command is { } name && Commands[name].Words == WordRule.Subcommand)
+                if (CommandName is { } name && Commands[name].Words == WordRule.Subcommand)
                 {
                     var sub = Commands[name].Subcommands.FirstOrDefault(candidate => candidate.Name == Positional[0]);
                     if (sub.RawAfter && Positional.Count >= sub.Words + 1)
