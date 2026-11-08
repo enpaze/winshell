@@ -6,5 +6,7 @@
   <SolidColorBrush x:Key="PanelForeground" Color="#a9b1d6" />
   <SolidColorBrush x:Key="PanelAlert" Color="#f7768e" />
   <!-- The font file ships next to the program, so it needs no install. -->
+  <!-- This dictionary is merged by Source; WinUI builds FontFamily from its content string. -->
+  <!-- ReSharper disable once Xaml.ConstructorWarning -->
   <FontFamily x:Key="PanelFont">ms-appx:///Fonts/JetBrainsMonoNerdFont-Regular.ttf#JetBrainsMono NF</FontFamily>
 </ResourceDictionary>

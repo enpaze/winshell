@@ -8,7 +8,7 @@ namespace OmarchyStyle;
 /// control shows what a service holds now without a subscription per property. Services raise their changes on the
 /// shell's thread, which is the panel's.
 /// </summary>
-internal sealed class Watcher : IDisposable
+internal sealed partial class Watcher : IDisposable
 {
     private readonly Action<Watcher> _render;
     private readonly HashSet<INotifyPropertyChanged> _objects = new(ReferenceEqualityComparer.Instance);

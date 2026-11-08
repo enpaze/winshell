@@ -47,12 +47,48 @@ function Restore-TemplateReportPaths {
     }
 }
 
+function Get-ExampleProject {
+    param([string] $RelativePath)
+    $file = Join-Path $root ($RelativePath.Replace('/', [IO.Path]::DirectorySeparatorChar))
+    $directory = [IO.Path]::GetDirectoryName($file)
+    $examplesRoot = [IO.Path]::GetFullPath((Join-Path $root 'examples'))
+    while ($null -ne $directory -and
+        $directory.StartsWith($examplesRoot, [StringComparison]::OrdinalIgnoreCase) -and
+        -not $directory.Equals($examplesRoot, [StringComparison]::OrdinalIgnoreCase)) {
+        $projects = @(Get-ChildItem -LiteralPath $directory -File |
+            Where-Object { $_.Name -match '\.(csproj|fsproj|vbproj)$' })
+        if ($projects.Count -gt 1) { throw "More than one project in ${directory}." }
+        if ($projects.Count -eq 1) { return $projects[0].FullName }
+        $directory = [IO.Path]::GetDirectoryName($directory)
+    }
+    throw "No example project owns ${RelativePath}."
+}
+
+function Get-ExampleReportName {
+    param([string] $ProjectPath)
+    $examplesRoot = [IO.Path]::GetFullPath((Join-Path $root 'examples'))
+    $relative = [IO.Path]::GetRelativePath($examplesRoot, [IO.Path]::GetDirectoryName($ProjectPath)).Replace('\', '/')
+    if ($relative -eq '.') { $relative = [IO.Path]::GetFileNameWithoutExtension($ProjectPath) }
+    return 'example-' + ($relative.ToLowerInvariant() -replace '[^a-z0-9]+', '-').Trim('-')
+}
+
 function Invoke-Processing {
-    param([string] $Solution, [string[]] $Paths, [string] $ReportName)
-    Invoke-Dotnet -Arguments @('build', $Solution, '-warnaserror', '--nologo')
+    param(
+        [string] $Solution,
+        [string[]] $Paths,
+        [string] $ReportName,
+        [string] $Project,
+        [switch] $SkipBuild
+    )
+    if (-not $SkipBuild) {
+        Invoke-Dotnet -Arguments @('build', $Solution, '-warnaserror', '--nologo')
+    }
     $arguments = @(
         $(if ($Mode -eq 'Inspect') { 'inspectcode' } else { 'cleanupcode' }),
-        $Solution,
+        $Solution
+    )
+    if (-not [string]::IsNullOrEmpty($Project)) { $arguments += "--project=$Project" }
+    $arguments += @(
         "--settings=$settings",
         "--dotnetcoresdk=$sdk",
         '--disable-settings-layers=GlobalAll;GlobalPerProduct;SolutionPersonal;ProjectPersonal',
@@ -148,8 +184,37 @@ try {
             foreach ($path in $selected) { $before[$path] = (Get-FileHash -LiteralPath (Join-Path $workRoot $path)).Hash }
         }
         $mainPaths = @($selected | Where-Object { -not $_.StartsWith('templates/winshell/', [StringComparison]::Ordinal) })
+        # WinUI names in an example resolve when that project is inspected on its own.
+        # Check and Cleanup keep examples in the solution run, which is what formats them.
+        $examplePaths = @()
+        if ($Mode -eq 'Inspect') {
+            $examplePaths = @($mainPaths | Where-Object { $_.StartsWith('examples/', [StringComparison]::Ordinal) })
+            $mainPaths = @($mainPaths | Where-Object { -not $_.StartsWith('examples/', [StringComparison]::Ordinal) })
+        }
+        $solution = Join-Path $workRoot 'winshell.slnx'
+        $solutionBuilt = $false
         if ($mainPaths.Count -gt 0) {
-            Invoke-Processing -Solution (Join-Path $workRoot 'winshell.slnx') -Paths $mainPaths -ReportName solution
+            Invoke-Processing -Solution $solution -Paths $mainPaths -ReportName solution
+            $solutionBuilt = $true
+        }
+        if ($examplePaths.Count -gt 0) {
+            $byProject = [ordered]@{}
+            foreach ($path in $examplePaths) {
+                $projectPath = Get-ExampleProject -RelativePath $path
+                if (-not $byProject.Contains($projectPath)) {
+                    $byProject[$projectPath] = [Collections.Generic.List[string]]::new()
+                }
+                $byProject[$projectPath].Add($path)
+            }
+            foreach ($projectPath in $byProject.Keys) {
+                if (-not $solutionBuilt) {
+                    Invoke-Dotnet -Arguments @('build', $solution, '-warnaserror', '--nologo')
+                    $solutionBuilt = $true
+                }
+                $projectName = [IO.Path]::GetFileNameWithoutExtension($projectPath)
+                $reportName = Get-ExampleReportName -ProjectPath $projectPath
+                Invoke-Processing -Solution $solution -Paths @($byProject[$projectPath]) -ReportName $reportName -Project $projectName -SkipBuild
+            }
         }
         $templatePaths = @($selected | Where-Object { $_.StartsWith('templates/winshell/', [StringComparison]::Ordinal) })
         if ($templatePaths.Count -gt 0) {
