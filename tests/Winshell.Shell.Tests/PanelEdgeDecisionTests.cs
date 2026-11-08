@@ -8,7 +8,7 @@ namespace Winshell.ShellTests;
 /// </summary>
 public class PanelEdgeDecisionTests
 {
-    private static readonly PanelMonitor Primary = new("primary", new RECT(0, 0, 1920, 1080),
+    private static readonly PanelMonitor PrimaryMonitor = new("primary", new RECT(0, 0, 1920, 1080),
         new RECT(0, 40, 1920, 1080), 1);
 
     private static readonly PanelMonitor Second =
@@ -35,7 +35,7 @@ public class PanelEdgeDecisionTests
         public RECT? Asked { get; private set; }
 
         /// <summary>What Explorer grants for a request. Null grants what was asked.</summary>
-        public RECT? Grant { get; set; }
+        public RECT? Grant { get; init; }
 
         public int Moves { get; private set; }
 
@@ -59,12 +59,12 @@ public class PanelEdgeDecisionTests
 
         public PanelMonitor? Primary()
         {
-            return PanelEdgeDecisionTests.Primary;
+            return PrimaryMonitor;
         }
 
         public bool FullscreenOn(string screenId)
         {
-            return Fullscreen && screenId == PanelEdgeDecisionTests.Primary.Id;
+            return Fullscreen && screenId == PrimaryMonitor.Id;
         }
 
         public bool Register(uint callback)
@@ -228,7 +228,7 @@ public class PanelEdgeDecisionTests
 
         Assert.Null(desktop.Asked);
         Assert.Equal(0, desktop.Registers);
-        Assert.Equal(Primary.Bounds, desktop.Moved);
+        Assert.Equal(PrimaryMonitor.Bounds, desktop.Moved);
     }
 
     [Fact]
@@ -239,12 +239,12 @@ public class PanelEdgeDecisionTests
 
         edge.Set(Panel(Edges.Top | Edges.Left));
         Assert.Equal(0, desktop.Registers);
-        Assert.Equal(Primary.Area.Top, desktop.Moved!.Value.Top);
+        Assert.Equal(PrimaryMonitor.Area.Top, desktop.Moved!.Value.Top);
 
         edge.Hide();
         edge.Set(Panel(Edges.Top | Edges.Left | Edges.Right));
         Assert.Equal(0, desktop.Registers);
-        Assert.Equal(Primary.Area.Top, desktop.Moved.Value.Top);
+        Assert.Equal(PrimaryMonitor.Area.Top, desktop.Moved.Value.Top);
     }
 
     [Fact]
@@ -349,7 +349,7 @@ public class PanelEdgeDecisionTests
     [Fact]
     public void An_unanchored_panel_is_centered()
     {
-        var rect = PlacedIn(Primary.Bounds, Primary.Bounds, 1, Anchored(Edges.None, 400, 300));
+        var rect = PlacedIn(PrimaryMonitor.Bounds, PrimaryMonitor.Bounds, 1, Anchored(Edges.None, 400, 300));
         Assert.Equal(new RECT(760, 390, 1160, 690), rect);
     }
 
@@ -365,7 +365,7 @@ public class PanelEdgeDecisionTests
     [Fact]
     public void A_panel_is_never_empty()
     {
-        var rect = PlacedIn(Primary.Bounds, Primary.Bounds, 1,
+        var rect = PlacedIn(PrimaryMonitor.Bounds, PrimaryMonitor.Bounds, 1,
             Anchored(Edges.Left | Edges.Right, height: 0, left: 1000, right: 1000));
         Assert.True(rect.Width >= 1);
         Assert.True(rect.Height >= 1);

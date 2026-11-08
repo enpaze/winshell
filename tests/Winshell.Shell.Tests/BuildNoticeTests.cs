@@ -1,18 +1,17 @@
 namespace Winshell.ShellTests;
 
 /// <summary>A configuration that builds closes the build-error notice of its own project, and nothing else.</summary>
-public sealed class BuildNoticeTests : IDisposable
+public sealed partial class BuildNoticeTests : IDisposable
 {
     private const string Mine = @"C:\mine\Mine.csproj";
 
     private readonly string _dir = TempFolder.NewPath();
-    private readonly CrashReports _crashes;
     private readonly ShellNotices _notices;
 
     public BuildNoticeTests()
     {
-        _crashes = new CrashReports(_dir);
-        _notices = new ShellNotices(new ManualEventLoop(), new Log(), _crashes, (_, _, _) => new Window(), _ => { },
+        var crashes = new CrashReports(_dir);
+        _notices = new ShellNotices(new ManualEventLoop(), new Log(), crashes, (_, _, _) => new Window(), _ => { },
             () => false);
     }
 
@@ -53,7 +52,7 @@ public sealed class BuildNoticeTests : IDisposable
         Assert.Equal(NoticeKind.ConfigError, _notices.Current?.Kind);
     }
 
-    private sealed class Window : IDisposable
+    private sealed partial class Window : IDisposable
     {
         public void Dispose()
         {

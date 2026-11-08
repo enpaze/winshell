@@ -200,11 +200,19 @@ public sealed class FloatingWindowFullscreenTests
         {
             using var owner = One();
             using var other = One();
-            using var early = new FloatingWindow { Title = "Winshell test", Width = 320, Height = 200, Owner = owner };
+            using var early = new FloatingWindow();
+            early.Title = "Winshell test";
+            early.Width = 320;
+            early.Height = 200;
+            early.Owner = owner;
             early.Visible = true;
             owner.Visible = true;
             other.Visible = true;
-            using var child = new FloatingWindow { Title = "Winshell test", Width = 320, Height = 200, Owner = owner };
+            using var child = new FloatingWindow();
+            child.Title = "Winshell test";
+            child.Width = 320;
+            child.Height = 200;
+            child.Owner = owner;
             child.Visible = true;
             var ownerHwnd = owner.Host!.Handle;
             var childHwnd = child.Host!.Handle;
@@ -228,7 +236,7 @@ public sealed class FloatingWindowFullscreenTests
 
             child.Owner = null;
             Assert.Null(child.Owner);
-            Assert.Equal((nint)0, Win32.GetWindowLongPtr(childHwnd, Win32.GWLP_HWNDPARENT));
+            Assert.Equal(0, Win32.GetWindowLongPtr(childHwnd, Win32.GWLP_HWNDPARENT));
 
             child.Owner = owner;
             owner.Minimized = true;
@@ -250,7 +258,11 @@ public sealed class FloatingWindowFullscreenTests
         {
             var owner = One();
             using var other = One();
-            using var child = new FloatingWindow { Title = "Winshell test", Width = 320, Height = 200, Owner = owner };
+            using var child = new FloatingWindow();
+            child.Title = "Winshell test";
+            child.Width = 320;
+            child.Height = 200;
+            child.Owner = owner;
             owner.Visible = true;
             other.Visible = true;
             child.Visible = true;
@@ -275,7 +287,7 @@ public sealed class FloatingWindowFullscreenTests
             var again = child.Host!.Handle;
             Assert.NotEqual(hwnd, again);
             Assert.True(Win32.IsWindow(again));
-            Assert.Equal((nint)0, Win32.GetWindowLongPtr(again, Win32.GWLP_HWNDPARENT));
+            Assert.Equal(0, Win32.GetWindowLongPtr(again, Win32.GWLP_HWNDPARENT));
             return true;
         });
     }
@@ -314,7 +326,8 @@ public sealed class FloatingWindowFullscreenTests
         Assert.InRange(rect.Bottom, bounds.Bottom - 1, bounds.Bottom + 1);
         Assert.Equal(0u, Style(hwnd) & (uint)(WINDOW_STYLE.WS_CAPTION | WINDOW_STYLE.WS_THICKFRAME));
         // A taskbar that is showing makes the work area smaller. The window then extends past it.
-        if (!monitor.Work.Equals(monitor.Bounds))
+        if ((monitor.Work.Left, monitor.Work.Top, monitor.Work.Right, monitor.Work.Bottom) !=
+            (monitor.Bounds.Left, monitor.Bounds.Top, monitor.Bounds.Right, monitor.Bounds.Bottom))
             Assert.True(
                 rect.Left < monitor.Work.Left || rect.Top < monitor.Work.Top
                                               || rect.Right > monitor.Work.Right || rect.Bottom > monitor.Work.Bottom);
