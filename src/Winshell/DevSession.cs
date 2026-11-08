@@ -42,8 +42,7 @@ internal static class DevSession
         {
             watch.Kill(true);
         }
-        catch (Exception e) when (e is InvalidOperationException or Win32Exception or AggregateException
-                                      or ObjectDisposedException)
+        catch (Exception e) when (e is InvalidOperationException or Win32Exception or AggregateException)
         {
             // dotnet watch has exited already, or part of what it started could not be ended.
         }
@@ -85,7 +84,7 @@ internal static class DevSession
         // those ends this process once its handler returns, so the handler stops the shell and dotnet watch first.
         void Stop(PosixSignalContext context)
         {
-            // Registrations dispose before the process, but a handler already running can still reach it.
+            // The handler has to stop this process, which is disposed only as this method leaves.
             // ReSharper disable once AccessToDisposedClosure
             StopShellAndWatch(project, process, context.Signal == PosixSignal.SIGHUP);
         }
