@@ -75,7 +75,7 @@ internal static class AppUsageReader
         return usage;
     }
 
-    public static string Rot13(string value)
+    private static string Rot13(string value)
     {
         var chars = value.ToCharArray();
         for (var i = 0; i < chars.Length; i++)
@@ -145,7 +145,7 @@ internal static class AppUsageReader
 
     private static void Add(Dictionary<string, AppUsage> usage, string key, AppUsage value)
     {
-        if (string.IsNullOrWhiteSpace(key) || (value.RunCount <= 0 && value.LastUsedUnixMilliseconds <= 0))
+        if (string.IsNullOrWhiteSpace(key) || value is { RunCount: <= 0, LastUsedUnixMilliseconds: <= 0 })
             return;
         var expanded = ExpandKnownFolder(key.Trim());
         Put(usage, expanded, value);

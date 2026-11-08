@@ -17,7 +17,7 @@ public sealed class BluetoothService : ObservableObject, IDisposable
 
     private readonly MonitorWarning _warning;
 
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
 
     private readonly StateReader<BluetoothSnapshot> _reader;
 
@@ -115,6 +115,8 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         {
             lock (_gate)
             {
+                // ReSharper disable once AccessToModifiedClosure The tick reads this timer after Schedule assigns it.
+                // ReSharper disable once PossibleUnintendedReferenceComparison Identity: a replaced timer's tick must not poll.
                 if (_poll != timer)
                     return;
                 _poll = SchedulePoll();
@@ -322,7 +324,7 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         Devices.Sync(incoming, d => d.Key, i => i.Key, i => new BluetoothDevice(this, i, adapter!),
             (d, i) => d.Update(i), d => d.Remove());
         Mirror(PairedDevices, Devices.Where(d => d.Paired));
-        Mirror(NearbyDevices, Devices.Where(d => !d.Paired && d.Present));
+        Mirror(NearbyDevices, Devices.Where(d => d is { Paired: false, Present: true }));
     }
 
     private void RemoveDevices()

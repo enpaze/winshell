@@ -37,15 +37,15 @@ internal sealed record AppRecord(
 /// <summary>How <c>Apps.search</c> scores a query. A higher band always beats a lower one; usage stays inside a band.</summary>
 internal static class AppRank
 {
-    public const int Exact = 1_000_000;
-    public const int Prefix = 800_000;
-    public const int Word = 600_000;
-    public const int Acronym = 500_000;
-    public const int Contains = 400_000;
-    public const int Fuzzy = 200_000;
-    public const int Description = 100_000;
-    public const int Target = 100_000;
-    public const int Folder = 80_000;
+    private const int Exact = 1_000_000;
+    private const int Prefix = 800_000;
+    private const int Word = 600_000;
+    private const int Acronym = 500_000;
+    private const int Contains = 400_000;
+    private const int Fuzzy = 200_000;
+    private const int Description = 100_000;
+    private const int Target = 100_000;
+    private const int Folder = 80_000;
 
     /// <summary>Zero when the query matches nothing on the app. Usage is added on top and cannot cross a band.</summary>
     public static int Score(string query, AppRecord app, AppUsage usage, long nowUnixMilliseconds)
@@ -337,7 +337,7 @@ internal static class AppIndex
         if (ShellLink.Read(path) is not { } link)
             return null;
         var name = Path.GetFileNameWithoutExtension(path);
-        var relative = Path.ChangeExtension(Path.GetRelativePath(folder, path), null) ?? name;
+        var relative = Path.ChangeExtension(Path.GetRelativePath(folder, path), null);
         var id = relative.Replace('\\', '/');
         var directory = Path.GetDirectoryName(path) ?? folder;
         var relativeDirectory = Path.GetRelativePath(folder, directory);

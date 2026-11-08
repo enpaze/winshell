@@ -4,7 +4,7 @@ namespace Winshell.Bluetooth;
 public sealed class BluetoothDevice : ObservableObject
 {
     private readonly BluetoothService _service;
-    private readonly object _pairingLock = new();
+    private readonly Lock _pairingLock = new();
     private readonly DeviceAction _action;
     private BluetoothDeviceInfo _info;
     private BluetoothOperation _operation;
@@ -56,7 +56,7 @@ public sealed class BluetoothDevice : ObservableObject
 
     /// <summary>Whether the device is not paired and Windows says it can be, so <see cref="Pair"/> can work.</summary>
     [PublicAPI]
-    public bool CanPair => !_info.Paired && _info.CanPair;
+    public bool CanPair => _info is { Paired: false, CanPair: true };
 
     /// <summary>Whether the device is connected.</summary>
     [PublicAPI]
@@ -241,11 +241,12 @@ public sealed class BluetoothDevice : ObservableObject
         Changed(old.Name != info.Name, nameof(Name));
         Changed(old.Icon != info.Icon, nameof(Icon));
         Changed(old.Paired != info.Paired, nameof(Paired));
-        Changed((!old.Paired && old.CanPair) != CanPair, nameof(CanPair));
+        Changed(old is { Paired: false, CanPair: true } != CanPair, nameof(CanPair));
         Changed(old.Present != info.Present, nameof(Present));
         Changed(old.Connected != info.Connected, nameof(Connected));
         Changed(old.Connected != info.Connected, nameof(State));
         Changed(old.Battery.HasValue != info.Battery.HasValue, nameof(BatteryAvailable));
+        // ReSharper disable once CompareOfFloatsByEqualityOperator The level is a stored percent divided by 100.
         Changed((old.Battery ?? 0) != (info.Battery ?? 0), nameof(Battery));
     }
 
