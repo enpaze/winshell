@@ -15,52 +15,65 @@ public class IpcBoundsTests
         var name = PipeName();
         var loop = new EventQueue();
         var control = new FakeInstanceControl();
-        using var server = new IpcServer(IpcServer.OpenFirst(name), name, loop, Log.Default, control);
-        await using var client = await Connect(name);
-
-        var payload = new byte[IpcServer.MaxRequestBytes + 1];
-        Array.Fill(payload, (byte)'a');
-        var writing = Task.Run(() =>
+        var server = new IpcServer(IpcServer.OpenFirst(name), name, loop, Log.Default, control);
+        var shutDown = false;
+        try
         {
+            await using var client = await Connect(name);
+
+            var payload = new byte[IpcServer.MaxRequestBytes + 1];
+            Array.Fill(payload, (byte)'a');
+            var writing = Task.Run(() =>
+            {
+                try
+                {
+                    // The write is awaited before this method disposes the client.
+                    // ReSharper disable once AccessToDisposedClosure
+                    client.Write(payload);
+                }
+                catch (IOException)
+                {
+                }
+            }, TestContext.Current.CancellationToken);
+            using var reader = new StreamReader(client, Encoding.UTF8, false, 256, true);
+            var line = await reader.ReadLineAsync(TestContext.Current.CancellationToken).AsTask()
+                .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            Assert.NotNull(line);
+            var response = JsonSerializer.Deserialize(line, IpcJson.Default.IpcResponse);
+            Assert.NotNull(response);
+            Assert.False(response.Ok);
+            Assert.Equal("Request is too long.", response.Error);
+            await writing.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+            await using var parked = await Connect(name);
+            var held = new byte[IpcServer.MaxRequestBytes - 1];
+            var prefix = "{\"op\":\"kill\""u8;
+            prefix.CopyTo(held);
+            Array.Fill(held, (byte)' ', prefix.Length, held.Length - prefix.Length);
+            await parked.WriteAsync(held, TestContext.Current.CancellationToken);
+            server.Dispose();
+            shutDown = true;
+
+            var n = await parked.ReadAsync(new byte[1], TestContext.Current.CancellationToken).AsTask()
+                .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            Assert.Equal(0, n);
             try
             {
-                client.Write(payload);
+                await parked.WriteAsync("}\n"u8.ToArray(), TestContext.Current.CancellationToken);
             }
             catch (IOException)
             {
             }
-        }, TestContext.Current.CancellationToken);
-        using var reader = new StreamReader(client, Encoding.UTF8, false, 256, true);
-        var line = await reader.ReadLineAsync(TestContext.Current.CancellationToken).AsTask()
-            .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-        Assert.NotNull(line);
-        var response = JsonSerializer.Deserialize(line, IpcJson.Default.IpcResponse);
-        Assert.NotNull(response);
-        Assert.False(response.Ok);
-        Assert.Equal("Request is too long.", response.Error);
-        await writing.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
-        await using var parked = await Connect(name);
-        var held = new byte[IpcServer.MaxRequestBytes - 1];
-        var prefix = "{\"op\":\"kill\""u8;
-        prefix.CopyTo(held);
-        Array.Fill(held, (byte)' ', prefix.Length, held.Length - prefix.Length);
-        await parked.WriteAsync(held, TestContext.Current.CancellationToken);
-        server.Dispose();
-
-        var n = await parked.ReadAsync(new byte[1], TestContext.Current.CancellationToken).AsTask()
-            .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        Assert.Equal(0, n);
-        try
-        {
-            await parked.WriteAsync("}\n"u8.ToArray(), TestContext.Current.CancellationToken);
+            loop.RunDue();
+            Assert.Equal(0, control.Quits);
         }
-        catch (IOException)
+        finally
         {
+            // The read above already shut the server down. This covers a failure before that.
+            if (!shutDown)
+                server.Dispose();
         }
-
-        loop.RunDue();
-        Assert.Equal(0, control.Quits);
     }
 
     [Fact]
@@ -193,7 +206,7 @@ public class IpcBoundsTests
     }
 
     private static readonly byte[] ListenRequest =
-        Encoding.UTF8.GetBytes("{\"op\":\"listen\",\"target\":\"probe\",\"name\":\"ping\"}\n");
+        "{\"op\":\"listen\",\"target\":\"probe\",\"name\":\"ping\"}\n"u8.ToArray();
 
     /// <summary>
     /// Listens, then returns once the server is following the signal and the stream is empty. A signal before that is
@@ -349,9 +362,9 @@ public class IpcBoundsTests
             Server = new IpcServer(IpcServer.OpenFirst(Pipe), Pipe, Loop, Log.Default, control);
         }
 
-        public ManualEventLoop Loop { get; }
+        private ManualEventLoop Loop { get; }
 
-        public IpcServer Server { get; }
+        private IpcServer Server { get; }
 
         public string Pipe { get; }
 

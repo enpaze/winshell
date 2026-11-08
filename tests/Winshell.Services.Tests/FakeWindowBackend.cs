@@ -10,7 +10,7 @@ internal sealed class FakeWindowBackend : IWindowBackend
     public Dictionary<nint, WindowRead> Shown { get; } = [];
 
     /// <summary>What Windows says about each window the taskbar's rule uses.</summary>
-    public Dictionary<nint, TaskbarWindowFacts> Facts { get; } = [];
+    private Dictionary<nint, TaskbarWindowFacts> Facts { get; } = [];
 
     public Dictionary<nint, nint> Owners { get; } = [];
 

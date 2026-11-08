@@ -66,8 +66,11 @@ public sealed class InstanceStartTests
             {
                 using var mutex = new Mutex(false, DuplicateHold.ShellMutexName(ShellLocations.Current, shellId));
                 mutex.WaitOne();
+                // Joined before this method disposes the handles.
+                // ReSharper disable AccessToDisposedClosure
                 taken.Set();
                 release.Wait();
+                // ReSharper restore AccessToDisposedClosure
                 mutex.ReleaseMutex();
             })
             { IsBackground = true };
@@ -111,6 +114,8 @@ public sealed class InstanceStartTests
             UseShellExecute = false,
             CreateNoWindow = true
         })!;
+        // HasExited is read before this method disposes the process.
+        // ReSharper disable once AccessToDisposedClosure
         Wait.Until(() => gone.HasExited, "the previous process to exit");
         var hosted = false;
 
@@ -144,12 +149,15 @@ public sealed class InstanceStartTests
             {
                 try
                 {
+                    // The start is joined before this method disposes the process and the event.
+                    // ReSharper disable AccessToDisposedClosure
                     code = Start(Launch(ShellId(), Program,
                         ["--after", replaced.Id.ToString(CultureInfo.InvariantCulture)]), session =>
                     {
                         started.Set();
                         session.Serve(new EventQueue(), new FakeInstanceControl());
                     }).Code;
+                    // ReSharper restore AccessToDisposedClosure
                 }
                 catch (Exception e)
                 {
@@ -166,8 +174,11 @@ public sealed class InstanceStartTests
             Assert.False(started.IsSet);
 
             replaced.StandardInput.Close();
-            Wait.Until(() => replaced.HasExited, "the replaced process to exit");
-            Wait.Until(() => started.IsSet, "the shell to start");
+            // Both are read before this method disposes the process and the event.
+            // ReSharper disable AccessToDisposedClosure
+            await Wait.UntilAsync(() => replaced.HasExited, "the replaced process to exit");
+            await Wait.UntilAsync(() => started.IsSet, "the shell to start");
+            // ReSharper restore AccessToDisposedClosure
             await Join(thread);
 
             Assert.Null(error);
@@ -180,6 +191,8 @@ public sealed class InstanceStartTests
                 if (!replaced.HasExited)
                     replaced.Kill(true);
             }
+            // Kill throws when the process has already exited between the check and the call.
+            // ReSharper disable once EmptyGeneralCatchClause
             catch (Exception)
             {
             }
@@ -192,7 +205,7 @@ public sealed class InstanceStartTests
     {
         if (thread.ThreadState == ThreadState.Unstarted)
             return Task.CompletedTask;
-        return Task.Run(() => thread.Join()).WaitAsync(TestContext.Current.CancellationToken);
+        return Task.Run(thread.Join).WaitAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]

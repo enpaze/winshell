@@ -30,7 +30,7 @@ internal sealed class FakeTrayBackend : ITrayBackend
 
     public nint Explorer { get; set; } = 0x500;
 
-    public (int X, int Y) Cursor { get; set; }
+    public (int X, int Y) Cursor { get; init; }
 
     public List<TrayIconSetting> Settings { get; } = [];
 
@@ -53,9 +53,9 @@ internal sealed class FakeTrayBackend : ITrayBackend
     public Dictionary<(IconResource Resource, int Size), PixelImage> Drawn { get; } = [];
 
     /// <summary>An app's <c>Shell_NotifyIcon</c> call, and the tray's answer.</summary>
-    public bool Send(NotifyIconCall call)
+    public void Send(NotifyIconCall call)
     {
-        return (_apply ?? throw new InvalidOperationException("The tray has not opened its window."))(call);
+        (_apply ?? throw new InvalidOperationException("The tray has not opened its window."))(call);
     }
 
     public void SignalTaskbarCreated()
@@ -139,7 +139,7 @@ internal sealed class FakeTrayBackend : ITrayBackend
 
     public uint? IntegrityOf(uint processId)
     {
-        return Integrities.TryGetValue(processId, out var level) ? level : ProcessIntegrity.Medium;
+        return Integrities.GetValueOrDefault(processId, ProcessIntegrity.Medium);
     }
 
     public void MoveCursor((int X, int Y) point)

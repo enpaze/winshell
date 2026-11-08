@@ -16,10 +16,12 @@ public class MediaAppNameTests
         var lookups = 0;
         var lookupThread = 0;
         var named = 0;
-        var names = new AppNames(loop, new Log(), appId =>
+        var names = new AppNames(loop, new Log(), _ =>
         {
             Interlocked.Increment(ref lookups);
             lookupThread = Environment.CurrentManagedThreadId;
+            // The name is published after this returns, and before the method disposes the event.
+            // ReSharper disable once AccessToDisposedClosure
             lookupMayEnd.Wait(TimeSpan.FromSeconds(10));
             return "Spotify Music";
         }, () => named++);

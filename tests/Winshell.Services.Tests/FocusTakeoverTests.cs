@@ -52,14 +52,19 @@ public sealed class FocusTakeoverTests
             window = await PumpedWindow.Open();
             Assert.NotEqual(0, window.Handle);
             var grants = 0;
-            Wait.Until(() =>
+            await Wait.UntilAsync(() =>
             {
                 // The holder gives up once its taps have not made it the foreground. That is the precondition
                 // failing, not a reason to sit out the rest of the patience.
+                // The wait returns before this method disposes the handle.
+                // ReSharper disable once AccessToDisposedClosure
                 if (blocked.WaitOne(0))
                     Assert.Fail("Could not establish the precondition: the focus holder sent input and never " +
                                 "became the foreground. " + errors);
+                // The wait returns before this method disposes the holder and these handles.
+                // ReSharper disable AccessToDisposedClosure
                 var refusal = Observe(holder, steady, tapped, window.Handle, errors);
+                // ReSharper restore AccessToDisposedClosure
                 if (refusal != Refusal.Granted)
                     return refusal == Refusal.Refused;
                 // Each grant is Focus.Take without the key tap. If that keeps working, the tap is not what moved
@@ -78,7 +83,10 @@ public sealed class FocusTakeoverTests
                 "Focus.Take to give the window the keyboard after Windows had refused it",
                 TimeSpan.FromSeconds(5), () =>
                 {
+                    // The holder is still the process this check reads; the method disposes it after the wait.
+                    // ReSharper disable once AccessToDisposedClosure
                     if (holder.HasExited)
+                        // ReSharper disable once AccessToDisposedClosure
                         Assert.Fail("The focus holder exited early (" + holder.ExitCode + "). " + errors);
                 });
             passed = true;
@@ -140,17 +148,16 @@ public sealed class FocusTakeoverTests
     {
         var powershell = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
         var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(RestoreTimeoutProgram));
-        using var process = new Process
+        using var process = new Process();
+        // Assigned after the using owns the process, so a failure here still disposes it.
+        process.StartInfo = new ProcessStartInfo
         {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = powershell,
-                Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand " + encoded,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            }
+            FileName = powershell,
+            Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand " + encoded,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
         };
         process.OutputDataReceived += (_, e) => Append(errors, e.Data);
         process.ErrorDataReceived += (_, e) => Append(errors, e.Data);

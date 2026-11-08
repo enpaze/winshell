@@ -180,14 +180,12 @@ public sealed class MediaSessionRefreshTests
 
     private sealed class Discovery : IAsyncOperation<GlobalSystemMediaTransportControlsSessionManager>
     {
-        private AsyncOperationCompletedHandler<GlobalSystemMediaTransportControlsSessionManager>? _completed;
-
         public AsyncOperationCompletedHandler<GlobalSystemMediaTransportControlsSessionManager> Completed
         {
-            get => _completed ?? throw new InvalidOperationException("No completion handler.");
+            get => field ?? throw new InvalidOperationException("No completion handler.");
             set
             {
-                _completed = value;
+                field = value;
                 if (Status != AsyncStatus.Started)
                     value(this, Status);
             }

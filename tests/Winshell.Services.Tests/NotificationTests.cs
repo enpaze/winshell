@@ -74,7 +74,10 @@ public sealed class NotificationTests
     {
         using var listener = await ListenerAsync(new FakeBackend());
         var seen = new List<(uint Id, int Count, int Groups)>();
+        // The handler reads the listener while Apply is raising the event, before the method disposes it.
+        // ReSharper disable AccessToDisposedClosure
         listener.NotificationAdded += n => seen.Add((n.Id, listener.Notifications.Count, listener.Groups.Count));
+        // ReSharper restore AccessToDisposedClosure
 
         listener.Apply(Snapshot(Toast(1)));
         listener.Apply(Snapshot(Toast(1), Toast(2, "Chat")));
