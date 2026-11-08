@@ -12,7 +12,7 @@ public class ComApartmentTests
     {
         var type = Type.GetTypeFromProgID("Scripting.Dictionary");
         Assert.NotNull(type);
-        var source = Activator.CreateInstance(type!)!;
+        var source = Activator.CreateInstance(type)!;
         try
         {
             source.GetType().InvokeMember("Add", BindingFlags.InvokeMethod, null, source, ["k", "v"],

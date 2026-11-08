@@ -30,7 +30,7 @@ public sealed class AppIndexTests
             var demo = Path.Combine(program, "demo.exe");
             File.WriteAllBytes(demo, []);
             var readme = Path.Combine(root, "readme.txt");
-            File.WriteAllText(readme, "notes");
+            await File.WriteAllTextAsync(readme, "notes", TestContext.Current.CancellationToken);
             var cmd = Cmd();
 
             WriteLink(Path.Combine(common, "Accessories", "Edit.lnk"), demo, "/common", program, "common editor");
@@ -144,7 +144,7 @@ public sealed class AppIndexTests
             ["Notepad"] = new(50, Now - 1_000)
         };
         Assert.Equal(["Notepad", "Notes", "OneNote"],
-            Names("note", apps, app => used.TryGetValue(app.Id, out var usage) ? usage : default));
+            Names("note", apps, app => used.GetValueOrDefault(app.Id)));
 
         var heavy = new AppUsage(100, Now);
         Assert.True(AppRank.Score("note", notepad, default, Now) > AppRank.Score("draw", paint, heavy, Now));
@@ -173,7 +173,7 @@ public sealed class AppIndexTests
 
         AppUsage Use(AppRecord app)
         {
-            return usage.TryGetValue(app.Id, out var found) ? found : default;
+            return usage.GetValueOrDefault(app.Id);
         }
 
         Assert.Equal(["Alpha", "Beta"], AppIndex.Recent(apps, Use).Select(app => app.Name).ToArray());
@@ -233,8 +233,12 @@ public sealed class AppIndexTests
         {
             var link = Path.Combine(folder, "Probe.lnk");
             WriteLink(link, Cmd(), "", "", "probe");
+            // Until calls this before apps is disposed.
+            // ReSharper disable once AccessToDisposedClosure
             Until(loop, () => Listed(apps, "Probe"), "the new shortcut");
             File.Delete(link);
+            // Until calls this before apps is disposed.
+            // ReSharper disable once AccessToDisposedClosure
             Until(loop, () => !Listed(apps, "Probe"), "the removed shortcut to go");
         }
         finally
@@ -254,11 +258,17 @@ public sealed class AppIndexTests
         using var apps = new AppsService(loop, new Log(), Catalog(folder));
         try
         {
+            // Until calls this before apps is disposed.
+            // ReSharper disable once AccessToDisposedClosure
             Until(loop, () => Listed(apps, "First"), "the first read");
             Directory.Delete(folder, true);
             Directory.CreateDirectory(folder);
+            // Until calls this before apps is disposed.
+            // ReSharper disable once AccessToDisposedClosure
             Until(loop, () => !Listed(apps, "First"), "the shortcut in the recreated folder to go");
             WriteLink(Path.Combine(folder, "Second.lnk"), Cmd(), "", "", "second");
+            // Until calls this before apps is disposed.
+            // ReSharper disable once AccessToDisposedClosure
             Until(loop, () => Listed(apps, "Second"), "the shortcut in the recreated folder");
         }
         finally
@@ -275,8 +285,14 @@ public sealed class AppIndexTests
         var ended = false;
         var catalog = new AppCatalog(new Log(), [], () =>
         {
+            // The read signals reading before it is disposed.
+            // ReSharper disable once AccessToDisposedClosure
             reading.Set();
+            // The read blocks on release and finishes before it is disposed.
+            // ReSharper disable once AccessToDisposedClosure
             release.Wait(TimeSpan.FromSeconds(10));
+            // The read publishes ended for the test, which only sets the initial false.
+            // ReSharper disable once AccessToModifiedClosure
             Volatile.Write(ref ended, true);
             return [];
         }, () => new Dictionary<string, AppUsage>(StringComparer.OrdinalIgnoreCase));

@@ -16,7 +16,7 @@ public class ExplorerTaskbarTests
 
         public int Restores { get; private set; }
 
-        public bool FailHide { get; set; }
+        public bool FailHide { get; init; }
 
         public bool FailRestore { get; set; }
 

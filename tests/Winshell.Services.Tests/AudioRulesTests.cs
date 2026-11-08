@@ -25,7 +25,7 @@ public sealed class AudioRulesTests
         node.Release();
 
         Assert.Throws<InvalidComObjectException>(() => device.GetId(out _));
-        Assert.Throws<InvalidComObjectException>(() => meter.ReadPeaks());
+        Assert.Throws<InvalidComObjectException>(meter.ReadPeaks);
         Assert.Null(node.Meter);
         node.SetMuted(true);
         Assert.Null(node.KeepRunning());

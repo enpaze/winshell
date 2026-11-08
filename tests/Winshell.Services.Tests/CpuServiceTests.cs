@@ -23,18 +23,16 @@ public sealed class CpuServiceTests
             // 1000 more ticks: 750 idle, 900 kernel, 100 user, so 25 % busy.
             new CpuTimes(10050, 13400, 3600));
         using var cpu = new CpuService(loop, backend);
-        List<double> heard = [];
-        cpu.PropertyChanged += (_, e) =>
-        {
-            Assert.Equal(nameof(CpuService.Usage), e.PropertyName);
-            heard.Add(cpu.Usage);
-        };
+        List<(string? Name, double Usage)> heard = [];
+        // The handler runs on Advance, before the service is disposed, and records the usage from that event.
+        // ReSharper disable once AccessToDisposedClosure
+        cpu.PropertyChanged += (_, e) => heard.Add((e.PropertyName, cpu.Usage));
         Assert.Equal(0, cpu.Usage);
 
         loop.Advance(Interval);
         loop.Advance(Interval);
 
-        Assert.Equal([70.0, 25.0], heard);
+        Assert.Equal([(nameof(CpuService.Usage), 70.0), (nameof(CpuService.Usage), 25.0)], heard);
     }
 
     [Fact]
