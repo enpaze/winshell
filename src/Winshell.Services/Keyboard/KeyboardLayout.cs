@@ -11,11 +11,14 @@ public sealed class KeyboardLayout
     }
 
     /// <summary>The id Windows stores for this layout, such as <c>00000409</c>. It does not change with the UI language.</summary>
+    [PublicAPI]
     public string Id { get; }
 
     /// <summary>A short label, such as EN.</summary>
+    [PublicAPI]
     public string Label { get; }
 
     /// <summary>The name Windows shows, such as United States-International.</summary>
+    [PublicAPI]
     public string Name { get; }
 }
