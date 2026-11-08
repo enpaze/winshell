@@ -4,7 +4,7 @@ using System.Diagnostics;
 namespace Winshell;
 
 /// <summary>A shell <see cref="ShellSupervisor"/> runs: a configuration's program.</summary>
-internal sealed class ShellProcess : IShellChild
+internal sealed partial class ShellProcess : IShellChild
 {
     private readonly Process _process;
     private readonly ShellExit.Supervision _supervision;

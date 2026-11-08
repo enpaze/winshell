@@ -25,6 +25,8 @@ internal static class DevSession
     /// Asks this project's shell to quit, as <c>winshell kill</c> does, so its app bar and tray go and its instance is
     /// marked exited. Then ends dotnet watch and what it started.
     /// </summary>
+    /// <param name="project">The configuration whose shell is asked to quit.</param>
+    /// <param name="watch">The <c>dotnet watch</c> process, and what it started.</param>
     /// <param name="closing">The console is closing, which leaves about five seconds for all of it.</param>
     private static void StopShellAndWatch(ConfigurationProject project, Process watch, bool closing)
     {
@@ -74,7 +76,7 @@ internal static class DevSession
         using var process = Start(start);
         if (process is null)
         {
-            Console.Error.WriteLine(ConfigurationProject.NeedsSdk);
+            await Console.Error.WriteLineAsync(ConfigurationProject.NeedsSdk);
             return 1;
         }
 
@@ -82,6 +84,8 @@ internal static class DevSession
         // those ends this process once its handler returns, so the handler stops the shell and dotnet watch first.
         void Stop(PosixSignalContext context)
         {
+            // The handler has to stop this process, which is disposed only as this method leaves.
+            // ReSharper disable once AccessToDisposedClosure
             StopShellAndWatch(project, process, context.Signal == PosixSignal.SIGHUP);
         }
 

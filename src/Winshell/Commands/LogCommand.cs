@@ -14,7 +14,7 @@ internal static class LogCommand
 
         if (!File.Exists(path))
         {
-            Console.Error.WriteLine($"No log at {path}.");
+            await Console.Error.WriteLineAsync($"No log at {path}.");
             return 1;
         }
 

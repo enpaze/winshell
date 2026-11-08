@@ -65,13 +65,13 @@ internal sealed class ShellSupervisor(
             crashes = time.GetElapsedTime(started) >= RunningWell ? 1 : crashes + 1;
             if (crashes == CrashesBeforeGivingUp)
             {
-                Console.Error.WriteLine(
+                await Console.Error.WriteLineAsync(
                     $"The shell crashed {crashes} times in a row, the last with exit code {code}. It is not started again.");
                 return code;
             }
 
             var wait = TimeSpan.FromTicks(Math.Min(FirstWait.Ticks << (crashes - 1), LongestWait.Ticks));
-            Console.Error.WriteLine(
+            await Console.Error.WriteLineAsync(
                 $"The shell exited with code {code}. Starting it again in {wait.TotalSeconds:0} s.");
             try
             {

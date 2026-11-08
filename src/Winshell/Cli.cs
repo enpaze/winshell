@@ -16,7 +16,7 @@ internal static class Cli
         }
         catch (ArgumentException e)
         {
-            Console.Error.WriteLine(e.Message);
+            await Console.Error.WriteLineAsync(e.Message);
             return 2;
         }
 
@@ -40,7 +40,7 @@ internal static class Cli
                         return HelpCommand.Run();
                     if (!windowless && !options.ShellStartAllowed)
                     {
-                        Console.Error.WriteLine("No command. Use winshell run to start a shell.");
+                        await Console.Error.WriteLineAsync("No command. Use winshell run to start a shell.");
                         return 2;
                     }
 
@@ -71,7 +71,9 @@ internal static class Cli
         }
         catch (Exception e) when (e is not OutOfMemoryException && command is not (null or CommandWords.Run))
         {
-            Console.Error.WriteLine(options.Verbose ? $"winshell {command}: {e}" : $"winshell {command}: {e.Message}");
+            await Console.Error.WriteLineAsync(options.Verbose
+                ? $"winshell {command}: {e}"
+                : $"winshell {command}: {e.Message}");
             return 1;
         }
     }

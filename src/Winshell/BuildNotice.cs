@@ -8,6 +8,6 @@ internal static class BuildNotice
     {
         var answer = await InstanceCall.AskAsync(info, IpcRequest.ForBuild(error, projectFile));
         if (answer.Problem($"Instance {info.Id} could not show the notice") is { } problem)
-            Console.Error.WriteLine(problem);
+            await Console.Error.WriteLineAsync(problem);
     }
 }
