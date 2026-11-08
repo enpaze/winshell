@@ -20,6 +20,7 @@ See also the [command line](command-line.md).
 | [Winshell.Network](winshell-network.md) | Adapters, Wi-Fi networks, connection profiles and connectivity. |
 | [Winshell.Notifications](winshell-notifications.md) | Notification Center, Focus, and toasts. |
 | [Winshell.Power](winshell-power.md) | The battery, the power mode, monitor brightness, idle time and keeping the PC awake. |
+| [Winshell.Privacy](winshell-privacy.md) | Which apps are using the microphone, the camera or location. |
 | [Winshell.Session](winshell-session.md) | Locking the Windows session, and running at sign-in. |
 | [Winshell.Tray](winshell-tray.md) | The icons apps add to the notification area. |
 | [Winshell.Wallpaper](winshell-wallpaper.md) | The desktop wallpaper: each screen's image, the fit and the background color. |

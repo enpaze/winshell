@@ -219,6 +219,7 @@ The running shell: its screens and services. There is one in a process. Each ser
 | `Options` | [ShellOptions](#shelloptions), read-only | The options the configuration passed to Run. |
 | `Power` | [PowerService](winshell-power.md#powerservice), read-only | The batteries of this PC. |
 | `PowerMode` | [PowerModeService](winshell-power.md#powermodeservice), read-only | The Windows power mode: best power efficiency, balanced, or best performance. |
+| `Privacy` | [PrivacyService](winshell-privacy.md#privacyservice), read-only | Which apps are using the microphone, the camera or location. Read only while something listens. |
 | `RecentDocuments` | [RecentDocuments](winshell-apps.md#recentdocuments), read-only | The documents in the user's Recent folder, found by name. |
 | `Screens` | ObservableCollection of [ScreenInfo](#screeninfo), read-only | The connected screens. The primary screen comes first. |
 | `Session` | [SessionService](winshell-session.md#sessionservice), read-only | The Windows session: locking it, and what state it is in. |

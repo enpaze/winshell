@@ -9,6 +9,7 @@ using Winshell.Media;
 using Winshell.Network;
 using Winshell.Notifications;
 using Winshell.Power;
+using Winshell.Privacy;
 using Winshell.Session;
 using Winshell.Tray;
 using Winshell.Wallpaper;
@@ -33,6 +34,7 @@ public sealed partial class Shell
     private NotificationListener? _notifications;
     private PowerService? _power;
     private PowerModeService? _powerMode;
+    private PrivacyService? _privacy;
     private SystemTray? _systemTray;
     private VirtualDesktopsService? _virtualDesktops;
     private WallpaperService? _wallpaper;
@@ -46,7 +48,7 @@ public sealed partial class Shell
     private IDisposable?[] ServicesInStopOrder =>
     [
         _winland, _windows, _virtualDesktops, _apps, _audio, _bluetooth, _brightness, _cpu, _explorerTaskbar, _media,
-        _networking, _notifications, _power, _powerMode, _systemTray, _hotkeys, _keyboardLayouts, _wallpaper
+        _networking, _notifications, _power, _powerMode, _privacy, _systemTray, _hotkeys, _keyboardLayouts, _wallpaper
     ];
 
     /// <summary>The apps Start lists.</summary>
@@ -100,6 +102,10 @@ public sealed partial class Shell
     /// <summary>The Windows power mode: best power efficiency, balanced, or best performance.</summary>
     [PublicAPI]
     public PowerModeService PowerMode => _powerMode ??= new PowerModeService(Loop, Log);
+
+    /// <summary>Which apps are using the microphone, the camera or location. Read only while something listens.</summary>
+    [PublicAPI]
+    public PrivacyService Privacy => _privacy ??= new PrivacyService(Loop, Log);
 
     /// <summary>The documents in the user's Recent folder, found by name.</summary>
     [PublicAPI]

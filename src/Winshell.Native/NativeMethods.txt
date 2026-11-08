@@ -229,3 +229,7 @@ GetGUIThreadInfo
 // generating it pulls IShellItemArray, and that pulls IMoniker, whose friendly methods use the banned ComTypes
 // interfaces. Settings uses this local COM server; SystemParametersInfo cannot give each screen its own image.
 DESKTOP_WALLPAPER_POSITION
+
+// Privacy use: the package family of a process with a microphone stream open, so it matches the consent
+// store's packaged app. One block, so later NativeMethods.txt edits can rebase around it.
+GetPackageFamilyName
