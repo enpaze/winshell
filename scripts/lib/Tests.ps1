@@ -80,9 +80,10 @@ function Invoke-TestRun {
     try {
         $run = Get-TestRun -Tier $Tier
         $exit = Invoke-DotnetTest -Project $run.Project -Filter $run.Filter -ResultsDirectory $results -Seed $Seed -Serial:($Tier -in 'Slow', 'All')
+        # A crashed run can leave a results file that doesn't read; its exit code still decides.
+        $outcome = try { Read-TestResult -Directory $results -ProjectCount $run.ProjectCount } catch { if ($exit -eq 0) { throw } }
+        if ($outcome) { foreach ($skip in $outcome.Skipped) { Write-Host "Skipped $skip" } }
         if ($exit -ne 0) { return $exit }
-        $outcome = Read-TestResult -Directory $results -ProjectCount $run.ProjectCount
-        foreach ($skip in $outcome.Skipped) { Write-Host "Skipped $skip" }
         if ($outcome.Passed -gt 0 -and $outcome.Failed -eq 0 -and $outcome.Complete) { return 0 }
         Write-Host 'A test failed, no test ran, or a test project wrote no results.'
         return 1

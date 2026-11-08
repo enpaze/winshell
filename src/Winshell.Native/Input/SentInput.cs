@@ -69,8 +69,9 @@ internal static unsafe class SentInput
     /// <summary>Runs <paramref name="send"/> and remembers when, so what Windows stamps meanwhile counts as this process's.</summary>
     internal static T Around<T>(Func<T> send)
     {
-        var before = LastInput();
+        // The start first: input between the two reads then counts as what the send hid, not as the send.
         var start = Win32.GetTickCount();
+        var before = LastInput();
         try
         {
             return send();
