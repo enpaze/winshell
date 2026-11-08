@@ -275,7 +275,7 @@ What a configuration sets before its shell starts.
 | --- | --- | --- |
 | `ShellOptions()` | constructor |  |
 | `CacheDir` | string?, init | Another folder for Shell.CacheDir, read as DataDir is. |
-| `DataDir` | string?, init | Another folder for Shell.DataDir. A relative path is next to the program, and a program a reload built in `bin\shell.next` counts as in `bin\shell`. `%NAME%` expands, and `$BASE` is the folder above `by-shell`, such as `%LOCALAPPDATA%\winshell\data`. |
+| `DataDir` | string?, init | Another folder for Shell.DataDir. A relative path is in the configuration's project folder, so a rebuild of `bin\shell` leaves it, and a program a reload built in `bin\shell.next` uses that same folder. A program in neither resolves a relative path next to itself. `%NAME%` expands, and `$BASE` is the folder above `by-shell`, such as `%LOCALAPPDATA%\winshell\data`. |
 | `ShellId` | string?, init | The name that identifies this configuration across runs. It names its data, state and cache folders. Without it, a program in the config folder is named after its folder, and one anywhere else after its path. |
 | `StateDir` | string?, init | Another folder for Shell.StateDir, read as DataDir is. |
 
