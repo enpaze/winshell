@@ -83,7 +83,7 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
         BluetoothIcon.SubcategoryKey
     ];
 
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private readonly Dictionary<string, BluetoothEndpointInfo> _nearby = new(StringComparer.Ordinal);
     private readonly Dictionary<string, DeviceInformation> _pairingEndpoints = new(StringComparer.Ordinal);
 
@@ -244,7 +244,7 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
             foreach (var device in devicesByKey)
             {
                 // Windows' cached device property only: do not query the remote Battery GATT service.
-                var battery = device.Connected && device.Container is { } container
+                var battery = device is { Connected: true, Container: { } container }
                     ? await ReadBatteryAsync(container, cancellation).ConfigureAwait(false)
                     : null;
                 result.Add(device with { Battery = battery });

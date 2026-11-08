@@ -36,7 +36,7 @@ internal static class BluetoothIcon
         foreach (var report in reports)
         {
             // A zero class is no class, so it must not hide a real one on a later endpoint.
-            if (major is null && report.Major is ushort found && (found != 0 || (report.Minor ?? 0) != 0))
+            if (major is null && report.Major is { } found && (found != 0 || (report.Minor ?? 0) != 0))
             {
                 major = found;
                 minor = report.Minor;
@@ -44,7 +44,7 @@ internal static class BluetoothIcon
 
             if (report.ClassUnreadable)
                 classUnreadable = true;
-            if (appearance is null && report.Appearance is ushort foundAppearance)
+            if (appearance is null && report.Appearance is { } foundAppearance)
                 appearance = foundAppearance;
             if (report.AppearanceUnreadable)
                 appearanceUnreadable = true;
@@ -61,9 +61,9 @@ internal static class BluetoothIcon
             return "";
         // Major 0 and minor 0 are a zero class. BlueZ treats that as no class and uses the appearance.
         // Any other class is used as-is, including when BlueZ has no name for it.
-        if (major is ushort majorCode && (majorCode != 0 || (minor ?? 0) != 0))
+        if (major is { } majorCode && (majorCode != 0 || (minor ?? 0) != 0))
             return ClassName(majorCode, minor ?? 0);
-        if (appearanceUnreadable || appearance is not ushort value || value == 0)
+        if (appearanceUnreadable || appearance is not { } value || value == 0)
             return "";
         return AppearanceName(value);
     }
@@ -84,13 +84,13 @@ internal static class BluetoothIcon
         var raw = ReadUInt16(properties, AppearanceKey);
         if (raw.Bad)
             return (null, true);
-        if (raw.Value is ushort value)
+        if (raw.Value is { } value)
             return (value, false);
         var category = ReadUInt16(properties, CategoryKey);
         var subcategory = ReadUInt16(properties, SubcategoryKey);
         if (category.Bad || subcategory.Bad)
             return (null, true);
-        if (category.Value is not ushort code)
+        if (category.Value is not { } code)
             return (null, false);
         var sub = subcategory.Value ?? 0;
         // GAP appearance: 10-bit category, then 6-bit subcategory. A value that does not fit is unreadable.

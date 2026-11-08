@@ -9,20 +9,16 @@ using Winshell.Native;
 namespace Winshell.Apps;
 
 /// <summary>The apps and the usage from one read.</summary>
-internal sealed class AppSnapshot
+internal sealed class AppSnapshot(
+    IReadOnlyList<AppRecord> entries,
+    IReadOnlyDictionary<string, AppUsage> usage)
 {
     public static readonly AppSnapshot Empty = new([],
         new Dictionary<string, AppUsage>(StringComparer.OrdinalIgnoreCase));
 
-    public AppSnapshot(IReadOnlyList<AppRecord> entries, IReadOnlyDictionary<string, AppUsage> usage)
-    {
-        Entries = entries;
-        Usage = usage;
-    }
+    public IReadOnlyList<AppRecord> Entries { get; } = entries;
 
-    public IReadOnlyList<AppRecord> Entries { get; }
-
-    public IReadOnlyDictionary<string, AppUsage> Usage { get; }
+    public IReadOnlyDictionary<string, AppUsage> Usage { get; } = usage;
 }
 
 /// <summary>
@@ -49,7 +45,7 @@ internal sealed class AppCatalog(
         ];
     }
 
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly Dictionary<string, DirectoryWatch> _watches = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _lost = new(StringComparer.OrdinalIgnoreCase);
     private PackageCatalog? _packages;
@@ -158,13 +154,13 @@ internal sealed class AppCatalog(
     /// </summary>
     private void RearmLost()
     {
-        string[] folders;
+        string[] lost;
         lock (_gate)
         {
-            folders = [.. _lost];
+            lost = [.. _lost];
         }
 
-        foreach (var folder in folders.Where(Directory.Exists))
+        foreach (var folder in lost.Where(Directory.Exists))
         {
             lock (_gate)
             {
@@ -238,8 +234,10 @@ internal sealed class AppCatalog(
             {
                 done.SetResult(e.Message);
             }
-        });
-        thread.IsBackground = true;
+        })
+        {
+            IsBackground = true
+        };
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
         return done.Task;
