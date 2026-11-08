@@ -360,14 +360,14 @@ An exception.
 
 ## WidgetArea
 
-An ordered area of widgets. Use it on the shell's thread and dispose it when its owner closes. Unloading or reparenting does not dispose widgets. Font and foreground inherit normally; area-sensitive XAML uses ThemeResource.
+An ordered area of widgets. Use it on the shell's thread and dispose it when its owner closes. Unloading or reparenting does not dispose widgets. Font and foreground inherit normally; area-sensitive XAML uses ThemeResource. Set the inherited Name to match an area in the shell's user placement file. An empty name uses only Defaults.
 
 A WinUI UserControl. The members here are the ones Winshell adds.
 
 | Member | Type | Description |
 | --- | --- | --- |
 | `WidgetArea()` | constructor | Creates an empty, horizontal area. |
-| `Defaults` | IReadOnlyList of [Placement](#placement) | The author's ordered placements. Assigning a list snapshots it, disposes the previous widgets, and creates the new ones immediately. To apply edits, assign the list again. Settings are passed through without copying. |
+| `Defaults` | IReadOnlyList of [Placement](#placement) | The author's ordered placements. Assigning a list snapshots it, disposes the previous widgets, and creates the new ones immediately unless the user placement file overrides this area's Name. To apply edits, assign the list again. Settings are passed through without copying. |
 | `Orientation` | Orientation | The layout direction. Changing it disposes and recreates the placements with the new orientation. |
 | `Theme` | Uri? | A ResourceDictionary source URI merged into this area's resources, or null for the inherited theme. Changing it replaces only the dictionary this property loaded, leaving the area's other resources intact. |
 | `Dispose()` | void | Detaches and disposes every disposable widget, once. All are attempted even if one disposal throws. |

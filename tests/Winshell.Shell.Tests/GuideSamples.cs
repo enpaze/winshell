@@ -45,6 +45,7 @@ public static class GuideSamples
         });
         var area = new WidgetArea
         {
+            Name = "end",
             Orientation = Orientation.Horizontal,
             Defaults =
             [
