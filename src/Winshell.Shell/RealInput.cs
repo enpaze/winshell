@@ -68,16 +68,26 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
     }
 
     /// <summary>
-    /// Whether someone other than this shell used the PC within <see cref="Quiet"/>: <paramref name="lastInput"/> is
-    /// what <c>GetLastInputInfo</c> says, and input stamped during one of this shell's own recent sends,
-    /// <paramref name="sent"/>, is that input. The times are <c>GetTickCount</c> milliseconds, which wrap.
+    /// Whether someone other than this shell used the PC within <see cref="Quiet"/>. <paramref name="lastInput"/> is what
+    /// <c>GetLastInputInfo</c> says. When it was stamped during one of this shell's own recent sends,
+    /// <paramref name="sent"/>, oldest first, the input that counts is the one that send hid, and so on back. The send
+    /// that made a stamp is the first one it falls in: a later send in the same clock tick hid that stamp itself. The
+    /// times are <c>GetTickCount</c> milliseconds, which wrap and step about every 16.
     /// </summary>
-    internal static bool UserActive(uint now, uint lastInput, IEnumerable<(uint Start, uint End)> sent)
+    internal static bool UserActive(uint now, uint lastInput, IReadOnlyList<Send> sent)
     {
-        if (unchecked(now - lastInput) >= Quiet.TotalMilliseconds)
-            return false;
-        return !sent.Any(send =>
-            unchecked((int)(lastInput - send.Start)) >= 0 && unchecked((int)(lastInput - send.End)) <= OwnInputSlack);
+        var stamp = lastInput;
+        for (var step = 0; step <= sent.Count; step++)
+        {
+            var own = sent.Where(send => unchecked((int)(stamp - send.Start)) >= 0 &&
+                                         unchecked((int)(stamp - send.End)) <= OwnInputSlack)
+                .Select(send => (Send?)send).FirstOrDefault();
+            if (own is not { } hid)
+                break;
+            stamp = hid.Before;
+        }
+
+        return unchecked(now - stamp) < Quiet.TotalMilliseconds;
     }
 
     /// <summary>Moves the cursor onto the element and leaves it there.</summary>
@@ -465,10 +475,9 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
     /// <summary>Refuses while someone uses the PC, or when Windows won't say whether anyone does.</summary>
     private static void RefuseWhileUsed()
     {
-        var info = new LASTINPUTINFO { cbSize = 8 };
-        if (!Win32.GetLastInputInfo(ref info))
+        if (SentInput.LastInput() is not { } last)
             throw new IpcException("Windows won't say when the PC was last used, so nothing was sent.");
-        if (UserActive(Win32.GetTickCount(), info.dwTime, SentInput.Recent))
+        if (UserActive(Win32.GetTickCount(), last, SentInput.Recent))
             throw new IpcException(
                 $"Someone used the mouse or keyboard in the last {Quiet.TotalSeconds:0} seconds, and real input would get in their way. Nothing was sent; try again once the PC is left alone.");
     }

@@ -3,20 +3,28 @@ using Windows.Win32.UI.Input.KeyboardAndMouse;
 
 namespace Winshell.Native;
 
+/// <summary>One send of this process's own input: from just before it to just after it, and the last input before it.</summary>
+/// <param name="Start">The <c>GetTickCount</c> time just before the send.</param>
+/// <param name="End">The <c>GetTickCount</c> time just after it.</param>
+/// <param name="Before">What <c>GetLastInputInfo</c> said just before it, which the send then hid.</param>
+internal readonly record struct Send(uint Start, uint End, uint Before);
+
 /// <summary>
-/// When <c>winshell inspect</c>'s real input was last sent, as <c>GetTickCount</c> times, so its check for the user's
-/// input can tell theirs apart: <c>GetLastInputInfo</c> counts both, and keeps only the newest. Only those sends are
-/// kept. Each comes right after that check, so it can't hide the user's input; another send, such as a focus
-/// takeover's, could.
+/// When this process last sent input of its own, so a check for the user's input can tell theirs apart:
+/// <c>GetLastInputInfo</c> counts both, and keeps only the newest. Each send keeps what it hid, so the user's input just
+/// before it, such as the hotkey a focus takeover answers, is still seen.
 /// </summary>
 internal static unsafe class SentInput
 {
-    private const int Kept = 16;
-    private static readonly Lock Gate = new();
-    private static readonly Queue<(uint Start, uint End)> Sends = new();
+    /// <summary>How long a send is kept: longer than any check for the user's input looks back.</summary>
+    private const uint KeptFor = 10_000;
 
-    /// <summary>The latest sends, each from just before it to just after it.</summary>
-    internal static IReadOnlyList<(uint Start, uint End)> Recent
+    private const int Most = 256;
+    private static readonly Lock Gate = new();
+    private static readonly Queue<Send> Sends = new();
+
+    /// <summary>The sends of the last few seconds, oldest first.</summary>
+    internal static IReadOnlyList<Send> Recent
     {
         get
         {
@@ -25,6 +33,13 @@ internal static unsafe class SentInput
                 return [.. Sends];
             }
         }
+    }
+
+    /// <summary>What <c>GetLastInputInfo</c> says, or null when Windows won't say.</summary>
+    internal static uint? LastInput()
+    {
+        var info = new LASTINPUTINFO { cbSize = 8 };
+        return Win32.GetLastInputInfo(ref info) ? info.dwTime : null;
     }
 
     /// <summary>
@@ -54,6 +69,7 @@ internal static unsafe class SentInput
     /// <summary>Runs <paramref name="send"/> and remembers when, so what Windows stamps meanwhile counts as this process's.</summary>
     internal static T Around<T>(Func<T> send)
     {
+        var before = LastInput();
         var start = Win32.GetTickCount();
         try
         {
@@ -64,8 +80,9 @@ internal static unsafe class SentInput
             var end = Win32.GetTickCount();
             lock (Gate)
             {
-                Sends.Enqueue((start, end));
-                if (Sends.Count > Kept)
+                // Without the input before it, the send could hide anything: count that as just before the send.
+                Sends.Enqueue(new Send(start, end, before ?? start));
+                while (Sends.Count > Most || unchecked(end - Sends.Peek().End) > KeptFor)
                     Sends.Dequeue();
             }
         }

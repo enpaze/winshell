@@ -8,13 +8,43 @@ namespace Winshell.ShellTests;
 
 /// <summary>
 /// <c>winshell inspect</c>'s real input commands against a real panel: each raises the WinUI event or look a person's
-/// mouse or keyboard would, and the cursor ends where it started. A test skips when someone is using the PC or moves
-/// the mouse, because the commands then send nothing more.
+/// mouse or keyboard would, and the cursor ends where it started. Each test first waits for the PC to be left alone, as
+/// the commands require. It skips, saying why, only when someone is still using the PC after that, or moves the mouse
+/// while it runs. Nothing else in this assembly runs beside these tests, so none of its input gets in the way.
 /// </summary>
 [Trait("Category", "Slow")]
+[Collection(nameof(RealInputTests))]
 public sealed class RealInputTests
 {
     private static readonly TimeSpan Limit = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// How long a test waits for the PC to be left alone. The input of what ran just before, such as another test
+    /// project's focus takeover, is over in seconds.
+    /// </summary>
+    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(15);
+
+    /// <summary>
+    /// Waits until no one has used the PC within the commands' 3 seconds, by their own rule, or <see cref="Patience"/>
+    /// passes. Windows can't say which program input came from, so another test process's input is waited out.
+    /// </summary>
+    private static void Quiet()
+    {
+        var started = TimeProvider.System.GetTimestamp();
+        Wait.Until(() => !Used(out _) || TimeProvider.System.GetElapsedTime(started) > Patience,
+            "the PC to be left alone", Patience + Patience);
+        if (Used(out var idle))
+            Assert.Skip(
+                $"Someone was still using this PC after {Patience.TotalSeconds:0} s: its last input was {idle} ms ago, and real input waits until no one has used it for 3 s.");
+    }
+
+    private static bool Used(out uint idle)
+    {
+        var now = Win32.GetTickCount();
+        var last = SentInput.LastInput() ?? now;
+        idle = unchecked(now - last);
+        return RealInput.UserActive(now, last, SentInput.Recent);
+    }
 
     private static PanelWindow Panel(FrameworkElement content)
     {
@@ -95,6 +125,7 @@ public sealed class RealInputTests
     [Fact]
     public async Task Point_raises_PointerEntered_and_leave_puts_the_cursor_back_with_PointerExited()
     {
+        Quiet();
         var (before, during, after) = await ShellFixture.On(async shell =>
         {
             var spot = Spot();
@@ -127,6 +158,7 @@ public sealed class RealInputTests
     [Fact]
     public async Task A_press_shows_the_pressed_look_clicks_and_puts_the_cursor_back()
     {
+        Quiet();
         var (states, clicks, before, after) = await ShellFixture.On(async shell =>
         {
             var button = new Button { Name = "Go", Content = "Go", Width = 200, Height = 60 };
@@ -160,6 +192,7 @@ public sealed class RealInputTests
     [Fact]
     public async Task A_right_press_raises_RightTapped()
     {
+        Quiet();
         await ShellFixture.On(async shell =>
         {
             var spot = Spot();
@@ -177,6 +210,7 @@ public sealed class RealInputTests
     [Fact]
     public async Task A_scroll_turns_the_wheel_a_notch_a_step_toward_the_user()
     {
+        Quiet();
         var delta = await ShellFixture.On(async shell =>
         {
             var spot = Spot();
@@ -202,6 +236,7 @@ public sealed class RealInputTests
     [Fact]
     public async Task Focus_tabs_to_the_element_so_it_has_keyboard_focus()
     {
+        Quiet();
         var state = await ShellFixture.On(async shell =>
         {
             var row = new StackPanel { Orientation = Orientation.Horizontal };
@@ -220,6 +255,7 @@ public sealed class RealInputTests
     [Fact]
     public async Task A_key_reaches_the_focused_control_in_a_window_that_is_not_in_front()
     {
+        Quiet();
         var clicks = await ShellFixture.On(async shell =>
         {
             var button = new Button { Name = "Go", Content = "Go" };
@@ -246,6 +282,7 @@ public sealed class RealInputTests
     [Fact]
     public async Task A_chord_is_refused_while_the_window_is_not_in_front()
     {
+        Quiet();
         var message = await ShellFixture.On(async shell =>
         {
             var box = new TextBox { Name = "Field" };
@@ -261,6 +298,7 @@ public sealed class RealInputTests
     [Fact]
     public async Task An_element_under_another_window_gets_nothing_and_the_cursor_stays()
     {
+        Quiet();
         var (message, entered, before, after) = await ShellFixture.On(async shell =>
         {
             var spot = Spot();
@@ -285,6 +323,7 @@ public sealed class RealInputTests
     [Fact]
     public async Task An_element_clipped_out_of_sight_gets_nothing()
     {
+        Quiet();
         var message = await ShellFixture.On(async shell =>
         {
             // As a tray's overflow is before it slides out: the button has its size, in a slot of none.
@@ -302,3 +341,6 @@ public sealed class RealInputTests
         Assert.StartsWith("Hidden isn't what shows at its middle", message, StringComparison.Ordinal);
     }
 }
+
+[CollectionDefinition(nameof(RealInputTests), DisableParallelization = true)]
+public sealed class RealInputCollection;

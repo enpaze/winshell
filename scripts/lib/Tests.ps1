@@ -30,6 +30,7 @@ function Read-TestResult {
     $files = @(Get-ChildItem -LiteralPath $Directory -Filter '*.trx' -ErrorAction SilentlyContinue)
     $passed = 0
     $failed = 0
+    $skipped = @()
     $complete = $files.Count -eq $ProjectCount
     foreach ($file in $files) {
         $xml = [xml]::new()
@@ -42,8 +43,13 @@ function Read-TestResult {
         if ($summary -ne 'Completed' -and $failures -eq 0) { $complete = $false }
         $passed += $xml.SelectNodes('//t:UnitTestResult[@outcome="Passed"]', $names).Count
         $failed += $failures
+        # VSTest's console shows a skipped test without its reason, which only the results file keeps.
+        foreach ($skip in $xml.SelectNodes('//t:UnitTestResult[@outcome="NotExecuted"]', $names)) {
+            $reason = $skip.SelectSingleNode('t:Output/t:ErrorInfo/t:Message', $names)
+            $skipped += "$($skip.GetAttribute('testName')): $(if ($reason) { $reason.InnerText } else { 'no reason given' })"
+        }
     }
-    [pscustomobject]@{ Passed = $passed; Failed = $failed; Complete = $complete }
+    [pscustomobject]@{ Passed = $passed; Failed = $failed; Skipped = $skipped; Complete = $complete }
 }
 
 function Invoke-DotnetTest {
@@ -76,6 +82,7 @@ function Invoke-TestRun {
         $exit = Invoke-DotnetTest -Project $run.Project -Filter $run.Filter -ResultsDirectory $results -Seed $Seed -Serial:($Tier -in 'Slow', 'All')
         if ($exit -ne 0) { return $exit }
         $outcome = Read-TestResult -Directory $results -ProjectCount $run.ProjectCount
+        foreach ($skip in $outcome.Skipped) { Write-Host "Skipped $skip" }
         if ($outcome.Passed -gt 0 -and $outcome.Failed -eq 0 -and $outcome.Complete) { return 0 }
         Write-Host 'A test failed, no test ran, or a test project wrote no results.'
         return 1
