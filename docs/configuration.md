@@ -115,6 +115,7 @@ Installed widgets live in `widgets.props`, beside the project file. When that fi
       <WinshellSource>github.com/someone/clock-widget</WinshellSource>
       <WinshellRef>v1.2</WinshellRef>
       <WinshellCommit>0123abc...</WinshellCommit>
+      <UndefineProperties>WinshellWidgetsFile</UndefineProperties>
     </ProjectReference>
     <WinshellWidget Include="clock" Type="ClockWidget.Clock">
       <WinshellSource>github.com/someone/clock-widget</WinshellSource>
@@ -123,7 +124,7 @@ Installed widgets live in `widgets.props`, beside the project file. When that fi
 </Project>
 ```
 
-`Include` on the project reference is the project inside a clone of one commit. `WinshellSource` is the repository, `WinshellRef` is the branch, tag or commit that was asked for, and `WinshellCommit` is the commit that was cloned. Each `WinshellWidget` item follows the reference it came from.
+`Include` on the project reference is the project inside a clone of one commit. `WinshellSource` is the repository, `WinshellRef` is the branch, tag or commit that was asked for, and `WinshellCommit` is the commit that was cloned. `UndefineProperties` names `WinshellWidgetsFile`, so that global property does not flow into the referenced project and the library does not import this file and reference itself. Each `WinshellWidget` item follows the reference it came from.
 
 `winshell widget install github.com/someone/clock-widget@v1.2` resolves that ref to a commit and clones it under `%LOCALAPPDATA%\winshell\widgets\someone\clock-widget\<commit>`, or under `WINSHELL_LOCAL_DIR` when that is set. A `file://` URL or a folder is cloned the same way, under `widgets\local`. With no `--project`, the repository must contain one project that lists `WinshellWidget` items; otherwise the command names the projects and installs nothing. It prints the repository, the commit and the widget names, warns that building runs the repository's code and MSBuild targets in a program that starts at sign-in, and asks. `--yes` skips the question. Declining changes nothing.
 
@@ -131,7 +132,7 @@ A widget whose `Winshell` package reference needs a newer version than the confi
 
 `winshell widget list` prints each widget's name, source, ref and commit. `winshell widget remove <name>` drops that source's project reference and its widget items. `<name>` is a widget name or the source. Removing the last source deletes the file. Install, list and remove take `-c` and `-p`. Install needs `git` and the .NET SDK, and says so when either is missing.
 
-Set `WinshellWidgetsFile` to an absolute path to import a different file: `dotnet build -p:WinshellWidgetsFile=...`. A relative path is resolved from the folder that contains `Winshell.props`, not from the project. The default is `widgets.props` in the project directory. The property is global. When the file references another project that uses this package, also pass `-p:WinshellWidgetsProject` as the absolute path of the configuration's project, or that other project imports the same file and references itself. `winshell widget install` passes both.
+Set `WinshellWidgetsFile` to an absolute path to import a different file: `dotnet build -p:WinshellWidgetsFile=...`. A relative path is resolved from the folder that contains `Winshell.props`, not from the project. The default is `widgets.props` in the project directory.
 
 The build writes registration code only for an executable, an `OutputType` of `Exe` or `WinExe`. A widget library can list `WinshellWidget` items so `dotnet msbuild -getItem:WinshellWidget` can read them, and that library does not register the widgets. The configuration that references the library does. Registering one name from both fails when the shell starts.
 

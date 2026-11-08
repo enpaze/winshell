@@ -18,13 +18,11 @@
   <!-- Installed widgets live in widgets.props beside the project: ProjectReference and WinshellWidget items. This
        file is read before the project body, so the default stays conditional and -p:WinshellWidgetsFile replaces it.
        The path must be absolute, since a relative Exists resolves against this file's own folder. Items imported
-       here still reach the build. -p:WinshellWidgetsFile is global, so a widget project would import the
-       configuration's file and reference itself. -p:WinshellWidgetsProject names the configuration; any other
-       project keeps the file beside itself. An empty name imports wherever the file exists. -->
+       here still reach the build. -->
   <PropertyGroup>
     <WinshellWidgetsFile Condition="'$(WinshellWidgetsFile)' == ''">$(MSBuildProjectDirectory)\widgets.props</WinshellWidgetsFile>
   </PropertyGroup>
-  <Import Project="$(WinshellWidgetsFile)" Condition="Exists('$(WinshellWidgetsFile)') and ('$(WinshellWidgetsProject)' == '' or '$(WinshellWidgetsProject)' == '$(MSBuildProjectFullPath)')" />
+  <Import Project="$(WinshellWidgetsFile)" Condition="Exists('$(WinshellWidgetsFile)')" />
 
   <!-- A WinshellWidget item names a widget and the type the build constructs for it. WinUI compiles once before
        CoreCompile, so the file has to exist before PrepareForBuild; a later target misses that pass. An inline task

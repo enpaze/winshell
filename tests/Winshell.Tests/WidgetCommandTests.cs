@@ -85,12 +85,21 @@ public sealed class WidgetCommandTests : IDisposable
         Assert.Equal(url, Value(reference, "WinshellSource"));
         Assert.Equal("v1", Value(reference, "WinshellRef"));
         Assert.Equal(tagged, Value(reference, "WinshellCommit"));
+        Assert.Equal("WinshellWidgetsFile", Value(reference, "UndefineProperties"));
         Assert.Contains(tagged, (string)reference.Attribute("Include")!, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("clock", widget.Attribute("Include")!.Value);
         Assert.Equal("ClockWidget.Clock", widget.Attribute("Type")!.Value);
         Assert.Equal(url, Value(widget, "WinshellSource"));
         Assert.True(reference.IsBefore(widget));
         var copy = Assert.Single(Directory.GetFiles(Path.Combine(Local, "widgets"), "Clock.cs", SearchOption.AllDirectories));
+        var library = Path.GetDirectoryName(copy)!;
+        // The staged build compiles this library. The global widgets file would make it import that file and reference
+        // itself; the reference clears the property, so the library keeps the default beside itself and references nothing.
+        var seenFile = File.ReadAllText(Path.Combine(library, "seen-widgets.txt")).Trim();
+        var seenReferences = File.ReadAllText(Path.Combine(library, "seen-references.txt")).Trim();
+        Assert.DoesNotContain("widget-build", seenFile, StringComparison.OrdinalIgnoreCase);
+        Assert.EndsWith(Path.Combine(library, "widgets.props"), seenFile, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("", seenReferences);
         Assert.Contains(Path.Combine("widgets", "local"), copy, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(tagged, copy, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("FIRST", File.ReadAllText(copy), StringComparison.Ordinal);
@@ -362,11 +371,18 @@ public sealed class WidgetCommandTests : IDisposable
                     <NuGetAudit>false</NuGetAudit>
                     <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
                   </PropertyGroup>
-                  <Import Project="$(WinshellWidgetsFile)" Condition="'$(WinshellWidgetsFile)' != '' and Exists('$(WinshellWidgetsFile)') and ('$(WinshellWidgetsProject)' == '' or '$(WinshellWidgetsProject)' == '$(MSBuildProjectFullPath)')" />
+                  <PropertyGroup>
+                    <WinshellWidgetsFile Condition="'$(WinshellWidgetsFile)' == ''">$(MSBuildProjectDirectory)\widgets.props</WinshellWidgetsFile>
+                  </PropertyGroup>
+                  <Import Project="$(WinshellWidgetsFile)" Condition="Exists('$(WinshellWidgetsFile)')" />
                   <ItemGroup>
                     {package}
                     {widgets}
                   </ItemGroup>
+                  <Target Name="RecordWidgetReferences" BeforeTargets="CoreCompile">
+                    <WriteLinesToFile File="$(MSBuildProjectDirectory)\seen-widgets.txt" Lines="$(WinshellWidgetsFile)" Overwrite="true" />
+                    <WriteLinesToFile File="$(MSBuildProjectDirectory)\seen-references.txt" Lines="@(ProjectReference)" Overwrite="true" />
+                  </Target>
                 </Project>
                 """;
     }

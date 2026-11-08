@@ -1,5 +1,3 @@
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -24,7 +22,17 @@ internal static partial class WidgetCommand
 
     private static readonly UTF8Encoding Utf8 = new(false);
 
-    private static readonly TimeSpan ToolLimit = TimeSpan.FromMinutes(10);
+    private const string WidgetsFile = "WinshellWidgetsFile";
+
+    /// <summary>Keeps git and dotnet from prompting, and keeps a build from leaving a server for the next command.</summary>
+    private static readonly Dictionary<string, string> QuietTools = new()
+    {
+        ["GIT_TERMINAL_PROMPT"] = "0",
+        ["GCM_INTERACTIVE"] = "never",
+        ["DOTNET_NOLOGO"] = "1",
+        ["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1",
+        ["MSBUILDDISABLENODEREUSE"] = "1"
+    };
 
     /// <summary>Runs <c>widget</c> and prints its result. <c>--yes</c> skips the question; anything else is read from the console.</summary>
     internal static int Run(CliOptions options)
@@ -57,6 +65,15 @@ internal static partial class WidgetCommand
             return List(installed, output);
         if (command == "remove")
             return Remove(options.Positional[1], props, installed, output);
+
+        try
+        {
+            Directory.CreateDirectory(locations.LocalRoot);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return Fail(1, e.Message);
+        }
 
         if (!Tool(git, locations.LocalRoot, out var missing) && missing)
             return Fail(1, NeedsGit);
@@ -118,25 +135,29 @@ internal static partial class WidgetCommand
         {
             Directory.CreateDirectory(scratch);
             var staged = Path.Combine(scratch, "widgets.props");
+            var empty = Path.Combine(scratch, "empty.props");
             File.WriteAllText(staged, content, Utf8);
-            // Package props, including this one, are imported only after a project has an assets file. The configuration's
-            // first restore therefore does not see the widget project, so that project is restored on its own first.
-            var restored = RunTool(dotnet, ["restore", widgetProject, "--nologo", "-nodeReuse:false"], locations.LocalRoot);
-            if (restored.Missing)
-                return Fail(1, ConfigurationProject.NeedsSdk);
-            if (restored.Code != 0)
-                return Fail(1, $"{Path.GetFileName(widgetProject)} did not restore.\n{BuildErrors(
-                    restored.Output + "\n" + restored.Error, Path.GetDirectoryName(widgetProject)!)}");
-            var built = RunTool(dotnet,
+            File.WriteAllText(empty, "<Project />\n", Utf8);
+            // Package props are imported only after a project has an assets file, so the widget is restored on its own
+            // before the configuration can see it. NuGet's restore then walks project-reference paths and drops their
+            // metadata, which would hand the staged file to the library and make the library reference itself. The
+            // reference clears that property for the build. Restore against an empty file, then build without restoring.
+            var restored = Invoke(dotnet, ["restore", widgetProject, "--nologo", "-nodeReuse:false"], locations.LocalRoot);
+            if (Failed(restored, Path.GetFileName(widgetProject), "restore", Path.GetDirectoryName(widgetProject)!) is { } widgetRestore)
+                return widgetRestore;
+            var prepared = Invoke(dotnet,
+            [
+                "restore", project.ProjectFile, "--nologo", "-nodeReuse:false", "-p:" + WidgetsFile + "=" + empty
+            ], project.Folder);
+            if (Failed(prepared, project.Name, "restore", project.Folder) is { } configurationRestore)
+                return configurationRestore;
+            var built = Invoke(dotnet,
             [
                 "build", project.ProjectFile, "-c", "Release", "-o", Path.Combine(scratch, "out"),
-                "-p:WinshellWidgetsFile=" + staged, "-p:WinshellWidgetsProject=" + project.ProjectFile,
-                "--nologo", "-v", "q", "-nodeReuse:false"
+                "-p:" + WidgetsFile + "=" + staged, "--no-restore", "--nologo", "-v", "q", "-nodeReuse:false"
             ], project.Folder);
-            if (built.Missing)
-                return Fail(1, ConfigurationProject.NeedsSdk);
-            if (built.Code != 0)
-                return Fail(1, $"{project.Name} did not build.\n{BuildErrors(built.Output + "\n" + built.Error, project.Folder)}");
+            if (Failed(built, project.Name, "build", project.Folder) is { } configurationBuild)
+                return configurationBuild;
             MarkReadOnly(cache);
             Replace(props, content);
         }
@@ -380,7 +401,7 @@ internal static partial class WidgetCommand
             var head = Git(git, ["ls-remote", "--symref", source.GitUrl, "HEAD"], localRoot);
             if (!GitOk(head, source, out error))
                 return false;
-            if (!TryHead(head.Output, out var commit, out var branch))
+            if (!TryHead(head.StandardOutput, out var commit, out var branch))
             {
                 error = $"{source.Canonical} has no commits.";
                 return false;
@@ -397,7 +418,7 @@ internal static partial class WidgetCommand
         ], localRoot);
         if (!GitOk(listed, source, out error))
             return false;
-        var commitOf = CommitOf(listed.Output);
+        var commitOf = CommitOf(listed.StandardOutput);
         if (commitOf is null)
         {
             error = $"No ref \"{reference}\" in {source.Canonical}.";
@@ -408,7 +429,7 @@ internal static partial class WidgetCommand
         return true;
     }
 
-    private static bool GitOk(ToolResult result, WidgetSource source, out string? error)
+    private static bool GitOk(CommandResult result, WidgetSource source, out string? error)
     {
         error = null;
         if (result.Missing)
@@ -417,9 +438,9 @@ internal static partial class WidgetCommand
             return false;
         }
 
-        if (result.Code == 0)
+        if (result.ExitCode == 0)
             return true;
-        var detail = FirstLine(result.Error, result.Output);
+        var detail = FirstLine(result.Error, result.StandardOutput);
         error = detail.Length == 0
             ? $"Could not read {source.Canonical}."
             : $"Could not read {source.Canonical}: {detail}";
@@ -506,7 +527,7 @@ internal static partial class WidgetCommand
         if (Directory.Exists(cache))
         {
             var head = Git(git, ["-C", cache, "rev-parse", "HEAD"], localRoot);
-            if (head.Code == 0 && head.Output.Trim().Equals(commit, StringComparison.OrdinalIgnoreCase))
+            if (head.ExitCode == 0 && head.StandardOutput.Trim().Equals(commit, StringComparison.OrdinalIgnoreCase))
                 return true;
             DeleteTree(cache);
         }
@@ -523,7 +544,7 @@ internal static partial class WidgetCommand
         foreach (var step in steps)
         {
             var result = Git(git, step, localRoot);
-            if (result.Missing || result.Code != 0)
+            if (result.Missing || result.ExitCode != 0)
             {
                 DeleteTree(cache);
                 if (result.Missing)
@@ -532,7 +553,7 @@ internal static partial class WidgetCommand
                     return false;
                 }
 
-                var detail = FirstLine(result.Error, result.Output);
+                var detail = FirstLine(result.Error, result.StandardOutput);
                 error = detail.Length == 0
                     ? $"Could not clone {source.Canonical}."
                     : $"Could not clone {source.Canonical}: {detail}";
@@ -541,7 +562,7 @@ internal static partial class WidgetCommand
         }
 
         var checkedOut = Git(git, ["-C", cache, "rev-parse", "HEAD"], localRoot);
-        if (checkedOut.Code != 0 || !checkedOut.Output.Trim().Equals(commit, StringComparison.OrdinalIgnoreCase))
+        if (checkedOut.ExitCode != 0 || !checkedOut.StandardOutput.Trim().Equals(commit, StringComparison.OrdinalIgnoreCase))
         {
             DeleteTree(cache);
             error = $"The clone of {source.Canonical} is not {commit}.";
@@ -640,7 +661,7 @@ internal static partial class WidgetCommand
     {
         widgets = [];
         error = null;
-        var result = RunTool(dotnet,
+        var result = Invoke(dotnet,
         [
             "msbuild", project, "-getItem:WinshellWidget", "-nologo", "-restore:false", "-nodeReuse:false"
         ], localRoot);
@@ -650,14 +671,14 @@ internal static partial class WidgetCommand
             return false;
         }
 
-        if (result.Code != 0)
+        if (result.ExitCode != 0)
         {
-            error = $"{Path.GetFileName(project)} could not be read.\n{FirstLine(result.Error, result.Output)}";
+            error = $"{Path.GetFileName(project)} could not be read.\n{FirstLine(result.Error, result.StandardOutput)}";
             return false;
         }
 
-        var start = result.Output.IndexOf('{');
-        var end = result.Output.LastIndexOf('}');
+        var start = result.StandardOutput.IndexOf('{');
+        var end = result.StandardOutput.LastIndexOf('}');
         if (start < 0 || end < start)
         {
             error = $"{Path.GetFileName(project)} listed no widget items.";
@@ -666,7 +687,7 @@ internal static partial class WidgetCommand
 
         try
         {
-            using var json = JsonDocument.Parse(result.Output[start..(end + 1)]);
+            using var json = JsonDocument.Parse(result.StandardOutput[start..(end + 1)]);
             if (!json.RootElement.TryGetProperty("Items", out var items) ||
                 !items.TryGetProperty("WinshellWidget", out var listed))
                 return true;
@@ -926,11 +947,14 @@ internal static partial class WidgetCommand
         var group = new XElement("ItemGroup");
         foreach (var item in installed)
         {
+            // UndefineProperties is project-reference metadata the MSBuild task reads. The library then keeps its own
+            // widgets file instead of this one, so it does not reference itself.
             group.Add(new XElement("ProjectReference",
                 new XAttribute("Include", item.Project),
                 new XElement("WinshellSource", item.Source),
                 new XElement("WinshellRef", item.Ref),
-                new XElement("WinshellCommit", item.Commit)));
+                new XElement("WinshellCommit", item.Commit),
+                new XElement("UndefineProperties", WidgetsFile)));
             foreach (var widget in item.Widgets)
             {
                 group.Add(new XElement("WinshellWidget",
@@ -972,88 +996,33 @@ internal static partial class WidgetCommand
         }
     }
 
-    private static string BuildErrors(string output, string folder)
-    {
-        var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var errors = lines.Where(ConfigurationProject.IsErrorLine)
-            .Select(line => ConfigurationProject.ErrorLine(line, folder)).Distinct().ToList();
-        return string.Join('\n', errors.Count > 0 ? errors.Take(ConfigurationProject.MostErrors) : lines.TakeLast(ConfigurationProject.MostErrors));
-    }
-
     private static bool Tool(string file, string folder, out bool missing)
     {
-        var result = RunTool(file, ["--version"], folder);
+        var result = Invoke(file, ["--version"], folder);
         missing = result.Missing;
-        return result.Code == 0 && !result.Missing;
+        return result.ExitCode == 0 && !result.Missing;
     }
-
-    private readonly record struct ToolResult(int Code, string Output, string Error, bool Missing);
 
     /// <summary>Git, allowed to fetch a <c>file://</c> URL. That protocol is otherwise refused when it comes from a remote.</summary>
-    private static ToolResult Git(string git, IReadOnlyList<string> arguments, string folder)
+    private static CommandResult Git(string git, IReadOnlyList<string> arguments, string folder)
     {
-        return RunTool(git, ["-c", "protocol.file.allow=always", .. arguments], folder);
+        return Invoke(git, ["-c", "protocol.file.allow=always", .. arguments], folder);
     }
 
-    private static ToolResult RunTool(string file, IReadOnlyList<string> arguments, string folder)
+    /// <summary><see cref="ConfigurationProject.Run"/>, with the variables git and dotnet need so they do not prompt.</summary>
+    private static CommandResult Invoke(string file, IReadOnlyList<string> arguments, string folder)
     {
-        Directory.CreateDirectory(folder);
-        var start = new ProcessStartInfo(file)
-        {
-            WorkingDirectory = folder,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
-        start.Environment["GIT_TERMINAL_PROMPT"] = "0";
-        start.Environment["GCM_INTERACTIVE"] = "never";
-        start.Environment["DOTNET_NOLOGO"] = "1";
-        start.Environment["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
-        start.Environment["MSBUILDDISABLENODEREUSE"] = "1";
-        foreach (var argument in arguments)
-            start.ArgumentList.Add(argument);
-        try
-        {
-            var output = new StringBuilder();
-            var error = new StringBuilder();
+        return ConfigurationProject.Run(file, arguments, folder, QuietTools);
+    }
 
-            Thread Read(StreamReader stream, StringBuilder into)
-            {
-                var reader = new Thread(() =>
-                {
-                    while (stream.ReadLine() is { } line)
-                        lock (into)
-                        {
-                            if (into.Length > 0)
-                                into.Append('\n');
-                            into.Append(line);
-                        }
-                })
-                { IsBackground = true };
-                reader.Start();
-                return reader;
-            }
-
-            var process = Process.Start(start)!;
-            var stdout = Read(process.StandardOutput, output);
-            var stderr = Read(process.StandardError, error);
-            if (!process.WaitForExit(ToolLimit))
-            {
-                process.Kill(true);
-                return new ToolResult(-1, "",
-                    $"{Path.GetFileName(file)} was still running after {ToolLimit.TotalMinutes.ToString(CultureInfo.InvariantCulture)} minutes.",
-                    false);
-            }
-
-            stdout.Join(TimeSpan.FromSeconds(1));
-            stderr.Join(TimeSpan.FromSeconds(1));
-            return new ToolResult(process.ExitCode, output.ToString(), error.ToString(), false);
-        }
-        catch (Win32Exception)
-        {
-            return new ToolResult(-1, "", "", true);
-        }
+    /// <summary>A tool that did not start, or that exited with an error. Null when it succeeded.</summary>
+    private static Result? Failed(CommandResult result, string name, string action, string folder)
+    {
+        if (result.Missing)
+            return Fail(1, ConfigurationProject.NeedsSdk);
+        if (result.ExitCode != 0)
+            return Fail(1, $"{name} did not {action}.\n{ConfigurationProject.Errors(result.Output, folder)}");
+        return null;
     }
 
     private static string FirstLine(string error, string output)
