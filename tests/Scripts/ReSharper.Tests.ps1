@@ -92,6 +92,27 @@ Describe 'ReSharper command' {
         (Get-FileHash -LiteralPath $source).Hash | Should -Be $hash
     }
 
+    It 'inspects an example project on its own' {
+        $example = Join-Path $script:Fixture 'examples/Demo'
+        New-Item -ItemType Directory -Path $example -Force | Out-Null
+        [IO.File]::WriteAllText((Join-Path $example 'Demo.csproj'), '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings></PropertyGroup></Project>')
+        $source = Join-Path $example 'Program.cs'
+        [IO.File]::WriteAllText($source, 'namespace Demo; internal static class Program { public static void Main() { } private static void Unused() { } }')
+        [IO.File]::WriteAllText((Join-Path $script:Fixture 'winshell.slnx'), '<Solution><Project Path="src/Sample/Sample.csproj" /><Project Path="examples/Demo/Demo.csproj" /></Solution>')
+
+        $inspection = Invoke-FixtureReSharper Inspect -Path examples/Demo/Program.cs
+        $inspection.ExitCode | Should -Be 1 -Because $inspection.Output
+        Test-Path -LiteralPath (Join-Path $script:Fixture 'artifacts/resharper/solution.sarif') | Should -BeFalse
+        $report = Get-Content -LiteralPath (Join-Path $script:Fixture 'artifacts/resharper/example-demo.sarif') -Raw | ConvertFrom-Json
+        $run = $report.runs[0]
+        @($run.results).Count | Should -BeGreaterThan 0
+        $baseUri = [uri]$run.originalUriBaseIds.solutionDir.uri
+        foreach ($result in $run.results) {
+            $location = [uri]::new($baseUri, $result.locations[0].physicalLocation.artifactLocation.uri)
+            $location.LocalPath | Should -Be $source
+        }
+    }
+
     It 'keeps template inspection locations readable after temporary files are removed' {
         foreach ($folder in @('templates/winshell', 'src/Winshell.Shell')) {
             New-Item -ItemType Directory -Path (Join-Path $script:Fixture $folder) -Force | Out-Null
