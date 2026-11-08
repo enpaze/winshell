@@ -149,7 +149,7 @@ The `changes` job selects checks for PRs and pushes to `main`. A draft skips qua
 
 `main` takes squash merges of pull requests. `gh pr merge <number> --squash --auto` merges one once its required checks pass. A pull request need not be up to date with `main`, so its checks ran on its branch and not on what lands; the push to `main` selects checks again for the merged change.
 
-The short `pr-title` and `pr-rules` workflows finish every run, including successive PR edits. They have no concurrency cancellation: a cancelled required check can block a pull request even after a newer passing run. The main CI workflow still cancels superseded PR runs and stops work after a failed build. To recover an already cancelled metadata check, open its Actions run and choose **Re-run all jobs**, or run `gh run rerun <run-id>`. Only **Merged** confirms the change is on `main`.
+The short `pr-title` and `pr-rules` workflows finish every run, including successive PR edits. They have no concurrency cancellation: a cancelled required check can block a pull request even after a newer passing run. The main CI workflow cancels superseded runs on each branch. To recover an already cancelled metadata check, open its Actions run and choose **Re-run all jobs**, or run `gh run rerun <run-id>`. Only **Merged** confirms the change is on `main`.
 
 ### Local lint setup
 
