@@ -374,13 +374,14 @@ A WinUI UserControl. The members here are the ones Winshell adds.
 
 ## WidgetContext
 
-The placement's inputs, passed to its widget factory on the shell's thread.
+The placement's inputs and popup styling, passed to its widget factory on the shell's thread.
 
 | Member | Type | Description |
 | --- | --- | --- |
 | `Orientation` | Orientation, read-only | The direction in which the area arranges its placements. |
 | `Settings` | IReadOnlyDictionary of string, object, read-only | This placement's settings. Empty when the placement supplied none. |
 | `Shell` | [Shell](#shell), read-only | The shell that owns the area. |
+| `StylePopup(UIElement content)` | FrameworkElement | Wraps content for a PopupWindow in the area's styling. Assign the result to the popup's Content on the shell's thread. Each call loads a fresh dictionary from the area's Theme URI, preserving the content's own resources. The wrapper follows the area's resolved theme, Theme URI, FontFamily, FontSize and Foreground until the area removes the widget or is disposed. The widget still owns and disposes its popup windows. A new wrapper to use as the popup window's content. |
 
 ## Widgets
 

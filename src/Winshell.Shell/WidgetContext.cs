@@ -1,3 +1,4 @@
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Winshell;
@@ -7,13 +8,19 @@ namespace Winshell;
 /// <param name="Settings">This placement's settings, or null for no settings. Widgets should treat nested values as read-only too.</param>
 public sealed record Placement(string Widget, IReadOnlyDictionary<string, object>? Settings = null);
 
-/// <summary>The placement's inputs, passed to its widget factory on the shell's thread.</summary>
+/// <summary>The placement's inputs and popup styling, passed to its widget factory on the shell's thread.</summary>
 public sealed class WidgetContext
 {
-    internal WidgetContext(Shell shell, Orientation orientation, IReadOnlyDictionary<string, object> settings)
+    private readonly WidgetArea _area;
+    private readonly List<UserControl> _popups = [];
+    private readonly List<(DependencyProperty Property, long Token)> _callbacks = [];
+    private bool _disposed;
+
+    internal WidgetContext(Shell shell, WidgetArea area, IReadOnlyDictionary<string, object> settings)
     {
         Shell = shell;
-        Orientation = orientation;
+        _area = area;
+        Orientation = area.Orientation;
         Settings = settings;
     }
 
@@ -25,6 +32,72 @@ public sealed class WidgetContext
 
     /// <summary>This placement's settings. Empty when the placement supplied none.</summary>
     public IReadOnlyDictionary<string, object> Settings { get; }
+
+    /// <summary>
+    /// Wraps content for a PopupWindow in the area's styling. Assign the result to the popup's Content on the shell's
+    /// thread. Each call loads a fresh dictionary from the area's Theme URI, preserving the content's own resources.
+    /// The wrapper follows the area's resolved theme, Theme URI, FontFamily, FontSize and Foreground until the area
+    /// removes the widget or is disposed. The widget still owns and disposes its popup windows.
+    /// </summary>
+    /// <param name="content">The popup's unparented content.</param>
+    /// <returns>A new wrapper to use as the popup window's content.</returns>
+    public FrameworkElement StylePopup(UIElement content)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(content);
+        var wrapper = new UserControl { Content = content };
+        LoadTheme(wrapper);
+        CopyStyle(wrapper);
+        if (_popups.Count == 0)
+        {
+            _area.ActualThemeChanged += ThemeChanged;
+            _area.ThemeChanged += ReloadThemes;
+            foreach (var property in new[] { Control.FontFamilyProperty, Control.FontSizeProperty, Control.ForegroundProperty })
+                _callbacks.Add((property, _area.RegisterPropertyChangedCallback(property, (_, _) => CopyStyles())));
+        }
+        _popups.Add(wrapper);
+        return wrapper;
+    }
+
+    private void CopyStyle(UserControl wrapper)
+    {
+        wrapper.RequestedTheme = _area.ActualTheme;
+        wrapper.FontFamily = _area.FontFamily;
+        wrapper.FontSize = _area.FontSize;
+        wrapper.Foreground = _area.Foreground;
+    }
+
+    private void CopyStyles()
+    {
+        foreach (var wrapper in _popups)
+            CopyStyle(wrapper);
+    }
+
+    private void ThemeChanged(FrameworkElement sender, object args) => CopyStyles();
+
+    private void LoadTheme(UserControl wrapper)
+    {
+        wrapper.Resources.MergedDictionaries.Clear();
+        if (_area.Theme is { } source)
+            wrapper.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = source });
+    }
+
+    private void ReloadThemes()
+    {
+        foreach (var wrapper in _popups)
+            LoadTheme(wrapper);
+    }
+
+    internal void StopStyling()
+    {
+        _disposed = true;
+        _area.ActualThemeChanged -= ThemeChanged;
+        _area.ThemeChanged -= ReloadThemes;
+        foreach (var (property, token) in _callbacks)
+            _area.UnregisterPropertyChangedCallback(property, token);
+        _callbacks.Clear();
+        _popups.Clear();
+    }
 }
 
 /// <summary>A widget factory throws this with the reason it cannot run in this placement.</summary>
