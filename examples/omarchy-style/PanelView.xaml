@@ -19,6 +19,9 @@
     <StaticResource ResourceKey="PanelForeground" />
   </UserControl.Foreground>
 
+  <!-- These names and handlers belong to PanelView's partials; the inspector cannot resolve them. -->
+  <!-- ReSharper disable UnusedMember.Local -->
+  <!-- ReSharper disable errors -->
   <Grid Background="{StaticResource PanelBackground}" Padding="{StaticResource PanelInset}" Loaded="OnLayoutLoaded">
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
       <TextBlock
@@ -61,4 +64,6 @@
               Click="OnSettingsClick" />
     </StackPanel>
   </Grid>
+  <!-- ReSharper restore errors -->
+  <!-- ReSharper restore UnusedMember.Local -->
 </UserControl>

@@ -12,7 +12,7 @@ namespace OmarchyStyle;
 /// The panel on one screen: the Windows glyph and Winland's workspaces on the left, the clock in the middle, and the
 /// tray and the status of Bluetooth, the network, audio, the screen and the battery on the right.
 /// </summary>
-public sealed partial class PanelView : UserControl, IDisposable
+public sealed partial class PanelView : IDisposable
 {
     /// <summary>The panel's height, which it also reserves.</summary>
     public double Size => (double)Resources["PanelHeight"];
