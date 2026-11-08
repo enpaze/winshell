@@ -73,6 +73,11 @@ internal static class CliParser
     /// <summary>What only <c>inspect press</c> takes.</summary>
     private static readonly Option RightOption = Option.Flag(new CommandWord("--right"), o => o with { Right = true });
 
+    private static readonly Option ProjectOption =
+        Option.Value(new CommandWord("--project"), (o, use) => o with { Project = use.Value });
+
+    private static readonly Option YesOption = Option.Flag(new CommandWord("--yes"), o => o with { Yes = true });
+
     private const string RunUsage = """
                                     winshell run [-c <name> | -p <path>] [-d] [-n] [--no-build] [-- <args>...]
                                       Starts a configuration project's shell, built first when a source is newer than its
@@ -170,6 +175,23 @@ internal static class CliParser
                                              --no-color         print without color
                                        """;
 
+    private const string WidgetUsage = """
+                                       winshell widget [-c <name> | -p <path>] <command>
+                                         install <source>[@ref] [--project <path>] [--yes]
+                                           Installs widgets from github.com/owner/repo, an https://github.com URL, a file:// URL or a folder.
+                                           @ref is a branch, a tag or a commit. With none, the default branch is used.
+                                           The command resolves it to a commit, shows the repository, the commit and the
+                                           widget names, and asks. --yes installs without asking.
+                                           Building runs this repository's code and MSBuild targets in a program that starts at sign-in.
+                                           Declining the question changes nothing. Needs git and the .NET SDK.
+                                         list
+                                           Lists each installed widget's name, source, ref and commit.
+                                         remove <name>
+                                           Removes a widget, or a source, and every widget from that repository.
+                                         --project <path>    the project in the repository that lists the widgets
+                                         -c and -p choose the configuration, as they do for winshell run.
+                                       """;
+
     private const string NewUsage = """
                                     winshell new [<name>] [-p <folder>]
                                       With no name, lists the starter and the examples this release can copy.
@@ -206,6 +228,10 @@ internal static class CliParser
                                           winshell doctor [config options] [-j] [--no-color]
                                                                               check this PC's setup for Winshell
                                           winshell new [<name>] [-p <folder>] list the examples, or copy one to start from
+                                          winshell widget install <source>[@ref] [--yes]
+                                                                              install widgets from a GitHub repository
+                                          winshell widget list                list the widgets a configuration has
+                                          winshell widget remove <name>       remove an installed widget
                                           winshell help [command]             print this summary, or that command's help
 
                                    Config selection:
@@ -278,6 +304,12 @@ internal static class CliParser
             Option.Flag(new CommandWord("--no-color"), o => o with { NoColor = true })
         ]),
         Entry("new", NewUsage, WordRule.One, [PathOption]),
+        Entry("widget", WidgetUsage, WordRule.Subcommand, [PathOption, ConfigOption, ProjectOption, YesOption],
+        [
+            new Subcommand("install", 1, "a source", AtMost: 1),
+            new Subcommand("list", AtMost: 0),
+            new Subcommand("remove", 1, "a name", AtMost: 1)
+        ]),
         Entry("help", Summary, WordRule.Topic, [])
     ];
 
@@ -339,6 +371,8 @@ internal static class CliParser
                     RequireSubcommand(command, positional);
                     if (name == "inspect")
                         CheckInspect(line, options, positional);
+                    else if (name == "widget")
+                        CheckWidget(line, positional);
                     break;
             }
         }
@@ -425,6 +459,18 @@ internal static class CliParser
         var wrongWord = match.Word is { } required && (words < 1 || positional[1] != required);
         if (wrongWord || words < match.Words)
             throw new ArgumentException($"winshell {command.Name} {name} needs {match.Missing}.");
+        if (match.AtMost is int most && words > most)
+            throw Unexpected(positional[most + 1]);
+    }
+
+    /// <summary><c>--project</c> and <c>--yes</c> belong to <c>widget install</c>.</summary>
+    private static void CheckWidget(Line line, List<string> positional)
+    {
+        if (positional[0] == "install")
+            return;
+        if (line.Uses.FirstOrDefault(use => use.Option == ProjectOption || use.Option == YesOption) is
+            { Option: not null } stray)
+            throw new ArgumentException($"winshell widget {positional[0]} does not take \"{stray.Token}\".");
     }
 
     /// <summary>
@@ -574,16 +620,17 @@ internal static class CliParser
     }
 
     /// <summary>
-    /// A word of <c>ipc</c> or <c>inspect</c>. <see cref="Words"/> is how many words must follow it, and
-    /// <see cref="Word"/> is one that must be first. <see cref="RawAfter"/> means the rest are that command's
-    /// arguments, even when they look like options.
+    /// A word of <c>ipc</c>, <c>inspect</c> or <c>widget</c>. <see cref="Words"/> is how many words must follow it,
+    /// and <see cref="Word"/> is one that must be first. <see cref="RawAfter"/> means the rest are that command's
+    /// arguments, even when they look like options. <see cref="AtMost"/> refuses a spare word.
     /// </summary>
     private readonly record struct Subcommand(
         string Name,
         int Words = 0,
         string? Missing = null,
         string? Word = null,
-        bool RawAfter = false);
+        bool RawAfter = false,
+        int? AtMost = null);
 
     private sealed record Command(string Name, string Usage, Option[] Options, Subcommand[] Subcommands, WordRule Words)
     {

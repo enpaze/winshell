@@ -239,7 +239,7 @@ A running shell reads these. None is needed to build or test.
 | Variable | What it does |
 | --- | --- |
 | `WINSHELL_CONFIG_DIR` | Folder named configs are loaded from, instead of `%APPDATA%\winshell`. |
-| `WINSHELL_LOCAL_DIR` | Folder used instead of `%LOCALAPPDATA%\winshell` for cache, state, data, instance logs and crash reports. A child process inherits it. |
+| `WINSHELL_LOCAL_DIR` | Folder used instead of `%LOCALAPPDATA%\winshell` for cache, state, data, instance logs, crash reports and clones of installed widgets. A child process inherits it. |
 
 ### Installer
 
