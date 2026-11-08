@@ -4,6 +4,7 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -26,7 +27,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     public void The_small_shell_is_listed_and_killed()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        Run("PackedShell", templates.SmallProject);
+        Run(templates.SmallProject);
     }
 
     [Fact(Timeout = PatienceMs)]
@@ -45,7 +46,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         Assert.Equal(templates.UserPathBefore, PackedTemplates.UserPath());
     }
 
-    private void Run(string shellId, string projectFile)
+    private void Run(string projectFile)
     {
         var project = ConfigurationProject.Find(projectFile, null, Path.GetDirectoryName(projectFile)!, out var error);
         Assert.Null(error);
@@ -72,7 +73,9 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
                     return Listed(folders).Any(row => row.GetProperty("pid").GetInt32() == process.Id);
                 }, $"instance {pid} in winshell list");
 
-            Assert.Equal(shellId,
+            // The starter sets no shell id. This program is outside the config folder, so the listed id is the
+            // hash of its bin\shell path.
+            Assert.Equal(HashedProgram(project.Program),
                 Listed(folders).Single(row => row.GetProperty("pid").GetInt32() == process.Id).GetProperty("shellId")
                     .GetString());
             var log = WinshellCli.Run(["log", "--pid", pid], folders);
@@ -132,6 +135,12 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         return process;
+    }
+
+    private static string HashedProgram(string program)
+    {
+        var path = ConfigurationProject.InOutputFolder(program) ?? program;
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(path.ToLowerInvariant())))[..32];
     }
 
     private static List<JsonElement> Listed((string Name, string Value)[] environment)
