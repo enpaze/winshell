@@ -230,7 +230,7 @@ public sealed class DevCommandTests : IDisposable
         var result = WinshellCli.Run(["dev"], Folders);
 
         result.AssertExitCode(1);
-        Assert.Contains("dotnet new winshell", result.Error, StringComparison.Ordinal);
+        Assert.Contains("Run winshell new to make one.", result.Error, StringComparison.Ordinal);
     }
 
     // One watch host covers in-place edits, a failed edit, a rebuild and graceful console shutdown.
