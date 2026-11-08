@@ -37,7 +37,10 @@ public sealed class DoctorUserConfigTests : IDisposable
         Assert.Equal(status, plain.Status);
         Assert.Equal(plain.Status, both.Status);
         Assert.Equal(plain.Fix, both.Fix);
+        // Passing false for both flags is the proof that the defaults leave the message unchanged.
+        // ReSharper disable RedundantArgumentDefaultValue
         Assert.Equal(plain.Message, Doctor.Windows(build, revision, version, server, false, false).Message);
+        // ReSharper restore RedundantArgumentDefaultValue
         Assert.StartsWith(plain.Message + ". ", both.Message, StringComparison.Ordinal);
         Assert.Contains("Transparency effects are off, so Mica and Acrylic look flat.", both.Message,
             StringComparison.Ordinal);

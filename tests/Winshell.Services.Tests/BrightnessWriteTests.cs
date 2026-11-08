@@ -21,7 +21,11 @@ public class BrightnessWriteTests
                 written.Add(value);
             }
 
+            // The writer thread signals started before either handle is disposed.
+            // ReSharper disable once AccessToDisposedClosure
             started.Release();
+            // The writer thread blocks on release and finishes before it is disposed.
+            // ReSharper disable once AccessToDisposedClosure
             release.Wait(TestContext.Current.CancellationToken);
             return null;
         }, Log.Default);

@@ -292,44 +292,44 @@ public sealed class DoctorTests : IDisposable
     [Fact]
     public void The_sign_in_entry_must_start_this_winshell_and_be_on()
     {
-        const string Here = @"C:\Program Files\Winshell\winshell.exe";
-        var command = $@"C:\Windows\System32\conhost.exe --headless ""{Here}"" --no-duplicate";
+        const string here = @"C:\Program Files\Winshell\winshell.exe";
+        var command = $@"C:\Windows\System32\conhost.exe --headless ""{here}"" --no-duplicate";
 
         bool Exists(string path)
         {
-            return path == Here || path == @"C:\Old\winshell.exe";
+            return path == here || path == @"C:\Old\winshell.exe";
         }
 
-        Assert.Equal(CheckStatus.Pass, SignIn(null, false, Here, _dir, Exists).Status);
+        Assert.Equal(CheckStatus.Pass, SignIn(null, false, here, _dir, Exists).Status);
         Assert.Equal(new DoctorCheck("signIn", "Sign-in", CheckStatus.Pass, "Winshell starts when you sign in"),
-            SignIn(command, false, Here, _dir, Exists));
-        Assert.Equal(CheckStatus.Warn, SignIn(command, true, Here, _dir, Exists).Status);
+            SignIn(command, false, here, _dir, Exists));
+        Assert.Equal(CheckStatus.Warn, SignIn(command, true, here, _dir, Exists).Status);
         Assert.Equal(CheckStatus.Warn,
-            SignIn(@"C:\Windows\System32\conhost.exe --headless C:\Old\winshell.exe -c bar", false, Here, _dir, Exists)
+            SignIn(@"C:\Windows\System32\conhost.exe --headless C:\Old\winshell.exe -c bar", false, here, _dir, Exists)
                 .Status);
-        var gone = SignIn(@"C:\Windows\System32\conhost.exe --headless C:\Gone\winshell.exe", false, Here, _dir,
+        var gone = SignIn(@"C:\Windows\System32\conhost.exe --headless C:\Gone\winshell.exe", false, here, _dir,
             Exists);
         Assert.Equal(CheckStatus.Fail, gone.Status);
         Assert.Equal(@"The sign-in entry starts C:\Gone\winshell.exe, which is not there.", gone.Message);
-        Assert.Equal(CheckStatus.Pass, SignIn($@"""{Here}"" -p ""C:\my config""", false, Here, _dir, Exists).Status);
-        Assert.Equal(CheckStatus.Fail, SignIn("  ", false, Here, _dir, Exists).Status);
+        Assert.Equal(CheckStatus.Pass, SignIn($@"""{here}"" -p ""C:\my config""", false, here, _dir, Exists).Status);
+        Assert.Equal(CheckStatus.Fail, SignIn("  ", false, here, _dir, Exists).Status);
     }
 
     [Fact]
     public void A_sign_in_entry_through_a_link_to_this_winshell_is_this_winshell()
     {
-        const string Here = @"C:\Users\a\AppData\Local\Microsoft\WinGet\Packages\Winshell\winshell.exe";
-        const string Link = @"C:\Users\a\AppData\Local\Microsoft\WinGet\Links\winshell.exe";
+        const string here = @"C:\Users\a\AppData\Local\Microsoft\WinGet\Packages\Winshell\winshell.exe";
+        const string link = @"C:\Users\a\AppData\Local\Microsoft\WinGet\Links\winshell.exe";
 
         string Resolve(string path)
         {
-            return path == Link ? Here : path;
+            return path == link ? here : path;
         }
 
         Assert.Equal(CheckStatus.Pass,
-            SignIn($@"conhost.exe --headless ""{Link}"" --no-duplicate", false, Here, _dir, _ => true, Resolve).Status);
+            SignIn($@"conhost.exe --headless ""{link}"" --no-duplicate", false, here, _dir, _ => true, Resolve).Status);
         Assert.Equal(CheckStatus.Warn,
-            SignIn($@"conhost.exe --headless ""{Link}"" --no-duplicate", false, Here, _dir, _ => true).Status);
+            SignIn($@"conhost.exe --headless ""{link}"" --no-duplicate", false, here, _dir, _ => true).Status);
 
         var target = Path.Combine(_dir, "target.exe");
         File.WriteAllText(target, "");
@@ -355,7 +355,7 @@ public sealed class DoctorTests : IDisposable
         Assert.Equal(CheckStatus.Warn, policy.Status);
         Assert.Contains("policy", policy.Message, StringComparison.OrdinalIgnoreCase);
 
-        var missing = SignIn((StartupTaskState?)null);
+        var missing = SignIn(null);
         Assert.Equal(CheckStatus.Warn, missing.Status);
         Assert.Contains("no startup task", missing.Message, StringComparison.OrdinalIgnoreCase);
     }

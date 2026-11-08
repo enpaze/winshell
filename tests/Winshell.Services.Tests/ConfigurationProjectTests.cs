@@ -544,7 +544,7 @@ public sealed class ConfigurationProjectTests : IDisposable
         var run = Task.Run(() =>
             ConfigurationProject.Run("cmd", ["/c", "start /b ping -n 60 127.0.0.1 >nul & echo built"], folder));
 
-        Wait.Until(() => run.IsCompleted, "the result while the server still runs");
+        await Wait.UntilAsync(() => run.IsCompleted, "the result while the server still runs");
 
         Assert.Equal((0, "built"), ToTuple(await run));
     }

@@ -147,6 +147,8 @@ public sealed class AppsServiceTests : IDisposable
         var activation = new TaskCompletionSource<string?>();
         _backend.Activation = activation.Task;
         var posts = 0;
+        // The woken callback increments posts while the test reads it; the test only sets the initial zero.
+        // ReSharper disable once AccessToModifiedClosure
         _loop.Woken += () => Interlocked.Increment(ref posts);
 
         // Activation is still running. A launch that waited for it would never finish, and nothing reaches the loop yet.
@@ -232,8 +234,10 @@ public sealed class AppsServiceTests : IDisposable
     [Fact]
     public void A_jump_list_is_read_for_an_id_and_stays_the_same_object()
     {
-        var reader = new ScriptJumpLists();
-        reader.Result["Contoso.Notes"] = JumpListRead.From(["Budget.xlsx"], ["Budget.xlsx", "Notes.txt"]);
+        var reader = new ScriptJumpLists
+        {
+            Result = { ["Contoso.Notes"] = JumpListRead.From(["Budget.xlsx"], ["Budget.xlsx", "Notes.txt"]) }
+        };
         var lists = new JumpListService(reader);
 
         var found = lists.ForApp("Contoso.Notes");

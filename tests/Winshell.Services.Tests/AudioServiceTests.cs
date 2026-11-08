@@ -269,7 +269,8 @@ public sealed class AudioServiceTests
     {
         var (audio, _, meter) = Metered(0.25f, 0.5f);
         using var _ = audio;
-        using var monitor = new AudioPeakMonitor(_loop) { Node = audio.Nodes[0] };
+        using var monitor = new AudioPeakMonitor(_loop);
+        monitor.Node = audio.Nodes[0];
 
         Assert.Equal(0.5, monitor.Peak);
         Assert.Equal([0.25, 0.5], monitor.Peaks);
@@ -288,7 +289,8 @@ public sealed class AudioServiceTests
     {
         var (audio, _, _) = Metered(0.25f);
         using var _ = audio;
-        using var monitor = new AudioPeakMonitor(_loop) { Node = audio.Nodes[0] };
+        using var monitor = new AudioPeakMonitor(_loop);
+        monitor.Node = audio.Nodes[0];
 
         Assert.Equal([AudioChannel.Mono], monitor.Channels);
     }
@@ -298,7 +300,8 @@ public sealed class AudioServiceTests
     {
         var (audio, node, meter) = Metered(0.25f, 0.5f);
         using var _ = audio;
-        using var monitor = new AudioPeakMonitor(_loop) { Node = audio.Nodes[0] };
+        using var monitor = new AudioPeakMonitor(_loop);
+        monitor.Node = audio.Nodes[0];
         Assert.Equal(1, node.Running);
 
         monitor.Enabled = false;
@@ -320,7 +323,8 @@ public sealed class AudioServiceTests
     {
         _graph.Add(new FakeAudioNode(AudioNodeType.PlaybackDevice));
         using var audio = Service();
-        using var monitor = new AudioPeakMonitor(_loop) { Node = audio.Nodes[0] };
+        using var monitor = new AudioPeakMonitor(_loop);
+        monitor.Node = audio.Nodes[0];
 
         Assert.Equal(0, monitor.Peak);
         Assert.Null(_loop.NextDue);
@@ -331,7 +335,8 @@ public sealed class AudioServiceTests
     {
         var (audio, node, _) = Metered(0.25f, 0.5f);
         using var _ = audio;
-        using var monitor = new AudioPeakMonitor(_loop) { Node = audio.Nodes[0] };
+        using var monitor = new AudioPeakMonitor(_loop);
+        monitor.Node = audio.Nodes[0];
 
         _graph.Remove(node);
 
@@ -346,7 +351,8 @@ public sealed class AudioServiceTests
     {
         var (audio, _, meter) = Metered(0.25f, 0.5f);
         using var _ = audio;
-        using var monitor = new AudioPeakMonitor(_loop) { Node = audio.Nodes[0] };
+        using var monitor = new AudioPeakMonitor(_loop);
+        monitor.Node = audio.Nodes[0];
 
         meter.Gone = true;
         _loop.Advance(TimeSpan.FromMilliseconds(40));
@@ -362,7 +368,10 @@ public sealed class AudioServiceTests
     {
         var (audio, _, meter) = Metered(0.25f, 0.5f);
         using var _ = audio;
-        using var monitor = new AudioPeakMonitor(_loop) { Node = audio.Nodes[0] };
+        using var monitor = new AudioPeakMonitor(_loop);
+        monitor.Node = audio.Nodes[0];
+        // The handler runs on the advance below, before the monitor is disposed.
+        // ReSharper disable once AccessToDisposedClosure
         monitor.PropertyChanged += (_, _) => monitor.Enabled = false;
 
         meter.Peaks = [0.75f, 0.5f];

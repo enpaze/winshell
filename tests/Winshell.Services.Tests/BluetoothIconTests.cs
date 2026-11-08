@@ -182,13 +182,13 @@ public sealed class BluetoothIconTests
         Assert.Equal("audio-card", IconProperties((BluetoothIcon.MajorKey, (ushort)4)));
         Assert.Equal("", IconProperties(
             (BluetoothIcon.MajorKey, 4u), (BluetoothIcon.AppearanceKey, (ushort)(1 << 6))));
-        Assert.Equal("", BluetoothIcon.Name(null, null, (ushort)(1 << 6), true));
-        Assert.Equal("", BluetoothIcon.Name(null, null, (ushort)(1 << 6), appearanceUnreadable: true));
+        Assert.Equal("", BluetoothIcon.Name(null, null, 1 << 6, true));
+        Assert.Equal("", BluetoothIcon.Name(null, null, 1 << 6, appearanceUnreadable: true));
     }
 
     private static ushort? Code(int? value)
     {
-        return value is int code ? (ushort)code : null;
+        return value is not null ? (ushort)value.Value : null;
     }
 
     private static BluetoothEndpointInfo ClassEndpoint(string id, bool paired, BluetoothClassReport report)

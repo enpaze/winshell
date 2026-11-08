@@ -72,7 +72,7 @@ internal sealed class FakeAudioNode : AudioGraphNode
 
     public override FakeAudioNode? Device { get; }
 
-    public FakeMeter? FakeMeter { get; set; }
+    public FakeMeter? FakeMeter { get; init; }
 
     public bool FailWrites { get; set; }
 
@@ -108,7 +108,7 @@ internal sealed class FakeAudioNode : AudioGraphNode
         ApplyAudio([.. Volumes], muted);
     }
 
-    public override IDisposable? KeepRunning()
+    public override IDisposable KeepRunning()
     {
         Running++;
         return new DisposeAction(() => Running--);

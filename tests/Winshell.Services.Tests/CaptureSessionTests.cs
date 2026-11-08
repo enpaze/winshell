@@ -24,7 +24,9 @@ public sealed class CaptureSessionTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeCapture();
-        using var session = new CaptureSession(loop, () => backend) { Target = Screen, IncludeCursor = true };
+        using var session = new CaptureSession(loop, () => backend);
+        session.Target = Screen;
+        session.IncludeCursor = true;
         Assert.False(session.Running);
         Assert.Equal(0, backend.Starts);
 
@@ -59,7 +61,8 @@ public sealed class CaptureSessionTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeCapture { Next = Red() };
-        using var session = new CaptureSession(loop, () => backend) { Target = Screen };
+        using var session = new CaptureSession(loop, () => backend);
+        session.Target = Screen;
         var ready = 0;
         session.FrameReady += () => ready++;
         Assert.True(session.Start());
@@ -77,12 +80,12 @@ public sealed class CaptureSessionTests
         var loop = new ManualEventLoop();
         var backends = new List<FakeCapture>();
         using var session = new CaptureSession(loop, () =>
-            {
-                var backend = new FakeCapture();
-                backends.Add(backend);
-                return backend;
-            })
-            { Target = Screen };
+        {
+            var backend = new FakeCapture();
+            backends.Add(backend);
+            return backend;
+        });
+        session.Target = Screen;
         Assert.True(session.Start());
         var stale = backends[0].Closed!;
 
@@ -109,12 +112,12 @@ public sealed class CaptureSessionTests
         var second = list.Windows.Single(window => window.Hwnd == 20);
         var backends = new List<FakeCapture>();
         using var session = new CaptureSession(loop, () =>
-            {
-                var backend = new FakeCapture();
-                backends.Add(backend);
-                return backend;
-            })
-            { Target = first };
+        {
+            var backend = new FakeCapture();
+            backends.Add(backend);
+            return backend;
+        });
+        session.Target = first;
 
         Assert.Same(first, session.Target!.Source);
         Assert.Equal(new CaptureTarget(10, ""), new CaptureTarget(session.Target.Window, session.Target.MonitorId));
@@ -147,7 +150,8 @@ public sealed class CaptureSessionTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeCapture();
-        using var session = new CaptureSession(loop, () => backend) { Target = Screen };
+        using var session = new CaptureSession(loop, () => backend);
+        session.Target = Screen;
         Assert.True(session.Start());
 
         backend.Closed!();
@@ -165,7 +169,8 @@ public sealed class CaptureSessionTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeCapture { FailStart = !duringRead, FailRead = duringRead };
-        using var session = new CaptureSession(loop, () => backend) { Target = Screen };
+        using var session = new CaptureSession(loop, () => backend);
+        session.Target = Screen;
 
         Assert.Equal(duringRead, session.Start());
         loop.Advance(TimeSpan.FromMilliseconds(33));
@@ -210,7 +215,9 @@ public sealed class CaptureSessionTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeCapture { Next = Red() };
-        using var session = new CaptureSession(loop, () => backend) { Target = Screen, FrameInterval = 0 };
+        using var session = new CaptureSession(loop, () => backend);
+        session.Target = Screen;
+        session.FrameInterval = 0;
         Assert.Equal(16, session.FrameInterval);
         session.FrameInterval = int.MaxValue;
         Assert.Equal(1000, session.FrameInterval);
@@ -232,7 +239,8 @@ public sealed class CaptureSessionTests
         var path = Path.Combine(directory, "test.png");
         var loop = new ManualEventLoop();
         var backend = new FakeCapture { Next = Red(8, 6) };
-        using var session = new CaptureSession(loop, () => backend) { Target = Screen };
+        using var session = new CaptureSession(loop, () => backend);
+        session.Target = Screen;
         try
         {
             Assert.False(session.SaveToFile(path));
@@ -273,7 +281,8 @@ public sealed class CaptureSessionTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeCapture { Next = Red() };
-        using var session = new CaptureSession(loop, () => backend) { Target = Screen };
+        using var session = new CaptureSession(loop, () => backend);
+        session.Target = Screen;
         // A window that is gone: Windows refuses to open the clipboard for it, so the clipboard is left alone.
         var gone = Win32.CreateWindowExW(0, "STATIC", "", 0, 0, 0, 0, 0, Win32.HWND_MESSAGE, 0, 0, 0);
         Assert.NotEqual(0, gone);
