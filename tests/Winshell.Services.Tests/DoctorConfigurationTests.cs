@@ -32,7 +32,7 @@ public sealed class DoctorConfigurationTests : IDisposable
         Assert.Equal(["project", "downloaded", "built", "build"], checks.Select(c => c.Id));
         Assert.Equal(CheckStatus.Warn, checks[0].Status);
         Assert.Equal("No configuration project, so winshell run starts nothing.", checks[0].Message);
-        Assert.Equal("Make one with dotnet new winshell, as the configuration guide shows.", checks[0].Fix);
+        Assert.Equal("Run winshell new to make one.", checks[0].Fix);
         Assert.All(checks.Skip(1), c => Assert.Equal(CheckStatus.Pass, c.Status));
         Assert.Contains("No configuration project", checks[1].Message, StringComparison.Ordinal);
     }
