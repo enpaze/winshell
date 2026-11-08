@@ -251,7 +251,7 @@ internal sealed class WindowBackend : IWindowBackend
         var monitor = Screens.Of(hwnd);
         var device = monitor?.Id ?? "";
         var fullscreen = !minimized && monitor is not null && Win32.GetWindowRect(hwnd, out var rect) &&
-                         WindowRules.CoversMonitor((long)Win32.GetWindowLongPtr(hwnd, Win32.GWL_STYLE), rect,
+                         WindowRules.CoversMonitor(Win32.GetWindowLongPtr(hwnd, Win32.GWL_STYLE), rect,
                              monitor.Bounds);
 
         // The property can arrive after the window is first shown, so it is read every time.
@@ -279,7 +279,7 @@ internal sealed class WindowBackend : IWindowBackend
         HashSet<string> screens = [];
         var hwnd = Win32.GetForegroundWindow();
         if (hwnd == 0 || !Win32.IsWindowVisible(hwnd) || TopLevelWindows.IsShellWindow(hwnd)
-            || ((long)Win32.GetWindowLongPtr(hwnd, Win32.GWL_EXSTYLE) & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW) != 0
+            || (Win32.GetWindowLongPtr(hwnd, Win32.GWL_EXSTYLE) & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW) != 0
             || !Win32.GetWindowRect(hwnd, out var rect))
             return screens;
         var style = (long)Win32.GetWindowLongPtr(hwnd, Win32.GWL_STYLE);
@@ -311,7 +311,7 @@ internal sealed class WindowBackend : IWindowBackend
         var primary = Screens.Primary();
         var window = new WindowToMove(current, hasPlacement ? placement.Normal : default, hasPlacement, minimized,
             maximized,
-            ((long)Win32.GetWindowLongPtr(hwnd, Win32.GWL_EXSTYLE) & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW) != 0);
+            (Win32.GetWindowLongPtr(hwnd, Win32.GWL_EXSTYLE) & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW) != 0);
         if (!WindowOnScreen.TryMove(window, source.Frame, target.Frame, primary?.Bounds ?? default,
                 primary?.Work ?? default, out var place))
             return;

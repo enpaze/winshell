@@ -67,6 +67,8 @@ public sealed class NetworkProfile : ObservableObject
         Changed(old.Roaming != info.Roaming, nameof(Roaming));
         Changed(old.OverDataLimit != info.OverDataLimit, nameof(OverDataLimit));
         Changed(old.SignalStrength.HasValue != info.SignalStrength.HasValue, nameof(SignalAvailable));
+        // A stored reading: notify when the number changes, not when it passes a tolerance.
+        // ReSharper disable once CompareOfFloatsByEqualityOperator
         Changed((old.SignalStrength ?? 0) != (info.SignalStrength ?? 0), nameof(SignalStrength));
     }
 }

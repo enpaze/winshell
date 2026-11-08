@@ -221,9 +221,8 @@ public sealed class WindowListService : ObservableObject, IDisposable
     /// </summary>
     private static bool ShowsOnTaskbar(TaskbarWindowFacts window)
     {
-        return window.Exists && window.Visible && !window.Shell && !window.Child
-               && (window.AppWindow || (!window.Owned && !window.ToolWindow && !window.NoActivate))
-               && window.HasTitle && !window.Cloaked;
+        return window is { Exists: true, Visible: true, Shell: false, Child: false, HasTitle: true, Cloaked: false }
+               && (window.AppWindow || window is { Owned: false, ToolWindow: false, NoActivate: false });
     }
 
     /// <summary>

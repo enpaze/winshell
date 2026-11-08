@@ -110,7 +110,13 @@ internal sealed class HotkeyChord
 }
 
 /// <summary>The <c>RegisterHotKey</c> identity of a chord: its modifiers and virtual key.</summary>
-internal readonly record struct OsChord(HotkeyModifiers Modifiers, int VirtualKey);
+internal readonly record struct OsChord(
+    // The chord's shape: equality uses this, and no caller reads it by name.
+    // ReSharper disable once NotAccessedPositionalProperty.Global
+    HotkeyModifiers Modifiers,
+    // The chord's shape: equality uses this, and no caller reads it by name.
+    // ReSharper disable once NotAccessedPositionalProperty.Global
+    int VirtualKey);
 
 /// <summary>One or more chords, separated by commas in the text the configuration wrote.</summary>
 internal sealed class HotkeySequence
@@ -166,7 +172,7 @@ internal sealed class HotkeySequence
         }
 
         var parts = raw.Split('+');
-        if (parts.Length > 5 || parts.Any(p => string.IsNullOrWhiteSpace(p)))
+        if (parts.Length > 5 || parts.Any(string.IsNullOrWhiteSpace))
         {
             error = Fail(raw, "A chord has an empty key. Write the comma key as Comma, as in Ctrl+Comma.");
             return false;

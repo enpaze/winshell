@@ -12,7 +12,7 @@ namespace Winshell.Network;
 internal static class WifiProfileXml
 {
     internal const int MaxCharacters = 256 * 1024;
-    internal const int MaxDepth = 32;
+    private const int MaxDepth = 32;
     internal const string TooLarge = "The Wi-Fi profile is too large to read.";
     internal const string Unreadable = "The Wi-Fi profile could not be read.";
     internal const string Rejected = "The Wi-Fi profile could not be changed.";
