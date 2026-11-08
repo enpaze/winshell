@@ -8,12 +8,13 @@ using Winshell.Tray;
 namespace OmarchyStyle;
 
 /// <summary>
-/// The tray on the primary screen. On any other screen the widget takes no space. A vertical area cannot run the
-/// horizontal overflow, so the widget refuses to be created there.
+/// The tray on the primary screen. On any other screen the widget takes no space. A vertical area stacks the icons,
+/// and the overflow slides out downwards.
 /// </summary>
 public sealed partial class TrayWidget : IDisposable
 {
     private readonly Shell _shell;
+    private readonly bool _vertical;
     private ScreenInfo? _screen;
     private Watcher? _watcher;
     private bool _disposed;
@@ -22,9 +23,21 @@ public sealed partial class TrayWidget : IDisposable
 
     public TrayWidget(WidgetContext context)
     {
-        if (context.Orientation == Orientation.Vertical)
-            throw new UnsupportedWidgetException("Needs a horizontal bar.");
         InitializeComponent();
+        _vertical = context.Orientation == Orientation.Vertical;
+        if (_vertical)
+        {
+            Tray.Orientation = Orientation.Vertical;
+            Overflow.Orientation = Orientation.Vertical;
+            OverflowItems.Orientation = Orientation.Vertical;
+            OverflowItems.VerticalAlignment = VerticalAlignment.Top;
+            OverflowItems.HorizontalAlignment = HorizontalAlignment.Center;
+            PinnedItems.Orientation = Orientation.Vertical;
+            OverflowClip.ClearValue(WidthProperty);
+            OverflowClip.Height = 0;
+            HorizontalAlignment = HorizontalAlignment.Center;
+        }
+
         _shell = context.Shell;
         Loaded += (_, _) =>
         {
@@ -70,7 +83,7 @@ public sealed partial class TrayWidget : IDisposable
         Overflow.Visibility = _overflowCount > 0 ? Visibility.Visible : Visibility.Collapsed;
         Tray.Visibility = items.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         if (_overflowOpen)
-            SlideOverflow(_overflowCount * SlotWidth);
+            SlideOverflow(OverflowExtent);
     }
 
     private Button TrayButton(SystemTrayItem item)
@@ -93,10 +106,13 @@ public sealed partial class TrayWidget : IDisposable
         return button;
     }
 
+    private double OverflowExtent =>
+        _overflowCount * (_vertical ? Bar.Resource<double>(this, "PanelHeight") : SlotWidth);
+
     private void OnOverflowEntered(object sender, RoutedEventArgs e)
     {
         _overflowOpen = true;
-        SlideOverflow(_overflowCount * SlotWidth);
+        SlideOverflow(OverflowExtent);
     }
 
     private void OnOverflowExited(object sender, RoutedEventArgs e)
@@ -105,17 +121,17 @@ public sealed partial class TrayWidget : IDisposable
         SlideOverflow(0);
     }
 
-    private void SlideOverflow(double width)
+    private void SlideOverflow(double extent)
     {
         var slide = new DoubleAnimation
         {
-            To = width,
+            To = extent,
             Duration = TimeSpan.FromMilliseconds(600),
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
             EnableDependentAnimation = true
         };
         Storyboard.SetTarget(slide, OverflowClip);
-        Storyboard.SetTargetProperty(slide, nameof(Width));
+        Storyboard.SetTargetProperty(slide, _vertical ? nameof(Height) : nameof(Width));
         var story = new Storyboard();
         story.Children.Add(slide);
         story.Begin();

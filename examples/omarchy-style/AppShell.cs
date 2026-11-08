@@ -57,8 +57,8 @@ public sealed class AppShell : ShellConfiguration
             var view = new PanelView();
             view.Apply(choice.Edge, choice.Layout);
             var vertical = BarLayout.Vertical(choice.Edge);
-            // A vertical bar is wide enough for the refusal a widget shows there. Top and bottom stay one row high.
-            var thickness = vertical ? (double)view.Resources["PanelSide"] : view.Size;
+            // A side bar is one slot wide. Top and bottom stay one row high.
+            var thickness = vertical ? (double)view.Resources["SlotWidth"] : view.Size;
             var window = new PanelWindow
             {
                 Screen = screen,

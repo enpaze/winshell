@@ -6,8 +6,7 @@
   </ResourceDictionary.MergedDictionaries>
 
   <x:Double x:Key="PanelHeight">26</x:Double>
-  <!-- The left and right bars are this wide, so "clock: Needs a horizontal bar." fits on one line. -->
-  <x:Double x:Key="PanelSide">240</x:Double>
+  <!-- One status or tray slot, and the width of a left or right bar. -->
   <x:Double x:Key="SlotWidth">27</x:Double>
   <x:Double x:Key="IconSize">12</x:Double>
   <x:Double x:Key="PanelFontSize">12</x:Double>

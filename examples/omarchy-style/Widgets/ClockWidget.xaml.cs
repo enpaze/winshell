@@ -8,20 +8,27 @@ namespace OmarchyStyle;
 
 /// <summary>
 /// The day and time, such as <c>Saturday 20:25</c>, in the Windows regional format. An optional <c>timezone</c> setting
-/// names another zone, such as <c>UTC</c>; without one the clock shows local time. A vertical area cannot fit the
-/// line, so the widget refuses to be created there.
+/// names another zone, such as <c>UTC</c>; without one the clock shows local time. A vertical area shows the hours
+/// above the minutes, such as <c>20</c> over <c>25</c>. The tooltip is the full date either way.
 /// </summary>
 public sealed partial class ClockWidget : IDisposable
 {
     private readonly DispatcherQueueTimer _clock;
     private readonly TimeZoneInfo? _zone;
+    private readonly bool _vertical;
     private bool _disposed;
 
     public ClockWidget(WidgetContext context)
     {
-        if (context.Orientation == Orientation.Vertical)
-            throw new UnsupportedWidgetException("Needs a horizontal bar.");
         InitializeComponent();
+        _vertical = context.Orientation == Orientation.Vertical;
+        if (_vertical)
+        {
+            Time.Padding = new Thickness(0);
+            Time.TextAlignment = TextAlignment.Center;
+            HorizontalAlignment = HorizontalAlignment.Center;
+        }
+
         _zone = Zone(context);
         _clock = DispatcherQueue.GetForCurrentThread().CreateTimer();
         _clock.IsRepeating = false;
@@ -56,7 +63,10 @@ public sealed partial class ClockWidget : IDisposable
         if (_disposed)
             return;
         var now = _zone is null ? DateTime.Now : TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _zone);
-        Time.Text = now.ToString("dddd HH:mm", CultureInfo.CurrentCulture);
+        var culture = CultureInfo.CurrentCulture;
+        Time.Text = _vertical
+            ? now.ToString("HH", culture) + "\n" + now.ToString("mm", culture)
+            : now.ToString("dddd HH:mm", culture);
         var tip = now.ToString("D", CultureInfo.CurrentCulture);
         if (_zone is not null)
             tip += " · " + _zone.Id;
