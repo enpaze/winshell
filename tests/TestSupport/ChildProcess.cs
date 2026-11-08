@@ -11,7 +11,7 @@ namespace Winshell.TestSupport;
 internal sealed record ChildProcess(int Code, string Output, string Error)
 {
     /// <summary>What ran, as a failure names it: the program's file name and its arguments.</summary>
-    internal string Command { get; init; } = "The process";
+    private string Command { get; init; } = "The process";
 
     /// <summary>Runs <paramref name="info"/> to its end. Fails the test if it does not exit within <paramref name="patience"/>.</summary>
     internal static ChildProcess Run(ProcessStartInfo info, TimeSpan patience)
@@ -23,10 +23,13 @@ internal sealed record ChildProcess(int Code, string Output, string Error)
         var what = string.Join(' ', [Path.GetFileName(info.FileName), .. info.ArgumentList]);
         using var process = Process.Start(info)!;
         // Threads of their own: a full pipe stops the program, and a busy pool would leave the pipe full.
+        // They join before this using disposes the process, and they capture the readers so they do not capture it.
         var output = "";
         var error = "";
-        var readOutput = new Thread(() => output = process.StandardOutput.ReadToEnd()) { IsBackground = true };
-        var readError = new Thread(() => error = process.StandardError.ReadToEnd()) { IsBackground = true };
+        var stdout = process.StandardOutput;
+        var stderr = process.StandardError;
+        var readOutput = new Thread(() => output = stdout.ReadToEnd()) { IsBackground = true };
+        var readError = new Thread(() => error = stderr.ReadToEnd()) { IsBackground = true };
         readOutput.Start();
         readError.Start();
         if (!process.WaitForExit(patience))
@@ -42,6 +45,8 @@ internal sealed record ChildProcess(int Code, string Output, string Error)
         return new ChildProcess(process.ExitCode, output, error) { Command = what };
     }
 
+    // Each test project compiles this file, so a use in another project is invisible here.
+    // ReSharper disable UnusedMember.Global
     /// <summary>Runs <paramref name="file"/> with <paramref name="args"/> to its end, within a minute.</summary>
     internal static ChildProcess Run(string file, params string[] args)
     {
@@ -79,4 +84,5 @@ internal sealed record ChildProcess(int Code, string Output, string Error)
         if (Code != expected)
             Assert.Fail($"{Command} exited with {Code}, not {expected}.\nOutput:\n{Output}\nError:\n{Error}");
     }
+    // ReSharper restore UnusedMember.Global
 }

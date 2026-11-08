@@ -1,5 +1,9 @@
 namespace Winshell.TestSupport;
 
+// Each test project compiles this file, so a use in another project is invisible here.
+// ReSharper disable UnusedType.Global
+// ReSharper disable UnusedMember.Global
+// ReSharper disable MemberCanBePrivate.Global
 /// <summary>
 /// The one way a test waits on time. An event, a task or <c>ManualEventLoop.Advance</c> is better when there is one.
 /// This is for what gives no signal: a file, a window, another process. Every wait ends with the test, at its deadline.
@@ -19,7 +23,9 @@ internal static class Wait
         Until(done, what, Patience, between);
     }
 
-    /// <summary><see cref="Until"/> for what takes longer than a test should, such as a first build.</summary>
+    /// <summary>
+    /// <see cref="Until(Func{bool}, string, Action)"/> for what takes longer than a test should, such as a first build.
+    /// </summary>
     internal static void Until(Func<bool> done, string what, TimeSpan patience, Action? between = null)
     {
         var token = TestContext.Current.CancellationToken;
@@ -35,7 +41,9 @@ internal static class Wait
         }
     }
 
-    /// <summary><see cref="Until"/> for a test that must not block its thread, so what it awaits can run.</summary>
+    /// <summary>
+    /// <see cref="Until(Func{bool}, string, Action)"/> for a test that must not block its thread, so what it awaits can run.
+    /// </summary>
     internal static Task UntilAsync(Func<bool> done, string what, Action? between = null)
     {
         return UntilAsync(done, what, () =>
@@ -45,7 +53,9 @@ internal static class Wait
         });
     }
 
-    /// <summary><see cref="Until"/> with something to await between checks.</summary>
+    /// <summary>
+    /// <see cref="Until(Func{bool}, string, Action)"/> with something to await between checks.
+    /// </summary>
     internal static async Task UntilAsync(Func<bool> done, string what, Func<Task> between)
     {
         var token = TestContext.Current.CancellationToken;
@@ -80,7 +90,8 @@ internal static class Wait
 
     /// <summary>
     /// Gives something that must not happen the time to happen. On a slow machine this can miss a bug, but it can't fail
-    /// a test that should pass. Never use it to wait for something that should happen: that is <see cref="Until"/>.
+    /// a test that should pass. Never use it to wait for something that should happen: that is
+    /// <see cref="Until(Func{bool}, string, Action)"/>.
     /// </summary>
     internal static void ForNothingToHappen(TimeSpan time)
     {
@@ -94,3 +105,6 @@ internal static class Wait
         return pause * 2 < LongestPause ? pause * 2 : LongestPause;
     }
 }
+// ReSharper restore MemberCanBePrivate.Global
+// ReSharper restore UnusedMember.Global
+// ReSharper restore UnusedType.Global

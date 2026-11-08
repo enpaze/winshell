@@ -4,6 +4,10 @@ using System.Text;
 
 namespace Winshell.TestSupport;
 
+// Each test project compiles this file, so a use in another project is invisible here.
+// ReSharper disable UnusedType.Global
+// ReSharper disable UnusedMember.Global
+// ReSharper disable MemberCanBePrivate.Global
 /// <summary>
 /// Runs winshell.exe to its end. A test project that copies the CLI has it beside the tests. One that only builds it
 /// names it in a <c>WinshellCli</c> assembly metadata attribute.
@@ -12,7 +16,7 @@ internal static class WinshellCli
 {
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(60);
 
-    internal static string Exe { get; } =
+    private static string Exe { get; } =
         typeof(WinshellCli).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
             .SingleOrDefault(attribute => attribute.Key == "WinshellCli")?.Value ??
         Path.Combine(AppContext.BaseDirectory, "winshell.exe");
@@ -43,3 +47,6 @@ internal static class WinshellCli
         return ChildProcess.Run(info, Patience);
     }
 }
+// ReSharper restore MemberCanBePrivate.Global
+// ReSharper restore UnusedMember.Global
+// ReSharper restore UnusedType.Global
