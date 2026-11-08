@@ -27,16 +27,12 @@ public sealed partial class Shell
     private CpuService? _cpu;
     private ExplorerTaskbarService? _explorerTaskbar;
     private HotkeyRegistrar? _hotkeys;
-    private JumpListService? _jumpLists;
     private KeyboardLayoutService? _keyboardLayouts;
     private MediaService? _media;
     private NetworkingService? _networking;
     private NotificationListener? _notifications;
     private PowerService? _power;
     private PowerModeService? _powerMode;
-    private RecentDocuments? _recentDocuments;
-    private SessionService? _session;
-    private StartupService? _startup;
     private SystemTray? _systemTray;
     private VirtualDesktopsService? _virtualDesktops;
     private WallpaperService? _wallpaper;
@@ -79,9 +75,10 @@ public sealed partial class Shell
 
     /// <summary>The recent and frequent documents of an app, as its jump list shows them.</summary>
     [PublicAPI]
-    public JumpListService JumpLists => _jumpLists ??= new JumpListService();
+    public JumpListService JumpLists => field ??= new JumpListService();
 
     /// <summary>The installed keyboard layouts, and the one the foreground window is using. Read only while something listens.</summary>
+    [PublicAPI]
     public KeyboardLayoutService KeyboardLayouts => _keyboardLayouts ??= new KeyboardLayoutService(Loop);
 
     /// <summary>The media sessions Windows lets the shell see and control.</summary>
@@ -107,15 +104,15 @@ public sealed partial class Shell
     /// <summary>The documents in the user's Recent folder, found by name.</summary>
     [PublicAPI]
     public RecentDocuments RecentDocuments =>
-        _recentDocuments ??= new RecentDocuments(Environment.GetFolderPath(Environment.SpecialFolder.Recent));
+        field ??= new RecentDocuments(Environment.GetFolderPath(Environment.SpecialFolder.Recent));
 
     /// <summary>The Windows session: locking it, and what state it is in.</summary>
     [PublicAPI]
-    public SessionService Session => _session ??= new SessionService(Log);
+    public SessionService Session => field ??= new SessionService(Log);
 
     /// <summary>Whether this shell runs when the user signs in.</summary>
     [PublicAPI]
-    public StartupService Startup => _startup ??= StartupService.ForThisProcess(Log);
+    public StartupService Startup => field ??= StartupService.ForThisProcess(Log);
 
     /// <summary>The notification area. Only one running instance in the Windows session owns it.</summary>
     [PublicAPI]
