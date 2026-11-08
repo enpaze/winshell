@@ -8,7 +8,7 @@ namespace Winshell.Audio;
 /// The Windows playback and recording devices, and each app's audio session on a device. It lives on the UI thread;
 /// Windows' callbacks are posted to it.
 /// </summary>
-internal sealed class AudioGraph : IAudioGraph, IDisposable
+internal sealed class AudioGraph : IAudioGraph
 {
     private readonly IEventLoop _loop;
     private readonly Log _log;
@@ -49,7 +49,7 @@ internal sealed class AudioGraph : IAudioGraph, IDisposable
 
     public EndpointNode? DefaultPlayback { get; private set; }
 
-    public EndpointNode? DefaultRecording { get; private set; }
+    private EndpointNode? DefaultRecording { get; set; }
 
     AudioGraphNode? IAudioGraph.DefaultPlayback => DefaultPlayback;
 
@@ -86,7 +86,7 @@ internal sealed class AudioGraph : IAudioGraph, IDisposable
     }
 
     /// <summary>Makes a device the Windows default for apps (the console and multimedia roles).</summary>
-    public void SetDefault(EndpointNode node)
+    private void SetDefault(EndpointNode node)
     {
         try
         {

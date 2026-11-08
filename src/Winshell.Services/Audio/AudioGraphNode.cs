@@ -11,9 +11,9 @@ internal abstract class AudioGraphNode(int id)
 
     public string Description { get; protected set; } = "";
 
-    public string InterfaceName { get; protected set; } = "";
+    public string InterfaceName { get; protected init; } = "";
 
-    public AudioNodeType Type { get; protected set; }
+    protected AudioNodeType Type { get; init; }
 
     /// <summary>True for a playback device and for an app session that plays to one.</summary>
     public bool IsPlayback => Type is AudioNodeType.PlaybackDevice or AudioNodeType.PlaybackSession;
@@ -29,7 +29,7 @@ internal abstract class AudioGraphNode(int id)
 
     public Dictionary<string, string> Properties { get; protected set; } = [];
 
-    public AudioChannel[] Channels { get; protected set; } = [];
+    public AudioChannel[] Channels { get; protected init; } = [];
 
     public IReadOnlyList<float> Volumes => _volumes;
 

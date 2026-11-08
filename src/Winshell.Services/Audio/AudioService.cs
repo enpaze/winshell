@@ -28,7 +28,7 @@ public sealed class AudioNode : ObservableObject
         node.ActiveChanged += OnActiveChanged;
     }
 
-    internal AudioService Service { get; }
+    private AudioService Service { get; }
 
     internal AudioGraphNode Node => _node;
 
@@ -111,6 +111,8 @@ public sealed class AudioNode : ObservableObject
         get => [.. _volumes.Select(v => (double)v)];
         set
         {
+            // A configuration can pass null, so the setter keeps this guard.
+            // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
             var volumes = (value ?? []).Select(v => (float)Math.Max(0, v)).ToArray();
             Apply(() => _node.SetVolumes(volumes));
         }
@@ -159,6 +161,8 @@ public sealed class AudioNode : ObservableObject
         var old = _volumes;
         _volumes = _node.Volumes;
         Changed(!old.SequenceEqual(_volumes), nameof(Volumes));
+        // The averages are of the stored channel volumes, so they match exactly when those do.
+        // ReSharper disable once CompareOfFloatsByEqualityOperator
         Changed(Average(old) != Average(_volumes), nameof(Volume));
         Set(ref _muted, _node.Muted, nameof(Muted));
     }
