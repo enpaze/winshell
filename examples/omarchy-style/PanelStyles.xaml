@@ -38,8 +38,10 @@
                 <VisualState x:Name="PointerOver" />
                 <VisualState x:Name="Pressed">
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="Scale" Storyboard.TargetProperty="ScaleX" To="0.9" Duration="0" />
-                    <DoubleAnimation Storyboard.TargetName="Scale" Storyboard.TargetProperty="ScaleY" To="0.9" Duration="0" />
+                    <DoubleAnimation Storyboard.TargetName="Scale" Storyboard.TargetProperty="ScaleX" To="0.9"
+                                     Duration="0" />
+                    <DoubleAnimation Storyboard.TargetName="Scale" Storyboard.TargetProperty="ScaleY" To="0.9"
+                                     Duration="0" />
                   </Storyboard>
                 </VisualState>
                 <VisualState x:Name="Disabled" />

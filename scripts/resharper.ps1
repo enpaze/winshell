@@ -108,7 +108,7 @@ Push-Location $root
 try {
     $paths = @(Get-GitPaths -Arguments @('ls-files', '--cached', '--others', '--exclude-standard', '-z'))
     $sources = @($paths | Where-Object {
-        ($_ -match '^(src/|tests/|templates/winshell/)' -or $_ -in @('templates/TemplatePackage.cs', 'scripts/generate-reference.cs')) -and
+        ($_ -match '^(src/|tests/|templates/winshell/|examples/)' -or $_ -in @('templates/TemplatePackage.cs', 'scripts/generate-reference.cs')) -and
         $_ -match '\.(cs|xaml)$' -and $_ -notmatch '(^|/)(bin|obj)/|\.(g|g\.i|generated)\.cs$' -and
         (Test-Path -LiteralPath (Join-Path $root $_) -PathType Leaf)
     })

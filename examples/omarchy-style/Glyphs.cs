@@ -51,11 +51,13 @@ internal static class Glyphs
     public const string Charging100 = "\U000F0085"; // nf-md-battery_charging_100
 
     private static readonly string[] Wifi = [WifiEmpty, WifiWeak, WifiFair, WifiGood, WifiFull];
+
     private static readonly string[] Battery =
     [
         Battery10, Battery20, Battery30, Battery40, Battery50,
         Battery60, Battery70, Battery80, Battery90, Battery100
     ];
+
     private static readonly string[] Charging =
     [
         Charging10, Charging20, Charging30, Charging40, Charging50,
