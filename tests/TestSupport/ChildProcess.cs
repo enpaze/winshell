@@ -5,7 +5,8 @@ namespace Winshell.TestSupport;
 
 /// <summary>
 /// How a process the test started ended, and what it printed. A test checks the exit code with
-/// <see cref="AssertExitCode"/>, so a wrong one fails with the output that says why.
+/// <see cref="AssertExitCode"/> and an empty standard error with <see cref="AssertNoError"/>, so a wrong one fails with
+/// the output that says why.
 /// </summary>
 internal sealed record ChildProcess(int Code, string Output, string Error)
 {
@@ -60,6 +61,16 @@ internal sealed record ChildProcess(int Code, string Output, string Error)
         {
             return new ChildProcess(process.ExitCode, printed.ToString(), "") { Command = command };
         }
+    }
+
+    /// <summary>
+    /// Fails the test, showing all the process printed, unless its standard error is empty. An equality assertion would cut
+    /// a long error short, and the end of it is often the part that says why.
+    /// </summary>
+    internal void AssertNoError()
+    {
+        if (Error.Length > 0)
+            Assert.Fail($"{Command} wrote to its standard error.\nError:\n{Error}\nOutput:\n{Output}");
     }
 
     /// <summary>Fails the test, showing what the process printed, unless it exited with <paramref name="expected"/>.</summary>

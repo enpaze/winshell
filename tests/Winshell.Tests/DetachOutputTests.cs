@@ -34,7 +34,7 @@ public sealed class DetachOutputTests : IDisposable, IClassFixture<ProbeBuild>
         var result = WinshellCli.Run(["run", "-d", "--no-build", "-p", project], Folders);
 
         result.AssertExitCode(0);
-        Assert.Equal("", result.Error);
+        result.AssertNoError();
         Wait.Until(() => Running().Count > 0, "the shell -d left behind");
     }
 

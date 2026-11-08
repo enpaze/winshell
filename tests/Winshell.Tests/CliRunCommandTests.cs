@@ -13,7 +13,7 @@ public class CliRunCommandTests
         var result = Run([]);
 
         result.AssertExitCode(0);
-        Assert.Equal("", result.Error);
+        result.AssertNoError();
         Assert.Contains("winshell run", result.Output, StringComparison.Ordinal);
     }
 
@@ -89,7 +89,7 @@ public class CliRunCommandTests
 
             result.AssertExitCode(0);
             Assert.Equal("", result.Output);
-            Assert.Equal("", result.Error);
+            result.AssertNoError();
         }
         finally
         {

@@ -69,7 +69,7 @@ public sealed class InspectCommandTests : IDisposable, IClassFixture<ProbeBuild>
     {
         var result = Run("tree");
 
-        Assert.Equal("", result.Error);
+        result.AssertNoError();
         result.AssertExitCode(0);
         Assert.Equal(1, Count(result.Output, "ProbePage"));
         Assert.Contains("\"name\": \"Open\"", result.Output, StringComparison.Ordinal);
@@ -83,7 +83,7 @@ public sealed class InspectCommandTests : IDisposable, IClassFixture<ProbeBuild>
         // The window is named as well as the element, as a shell with a bar on each display must.
         var result = Run("click", "Open", "ProbePage");
 
-        Assert.Equal("", result.Error);
+        result.AssertNoError();
         result.AssertExitCode(0);
         Assert.Equal("Clicked Open", result.Output.Trim());
         Wait.Until(() => Count(Run("tree").Output, "ProbePopup") == 1, "the popup to open");
@@ -96,7 +96,7 @@ public sealed class InspectCommandTests : IDisposable, IClassFixture<ProbeBuild>
 
         var result = Run("screenshot", file, "ProbePage");
 
-        Assert.Equal("", result.Error);
+        result.AssertNoError();
         result.AssertExitCode(0);
         Assert.Contains(file, result.Output, StringComparison.Ordinal);
         Assert.Equal([0x89, 0x50, 0x4E, 0x47], File.ReadAllBytes(file)[..4]);
@@ -110,7 +110,7 @@ public sealed class InspectCommandTests : IDisposable, IClassFixture<ProbeBuild>
 
         var result = Run("record", video, "--for", "3s", "ProbePage", "--fps", "30", "--frames", frames);
 
-        Assert.Equal("", result.Error);
+        result.AssertNoError();
         result.AssertExitCode(0);
         // An MP4 is playable only once the writer has finished it: its index, the moov box, is written last.
         var bytes = File.ReadAllBytes(video);

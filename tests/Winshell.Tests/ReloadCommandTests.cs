@@ -101,7 +101,7 @@ public sealed class ReloadCommandTests : IDisposable, IClassFixture<ReloadComman
             File.WriteAllText(source, original + "\n// rebuilt\n");
             var result = Reload(process.Id);
 
-            Assert.Equal("", result.Error);
+            result.AssertNoError();
             Assert.StartsWith("Reloaded ", result.Output, StringComparison.Ordinal);
             Wait.Until(() => process.HasExited, "the old process to exit");
             Wait.Until(

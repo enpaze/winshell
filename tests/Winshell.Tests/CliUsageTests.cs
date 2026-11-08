@@ -24,7 +24,7 @@ public class CliUsageTests
         var result = Run(["log", path, "--tail", "2147483647"]);
 
         result.AssertExitCode(0);
-        Assert.Equal("", result.Error);
+        result.AssertNoError();
         Assert.Equal("one" + Environment.NewLine + "two" + Environment.NewLine, result.Output);
     }
 

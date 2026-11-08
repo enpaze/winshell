@@ -21,7 +21,7 @@ public sealed class NoticeDismissIpcTests : IDisposable, IClassFixture<ProbeBuil
 
         var pid = process.Id.ToString(CultureInfo.InvariantCulture);
         var dismissed = Run("ipc", "--pid", pid, "call", "notice", "dismiss");
-        Assert.Equal("", dismissed.Error);
+        dismissed.AssertNoError();
         Assert.Equal("", dismissed.Output.Trim());
         dismissed.AssertExitCode(0);
         Assert.False(process.HasExited);
