@@ -59,7 +59,7 @@ internal static unsafe class TopLevelWindows
     /// </summary>
     internal static bool IsShellWindow(nint hwnd)
     {
-        return hwnd == (nint)PInvoke.GetShellWindow() || ClassName(hwnd) is "Progman" or "WorkerW";
+        return hwnd == PInvoke.GetShellWindow() || ClassName(hwnd) is "Progman" or "WorkerW";
     }
 
     /// <summary>Whether DWM hides the window, as it does a window on another virtual desktop or a suspended app.</summary>
@@ -72,7 +72,7 @@ internal static unsafe class TopLevelWindows
 
     internal static bool HasChildStyle(nint hwnd)
     {
-        return ((long)Win32.GetWindowLongPtr(hwnd, Win32.GWL_STYLE) & (long)WINDOW_STYLE.WS_CHILD) != 0;
+        return (Win32.GetWindowLongPtr(hwnd, Win32.GWL_STYLE) & (long)WINDOW_STYLE.WS_CHILD) != 0;
     }
 
     /// <summary>The top-level window that holds this one, or 0.</summary>

@@ -10,6 +10,6 @@ internal static unsafe class GuiThread
     internal static nint MenuOwner(uint thread)
     {
         var info = new GUITHREADINFO { cbSize = (uint)sizeof(GUITHREADINFO) };
-        return PInvoke.GetGUIThreadInfo(thread, ref info) ? (nint)info.hwndMenuOwner : 0;
+        return PInvoke.GetGUIThreadInfo(thread, ref info) ? info.hwndMenuOwner : 0;
     }
 }

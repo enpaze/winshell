@@ -25,6 +25,7 @@ internal static unsafe class TaskbarWindows
     /// broadcasts, which reach only top-level windows, so this makes a hidden one. Dispose it to stop. Null when
     /// Windows would not make the window.
     /// </summary>
+    /// <param name="changed">Runs when Explorer may have made a taskbar window.</param>
     /// <param name="failed">Gets each exception <paramref name="changed"/> throws.</param>
     internal static IDisposable? Watch(Action changed, Action<Exception> failed)
     {

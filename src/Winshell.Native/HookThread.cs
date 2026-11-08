@@ -18,7 +18,7 @@ internal sealed unsafe class HookThread
         _life = life;
     }
 
-    internal Thread Thread { get; }
+    private Thread Thread { get; }
 
     /// <summary>
     /// Starts the thread and waits for the hook to be installed. Null if Windows refused the hook.
@@ -72,6 +72,6 @@ internal sealed unsafe class HookThread
     {
         public int StopRequested;
 
-        public Action? Lost { get; set; }
+        public Action? Lost { get; init; }
     }
 }
