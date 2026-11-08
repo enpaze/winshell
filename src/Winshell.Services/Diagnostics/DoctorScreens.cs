@@ -144,7 +144,7 @@ internal static class DoctorScreens
                 string.Create(CultureInfo.InvariantCulture, $"{m.Name} at {Math.Round(m.Scale * 100)}%")));
         var flags = layers.SelectMany(l => l.Split(' ', StringSplitOptions.RemoveEmptyEntries)).Where(f => f != "~")
             .ToList();
-        const string HighDpi =
+        const string highDpi =
             "Right-click winshell.exe, choose Properties > Compatibility > Change high DPI settings, and clear";
         var unaware = flags.Where(f => f is "DPIUNAWARE" or "GDIDPISCALING").ToList();
         if (!perMonitorV2 || unaware.Count > 0)
@@ -154,24 +154,24 @@ internal static class DoctorScreens
                 : "Winshell is not per-monitor DPI aware";
             return new DoctorCheck("dpi", "DPI", CheckStatus.Fail,
                 $"{cause}, so it draws blurry or the wrong size. {scales}",
-                $"{HighDpi} Override high DPI scaling behavior.");
+                $"{highDpi} Override high DPI scaling behavior.");
         }
 
         var messages = new List<string>();
         var fixes = new List<string>();
         // "Scaling performed by: Application" and "Program DPI": Winshell already scales itself on each screen.
-        var highDpi = flags
+        var highDpiFlags = flags
             .Where(f => f is "HIGHDPIAWARE" or "PERPROCESSSYSTEMDPIFORCEON" or "PERPROCESSSYSTEMDPIFORCEOFF").ToList();
-        if (highDpi.Count > 0)
+        if (highDpiFlags.Count > 0)
         {
             messages.Add(
-                $"Windows keeps high DPI settings for winshell.exe ({string.Join(", ", highDpi)}). Winshell scales itself on each screen, so they can only get in its way.");
+                $"Windows keeps high DPI settings for winshell.exe ({string.Join(", ", highDpiFlags)}). Winshell scales itself on each screen, so they can only get in its way.");
             var boxes = new List<string>();
-            if (highDpi.Contains("HIGHDPIAWARE"))
+            if (highDpiFlags.Contains("HIGHDPIAWARE"))
                 boxes.Add("Override high DPI scaling behavior");
-            if (highDpi.Any(f => f.StartsWith("PERPROCESSSYSTEMDPI", StringComparison.Ordinal)))
+            if (highDpiFlags.Any(f => f.StartsWith("PERPROCESSSYSTEMDPI", StringComparison.Ordinal)))
                 boxes.Add("Use this setting to fix scaling problems for this program instead of the one in Settings");
-            fixes.Add($"{HighDpi} {string.Join(" and ", boxes)}.");
+            fixes.Add($"{highDpi} {string.Join(" and ", boxes)}.");
         }
 
         if (flags.Contains("RUNASADMIN"))
@@ -182,7 +182,7 @@ internal static class DoctorScreens
                 "Right-click winshell.exe, choose Properties > Compatibility, and clear Run this program as an administrator.");
         }
 
-        var other = flags.Except(highDpi).Where(f => f != "RUNASADMIN").ToList();
+        var other = flags.Except(highDpiFlags).Where(f => f != "RUNASADMIN").ToList();
         if (other.Count > 0)
         {
             messages.Add($"Winshell runs in compatibility mode ({string.Join(", ", other)}).");

@@ -36,9 +36,15 @@ internal sealed class SessionArt(IEventLoop loop, Action<string> missed, Action 
         {
             try
             {
-                using var stream = await thumbnail.OpenReadAsync().AsTask().ConfigureAwait(false);
-                using var input = stream.AsStreamForRead();
-                var url = await Task.Run(() => TempImageStore.Shared.Claim(input)).ConfigureAwait(false);
+                var stream = await thumbnail.OpenReadAsync().AsTask().ConfigureAwait(false);
+                var url = await Task.Run(() =>
+                {
+                    using (stream)
+                    using (var input = stream.AsStreamForRead())
+                    {
+                        return TempImageStore.Shared.Claim(input);
+                    }
+                }).ConfigureAwait(false);
                 if (url is null)
                     Skip(TempImageStore.Refused);
                 else

@@ -11,7 +11,7 @@ internal static class IpcProtocol
     public const int Current = 1;
 
     /// <summary>The oldest this build still speaks. 0 is a side with no number, whose lines are the same as 1.</summary>
-    public const int Oldest = 0;
+    private const int Oldest = 0;
 
     /// <summary>Why this shell refuses a client speaking <paramref name="client"/>, or null.</summary>
     public static string? ClientRefusal(int client)

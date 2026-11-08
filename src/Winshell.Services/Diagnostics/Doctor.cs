@@ -108,7 +108,7 @@ public static class Doctor
         var process = Environment.ProcessPath ?? "";
         var configFolder = chosen.Folder;
         var configuration = DoctorProject.Configuration(chosen.Project, chosen.Problem).ToList();
-        var blocked = configuration.Any(check => check.Id == "downloaded" && check.Status == CheckStatus.Fail);
+        var blocked = configuration.Any(check => check is { Id: "downloaded", Status: CheckStatus.Fail });
         if (!blocked && configuration[0].Status == CheckStatus.Pass &&
             DoctorProbe.PreferencesProblem(context.Locations.ConfigRoot) is { } preferences)
             configuration[0] = WithPreferences(configuration[0], preferences);

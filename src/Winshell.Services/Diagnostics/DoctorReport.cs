@@ -37,7 +37,7 @@ internal static class DoctorReport
         return text.ToString();
     }
 
-    internal static string Summary(IReadOnlyList<DoctorCheck> checks)
+    private static string Summary(IReadOnlyList<DoctorCheck> checks)
     {
         var warns = checks.Count(c => c.Status == CheckStatus.Warn);
         var fails = checks.Count(c => c.Status == CheckStatus.Fail);

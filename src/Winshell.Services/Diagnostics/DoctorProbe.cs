@@ -47,7 +47,7 @@ internal static class DoctorProbe
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(PersonalizeKey);
-            return key?.GetValue("EnableTransparency") is int value && value == 0;
+            return key?.GetValue("EnableTransparency") is 0;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or SecurityException)
         {

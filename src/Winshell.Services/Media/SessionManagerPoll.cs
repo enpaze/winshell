@@ -9,7 +9,11 @@ namespace Winshell.Media;
 /// thread: a manager requested on another thread can keep returning an empty list. Each pending request holds a
 /// native thread, so only one is out at a time, until it completes or times out.
 /// </summary>
-internal sealed class SessionManagerPoll : IDisposable
+internal sealed class SessionManagerPoll(
+    IEventLoop loop,
+    Log log,
+    Func<IAsyncOperation<GlobalSystemMediaTransportControlsSessionManager>> request,
+    Action<GlobalSystemMediaTransportControlsSessionManager> read) : IDisposable
 {
     /// <summary>SessionsChanged can miss a session, so a completed read is followed by another after this delay.</summary>
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(2);
@@ -30,26 +34,13 @@ internal sealed class SessionManagerPoll : IDisposable
     private const string NotAnswering =
         "Windows' media session service (Now Playing Session Manager) is not answering, so no media session can be listed. Signing out, or restarting that service, brings it back.";
 
-    private readonly IEventLoop _loop;
-    private readonly Func<IAsyncOperation<GlobalSystemMediaTransportControlsSessionManager>> _request;
-    private readonly Action<GlobalSystemMediaTransportControlsSessionManager> _read;
-    private readonly MonitorWarning _warning;
+    private readonly MonitorWarning _warning = new(log, "media");
     private IAsyncOperation<GlobalSystemMediaTransportControlsSessionManager>? _pending;
     private IDisposable? _refresh;
     private IDisposable? _timeout;
     private TimeSpan _requestTimeout = FirstRequestTimeout;
     private bool _refreshRequested;
     private bool _disposed;
-
-    public SessionManagerPoll(IEventLoop loop, Log log,
-        Func<IAsyncOperation<GlobalSystemMediaTransportControlsSessionManager>> request,
-        Action<GlobalSystemMediaTransportControlsSessionManager> read)
-    {
-        _loop = loop;
-        _request = request;
-        _read = read;
-        _warning = new MonitorWarning(log, "media");
-    }
 
     /// <summary>Asks Windows now, or once the request that is out finishes. Changes while it is out share that one follow-up.</summary>
     public void Refresh()
@@ -66,10 +57,10 @@ internal sealed class SessionManagerPoll : IDisposable
         _refresh = null;
         try
         {
-            var operation = _request();
+            var operation = request();
             _pending = operation;
-            _timeout = _loop.Schedule(_requestTimeout, () => CancelExpired(operation));
-            operation.Completed = (_, status) => _loop.Post(() => Complete(operation, status));
+            _timeout = loop.Schedule(_requestTimeout, () => CancelExpired(operation));
+            operation.Completed = (_, status) => loop.Post(() => Complete(operation, status));
         }
         catch (Exception e) when (e is COMException or UnauthorizedAccessException)
         {
@@ -126,7 +117,7 @@ internal sealed class SessionManagerPoll : IDisposable
         {
             if (status == AsyncStatus.Completed)
             {
-                _read(operation.GetResults());
+                read(operation.GetResults());
                 _warning.Succeeded();
             }
             else if (status == AsyncStatus.Error)
@@ -153,7 +144,7 @@ internal sealed class SessionManagerPoll : IDisposable
             if (_refreshRequested)
             {
                 _refreshRequested = false;
-                _loop.Post(Refresh);
+                loop.Post(Refresh);
             }
             else
             {
@@ -165,6 +156,6 @@ internal sealed class SessionManagerPoll : IDisposable
     private void ScheduleRefresh()
     {
         if (!_disposed)
-            _refresh = _loop.Schedule(RefreshInterval, Refresh);
+            _refresh = loop.Schedule(RefreshInterval, Refresh);
     }
 }

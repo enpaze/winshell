@@ -17,7 +17,8 @@ internal sealed class SmtcSession
 
     public SmtcSession(IEventLoop loop, Log log, int id, string appId, string appName, ISmtcLink link)
     {
-        Id = id;
+        // The session list still passes this number. Nothing here reads it.
+        _ = id;
         AppId = appId;
         AppName = appName;
         _time = loop.Time;
@@ -43,8 +44,6 @@ internal sealed class SmtcSession
             return null;
         }
     }
-
-    public int Id { get; }
 
     /// <summary>The app's AppUserModelID, such as <c>Spotify.exe</c> or a Store app's id.</summary>
     public string AppId { get; }
@@ -111,7 +110,7 @@ internal sealed class SmtcSession
     /// <summary>The app reports a timeline. Apps that do not report all zeros.</summary>
     public bool PositionSupported { get; private set; }
 
-    public TimeSpan StartTime { get; private set; }
+    private TimeSpan StartTime { get; set; }
 
     /// <summary>
     /// Windows reported new values, some of which may be the same as before. A new track has a new
@@ -245,6 +244,8 @@ internal sealed class SmtcSession
             _ => MediaPlaybackState.Stopped
         };
         var seeked = false;
+        // Exact rate stored from the last report.
+        // ReSharper disable once CompareOfFloatsByEqualityOperator
         if (state != PlaybackState || info.Rate != Rate)
         {
             _position = PositionNow();
@@ -262,7 +263,7 @@ internal sealed class SmtcSession
         ShuffleSupported = info.ShuffleSupported;
         LoopSupported = info.LoopSupported;
         RateSupported = info.RateSupported;
-        Shuffle = info.ShuffleSupported && info.Shuffle;
+        Shuffle = info is { ShuffleSupported: true, Shuffle: true };
         LoopState = info.LoopSupported ? info.LoopState : MediaLoopState.None;
         Rate = info.Rate;
         Changed?.Invoke();
@@ -277,6 +278,8 @@ internal sealed class SmtcSession
         var supported = length > 0 || reported > TimeSpan.Zero;
         var position = (reported - start).TotalSeconds;
         // A poll repeats the last report. Applying it again restarts interpolation and looks like a seek.
+        // Exact length stored from the last timeline.
+        // ReSharper disable once CompareOfFloatsByEqualityOperator
         if (StartTime == start && Length == length && PositionSupported == supported
             && Math.Abs(_position - position) < 0.001)
             return;

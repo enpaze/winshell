@@ -289,6 +289,8 @@ public sealed class MediaSession : ObservableObject
         get => _session.Rate;
         set
         {
+            // Exact rate stored for this session. A nearby value is still a new request.
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
             if (value == _session.Rate)
                 return;
             if (value < MinRate || value > MaxRate)
