@@ -10,7 +10,7 @@ namespace Winshell;
 /// <summary>
 /// The real input behind <c>winshell inspect</c>'s <c>focus</c>, <c>point</c>, <c>leave</c>, <c>press</c>,
 /// <c>scroll</c> and <c>key</c>, so <c>PointerEntered</c>, pressed looks and focus rectangles run. It sends nothing
-/// while someone uses the PC, and no pointer event where another window is on top. The mouse moves through
+/// while someone uses the PC, no mouse event where another window is on top, and one command at a time. The mouse moves through
 /// <c>SendInput</c>, and the cursor goes back afterwards by way of a spot in the same window off the element, so the
 /// element sees the pointer leave: putting the cursor back alone raises no <c>PointerExited</c>. Keys and the wheel are
 /// posted to the window's input site, which reaches that window only. <c>point</c> leaves the cursor on the element
@@ -19,13 +19,15 @@ namespace Winshell;
 internal sealed class RealInput(IEventLoop loop) : IDisposable
 {
     /// <summary>How long the PC must have gone without the user's input before anything is sent.</summary>
-    internal static readonly TimeSpan Quiet = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan Quiet = TimeSpan.FromSeconds(3);
 
     /// <summary>How long <c>point</c> keeps the cursor when nothing gives it back.</summary>
-    internal static readonly TimeSpan HoldLimit = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan HoldLimit = TimeSpan.FromSeconds(30);
 
-    /// <summary>How late Windows may stamp input this sent, after <c>SendInput</c> returned.</summary>
-    private const uint OwnInputSlack = 250;
+    /// <summary>How late Windows may stamp input this sent, after <c>SendInput</c> returned: a few clock ticks.</summary>
+    private const uint OwnInputSlack = 50;
+
+    private const int Escape = 0x1B;
 
     private const int TabLimit = 100;
     private const int Tab = 0x09;
@@ -47,22 +49,38 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
     private static readonly TimeSpan HoldCheck = TimeSpan.FromMilliseconds(100);
 
     private Hold? _hold;
+    private bool _busy;
+
+    /// <summary>What became of the cursor when it went back.</summary>
+    private enum Given
+    {
+        /// <summary>It is back, and the element saw the pointer leave.</summary>
+        Back,
+
+        /// <summary>It is back, but the element may not have seen the pointer leave.</summary>
+        BackStillHovered,
+
+        /// <summary>The user moved it, so it stays where they put it.</summary>
+        Taken
+    }
 
     /// <summary>
     /// Whether someone other than this shell used the PC within <see cref="Quiet"/>: <paramref name="lastInput"/> is
-    /// what <c>GetLastInputInfo</c> says, and input stamped by the time this shell last sent its own,
+    /// what <c>GetLastInputInfo</c> says, and input stamped during one of this shell's own recent sends,
     /// <paramref name="sent"/>, is that input. The times are <c>GetTickCount</c> milliseconds, which wrap.
     /// </summary>
-    internal static bool UserActive(uint now, uint lastInput, uint? sent)
+    internal static bool UserActive(uint now, uint lastInput, IEnumerable<(uint Start, uint End)> sent)
     {
         if (unchecked(now - lastInput) >= Quiet.TotalMilliseconds)
             return false;
-        return sent is not { } own || unchecked((int)(lastInput - own)) > OwnInputSlack;
+        return !sent.Any(send =>
+            unchecked((int)(lastInput - send.Start)) >= 0 && unchecked((int)(lastInput - send.End)) <= OwnInputSlack);
     }
 
     /// <summary>Moves the cursor onto the element and leaves it there.</summary>
     public async Task<string> Point(FrameworkElement element, string name)
     {
+        using var turn = Turn();
         await Release();
         var target = Aim(element, name);
         RefuseWhileUsed();
@@ -76,17 +94,22 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
 
     public async Task<string> Leave()
     {
+        using var turn = Turn();
         var hold = _hold;
-        if (!await Release())
-            return "Nothing was pointed at.";
-        return hold!.SteppedOff
-            ? "The cursor is back where it was."
-            : $"The cursor is back where it was. {hold.Target.Name} fills its window, so it may keep its hover look until the mouse moves.";
+        return await Release() switch
+        {
+            null => "Nothing was pointed at.",
+            Given.Back => "The cursor is back where it was.",
+            Given.BackStillHovered =>
+                $"The cursor is back where it was, but {hold!.Target.Name} may keep its hover look until the mouse moves.",
+            _ => "The mouse moved since point, so the cursor stays where it is."
+        };
     }
 
     /// <summary>A left or right button's press and release on the element.</summary>
     public async Task<string> Press(FrameworkElement element, string name, bool right)
     {
+        using var turn = Turn();
         await Release();
         var target = Aim(element, name);
         RefuseWhileUsed();
@@ -95,7 +118,10 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         try
         {
             RefuseAt(target, landed);
-            Sent(PointerInput.Press(right));
+            if (!IsAt(landed))
+                throw new IpcException("The mouse moved, so nothing more was sent.");
+            // The press carries its own move to the checked point, so it can't land where the cursor went since.
+            Sent(PointerInput.Press(landed, right));
             await Task.Delay(Settle, loop.Time);
         }
         finally
@@ -113,6 +139,7 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
     /// </summary>
     public async Task<string> Scroll(FrameworkElement element, string name, int steps)
     {
+        using var turn = Turn();
         await Release();
         var target = Aim(element, name);
         var site = Site(target.Window);
@@ -121,20 +148,16 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         var landed = await Arrive(target, back);
         try
         {
-            // Each notch is sent again until the element sees it, so one that goes missing isn't lost.
             for (var notch = 0; notch < Math.Abs(steps); notch++)
             {
                 using var turned = new Sighting(element, UIElement.PointerWheelChangedEvent);
-                for (var attempt = 0; !turned.Seen.IsCompleted; attempt++)
-                {
-                    if (attempt * Retry >= Arrival)
-                        throw new IpcException(
-                            $"{name} didn't see the wheel turn within {Arrival.TotalSeconds:0} seconds, so nothing more was sent.");
-                    RefuseAt(target, landed);
-                    if (!InputSite.PostWheel(site, landed, steps > 0))
-                        throw new IpcException("Windows took none or only part of the input.");
-                    await Task.WhenAny(turned.Seen, Task.Delay(Retry, loop.Time));
-                }
+                RefuseAt(target, landed);
+                if (!InputSite.PostWheel(site, landed, steps > 0))
+                    throw new IpcException("Windows took none or only part of the input.");
+                await Task.WhenAny(turned.Seen, Task.Delay(Arrival, loop.Time));
+                if (!turned.Seen.IsCompleted)
+                    throw new IpcException(
+                        $"{name} didn't see the wheel turn within {Arrival.TotalSeconds:0} seconds, so nothing more was sent.");
             }
 
             await Task.Delay(Settle, loop.Time);
@@ -150,6 +173,7 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
     /// <summary>Presses Tab in the element's window until keyboard focus is on the element or in it.</summary>
     public async Task<string> Focus(FrameworkElement element, string name)
     {
+        using var turn = Turn();
         await Release();
         var site = Site(WindowOf(element));
         var root = element.XamlRoot ?? throw new IpcException($"{name} is not shown.");
@@ -175,15 +199,21 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
 
     /// <summary>
     /// Each chord in turn. A plain key is posted to the window, in front or not. A chord with Ctrl, Alt or Shift goes
-    /// through the real keyboard, which only the window in front receives, so it needs the window to be in front.
+    /// through the real keyboard, which only the window in front receives, so it needs the window to be in front. A
+    /// chord that Windows or another program takes before the window in front, such as Alt+Tab or a registered
+    /// hotkey, is refused.
     /// </summary>
     public async Task<string> Key(ShellWindow shown, string keys)
     {
+        using var turn = Turn();
         await Release();
         if (!HotkeySequence.TryParse(keys, out var sequence, out var error))
             throw new IpcException(error ?? "No keys were given.");
         if (sequence!.Chords.FirstOrDefault(chord => (chord.Modifiers & HotkeyModifiers.Win) != 0) is { } win)
             throw new IpcException($"{win.Text} holds the Windows key, which Windows itself takes. Nothing was sent.");
+        if (sequence.Chords.FirstOrDefault(Taken) is { } taken)
+            throw new IpcException(
+                $"{taken.Text} is taken before the window in front gets it, by Windows or by a program that has it as a hotkey. Nothing was sent.");
         var window = shown.Host?.Handle is { } handle and not 0
             ? handle
             : throw new IpcException("That window has no native window.");
@@ -198,7 +228,7 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
             }
             else
             {
-                if (TopLevelWindows.RootOf(Win32.GetForegroundWindow()) != window)
+                if (!Ours(TopLevelWindows.RootOf(Win32.GetForegroundWindow()), window))
                     throw new IpcException(
                         $"{chord.Text} holds a modifier, which only the real keyboard carries, and Windows gives that to the window in front. This window isn't in front, so nothing more was sent. A plain key, such as Tab or Enter, reaches any window.");
                 RefuseWhileUsed();
@@ -220,6 +250,29 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         hold.Timer?.Dispose();
         if (IsAt(hold.At))
             Cursor.MoveTo(hold.Back.X, hold.Back.Y);
+    }
+
+    /// <summary>
+    /// A chord that doesn't reach the window in front: Windows' own, such as Ctrl+Esc, which opens Start, Alt+Tab and
+    /// Ctrl+Shift+Esc, or a hotkey a program registered, this one included.
+    /// </summary>
+    private static bool Taken(HotkeyChord chord)
+    {
+        var alt = (chord.Modifiers & HotkeyModifiers.Alt) != 0;
+        var ctrl = (chord.Modifiers & HotkeyModifiers.Ctrl) != 0;
+        if ((chord.VirtualKey == Escape && (alt || ctrl)) || (chord.VirtualKey == Tab && alt))
+            return true;
+        return chord.Modifiers != HotkeyModifiers.None &&
+               !KeyInput.Unclaimed((uint)chord.Modifiers, chord.VirtualKey);
+    }
+
+    /// <summary>One real input command at a time: two at once would each move the cursor, and lose where it was.</summary>
+    private Turned Turn()
+    {
+        if (_busy)
+            throw new IpcException("Another real input command is still running. Nothing was sent.");
+        _busy = true;
+        return new Turned(this);
     }
 
     private static IEnumerable<int> Modifiers(HotkeyModifiers modifiers)
@@ -372,10 +425,13 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
                 $"Another window is over {target.Name} at ({at.X}, {at.Y}), and real input there would reach it. Nothing was sent.");
     }
 
+    /// <summary>Refuses while someone uses the PC, or when Windows won't say whether anyone does.</summary>
     private static void RefuseWhileUsed()
     {
         var info = new LASTINPUTINFO { cbSize = 8 };
-        if (Win32.GetLastInputInfo(ref info) && UserActive(Win32.GetTickCount(), info.dwTime, SentInput.Last))
+        if (!Win32.GetLastInputInfo(ref info))
+            throw new IpcException("Windows won't say when the PC was last used, so nothing was sent.");
+        if (UserActive(Win32.GetTickCount(), info.dwTime, SentInput.Recent))
             throw new IpcException(
                 $"Someone used the mouse or keyboard in the last {Quiet.TotalSeconds:0} seconds, and real input would get in their way. Nothing was sent; try again once the PC is left alone.");
     }
@@ -388,12 +444,12 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
 
     /// <summary>
     /// Gives the cursor back, unless the user has taken it: it is no longer where this left it. It first moves to a spot
-    /// in the same window off the element, so the element sees the pointer leave. True when the element saw that.
+    /// in the same window off the element, so the element sees the pointer leave.
     /// </summary>
-    private async Task<bool> GiveBack(Target target, POINT back, POINT left)
+    private async Task<Given> GiveBack(Target target, POINT back, POINT left)
     {
         if (!IsAt(left))
-            return false;
+            return Given.Taken;
         var stepped = false;
         var now = left;
         if (Off(target) is { } off)
@@ -413,9 +469,10 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
             }
         }
 
-        if (PointerInput.Cursor() is { } cursor && Math.Abs(cursor.X - now.X) <= 1 && Math.Abs(cursor.Y - now.Y) <= 1)
-            Cursor.MoveTo(back.X, back.Y);
-        return stepped;
+        if (PointerInput.Cursor() is not { } cursor || Math.Abs(cursor.X - now.X) > 1 || Math.Abs(cursor.Y - now.Y) > 1)
+            return Given.Taken;
+        Cursor.MoveTo(back.X, back.Y);
+        return stepped ? Given.Back : Given.BackStillHovered;
     }
 
     /// <summary>A spot in the target's window, on top there, where XAML finds something other than the element.</summary>
@@ -437,21 +494,27 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         return null;
     }
 
-    /// <summary>Ends a <c>point</c>. True when one was held.</summary>
-    private async Task<bool> Release()
+    /// <summary>Ends a <c>point</c>, and says what became of the cursor, or null when nothing was held.</summary>
+    private async Task<Given?> Release()
     {
         if (_hold is not { } hold)
-            return false;
+            return null;
         _hold = null;
         hold.Timer?.Dispose();
-        hold.SteppedOff = await GiveBack(hold.Target, hold.Back, hold.At);
-        return true;
+        return await GiveBack(hold.Target, hold.Back, hold.At);
+    }
+
+    private async Task Expire()
+    {
+        using var turn = Turn();
+        await Release();
     }
 
     /// <summary>A held cursor goes back after <see cref="HoldLimit"/>, and is let go at once when the user moves it.</summary>
     private void Check(Hold hold)
     {
-        if (!ReferenceEquals(_hold, hold))
+        // A command that is running ends the hold itself.
+        if (!ReferenceEquals(_hold, hold) || _busy)
             return;
         if (!IsAt(hold.At))
         {
@@ -461,7 +524,7 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         }
 
         if (loop.Time.GetElapsedTime(hold.Since) >= HoldLimit)
-            _ = Release();
+            _ = Expire();
     }
 
     /// <summary>An element to aim at, its window, and its middle on the screen.</summary>
@@ -470,8 +533,14 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
     private sealed record Hold(Target Target, POINT Back, POINT At, long Since)
     {
         public ITimer? Timer { get; set; }
+    }
 
-        public bool SteppedOff { get; set; }
+    private sealed class Turned(RealInput input) : IDisposable
+    {
+        public void Dispose()
+        {
+            input._busy = false;
+        }
     }
 
     /// <summary>Whether an element raised one of some pointer events, handled or not, while this is undisposed.</summary>

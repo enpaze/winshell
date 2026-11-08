@@ -208,12 +208,13 @@ For hover, a press, keyboard focus or an animation, use real input. Record in th
 
 ```powershell
 $record = Start-Process winshell -NoNewWindow -PassThru -ArgumentList 'inspect', '--pid', <pid>, 'record', 'hover.mp4', '--for', '5s', 'PanelView', '--frames', 'frames'
+Start-Sleep -Seconds 1                                        # capture takes a moment to start
 winshell inspect --pid <pid> point TrayChevron PanelView      # the mouse stays on it: PointerEntered and the hover look run
 winshell inspect --pid <pid> leave                            # the cursor goes back, and PointerExited runs
 $record.WaitForExit()                                         # then read frames\contact-sheet.png
 ```
 
-`focus`, `press [--right]`, `scroll` and `key` work the same way. They move the user's real cursor, so they refuse while anyone has used the PC in the last 3 seconds, and before each mouse event they check that no other window is on top at the element. Run them only in a live session, never at someone's active desktop. A test does not inject input of its own, but a slow test may run these commands. The [command-line reference](reference/command-line.md) lists each command and refusal.
+`focus`, `press [--right]`, `scroll` and `key` work the same way. The mouse ones move the user's real cursor. Every one refuses while anyone has used the PC in the last 3 seconds, and before each mouse event they check that no other window is on top at the element. Run them only in a live session, never at someone's active desktop. A test does not inject input of its own, but a slow test may run these commands. The [command-line reference](reference/command-line.md) lists each command and refusal.
 
 ## Run the shell from source
 

@@ -17,6 +17,7 @@ public class CommandOptionTests
     [InlineData("inspect --force tree", "winshell inspect does not take \"--force\".")]
     [InlineData("inspect screenshot out.png --fps 30", "winshell inspect screenshot does not take \"--fps\".")]
     [InlineData("inspect tree --screen", "winshell inspect tree does not take \"--screen\".")]
+    [InlineData("inspect point Menu --right", "winshell inspect point does not take \"--right\".")]
     [InlineData("dev -j", "winshell dev does not take \"-j\".")]
     [InlineData("doctor --pid 5", "winshell doctor does not take \"--pid\".")]
     [InlineData("run -j", "winshell run does not take \"-j\".")]

@@ -28,11 +28,7 @@ internal static unsafe class KeyInput
             inputs[i].Anonymous.ki.dwExtraInfo = Marker;
         }
 
-        SentInput.Mark();
-        fixed (INPUT* first = inputs)
-        {
-            _ = PInvoke.SendInput((uint)inputs.Length, first, sizeof(INPUT));
-        }
+        SentInput.Send(inputs, 1);
     }
 
     /// <summary>
@@ -48,11 +44,20 @@ internal static unsafe class KeyInput
             Key(ref inputs[^(i + 1)], keys[i], true);
         }
 
-        SentInput.Mark();
-        fixed (INPUT* first = inputs)
-        {
-            return PInvoke.SendInput((uint)inputs.Length, first, sizeof(INPUT)) == inputs.Length;
-        }
+        return SentInput.Send(inputs, keys.Count);
+    }
+
+    /// <summary>
+    /// Whether no program has the chord as a hotkey, this one included: Windows gives a registered hotkey to the program
+    /// that registered it, wherever the keyboard is.
+    /// </summary>
+    internal static bool Unclaimed(uint modifiers, int key)
+    {
+        const int probe = 0xBFFE;
+        if (!Win32.RegisterHotKey(0, probe, modifiers, (uint)key))
+            return false;
+        Win32.UnregisterHotKey(0, probe);
+        return true;
     }
 
     private static void Key(ref INPUT input, int key, bool up)

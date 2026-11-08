@@ -118,8 +118,8 @@ internal static class CliParser
                                                                           milliseconds, and contact-sheet.png of them all
                                           click <name> [window]           activate an element, as Narrator does
                                           hover <name> [window]           put a control in its pointer look
-                                          Real input, which sends nothing while the PC is in use or where another
-                                          window is on top, and puts the cursor back:
+                                          Real input, which sends nothing while the PC is in use, no mouse event
+                                          where another window is on top, and puts the cursor back:
                                           focus <name> [window]           press Tab until keyboard focus is on the element
                                           point <name> [window]           keep the mouse on the element until leave, the next
                                                                           of these commands, 30 seconds, or a move of the mouse
@@ -675,9 +675,9 @@ internal static class CliParser
                     continue;
                 }
 
-                // A negative number is a word, such as the steps of inspect scroll, and never an option.
-                if (token.StartsWith('-') && !int.TryParse(token, NumberStyles.AllowLeadingSign,
-                        CultureInfo.InvariantCulture, out _))
+                // To inspect, a negative number is a word, the steps of scroll, and not an option.
+                if (token.StartsWith('-') && !(Command == "inspect" && int.TryParse(token,
+                        NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out _)))
                 {
                     Uses.Add(new Use(token, null, null, false));
                     Child.Add(token);

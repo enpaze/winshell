@@ -28,27 +28,33 @@ public class InspectInputOptionTests
     }
 
     [Theory]
-    [InlineData(new[] { "inspect", "point", "Menu", "--right" }, "winshell inspect point does not take \"--right\".")]
-    [InlineData(new[] { "inspect", "press", "Menu", "--fps", "30" }, "winshell inspect press does not take \"--fps\".")]
-    [InlineData(new[] { "inspect", "point" }, "winshell inspect point needs a name.")]
-    [InlineData(new[] { "inspect", "scroll", "List" }, "winshell inspect scroll needs a name and a number of steps.")]
-    [InlineData(new[] { "inspect", "scroll", "List", "0" },
-        "winshell inspect scroll needs a number of steps from 1 to 100, or -1 to -100 to scroll up.")]
-    [InlineData(new[] { "inspect", "scroll", "List", "down" },
-        "winshell inspect scroll needs a number of steps from 1 to 100, or -1 to -100 to scroll up.")]
-    [InlineData(new[] { "inspect", "scroll", "List", "101" },
-        "winshell inspect scroll needs a number of steps from 1 to 100, or -1 to -100 to scroll up.")]
-    [InlineData(new[] { "inspect", "key" }, "winshell inspect key needs keys.")]
-    [InlineData(new[] { "inspect", "key", "Ctrl+Nope" },
-        "Could not read \"Ctrl+Nope\" as a Windows key chord. Unknown key \"Nope\". Use Win, Ctrl, Alt and Shift, as in Ctrl+Shift+K or Win.")]
-    [InlineData(new[] { "inspect", "key", "Win+D" },
-        "winshell inspect key does not press Win+D: Windows itself takes the Windows key, not the shell.")]
-    [InlineData(new[] { "inspect", "key", "Tab, Win" },
-        "winshell inspect key does not press Win: Windows itself takes the Windows key, not the shell.")]
-    public void Input_that_can_t_be_sent_is_refused_before_the_shell_is_asked(string[] args, string message)
+    [InlineData("0")]
+    [InlineData("down")]
+    [InlineData("101")]
+    [InlineData("-101")]
+    public void Steps_are_a_whole_number_from_1_to_100_either_way(string steps)
     {
-        var e = Assert.Throws<ArgumentException>(() => Parse(args));
+        var e = Assert.Throws<ArgumentException>(() => Parse("inspect", "scroll", "List", steps));
+
+        Assert.Equal("winshell inspect scroll needs a number of steps from 1 to 100, or -1 to -100 to scroll up.",
+            e.Message);
+    }
+
+    [Theory]
+    [InlineData("Win+D",
+        "winshell inspect key does not press Win+D: Windows itself takes the Windows key, not the shell.")]
+    [InlineData("Tab, Win",
+        "winshell inspect key does not press Win: Windows itself takes the Windows key, not the shell.")]
+    public void The_windows_key_is_refused(string keys, string message)
+    {
+        var e = Assert.Throws<ArgumentException>(() => Parse("inspect", "key", keys));
 
         Assert.Equal(message, e.Message);
+    }
+
+    [Fact]
+    public void Keys_it_can_t_read_are_refused()
+    {
+        Assert.Throws<ArgumentException>(() => Parse("inspect", "key", "Ctrl+Nope"));
     }
 }

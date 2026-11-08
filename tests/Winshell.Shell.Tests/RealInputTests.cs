@@ -8,8 +8,8 @@ namespace Winshell.ShellTests;
 
 /// <summary>
 /// <c>winshell inspect</c>'s real input commands against a real panel: each raises the WinUI event or look a person's
-/// mouse or keyboard would, and the cursor ends where it started. A test skips when someone is using the PC, because
-/// the commands then send nothing.
+/// mouse or keyboard would, and the cursor ends where it started. A test skips when someone is using the PC or moves
+/// the mouse, because the commands then send nothing more.
 /// </summary>
 [Trait("Category", "Slow")]
 public sealed class RealInputTests
@@ -49,7 +49,8 @@ public sealed class RealInputTests
         {
             return await Inspector.Run(shell, command, args);
         }
-        catch (IpcException e) when (e.Message.StartsWith("Someone used the mouse", StringComparison.Ordinal))
+        catch (IpcException e) when (e.Message.StartsWith("Someone used the mouse", StringComparison.Ordinal) ||
+                                     e.Message.Contains("moved", StringComparison.Ordinal))
         {
             Assert.Skip(e.Message);
             throw;
@@ -68,6 +69,12 @@ public sealed class RealInputTests
         {
             return e.Message;
         }
+    }
+
+    /// <summary>A panel never takes activation, so the app in front is another one's.</summary>
+    private static void Behind(PanelWindow panel)
+    {
+        Assert.NotEqual(panel.Host!.Handle, TopLevelWindows.RootOf(Win32.GetForegroundWindow()));
     }
 
     private static POINT Cursor()
@@ -221,6 +228,7 @@ public sealed class RealInputTests
             using var panel = Panel(button);
             await ShellFixture.LaidOut(button);
             button.Focus(FocusState.Programmatic);
+            Behind(panel);
 
             await Send(shell, "key", "Space");
             await Signal(clicked);
@@ -238,6 +246,7 @@ public sealed class RealInputTests
             var box = new TextBox { Name = "Field" };
             using var panel = Panel(box);
             await ShellFixture.LaidOut(box);
+            Behind(panel);
             return await Refused(shell, "key", "Ctrl+A");
         });
 

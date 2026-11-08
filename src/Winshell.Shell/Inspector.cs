@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Text.Json;
@@ -44,7 +45,8 @@ internal static class Inspector
                 await shell.Input.Press(Find(shell, command, name, [.. args.Skip(2)]), name, true),
             "press" when args.Count > 0 => await shell.Input.Press(Find(shell, command, args[0], window), args[0],
                 false),
-            "scroll" when args.Count > 1 && int.TryParse(args[1], out var steps) && steps != 0 =>
+            "scroll" when args.Count > 1 && int.TryParse(args[1], NumberStyles.AllowLeadingSign,
+                    CultureInfo.InvariantCulture, out var steps) && steps != 0 =>
                 await shell.Input.Scroll(Find(shell, command, args[0], [.. args.Skip(2)]), args[0], steps),
             "key" when args.Count > 0 => await shell.Input.Key(Window(shell, window), args[0]),
             _ => throw new IpcException($"Unknown inspect command {command}.")
