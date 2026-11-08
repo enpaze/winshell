@@ -23,13 +23,13 @@ internal static unsafe class TaskDialog
                 dwFlags = TASKDIALOG_FLAGS.TDF_ALLOW_DIALOG_CANCELLATION | TASKDIALOG_FLAGS.TDF_SIZE_TO_CONTENT,
                 dwCommonButtons = TASKDIALOG_COMMON_BUTTON_FLAGS.TDCBF_OK_BUTTON,
                 pszWindowTitle = titleText,
+                pszMainIcon = PInvoke.TD_ERROR_ICON,
                 pszMainInstruction = instructionText,
                 pszContent = contentText,
                 cButtons = button is null ? 0u : 1u,
                 pButtons = button is null ? null : &custom,
                 nDefaultButton = Ok
             };
-            config.pszMainIcon = PInvoke.TD_ERROR_ICON;
             int pressed;
             return PInvoke.TaskDialogIndirect(&config, &pressed, null, null).Succeeded ? pressed : null;
         }

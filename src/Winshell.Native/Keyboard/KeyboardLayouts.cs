@@ -92,9 +92,9 @@ internal sealed unsafe class KeyboardLayouts
         if (PInvoke.GetGUIThreadInfo(0, &info))
         {
             if ((nint)info.hwndFocus != 0)
-                return (nint)info.hwndFocus;
+                return info.hwndFocus;
             if ((nint)info.hwndActive != 0)
-                return (nint)info.hwndActive;
+                return info.hwndActive;
         }
 
         return Win32.GetForegroundWindow();
@@ -136,7 +136,7 @@ internal sealed unsafe class KeyboardLayouts
     private string? KlidForLayoutId(ushort layoutId)
     {
         _klidByLayoutId ??= LoadLayoutIds();
-        return _klidByLayoutId.TryGetValue(layoutId, out var klid) ? klid : null;
+        return _klidByLayoutId.GetValueOrDefault(layoutId);
     }
 
     private static Dictionary<ushort, string> LoadLayoutIds()

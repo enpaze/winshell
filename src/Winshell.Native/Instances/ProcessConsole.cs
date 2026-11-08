@@ -35,6 +35,8 @@ internal static class ProcessConsole
     {
         if (Handle(stream) is not { } handle)
             return StreamTarget.Other;
+        // FILE_TYPE_REMOTE is the bit GetFileType sets for a remote disk. CsWin32's enum has no [Flags].
+        // ReSharper disable once BitwiseOperatorOnEnumWithoutFlags
         return (PInvoke.GetFileType(handle) & ~FILE_TYPE.FILE_TYPE_REMOTE) switch
         {
             FILE_TYPE.FILE_TYPE_DISK => StreamTarget.File,

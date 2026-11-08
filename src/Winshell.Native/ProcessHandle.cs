@@ -49,9 +49,9 @@ internal readonly unsafe ref struct ProcessHandle
                 : TokenRead.Failed;
         try
         {
-            uint returned;
             fixed (byte* into = buffer)
             {
+                uint returned;
                 return PInvoke.GetTokenInformation(token, info, into, (uint)buffer.Length, &returned)
                     ? TokenRead.Read
                     : TokenRead.Failed;

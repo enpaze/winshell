@@ -56,7 +56,7 @@ internal static unsafe class IconBitmap
                 biSize = (uint)sizeof(BITMAPINFOHEADER), biWidth = size, biHeight = -size, biPlanes = 1, biBitCount = 32
             }
         };
-        var dc = PInvoke.CreateCompatibleDC(default);
+        var dc = PInvoke.CreateCompatibleDC();
         if (dc == default)
             return null;
         HBITMAP dib = default;

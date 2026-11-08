@@ -58,6 +58,7 @@ internal sealed unsafe class DirectoryChanges : IDisposable
     }
 
     /// <summary>Opens <paramref name="path"/>, or returns null when the folder can't be opened.</summary>
+    /// <param name="path">The folder.</param>
     /// <param name="filter">What to report.</param>
     /// <param name="subtree">Also report changes in folders under <paramref name="path"/>.</param>
     internal static DirectoryChanges? Open(string path, DirectoryChange filter, bool subtree)

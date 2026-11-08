@@ -7,9 +7,9 @@ namespace Winshell.Native;
 internal static class TrayApp
 {
     /// <summary>Posts a message to the app's window without waiting for it to be handled.</summary>
-    internal static bool Notify(nint window, uint message, nint wParam, nint lParam)
+    internal static void Notify(nint window, uint message, nint wParam, nint lParam)
     {
-        return PInvoke.SendNotifyMessage((HWND)window, message, (WPARAM)(nuint)wParam, lParam);
+        _ = PInvoke.SendNotifyMessage((HWND)window, message, (nuint)wParam, lParam);
     }
 
     /// <summary>
@@ -19,7 +19,7 @@ internal static class TrayApp
     /// </summary>
     internal static void AskForIcons()
     {
-        Win32.PostMessageW((nint)HWND.HWND_BROADCAST, TaskbarWindows.Created, 0, 0);
+        Win32.PostMessageW(HWND.HWND_BROADCAST, TaskbarWindows.Created, 0, 0);
         foreach (var window in WindowTree.MessageOnly())
             Win32.PostMessageW(window, TaskbarWindows.Created, 0, 0);
     }

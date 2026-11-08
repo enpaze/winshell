@@ -9,8 +9,6 @@ internal sealed record ShellLinkInfo(
     string Target,
     string Arguments,
     string WorkingDirectory,
-    string IconLocation,
-    int IconIndex,
     string Description,
     string AppUserModelId);
 
@@ -26,6 +24,8 @@ internal static class ShellLink
             return null;
         try
         {
+            // The cast queries IPersistFile on this shell link. No type implements both.
+            // ReSharper disable once SuspiciousTypeConversion.Global
             if (shell is not IPersistFile file)
                 return null;
             file.Load(path, 0);
@@ -40,15 +40,14 @@ internal static class ShellLink
             shell.GetWorkingDirectory(buffer, buffer.Capacity);
             var workingDirectory = Environment.ExpandEnvironmentVariables(buffer.ToString());
             buffer.Clear();
-            shell.GetIconLocation(buffer, buffer.Capacity, out var iconIndex);
-            var icon = Environment.ExpandEnvironmentVariables(buffer.ToString());
-            buffer.Clear();
             shell.GetDescription(buffer, buffer.Capacity);
             var description = buffer.ToString();
+            // The cast queries IPropertyStore on this shell link. No type implements both.
+            // ReSharper disable once SuspiciousTypeConversion.Global
             var aumid = shell is IPropertyStore store
                 ? PropertyStore.ReadString(store, PropertyStore.AppUserModelId) ?? ""
                 : "";
-            return new ShellLinkInfo(target, arguments, workingDirectory, icon, iconIndex, description, aumid);
+            return new ShellLinkInfo(target, arguments, workingDirectory, description, aumid);
         }
         catch (Exception e) when (e is COMException or UnauthorizedAccessException or IOException or ArgumentException
                                       or InvalidCastException)
@@ -65,6 +64,8 @@ internal static class ShellLink
     /// IPersistFile, for the same object as the shared <see cref="IShellLinkW"/>. CsWin32's struct form cannot be
     /// cast from that runtime-callable wrapper.
     /// </summary>
+    // Every method keeps its place in the IPersistFile vtable.
+    // ReSharper disable UnusedMember.Global
     [ComImport]
     [Guid("0000010b-0000-0000-C000-000000000046")]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -79,4 +80,5 @@ internal static class ShellLink
 
         void Save([MarshalAs(UnmanagedType.LPWStr)] string? fileName, [MarshalAs(UnmanagedType.Bool)] bool remember);
     }
+    // ReSharper restore UnusedMember.Global
 }
