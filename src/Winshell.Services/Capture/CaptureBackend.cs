@@ -10,7 +10,7 @@ namespace Winshell.Capture;
 public sealed record CaptureTarget([property: PublicAPI] nint Window, [property: PublicAPI] string MonitorId)
 {
     /// <summary>The app window this was made from, or null for a handle or a screen.</summary>
-    internal AppWindow? Source { get; init; }
+    internal AppWindow? Source { get; private init; }
 
     /// <summary>A top-level window, by its handle.</summary>
     [PublicAPI]

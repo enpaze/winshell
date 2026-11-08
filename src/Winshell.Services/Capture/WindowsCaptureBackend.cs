@@ -4,7 +4,6 @@ using Windows.Graphics.DirectX;
 using Windows.Graphics.DirectX.Direct3D11;
 using Vortice.Direct3D11;
 using Vortice.Direct3D;
-using Vortice.DXGI;
 using Vortice.Mathematics;
 using Winshell.Native;
 
@@ -57,10 +56,10 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
     internal static (ID3D11Device Device, ID3D11DeviceContext Context) CreateDevice()
     {
         FeatureLevel[] levels = [FeatureLevel.Level_11_1, FeatureLevel.Level_11_0];
-        var result = D3D11.D3D11CreateDevice((IDXGIAdapter?)null, DriverType.Hardware,
+        var result = D3D11.D3D11CreateDevice(null, DriverType.Hardware,
             DeviceCreationFlags.BgraSupport, levels, out var device, out ID3D11DeviceContext context);
         if (result.Failure)
-            D3D11.D3D11CreateDevice((IDXGIAdapter?)null, DriverType.Warp,
+            D3D11.D3D11CreateDevice(null, DriverType.Warp,
                 DeviceCreationFlags.BgraSupport, levels, out device, out context).CheckError();
         return (device, context);
     }

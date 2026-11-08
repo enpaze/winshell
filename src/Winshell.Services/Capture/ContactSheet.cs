@@ -10,6 +10,8 @@ namespace Winshell.Capture;
 /// <param name="Height">The sheet's height in pixels.</param>
 internal sealed record SheetLayout(
     int Columns,
+    // The grid's shape includes the row count. Equality uses it, and Height is built from it.
+    // ReSharper disable once NotAccessedPositionalProperty.Global
     int Rows,
     int ThumbWidth,
     int ThumbHeight,
@@ -63,7 +65,7 @@ internal static class ContactSheet
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
         var pixels = Math.Min(ThumbPixels, SheetPixels / count);
-        var scale = Math.Min(1, Math.Min(Math.Sqrt((double)pixels / ((double)width * height)),
+        var scale = Math.Min(1, Math.Min(Math.Sqrt(pixels / ((double)width * height)),
             (double)MaxThumbWidth / width));
         var thumbWidth = Math.Max(1, (int)Math.Round(width * scale));
         var thumbHeight = Math.Max(1, (int)Math.Round(height * scale));

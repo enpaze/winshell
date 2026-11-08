@@ -17,7 +17,7 @@ internal sealed class FrameStream : IDisposable
 {
     private const DirectXPixelFormat Format = DirectXPixelFormat.B8G8R8A8UIntNormalized;
 
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly Log _log;
     private readonly Action<PixelImage, TimeSpan> _frame;
     private readonly Action<Exception?> _ended;
@@ -73,7 +73,10 @@ internal sealed class FrameStream : IDisposable
     /// Whether Windows refused to capture the window by itself, so its place on its screen is captured instead, with
     /// whatever covers it, from where it was when the capture started.
     /// </summary>
-    public bool OnScreen => _crop is not null;
+    public bool OnScreen =>
+        // The crop is written once before this object is returned, so this read never overlaps that write.
+        // ReSharper disable once InconsistentlySynchronizedField
+        _crop is not null;
 
     /// <summary>
     /// A capture item for the window, or for its screen when Windows refuses the window. Windows Server 2025 refuses
@@ -96,6 +99,8 @@ internal sealed class FrameStream : IDisposable
             if (crop.Width <= 0 || crop.Height <= 0)
                 throw new InvalidOperationException(
                     "Windows refused to capture the window by itself, and it is on no screen to capture instead.");
+            // Written once before StartCapture, so no frame callback can read the crop during this store.
+            // ReSharper disable once InconsistentlySynchronizedField
             _crop = crop;
             return CaptureInterop.CreateItem(0, screen.Handle);
         }
@@ -155,7 +160,7 @@ internal sealed class FrameStream : IDisposable
                     return;
                 // A resized target draws into the old buffers until the pool takes the new size.
                 var size = frame.ContentSize;
-                if (size.Width > 0 && size.Height > 0 &&
+                if (size is { Width: > 0, Height: > 0 } &&
                     (size.Width != _poolSize.Width || size.Height != _poolSize.Height))
                 {
                     _poolSize = size;

@@ -131,11 +131,16 @@ internal static class Recorder
                 {
                     // H.264 halves the color resolution, and the encoder refuses an odd height, such as a 26 px
                     // panel's 39 at 150%. The video takes the next even size, and the extra row or column is black.
-                    (width, height) = ((frame.Width + 1) & ~1, (frame.Height + 1) & ~1);
-                    (video, rate) = OpenVideo(recording.Video, width, height, recording.Rate);
+                    var videoWidth = (frame.Width + 1) & ~1;
+                    var videoHeight = (frame.Height + 1) & ~1;
+                    var (writer, openedRate) = OpenVideo(recording.Video, videoWidth, videoHeight, recording.Rate);
+                    video = writer;
+                    width = videoWidth;
+                    height = videoHeight;
+                    rate = openedRate;
                     pace = new ConstantRate<PixelImage>(rate, (shown, count) =>
                     {
-                        video.Write(Fitted(shown, width, height), count);
+                        writer.Write(Fitted(shown, videoWidth, videoHeight), count);
                         videoFrames += count;
                     });
                 }
