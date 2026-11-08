@@ -9,7 +9,7 @@ namespace Winshell;
 /// </summary>
 internal static class JsonText
 {
-    public static JavaScriptEncoder Encoder { get; } = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+    private static JavaScriptEncoder Encoder { get; } = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
 
     public static JsonWriterOptions IndentedWriter { get; } = new()
     {

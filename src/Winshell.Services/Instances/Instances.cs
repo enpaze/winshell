@@ -38,7 +38,7 @@ internal sealed partial class InstanceJson : JsonSerializerContext;
 /// </summary>
 internal sealed class Instances(string folder)
 {
-    public const string RecordName = "instance.json";
+    private const string RecordName = "instance.json";
 
     public static string NewId()
     {

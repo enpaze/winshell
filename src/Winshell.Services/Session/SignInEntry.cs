@@ -61,7 +61,11 @@ internal static class SignInEntry
     }
 
     /// <summary>The program a sign-in command starts, past <c>conhost.exe --headless</c>, and the configuration it names.</summary>
-    internal readonly record struct SignInLaunch(string? Program, string? Path, string? Name)
+    internal readonly record struct SignInLaunch(
+        string? Program,
+        string? Path,
+        // ReSharper disable once MemberHidesStaticFromOuterClass The launch's -c name, not the Run value Name.
+        string? Name)
     {
         /// <summary>Whether the command names a configuration with <c>-p</c> or <c>-c</c>.</summary>
         public bool NamesConfiguration => Path is not null || Name is not null;

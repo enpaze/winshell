@@ -76,6 +76,7 @@ public sealed class CpuService : INotifyPropertyChanged, IDisposable
 
     private void SetUsage(double usage)
     {
+        // ReSharper disable once CompareOfFloatsByEqualityOperator The stored sample is unchanged, so listeners already have this value.
         if (usage == _usage)
             return;
         _usage = usage;

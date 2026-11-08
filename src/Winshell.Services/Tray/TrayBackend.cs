@@ -76,7 +76,7 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
         if (_window is null)
             return false;
         _settingsWatch = TrayIconSettings.Watch(loop, () => SettingsChanged?.Invoke());
-        foreach (var eventType in new uint[] { Win32.EVENT_SYSTEM_FOREGROUND, Win32.EVENT_OBJECT_REORDER })
+        foreach (var eventType in new[] { Win32.EVENT_SYSTEM_FOREGROUND, Win32.EVENT_OBJECT_REORDER })
             if (WinEventHook.Start(eventType, OnOrderChanged, Failed) is { } hook)
                 _eventHooks.Add(hook);
             else

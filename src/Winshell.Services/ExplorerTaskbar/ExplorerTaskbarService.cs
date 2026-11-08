@@ -6,7 +6,7 @@ namespace Winshell.ExplorerTaskbar;
 /// </summary>
 public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
 {
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly IEventLoop _loop;
     private readonly Log _log;
     private IExplorerTaskbarBackend? _backend;
