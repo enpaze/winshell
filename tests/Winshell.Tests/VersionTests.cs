@@ -15,7 +15,7 @@ public class VersionTests
         var manifest = ManifestVersion();
         var result = WinshellCli.Run(line.Split(' '));
         result.AssertExitCode(0);
-        Assert.Equal("", result.Error);
+        result.AssertNoError();
         Assert.Matches($"^winshell {Regex.Escape(manifest)}(\\+\\S+)?\\r?\\n$", result.Output);
     }
 

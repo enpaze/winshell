@@ -56,14 +56,14 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
 
         var show = Cli("ipc", "--pid", pid, "show");
         show.AssertExitCode(0);
-        Assert.Equal("", show.Error);
+        show.AssertNoError();
         var call = Cli("ipc", "--pid", pid, "call", "nothing", "open");
         call.AssertExitCode(1);
         Assert.Equal("Target not found: nothing.", call.Error.Trim());
 
         var killed = Cli("kill", "--pid", pid);
         killed.AssertExitCode(0);
-        Assert.Equal("", killed.Error);
+        killed.AssertNoError();
         Assert.StartsWith("Killed ", killed.Output, StringComparison.Ordinal);
         Assert.True(process.HasExited);
         // The shell writes to the supervisor's output, so what it printed is there.

@@ -20,7 +20,7 @@ public sealed class KillWaitTests : IDisposable, IClassFixture<ProbeBuild>
         var result = Run("kill", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
 
         result.AssertExitCode(0);
-        Assert.Equal("", result.Error);
+        result.AssertNoError();
         Assert.StartsWith("Killed ", result.Output, StringComparison.Ordinal);
         Assert.True(process.HasExited);
     }
