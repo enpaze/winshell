@@ -45,7 +45,121 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         Assert.Equal(templates.UserPathBefore, PackedTemplates.UserPath());
     }
 
-    private void Run(string projectFile)
+    [Fact(Timeout = PatienceMs)]
+    public void Widget_items_appear_for_each_name_including_case_and_escapes()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        using var folder = new TempFolder();
+        var projectFile = CopyTemplate(folder.Path);
+        var document = XDocument.Load(projectFile);
+        document.Root!.Add(new XElement("ItemGroup",
+            new XElement("WinshellWidget", new XAttribute("Include", "first"),
+                new XAttribute("Type", "global::PackedShell.FirstWidget")),
+            new XElement("WinshellWidget", new XAttribute("Include", "First"),
+                new XAttribute("Type", "PackedShell.CapitalWidget")),
+            new XElement("WinshellWidget", new XAttribute("Include", "quote\"slash\\semi%3Bline%0Aend"),
+                new XAttribute("Type", "PackedShell.SecondWidget"))));
+        document.Save(projectFile);
+        File.WriteAllText(Path.Combine(folder.Path, "AppShell.cs"), """
+            using Microsoft.UI.Xaml.Controls;
+            using Winshell;
+            namespace PackedShell;
+            public sealed class AppShell : ShellConfiguration
+            {
+                public override void Start(Shell shell)
+                {
+                    var area = new WidgetArea
+                    {
+                        Defaults =
+                        [
+                            new("first", new Dictionary<string, object> { ["value"] = "one" }),
+                            new("First", new Dictionary<string, object> { ["value"] = "three" }),
+                            new("quote\"slash\\semi;line\nend", new Dictionary<string, object> { ["value"] = "two" })
+                        ]
+                    };
+                    var window = new PanelWindow { Width = 250, Height = 80, Content = area, Visible = true };
+                    window.Closed += area.Dispose;
+                }
+            }
+            public sealed class FirstWidget : UserControl
+            {
+                public FirstWidget(WidgetContext context) =>
+                    Content = new TextBlock { Text = "first:" + (string)context.Settings["value"] };
+            }
+            public sealed class CapitalWidget : UserControl
+            {
+                public CapitalWidget(WidgetContext context) =>
+                    Content = new TextBlock { Text = "First:" + (string)context.Settings["value"] };
+            }
+            public sealed class SecondWidget : UserControl
+            {
+                public SecondWidget(WidgetContext context) =>
+                    Content = new TextBlock { Text = "second:" + (string)context.Settings["value"] };
+            }
+            """);
+        var project = ConfigurationProject.Find(projectFile, null, folder.Path, out var error);
+        Assert.Null(error);
+        var why = project!.Prepare(false, ConfigurationProject.Run);
+        Assert.True(why is null, why);
+        var generated = Assert.Single(Directory.GetFiles(Path.Combine(folder.Path, "obj"),
+            "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
+        var written = File.GetLastWriteTimeUtc(generated);
+        var unchanged = ConfigurationProject.Run(
+            "dotnet", ["build", projectFile, "-c", "Release", "-warnaserror", "--nologo"], folder.Path);
+        Assert.True(unchanged.ExitCode == 0, unchanged.Output);
+        Assert.Equal(generated, Assert.Single(Directory.GetFiles(Path.Combine(folder.Path, "obj"),
+            "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories)));
+        Assert.Equal(written, File.GetLastWriteTimeUtc(generated));
+
+        Run(projectFile, (pid, environment) =>
+        {
+            ChildProcess? tree = null;
+            Wait.Until(() =>
+            {
+                tree = WinshellCli.Run(["inspect", "--pid", pid, "tree"], environment);
+                return tree.Code == 0 && tree.Output.Contains("second:two", StringComparison.Ordinal);
+            }, "the generated widget factories to populate the window");
+            Assert.Contains("first:one", tree!.Output, StringComparison.Ordinal);
+            Assert.Contains("First:three", tree.Output, StringComparison.Ordinal);
+            Assert.Contains("second:two", tree.Output, StringComparison.Ordinal);
+        });
+    }
+
+    [Theory(Timeout = PatienceMs)]
+    [InlineData("", false, "Type is required")]
+    [InlineData("PackedShell.FirstWidget", true, "duplicated")]
+    [InlineData("Bad.Type()", false, "must be a C# type name")]
+    [InlineData("Missing.Widget", false, "error CS")]
+    public void A_bad_widget_item_fails_the_build_and_names_the_item(string type, bool duplicate, string diagnostic)
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        using var folder = new TempFolder();
+        var project = CopyTemplate(folder.Path);
+        var document = XDocument.Load(project);
+        var items = new XElement("ItemGroup",
+            new XElement("WinshellWidget", new XAttribute("Include", "bad-widget"), new XAttribute("Type", type)));
+        if (duplicate)
+            items.Add(new XElement(items.Elements().Single()));
+        document.Root!.Add(items);
+        document.Save(project);
+        var result = ConfigurationProject.Run("dotnet", ["build", project, "-warnaserror", "--nologo"], folder.Path);
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("bad-widget", result.Output, StringComparison.Ordinal);
+        Assert.Contains(diagnostic, result.Output, StringComparison.Ordinal);
+    }
+
+    private string CopyTemplate(string folder)
+    {
+        foreach (var file in Directory.GetFiles(Path.GetDirectoryName(templates.SmallProject)!))
+            File.Copy(file, Path.Combine(folder, Path.GetFileName(file)));
+        var project = Path.Combine(folder, Path.GetFileName(templates.SmallProject));
+        var document = XDocument.Load(project);
+        document.Root!.Add(new XElement("PropertyGroup", new XElement("TreatWarningsAsErrors", "true")));
+        document.Save(project);
+        return project;
+    }
+
+    private void Run(string projectFile, Action<string, (string Name, string Value)[]>? inspect = null)
     {
         var project = ConfigurationProject.Find(projectFile, null, Path.GetDirectoryName(projectFile)!, out var error);
         Assert.Null(error);
@@ -64,7 +178,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         var process = Start(project.Program, folders, output);
         try
         {
-            ListAndKill(process, folders, output);
+            ListAndKill(process, folders, output, inspect);
         }
         finally
         {
@@ -88,7 +202,8 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     /// <summary>
     /// Lists the shell, reads its log and kills it. The caller disposes <paramref name="process"/> after this returns.
     /// </summary>
-    private void ListAndKill(Process process, (string Name, string Value)[] folders, StringBuilder output)
+    private void ListAndKill(Process process, (string Name, string Value)[] folders, StringBuilder output,
+        Action<string, (string Name, string Value)[]>? inspect)
     {
         var pid = process.Id.ToString(CultureInfo.InvariantCulture);
         Wait.Until(() =>
@@ -101,6 +216,8 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         var log = WinshellCli.Run(["log", "--pid", pid], folders);
         log.AssertExitCode(0);
         Assert.Contains($"Winshell {templates.Version} on Windows", log.Output, StringComparison.Ordinal);
+
+        inspect?.Invoke(pid, folders);
 
         var killed = WinshellCli.Run(["kill", "--pid", pid], folders);
         killed.AssertExitCode(0);
@@ -160,8 +277,12 @@ public sealed class PackedTemplates : IDisposable
         UserPathBefore = UserPath();
         var root = Repo.Root;
         // A version of its own each run. NuGet keeps a package by its version, so a repeated one would build what an
-        // earlier run packed, and the test would pass on code it never packed.
-        Version = "0.0.0-test." + Guid.NewGuid().ToString("N")[..12];
+        // earlier run packed, and the test would pass on code it never packed. The release triple matches this
+        // checkout: winshell inspect refuses a shell whose major.minor.patch differs from the CLI.
+        var manifest = File.ReadAllText(Path.Combine(root, ".release-please-manifest.json"));
+        using var manifestJson = JsonDocument.Parse(manifest);
+        var release = manifestJson.RootElement.GetProperty(".").GetString()!;
+        Version = release + "-test." + Guid.NewGuid().ToString("N")[..12];
         var packages = Path.Combine(_work, "packages");
         var packed = ConfigurationProject.Run("pwsh",
             ["-NoProfile", "-File", Path.Combine(root, "scripts", "pack.ps1"), "-Out", packages, "-Version", Version],

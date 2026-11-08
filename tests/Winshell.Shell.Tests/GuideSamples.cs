@@ -39,10 +39,6 @@ public static class GuideSamples
 
     public static (WidgetArea Area, PanelWindow Panel) AWidgetArea()
     {
-        Widgets.Register("message", context => new TextBlock
-        {
-            Text = (string)context.Settings["text"]
-        });
         var area = new WidgetArea
         {
             Name = "end",
@@ -69,6 +65,14 @@ public static class GuideSamples
     {
         if (!shell.Reload())
             shell.Log.Warn("shell", "Reload did not start.");
+    }
+}
+
+public sealed partial class MessageWidget : UserControl
+{
+    public MessageWidget(WidgetContext context)
+    {
+        Content = new TextBlock { Text = (string)context.Settings["text"] };
     }
 }
 

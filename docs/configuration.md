@@ -94,13 +94,31 @@ Reactor is the configuration's choice. Add `Microsoft.UI.Reactor` in the project
 
 ## Widgets
 
-A [WidgetArea](reference/winshell.md#widgetarea) can go anywhere in a window. Register widget names before assigning placements. Each placement creates a fresh WinUI element with its own settings, the area's orientation and the running `Shell` in its `WidgetContext`. Several placements may use one widget.
+A [WidgetArea](reference/winshell.md#widgetarea) can go anywhere in a window. List widgets in your configuration's project, next to their project or package references:
+
+```xml
+<ItemGroup>
+  <WinshellWidget Include="message" Type="MyShell.MessageWidget" />
+</ItemGroup>
+```
+
+`Include` is the case-sensitive placement name; `Type` is the C# type name of a WinUI element with a constructor that takes a `WidgetContext`. The build generates direct factory registrations that run before `Main`, without reflection. A missing type, a type that is not a C# type name, and a duplicate name fail the build, and the error names the widget. Names are escaped for C# automatically. You can still call `Widgets.Register` directly for factories that need custom construction.
+
+For example, define this widget in your project's `MyShell` namespace:
 
 ```csharp
-        Widgets.Register("message", context => new TextBlock
-        {
-            Text = (string)context.Settings["text"]
-        });
+public sealed partial class MessageWidget : UserControl
+{
+    public MessageWidget(WidgetContext context)
+    {
+        Content = new TextBlock { Text = (string)context.Settings["text"] };
+    }
+}
+```
+
+Each placement creates a fresh WinUI element with its own settings, the area's orientation and the running `Shell` in its `WidgetContext`. Several placements may use one widget:
+
+```csharp
         var area = new WidgetArea
         {
             Name = "end",
