@@ -146,6 +146,17 @@ Describe 'Running a tier' {
         Invoke-TestRun | Should -Be 1
     }
 
+    It 'names each skipped test with its reason when the run <Run>' -ForEach @(
+        @{ Run = 'passes'; Exit = 0; Other = 'Ns.Class.Good=Passed' }
+        @{ Run = 'fails'; Exit = 1; Other = 'Ns.Class.Bad=Failed' }
+    ) {
+        Mock Write-Host { }
+        $script:Rows = @($Other, 'Ns.Class.Busy=NotExecuted:Someone was using this PC')
+        $script:Exit = $Exit
+        Invoke-TestRun | Should -Be $Exit
+        Should -Invoke Write-Host -ParameterFilter { $Object -eq 'Skipped Ns.Class.Busy: Someone was using this PC' }
+    }
+
     It 'chooses a seed of its own and prints it' {
         Mock Write-Host { }
         Invoke-TestRun | Should -Be 0
