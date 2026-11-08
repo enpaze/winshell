@@ -101,28 +101,34 @@ public sealed class HotkeyTests : IDisposable
     [Fact]
     public void Two_hotkeys_share_a_chord_and_the_last_release_gives_it_back()
     {
-        using var first = Create();
+        var first = Create();
         using var second = Create();
         var presses = new List<string>();
-        first.Pressed += (_, _) => presses.Add("first");
-        second.Pressed += (_, _) => presses.Add("second");
-        first.Sequence = "Ctrl+K";
-        second.Sequence = "Ctrl+K";
         var key = Key("Ctrl+K");
-        Assert.Equal(key, Assert.Single(_backend.Registered));
-        Assert.False(_backend.HookInstalled);
+        try
+        {
+            first.Pressed += (_, _) => presses.Add("first");
+            second.Pressed += (_, _) => presses.Add("second");
+            first.Sequence = "Ctrl+K";
+            second.Sequence = "Ctrl+K";
+            Assert.Equal(key, Assert.Single(_backend.Registered));
+            Assert.False(_backend.HookInstalled);
 
-        _backend.Press(key);
-        Assert.Equal(["first", "second"], presses);
-        _loop.Advance(TimeSpan.FromMilliseconds(20));
+            _backend.Press(key);
+            Assert.Equal(["first", "second"], presses);
+            _loop.Advance(TimeSpan.FromMilliseconds(20));
 
-        second.Enabled = false;
-        Assert.Equal(key, Assert.Single(_backend.Registered));
-        presses.Clear();
-        _backend.Press(key);
-        Assert.Equal(["first"], presses);
+            second.Enabled = false;
+            Assert.Equal(key, Assert.Single(_backend.Registered));
+            presses.Clear();
+            _backend.Press(key);
+            Assert.Equal(["first"], presses);
+        }
+        finally
+        {
+            first.Dispose();
+        }
 
-        first.Dispose();
         Assert.Empty(_backend.Registered);
         presses.Clear();
         _backend.Press(key);
@@ -270,7 +276,11 @@ public sealed class HotkeyTests : IDisposable
         using var hotkey = Create();
         hotkey.Sequence = "Ctrl+K";
         var events = new List<string>();
+        // IsPressed is read when the event is raised, before this method disposes the hotkey.
+        // ReSharper disable once AccessToDisposedClosure
         hotkey.Pressed += (_, _) => events.Add($"pressed {hotkey.IsPressed}");
+        // IsPressed is read when the event is raised, before this method disposes the hotkey.
+        // ReSharper disable once AccessToDisposedClosure
         hotkey.Released += (_, _) => events.Add($"released {hotkey.IsPressed}");
         IHotkeyListener listener = hotkey;
 

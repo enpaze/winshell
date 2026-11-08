@@ -10,7 +10,7 @@ internal class FakeSource<T>(T initial)
 
     public event Action? Changed;
 
-    public T Current { get; private set; } = initial;
+    private T Current { get; set; } = initial;
 
     public int Reads => Volatile.Read(ref _reads);
 

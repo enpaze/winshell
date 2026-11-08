@@ -18,25 +18,23 @@ public sealed class InstanceLogTests : IDisposable
     {
         var path = Path.Combine(_dir, "log.txt");
         var previous = Path.Combine(_dir, "log.1.txt");
-        using (var log = new InstanceLog(path, 100, new FakeTimeProvider()))
-        {
-            log.Write(LogLevel.Info, "info-still-buffered");
-            Assert.DoesNotContain("info-still-buffered", Read(path), StringComparison.Ordinal);
+        using var log = new InstanceLog(path, 100, new FakeTimeProvider());
+        log.Write(LogLevel.Info, "info-still-buffered");
+        Assert.DoesNotContain("info-still-buffered", Read(path), StringComparison.Ordinal);
 
-            log.Write(LogLevel.Warn, "warned-now");
-            var afterWarn = Read(path);
-            Assert.Contains("info-still-buffered", afterWarn, StringComparison.Ordinal);
-            Assert.Contains("warned-now", afterWarn, StringComparison.Ordinal);
+        log.Write(LogLevel.Warn, "warned-now");
+        var afterWarn = Read(path);
+        Assert.Contains("info-still-buffered", afterWarn, StringComparison.Ordinal);
+        Assert.Contains("warned-now", afterWarn, StringComparison.Ordinal);
 
-            for (var i = 0; i < 30; i++)
-                log.Write(LogLevel.Warn, "pad-" + i + "-xxxxxxxxxxxxxxxx");
+        for (var i = 0; i < 30; i++)
+            log.Write(LogLevel.Warn, "pad-" + i + "-xxxxxxxxxxxxxxxx");
 
-            Assert.True(File.Exists(previous));
-            Assert.True(new FileInfo(path).Length < 100 + 80);
-            var kept = Read(path) + Read(previous);
-            Assert.Contains("pad-29-", kept, StringComparison.Ordinal);
-            Assert.DoesNotContain("pad-0-", kept, StringComparison.Ordinal);
-        }
+        Assert.True(File.Exists(previous));
+        Assert.True(new FileInfo(path).Length < 100 + 80);
+        var kept = Read(path) + Read(previous);
+        Assert.Contains("pad-29-", kept, StringComparison.Ordinal);
+        Assert.DoesNotContain("pad-0-", kept, StringComparison.Ordinal);
     }
 
     /// <summary>

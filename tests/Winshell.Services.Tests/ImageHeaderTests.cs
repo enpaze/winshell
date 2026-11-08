@@ -71,7 +71,7 @@ public sealed class ImageHeaderTests
     // Width 9000 less one is 0x2327, and height 2 less one is 1, packed into 14 bits each.
     private static byte[] LosslessWebP()
     {
-        return Riff("VP8L", 0x2F, 0x27, 0x63, 0x00, 0x00);
+        return Riff("VP8L", "/\u0027c\0\0"u8.ToArray());
     }
 
     // A 3-byte width 20000 less one, 0x4E1F, and a 3-byte height 3 less one.
@@ -193,9 +193,9 @@ public sealed class ImageHeaderTests
     [Fact]
     public void A_webp_with_a_broken_frame_has_no_size()
     {
-        Assert.Null(Size(Riff("VP8 ", 0, 0, 0, 1, 2, 3)));
-        Assert.Null(Size(Riff("VP8L", 0x2E, 0, 0, 0, 0)));
-        Assert.Null(Size(Riff("ABCD", 0, 0, 0, 0, 0)));
+        Assert.Null(Size(Riff("VP8 ", "\0\0\0\u0001\u0002\u0003"u8.ToArray())));
+        Assert.Null(Size(Riff("VP8L", "\u002e\0\0\0\0"u8.ToArray())));
+        Assert.Null(Size(Riff("ABCD", "\0\0\0\0\0"u8.ToArray())));
     }
 
     [Fact]

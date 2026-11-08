@@ -108,7 +108,7 @@ public sealed class HotkeyBookTests
         var either = new Probe(new ManualEventLoop());
         book.Add(either, Parse("Win"));
         book.Hook(VirtualKeys.LeftWin, false, HotkeyModifiers.None, 0);
-        book.Hook((int)'E', false, HotkeyModifiers.Win, 0);
+        book.Hook('E', false, HotkeyModifiers.Win, 0);
         book.Hook(VirtualKeys.LeftWin, false, HotkeyModifiers.Win, 0);
         var up = book.Hook(VirtualKeys.LeftWin, true, HotkeyModifiers.Win, 0);
         Assert.Empty(up.Pressed);
@@ -126,13 +126,13 @@ public sealed class HotkeyBookTests
         Assert.False(shift.Swallow);
         Assert.True(book.NeedsHook);
 
-        var miss = book.Hook((int)'D', false, HotkeyModifiers.None, 0);
+        var miss = book.Hook('D', false, HotkeyModifiers.None, 0);
         Assert.False(miss.Swallow);
         Assert.Empty(miss.Pressed);
         Assert.False(book.NeedsHook);
 
         book.Trigger(Parse("Ctrl+K").Chords[0].OsKey, 0);
-        var hit = book.Hook((int)'C', false, HotkeyModifiers.None, 0);
+        var hit = book.Hook('C', false, HotkeyModifiers.None, 0);
         Assert.True(hit.Swallow);
         Assert.Contains(listener, hit.Pressed);
         Assert.False(book.NeedsHook);
@@ -146,10 +146,10 @@ public sealed class HotkeyBookTests
         book.Add(listener, Parse("A, B, C"));
         var started = book.Trigger(Parse("A").Chords[0].OsKey, 0);
         var token = Assert.Single(started.Armed).Token;
-        book.Hook((int)'B', false, HotkeyModifiers.None, 0);
+        book.Hook('B', false, HotkeyModifiers.None, 0);
         book.Disarm(listener, token);
         Assert.True(book.NeedsHook);
-        var done = book.Hook((int)'C', false, HotkeyModifiers.None, 0);
+        var done = book.Hook('C', false, HotkeyModifiers.None, 0);
         Assert.Contains(listener, done.Pressed);
     }
 
@@ -160,7 +160,7 @@ public sealed class HotkeyBookTests
         var listener = new Probe(new ManualEventLoop());
         book.Add(listener, Parse("A, B"));
         book.Trigger(Parse("A").Chords[0].OsKey, 0);
-        var late = book.Hook((int)'B', false, HotkeyModifiers.None, 1000);
+        var late = book.Hook('B', false, HotkeyModifiers.None, 1000);
         Assert.Empty(late.Pressed);
         Assert.False(late.Swallow);
         Assert.False(book.NeedsHook);
@@ -207,17 +207,23 @@ public sealed class HotkeyBookTests
         var secondLoop = new ManualEventLoop();
         using var firstRegistrar = new HotkeyRegistrar(firstLoop, Log.Default);
         using var secondRegistrar = new HotkeyRegistrar(secondLoop, Log.Default);
-        using var first = new Hotkey(firstLoop, Log.Default, firstRegistrar);
+        var first = new Hotkey(firstLoop, Log.Default, firstRegistrar);
         using var second = new Hotkey(secondLoop, Log.Default, secondRegistrar);
-        first.Sequence = "Win";
-        Assert.True(first.Active);
+        try
+        {
+            first.Sequence = "Win";
+            Assert.True(first.Active);
 
-        second.Sequence = "Win";
-        Assert.False(second.Active);
-        Assert.False(second.Taken);
-        Assert.Contains("keyboard hook", second.Error, StringComparison.Ordinal);
+            second.Sequence = "Win";
+            Assert.False(second.Active);
+            Assert.False(second.Taken);
+            Assert.Contains("keyboard hook", second.Error, StringComparison.Ordinal);
+        }
+        finally
+        {
+            first.Dispose();
+        }
 
-        first.Dispose();
         second.Enabled = false;
         second.Enabled = true;
         Assert.True(second.Active);
@@ -242,7 +248,7 @@ public sealed class HotkeyBookTests
     {
         public IEventLoop Loop { get; } = loop;
 
-        public int Presses { get; private set; }
+        private int Presses { get; set; }
 
         public void OnPressed(bool deliversRelease)
         {

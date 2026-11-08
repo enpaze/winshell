@@ -219,6 +219,8 @@ public sealed class NetworkingServiceTests
         using var session = new Session(NetworkSnapshot.Initial);
         var completion = new TaskCompletionSource();
         session.Backend.AccessTask = completion.Task;
+        // The handler runs while the test still holds the session, before the method disposes it.
+        // ReSharper disable once AccessToDisposedClosure
         var failed = Failures(h => session.Service.OperationFailed += h);
 
         var request = session.Service.RequestAccessAsync();
@@ -619,7 +621,7 @@ public sealed class NetworkingServiceTests
     {
         public event Action? Changed;
 
-        public NetworkSnapshot Current { get; private set; } = NetworkSnapshot.Initial;
+        private NetworkSnapshot Current { get; set; } = NetworkSnapshot.Initial;
 
         public List<string> Calls { get; } = [];
 

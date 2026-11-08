@@ -226,6 +226,8 @@ public sealed class MediaServiceTests
     {
         var changes = Watch(Session());
 
+        // The names are the properties this check asserts were raised.
+        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         void Raised(params string[] names)
         {
             Assert.Superset(names.ToHashSet(), changes.ToHashSet());
