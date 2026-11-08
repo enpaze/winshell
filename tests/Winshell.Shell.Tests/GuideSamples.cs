@@ -37,6 +37,26 @@ public static class GuideSamples
         _ = _registration;
     }
 
+    public static (WidgetArea Area, PanelWindow Panel) AWidgetArea()
+    {
+        Widgets.Register("message", context => new TextBlock
+        {
+            Text = (string)context.Settings["text"]
+        });
+        var area = new WidgetArea
+        {
+            Orientation = Orientation.Horizontal,
+            Defaults =
+            [
+                new("message", new Dictionary<string, object> { ["text"] = "Hello" }),
+                new("message", new Dictionary<string, object> { ["text"] = "World" })
+            ]
+        };
+        var panel = new PanelWindow { Height = 48, Content = area, Visible = true };
+        panel.Closed += area.Dispose;
+        return (area, panel);
+    }
+
     public static void AHotkey(Shell shell)
     {
         var hotkey = shell.NewHotkey();
