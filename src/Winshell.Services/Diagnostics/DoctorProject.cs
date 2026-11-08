@@ -19,7 +19,7 @@ internal static class DoctorProject
         ];
     }
 
-    internal static DoctorCheck Project(ConfigurationProject? project, string? problem)
+    private static DoctorCheck Project(ConfigurationProject? project, string? problem)
     {
         if (problem is not null)
             return new DoctorCheck("project", "Project", CheckStatus.Fail, problem,
@@ -31,7 +31,7 @@ internal static class DoctorProject
         return new DoctorCheck("project", "Project", CheckStatus.Pass, project.ProjectFile);
     }
 
-    internal static DoctorCheck Downloaded(ConfigurationProject? project)
+    private static DoctorCheck Downloaded(ConfigurationProject? project)
     {
         if (project is null)
             return new DoctorCheck("downloaded", "Downloaded", CheckStatus.Pass, "No configuration project to check.");
@@ -43,7 +43,7 @@ internal static class DoctorProject
             "Nothing the build would run was downloaded.");
     }
 
-    internal static DoctorCheck Built(ConfigurationProject? project)
+    private static DoctorCheck Built(ConfigurationProject? project)
     {
         if (project is null)
             return new DoctorCheck("built", "Built", CheckStatus.Pass, "No configuration project to build.");
@@ -53,7 +53,7 @@ internal static class DoctorProject
         return new DoctorCheck("built", "Built", CheckStatus.Pass, project.Program);
     }
 
-    internal static DoctorCheck BuildNeeded(ConfigurationProject? project)
+    private static DoctorCheck BuildNeeded(ConfigurationProject? project)
     {
         if (project is null)
             return new DoctorCheck("build", "Build", CheckStatus.Pass, "No configuration project to build.");

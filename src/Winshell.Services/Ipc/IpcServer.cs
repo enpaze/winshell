@@ -33,8 +33,8 @@ internal sealed class IpcServer : IDisposable
     // winshell sends its line as soon as it connects. A client that does not, refused or not, gives its slot back.
     internal static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(5);
 
-    private readonly object _firstGate = new();
-    private readonly object _limit = new();
+    private readonly Lock _firstGate = new();
+    private readonly Lock _limit = new();
     private readonly List<NamedPipeServerStream> _serving = [];
     private NamedPipeServerStream? _first;
     private int _clients;
@@ -149,7 +149,7 @@ internal sealed class IpcServer : IDisposable
                 waiting.Remove(finished, out var stream);
                 if (_cancel.IsCancellationRequested)
                 {
-                    stream!.Dispose();
+                    await stream!.DisposeAsync().ConfigureAwait(false);
                     return;
                 }
 
@@ -175,7 +175,7 @@ internal sealed class IpcServer : IDisposable
                 }
                 else
                 {
-                    stream!.Dispose();
+                    await stream!.DisposeAsync().ConfigureAwait(false);
                 }
             }
 
@@ -184,7 +184,7 @@ internal sealed class IpcServer : IDisposable
         finally
         {
             foreach (var stream in waiting.Values)
-                stream.Dispose();
+                await stream.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -237,7 +237,8 @@ internal sealed class IpcServer : IDisposable
                 (line, tooLong) = await ReadRequest(stream, reading.Token).ConfigureAwait(false);
             }
 
-            await using var writer = new StreamWriter(stream, new UTF8Encoding(false)) { AutoFlush = true };
+            await using var writer = new StreamWriter(stream, new UTF8Encoding(false));
+            writer.AutoFlush = true;
             if (tooLong)
             {
                 await Send(writer, new IpcResponse(false, Error: "Request is too long."), _cancel.Token)
@@ -407,7 +408,7 @@ internal sealed class IpcServer : IDisposable
                     break;
                 }
 
-                pause.Cancel();
+                await pause.CancelAsync().ConfigureAwait(false);
                 await Finish(gone).ConfigureAwait(false);
                 var signal = waiting;
                 waiting = null;
@@ -432,7 +433,7 @@ internal sealed class IpcServer : IDisposable
         }
         finally
         {
-            stop.Cancel();
+            await stop.CancelAsync().ConfigureAwait(false);
             if (waiting is not null)
                 await Finish(waiting).ConfigureAwait(false);
             _loop.Post(() => subscription?.Dispose());
