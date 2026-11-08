@@ -63,7 +63,7 @@ public sealed class WinlandServiceTests
         Assert.Equal([0, 1], service.Monitors.Select(m => m.Id));
         Assert.Equal(["special:special", "notes", "1", "3", "3"], service.Workspaces.Select(w => w.Name));
         Assert.Equal(["10", "20"], service.Windows.Select(t => t.Address));
-        Assert.Equal((nint)0x10, service.Windows[0].Handle);
+        Assert.Equal(0x10, service.Windows[0].Handle);
         Assert.Equal(-99, service.Workspaces.Single(w => w.Name == "special:special").Id);
         Assert.Equal(-1, service.Workspaces.Single(w => w.Name == "notes").Id);
 

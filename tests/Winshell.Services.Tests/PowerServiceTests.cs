@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using Winshell.Power;
 
 namespace Winshell.Services.Tests;
@@ -34,7 +35,7 @@ public sealed class PowerServiceTests
     public void A_snapshot_changes_only_the_properties_that_differ()
     {
         var loop = new ManualEventLoop();
-        var source = new FakePowerBackend(Snapshot(Battery("a", 0.5)));
+        var source = new FakePowerBackend(Snapshot(Battery("a")));
         using var power = new PowerService(loop, Log.Default, source);
         loop.Process();
         var changes = Watch(power.DisplayDevice);
@@ -138,17 +139,18 @@ public sealed class PowerServiceTests
     public void An_idle_monitor_turns_on_after_the_timeout_and_a_keep_awake_holds_it_off()
     {
         var loop = new ManualEventLoop();
-        var idle = 0.0;
-        var held = false;
-        using var monitor = new IdleMonitor(loop, Log.Default, () => idle, () => held) { Timeout = 10 };
+        var idle = new StrongBox<double>(0);
+        var held = new StrongBox<bool>(false);
+        using var monitor = new IdleMonitor(loop, Log.Default, () => idle.Value, () => held.Value);
+        monitor.Timeout = 10;
         Assert.False(monitor.IsIdle);
 
-        idle = 11;
-        held = true;
+        idle.Value = 11;
+        held.Value = true;
         loop.Advance(TimeSpan.FromSeconds(5));
         Assert.False(monitor.IsIdle);
 
-        held = false;
+        held.Value = false;
         loop.Advance(TimeSpan.FromSeconds(5));
         Assert.True(monitor.IsIdle);
     }
@@ -157,7 +159,8 @@ public sealed class PowerServiceTests
     public void An_idle_monitor_that_cannot_be_idle_does_not_poll()
     {
         var loop = new ManualEventLoop();
-        using var monitor = new IdleMonitor(loop, Log.Default, () => 0, () => false) { Timeout = 10 };
+        using var monitor = new IdleMonitor(loop, Log.Default, () => 0, () => false);
+        monitor.Timeout = 10;
 
         monitor.Enabled = false;
 

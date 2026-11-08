@@ -19,7 +19,7 @@ public sealed class SessionArtTests
         try
         {
             art.Load(await ThumbnailAsync());
-            Wait.Until(() => art.Url.Length > 0, "the art", loop.Process);
+            await Wait.UntilAsync(() => art.Url.Length > 0, "the art", loop.Process);
             var shown = art.Url;
 
             art.Load(new Unreadable());
@@ -32,7 +32,7 @@ public sealed class SessionArtTests
             Assert.False(art.Loading);
 
             art.Load(await ThumbnailAsync());
-            Wait.Until(() => art.Url != shown, "the next art", loop.Process);
+            await Wait.UntilAsync(() => art.Url != shown, "the next art", loop.Process);
             art.Load(new Unreadable());
             loop.Process();
 

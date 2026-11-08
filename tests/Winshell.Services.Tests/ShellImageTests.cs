@@ -9,7 +9,7 @@ public sealed class ShellImageTests
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe"), 32);
 
         Assert.NotNull(image);
-        Assert.True(image.Width >= 32 && image.Height >= 32, $"{image.Width}x{image.Height}");
+        Assert.True(image is { Width: >= 32, Height: >= 32 }, $"{image.Width}x{image.Height}");
         Assert.True(image.Premultiplied);
         var alpha = image.Bgra.ToArray().Where((_, i) => i % 4 == 3);
         Assert.Contains(alpha, a => a > 0);

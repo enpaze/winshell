@@ -485,9 +485,7 @@ public sealed class StartupRegistryTests : IDisposable
     public void A_startup_task_that_stays_disabled_warns_and_stays_off()
     {
         var task = new FakeStartupTask { EnableResult = StartupTaskState.Disabled };
-        var startup = new StartupService(_log, new StartupTaskRegistry(task));
-
-        startup.RunAtSignIn = true;
+        var startup = new StartupService(_log, new StartupTaskRegistry(task)) { RunAtSignIn = true };
 
         Assert.False(startup.RunAtSignIn);
         Assert.Equal(StartupTaskState.Disabled, task.State);
@@ -508,7 +506,7 @@ public sealed class StartupRegistryTests : IDisposable
     {
         public StartupTaskState State { get; set; } = StartupTaskState.Disabled;
 
-        public StartupTaskState EnableResult { get; set; } = StartupTaskState.Enabled;
+        public StartupTaskState EnableResult { get; init; } = StartupTaskState.Enabled;
 
         public int Enables { get; private set; }
 

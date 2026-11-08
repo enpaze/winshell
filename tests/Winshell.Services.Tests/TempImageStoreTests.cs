@@ -1,6 +1,5 @@
 using System.Buffers.Binary;
 using System.Globalization;
-using System.Text;
 
 namespace Winshell.Services.Tests;
 
@@ -167,8 +166,7 @@ public sealed class TempImageStoreTests
     [Fact]
     public void Svg_is_not_stored()
     {
-        var svg = Encoding.UTF8.GetBytes(
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100000\" height=\"100000\"/>");
+        var svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100000\" height=\"100000\"/>"u8.ToArray();
         using var directory = new TempFolder();
 
         Assert.Null(Claim(Store(directory.Path), svg));

@@ -18,8 +18,8 @@ public class TrayProtocolTests
     public void Older_callbacks_carry_the_icon_id_and_the_message()
     {
         var (w, l) = TrayProtocol.Callback(TrayProtocol.Version, 7, 0x0205, 20, 40);
-        Assert.Equal((nint)7, w);
-        Assert.Equal((nint)0x0205, l);
+        Assert.Equal(7, w);
+        Assert.Equal(0x0205, l);
     }
 
     [Fact]
@@ -54,10 +54,10 @@ public class TrayProtocolTests
         Assert.NotNull(call);
         Assert.Equal(TrayProtocol.Modify, call.Message);
         // Handles sign-extend, as Windows does for 32-bit handle values.
-        Assert.Equal(unchecked((nint)(int)0x80001234), call.Window);
+        Assert.Equal(unchecked((int)0x80001234), call.Window);
         Assert.Equal(9u, call.Id);
         Assert.Equal(0x8001u, call.CallbackMessage);
-        Assert.Equal((nint)0x42, call.Icon);
+        Assert.Equal(0x42, call.Icon);
         Assert.Equal("Sync\nUp to date", call.Tip);
         Assert.Equal(1u, call.State);
         Assert.Equal(1u, call.StateMask);

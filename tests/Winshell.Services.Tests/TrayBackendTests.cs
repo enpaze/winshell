@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.UI.WindowsAndMessaging;
@@ -82,10 +83,10 @@ public sealed class TrayBackendTests : IDisposable
         var window = Win32.CreateWindowExW(0, "STATIC", "", 0, 0, 0, 0, 0, Win32.HWND_MESSAGE, 0, 0, 0);
         Assert.NotEqual(0, window);
         // Apps open and close message-only windows all the time, as test runs beside this one do.
-        var stop = false;
+        var stop = new StrongBox<bool>(false);
         var churn = new Thread(() =>
         {
-            while (!Volatile.Read(ref stop))
+            while (!Volatile.Read(ref stop.Value))
                 Win32.DestroyWindow(Win32.CreateWindowExW(0, "STATIC", "", 0, 0, 0, 0, 0, Win32.HWND_MESSAGE, 0, 0, 0));
         });
         churn.Start();
@@ -100,7 +101,7 @@ public sealed class TrayBackendTests : IDisposable
         }
         finally
         {
-            Volatile.Write(ref stop, true);
+            Volatile.Write(ref stop.Value, true);
             Assert.True(churn.Join(TimeSpan.FromMinutes(1)), "The thread that opens and closes windows did not stop");
             Win32.DestroyWindow(window);
         }
@@ -239,6 +240,8 @@ public sealed class TrayBackendTests : IDisposable
         private readonly Thread _thread;
         private readonly ManualResetEventSlim _started = new();
 
+        /// <param name="names">The window class and kernel object this taskbar opens under.</param>
+        /// <param name="log">The log the backend writes to.</param>
         /// <param name="busy">When given, the thread answers nothing until it is set.</param>
         public ExplorerThread(TrayNames names, Log log, ManualResetEventSlim? busy = null)
         {

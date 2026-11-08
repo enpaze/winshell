@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Winshell.Audio;
 
 namespace Winshell.Services.Tests;
@@ -16,8 +17,8 @@ public class SessionExitTests
             UseShellExecute = false
         });
         Assert.NotNull(process);
-        var ran = 0;
-        EventHandler handler = (_, _) => Interlocked.Increment(ref ran);
+        var ran = new StrongBox<int>(0);
+        EventHandler handler = (_, _) => Interlocked.Increment(ref ran.Value);
         process.EnableRaisingEvents = true;
         process.Exited += handler;
 
@@ -34,6 +35,6 @@ public class SessionExitTests
 
         Assert.True(process.WaitForExit(8000));
         Wait.ForNothingToHappen(TimeSpan.FromMilliseconds(200));
-        Assert.Equal(0, Volatile.Read(ref ran));
+        Assert.Equal(0, Volatile.Read(ref ran.Value));
     }
 }

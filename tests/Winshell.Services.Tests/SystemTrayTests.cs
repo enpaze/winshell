@@ -302,14 +302,15 @@ public sealed class SystemTrayTests
     [Fact]
     public void An_app_bar_message_lowers_each_open_tray_behind_Explorers_taskbar_and_raises_it_again()
     {
-        using var tray = Tray();
-        _backend.Calls.Clear();
+        using (Tray())
+        {
+            _backend.Calls.Clear();
 
-        AppBarMessages.Autohide(0);
+            AppBarMessages.Autohide(0);
 
-        Assert.Equal(["lower", "raise"], _backend.Calls);
+            Assert.Equal(["lower", "raise"], _backend.Calls);
+        }
 
-        tray.Dispose();
         _backend.Calls.Clear();
         AppBarMessages.Autohide(0);
 
