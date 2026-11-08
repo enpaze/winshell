@@ -124,7 +124,9 @@ public class AppBarReservationTests
     {
         // The query always offers the whole edge and Explorer always grants less: the case the review found looping.
         var offer = Bottom;
-        var placement = new Placement(new AppBarReservation(), () => offer) { Grant = asked => AboveOther };
+        // The next Place reads offer after this test replaces it; a copy would keep the first rectangle.
+        // ReSharper disable once AccessToModifiedClosure
+        var placement = new Placement(new AppBarReservation(), () => offer) { Grant = _ => AboveOther };
         placement.Place();
         Assert.True(placement.Settle() <= 1);
         Assert.Equal(1, placement.SetPosCalls);
@@ -143,6 +145,8 @@ public class AppBarReservationTests
         var reservation = new AppBarReservation();
         var other = 0;
         // The query leaves out another bar's height; the grant is what was asked for.
+        // The closure reads other after this test changes it, so the panel follows the other bar.
+        // ReSharper disable once AccessToModifiedClosure
         var placement = new Placement(reservation, () => other == 0 ? Bottom : AboveOther);
         placement.Place();
         placement.Settle();
@@ -169,6 +173,8 @@ public class AppBarReservationTests
         var reservation = new AppBarReservation();
         var placement = new Placement(reservation, () => Bottom)
         {
+            // The grant reads other when its callback runs, after this test clears it.
+            // ReSharper disable once AccessToModifiedClosure
             Grant = asked => other == 0 ? asked : AboveOther
         };
         placement.Place();
@@ -189,7 +195,7 @@ public class AppBarReservationTests
     public void Each_outside_change_asks_once_more_for_a_grant_that_stays_short_and_then_stands()
     {
         var reservation = new AppBarReservation();
-        var placement = new Placement(reservation, () => Bottom) { Grant = asked => AboveOther };
+        var placement = new Placement(reservation, () => Bottom) { Grant = _ => AboveOther };
         placement.Place();
         placement.Settle();
         Assert.Equal(1, placement.SetPosCalls);
@@ -211,7 +217,7 @@ public class AppBarReservationTests
     {
         // A work-area change on this PC posted two notices, and neither arrived inside ABM_SETPOS.
         var reservation = new AppBarReservation();
-        var placement = new Placement(reservation, () => Bottom) { Grant = asked => AboveOther };
+        var placement = new Placement(reservation, () => Bottom) { Grant = _ => AboveOther };
         placement.Place();
         reservation.NoteExternalChange();
         reservation.NoteExternalChange();

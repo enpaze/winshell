@@ -9,7 +9,7 @@ using Winshell.Capture;
 namespace Winshell.ShellTests;
 
 /// <summary>The view shows a session's frames and lets go of it. What the screen then looks like is not asserted here.</summary>
-public sealed class CaptureViewTests
+public sealed partial class CaptureViewTests
 {
     [Fact]
     public async Task A_capture_view_shows_the_frame_and_lets_go_when_it_leaves()
@@ -19,11 +19,9 @@ public sealed class CaptureViewTests
             var screen = shell.Screens[0].Geometry;
             var backend = new FakeCapture();
             var loop = new ManualEventLoop();
-            using var session = new CaptureSession(loop, () => backend)
-            {
-                FrameInterval = 16,
-                Target = CaptureTarget.ForWindow(1)
-            };
+            using var session = new CaptureSession(loop, () => backend);
+            session.FrameInterval = 16;
+            session.Target = CaptureTarget.ForWindow(1);
             var view = new CaptureView
             {
                 Width = 80,
@@ -32,11 +30,9 @@ public sealed class CaptureViewTests
                 VerticalAlignment = VerticalAlignment.Top,
                 Session = session
             };
-            using var popup = new PopupWindow
-            {
-                Rect = new Rect(screen.X + 40, screen.Y + 40, 200, 120),
-                Content = new Grid { Children = { view } }
-            };
+            using var popup = new PopupWindow();
+            popup.Rect = new Rect(screen.X + 40, screen.Y + 40, 200, 120);
+            popup.Content = new Grid { Children = { view } };
             popup.Visible = true;
             await ShellFixture.LaidOut(view);
 
@@ -80,11 +76,9 @@ public sealed class CaptureViewTests
             var screen = shell.Screens[0].Geometry;
             var backend = new FakeCapture();
             var loop = new ManualEventLoop();
-            using var session = new CaptureSession(loop, () => backend)
-            {
-                FrameInterval = 16,
-                Target = CaptureTarget.ForWindow(1)
-            };
+            using var session = new CaptureSession(loop, () => backend);
+            session.FrameInterval = 16;
+            session.Target = CaptureTarget.ForWindow(1);
             var view = new CaptureView
             {
                 Width = 80,
@@ -93,11 +87,9 @@ public sealed class CaptureViewTests
                 VerticalAlignment = VerticalAlignment.Top,
                 Session = session
             };
-            using var popup = new PopupWindow
-            {
-                Rect = new Rect(screen.X + 80, screen.Y + 80, 200, 120),
-                Content = new Grid { Children = { view } }
-            };
+            using var popup = new PopupWindow();
+            popup.Rect = new Rect(screen.X + 80, screen.Y + 80, 200, 120);
+            popup.Content = new Grid { Children = { view } };
             popup.Visible = true;
             await ShellFixture.LaidOut(view);
 
@@ -149,7 +141,7 @@ public sealed class CaptureViewTests
 
     // Not in TestSupport: Core.Tests compiles it and cannot see ICaptureBackend. CaptureSessionTests' fake also counts calls
     // and fails on demand.
-    private sealed class FakeCapture : ICaptureBackend
+    private sealed partial class FakeCapture : ICaptureBackend
     {
         public PixelImage? Next { get; set; }
 

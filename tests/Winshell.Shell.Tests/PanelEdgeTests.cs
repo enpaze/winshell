@@ -11,8 +11,11 @@ public sealed class PanelEdgeTests
     {
         var classes = await ShellFixture.On(_ =>
         {
-            using var panel = new PanelWindow
-                { Anchors = Edges.Top | Edges.Left, Width = 320, Height = 60, Content = new Grid() };
+            using var panel = new PanelWindow();
+            panel.Anchors = Edges.Top | Edges.Left;
+            panel.Width = 320;
+            panel.Height = 60;
+            panel.Content = new Grid();
             panel.Visible = true;
             return DoctorProbe.EdgeWindows().Select(window => window.ClassName).ToList();
         });

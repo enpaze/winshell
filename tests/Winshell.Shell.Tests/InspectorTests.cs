@@ -12,7 +12,7 @@ using Xunit.Sdk;
 
 namespace Winshell.ShellTests;
 
-public sealed class InspectorTests : IDisposable
+public sealed partial class InspectorTests : IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
 
@@ -59,13 +59,13 @@ public sealed class InspectorTests : IDisposable
             .Single(window => window.GetProperty("content").GetProperty("type").GetString() == content).Clone();
     }
 
-    public sealed class Page : StackPanel;
+    private sealed partial class Page : StackPanel;
 
-    public sealed class Other : StackPanel;
+    private sealed partial class Other : StackPanel;
 
-    private static Page Filled(out Button button, out TextBlock label)
+    private static Page Filled(out Button button)
     {
-        label = new TextBlock { Name = "Label", Text = "hello" };
+        var label = new TextBlock { Name = "Label", Text = "hello" };
         button = new Button { Name = "Press", Content = "Go", Margin = new Thickness(10, 0, 0, 0) };
         var page = new Page();
         page.Children.Add(label);
@@ -81,7 +81,7 @@ public sealed class InspectorTests : IDisposable
     {
         var tree = await ShellFixture.On(async shell =>
         {
-            var page = Filled(out var button, out _);
+            var page = Filled(out var button);
             using var panel = Panel(page);
             await ShellFixture.LaidOut(button);
             return await Inspector.Run(shell, "tree", []);
@@ -107,7 +107,7 @@ public sealed class InspectorTests : IDisposable
     {
         var clicks = await ShellFixture.On(async shell =>
         {
-            var page = Filled(out var button, out _);
+            var page = Filled(out var button);
             var count = 0;
             button.Click += (_, _) => count++;
             using var panel = Panel(page);
@@ -209,7 +209,7 @@ public sealed class InspectorTests : IDisposable
     {
         var tree = await ShellFixture.On(async shell =>
         {
-            var page = Filled(out var button, out _);
+            var page = Filled(out var button);
             using var panel = Panel(page);
             await ShellFixture.LaidOut(button);
             button.Focus(FocusState.Programmatic);
@@ -285,7 +285,7 @@ public sealed class InspectorTests : IDisposable
     {
         var message = await ShellFixture.On(async shell =>
         {
-            var page = Filled(out var button, out _);
+            var page = Filled(out var button);
             using var panel = Panel(page);
             await ShellFixture.LaidOut(button);
             try
@@ -307,7 +307,7 @@ public sealed class InspectorTests : IDisposable
     {
         var said = await ShellFixture.On(async shell =>
         {
-            var page = Filled(out var button, out _);
+            var page = Filled(out var button);
             using var panel = Panel(page);
             await ShellFixture.LaidOut(button);
             return await Inspector.Run(shell, "hover", ["Press"]);
@@ -332,13 +332,14 @@ public sealed class InspectorTests : IDisposable
             return await Inspector.Run(shell, "screenshot", [file, nameof(Page)]);
         });
 
-        var (width, height, pixels) = await Decoded(File.ReadAllBytes(file));
+        var (width, height, pixels) = await Decoded(
+            await File.ReadAllBytesAsync(file, TestContext.Current.CancellationToken));
         Assert.Equal((220, 90), (width, height));
         var corner = (5 * width + 5) * 4;
-        Assert.NotEqual(255, (int)pixels[corner + 2]);
+        Assert.NotEqual(255, pixels[corner + 2]);
         var middle = (height / 2 * width + width / 2) * 4;
         Assert.Equal((0, 0, 255, 255),
-            ((int)pixels[middle], (int)pixels[middle + 1], (int)pixels[middle + 2], (int)pixels[middle + 3]));
+            (pixels[middle], pixels[middle + 1], pixels[middle + 2], pixels[middle + 3]));
     }
 
     [Fact]
@@ -374,7 +375,8 @@ public sealed class InspectorTests : IDisposable
         Assert.Equal("MenuFlyoutPresenter", popup.GetProperty("type").GetString());
         Assert.Contains("\"automationId\": \"reload\"", popup.GetRawText(), StringComparison.Ordinal);
         Assert.EndsWith(file, shot, StringComparison.Ordinal);
-        var (width, height, _) = await Decoded(File.ReadAllBytes(file));
+        var (width, height, _) = await Decoded(
+            await File.ReadAllBytesAsync(file, TestContext.Current.CancellationToken));
         Assert.True(width > 0 && height > 0);
     }
 
@@ -392,7 +394,7 @@ public sealed class InspectorTests : IDisposable
     private static async Task<(int Width, int Height, byte[] Bgra)> Decoded(byte[] png)
     {
         using var stream = new InMemoryRandomAccessStream();
-        await stream.WriteAsync(WindowsRuntimeBufferExtensions.AsBuffer(png));
+        await stream.WriteAsync(png.AsBuffer());
         stream.Seek(0);
         var decoder = await BitmapDecoder.CreateAsync(stream);
         var data = await decoder.GetPixelDataAsync(

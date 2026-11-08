@@ -7,7 +7,7 @@ namespace Winshell.ShellTests;
 /// Ordering, timer cancellation and failure reporting, once each for the test loop and for
 /// <see cref="DispatcherLoop"/>. The dispatcher runs on the shared real shell.
 /// </summary>
-public sealed class EventLoopContractTests
+public sealed partial class EventLoopContractTests
 {
     [Fact]
     public async Task Posted_work_runs_in_post_order()
@@ -53,7 +53,7 @@ public sealed class EventLoopContractTests
         loop.Failed += failed.Add;
         loop.Post(() => Assert.Fail("from the callback"));
 
-        var thrown = Assert.Throws<FailException>(() => loop.Process());
+        var thrown = Assert.Throws<FailException>(loop.Process);
 
         Assert.Contains("from the callback", thrown.ToString(), StringComparison.Ordinal);
         Assert.Empty(failed);
@@ -81,6 +81,8 @@ public sealed class EventLoopContractTests
 
     private static async Task ADisposedTimerDoesNotFire(LoopRun run)
     {
+        // The callbacks write these counters, and the test reads them after Settle.
+        // ReSharper disable AccessToModifiedClosure
         var cancelled = 0;
         var kept = 0;
         var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -91,6 +93,7 @@ public sealed class EventLoopContractTests
             finished.SetResult();
         });
         timer.Dispose();
+        // ReSharper restore AccessToModifiedClosure
 
         await run.Settle(TimeSpan.FromMilliseconds(50), finished.Task);
 
@@ -108,6 +111,8 @@ public sealed class EventLoopContractTests
             run.Loop.Post(() => throw new InvalidOperationException("posted"));
             run.Loop.Post(() =>
             {
+                // The callback sets ran, and the assertion reads it after Settle.
+                // ReSharper disable once AccessToModifiedClosure
                 Interlocked.Exchange(ref ran, 1);
                 finished.SetResult();
             });
@@ -169,7 +174,7 @@ public sealed class EventLoopContractTests
         Func<Action<Exception>, IDisposable> Listen,
         Func<TimeSpan, Task, Task> Settle);
 
-    private sealed class Detach(Action detach) : IDisposable
+    private sealed partial class Detach(Action detach) : IDisposable
     {
         public void Dispose()
         {
