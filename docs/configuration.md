@@ -92,6 +92,34 @@ One panel per screen walks `shell.Screens`. The primary screen is first. The col
 
 Reactor is the configuration's choice. Add `Microsoft.UI.Reactor` in the project and set `new ReactorHostControl(component)` as a window's content. Winshell never references it.
 
+## Widgets
+
+A [WidgetArea](reference/winshell.md#widgetarea) can go anywhere in a window. Register widget names before assigning placements. Each placement creates a fresh WinUI element with its own settings, the area's orientation and the running `Shell` in its `WidgetContext`. Several placements may use one widget.
+
+```csharp
+        Widgets.Register("message", context => new TextBlock
+        {
+            Text = (string)context.Settings["text"]
+        });
+        var area = new WidgetArea
+        {
+            Orientation = Orientation.Horizontal,
+            Defaults =
+            [
+                new("message", new Dictionary<string, object> { ["text"] = "Hello" }),
+                new("message", new Dictionary<string, object> { ["text"] = "World" })
+            ]
+        };
+        var panel = new PanelWindow { Height = 48, Content = area, Visible = true };
+        panel.Closed += area.Dispose;
+```
+
+Assigning `Defaults` snapshots the list and replaces its widgets. Changing `Orientation` also recreates them. Both dispose every widget implementing `IDisposable`. The example treats a user closing the panel as permanent: `Closed` normally only hides a window. When your code tears the panel down with `panel.Dispose()`, explicitly call `area.Dispose()` too. Removing or reparenting the area does not dispose widgets. Treat placement settings, including nested tables, as read-only.
+
+Set `Theme` to a `ResourceDictionary` source URI to merge it into the area's resources. Font and foreground inherit through the WinUI tree. Use `{ThemeResource}` for area-sensitive widget resources: `{StaticResource}` resolves at construction, before the area owns the widget. Popup windows need their own styling because resources and inherited properties do not cross windows.
+
+An unknown widget or a factory that throws shows a placeholder with its name and reason while the other placements keep running. Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Exceptions after creation follow the shell's normal crash supervision.
+
 ## A service
 
 Services hang off `Shell`, created when first read. `shell.Audio`, `shell.Power`, `shell.Apps`, `shell.WindowList`, `shell.Networking`, `shell.Bluetooth`, `shell.Notifications`, `shell.SystemTray`, `shell.Media` and the others are on the [Winshell](reference/winshell.md#shell) page, and each namespace has its own page.

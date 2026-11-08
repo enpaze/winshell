@@ -154,6 +154,16 @@ Pictures in memory as sources WinUI can show.
 | --- | --- | --- |
 | `ToImageSource([PixelImage](#pixelimage) image)` | ImageSource, static | Makes a new source for a WinUI `Image`, with the picture's pixel size and colors. Call on the UI thread. The pixels are copied and premultiplied when needed; the picture is unchanged. A source that keeps its own copy of the pixels. |
 
+## Placement
+
+One entry in a widget area. Several placements may name the same widget.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `Placement(string Widget, IReadOnlyDictionary of string, object? Settings = null)` | constructor |  |
+| `Settings` | IReadOnlyDictionary of string, object?, init | This placement's settings, or null for no settings. Widgets should treat nested values as read-only too. |
+| `Widget` | string, init | The case-sensitive name registered with Widgets.Register. |
+
 ## PopupWindow
 
 A frameless window placed next to another window.
@@ -337,6 +347,48 @@ Has the members of [ObservableObject](#observableobject).
 | `Loaded` | bool, read-only | Whether the file is there and parses. Without it the properties keep the values they had. |
 | `Dispose()` | void | Stops following the file. A write that was on its way runs now. |
 | `Save()` | void | Writes the file now, adding the keys it does not have, or making it and its folder when there is none. |
+
+## UnsupportedWidgetException
+
+A widget factory throws this with the reason it cannot run in this placement.
+
+An exception.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `UnsupportedWidgetException(string message)` | constructor |  |
+
+## WidgetArea
+
+An ordered area of widgets. Use it on the shell's thread and dispose it when its owner closes. Unloading or reparenting does not dispose widgets. Font and foreground inherit normally; area-sensitive XAML uses ThemeResource.
+
+A WinUI UserControl. The members here are the ones Winshell adds.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `WidgetArea()` | constructor | Creates an empty, horizontal area. |
+| `Defaults` | IReadOnlyList of [Placement](#placement) | The author's ordered placements. Assigning a list snapshots it, disposes the previous widgets, and creates the new ones immediately. To apply edits, assign the list again. Settings are passed through without copying. |
+| `Orientation` | Orientation | The layout direction. Changing it disposes and recreates the placements with the new orientation. |
+| `Theme` | Uri? | A ResourceDictionary source URI merged into this area's resources, or null for the inherited theme. Changing it replaces only the dictionary this property loaded, leaving the area's other resources intact. |
+| `Dispose()` | void | Detaches and disposes every disposable widget, once. All are attempted even if one disposal throws. |
+
+## WidgetContext
+
+The placement's inputs, passed to its widget factory on the shell's thread.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `Orientation` | Orientation, read-only | The direction in which the area arranges its placements. |
+| `Settings` | IReadOnlyDictionary of string, object, read-only | This placement's settings. Empty when the placement supplied none. |
+| `Shell` | [Shell](#shell), read-only | The shell that owns the area. |
+
+## Widgets
+
+The widget factories available to this configuration, registered before creating its areas.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `Register(string name, Func of [WidgetContext](#widgetcontext), UIElement create)` | void, static | Registers a case-sensitive name for the life of the program. A duplicate name throws. The factory runs on the shell's thread and must return a fresh element for each placement. Only failures during creation are contained. |
 
 ## WindowBackdrop
 
