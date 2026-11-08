@@ -51,11 +51,14 @@
         </StackPanel>
         <StackPanel x:Name="PinnedItems" Orientation="Horizontal" />
       </StackPanel>
-      <Button x:Name="Bluetooth" Style="{StaticResource PanelButton}" Tag="ms-settings:bluetooth" Click="OnSettingsClick" />
-      <Button x:Name="Network" Style="{StaticResource PanelButton}" Tag="ms-settings:network-status" Click="OnSettingsClick" />
+      <Button x:Name="Bluetooth" Style="{StaticResource PanelButton}" Tag="ms-settings:bluetooth"
+              Click="OnSettingsClick" />
+      <Button x:Name="Network" Style="{StaticResource PanelButton}" Tag="ms-settings:network-status"
+              Click="OnSettingsClick" />
       <Button x:Name="Audio" Style="{StaticResource PanelButton}" Tag="ms-settings:sound" Click="OnSettingsClick" />
       <Button x:Name="Screen" Style="{StaticResource PanelButton}" Tag="ms-settings:display" Click="OnSettingsClick" />
-      <Button x:Name="Battery" Style="{StaticResource PanelButton}" Tag="ms-settings:powersleep" Click="OnSettingsClick" />
+      <Button x:Name="Battery" Style="{StaticResource PanelButton}" Tag="ms-settings:powersleep"
+              Click="OnSettingsClick" />
     </StackPanel>
   </Grid>
 </UserControl>

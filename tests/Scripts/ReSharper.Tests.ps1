@@ -72,6 +72,26 @@ Describe 'ReSharper command' {
         (Get-FileHash -LiteralPath $script:Program).Hash | Should -Be $workingHash
     }
 
+    It 'rejects a staged example that cleanup would reformat' {
+        $example = Join-Path $script:Fixture 'examples/Demo'
+        New-Item -ItemType Directory -Path $example -Force | Out-Null
+        [IO.File]::WriteAllText((Join-Path $example 'Demo.csproj'), '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings></PropertyGroup></Project>')
+        $source = Join-Path $example 'Program.cs'
+        [IO.File]::WriteAllText($source, 'namespace Demo; internal readonly record struct Item(int Value); internal static class Program{private static Item[] Items()=>[new(1),new(2)];public static void Main(){System.Console.WriteLine("example" + Items().Length);}}')
+        [IO.File]::WriteAllText((Join-Path $script:Fixture 'winshell.slnx'), '<Solution><Project Path="src/Sample/Sample.csproj" /><Project Path="examples/Demo/Demo.csproj" /></Solution>')
+        git -C $script:Fixture rm --cached -- src/Sample/Program.cs | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Could not unstage the sample source.' }
+        git -C $script:Fixture add -- examples/Demo/Program.cs examples/Demo/Demo.csproj winshell.slnx
+        if ($LASTEXITCODE -ne 0) { throw 'Could not stage the example.' }
+        $hash = (Get-FileHash -LiteralPath $source).Hash
+
+        $check = Invoke-FixtureReSharper Check -Staged
+        $check.ExitCode | Should -Be 1 -Because $check.Output
+        $check.Output | Should -Match '(?m)^  examples/Demo/Program\.cs$'
+        $check.Output | Should -Not -Match '(?m)^  src/Sample/Program\.cs$'
+        (Get-FileHash -LiteralPath $source).Hash | Should -Be $hash
+    }
+
     It 'keeps template inspection locations readable after temporary files are removed' {
         foreach ($folder in @('templates/winshell', 'src/Winshell.Shell')) {
             New-Item -ItemType Directory -Path (Join-Path $script:Fixture $folder) -Force | Out-Null

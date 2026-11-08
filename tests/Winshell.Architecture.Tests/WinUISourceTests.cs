@@ -15,8 +15,7 @@ public class WinUISourceTests
     {
         var projects = XDocument.Load(Path.Combine(Repo.Root, "winshell.slnx")).Descendants("Project")
             .Select(project => Path.Combine(Repo.Root, project.Attribute("Path")!.Value))
-            .Where(path => XDocument.Load(path).Descendants("UseWinUI").Any(use =>
-                use.Value.Trim().Equals("true", StringComparison.OrdinalIgnoreCase)))
+            .Where(UsesWinUI)
             .ToList();
         Assert.NotEmpty(projects);
 
@@ -24,6 +23,41 @@ public class WinUISourceTests
             .ToList();
 
         Assert.True(found.Count == 0, string.Join(Environment.NewLine, found));
+    }
+
+    // The example sets UseWinUI in the props file it imports, as a configuration from the package does.
+    // The last assignment wins.
+    private static bool UsesWinUI(string path)
+    {
+        return WinUISetting(path, new HashSet<string>(StringComparer.OrdinalIgnoreCase))
+            ?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static string? WinUISetting(string path, HashSet<string> seen)
+    {
+        var full = Path.GetFullPath(path);
+        if (!seen.Add(full))
+            return null;
+
+        string? setting = null;
+        var folder = Path.GetDirectoryName(full)!;
+        foreach (var element in XDocument.Load(full).Descendants())
+            if (element.Name == "Import")
+            {
+                var imported = element.Attribute("Project")?.Value;
+                if (imported is null || imported.Contains('$') || element.Attribute("Condition") is not null)
+                    continue;
+
+                var nested = WinUISetting(Path.Combine(folder, imported), seen);
+                if (nested is not null)
+                    setting = nested;
+            }
+            else if (element.Name == "UseWinUI" && element.Attribute("Condition") is null)
+            {
+                setting = element.Value.Trim();
+            }
+
+        return setting;
     }
 
     // The project's folder without the build output and generated code in bin and obj, and the files it links.
