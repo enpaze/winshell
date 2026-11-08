@@ -63,7 +63,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $ProgressPreference = 'SilentlyContinue'
           $archive = Join-Path $env:RUNNER_TEMP 'lychee.zip'
-          Invoke-WebRequest -Uri "https://github.com/lycheeverse/lychee/releases/download/$env:LYCHEE_VERSION/lychee-x86_64-pc-windows-msvc.zip" -OutFile $archive
+          Invoke-WebRequest -Uri "https://github.com/lycheeverse/lychee/releases/download/$env:LYCHEE_VERSION/lychee-x86_64-pc-windows-msvc.zip" -OutFile $archive -MaximumRetryCount 5 -RetryIntervalSec 15
           $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash
           if (-not $hash.Equals($env:LYCHEE_SHA256, [StringComparison]::OrdinalIgnoreCase)) {
             throw "lychee $env:LYCHEE_VERSION SHA-256 is $hash, expected $env:LYCHEE_SHA256."
