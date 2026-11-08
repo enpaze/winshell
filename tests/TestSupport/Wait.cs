@@ -1,9 +1,6 @@
 namespace Winshell.TestSupport;
 
 // Each test project compiles this file, so a use in another project is invisible here.
-// ReSharper disable UnusedType.Global
-// ReSharper disable UnusedMember.Global
-// ReSharper disable MemberCanBePrivate.Global
 /// <summary>
 /// The one way a test waits on time. An event, a task or <c>ManualEventLoop.Advance</c> is better when there is one.
 /// This is for what gives no signal: a file, a window, another process. Every wait ends with the test, at its deadline.
@@ -105,6 +102,3 @@ internal static class Wait
         return pause * 2 < LongestPause ? pause * 2 : LongestPause;
     }
 }
-// ReSharper restore MemberCanBePrivate.Global
-// ReSharper restore UnusedMember.Global
-// ReSharper restore UnusedType.Global

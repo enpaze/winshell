@@ -21,102 +21,81 @@ public sealed class BluetoothDevice : ObservableObject
     }
 
     /// <summary>An action failed, with the same text as <see cref="Error"/>.</summary>
-    [PublicAPI]
     public event Action<string>? OperationFailed;
 
     internal string Key => _info.Key;
 
     /// <summary>The Windows id of the device's endpoint, a paired one when there is one.</summary>
-    [PublicAPI]
     public string Id => _info.Id;
 
     /// <summary>The adapter that found the device.</summary>
-    [PublicAPI]
     public BluetoothAdapter Adapter { get; }
 
     /// <summary>The device's Bluetooth address, in capital letters. Empty when Windows gives none.</summary>
-    [PublicAPI]
     public string Address => _info.Address;
 
     /// <summary>The device's name, or its <see cref="Address"/> when Windows gives no name.</summary>
-    [PublicAPI]
     public string Name => _info.Name;
 
     /// <summary>A device-type name, such as <c>audio-headset</c> or <c>input-keyboard</c>. Empty when Windows reports no class, or a class that has no name.</summary>
-    [PublicAPI]
     public string Icon => _info.Icon;
 
     /// <summary>Whether the device is paired with this PC.</summary>
-    [PublicAPI]
     public bool Paired => _info.Paired;
 
     /// <summary>Whether Windows sees the device now. A paired device that is off or out of range is not.</summary>
-    [PublicAPI]
     public bool Present => _info.Present;
 
     /// <summary>Whether the device is not paired and Windows says it can be, so <see cref="Pair"/> can work.</summary>
-    [PublicAPI]
     public bool CanPair => _info is { Paired: false, CanPair: true };
 
     /// <summary>Whether the device is connected.</summary>
-    [PublicAPI]
     public bool Connected => _info.Connected;
 
     /// <summary><see cref="Connected"/>, as a state.</summary>
-    [PublicAPI]
     public BluetoothDeviceState State =>
         _info.Connected ? BluetoothDeviceState.Connected : BluetoothDeviceState.Disconnected;
 
     /// <summary>Whether Windows reports the device's battery level. Only a connected device can have one.</summary>
-    [PublicAPI]
     public bool BatteryAvailable => _info.Battery.HasValue;
 
     /// <summary>The battery level, from 0 to 1. 0 when <see cref="BatteryAvailable"/> is false.</summary>
-    [PublicAPI]
     public double Battery => _info.Battery ?? 0;
 
     /// <summary>The action running on the device, or <see cref="BluetoothOperation.None"/>.</summary>
-    [PublicAPI]
     public BluetoothOperation Operation => _operation;
 
     /// <summary>An action is running. Other actions are ignored until it ends.</summary>
-    [PublicAPI]
     public bool Busy => _operation != BluetoothOperation.None;
 
     /// <summary>Whether <see cref="Pair"/> is running. <see cref="CancelPairing"/> stops it.</summary>
-    [PublicAPI]
     public bool Pairing => _operation == BluetoothOperation.Pairing;
 
     /// <summary>
     /// Why the last action failed, or <c>Cancelled</c> after <see cref="CancelPairing"/>. Empty while an action runs
     /// and after one succeeds.
     /// </summary>
-    [PublicAPI]
     public string Error => _error;
 
     /// <summary>Asks Windows to connect a paired audio device. Fails for other device types, which reconnect through Windows.</summary>
-    [PublicAPI]
     public void Connect()
     {
         _ = SetConnectionAsync(true);
     }
 
     /// <summary>Asks Windows to disconnect a paired audio device. Fails for other device types.</summary>
-    [PublicAPI]
     public void Disconnect()
     {
         _ = SetConnectionAsync(false);
     }
 
     /// <summary>Pairs the device with basic Windows pairing, which may show consent or PIN UI.</summary>
-    [PublicAPI]
     public void Pair()
     {
         _ = PairAsync();
     }
 
     /// <summary>Cancels a running <see cref="Pair"/>. Its <see cref="Error"/> becomes <c>Cancelled</c>.</summary>
-    [PublicAPI]
     public void CancelPairing()
     {
         lock (_pairingLock)
@@ -126,7 +105,6 @@ public sealed class BluetoothDevice : ObservableObject
     }
 
     /// <summary>Unpairs every paired endpoint of the device, stopping at the first failure.</summary>
-    [PublicAPI]
     public void Unpair()
     {
         _ = UnpairAsync();
@@ -246,7 +224,6 @@ public sealed class BluetoothDevice : ObservableObject
         Changed(old.Connected != info.Connected, nameof(Connected));
         Changed(old.Connected != info.Connected, nameof(State));
         Changed(old.Battery.HasValue != info.Battery.HasValue, nameof(BatteryAvailable));
-        // ReSharper disable once CompareOfFloatsByEqualityOperator The level is a stored percent divided by 100.
         Changed((old.Battery ?? 0) != (info.Battery ?? 0), nameof(Battery));
     }
 

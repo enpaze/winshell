@@ -1,10 +1,10 @@
 using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Win32.UI.WindowsAndMessaging;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.Win32.UI.WindowsAndMessaging;
 using Winshell.Native;
 
 namespace Winshell.ShellTests;

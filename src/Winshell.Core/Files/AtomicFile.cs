@@ -140,7 +140,7 @@ internal static class AtomicFile
     private static void MoveReplacing(string temp, string path)
     {
         int[] delays = [25, 50, 100, 200];
-        for (var attempt = 0;; attempt++)
+        for (var attempt = 0; ; attempt++)
             try
             {
                 File.Move(temp, path, true);

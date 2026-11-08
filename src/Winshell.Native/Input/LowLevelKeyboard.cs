@@ -75,7 +75,6 @@ internal static unsafe class LowLevelKeyboard
     private static nint Proc(int code, nint wParam, nint lParam)
     {
         // The hook procedure reads the slot without Gate, so a key cannot wait on the lock.
-        // ReSharper disable once InconsistentlySynchronizedField
         if (code >= 0 && lParam != 0 && Volatile.Read(ref _owner) is { } owner)
         {
             var info = (KBDLLHOOKSTRUCT*)lParam;

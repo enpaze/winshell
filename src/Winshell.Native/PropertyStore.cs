@@ -75,7 +75,6 @@ internal readonly struct PROPERTYKEY(Guid format, uint id)
 
 /// <summary>IPropertyStore, with the Windows SDK's methods in its vtable order.</summary>
 // Every method keeps its place in the IPropertyStore vtable.
-// ReSharper disable UnusedMember.Global
 [ComImport]
 [Guid("886d8eeb-8cf2-4446-8d02-cdba1dbdcf99")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -96,4 +95,3 @@ internal interface IPropertyStore
     [PreserveSig]
     int Commit();
 }
-// ReSharper restore UnusedMember.Global

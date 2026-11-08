@@ -25,7 +25,6 @@ internal static class ShellLink
         try
         {
             // The cast queries IPersistFile on this shell link. No type implements both.
-            // ReSharper disable once SuspiciousTypeConversion.Global
             if (shell is not IPersistFile file)
                 return null;
             file.Load(path, 0);
@@ -43,7 +42,6 @@ internal static class ShellLink
             shell.GetDescription(buffer, buffer.Capacity);
             var description = buffer.ToString();
             // The cast queries IPropertyStore on this shell link. No type implements both.
-            // ReSharper disable once SuspiciousTypeConversion.Global
             var aumid = shell is IPropertyStore store
                 ? PropertyStore.ReadString(store, PropertyStore.AppUserModelId) ?? ""
                 : "";
@@ -65,7 +63,6 @@ internal static class ShellLink
     /// cast from that runtime-callable wrapper.
     /// </summary>
     // Every method keeps its place in the IPersistFile vtable.
-    // ReSharper disable UnusedMember.Global
     [ComImport]
     [Guid("0000010b-0000-0000-C000-000000000046")]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -80,5 +77,4 @@ internal static class ShellLink
 
         void Save([MarshalAs(UnmanagedType.LPWStr)] string? fileName, [MarshalAs(UnmanagedType.Bool)] bool remember);
     }
-    // ReSharper restore UnusedMember.Global
 }

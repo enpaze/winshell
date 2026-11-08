@@ -1,10 +1,10 @@
 using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Security;
 using Windows.Win32.Storage.FileSystem;
 using Windows.Win32.System.Pipes;
-using Microsoft.Win32.SafeHandles;
 
 namespace Winshell.Native;
 
@@ -27,7 +27,7 @@ internal static unsafe class NamedPipeServer
         try
         {
             var attributes = new SECURITY_ATTRIBUTES
-                { nLength = (uint)sizeof(SECURITY_ATTRIBUTES), lpSecurityDescriptor = sd };
+            { nLength = (uint)sizeof(SECURITY_ATTRIBUTES), lpSecurityDescriptor = sd };
             var mode = FILE_FLAGS_AND_ATTRIBUTES.PIPE_ACCESS_DUPLEX | FILE_FLAGS_AND_ATTRIBUTES.FILE_FLAG_OVERLAPPED;
             if (first)
                 mode |= FILE_FLAGS_AND_ATTRIBUTES.FILE_FLAG_FIRST_PIPE_INSTANCE;

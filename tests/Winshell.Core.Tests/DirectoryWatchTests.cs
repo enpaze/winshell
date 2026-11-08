@@ -18,7 +18,6 @@ public sealed class DirectoryWatchTests : IDisposable
         {
             if (name == "made.txt")
                 // Disposing the watch stops this callback before the event is disposed.
-                // ReSharper disable once AccessToDisposedClosure
                 seen.Set();
         }, () => { });
         Assert.NotNull(watch);
@@ -38,7 +37,6 @@ public sealed class DirectoryWatchTests : IDisposable
         {
             if (name == "made.txt")
                 // Disposing the watch stops this callback before the event is disposed.
-                // ReSharper disable once AccessToDisposedClosure
                 seen.Set();
         }, () => { }));
         starter.Start();

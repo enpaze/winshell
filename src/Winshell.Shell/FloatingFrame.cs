@@ -159,10 +159,8 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
     {
         var first = !_placed;
         // The size was stored from the last placement, so only an exact change asks for a new frame.
-        // ReSharper disable CompareOfFloatsByEqualityOperator
         var widthChanged = placement.Width != _lastWidth;
         var heightChanged = placement.Height != _lastHeight;
-        // ReSharper restore CompareOfFloatsByEqualityOperator
         if (first || widthChanged || heightChanged)
         {
             _lastWidth = placement.Width;

@@ -4,9 +4,6 @@ namespace Winshell.TestSupport;
 
 // Each test project compiles this file, so a use in another project is invisible here.
 // CsWinRT1028 requires partial. The WinUI test projects generate the other part.
-// ReSharper disable ClassNeverInstantiated.Global
-// ReSharper disable MemberCanBePrivate.Global
-// ReSharper disable PartialTypeWithSinglePart
 /// <summary>
 /// A new folder under <c>%TEMP%\winshell-tests</c>, deleted on dispose. Every test program prunes folders a crashed
 /// run left there once at startup; a folder from today stays. A test gets every temp path here: the ban list rejects
@@ -56,6 +53,3 @@ internal sealed partial class TempFolder : IDisposable
             }
     }
 }
-// ReSharper restore PartialTypeWithSinglePart
-// ReSharper restore MemberCanBePrivate.Global
-// ReSharper restore ClassNeverInstantiated.Global

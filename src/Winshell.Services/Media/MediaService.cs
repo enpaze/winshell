@@ -27,7 +27,6 @@ public sealed class MediaService : ObservableObject, IDisposable
     }
 
     /// <summary>One session for each app in the Windows media controls. Empty when no app plays media.</summary>
-    [PublicAPI]
     public ObservableCollection<MediaSession> Sessions { get; } = [];
 
     private void Refresh(SmtcSession? _)
@@ -37,7 +36,6 @@ public sealed class MediaService : ObservableObject, IDisposable
     }
 
     /// <summary>Stops following the Windows media sessions. The ones in <see cref="Sessions"/> stop updating.</summary>
-    [PublicAPI]
     public void Dispose()
     {
         _sessions.SessionAdded -= Refresh;

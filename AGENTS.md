@@ -6,6 +6,7 @@ A desktop shell toolkit for Windows 11. A configuration is a .NET project that b
 
 - Windows 11. Projects target `net10.0-windows10.0.22621.0`. The template package targets `net10.0`.
 - .NET 10 SDK, pinned in `global.json`. `Directory.Build.props` treats warnings as errors.
+- Use `.editorconfig` and `dotnet format` for C# formatting and style verification.
 - C# and WinUI 3. `winshell.exe` builds and supervises a configuration. Winshell ships no shell of its own.
 - xUnit v3 for `tests/`, through VSTest.
 - PowerShell 7 for `scripts/`. `scripts/install.ps1` and `scripts/uninstall.ps1` also run on Windows PowerShell 5.1.

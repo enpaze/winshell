@@ -1,10 +1,10 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.Foundation;
 using Winshell.Capture;
 
 namespace Winshell;
@@ -18,7 +18,7 @@ namespace Winshell;
 public sealed partial class CaptureView : Panel
 {
     /// <summary>The capture to show. Null shows nothing.</summary>
-    [PublicAPI] public static readonly DependencyProperty SessionProperty = DependencyProperty.Register(
+    public static readonly DependencyProperty SessionProperty = DependencyProperty.Register(
         nameof(Session),
         typeof(CaptureSession),
         typeof(CaptureView),
@@ -32,7 +32,6 @@ public sealed partial class CaptureView : Panel
     private WriteableBitmap? _bitmap;
 
     /// <summary>A view with no session, which shows nothing.</summary>
-    [PublicAPI]
     public CaptureView()
     {
         _shell = new ShellWindowWatch(OnShellChanged);
@@ -42,7 +41,6 @@ public sealed partial class CaptureView : Panel
     }
 
     /// <summary>The capture to show. Null shows nothing.</summary>
-    [PublicAPI]
     public CaptureSession? Session
     {
         get => (CaptureSession?)GetValue(SessionProperty);

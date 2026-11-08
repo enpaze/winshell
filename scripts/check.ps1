@@ -56,8 +56,7 @@ try {
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }
     if ($full) {
-        # ReSharper checks an isolated copy; compiler warnings and analyzers remain build checks.
-        & (Join-Path $PSScriptRoot 'resharper.ps1') -Mode Check
+        & (Join-Path $PSScriptRoot 'format.ps1') -VerifyNoChanges
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         # DocsTests compiles the reference generator as a library, which leaves out its entry point.
         dotnet build scripts/generate-reference.cs --nologo

@@ -80,7 +80,8 @@ public sealed class BluetoothServiceTests
 
         await session.ShowAsync(Snapshot(DeviceInfo("ChangedEndpoint", false, battery: null) with
         {
-            Name = "Nearby", Connected = false
+            Name = "Nearby",
+            Connected = false
         }));
 
         Assert.Same(device, session.Device);

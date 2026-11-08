@@ -177,7 +177,6 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
                         process.Kill(true);
                 }
                 // The process can exit between the check and Kill.
-                // ReSharper disable once EmptyGeneralCatchClause
                 catch (Exception)
                 {
                 }

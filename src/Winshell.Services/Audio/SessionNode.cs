@@ -38,7 +38,6 @@ internal sealed class SessionNode : AudioGraphNode
         control.GetProcessId(out _processId);
         IsSystem = control.IsSystemSoundsSession() == 0;
         // QueryInterface: the session object implements ISimpleAudioVolume, and no type inherits both.
-        // ReSharper disable once SuspiciousTypeConversion.Global
         _volume = (ISimpleAudioVolume)control;
         ReadProperties();
         ReadVolume();
@@ -57,7 +56,6 @@ internal sealed class SessionNode : AudioGraphNode
 
     public override IAudioMeterInformation? Meter =>
         // QueryInterface: the session object implements IAudioMeterInformation, and no type inherits both.
-        // ReSharper disable once SuspiciousTypeConversion.Global
         _released || _control is not Native.IAudioMeterInformation meter ? null : new WindowsAudioMeter(meter);
 
     public override void SetVolumes(IReadOnlyList<float> volumes)
@@ -144,7 +142,6 @@ internal sealed class SessionNode : AudioGraphNode
         var system = IsSystem;
         _control.GetDisplayName(out var displayName);
         // A null COM string marshals as null despite the non-null out parameter.
-        // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
         displayName = CoreAudio.LoadIndirectString(displayName ?? "");
         var path = _processId == 0 ? null : ProcessImage.TryRead(_processId);
         var binary = path is null ? "" : Path.GetFileName(path);

@@ -13,7 +13,6 @@ public sealed partial class PopupWindow : ShellWindow
     /// A hidden popup of the running shell, 100 by 100 at the virtual desktop's origin until
     /// <see cref="PopupWindow.Rect"/> is set.
     /// </summary>
-    [PublicAPI]
     public PopupWindow()
         : this(Shell.Current)
     {
@@ -27,7 +26,6 @@ public sealed partial class PopupWindow : ShellWindow
     private protected override WindowKind Kind => WindowKind.Popup;
 
     /// <summary>Where the popup sits, in logical pixels on the virtual desktop.</summary>
-    [PublicAPI]
     public Rect Rect
     {
         get => _rect;
@@ -39,7 +37,6 @@ public sealed partial class PopupWindow : ShellWindow
     }
 
     /// <summary>Takes the keyboard while shown. Focus does nothing unless this is set. A click outside the popup and its open flyouts, or Esc, then dismisses it.</summary>
-    [PublicAPI]
     public bool GrabFocus
     {
         get => _grabFocus;
@@ -51,7 +48,6 @@ public sealed partial class PopupWindow : ShellWindow
     }
 
     /// <summary>A click outside the popup and its open flyouts, or Esc, dismissed it. It is hidden.</summary>
-    [PublicAPI]
     public event Action? Dismissed;
 
     internal override IWindowPlacer CreatePlacer(HostWindow host, ShellPlatform platform)

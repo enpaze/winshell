@@ -7,19 +7,19 @@ namespace Winshell.Tray;
 public enum BalloonIcon
 {
     /// <summary>No icon.</summary>
-    [PublicAPI] None = 0,
+    None = 0,
 
     /// <summary>The information icon.</summary>
-    [PublicAPI] Info = 1,
+    Info = 1,
 
     /// <summary>The warning icon.</summary>
-    [PublicAPI] Warning = 2,
+    Warning = 2,
 
     /// <summary>The error icon.</summary>
-    [PublicAPI] Error = 3,
+    Error = 3,
 
     /// <summary>The app's own icon.</summary>
-    [PublicAPI] App = 4
+    App = 4
 }
 
 /// <summary>
@@ -60,7 +60,6 @@ public sealed class SystemTray : ObservableObject, IDisposable
     }
 
     /// <summary>The icons apps show, in the order they were added. Empty while another instance has the tray.</summary>
-    [PublicAPI]
     public ObservableCollection<SystemTrayItem> Items { get; } = [];
 
     /// <summary>Becomes the notification area, or waits for the instance that has it to exit.</summary>
@@ -186,7 +185,6 @@ public sealed class SystemTray : ObservableObject, IDisposable
     }
 
     /// <summary>Gives the notification area up. Call on the loop's thread.</summary>
-    [PublicAPI]
     public void Dispose()
     {
         if (_disposed)
@@ -237,46 +235,36 @@ public sealed class SystemTrayItem : ObservableObject
     }
 
     /// <summary>Raised once, just after the icon is added to <see cref="SystemTray.Items"/>.</summary>
-    [PublicAPI]
     public event Action? Ready;
 
     /// <summary>The app showed a balloon notification: its title, its text and its icon. Explorer still shows it as a toast.</summary>
-    [PublicAPI]
     public event Action<string, string, BalloonIcon>? Balloon;
 
     /// <summary>The program's file name without its extension.</summary>
-    [PublicAPI]
     public string Id { get; }
 
     /// <summary>The program's description, as Task Manager shows it, or its file name.</summary>
-    [PublicAPI]
     public string AppName { get; }
 
     /// <summary>The full path of the program that added the icon.</summary>
-    [PublicAPI]
     public string Executable { get; }
 
     /// <summary>The process that added the icon, the owner of the window its clicks go to.</summary>
-    [PublicAPI]
     public int ProcessId { get; }
 
     /// <summary>The icon as the app set it, at the size it chose. It changes when the app changes the icon.</summary>
-    [PublicAPI]
     public PixelImage? Icon => _image;
 
     /// <summary>The icon's tooltip, which may run over several lines.</summary>
-    [PublicAPI]
     public string Tooltip => _tooltip;
 
     /// <summary>Windows shows this icon in the hidden icons flyout, not in the taskbar. Users choose in Settings.</summary>
-    [PublicAPI]
     public bool Overflow => _overflow;
 
     /// <summary>
     /// The icon at a size in pixels, for the screen's scale. An icon loaded from a resource is drawn again at that size.
     /// Any other is the app's own bitmap, at the size it chose.
     /// </summary>
-    [PublicAPI]
     public PixelImage? IconAt(int size)
     {
         if (_icon.Image is not { } image)
@@ -287,35 +275,30 @@ public sealed class SystemTrayItem : ObservableObject
     }
 
     /// <summary>A left click at the cursor, which most apps answer by showing their window.</summary>
-    [PublicAPI]
     public void Click()
     {
         _clicker.Click(_icon, TrayClick.Left, null);
     }
 
     /// <summary>A double click at the cursor, which many older apps need before they show their window.</summary>
-    [PublicAPI]
     public void DoubleClick()
     {
         _clicker.Click(_icon, TrayClick.Double, null);
     }
 
     /// <summary>A middle click at the cursor. What it does is up to the app.</summary>
-    [PublicAPI]
     public void MiddleClick()
     {
         _clicker.Click(_icon, TrayClick.Middle, null);
     }
 
     /// <summary>A right click, which asks the app to open its menu at the cursor.</summary>
-    [PublicAPI]
     public void Display()
     {
         _clicker.Click(_icon, TrayClick.Menu, null);
     }
 
     /// <summary>A right click, which asks the app to open its menu at a point on the virtual desktop, in physical pixels.</summary>
-    [PublicAPI]
     public void Display(int x, int y)
     {
         _clicker.Click(_icon, TrayClick.Menu, (x, y));

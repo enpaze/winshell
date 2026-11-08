@@ -28,7 +28,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
     /// of the src/ projects is still to come when <c>winshell reload</c> runs one.
     /// </summary>
     // xUnit constructs this class fixture.
-    // ReSharper disable once ClassNeverInstantiated.Global
     public sealed partial class OwnProbe : IDisposable
     {
         private readonly string _dir = TempFolder.NewPath();
@@ -325,7 +324,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
                     process.Kill(true);
                 }
                 // The process can exit between the check and Kill.
-                // ReSharper disable once EmptyGeneralCatchClause
                 catch (Exception)
                 {
                 }

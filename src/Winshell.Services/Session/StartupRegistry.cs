@@ -1,6 +1,6 @@
 using System.Security;
-using Windows.ApplicationModel;
 using Microsoft.Win32;
+using Windows.ApplicationModel;
 using Winshell.Native;
 
 namespace Winshell.Session;

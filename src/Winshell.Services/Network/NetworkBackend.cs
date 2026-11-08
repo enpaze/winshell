@@ -1,10 +1,10 @@
 using System.Net.NetworkInformation;
 using System.Security;
+using Microsoft.Win32;
 using Windows.Devices.Radios;
 using Windows.Devices.WiFi;
 using Windows.Networking.Connectivity;
 using Windows.Security.Credentials;
-using Microsoft.Win32;
 using Winshell.Native;
 using WinNetworkInformation = Windows.Networking.Connectivity.NetworkInformation;
 

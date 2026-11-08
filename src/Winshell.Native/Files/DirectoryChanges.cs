@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Storage.FileSystem;
-using Microsoft.Win32.SafeHandles;
 
 namespace Winshell.Native;
 

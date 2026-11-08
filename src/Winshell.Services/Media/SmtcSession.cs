@@ -243,7 +243,6 @@ internal sealed class SmtcSession
         };
         var seeked = false;
         // Exact rate stored from the last report.
-        // ReSharper disable once CompareOfFloatsByEqualityOperator
         if (state != PlaybackState || info.Rate != Rate)
         {
             _position = PositionNow();
@@ -277,7 +276,6 @@ internal sealed class SmtcSession
         var position = (reported - start).TotalSeconds;
         // A poll repeats the last report. Applying it again restarts interpolation and looks like a seek.
         // Exact length stored from the last timeline.
-        // ReSharper disable once CompareOfFloatsByEqualityOperator
         if (StartTime == start && Length == length && PositionSupported == supported
             && Math.Abs(_position - position) < 0.001)
             return;

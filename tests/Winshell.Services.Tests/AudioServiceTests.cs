@@ -371,7 +371,6 @@ public sealed class AudioServiceTests
         using var monitor = new AudioPeakMonitor(_loop);
         monitor.Node = audio.Nodes[0];
         // The handler runs on the advance below, before the monitor is disposed.
-        // ReSharper disable once AccessToDisposedClosure
         monitor.PropertyChanged += (_, _) => monitor.Enabled = false;
 
         meter.Peaks = [0.75f, 0.5f];

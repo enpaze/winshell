@@ -150,7 +150,6 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
 
 /// <summary>One pack and one copy of the template, shared by the tests that use it.</summary>
 // xUnit constructs this fixture through IClassFixture; the test project never calls new.
-// ReSharper disable once ClassNeverInstantiated.Global
 public sealed class PackedTemplates : IDisposable
 {
     private readonly string _work =

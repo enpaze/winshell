@@ -31,7 +31,7 @@ public sealed class TrayClickerTests
         // The app is elevated, and so is the shell in the second case.
         const nint app = 0x100;
         var backend = new FakeTrayBackend
-            { Windows = { [app] = 42 }, Integrities = { [42] = 0x3000, [(uint)Environment.ProcessId] = shell } };
+        { Windows = { [app] = 42 }, Integrities = { [42] = 0x3000, [(uint)Environment.ProcessId] = shell } };
         using var clicker = new TrayClicker(new ManualEventLoop(), backend);
 
         clicker.Click(new TrayIcon { Key = "app", Window = app, Id = 1, CallbackMessage = 0x8001 }, TrayClick.Left,

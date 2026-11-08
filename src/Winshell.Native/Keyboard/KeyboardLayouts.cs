@@ -1,8 +1,8 @@
 using System.Globalization;
+using Microsoft.Win32;
 using Windows.Win32;
 using Windows.Win32.UI.Input.KeyboardAndMouse;
 using Windows.Win32.UI.WindowsAndMessaging;
-using Microsoft.Win32;
 
 namespace Winshell.Native;
 

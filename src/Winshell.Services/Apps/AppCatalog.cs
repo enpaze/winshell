@@ -206,7 +206,7 @@ internal sealed class AppCatalog(
             // already running outside that job and opens the shortcut, including its Start in folder.
             var explorer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe");
             var start = new ProcessStartInfo(explorer, $"\"{path}\"")
-                { UseShellExecute = false, CreateNoWindow = true };
+            { UseShellExecute = false, CreateNoWindow = true };
             if (startIn.Length > 0 && Directory.Exists(startIn))
                 start.WorkingDirectory = startIn;
             using var _ = Process.Start(start);

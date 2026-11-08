@@ -18,9 +18,6 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
     private int _cancelled;
 
     // Each test project compiles this file, so a use in another project is invisible here.
-    // ReSharper disable UnusedMember.Global
-    // ReSharper disable EventNeverSubscribedTo.Global
-    // ReSharper disable MemberCanBeProtected.Global
     public EventQueue() : this(TimeProvider.System)
     {
     }
@@ -33,8 +30,6 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
     public TimeSpan Now => time.GetElapsedTime(_started);
 
     // EventLoopContractTests assigns this when it constructs the loop.
-    // ReSharper disable once MemberCanBePrivate.Global
-    // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
     public Log Log { get; init; } = Log.Default;
 
     /// <summary>
@@ -118,10 +113,6 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
             Woken?.Invoke();
         return ran;
     }
-
-    // ReSharper restore MemberCanBeProtected.Global
-    // ReSharper restore EventNeverSubscribedTo.Global
-    // ReSharper restore UnusedMember.Global
 
     /// <summary>
     /// Runs the posted work queued so far and leaves timers for <see cref="RunDue"/>. Work posted by this batch
@@ -209,7 +200,6 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
     }
 
     // CsWinRT1028 requires partial. The WinUI test projects generate the other part.
-    // ReSharper disable once PartialTypeWithSinglePart
     private sealed partial class TimerEntry(EventQueue queue, Action action) : IDisposable
     {
         private static readonly Action Dropped = static () => { };
@@ -232,9 +222,6 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
 }
 
 // Each test project compiles this file, so a use in another project is invisible here.
-// ReSharper disable UnusedType.Global
-// ReSharper disable UnusedMember.Global
-// ReSharper disable MemberCanBePrivate.Global
 /// <summary>An event loop for tests: time moves only when the test advances it. It starts at 2026-01-01 UTC.</summary>
 internal sealed class ManualEventLoop : EventQueue
 {
@@ -281,6 +268,3 @@ internal sealed class ManualEventLoop : EventQueue
             _clock.Advance(at - Now);
     }
 }
-// ReSharper restore MemberCanBePrivate.Global
-// ReSharper restore UnusedMember.Global
-// ReSharper restore UnusedType.Global

@@ -1,11 +1,11 @@
-using Windows.Foundation;
-using Windows.System;
-using Windows.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Windows.Foundation;
+using Windows.System;
+using Windows.UI;
 
 namespace Winshell;
 
@@ -63,14 +63,18 @@ internal sealed partial class NoticeWindow : IDisposable
             new[] { notice.Title, notice.Detail, notice.Body, notice.Note }.Where(text => text.Length > 0));
         var close = new Button
         {
-            Content = new FontIcon { Glyph = "", FontSize = 10 }, Width = 32, Height = 24, Padding = default,
+            Content = new FontIcon { Glyph = "", FontSize = 10 },
+            Width = 32,
+            Height = 24,
+            Padding = default,
             HorizontalAlignment = HorizontalAlignment.Right
         };
         AutomationProperties.SetName(close, "Dismiss");
         close.Click += (_, _) => dismiss();
         var action = new Button
         {
-            Content = notice.ActionText, Style = (Style)Application.Current.Resources["AccentButtonStyle"],
+            Content = notice.ActionText,
+            Style = (Style)Application.Current.Resources["AccentButtonStyle"],
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
         action.Click += (_, _) => act();
@@ -88,7 +92,7 @@ internal sealed partial class NoticeWindow : IDisposable
         stack.Children.Add(action);
         // Transparent, so a click on the text or between the buttons still lands on the notice.
         var root = new Grid
-            { Padding = new Thickness(16), Background = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0)) };
+        { Padding = new Thickness(16), Background = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0)) };
         root.Children.Add(stack);
         AutomationProperties.SetName(root, said);
         AutomationProperties.SetLiveSetting(root, AutomationLiveSetting.Assertive);

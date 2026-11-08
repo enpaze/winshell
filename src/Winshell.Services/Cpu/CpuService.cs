@@ -28,14 +28,12 @@ public sealed class CpuService : INotifyPropertyChanged, IDisposable
     /// The share of the last 2 seconds the processors were busy, across all cores, from 0 to 100. 0 while nothing
     /// listens, and for the first 2 seconds after something starts to.
     /// </summary>
-    [PublicAPI]
     public double Usage => _usage;
 
     /// <summary>
     /// Raised on the loop's thread when <see cref="Usage"/> changes. The first handler added starts reading Windows,
     /// and removing the last stops it. Add and remove handlers on the loop's thread.
     /// </summary>
-    [PublicAPI]
     public event PropertyChangedEventHandler? PropertyChanged
     {
         add
@@ -76,7 +74,6 @@ public sealed class CpuService : INotifyPropertyChanged, IDisposable
 
     private void SetUsage(double usage)
     {
-        // ReSharper disable once CompareOfFloatsByEqualityOperator The stored sample is unchanged, so listeners already have this value.
         if (usage == _usage)
             return;
         _usage = usage;
@@ -84,7 +81,6 @@ public sealed class CpuService : INotifyPropertyChanged, IDisposable
     }
 
     /// <summary>Stops reading Windows, and a handler added later does not start it again.</summary>
-    [PublicAPI]
     public void Dispose()
     {
         _disposed = true;

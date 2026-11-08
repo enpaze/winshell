@@ -30,7 +30,7 @@ internal static class AppIdentity
         try
         {
             using var _ = Process.Start(new ProcessStartInfo("explorer.exe", AppsFolderPath(appId))
-                { UseShellExecute = true });
+            { UseShellExecute = true });
             return null;
         }
         catch (Exception e) when (e is Win32Exception or InvalidOperationException or IOException)

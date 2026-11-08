@@ -9,7 +9,6 @@ internal interface IWlanProfileApi
     uint Get(Guid adapter, string profileName, out string? xml, out uint flags);
 
     // Callers decide from the return code; the WLAN reason code is not part of this contract.
-    // ReSharper disable once OutParameterValueIsAlwaysDiscarded.Global
     uint Set(Guid adapter, string xml, uint flags, out uint reason);
     uint Connect(Guid adapter, string profileName, bool hidden);
     uint Delete(Guid adapter, string profileName);

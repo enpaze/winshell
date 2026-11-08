@@ -37,7 +37,6 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
     /// The keys, such as <c>Win+Ctrl+K</c>, or several chords separated by commas, such as <c>Win+Ctrl+K, C</c>.
     /// Empty claims nothing. Setting it claims the new keys from Windows.
     /// </summary>
-    [PublicAPI]
     public string Sequence
     {
         get => _sequence;
@@ -49,7 +48,6 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
     }
 
     /// <summary>Whether the hotkey claims its keys. False gives them back. True by default.</summary>
-    [PublicAPI]
     public bool Enabled
     {
         get => _enabled;
@@ -61,30 +59,24 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
     }
 
     /// <summary>Whether the keys are claimed and a press raises <see cref="Pressed"/>.</summary>
-    [PublicAPI]
     public bool Active => _active;
 
     /// <summary>Whether Windows or another app already holds the keys, so this hotkey could not claim them.</summary>
-    [PublicAPI]
     public bool Taken => _taken;
 
     /// <summary>True from the press until the keys of the last chord are up.</summary>
-    [PublicAPI]
     public bool IsPressed => _pressed;
 
     /// <summary>
     /// Why the hotkey is not active, such as a sequence that does not parse or keys that are taken. Empty when it is
     /// active, disabled, or has no sequence.
     /// </summary>
-    [PublicAPI]
     public string Error => _error;
 
     /// <summary>The last chord of the sequence went down.</summary>
-    [PublicAPI]
     public event EventHandler? Pressed;
 
     /// <summary>The keys of the last chord came up.</summary>
-    [PublicAPI]
     public event EventHandler? Released;
 
     IEventLoop IHotkeyListener.Loop => _loop;
@@ -186,7 +178,6 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
     }
 
     /// <summary>Gives the keys back to Windows. No event is raised after this.</summary>
-    [PublicAPI]
     public void Dispose()
     {
         if (_disposed)

@@ -58,7 +58,7 @@ The supervisor owns Explorer taskbar recovery independently of the child. Restor
 
 ## Distribution and configuration
 
-Keep one `Winshell` library NuGet package. It carries Native, Core, Services and Shell; a configuration must not acquire references to separately published module packages. The existing template package remains the delivery mechanism for `dotnet new` templates. Keep package and template contracts covered as assembly ownership changes. CI compiles the template sources against the in-repo `Winshell.Shell` through `scripts/check.ps1`, which runs `scripts/resharper.ps1` (#1451), so the pack project does not compile them.
+Keep one `Winshell` library NuGet package. It carries Native, Core, Services and Shell; a configuration must not acquire references to separately published module packages. The existing template package remains the delivery mechanism for `dotnet new` templates. Keep package and template contracts covered as assembly ownership changes. CI compiles the template sources against the in-repo `Winshell.Shell` through `scripts/check.ps1`, which runs `scripts/format.ps1`, so the pack project does not compile them.
 
 User configuration stays TOML. Keep its file format, defaults and semantics through the refactor. Do not add a second configuration system or compatibility layer.
 

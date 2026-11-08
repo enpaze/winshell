@@ -48,21 +48,17 @@ public sealed class VirtualDesktopsService : ObservableObject, IDisposable
     }
 
     /// <summary>The desktops in Task View's order. Empty while <see cref="Supported"/> is false.</summary>
-    [PublicAPI]
     public ObservableCollection<VirtualDesktop> Desktops { get; } = [];
 
     /// <summary>
     /// Whether this Windows build's desktop list can be read, so the list, switching, creating and removing work.
     /// </summary>
-    [PublicAPI]
     public bool Supported => _supported;
 
     /// <summary>Why <see cref="Supported"/> is false. Empty when the list can be used.</summary>
-    [PublicAPI]
     public string UnsupportedReason => _reason;
 
     /// <summary>The desktop on screen, or null while <see cref="Supported"/> is false.</summary>
-    [PublicAPI]
     public VirtualDesktop? Current => _current;
 
     /// <summary>Raised after each read of the list, so windows can say which desktop they are on.</summary>
@@ -71,7 +67,6 @@ public sealed class VirtualDesktopsService : ObservableObject, IDisposable
     /// <summary>
     /// Switches to <paramref name="desktop"/>. Does nothing for null, or while <see cref="Supported"/> is false.
     /// </summary>
-    [PublicAPI]
     public void SwitchTo(VirtualDesktop? desktop)
     {
         if (!CanChange("switch") || desktop is null || !Guid.TryParse(desktop.Id, out var id))
@@ -87,7 +82,6 @@ public sealed class VirtualDesktopsService : ObservableObject, IDisposable
 
     /// <summary>Adds a desktop at the end of the list without switching to it.</summary>
     /// <returns>The new desktop, or null when it was not created or <see cref="Supported"/> is false.</returns>
-    [PublicAPI]
     public VirtualDesktop? Create()
     {
         if (!CanChange("create a desktop"))
@@ -106,7 +100,6 @@ public sealed class VirtualDesktopsService : ObservableObject, IDisposable
     /// Removes <paramref name="desktop"/>. Its windows move to the desktop before it, or the next one when it is the
     /// first. Does nothing for null, for the last desktop left, or while <see cref="Supported"/> is false.
     /// </summary>
-    [PublicAPI]
     public void Remove(VirtualDesktop? desktop)
     {
         if (!CanChange("remove a desktop") || desktop is null)
@@ -215,7 +208,6 @@ public sealed class VirtualDesktopsService : ObservableObject, IDisposable
     }
 
     /// <summary>Stops following desktop changes.</summary>
-    [PublicAPI]
     public void Dispose()
     {
         _disposed = true;
@@ -240,21 +232,17 @@ public sealed class VirtualDesktop : ObservableObject
     }
 
     /// <summary>The desktop's id, the same text <see cref="AppWindow.DesktopId"/> uses.</summary>
-    [PublicAPI]
     public string Id { get; }
 
     /// <summary>
     /// The name Task View shows: the one the user gave it, or <c>Desktop 1</c>, <c>Desktop 2</c> and so on.
     /// </summary>
-    [PublicAPI]
     public string Name => _name;
 
     /// <summary>Where the desktop sits in <see cref="VirtualDesktopsService.Desktops"/>, starting at zero.</summary>
-    [PublicAPI]
     public int Index => _index;
 
     /// <summary>Whether this is the desktop on screen.</summary>
-    [PublicAPI]
     public bool Current => _current;
 
     internal void Apply(string name, int index, bool current)

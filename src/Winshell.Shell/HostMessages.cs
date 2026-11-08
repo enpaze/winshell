@@ -30,15 +30,15 @@ internal sealed class HostMessages(HostWindow host, ShellPlatform platform)
                     placement.UpdateSize();
                 return null;
             case Win32.WM_DPICHANGED:
-            {
-                // A size we apply from this message can send it again with the monitor's old scale. Keep the one that started it.
-                if (!placement.Placing)
-                    placement.Scale = DesktopSpace.Scale((uint)Win32.HighWord(wParam));
-                host.Placer.OnDpiChanged(message.SuggestedRect, placement.Placing);
-                placement.UpdateSize();
-                platform.ScreensMayHaveChanged();
-                return 0;
-            }
+                {
+                    // A size we apply from this message can send it again with the monitor's old scale. Keep the one that started it.
+                    if (!placement.Placing)
+                        placement.Scale = DesktopSpace.Scale((uint)Win32.HighWord(wParam));
+                    host.Placer.OnDpiChanged(message.SuggestedRect, placement.Placing);
+                    placement.UpdateSize();
+                    platform.ScreensMayHaveChanged();
+                    return 0;
+                }
             case Win32.WM_MOUSEACTIVATE:
                 // A click here does not close a menu another app opened without the foreground, as tray menus
                 // often are. Close it before the mouse message reaches the XAML island.

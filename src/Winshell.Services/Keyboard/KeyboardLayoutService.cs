@@ -28,18 +28,15 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
     }
 
     /// <summary>The installed layouts, in the order Windows cycles them. Empty while nothing listens.</summary>
-    [PublicAPI]
     public IReadOnlyList<KeyboardLayout> Layouts => _layouts;
 
     /// <summary>The layout the foreground window is using, or null when it has none or nothing is listening.</summary>
-    [PublicAPI]
     public KeyboardLayout? Current => _current;
 
     /// <summary>
     /// Raised on the loop's thread when <see cref="Layouts"/> or <see cref="Current"/> changes. The first handler
     /// added starts reading Windows, and removing the last stops it. Add and remove handlers on the loop's thread.
     /// </summary>
-    [PublicAPI]
     public event PropertyChangedEventHandler? PropertyChanged
     {
         add
@@ -62,7 +59,6 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
     /// installed is ignored, and so is the one already in use. Returns whether the window was asked. Call it on the
     /// loop's thread.
     /// </summary>
-    [PublicAPI]
     public bool Use(KeyboardLayout layout)
     {
         ArgumentNullException.ThrowIfNull(layout);
@@ -78,7 +74,6 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
     /// Asks the foreground window to use the next installed layout, as Win+Space does. Does nothing when that layout
     /// is already in use. Returns whether the window was asked. Call it on the loop's thread.
     /// </summary>
-    [PublicAPI]
     public bool Next()
     {
         if (_disposed)
@@ -98,7 +93,6 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
     }
 
     /// <summary>Stops reading Windows, and a handler added later does not start it again.</summary>
-    [PublicAPI]
     public void Dispose()
     {
         _disposed = true;

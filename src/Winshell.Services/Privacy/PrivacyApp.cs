@@ -12,21 +12,17 @@ public sealed class PrivacyApp
     }
 
     /// <summary>The name to show for the app.</summary>
-    [PublicAPI]
     public string Name { get; }
 
     /// <summary>The desktop program's path. Empty for a packaged app.</summary>
-    [PublicAPI]
     public string Path { get; }
 
     /// <summary>Whether this is a packaged app. A packaged app has no path.</summary>
-    [PublicAPI]
     public bool Packaged { get; }
 
     /// <summary>
     /// Whether this is the program the shell is running as. The shell's audio meter holds a microphone stream open,
     /// and Windows counts that as microphone use; this is how a configuration tells that use from another app's.
     /// </summary>
-    [PublicAPI]
     public bool ThisProgram { get; }
 }

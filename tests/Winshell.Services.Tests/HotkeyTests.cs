@@ -277,10 +277,8 @@ public sealed class HotkeyTests : IDisposable
         hotkey.Sequence = "Ctrl+K";
         var events = new List<string>();
         // IsPressed is read when the event is raised, before this method disposes the hotkey.
-        // ReSharper disable once AccessToDisposedClosure
         hotkey.Pressed += (_, _) => events.Add($"pressed {hotkey.IsPressed}");
         // IsPressed is read when the event is raised, before this method disposes the hotkey.
-        // ReSharper disable once AccessToDisposedClosure
         hotkey.Released += (_, _) => events.Add($"released {hotkey.IsPressed}");
         IHotkeyListener listener = hotkey;
 

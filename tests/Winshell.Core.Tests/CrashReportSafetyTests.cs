@@ -279,7 +279,7 @@ public sealed class CrashReportSafetyTests : IDisposable
         // they write no more than the folder keeps, so every report is still there to count.
         var instant = new DateTimeOffset(2032, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var writers = Enumerable.Range(0, 4).Select(_ => new CrashReports(Folder())
-            { Time = new FakeTimeProvider(instant) }).ToList();
+        { Time = new FakeTimeProvider(instant) }).ToList();
         var each = Keep / writers.Count;
         var total = each * writers.Count;
         using var start = new Barrier(writers.Count);
@@ -322,7 +322,6 @@ public sealed class CrashReportSafetyTests : IDisposable
         var reader = new Thread(() =>
             {
                 // The writer clears this flag to stop the reader.
-                // ReSharper disable once AccessToModifiedClosure
                 while (Volatile.Read(ref writing))
                     foreach (var file in Directory.GetFiles(folder))
                         try
@@ -336,7 +335,7 @@ public sealed class CrashReportSafetyTests : IDisposable
                             failures.Enqueue($"{Path.GetFileName(file)}: {e.GetType().Name}: {e.Message}");
                         }
             })
-            { IsBackground = true };
+        { IsBackground = true };
         reader.Start();
 
         var paths = Enumerable.Range(0, 5)

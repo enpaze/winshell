@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 namespace Winshell.Native;
 
 // COM vtable. An unused method stays so the calls below it keep their slots.
-// ReSharper disable UnusedMember.Global
 [ComImport]
 [Guid("6D5140C1-7436-11CE-8034-00AA006009FA")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -12,14 +11,12 @@ internal interface IServiceProvider
     [PreserveSig]
     int QueryService(in Guid service, in Guid iid, out nint instance);
 }
-// ReSharper restore UnusedMember.Global
 
 /// <summary>
 /// The internal desktop manager on builds 26100 through 26399. Slots Windows inserted in 24H2 stay, including
 /// <c>MoveDesktop</c>, which is not called: removing it would move <c>RemoveDesktop</c> onto the wrong slot.
 /// </summary>
 // COM vtable. An unused method stays so the calls below it keep their slots.
-// ReSharper disable UnusedMember.Global
 [ComImport]
 [Guid("53F5CA0B-158F-4124-900C-057158060B27")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -58,10 +55,8 @@ internal interface IVirtualDesktopManagerInternal
     [PreserveSig]
     int RemoveDesktop(nint destroy, nint fallback);
 }
-// ReSharper restore UnusedMember.Global
 
 // COM vtable. An unused method stays so the calls below it keep their slots.
-// ReSharper disable UnusedMember.Global
 [ComImport]
 [Guid("3F07F4BE-B107-441A-AF0F-39D82529072C")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -76,10 +71,8 @@ internal interface IVirtualDesktop
     [PreserveSig]
     int GetName(out nint name);
 }
-// ReSharper restore UnusedMember.Global
 
 // COM vtable. An unused method stays so the calls below it keep their slots.
-// ReSharper disable UnusedMember.Global
 [ComImport]
 [Guid("92CA9DCD-5622-4BBA-A805-5E9F541BD8C9")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -91,10 +84,8 @@ internal interface IObjectArray
     [PreserveSig]
     int GetAt(uint index, in Guid iid, [MarshalAs(UnmanagedType.IUnknown)] out object item);
 }
-// ReSharper restore UnusedMember.Global
 
 // COM vtable. An unused method stays so the calls below it keep their slots.
-// ReSharper disable UnusedMember.Global
 [ComImport]
 [Guid("A5CD92FF-29BE-454C-8D04-D82879FB3F1B")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -109,4 +100,3 @@ internal interface IVirtualDesktopManager
     [PreserveSig]
     int MoveWindowToDesktop(nint hwnd, in Guid desktopId);
 }
-// ReSharper restore UnusedMember.Global

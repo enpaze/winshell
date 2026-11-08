@@ -112,10 +112,8 @@ internal sealed class HotkeyChord
 /// <summary>The <c>RegisterHotKey</c> identity of a chord: its modifiers and virtual key.</summary>
 internal readonly record struct OsChord(
     // The chord's shape: equality uses this, and no caller reads it by name.
-    // ReSharper disable once NotAccessedPositionalProperty.Global
     HotkeyModifiers Modifiers,
     // The chord's shape: equality uses this, and no caller reads it by name.
-    // ReSharper disable once NotAccessedPositionalProperty.Global
     int VirtualKey);
 
 /// <summary>One or more chords, separated by commas in the text the configuration wrote.</summary>

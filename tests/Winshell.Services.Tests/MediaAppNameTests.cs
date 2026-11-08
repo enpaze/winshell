@@ -21,7 +21,6 @@ public class MediaAppNameTests
             Interlocked.Increment(ref lookups);
             lookupThread = Environment.CurrentManagedThreadId;
             // The name is published after this returns, and before the method disposes the event.
-            // ReSharper disable once AccessToDisposedClosure
             lookupMayEnd.Wait(TimeSpan.FromSeconds(10));
             return "Spotify Music";
         }, () => named++);

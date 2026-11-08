@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
-using Windows.Management.Deployment;
 using Microsoft.Win32;
+using Windows.Management.Deployment;
 using Winshell.Native;
 
 namespace Winshell.Privacy;

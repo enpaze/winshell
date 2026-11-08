@@ -185,7 +185,6 @@ internal sealed class InstanceLog : IDisposable
 
             await Task.Delay(FollowPoll, cancel);
         }
-        // ReSharper disable once IteratorNeverReturns The follower yields lines until the caller cancels.
     }
 
     /// <summary>The lines of <paramref name="file"/> after byte <paramref name="from"/>, or none when it cannot be read.</summary>

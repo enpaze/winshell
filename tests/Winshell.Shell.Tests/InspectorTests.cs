@@ -1,13 +1,13 @@
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json;
-using Windows.Graphics.Imaging;
-using Windows.Storage.Streams;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+using Windows.Graphics.Imaging;
+using Windows.Storage.Streams;
 using Xunit.Sdk;
 
 namespace Winshell.ShellTests;
@@ -324,7 +324,7 @@ public sealed partial class InspectorTests : IDisposable
         await ShellFixture.On(async shell =>
         {
             var fill = new Border
-                { Height = 70, Margin = new Thickness(20, 10, 20, 10), Background = new SolidColorBrush(Colors.Red) };
+            { Height = 70, Margin = new Thickness(20, 10, 20, 10), Background = new SolidColorBrush(Colors.Red) };
             var page = new Page();
             page.Children.Add(fill);
             using var panel = Panel(page);

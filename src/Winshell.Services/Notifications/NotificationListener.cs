@@ -58,35 +58,27 @@ public sealed class NotificationListener : ObservableObject, IDisposable
     }
 
     /// <summary>Raised after <see cref="Notifications"/> holds a newly seen notification, including those in the first read.</summary>
-    [PublicAPI]
     public event Action<Notification>? NotificationAdded;
 
     /// <summary>An access request, a dismissal or <see cref="Notification.Invoke"/> failed. The text is <see cref="Error"/>.</summary>
-    [PublicAPI]
     public event Action<string>? OperationFailed;
 
     /// <summary>Every readable notification, newest first. Empty without access.</summary>
-    [PublicAPI]
     public ObservableCollection<Notification> Notifications { get; } = [];
 
     /// <summary>The notifications in one group per app, newest first.</summary>
-    [PublicAPI]
     public ObservableCollection<NotificationGroup> Groups { get; } = [];
 
     /// <summary>Whether the shell may read the notifications. Ask with <see cref="RequestAccess"/>.</summary>
-    [PublicAPI]
     public NotificationAccessStatus AccessStatus => _accessStatus;
 
     /// <summary>Whether a Focus session is on.</summary>
-    [PublicAPI]
     public NotificationState FocusState => _focusState;
 
     /// <summary>Windows' current notification restriction.</summary>
-    [PublicAPI]
     public NotificationMode NotificationMode => _notificationMode;
 
     /// <summary>On for priority-only or alarms-only, Off for unrestricted.</summary>
-    [PublicAPI]
     public NotificationState DoNotDisturbState => _notificationMode switch
     {
         NotificationMode.Unrestricted => NotificationState.Off,
@@ -95,11 +87,9 @@ public sealed class NotificationListener : ObservableObject, IDisposable
     };
 
     /// <summary>Why access or the last operation failed.</summary>
-    [PublicAPI]
     public string Error => _error;
 
     /// <summary>Asks Windows for access and returns at once. Call from a button in a foreground window.</summary>
-    [PublicAPI]
     public void RequestAccess()
     {
         _ = RequestAccessAsync();
@@ -278,7 +268,6 @@ public sealed class NotificationListener : ObservableObject, IDisposable
     }
 
     /// <summary>Dismisses this listener's current snapshot. Returns whether every removal succeeded; failed ones stay.</summary>
-    [PublicAPI]
     public bool ClearAll()
     {
         return DismissMany(Notifications.ToArray());
@@ -338,7 +327,6 @@ public sealed class NotificationListener : ObservableObject, IDisposable
     }
 
     /// <summary>Stops watching Notification Center and releases the app logos it read.</summary>
-    [PublicAPI]
     public void Dispose()
     {
         if (_disposed)
@@ -374,50 +362,39 @@ public sealed class Notification : ObservableObject
     }
 
     /// <summary>The Windows notification id.</summary>
-    [PublicAPI]
     public uint Id => _toast.Id;
 
     /// <summary>The AppUserModelID of the app that sent it. Can be empty.</summary>
-    [PublicAPI]
     public string AppId => _toast.AppId;
 
     /// <summary>The display name of the app that sent it. Can be empty.</summary>
-    [PublicAPI]
     public string AppName => _toast.AppName;
 
     /// <summary>A <c>file:///</c> url of the sending app's logo. Empty until the read finishes, and when Windows gives none.</summary>
-    [PublicAPI]
     public string AppIcon => _appIcon;
 
     /// <summary>The first line of text. Can be empty.</summary>
-    [PublicAPI]
     public string Title => _toast.Title;
 
     /// <summary>The lines of text after the title, joined by line breaks. Can be empty.</summary>
-    [PublicAPI]
     public string Body => _toast.Body;
 
     /// <summary>When the notification was created.</summary>
-    [PublicAPI]
     public DateTimeOffset CreatedAt => _toast.CreatedAt;
 
     /// <summary>When it expires, or null when Windows supplied no expiry.</summary>
-    [PublicAPI]
     public DateTimeOffset? ExpiresAt => _toast.ExpiresAt;
 
     /// <summary>Always false: Windows gives a shell no way to activate another app's notification.</summary>
-    [PublicAPI]
     public bool CanInvoke => false;
 
     /// <summary>Removes the notification from Windows. Returns true only when Windows accepted the removal.</summary>
-    [PublicAPI]
     public bool Dismiss()
     {
         return _listener.DismissMany([this]);
     }
 
     /// <summary>UserNotificationListener exposes no activation arguments or actions for other apps.</summary>
-    [PublicAPI]
     public bool Invoke()
     {
         _listener.Fail(
@@ -495,19 +472,15 @@ public sealed class NotificationGroup : ObservableObject
     internal string Key { get; }
 
     /// <summary>The AppUserModelID of the app that sent the notifications. Empty when the app has none.</summary>
-    [PublicAPI]
     public string AppId => _appId;
 
     /// <summary>The display name of the app that sent the notifications. Can be empty.</summary>
-    [PublicAPI]
     public string AppName => _appName;
 
     /// <summary>The app's notifications, newest first.</summary>
-    [PublicAPI]
     public ObservableCollection<Notification> Notifications { get; } = [];
 
     /// <summary>Dismisses the group's current notifications. Returns whether every removal succeeded; failed ones stay.</summary>
-    [PublicAPI]
     public bool Dismiss()
     {
         return _listener.DismissMany(Notifications.ToArray());

@@ -5,7 +5,6 @@ namespace Winshell.Tests;
 /// machine. Inside a test it would spend that test's deadline, and the deadline of every test waiting for it.
 /// </summary>
 // xUnit constructs this class fixture.
-// ReSharper disable once ClassNeverInstantiated.Global
 public sealed class ProbeBuild
 {
     public ProbeBuild()

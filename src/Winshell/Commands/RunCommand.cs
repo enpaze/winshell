@@ -78,13 +78,11 @@ internal static class RunCommand
         void Stop()
         {
             // The handler has to cancel this source, which is disposed only as this method leaves.
-            // ReSharper disable once AccessToDisposedClosure
             stop.Cancel();
             try
             {
 #pragma warning disable VSTHRD002 // A handler must finish before Windows ends this process. Supervision runs on the pool.
                 // Registered before the task exists, so this wait has to see the assignment below.
-                // ReSharper disable once AccessToModifiedClosure
                 supervision?.Wait(TimeSpan.FromSeconds(4));
             }
             catch (AggregateException)
@@ -107,7 +105,6 @@ internal static class RunCommand
         using var breaks = PosixSignalRegistration.Create(PosixSignal.SIGQUIT, Signal);
         using var close = PosixSignalRegistration.Create(PosixSignal.SIGHUP, Signal);
         // A cancelled token would skip the session subscription and throw, which this startup never did.
-        // ReSharper disable once MethodSupportsCancellation
         Task.Run(() => SystemEvents.SessionEnded += SessionEnded).GetAwaiter().GetResult();
         try
         {

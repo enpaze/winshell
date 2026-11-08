@@ -220,7 +220,6 @@ public sealed class NetworkingServiceTests
         var completion = new TaskCompletionSource();
         session.Backend.AccessTask = completion.Task;
         // The handler runs while the test still holds the session, before the method disposes it.
-        // ReSharper disable once AccessToDisposedClosure
         var failed = Failures(h => session.Service.OperationFailed += h);
 
         var request = session.Service.RequestAccessAsync();

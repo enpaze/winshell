@@ -31,7 +31,6 @@ public sealed class TomlFileTests
         {
             get;
             // TomlFile loads this key by calling the setter.
-            // ReSharper disable once UnusedMember.Local
             init => Set(ref field, value);
         } = 1.5;
 
@@ -40,7 +39,6 @@ public sealed class TomlFileTests
         {
             get;
             // TomlFile loads this key by calling the setter.
-            // ReSharper disable once UnusedMember.Local
             init => Set(ref field, value);
         } = ["wifi"];
 
@@ -73,7 +71,6 @@ public sealed class TomlFileTests
         public string Name
         {
             // TomlFile reads this key through the getter when it writes the file.
-            // ReSharper disable once UnusedMember.Local
             get;
             set => Set(ref field, value);
         } = "default";

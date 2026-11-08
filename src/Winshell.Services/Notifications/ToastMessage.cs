@@ -11,7 +11,6 @@ public sealed class ToastMessage : ObservableObject
     private string _error = "";
 
     /// <summary>Creates an empty toast whose <see cref="Failed"/> event is raised on the given event loop.</summary>
-    [PublicAPI]
     public ToastMessage(IEventLoop loop)
         : this(loop, new WindowsNotificationBackend())
     {
@@ -24,11 +23,9 @@ public sealed class ToastMessage : ObservableObject
     }
 
     /// <summary>A send failed, at once or when Windows later rejected the toast. The text is <see cref="Error"/>.</summary>
-    [PublicAPI]
     public event Action<string>? Failed;
 
     /// <summary>The AppUserModelID of the sending app's installed Windows identity. Required.</summary>
-    [PublicAPI]
     public string AppId
     {
         get;
@@ -36,7 +33,6 @@ public sealed class ToastMessage : ObservableObject
     } = "";
 
     /// <summary>The first line. Required.</summary>
-    [PublicAPI]
     public string Title
     {
         get;
@@ -44,7 +40,6 @@ public sealed class ToastMessage : ObservableObject
     } = "";
 
     /// <summary>The text under the title, as plain text.</summary>
-    [PublicAPI]
     public string Body
     {
         get;
@@ -52,7 +47,6 @@ public sealed class ToastMessage : ObservableObject
     } = "";
 
     /// <summary>An absolute protocol URI Windows opens when the user clicks the toast. Without one, the toast is informational.</summary>
-    [PublicAPI]
     public string ActivationUri
     {
         get;
@@ -60,7 +54,6 @@ public sealed class ToastMessage : ObservableObject
     } = "";
 
     /// <summary>An optional Windows replacement identifier, at most 64 characters.</summary>
-    [PublicAPI]
     public string Tag
     {
         get;
@@ -68,7 +61,6 @@ public sealed class ToastMessage : ObservableObject
     } = "";
 
     /// <summary>An optional Windows replacement group, at most 64 characters. Needs a <see cref="Tag"/>.</summary>
-    [PublicAPI]
     public string Group
     {
         get;
@@ -76,7 +68,6 @@ public sealed class ToastMessage : ObservableObject
     } = "";
 
     /// <summary>Whether the toast plays no sound.</summary>
-    [PublicAPI]
     public bool Silent
     {
         get;
@@ -84,15 +75,12 @@ public sealed class ToastMessage : ObservableObject
     }
 
     /// <summary>Why the last send failed. Cleared by a send that passes validation.</summary>
-    [PublicAPI]
     public string Error => _error;
 
     /// <summary>Up to five buttons on the toast.</summary>
-    [PublicAPI]
     public ObservableCollection<ToastAction> Actions { get; } = [];
 
     /// <summary>Sends the toast. Returns whether validation and submission succeeded; Windows can still hold back the banner.</summary>
-    [PublicAPI]
     public bool Send()
     {
         if (Invalid() is { } problem)
@@ -169,7 +157,6 @@ public sealed class ToastMessage : ObservableObject
 public sealed class ToastAction : ObservableObject
 {
     /// <summary>The button's label. Required.</summary>
-    [PublicAPI]
     public string Text
     {
         get;
@@ -177,7 +164,6 @@ public sealed class ToastAction : ObservableObject
     } = "";
 
     /// <summary>The absolute protocol URI Windows opens when the user clicks the button.</summary>
-    [PublicAPI]
     public string ActivationUri
     {
         get;

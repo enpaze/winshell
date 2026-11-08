@@ -41,7 +41,6 @@ public class InstanceCallTests
         var answering = ReadThen(shell, () =>
         {
             // The write runs, and is awaited, before this pipe is disposed.
-            // ReSharper disable once AccessToDisposedClosure
             using var writer = new StreamWriter(shell, new UTF8Encoding(false), leaveOpen: true);
             writer.WriteLine($$"""{"ok":true,"winshell":"{{other}}"}""");
         });

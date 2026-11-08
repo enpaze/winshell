@@ -147,7 +147,6 @@ public sealed class WindowListServiceTests
         Assert.Same(window, list.ActiveWindow);
         var stillListed = true;
         // Closed runs while Process pumps the list, before the list is disposed.
-        // ReSharper disable once AccessToDisposedClosure
         window.Closed += (_, _) => stillListed = list.Windows.Contains(window);
 
         _windows.Foreground = 0;

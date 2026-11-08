@@ -295,8 +295,8 @@ internal static class CliParser
     {
         var map = new Dictionary<string, Option>(StringComparer.Ordinal);
         foreach (var entry in Entries)
-        foreach (var option in entry.Options)
-            option.Collect(map);
+            foreach (var option in entry.Options)
+                option.Collect(map);
         return map.ToFrozenDictionary(StringComparer.Ordinal);
     }
 

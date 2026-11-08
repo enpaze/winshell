@@ -16,9 +16,7 @@
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
-  <!-- ReSharper's namespace check uses this root, not the project name. Core, Services and Shell
-       share the Winshell namespace; the shell tests use one identifier. A Services feature folder
-       adds the next segment itself. -->
+  <!-- Core, Services and Shell share Winshell; the shell tests use one namespace identifier. -->
   <PropertyGroup>
     <RootNamespace Condition="'$(MSBuildProjectName)' == 'Winshell.Core' or '$(MSBuildProjectName)' == 'Winshell.Shell' or '$(MSBuildProjectName)' == 'Winshell.Services'">Winshell</RootNamespace>
     <RootNamespace Condition="'$(MSBuildProjectName)' == 'Winshell.Shell.Tests'">Winshell.ShellTests</RootNamespace>

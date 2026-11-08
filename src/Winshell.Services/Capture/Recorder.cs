@@ -186,7 +186,7 @@ internal static class Recorder
     private static (Mp4Writer Video, int Rate) OpenVideo(string path, int width, int height, int rate)
     {
         int[] rates = [rate, .. FallbackRates.Where(lower => lower < rate)];
-        for (var i = 0;; i++)
+        for (var i = 0; ; i++)
             try
             {
                 return (new Mp4Writer(path, width, height, rates[i]), rates[i]);

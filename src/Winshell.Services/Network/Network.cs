@@ -19,7 +19,6 @@ public class Network : ObservableObject
     }
 
     /// <summary>An action failed, with the same text as <see cref="Error"/>.</summary>
-    [PublicAPI]
     public event Action<string>? OperationFailed;
 
     internal NetworkInfo Info => _info;
@@ -27,52 +26,42 @@ public class Network : ObservableObject
     private bool Removed { get; set; }
 
     /// <summary>The SSID of a Wi-Fi network. For a wired network, the connection profile's name, or the adapter's.</summary>
-    [PublicAPI]
     public string Name => _info.Name;
 
     /// <summary>The adapter this network is on.</summary>
-    [PublicAPI]
     public NetworkDevice Device { get; }
 
     /// <summary>Whether the adapter is connected to this network.</summary>
-    [PublicAPI]
     public bool Connected => _info.State == ConnectionState.Connected;
 
     /// <summary>A saved profile matches this network. True for a wired network.</summary>
-    [PublicAPI]
     public bool Saved => _info.Known;
 
     /// <summary>
     /// The adapter's connection state on this network. <see cref="ConnectionState.Disconnected"/> for every Wi-Fi
     /// network the adapter is not on.
     /// </summary>
-    [PublicAPI]
     public ConnectionState State => _info.State;
 
     /// <summary>An action is running. Other calls are ignored until it ends.</summary>
-    [PublicAPI]
     public bool Busy => _action.Running;
 
     /// <summary>Why the last action failed. Empty while an action runs and after one succeeds.</summary>
-    [PublicAPI]
     public string Error => _error;
 
     /// <summary>
     /// The saved Wi-Fi profiles for this network: those whose SSID is its name, and those that can't be read whose
     /// profile name is. Empty for a wired network.
     /// </summary>
-    [PublicAPI]
     public ObservableCollection<WifiProfile> SavedProfiles { get; } = [];
 
     /// <summary>Connects to this Wi-Fi network with saved credentials. Fails for a wired network.</summary>
-    [PublicAPI]
     public void Connect()
     {
         _ = ConnectAsync(null);
     }
 
     /// <summary>Connects with a saved profile of this network. The next snapshot reports whether the adapter associated.</summary>
-    [PublicAPI]
     public void ConnectWithProfile(WifiProfile? profile)
     {
         _ = ConnectProfileAsync(profile);
@@ -82,14 +71,12 @@ public class Network : ObservableObject
     /// Disconnects this network's Wi-Fi adapter. Fails for a wired network, and until
     /// <see cref="NetworkingService.RequestAccess"/> is allowed.
     /// </summary>
-    [PublicAPI]
     public void Disconnect()
     {
         _ = DisconnectAsync();
     }
 
     /// <summary>Deletes the saved Wi-Fi profile whose name is this SSID.</summary>
-    [PublicAPI]
     public void Forget()
     {
         _ = ForgetAsync();

@@ -46,7 +46,6 @@ internal sealed record ChildProcess(int Code, string Output, string Error)
     }
 
     // Each test project compiles this file, so a use in another project is invisible here.
-    // ReSharper disable UnusedMember.Global
     /// <summary>Runs <paramref name="file"/> with <paramref name="args"/> to its end, within a minute.</summary>
     internal static ChildProcess Run(string file, params string[] args)
     {
@@ -84,5 +83,4 @@ internal sealed record ChildProcess(int Code, string Output, string Error)
         if (Code != expected)
             Assert.Fail($"{Command} exited with {Code}, not {expected}.\nOutput:\n{Output}\nError:\n{Error}");
     }
-    // ReSharper restore UnusedMember.Global
 }

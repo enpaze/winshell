@@ -140,7 +140,7 @@ internal sealed class TempImageStore
                 return null;
             var cutoff = _time.GetUtcNow().UtcDateTime.AddDays(-1);
             var options = new EnumerationOptions
-                { RecurseSubdirectories = true, AttributesToSkip = FileAttributes.ReparsePoint };
+            { RecurseSubdirectories = true, AttributesToSkip = FileAttributes.ReparsePoint };
             foreach (var file in Directory.EnumerateFiles(_root, "*", options))
                 Try(() =>
                 {

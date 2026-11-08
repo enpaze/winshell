@@ -211,8 +211,8 @@ internal sealed class AudioGraph : IAudioGraph
         DefaultPlayback = playback;
         DefaultRecording = recording;
         foreach (var endpoint in _endpoints.Values)
-        foreach (var session in endpoint.Sessions.Where(s => s.IsSystem))
-            SetShown(session, endpoint == DefaultPlayback);
+            foreach (var session in endpoint.Sessions.Where(s => s.IsSystem))
+                SetShown(session, endpoint == DefaultPlayback);
         DefaultsChanged?.Invoke();
     }
 

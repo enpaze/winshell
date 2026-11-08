@@ -238,7 +238,10 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
         if (report.Status == BatteryStatus.NotPresent)
             return PowerDeviceInfo.NoBattery with
             {
-                DeviceId = nativePath, Model = model, Type = PowerDeviceType.Battery, PowersTheSystem = true
+                DeviceId = nativePath,
+                Model = model,
+                Type = PowerDeviceType.Battery,
+                PowersTheSystem = true
             };
         var remaining = report.RemainingCapacityInMilliwattHours / 1000.0;
         var full = report.FullChargeCapacityInMilliwattHours / 1000.0;

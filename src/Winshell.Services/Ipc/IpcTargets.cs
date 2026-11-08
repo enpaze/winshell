@@ -26,7 +26,6 @@ internal sealed record IpcTargetView(
 /// A refused IPC request. A handler throws it to refuse a call: its message goes to the client as it is, where another
 /// exception arrives with its type name.
 /// </summary>
-[method: PublicAPI]
 public sealed class IpcException(string message) : Exception(message);
 
 /// <summary>The rules a value follows across the pipe.</summary>

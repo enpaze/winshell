@@ -16,7 +16,10 @@ public sealed partial class ShellExitTests : IDisposable
     private readonly Process _process = Process.Start(
         new ProcessStartInfo("cmd.exe")
         {
-            UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true
         })!;
 
     private readonly ShellExit.Supervision _supervision;

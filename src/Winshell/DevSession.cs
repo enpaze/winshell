@@ -85,7 +85,6 @@ internal static class DevSession
         void Stop(PosixSignalContext context)
         {
             // The handler has to stop this process, which is disposed only as this method leaves.
-            // ReSharper disable once AccessToDisposedClosure
             StopShellAndWatch(project, process, context.Signal == PosixSignal.SIGHUP);
         }
 

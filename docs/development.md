@@ -23,17 +23,15 @@ pwsh -NoProfile -Command "Install-Module Pester -RequiredVersion 5.6.1 -Scope Cu
 pwsh scripts/check.ps1
 ```
 
-The first build of `winshell.slnx` sets `core.hooksPath` to `.githooks`, unless the clone already sets a hooks path. The `pre-commit` hook checks staged C# and XAML paths with ReSharper, reading their current working-tree contents. It builds and cleans an isolated copy, leaving working files and the index unchanged, so it takes several minutes. Compiler warnings and Roslyn analyzers still fail the build. It refuses a commit whose formatting cleanup would change, and the changes stay staged with no commit made: run `pwsh -NoProfile scripts/resharper.ps1 -Mode Cleanup` before `git commit`, and read the commit's output. `git commit --no-verify` skips the hook.
+## Formatting and style
 
-ReSharper's version is pinned in `.config/dotnet-tools.json`; the command restores it automatically. The `Winshell` profile in `winshell.slnx.DotSettings` applies formatting, C# syntax style and import cleanup. Explicit EditorConfig rules override defaults; personal IDE settings are ignored. XAML cleanup is limited to formatting, empty-tag normalization and unused namespace aliases. Generated sources and standalone C# scripts are excluded; `scripts/generate-reference.cs` is included because a solution project compiles it.
+Use `.editorconfig` and `dotnet format` for C# formatting and style verification. Run `pwsh -NoProfile scripts/format.ps1` to apply formatting, or add `-VerifyNoChanges` to check without editing source files. The full local check and CI run verification; commits have no formatting hook.
 
-Cleanup repeats until the selected files stop changing, failing if the profile does not stabilize within five passes. A syntax rewrite can expose another style change, so one CLI pass is not always sufficient. `-Include` accepts one path on the `pwsh -File` command line, or a PowerShell array when calling the script from an existing PowerShell session.
+The command formats the solution, including examples and `scripts/generate-reference.cs`, then builds and formats a temporary copy of the template against the current source libraries. The original template project keeps its package reference and version placeholder. Generated sources are excluded by the SDK formatter. Compiler warnings and Roslyn analyzers still fail the build. Standalone C# scripts outside the solution are not formatted.
 
-Template sources are analyzed in a temporary solution against the current source libraries. The original template project keeps its package reference and version placeholder. Packed-template and live UI validation remain separate checks. Inspection reports suggestions, warnings and errors; it exits 1 when any remain and does not hide existing findings behind a baseline. Inspection is a local command, not a CI gate.
+For solution sources alone, run `dotnet format winshell.slnx` or `dotnet format winshell.slnx --verify-no-changes`. XAML keeps its existing formatting; this command checks C# only. Packed-template and live UI validation remain separate checks.
 
-The namespace ReSharper expects is the project's `RootNamespace`, then each folder that is a namespace provider. `Directory.Build.props` sets that root to `Winshell` for Core, Services and Shell, and to `Winshell.ShellTests` for the shell tests. Core's folders and Native's feature folders are not providers, so that code stays in `Winshell` and `Winshell.Native`. A Services folder is a provider only when the namespace is `Winshell` plus the folder, as in `Winshell.Network`. `Config`, `Images`, `Instances`, `Ipc` and `Screens` stay in `Winshell`. `PropVariant` stays in `Windows.Win32.System.Com.StructuredStorage`, the namespace CsWin32 generates, so that file still disagrees with its folder.
-
-In Native, a constant, a static readonly field or a type may use the Windows spelling (`ABE_BOTTOM`, `POINT`) as well as PascalCase. `SH` and `UI` stay capitals, so `SHAppBarMessage` and `WinUI` do too. The tray protocol's Windows flags, and a test that quotes `GWLP_WNDPROC`, may use that spelling. A test method's name is a sentence with underscores for spaces. A local constant, a private field and the template's `Program` stay under the ordinary rules.
+Test methods use sentences with underscores for spaces. Windows interop declarations keep the Windows spelling, such as `ABE_BOTTOM`, `POINT` and `SHAppBarMessage`; Winshell's own names use PascalCase.
 
 ## Build from source
 
@@ -117,7 +115,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | --- | --- |
 | `pwsh scripts/pr-rules.ps1 -Title <title> -Body <body> -Path <file>` | What the `pr-rules` job runs, given a file of changed paths. It prints each problem and exits 1. |
 | `pwsh scripts/pr-screenshot.ps1 <png>` | Publishes a `winshell inspect` screenshot on the `pr-screenshots` branch, which never merges, and prints the Markdown to paste into a PR. |
-| `pwsh -NoProfile scripts/resharper.ps1 -Mode Cleanup\|Check\|Inspect [-Include <paths>] [-Staged] [-Output <folder>]` | Uses the pinned ReSharper CLI. Cleanup edits handwritten solution and template C#/XAML; Check verifies an isolated copy; Inspect writes `solution.sarif`, `template.sarif`, and one `example-<folder>.sarif` per example project under `artifacts/resharper/` by default and fails on suggestions and above. Each example project is inspected on its own. `-Include` selects explicit source paths; `-Staged` selects staged paths, reading their working-tree contents. These selectors are mutually exclusive. Build and tool errors fail the command. Requires Git, .NET and PowerShell 7; first use restores the pinned tool. |
+| `pwsh -NoProfile scripts/format.ps1 [-VerifyNoChanges]` | Uses the SDK `dotnet format` command and `.editorconfig` for solution and template C# formatting and style. Builds the template against the current source libraries in a temporary folder. Verification leaves source files unchanged and fails on formatting drift, build or tool errors. Requires Git, .NET and PowerShell 7. |
 | `pwsh scripts/check.ps1 [-Tier Tests\|Docs\|Package] [-Seed <seed>] [-NoBuild]` | Builds with warnings as errors, verifies formatting, builds `scripts/generate-reference.cs` as the program it runs as, and runs the complete .NET suite plus every PowerShell 7 suite in `tests/Scripts/`. `Tests` is the default. It includes real windows and processes: follow [Live UI with Winland running](#live-ui-with-winland-running). Projects run in sequence locally so their desktop sessions stay apart. `Docs` and `Package` select only `DocsTests` or the packed shell deployment tests (`Category=Package`), which the default leaves out. `-Seed` replays the randomized .NET test order. `-NoBuild` uses an existing build. Missing Pester 5.6.1 fails with an installation command; it is never silently skipped or downloaded. A run fails when a test fails, no test ran, or a test project wrote no results. It ends by naming each skipped test with its reason, including after a failure. |
 | `pwsh -NoProfile scripts/check.ps1 -Lint` | Runs the existing offline Markdown link/fragment check, actionlint and offline zizmor, stopping on the first failure. Run immediately after Markdown or workflow edits. Needs the [pinned lint tools](#local-lint-setup) on PATH; does not build, run tests, require Pester, or download tools. |
 | `pwsh scripts/ci-changes.ps1 -Files <json> [-MaxFiles <limit>]` | Classifies GitHub changed-file JSON from the checkout root and prints the flags `ci.yml` and `package.yml` use. PR file lists have a 3000-file limit; push comparisons have a 300-file limit. CI fetches this input; local contributors normally choose the checks above directly. |
@@ -316,7 +314,7 @@ The docs are plain Markdown, read on GitHub or in an editor. `docs/agents/` is f
 - **A new reference page** goes into the list in `docs/reference/index.md`.
 - **Links between pages** are relative `.md` links, also to files outside `docs/`, such as `../CONTRIBUTING.md`. The `ci` job runs lychee offline over every Markdown file, with `--include-fragments`, and fails on a link to a file or a heading that isn't there.
 - **C# examples** in a `csharp` code block are checked by `DocsTests`: each one is text from `tests/Winshell.Shell.Tests/GuideSamples.cs`, which the test project builds.
-- **The reference** in `docs/reference/` has a page per namespace of the `Winshell` package (the public types of `Winshell.Shell`, `Winshell.Services` and `Winshell.Core`), `winshell.md` for `Winshell` and `winshell-<namespace>.md` for the others, starting with `# <namespace>` and an intro written by hand. `dotnet run scripts/generate-reference.cs` writes the rest, a `## Type` section for each public type with its members, from the `///` comments, and `DocsTests` fails when a page is not what it writes. Each of those members is marked `[PublicAPI]` in source. The attribute is the internal `JetBrains.Annotations.PublicAPIAttribute` compiled into `Winshell.Core` (`PublicApiAnnotations.cs`), so ReSharper treats the member as configuration API and the packed library does not reference JetBrains.Annotations. It is not applied to a type: on a type it also marks unused private members. A public member the reference does not list stays unmarked.
+- **The reference** in `docs/reference/` has a page per namespace of the `Winshell` package (the public types of `Winshell.Shell`, `Winshell.Services` and `Winshell.Core`), `winshell.md` for `Winshell` and `winshell-<namespace>.md` for the others, starting with `# <namespace>` and an intro written by hand. `dotnet run scripts/generate-reference.cs` writes the rest, a `## Type` section for each public type with its members, from the `///` comments, and `DocsTests` fails when a page is not what it writes.
 - **Links to other sites** are checked by `links.yml`, on `main` and every Monday. That job isn't part of `check.ps1`.
 
 ## Network permissions
@@ -347,8 +345,6 @@ Real mixed-DPI movement, Acrylic composition, Narrator speech, native toast plac
 
 ```text
 .
-├── .githooks/                       # The pre-commit hook; building the solution points Git at it
-├── .config/                         # Pinned local .NET tools, including ReSharper
 ├── .github/                         # CI, issue and PR templates, Dependabot
 ├── docs/
 │   ├── agents/                      # How the engineering skills use this repo
@@ -386,7 +382,6 @@ Real mixed-DPI movement, Acrylic composition, Narrator speech, native toast plac
 ├── winshell.slnx                    # The solution the check builds
 ├── Directory.Build.targets          # Seals interop into Winshell.Native: bans interop attributes elsewhere, and unsafe code outside WinUI projects
 ├── BannedSymbols.Interop.txt        # The interop APIs no project but Winshell.Native may use
-├── Directory.Solution.targets       # Points Git at .githooks when the solution builds
 ├── CONTRIBUTING.md                  # Test rules, branch names, PR titles and descriptions
 └── GLOSSARY.md                      # The words this repo uses
 ```

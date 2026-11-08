@@ -1,15 +1,15 @@
 using System.Runtime.InteropServices;
+using Vortice.Direct3D11;
+using Vortice.DXGI;
 using Windows.Graphics.Capture;
 using Windows.Graphics.DirectX.Direct3D11;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Gdi;
 using Windows.Win32.System.WinRT.Graphics.Capture;
-using Vortice.Direct3D11;
-using Vortice.DXGI;
 using WinRT;
-using IInspectable = Windows.Win32.System.WinRT.IInspectable;
 using DxgiInterfaceAccess = Windows.Win32.System.WinRT.Direct3D11.IDirect3DDxgiInterfaceAccess;
+using IInspectable = Windows.Win32.System.WinRT.IInspectable;
 using MapFlags = Vortice.Direct3D11.MapFlags;
 using ResultCode = Vortice.DXGI.ResultCode;
 

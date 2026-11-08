@@ -264,7 +264,7 @@ public sealed class TrayBackendTests : IDisposable
 
                     backend.Dispose();
                 })
-                { IsBackground = true };
+            { IsBackground = true };
             _thread.Start();
             _started.Wait(TestContext.Current.CancellationToken);
             Assert.NotEqual(0, Window);

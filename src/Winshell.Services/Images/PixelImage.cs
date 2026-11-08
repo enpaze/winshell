@@ -18,7 +18,6 @@ public sealed class PixelImage
     /// The pixels: exactly <paramref name="width"/> times <paramref name="height"/> times 4 bytes.
     /// </param>
     /// <param name="premultiplied">Whether the color channels are already multiplied by alpha.</param>
-    [PublicAPI]
     public PixelImage(int width, int height, byte[] bgra, bool premultiplied = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
@@ -33,23 +32,18 @@ public sealed class PixelImage
     }
 
     /// <summary>The width in pixels.</summary>
-    [PublicAPI]
     public int Width { get; }
 
     /// <summary>The height in pixels.</summary>
-    [PublicAPI]
     public int Height { get; }
 
     /// <summary>Whether the color channels are already multiplied by alpha.</summary>
-    [PublicAPI]
     public bool Premultiplied { get; }
 
     /// <summary>The pixels: BGRA, four bytes a pixel, top row first. Read-only.</summary>
-    [PublicAPI]
     public ReadOnlySpan<byte> Bgra => _bgra;
 
     /// <summary>The picture as a PNG file. Blocks while Windows encodes it.</summary>
-    [PublicAPI]
     public byte[] EncodePng()
     {
         using var output = new InMemoryRandomAccessStream();

@@ -41,7 +41,8 @@ public sealed class SystemTrayTests
     {
         return Call(TrayProtocol.Modify, TrayProtocol.NIF_STATE) with
         {
-            State = hidden ? TrayProtocol.NIS_HIDDEN : 0, StateMask = TrayProtocol.NIS_HIDDEN
+            State = hidden ? TrayProtocol.NIS_HIDDEN : 0,
+            StateMask = TrayProtocol.NIS_HIDDEN
         };
     }
 
@@ -64,7 +65,8 @@ public sealed class SystemTrayTests
         _backend.Images[0x42] = image;
         var change = Call(TrayProtocol.Modify, TrayProtocol.NIF_TIP | TrayProtocol.NIF_ICON) with
         {
-            Tip = "Changed", Icon = 0x42
+            Tip = "Changed",
+            Icon = 0x42
         };
         _backend.Send(change);
         _backend.Send(change);
@@ -119,7 +121,9 @@ public sealed class SystemTrayTests
 
         _backend.Send(Call(TrayProtocol.Modify, TrayProtocol.NIF_INFO) with
         {
-            InfoTitle = "Title", Info = "Message", InfoFlags = flags
+            InfoTitle = "Title",
+            Info = "Message",
+            InfoFlags = flags
         });
 
         Assert.Equal(("Title", "Message", expected), Assert.Single(balloons));

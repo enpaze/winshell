@@ -36,34 +36,27 @@ public sealed class PrivacyService : INotifyPropertyChanged, IDisposable
     }
 
     /// <summary>The apps using the microphone. Empty while nothing listens, and while none is.</summary>
-    [PublicAPI]
     public IReadOnlyList<PrivacyApp> Microphone => _microphone;
 
     /// <summary>Whether any app is using the microphone. False while nothing listens.</summary>
-    [PublicAPI]
     public bool MicrophoneInUse => _microphoneInUse;
 
     /// <summary>The apps using the camera. Empty while nothing listens, and while none is.</summary>
-    [PublicAPI]
     public IReadOnlyList<PrivacyApp> Camera => _camera;
 
     /// <summary>Whether any app is using the camera. False while nothing listens.</summary>
-    [PublicAPI]
     public bool CameraInUse => _cameraInUse;
 
     /// <summary>The apps using location. Empty while nothing listens, and while none is.</summary>
-    [PublicAPI]
     public IReadOnlyList<PrivacyApp> Location => _location;
 
     /// <summary>Whether any app is using location. False while nothing listens.</summary>
-    [PublicAPI]
     public bool LocationInUse => _locationInUse;
 
     /// <summary>
     /// Raised on the loop's thread when one of the lists or its in-use flag changes. The first handler added starts
     /// reading Windows, and removing the last stops it. Add and remove handlers on the loop's thread.
     /// </summary>
-    [PublicAPI]
     public event PropertyChangedEventHandler? PropertyChanged
     {
         add
@@ -82,7 +75,6 @@ public sealed class PrivacyService : INotifyPropertyChanged, IDisposable
     }
 
     /// <summary>Stops reading Windows, and a handler added later does not start it again.</summary>
-    [PublicAPI]
     public void Dispose()
     {
         if (_disposed)
