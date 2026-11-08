@@ -7,7 +7,7 @@ namespace Winshell.Input;
 /// </summary>
 internal sealed class HotkeyRegistrar : IDisposable
 {
-    private readonly object _bookLock = new();
+    private readonly Lock _bookLock = new();
     private readonly IEventLoop _loop;
     private readonly Log _log;
     private readonly IHotkeyBackend _backend;
@@ -33,7 +33,7 @@ internal sealed class HotkeyRegistrar : IDisposable
         _backend.ChordPressed += OnChord;
     }
 
-    internal bool NeedsHook
+    private bool NeedsHook
     {
         get
         {
@@ -131,7 +131,7 @@ internal sealed class HotkeyRegistrar : IDisposable
         if (_disposed)
             return;
         BookResult result;
-        var changed = false;
+        bool changed;
         lock (_bookLock)
         {
             var before = _book.NeedsHook;
@@ -190,7 +190,7 @@ internal sealed class HotkeyRegistrar : IDisposable
         _timers.Remove(listener);
         if (_disposed)
             return;
-        var changed = false;
+        bool changed;
         lock (_bookLock)
         {
             var before = _book.NeedsHook;
@@ -230,7 +230,7 @@ internal sealed class HotkeyRegistrar : IDisposable
     {
         var modifiers = VirtualKeys.Held(_backend.IsKeyDown);
         BookResult result;
-        var changed = false;
+        bool changed;
         lock (_bookLock)
         {
             if (_disposed)

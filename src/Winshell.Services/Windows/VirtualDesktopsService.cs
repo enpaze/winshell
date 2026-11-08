@@ -24,7 +24,7 @@ public sealed class VirtualDesktopsService : ObservableObject, IDisposable
     private string _reason = "";
     private string _stamp = "";
     private IDisposable? _reread;
-    private IDisposable? _switched;
+    private readonly IDisposable? _switched;
 
     internal VirtualDesktopsService(IEventLoop loop, Log log, IVirtualDesktopBackend? backend = null)
     {

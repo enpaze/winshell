@@ -83,7 +83,7 @@ internal sealed record NetworkSnapshot(
 /// <param name="log">Where a failed Wi-Fi callback and radios Windows will not list are reported.</param>
 internal sealed class NetworkBackend(Log log) : INetworkBackend
 {
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private readonly Dictionary<Guid, WiFiAdapter> _wifiAdapters = [];
     private NetworkAccessStatus _access;
     private readonly SemaphoreSlim _accessGate = new(1, 1);
@@ -245,7 +245,7 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         };
     }
 
-    internal static NetworkAccessStatus MapAccess(WiFiAccessStatus status)
+    private static NetworkAccessStatus MapAccess(WiFiAccessStatus status)
     {
         return status switch
         {
@@ -391,7 +391,7 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         {
             if (name.Length == 0)
                 continue;
-            string? xml = null;
+            string? xml;
             uint error;
             try
             {
@@ -581,7 +581,7 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         };
     }
 
-    internal static NetworkCost MapCost(NetworkCostType value)
+    private static NetworkCost MapCost(NetworkCostType value)
     {
         return value switch
         {

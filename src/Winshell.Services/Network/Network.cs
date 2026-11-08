@@ -24,7 +24,7 @@ public class Network : ObservableObject
 
     internal NetworkInfo Info => _info;
 
-    internal bool Removed { get; private set; }
+    private bool Removed { get; set; }
 
     /// <summary>The SSID of a Wi-Fi network. For a wired network, the connection profile's name, or the adapter's.</summary>
     [PublicAPI]

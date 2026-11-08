@@ -27,6 +27,8 @@ public sealed class WifiNetwork : Network
     {
         var old = Info;
         base.Update(info);
+        // A stored reading: notify when the number changes, not when it passes a tolerance.
+        // ReSharper disable once CompareOfFloatsByEqualityOperator
         Changed(old.SignalStrength != info.SignalStrength, nameof(SignalStrength));
         Changed(old.Security != info.Security, nameof(Security));
     }
