@@ -18,7 +18,7 @@ public sealed partial class DevCommandTests : IDisposable
 
     private readonly string _dir = TempFolder.NewPath();
     private readonly StringBuilder _printed = new();
-    private readonly HashSet<int> _watchPids = [];
+    private readonly HashSet<(int Pid, DateTime Created)> _watch = [];
     private Process? _dev;
     private string? _probeLink;
 
@@ -238,7 +238,11 @@ public sealed partial class DevCommandTests : IDisposable
             .ToList();
     }
 
-    /// <summary>Process ids under this <c>winshell dev</c>, including a build that has since exited.</summary>
+    /// <summary>
+    /// The processes under this <c>winshell dev</c>, kept by id and start time, including a build that has since exited.
+    /// The scans run while a build is alive, so its nodes are kept then. Windows reuses an id, so a later process that
+    /// gets one, such as another test's build, does not count.
+    /// </summary>
     private void NoteWatchProcesses()
     {
         if (_dev is null)
@@ -249,7 +253,7 @@ public sealed partial class DevCommandTests : IDisposable
             parent[row.Pid] = row.Parent;
         foreach (var row in rows)
             if (Reaches(row.Pid, parent, _dev.Id))
-                _watchPids.Add(row.Pid);
+                _watch.Add((row.Pid, row.Created));
     }
 
     /// <summary>Idle MSBuild nodes this watch's build started and has not exited.</summary>
@@ -257,18 +261,18 @@ public sealed partial class DevCommandTests : IDisposable
     {
         return Processes()
             .Where(row => row.Command.Contains("nodemode", StringComparison.OrdinalIgnoreCase)
-                          && (_watchPids.Contains(row.Pid) || _watchPids.Contains(row.Parent)))
+                          && _watch.Contains((row.Pid, row.Created)))
             .Select(row => row.Pid)
             .ToList();
     }
 
     /// <summary>
-    /// Waits for this watch's build nodes to exit. Without reuse they exit a moment after the build, which on a busy PC
-    /// can be after the shell is up. A node kept for reuse stays idle for minutes, so it still fails the wait.
+    /// Waits for this watch's build nodes to exit. Without reuse they exit after the build, and on a busy PC that can take
+    /// as long as a build. A node kept for reuse stays idle for about 15 minutes, so it still fails the wait.
     /// </summary>
     private void NodesExit()
     {
-        Wait.Until(() => IdleNodes().Count == 0, "winshell dev's MSBuild nodes to exit");
+        Wait.Until(() => IdleNodes().Count == 0, "winshell dev's MSBuild nodes to exit", BuildPatience);
     }
 
     private static bool Reaches(int pid, Dictionary<int, int> parent, int root)
@@ -285,14 +289,18 @@ public sealed partial class DevCommandTests : IDisposable
         return false;
     }
 
-    private static List<(int Pid, int Parent, string Command)> Processes()
+    private static List<(int Pid, DateTime Created, int Parent, string Command)> Processes()
     {
         using var search =
-            new ManagementObjectSearcher("SELECT ProcessId, ParentProcessId, CommandLine FROM Win32_Process");
+            new ManagementObjectSearcher(
+                "SELECT ProcessId, CreationDate, ParentProcessId, CommandLine FROM Win32_Process");
         using var found = search.Get();
         return found.Cast<ManagementObject>()
             .Select(p => (
                 Pid: Number(p["ProcessId"]),
+                Created: p["CreationDate"] is string created
+                    ? ManagementDateTimeConverter.ToDateTime(created)
+                    : default,
                 Parent: Number(p["ParentProcessId"]),
                 Command: p["CommandLine"] as string ?? ""))
             .ToList();
