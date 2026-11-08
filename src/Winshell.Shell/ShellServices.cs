@@ -11,6 +11,7 @@ using Winshell.Notifications;
 using Winshell.Power;
 using Winshell.Session;
 using Winshell.Tray;
+using Winshell.Wallpaper;
 using Winshell.Windows;
 using Winshell.Winland;
 
@@ -38,6 +39,7 @@ public sealed partial class Shell
     private StartupService? _startup;
     private SystemTray? _systemTray;
     private VirtualDesktopsService? _virtualDesktops;
+    private WallpaperService? _wallpaper;
     private WindowListService? _windows;
     private WinlandService? _winland;
 
@@ -48,7 +50,7 @@ public sealed partial class Shell
     private IDisposable?[] ServicesInStopOrder =>
     [
         _winland, _windows, _virtualDesktops, _apps, _audio, _bluetooth, _brightness, _cpu, _explorerTaskbar, _media,
-        _networking, _notifications, _power, _powerMode, _systemTray, _hotkeys, _keyboardLayouts
+        _networking, _notifications, _power, _powerMode, _systemTray, _hotkeys, _keyboardLayouts, _wallpaper
     ];
 
     /// <summary>The apps Start lists.</summary>
@@ -122,6 +124,10 @@ public sealed partial class Shell
     /// <summary>The virtual desktops Task View shows.</summary>
     [PublicAPI]
     public VirtualDesktopsService VirtualDesktops => _virtualDesktops ??= new VirtualDesktopsService(Loop, Log);
+
+    /// <summary>The desktop wallpaper: each screen's image, the fit and the background color.</summary>
+    [PublicAPI]
+    public WallpaperService Wallpaper => _wallpaper ??= new WallpaperService(Loop, Log);
 
     /// <summary>The app windows the taskbar and Alt+Tab list.</summary>
     [PublicAPI]
