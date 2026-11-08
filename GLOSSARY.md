@@ -152,6 +152,10 @@ _Avoid_: hidden icons (an app can also hide its own icon), drawer
 A key chord or a short sequence of chords that works anywhere in Windows, such as `Ctrl+Shift+K` or `Win`.
 _Avoid_: global shortcut, keybind, accelerator, bind
 
+**Keyboard layout**:
+One way to type that Windows has installed. It has a short label, such as EN, and the name Windows shows for that layout, such as United States-International. The current layout is the foreground window's. Switching reaches that window, as Win+Space does.
+_Avoid_: input language, input method, IME
+
 ## The language
 
 **Namespace**:

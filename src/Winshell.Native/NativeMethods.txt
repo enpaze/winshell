@@ -215,3 +215,11 @@ GetPwrCapabilities
 CallNtPowerInformation
 SHUTDOWN_REASON
 SHUTDOWN_FLAGS
+
+// Keyboard layouts: which are installed, and which the foreground window is using. One block, so later
+// NativeMethods.txt edits can rebase around it.
+GetKeyboardLayout
+GetKeyboardLayoutList
+GetLocaleInfoEx
+LCIDToLocaleName
+GetGUIThreadInfo
