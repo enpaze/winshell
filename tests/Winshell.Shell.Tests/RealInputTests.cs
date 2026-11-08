@@ -47,7 +47,12 @@ public sealed class RealInputTests
     {
         try
         {
-            return await Inspector.Run(shell, command, args);
+            var said = await Inspector.Run(shell, command, args);
+            if (said.EndsWith("The mouse moved, so the cursor stays where it is.", StringComparison.Ordinal) ||
+                said.StartsWith("The mouse moved since point", StringComparison.Ordinal) ||
+                (said.StartsWith("Nothing is pointed at", StringComparison.Ordinal) && command == "leave"))
+                Assert.Skip(said);
+            return said;
         }
         catch (IpcException e) when (e.Message.StartsWith("Someone used the mouse", StringComparison.Ordinal) ||
                                      e.Message == "The mouse moved, so nothing more was sent.")

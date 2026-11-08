@@ -91,6 +91,7 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         var landed = await Arrive(target, back);
         var hold = new Hold(target, back, landed, loop.Time.GetTimestamp());
         _hold = hold;
+        _away = null;
         hold.Timer = loop.Time.CreateTimer(_ => loop.Post(() => Check(hold)), null, HoldCheck, HoldCheck);
         return $"Pointing at {name}. winshell inspect leave puts the cursor back.";
     }
@@ -118,6 +119,7 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         RefuseWhileUsed();
         var back = CursorNow();
         var landed = await Arrive(target, back);
+        Given given;
         try
         {
             RefuseAt(target, landed);
@@ -129,10 +131,10 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         }
         finally
         {
-            await GiveBack(target, back, landed);
+            given = await GiveBack(target, back, landed);
         }
 
-        return right ? $"Right-pressed {name}" : $"Pressed {name}";
+        return (right ? $"Right-pressed {name}" : $"Pressed {name}") + Afterwards(given);
     }
 
     /// <summary>
@@ -149,6 +151,7 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         RefuseWhileUsed();
         var back = CursorNow();
         var landed = await Arrive(target, back);
+        Given given;
         try
         {
             for (var notch = 0; notch < Math.Abs(steps); notch++)
@@ -167,10 +170,10 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         }
         finally
         {
-            await GiveBack(target, back, landed);
+            given = await GiveBack(target, back, landed);
         }
 
-        return $"Scrolled {name} {(steps > 0 ? "down" : "up")} {Math.Abs(steps)}";
+        return $"Scrolled {name} {(steps > 0 ? "down" : "up")} {Math.Abs(steps)}" + Afterwards(given);
     }
 
     /// <summary>Presses Tab in the element's window until keyboard focus is on the element or in it.</summary>
@@ -273,6 +276,17 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
                !KeyInput.Unclaimed((uint)chord.Modifiers, chord.VirtualKey);
     }
 
+    /// <summary>What a command adds when the cursor didn't simply go back.</summary>
+    private static string Afterwards(Given given)
+    {
+        return given switch
+        {
+            Given.Taken => ". The mouse moved, so the cursor stays where it is.",
+            Given.BackStillHovered => ". It may keep its hover look until the mouse moves.",
+            _ => ""
+        };
+    }
+
     /// <summary>One real input command at a time: two at once would each move the cursor, and lose where it was.</summary>
     private Turned Turn()
     {
@@ -319,9 +333,15 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         return PointerInput.Cursor() ?? throw new IpcException("Windows won't say where the cursor is.");
     }
 
+    /// <summary>Whether the cursor is where this left it. A move <c>SendInput</c> scales can land a pixel to the side.</summary>
     private static bool IsAt(POINT point)
     {
-        return PointerInput.Cursor() is { } now && now.X == point.X && now.Y == point.Y;
+        return PointerInput.Cursor() is { } now && Near(now, point);
+    }
+
+    private static bool Near(POINT one, POINT other)
+    {
+        return Math.Abs(one.X - other.X) <= 1 && Math.Abs(one.Y - other.Y) <= 1;
     }
 
     /// <summary>A window of the target's: its own, or a flyout's or menu's, which is owned by the window it opened from.</summary>
@@ -389,9 +409,10 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
             }
 
             var landed = CursorNow();
-            if (Math.Abs(landed.X - at.X) > 1 || Math.Abs(landed.Y - at.Y) > 1)
+            if (!Near(landed, at))
                 throw new IpcException(
                     $"The cursor went to ({landed.X}, {landed.Y}), not ({at.X}, {at.Y}). Something else moved it, so nothing more was sent.");
+            _away = (back, landed);
             return landed;
         }
         catch (IpcException)
@@ -491,7 +512,7 @@ internal sealed class RealInput(IEventLoop loop) : IDisposable
         }
 
         _away = null;
-        if (PointerInput.Cursor() is not { } cursor || Math.Abs(cursor.X - now.X) > 1 || Math.Abs(cursor.Y - now.Y) > 1)
+        if (!IsAt(now))
             return Given.Taken;
         PutBack(back);
         return stepped ? Given.Back : Given.BackStillHovered;
