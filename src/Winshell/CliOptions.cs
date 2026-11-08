@@ -54,6 +54,9 @@ internal sealed record CliOptions
     /// <summary><c>inspect record --screen</c>: the screen to record instead of a window, from 0.</summary>
     public int? Screen { get; init; }
 
+    /// <summary><c>inspect press --right</c>: press the right button.</summary>
+    public bool Right { get; init; }
+
     public ImmutableArray<string> Positional { get; init; } = [];
 
     /// <summary>The <c>--</c> and everything after it. Those words belong to the configuration's program.</summary>

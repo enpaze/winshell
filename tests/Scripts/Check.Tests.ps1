@@ -1,19 +1,21 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot '../../scripts/lib/Tests.ps1')
 
-    # Writes a results file like dotnet test does. Rows are "Class.Method=Outcome".
+    # Writes a results file like dotnet test does. Rows are "Class.Method=Outcome", or "Class.Method=NotExecuted:reason".
     function Write-Trx {
         param([string] $Directory, [string[]] $Rows, [switch] $Crashed, [switch] $NoAbortText)
         New-Item -ItemType Directory -Force -Path $Directory | Out-Null
         $definitions = ''
         $results = ''
         foreach ($row in $Rows) {
-            $name, $outcome = $row -split '='
+            $name, $outcome = $row -split '=', 2
+            $outcome, $reason = $outcome -split ':', 2
             $id = [guid]::NewGuid()
             $class = $name.Substring(0, $name.LastIndexOf('.'))
             $method = $name.Substring($name.LastIndexOf('.') + 1)
             $definitions += "<UnitTest name=`"$name(a: 1)`" id=`"$id`"><TestMethod className=`"$class`" name=`"$method`" /></UnitTest>"
-            $results += "<UnitTestResult testId=`"$id`" testName=`"$name`" outcome=`"$outcome`" />"
+            $output = if ($reason) { "<Output><ErrorInfo><Message>$reason</Message></ErrorInfo></Output>" } else { '' }
+            $results += "<UnitTestResult testId=`"$id`" testName=`"$name`" outcome=`"$outcome`">$output</UnitTestResult>"
         }
         $failures = @($Rows | Where-Object { $_ -like '*=Failed' }).Count
         $outcome = if ($Crashed -or $NoAbortText -or $failures -gt 0) { 'Failed' } else { 'Completed' }
@@ -60,6 +62,13 @@ Describe 'Reading test results' {
         $result.Failed | Should -Be 1
         $result.Passed | Should -Be 2
         $result.Complete | Should -BeTrue
+    }
+
+    It 'names each skipped test with its reason' {
+        $directory = Join-Path $TestDrive 'skipped'
+        Write-Trx -Directory $directory -Rows @('Ns.Class.Fact=Passed', 'Ns.Class.Busy=NotExecuted:Someone was using this PC', 'Ns.Class.Bare=NotExecuted')
+        (Read-TestResult -Directory $directory -ProjectCount 1).Skipped |
+            Should -Be @('Ns.Class.Busy: Someone was using this PC', 'Ns.Class.Bare: no reason given')
     }
 
     It 'is not complete when a test host crashed' {

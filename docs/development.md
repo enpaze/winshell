@@ -114,7 +114,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | `pwsh scripts/pr-rules.ps1 -Title <title> -Body <body> -Path <file>` | What the `pr-rules` job runs, given a file of changed paths. It prints each problem and exits 1. |
 | `pwsh scripts/pr-screenshot.ps1 <png>` | Publishes a `winshell inspect` screenshot on the `pr-screenshots` branch, which never merges, and prints the Markdown to paste into a PR. |
 | `pwsh -NoProfile scripts/resharper.ps1 -Mode Cleanup\|Check\|Inspect [-Include <paths>] [-Staged] [-Output <folder>]` | Uses the pinned ReSharper CLI. Cleanup edits handwritten solution and template C#/XAML; Check verifies an isolated copy; Inspect writes `solution.sarif` and `template.sarif` under `artifacts/resharper/` by default and fails on suggestions and above. `-Include` selects explicit source paths; `-Staged` selects staged paths, reading their working-tree contents. These selectors are mutually exclusive. Build and tool errors fail the command. Requires Git, .NET and PowerShell 7; first use restores the pinned tool. |
-| `pwsh scripts/check.ps1 [-Tier Fast\|Slow\|All\|Docs\|Package] [-Seed <seed>] [-NoBuild]` | Builds with warnings as errors, verifies formatting, builds `scripts/generate-reference.cs` as the program it runs as, and runs fast .NET tests plus every PowerShell 7 suite in `tests/Scripts/`. Fast is the default, opens no windows, and runs test projects side by side. `-Tier Slow` runs only the tests that open windows, one test project at a time, without formatting or Pester; `All` runs both tiers, one test project at a time, and Pester. `Docs` and `Package` build and run only `DocsTests` or the packed shell tests (`Category=Package`), which the other tiers leave out. `-Seed` replays the randomized .NET test order. `-NoBuild` uses an existing build. Missing Pester 5.6.1 fails with an installation command; it is never silently skipped or downloaded. A run fails when a test fails, no test ran, or a test project wrote no results. |
+| `pwsh scripts/check.ps1 [-Tier Fast\|Slow\|All\|Docs\|Package] [-Seed <seed>] [-NoBuild]` | Builds with warnings as errors, verifies formatting, builds `scripts/generate-reference.cs` as the program it runs as, and runs fast .NET tests plus every PowerShell 7 suite in `tests/Scripts/`. Fast is the default, opens no windows, and runs test projects side by side. `-Tier Slow` runs only the tests that open windows, one test project at a time, without formatting or Pester; `All` runs both tiers, one test project at a time, and Pester. `Docs` and `Package` build and run only `DocsTests` or the packed shell tests (`Category=Package`), which the other tiers leave out. `-Seed` replays the randomized .NET test order. `-NoBuild` uses an existing build. Missing Pester 5.6.1 fails with an installation command; it is never silently skipped or downloaded. A run fails when a test fails, no test ran, or a test project wrote no results. It ends by naming each skipped test with its reason, which the test output leaves out. |
 | `pwsh -NoProfile scripts/check.ps1 -Lint` | Runs the existing offline Markdown link/fragment check, actionlint and offline zizmor, stopping on the first failure. Run immediately after Markdown or workflow edits. Needs the [pinned lint tools](#local-lint-setup) on PATH; does not build, run tests, require Pester, or download tools. |
 | `pwsh scripts/ci-changes.ps1 -Files <json> [-MaxFiles <limit>]` | Classifies GitHub changed-file JSON from the checkout root and prints the flags `ci.yml` and `package.yml` use. PR file lists have a 3000-file limit; push comparisons have a 300-file limit. CI fetches this input; local contributors normally choose the checks above directly. |
 | `pwsh scripts/pack.ps1` | Packs the `Winshell` library a configuration references, and the `Winshell.Templates` package, into `artifacts/packages/`. The library carries `Winshell.Native`, `Winshell.Core`, `Winshell.Services` and `Winshell.Shell`, and depends on `Microsoft.WindowsAppSDK.WinUI` and `Microsoft.WindowsAppSDK.Foundation` at the versions in `Directory.Packages.props`; the template references only `Winshell` and gets WindowsAppSDK through it. CsWin32 generates Native's declarations at build time and is not a package consumer dependency. The template package is `dotnet new winshell`, one panel. Neither package is published to a feed; `scripts/package.ps1` puts the library in each release. The Package workflow runs the `Category=Package` tests, which call this. `-Out` chooses the folder and `-Version` overrides the release from `.release-please-manifest.json`. |
@@ -189,7 +189,7 @@ winland reload
 
 ## See what you changed
 
-`winshell inspect` is how to verify a visual change. It reads a running shell from inside, so it needs no mouse and no keyboard, and it does not move the user's pointer or focus. Winshell has no shell of its own, so run one that shows the change: a project made with `dotnet new winshell`, as the [configuration guide](configuration.md#create-one) shows, with the change in it. A test can start the probe shell in `tests/Winshell.Tests/ProbeShell.cs` instead. Run it under "Live UI with Winland running", with private `WINSHELL_CONFIG_DIR` and `WINSHELL_LOCAL_DIR`, and pass `--pid`:
+`winshell inspect` is how to verify a visual change. It reads a running shell from inside, so its `tree`, `screenshot`, `record`, `click` and `hover` need no mouse and no keyboard, and they do not move the user's pointer or focus. Winshell has no shell of its own, so run one that shows the change: a project made with `dotnet new winshell`, as the [configuration guide](configuration.md#create-one) shows, with the change in it. A test can start the probe shell in `tests/Winshell.Tests/ProbeShell.cs` instead. Run it under "Live UI with Winland running", with private `WINSHELL_CONFIG_DIR` and `WINSHELL_LOCAL_DIR`, and pass `--pid`:
 
 ```powershell
 winshell run -d -p .\MyShell                                  # build and start the shell
@@ -202,7 +202,19 @@ winshell inspect --pid <pid> record out.mp4 --for 5s PanelView --frames frames
 
 `winshell list` shows the process id. Look at the screenshot, and check values in the tree rather than trusting that the code ran. The tree marks the element keyboard focus is on with `"focused": true`. A name finds only elements that are not collapsed, as Narrator does, so a control kept collapsed beside a visible twin does not make the name ambiguous.
 
-`winshell inspect hover` shows a control's hover look only: a `PointerEntered` handler needs a real pointer, or a method of its own that a test can call.
+`winshell inspect hover` shows a control's hover look only: a `PointerEntered` handler needs a real pointer.
+
+For hover, a press, keyboard focus or an animation, use real input. Record in the background, `point` at the element, then look at the contact sheet:
+
+```powershell
+$record = Start-Process winshell -NoNewWindow -PassThru -ArgumentList 'inspect', '--pid', <pid>, 'record', 'hover.mp4', '--for', '5s', 'PanelView', '--frames', 'frames'
+Start-Sleep -Seconds 1                                        # capture takes a moment to start
+winshell inspect --pid <pid> point TrayChevron PanelView      # the mouse stays on it: PointerEntered and the hover look run
+winshell inspect --pid <pid> leave                            # the cursor goes back, and PointerExited runs
+$record.WaitForExit()                                         # then read frames\contact-sheet.png
+```
+
+`focus`, `press [--right]`, `scroll` and `key` work the same way. The mouse ones move the user's real cursor. Every one refuses while anyone has used the PC in the last 3 seconds, and before each mouse event they check that no other window is on top at the element. Run them only in a live session, never at someone's active desktop. A test does not inject input of its own, but a slow test may run these commands. The [command-line reference](reference/command-line.md) lists each command and refusal.
 
 ## Run the shell from source
 
@@ -321,7 +333,7 @@ Reading Bluetooth state uses Windows adapter and device-enumeration properties, 
 
 ## Hotkeys
 
-Tests may register an unused chord such as Ctrl+Alt+Shift+F24 and may install a keyboard hook while a Windows-key hotkey is enabled or a key sequence is in progress. Each test removes the registration and the hook before it ends. Tests do not inject keystrokes or change keyboard settings. See [hotkeys](reference/winshell-input.md).
+Tests may register an unused chord such as Ctrl+Alt+Shift+F24 and may install a keyboard hook while a Windows-key hotkey is enabled or a key sequence is in progress. Each test removes the registration and the hook before it ends. Tests do not inject keystrokes of their own or change keyboard settings. A slow test may run `winshell inspect`'s real input commands, which keep to the rules under [See what you changed](#see-what-you-changed). See [hotkeys](reference/winshell-input.md).
 
 ## Checks only a live session can do
 

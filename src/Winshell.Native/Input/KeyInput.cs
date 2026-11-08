@@ -28,9 +28,55 @@ internal static unsafe class KeyInput
             inputs[i].Anonymous.ki.dwExtraInfo = Marker;
         }
 
-        fixed (INPUT* first = inputs)
+        SentInput.Send(inputs, 1);
+    }
+
+    /// <summary>
+    /// A chord's keys down in order, then up in reverse, as one injection that nothing else can split, so no key is left
+    /// held. Windows gives them to the window in front, so the caller checks which that is first.
+    /// </summary>
+    internal static bool Chord(IReadOnlyList<int> keys)
+    {
+        var inputs = new INPUT[keys.Count * 2];
+        for (var i = 0; i < keys.Count; i++)
         {
-            _ = PInvoke.SendInput((uint)inputs.Length, first, sizeof(INPUT));
+            Key(ref inputs[i], keys[i], false);
+            Key(ref inputs[^(i + 1)], keys[i], true);
         }
+
+        return SentInput.Send(inputs, keys.Count);
+    }
+
+    /// <summary>
+    /// Whether no program has the chord as a hotkey, this one included: Windows gives a registered hotkey to the program
+    /// that registered it, wherever the keyboard is.
+    /// </summary>
+    internal static bool Unclaimed(uint modifiers, int key)
+    {
+        const int probe = 0xBFFE;
+        if (!Win32.RegisterHotKey(0, probe, modifiers, (uint)key))
+            return false;
+        Win32.UnregisterHotKey(0, probe);
+        return true;
+    }
+
+    private static void Key(ref INPUT input, int key, bool up)
+    {
+        input.type = INPUT_TYPE.INPUT_KEYBOARD;
+        input.Anonymous.ki.wVk = (VIRTUAL_KEY)key;
+        input.Anonymous.ki.wScan = (ushort)ScanCode(key);
+        input.Anonymous.ki.dwFlags = (up ? KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP : 0) |
+                                     (IsExtended(key) ? KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY : 0);
+    }
+
+    internal static uint ScanCode(int key)
+    {
+        return PInvoke.MapVirtualKey((uint)key, MAP_VIRTUAL_KEY_TYPE.MAPVK_VK_TO_VSC);
+    }
+
+    /// <summary>The keys of the navigation block and the numpad's divide, which share scan codes with the numpad.</summary>
+    internal static bool IsExtended(int key)
+    {
+        return key is >= 0x21 and <= 0x28 or 0x2D or 0x2E or 0x6F;
     }
 }

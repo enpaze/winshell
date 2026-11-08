@@ -80,6 +80,7 @@ SIZE
 
 KBDLLHOOKSTRUCT
 SendInput
+MapVirtualKey
 SetCursorPos
 
 GetStdHandle

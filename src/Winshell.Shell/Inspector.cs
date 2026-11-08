@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Text.Json;
@@ -16,9 +17,11 @@ using Microsoft.UI.Xaml.Media.Imaging;
 namespace Winshell;
 
 /// <summary>
-/// <c>winshell inspect</c>: what is on screen, seen from inside the shell. It reads the live XAML tree, and acts through
-/// the same automation peers Narrator uses, so nothing here reaches Windows' input queue. A window is named by its
-/// content's type, or its place in <see cref="Tree"/>'s list. For a recording it only names what to capture.
+/// <c>winshell inspect</c>: what is on screen, seen from inside the shell. It reads the live XAML tree. <c>click</c> and
+/// <c>hover</c> act through the same automation peers Narrator uses, so they reach no input queue; <c>focus</c>,
+/// <c>point</c>, <c>leave</c>, <c>press</c>, <c>scroll</c> and <c>key</c> send real input through
+/// <see cref="RealInput"/>. A window is named by its content's type, or its place in <see cref="Tree"/>'s list. For a
+/// recording it only names what to capture.
 /// </summary>
 internal static class Inspector
 {
@@ -35,6 +38,17 @@ internal static class Inspector
             "click" when args.Count > 0 => Click(Find(shell, command, args[0], window), args[0]),
             "hover" when args.Count > 0 => Hover(Find(shell, command, args[0], window), args[0]),
             "record" => RecordTarget(shell, args),
+            "focus" when args.Count > 0 => await shell.Input.Focus(Find(shell, command, args[0], window), args[0]),
+            "point" when args.Count > 0 => await shell.Input.Point(Find(shell, command, args[0], window), args[0]),
+            "leave" => await shell.Input.Leave(),
+            "press" when args is ["--right", var name, ..] =>
+                await shell.Input.Press(Find(shell, command, name, [.. args.Skip(2)]), name, true),
+            "press" when args.Count > 0 => await shell.Input.Press(Find(shell, command, args[0], window), args[0],
+                false),
+            "scroll" when args.Count > 1 && int.TryParse(args[1], NumberStyles.AllowLeadingSign,
+                    CultureInfo.InvariantCulture, out var steps) && steps != 0 =>
+                await shell.Input.Scroll(Find(shell, command, args[0], [.. args.Skip(2)]), args[0], steps),
+            "key" when args.Count > 0 => await shell.Input.Key(Window(shell, window), args[0]),
             _ => throw new IpcException($"Unknown inspect command {command}.")
         };
     }

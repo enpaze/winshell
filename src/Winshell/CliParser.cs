@@ -70,6 +70,9 @@ internal static class CliParser
             (o, use) => o with { Screen = use.Value is null ? 0 : WholeNumber(use.Token, use.Value) })
     ];
 
+    /// <summary>What only <c>inspect press</c> takes.</summary>
+    private static readonly Option RightOption = Option.Flag(new CommandWord("--right"), o => o with { Right = true });
+
     private const string RunUsage = """
                                     winshell run [-c <name> | -p <path>] [-d] [-n] [--no-build] [-- <args>...]
                                       Starts a configuration project's shell, built first when a source is newer than its
@@ -115,8 +118,18 @@ internal static class CliParser
                                                                           milliseconds, and contact-sheet.png of them all
                                           click <name> [window]           activate an element, as Narrator does
                                           hover <name> [window]           put a control in its pointer look
+                                          Real input, which sends nothing while the PC is in use, no mouse event
+                                          where another window is on top, and puts the cursor back:
+                                          focus <name> [window]           press Tab until keyboard focus is on the element
+                                          point <name> [window]           keep the mouse on the element until leave, the next
+                                                                          of these commands, 30 seconds, or a move of the mouse
+                                          leave                           put the cursor back after point
+                                          press <name> [window] [--right] press and release a mouse button on the element
+                                          scroll <name> <steps> [window]  turn the mouse wheel; 3 scrolls down, -3 up
+                                          key <keys> [window]             press keys, such as Tab, Enter or "Ctrl+K, C". Ctrl,
+                                                                          Alt and Shift need the window to be in front
                                           A window is the type of its content, or its number in tree. The first is the default.
-                                          A name is an x:Name, or an automation id or name. Nothing goes through Windows' input.
+                                          A name is an x:Name, or an automation id or name.
                                           A time is in seconds, such as 5 or 2.5s, or in milliseconds, such as 500ms.
                                         """;
 
@@ -186,7 +199,9 @@ internal static class CliParser
                                           winshell ipc wait <target> <signal>
                                           winshell ipc listen <target> <signal>
                                           winshell inspect tree | screenshot <file> | record <file.mp4> --for <time>
-                                                           | click <name> | hover <name>
+                                                           | click <name> | hover <name> | focus <name>
+                                                           | point <name> | leave | press <name> | scroll <name> <steps>
+                                                           | key <keys>
                                                                               look at a running shell, or act on it
                                           winshell doctor [config options] [-j] [--no-color]
                                                                               check this PC's setup for Winshell
@@ -242,13 +257,19 @@ internal static class CliParser
             new Subcommand(IpcOps.Wait, 2, "a target and a signal"),
             new Subcommand(IpcOps.Listen, 2, "a target and a signal")
         ]),
-        Entry("inspect", InspectUsage, WordRule.Subcommand, [.. Instance, .. Record],
+        Entry("inspect", InspectUsage, WordRule.Subcommand, [.. Instance, .. Record, RightOption],
         [
             new Subcommand("tree"),
             new Subcommand("screenshot", 1, "a file"),
             new Subcommand("record", 1, "a file"),
             new Subcommand("click", 1, "a name"),
-            new Subcommand("hover", 1, "a name")
+            new Subcommand("hover", 1, "a name"),
+            new Subcommand("focus", 1, "a name"),
+            new Subcommand("point", 1, "a name"),
+            new Subcommand("leave"),
+            new Subcommand("press", 1, "a name"),
+            new Subcommand("scroll", 2, "a name and a number of steps"),
+            new Subcommand("key", 1, "keys")
         ]),
         Entry("dev", DevUsage, WordRule.None, [PathOption, ConfigOption]),
         Entry("doctor", DoctorUsage, WordRule.None,
@@ -317,7 +338,7 @@ internal static class CliParser
                 case WordRule.Subcommand:
                     RequireSubcommand(command, positional);
                     if (name == "inspect")
-                        CheckRecord(line, options, positional);
+                        CheckInspect(line, options, positional);
                     break;
             }
         }
@@ -407,18 +428,30 @@ internal static class CliParser
     }
 
     /// <summary>
-    /// <c>inspect record</c> needs a time and an MP4, and records a window or a screen, not both. Its options mean
-    /// nothing to the other inspect commands.
+    /// <c>inspect record</c> needs a time and an MP4, and records a window or a screen, not both. <c>scroll</c> needs a
+    /// number of steps, and <c>key</c> keys it can press. An option means nothing to the commands it isn't for.
     /// </summary>
-    private static void CheckRecord(Line line, CliOptions options, List<string> positional)
+    private static void CheckInspect(Line line, CliOptions options, List<string> positional)
     {
         var name = positional[0];
-        if (name != "record")
+        var own = name switch
         {
-            if (line.Uses.FirstOrDefault(use => Record.Contains(use.Option)) is { Option: not null } use)
-                throw new ArgumentException($"winshell inspect {name} does not take \"{use.Token}\".");
+            "record" => Record,
+            "press" => [RightOption],
+            _ => []
+        };
+        if (line.Uses.FirstOrDefault(use => use.Option is not null && !own.Contains(use.Option) &&
+                                            (Record.Contains(use.Option) || use.Option == RightOption)) is
+            { Option: not null } stray)
+            throw new ArgumentException($"winshell inspect {name} does not take \"{stray.Token}\".");
+        if (name == "scroll" && (!int.TryParse(positional[2], NumberStyles.AllowLeadingSign,
+                CultureInfo.InvariantCulture, out var steps) || steps == 0 || Math.Abs(steps) > MaxSteps))
+            throw new ArgumentException(
+                $"winshell inspect scroll needs a number of steps from 1 to {MaxSteps}, or -1 to -{MaxSteps} to scroll up.");
+        if (name == "key")
+            CheckKeys(positional[1]);
+        if (name != "record")
             return;
-        }
 
         if (options.For is null)
             throw new ArgumentException("winshell inspect record needs --for and a time, such as --for 5s.");
@@ -428,6 +461,19 @@ internal static class CliParser
             throw new ArgumentException("--screen records a whole screen, so it takes no window.");
         if (positional.Count > 3)
             throw Unexpected(positional[3]);
+    }
+
+    /// <summary>The most wheel notches one <c>inspect scroll</c> turns.</summary>
+    private const int MaxSteps = 100;
+
+    /// <summary>Keys <c>inspect key</c> can press: chords as a hotkey writes them, without the Windows key.</summary>
+    private static void CheckKeys(string keys)
+    {
+        if (!HotkeySequence.TryParse(keys, out var sequence, out var error))
+            throw new ArgumentException(error ?? "winshell inspect key needs keys, such as Tab or Ctrl+S.");
+        if (sequence!.Chords.FirstOrDefault(chord => (chord.Modifiers & HotkeyModifiers.Win) != 0) is { } win)
+            throw new ArgumentException(
+                $"winshell inspect key does not press {win.Text}: Windows itself takes the Windows key, not the shell.");
     }
 
     private static string ConfigName(string option, string name)
@@ -629,7 +675,9 @@ internal static class CliParser
                     continue;
                 }
 
-                if (token.StartsWith('-'))
+                // To inspect, a negative number is a word, the steps of scroll, and not an option.
+                if (token.StartsWith('-') && !(Command == "inspect" && int.TryParse(token,
+                        NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out _)))
                 {
                     Uses.Add(new Use(token, null, null, false));
                     Child.Add(token);
