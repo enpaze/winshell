@@ -10,7 +10,7 @@ using Windows.Win32;
 namespace Winshell.Tests;
 
 /// <summary>The real <c>winshell dev</c>, on a real project, editing its source.</summary>
-public sealed class DevCommandTests : IDisposable
+public sealed partial class DevCommandTests : IDisposable
 {
     private static readonly TimeSpan BuildPatience = TimeSpan.FromSeconds(140);
 
@@ -148,6 +148,7 @@ public sealed class DevCommandTests : IDisposable
             $"internal static class Marker {{ public static string Value() {body} }}");
     }
 
+    /// <param name="text">What the panel label shows.</param>
     /// <param name="needsBuild">Marks the label x:Load, which only a build applies.</param>
     private void Label(string text, bool needsBuild = false)
     {
@@ -364,19 +365,20 @@ public sealed class DevCommandTests : IDisposable
         // Start opens this shortcut. The app has to outlive the rebuild and the end of winshell dev.
         await Wait.UntilAsync(async () => await LaunchProbe() == "launched", "the app to open",
             TimeSpan.FromSeconds(60));
-        Wait.Until(ProbeAlive, "the opened app");
-        Wait.Until(() => File.Exists(Path.Combine(_dir, "reuse.txt")), "the opened app's environment");
-        Assert.Equal("", File.ReadAllText(Path.Combine(_dir, "reuse.txt")).Trim());
+        await Wait.UntilAsync(ProbeAlive, "the opened app");
+        await Wait.UntilAsync(() => File.Exists(Path.Combine(_dir, "reuse.txt")), "the opened app's environment");
+        Assert.Equal("", (await File.ReadAllTextAsync(Path.Combine(_dir, "reuse.txt"),
+            TestContext.Current.CancellationToken)).Trim());
         // The first edit also warms the compiler up.
         Mark("""=> "two";""");
         await Wait.UntilAsync(async () => (await Value()).Text == "two", "the first edit", BuildPatience);
 
         Mark("""=> "broken" """);
-        Wait.Until(() => Printed("error CS1002"), "the compile error");
+        await Wait.UntilAsync(() => Printed("error CS1002"), "the compile error");
         var value = CallValue();
         value.AssertExitCode(0);
         Assert.Equal("two", value.Output.Trim());
-        Wait.Until(
+        await Wait.UntilAsync(
             () => WinshellCli.Run(["log", "-t", "20"], Folders).Output
                 .Contains("Your configuration did not build", StringComparison.Ordinal), "the notice");
 
@@ -390,7 +392,8 @@ public sealed class DevCommandTests : IDisposable
         Assert.Equal(shell, ShellProcess());
 
         Label("three", true);
-        Wait.Until(() => Printed("Building, because the XAML you saved needs it."), "the build the XAML needs");
+        await Wait.UntilAsync(() => Printed("Building, because the XAML you saved needs it."),
+            "the build the XAML needs");
         await Wait.UntilAsync(async () =>
         {
             NoteWatchProcesses();
@@ -403,7 +406,8 @@ public sealed class DevCommandTests : IDisposable
         Assert.Equal("", reuse.Text);
         Assert.True(ProbeAlive(), "The app opened from the shell ended when the shell was rebuilt.");
         // A rebuild lets the old shell quit before replacing it: a forced end would not mark this record.
-        var record = File.ReadAllText(Path.Combine(_dir, "local", "run", id, "instance.json"));
+        var record = await File.ReadAllTextAsync(Path.Combine(_dir, "local", "run", id, "instance.json"),
+            TestContext.Current.CancellationToken);
         Assert.NotNull(JsonSerializer.Deserialize(record, InstanceJson.Default.InstanceInfo)?.ExitedAt);
         var restartedId = InstanceId();
 
@@ -412,7 +416,8 @@ public sealed class DevCommandTests : IDisposable
         Assert.True(_dev.WaitForExit(TimeSpan.FromSeconds(30)), "winshell dev did not exit.");
         Wait.Until(() => FromProject().Count == 0, "dotnet watch and the shell to end", TimeSpan.FromSeconds(30));
         // Shutdown also asks the replacement shell to quit before ending watch.
-        record = File.ReadAllText(Path.Combine(_dir, "local", "run", restartedId, "instance.json"));
+        record = await File.ReadAllTextAsync(Path.Combine(_dir, "local", "run", restartedId, "instance.json"),
+            TestContext.Current.CancellationToken);
         Assert.NotNull(JsonSerializer.Deserialize(record, InstanceJson.Default.InstanceInfo)?.ExitedAt);
         Assert.True(ProbeAlive(), "The app opened from the shell ended when winshell dev ended.");
     }
