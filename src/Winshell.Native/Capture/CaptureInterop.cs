@@ -82,11 +82,12 @@ internal static unsafe class CaptureInterop
 
     /// <summary>
     /// The <paramref name="width"/> by <paramref name="height"/> 32-bit pixels of <paramref name="staging"/>, a CPU-readable
-    /// texture, or null while the GPU is still writing it. Never waits for the GPU.
+    /// texture, or null while the GPU is still writing it. Waits for the GPU only when <paramref name="wait"/> is set.
     /// </summary>
-    public static byte[]? Read(ID3D11DeviceContext context, ID3D11Texture2D staging, int width, int height)
+    public static byte[]? Read(ID3D11DeviceContext context, ID3D11Texture2D staging, int width, int height,
+        bool wait = false)
     {
-        var result = context.Map(staging, 0, MapMode.Read, MapFlags.DoNotWait, out var mapped);
+        var result = context.Map(staging, 0, MapMode.Read, wait ? MapFlags.None : MapFlags.DoNotWait, out var mapped);
         if (result == ResultCode.WasStillDrawing)
             return null;
         result.CheckError();

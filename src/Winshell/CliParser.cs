@@ -60,6 +60,16 @@ internal static class CliParser
         PathOption, ConfigOption
     ];
 
+    /// <summary>What only <c>inspect record</c> takes.</summary>
+    private static readonly Option[] Record =
+    [
+        Option.Value(new CommandWord("--for"), (o, use) => o with { For = Duration(use.Token, use.Value!) }),
+        Option.Value(new CommandWord("--fps"), (o, use) => o with { Fps = Positive(use.Token, use.Value!) }),
+        Option.Value(new CommandWord("--frames"), (o, use) => o with { Frames = use.Value }),
+        Option.Number(new CommandWord("--screen"),
+            (o, use) => o with { Screen = use.Value is null ? 0 : WholeNumber(use.Token, use.Value) })
+    ];
+
     private const string RunUsage = """
                                     winshell run [-c <name> | -p <path>] [-d] [-n] [--no-build] [-- <args>...]
                                       Starts a configuration project's shell, built first when a source is newer than its
@@ -96,10 +106,18 @@ internal static class CliParser
                                         winshell inspect [-i <id> | --pid <pid> | -c <name> | -p <path>] <command>
                                           tree                            print each open window's live layout as JSON
                                           screenshot <file> [window]      save a window as a PNG
+                                          record <file.mp4> --for <time> [window]
+                                                                          record a window as an MP4 at its screen's refresh
+                                                                          rate, or 120, 60 or 30 when the encoder takes no more
+                                              --screen [n]                record screen n instead, from 0, the primary one first
+                                              --fps <n>                   keep at most n frames a second, and make the MP4 n fps
+                                              --frames <folder>           also save each kept frame as a PNG named by its
+                                                                          milliseconds, and contact-sheet.png of them all
                                           click <name> [window]           activate an element, as Narrator does
                                           hover <name> [window]           put a control in its pointer look
                                           A window is the type of its content, or its number in tree. The first is the default.
                                           A name is an x:Name, or an automation id or name. Nothing goes through Windows' input.
+                                          A time is in seconds, such as 5 or 2.5s, or in milliseconds, such as 500ms.
                                         """;
 
     private const string DevUsage = """
@@ -167,7 +185,8 @@ internal static class CliParser
                                           winshell ipc prop get <target> <property>
                                           winshell ipc wait <target> <signal>
                                           winshell ipc listen <target> <signal>
-                                          winshell inspect tree | screenshot <file> | click <name> | hover <name>
+                                          winshell inspect tree | screenshot <file> | record <file.mp4> --for <time>
+                                                           | click <name> | hover <name>
                                                                               look at a running shell, or act on it
                                           winshell doctor [config options] [-j] [--no-color]
                                                                               check this PC's setup for Winshell
@@ -223,10 +242,11 @@ internal static class CliParser
             new Subcommand(IpcOps.Wait, 2, "a target and a signal"),
             new Subcommand(IpcOps.Listen, 2, "a target and a signal")
         ]),
-        Entry("inspect", InspectUsage, WordRule.Subcommand, Instance,
+        Entry("inspect", InspectUsage, WordRule.Subcommand, [.. Instance, .. Record],
         [
             new Subcommand("tree"),
             new Subcommand("screenshot", 1, "a file"),
+            new Subcommand("record", 1, "a file"),
             new Subcommand("click", 1, "a name"),
             new Subcommand("hover", 1, "a name")
         ]),
@@ -296,6 +316,8 @@ internal static class CliParser
                     return new CliOptions { Command = topic, ShowHelp = true };
                 case WordRule.Subcommand:
                     RequireSubcommand(command, positional);
+                    if (name == "inspect")
+                        CheckRecord(line, options, positional);
                     break;
             }
         }
@@ -384,6 +406,30 @@ internal static class CliParser
             throw new ArgumentException($"winshell {command.Name} {name} needs {match.Missing}.");
     }
 
+    /// <summary>
+    /// <c>inspect record</c> needs a time and an MP4, and records a window or a screen, not both. Its options mean
+    /// nothing to the other inspect commands.
+    /// </summary>
+    private static void CheckRecord(Line line, CliOptions options, List<string> positional)
+    {
+        var name = positional[0];
+        if (name != "record")
+        {
+            if (line.Uses.FirstOrDefault(use => Record.Contains(use.Option)) is { Option: not null } use)
+                throw new ArgumentException($"winshell inspect {name} does not take \"{use.Token}\".");
+            return;
+        }
+
+        if (options.For is null)
+            throw new ArgumentException("winshell inspect record needs --for and a time, such as --for 5s.");
+        if (!positional[1].EndsWith(".mp4", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("winshell inspect record writes an MP4, so the file's name must end in .mp4.");
+        if (options.Screen is not null && positional.Count > 2)
+            throw new ArgumentException("--screen records a whole screen, so it takes no window.");
+        if (positional.Count > 3)
+            throw Unexpected(positional[3]);
+    }
+
     private static string ConfigName(string option, string name)
     {
         if (!CommandWords.IsConfigName(name))
@@ -402,6 +448,27 @@ internal static class CliParser
         if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) || value < 0)
             throw new ArgumentException($"{option} needs a whole number.");
         return value;
+    }
+
+    /// <summary>A frame rate: a whole number above 0.</summary>
+    private static int Positive(string option, string text)
+    {
+        var value = WholeNumber(option, text);
+        if (value == 0)
+            throw new ArgumentException($"{option} needs a whole number above 0.");
+        return value;
+    }
+
+    /// <summary>A time: seconds, such as <c>5</c> or <c>2.5s</c>, or milliseconds, such as <c>500ms</c>. At least 1 ms.</summary>
+    private static TimeSpan Duration(string option, string text)
+    {
+        var (number, milliseconds) = text.EndsWith("ms", StringComparison.Ordinal) ? (text[..^2], 1.0)
+            : text.EndsWith('s') ? (text[..^1], 1000.0)
+            : (text, 1000.0);
+        if (!double.TryParse(number, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value)
+            || value * milliseconds is < 1 or > int.MaxValue)
+            throw new ArgumentException($"{option} needs a time, such as 5s or 500ms.");
+        return TimeSpan.FromMilliseconds(Math.Round(value * milliseconds));
     }
 
     private static ArgumentException UnknownCommand(string command)
@@ -428,6 +495,9 @@ internal static class CliParser
     {
         public bool TakesValue => takesValue;
 
+        /// <summary>Takes the next word as its value only when that is a whole number, as <c>--screen [n]</c> does.</summary>
+        public bool TakesNumber { get; private init; }
+
         public static Option Flag(CommandWord word, Func<CliOptions, CliOptions> set)
         {
             return new Option(word, false, (options, _) => set(options));
@@ -436,6 +506,12 @@ internal static class CliParser
         public static Option Value(CommandWord word, Func<CliOptions, Use, CliOptions> set)
         {
             return new Option(word, true, set);
+        }
+
+        /// <summary>An option with an optional whole number after it. Without one, its value is null.</summary>
+        public static Option Number(CommandWord word, Func<CliOptions, Use, CliOptions> set)
+        {
+            return new Option(word, false, set) { TakesNumber = true };
         }
 
         public CliOptions Set(CliOptions options, Use use)
@@ -531,6 +607,11 @@ internal static class CliParser
                             missing = true;
                         else
                             value = Args[++i];
+                    }
+                    else if (option.TakesNumber && i + 1 < Args.Length &&
+                             int.TryParse(Args[i + 1], NumberStyles.None, CultureInfo.InvariantCulture, out _))
+                    {
+                        value = Args[++i];
                     }
 
                     Uses.Add(new Use(token, option, value, missing));

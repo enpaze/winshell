@@ -196,6 +196,8 @@ winshell run -d -p .\MyShell                                  # build and start 
 winshell inspect --pid <pid> tree                             # every open window's elements, sizes and values, as JSON
 winshell inspect --pid <pid> screenshot out.png PanelView     # a window as a PNG, which you can then read
 winshell inspect --pid <pid> click <name> PanelView           # activate a named element in a window through its automation peer
+winshell inspect --pid <pid> record out.mp4 --for 5s PanelView --frames frames
+                                                              # an MP4 of the window, each frame as a PNG, and a contact sheet
 ```
 
 `winshell list` shows the process id. Look at the screenshot, and check values in the tree rather than trusting that the code ran. The tree marks the element keyboard focus is on with `"focused": true`. A name finds only elements that are not collapsed, as Narrator does, so a control kept collapsed beside a visible twin does not make the name ambiguous.

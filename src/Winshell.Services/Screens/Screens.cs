@@ -129,6 +129,7 @@ internal static class Screens
 
     private static int RefreshRate(string device)
     {
-        return Monitors.RefreshRate(device) is { } hertz ? (int)hertz : 60;
+        // Windows reports 0 or 1 for the hardware's default rate.
+        return Monitors.RefreshRate(device) is { } hertz and > 1 ? (int)hertz : 60;
     }
 }

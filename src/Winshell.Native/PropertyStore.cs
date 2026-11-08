@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Windows.Win32.System.Com.StructuredStorage;
 
 namespace Winshell.Native;
 
@@ -70,22 +71,6 @@ internal readonly struct PROPERTYKEY(Guid format, uint id)
 {
     public readonly Guid Format = format;
     public readonly uint Id = id;
-}
-
-/// <summary>
-/// A PROPVARIANT. The union after the type is read as two pointer-sized halves: a string is the first, a 32-bit
-/// number is the low half of the first, and a BLOB is its size in the first and its data in the second, on 64-bit
-/// and 32-bit Windows alike.
-/// </summary>
-[StructLayout(LayoutKind.Sequential)]
-internal struct PROPVARIANT
-{
-    public ushort Type;
-    public ushort Reserved1;
-    public ushort Reserved2;
-    public ushort Reserved3;
-    public nint Value;
-    public nint Extra;
 }
 
 /// <summary>IPropertyStore, with the Windows SDK's methods in its vtable order.</summary>

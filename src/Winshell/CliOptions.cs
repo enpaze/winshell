@@ -42,6 +42,18 @@ internal sealed record CliOptions
 
     public int? Tail { get; init; }
 
+    /// <summary><c>inspect record --for</c>: how long to record.</summary>
+    public TimeSpan? For { get; init; }
+
+    /// <summary><c>inspect record --fps</c>: the most frames to keep a second, and the video's rate.</summary>
+    public int? Fps { get; init; }
+
+    /// <summary><c>inspect record --frames</c>: the folder for each kept frame and the contact sheet.</summary>
+    public string? Frames { get; init; }
+
+    /// <summary><c>inspect record --screen</c>: the screen to record instead of a window, from 0.</summary>
+    public int? Screen { get; init; }
+
     public ImmutableArray<string> Positional { get; init; } = [];
 
     /// <summary>The <c>--</c> and everything after it. Those words belong to the configuration's program.</summary>

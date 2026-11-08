@@ -42,12 +42,7 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
         if (_size.Width <= 0 || _size.Height <= 0)
             throw new InvalidOperationException("The selected source has no capture surface.");
 
-        FeatureLevel[] levels = [FeatureLevel.Level_11_1, FeatureLevel.Level_11_0];
-        var result = D3D11.D3D11CreateDevice((IDXGIAdapter?)null, DriverType.Hardware,
-            DeviceCreationFlags.BgraSupport, levels, out _device, out _context);
-        if (result.Failure)
-            D3D11.D3D11CreateDevice((IDXGIAdapter?)null, DriverType.Warp,
-                DeviceCreationFlags.BgraSupport, levels, out _device, out _context).CheckError();
+        (_device, _context) = CreateDevice();
         _winrtDevice = CaptureInterop.CreateDevice(_device!);
         _pool = Direct3D11CaptureFramePool.CreateFreeThreaded(_winrtDevice, DirectXPixelFormat.B8G8R8A8UIntNormalized,
             2, _size);
@@ -58,7 +53,20 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
         _session.StartCapture();
     }
 
-    private static nint MonitorHandle(string device)
+    /// <summary>A private Direct3D device for capture: the hardware one, or WARP when there is none.</summary>
+    internal static (ID3D11Device Device, ID3D11DeviceContext Context) CreateDevice()
+    {
+        FeatureLevel[] levels = [FeatureLevel.Level_11_1, FeatureLevel.Level_11_0];
+        var result = D3D11.D3D11CreateDevice((IDXGIAdapter?)null, DriverType.Hardware,
+            DeviceCreationFlags.BgraSupport, levels, out var device, out ID3D11DeviceContext context);
+        if (result.Failure)
+            D3D11.D3D11CreateDevice((IDXGIAdapter?)null, DriverType.Warp,
+                DeviceCreationFlags.BgraSupport, levels, out device, out context).CheckError();
+        return (device, context);
+    }
+
+    /// <summary>The handle of the connected monitor with this device name, or 0 once it is gone.</summary>
+    internal static nint MonitorHandle(string device)
     {
         foreach (var handle in Monitors.List())
             if (Monitors.TryRead(handle, out var monitor) && monitor.Device == device)
