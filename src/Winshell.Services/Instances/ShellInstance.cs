@@ -40,7 +40,7 @@ internal sealed class ShellInstance
 
     public string LogPath { get; }
 
-    public Log Log { get; }
+    private Log Log { get; }
 
     public CrashReports Crashes { get; }
 

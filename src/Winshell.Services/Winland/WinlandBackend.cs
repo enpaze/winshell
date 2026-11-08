@@ -61,7 +61,7 @@ internal sealed class WinlandBackend : IWinlandBackend
                 _processId = ServerProcess(pipe) is { } pid ? (int)pid : 0;
                 try
                 {
-                    await pipe.WriteAsync(Encoding.UTF8.GetBytes("events\n")).ConfigureAwait(false);
+                    await pipe.WriteAsync("events\n"u8.ToArray()).ConfigureAwait(false);
                     await pipe.FlushAsync().ConfigureAwait(false);
                     _connected = true;
                     _listeners.Raise(true, static (handlers, connected) => handlers.ConnectionChanged(connected));

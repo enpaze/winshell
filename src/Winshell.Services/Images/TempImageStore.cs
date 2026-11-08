@@ -15,7 +15,7 @@ internal sealed class TempImageStore
     internal const int MaxBytes = 8 * 1024 * 1024;
 
     /// <summary>The most pixels a picture can decode to.</summary>
-    internal const long MaxPixels = 4096 * 4096;
+    private const long MaxPixels = 4096 * 4096;
 
     /// <summary>Why <see cref="Claim"/> returned null.</summary>
     internal const string Refused = "it is not a picture under the size limit";
@@ -53,7 +53,7 @@ internal sealed class TempImageStore
             return null;
         if (data.Length == 0)
             return "";
-        if (ImageHeader.Read(data) is not var (extension, width, height) || width == 0 || height == 0 ||
+        if (ImageHeader.Read(data) is not (var extension, var width and > 0, var height and > 0) ||
             (ulong)width * height > MaxPixels)
             return null;
 

@@ -13,7 +13,7 @@ namespace Winshell.ExplorerTaskbar;
 internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
 {
     private static uint _callback;
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly List<Saved> _saved = [];
     private bool _active;
     private bool _disposed;
@@ -119,7 +119,7 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
         if (primary && AppBarMessages.TryPosition(hwnd, out edge, out rect))
             return true;
 
-        if (Win32.GetWindowRect(hwnd, out rect) && rect.Width > 0 && rect.Height > 0)
+        if (Win32.GetWindowRect(hwnd, out rect) && rect is { Width: > 0, Height: > 0 })
         {
             edge = EdgeOf(hwnd, rect);
             return true;

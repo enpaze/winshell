@@ -31,14 +31,12 @@ internal sealed record InstanceLaunch(
 /// </summary>
 internal sealed class InstanceSession
 {
-    internal InstanceSession(ShellInstance instance, ShellIdentity identity, ShellArguments arguments, Log log,
-        string program)
+    internal InstanceSession(ShellInstance instance, ShellIdentity identity, ShellArguments arguments, Log log)
     {
         Instance = instance;
         Identity = identity;
         Arguments = arguments;
         Log = log;
-        Program = program;
     }
 
     public ShellInstance Instance { get; }
@@ -48,8 +46,6 @@ internal sealed class InstanceSession
     public ShellArguments Arguments { get; }
 
     public Log Log { get; }
-
-    public string Program { get; }
 
     /// <summary>Set when the host ran and the shell failed inside it. The start reports this after it closes.</summary>
     public Exception? Failure { get; set; }
@@ -117,7 +113,7 @@ internal static class InstanceStart
             return Reported(pipeError);
         }
 
-        var session = new InstanceSession(instance, identity, arguments, launch.Log, launch.Program);
+        var session = new InstanceSession(instance, identity, arguments, launch.Log);
         try
         {
             host(session);

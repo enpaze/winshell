@@ -14,7 +14,7 @@ internal sealed record TrayIconSetting(Guid Guid, string ExecutablePath, uint? I
 /// </summary>
 internal static class TrayIconSettings
 {
-    public const string KeyPath = @"Control Panel\NotifyIconSettings";
+    private const string KeyPath = @"Control Panel\NotifyIconSettings";
 
     public static List<TrayIconSetting> Read()
     {
@@ -33,7 +33,7 @@ internal static class TrayIconSettings
             var guid = key.GetValue("IconGuid") is string text && Guid.TryParse(text, out var g) ? g : Guid.Empty;
             var path = key.GetValue("ExecutablePath") is string p ? AppUsageReader.ExpandKnownFolder(p) : "";
             uint? id = key.GetValue("UID") is int uid ? unchecked((uint)uid) : null;
-            var promoted = key.GetValue("IsPromoted") is int value && value != 0;
+            var promoted = key.GetValue("IsPromoted") is int and not 0;
             settings.Add(new TrayIconSetting(guid, path, id, promoted));
         }
 

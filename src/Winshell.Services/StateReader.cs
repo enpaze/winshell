@@ -11,7 +11,7 @@ internal sealed class StateReader<T>(
     IEventLoop loop,
     MonitorWarning warning)
 {
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
 
     // Ends with the reader, so a read that Windows does not cancel ends at its next check.
     private readonly CancellationTokenSource _stopping = new();

@@ -196,7 +196,7 @@ public sealed class WinlandWorkspace : ObservableObject
     [PublicAPI]
     public JsonElement? LastIpcObject => _lastIpcObject;
 
-    internal bool IsSpecial => WinlandProtocol.IsSpecial(_name);
+    private bool IsSpecial => WinlandProtocol.IsSpecial(_name);
 
     /// <summary>
     /// Shows the Workspace. A Workspace number means that number on the focused Monitor in Winland, so the

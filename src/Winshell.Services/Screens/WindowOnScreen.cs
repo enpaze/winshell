@@ -50,7 +50,7 @@ internal static class WindowOnScreen
         RECT primaryWork, out WindowPlace place)
     {
         var source = Restored(window, primaryMonitor, primaryWork);
-        if (source.Width <= 0 || source.Height <= 0)
+        if (source is not { Width: > 0, Height: > 0 })
         {
             place = default;
             return false;
@@ -68,7 +68,7 @@ internal static class WindowOnScreen
     /// </summary>
     private static (int X, int Y) Bias(WindowToMove window, RECT primaryMonitor, RECT primaryWork)
     {
-        if (window.HasPlacement && !window.Minimized && !window.Maximized)
+        if (window is { HasPlacement: true, Minimized: false, Maximized: false })
             return (window.Shown.Left - window.Restored.Left, window.Shown.Top - window.Restored.Top);
         if (window.HasPlacement)
             return WorkspaceOffset(primaryMonitor, primaryWork, window.ToolWindow);
@@ -78,7 +78,7 @@ internal static class WindowOnScreen
     /// <summary>A minimized or maximized window moves by its restored rectangle. A normal window moves by its current one.</summary>
     private static RECT RectangleToMove(bool minimized, bool maximized, RECT current, RECT restored)
     {
-        if ((minimized || maximized) && restored.Width > 0 && restored.Height > 0)
+        if ((minimized || maximized) && restored is { Width: > 0, Height: > 0 })
             return restored;
         return current;
     }
@@ -89,7 +89,7 @@ internal static class WindowOnScreen
     /// </summary>
     private static (int X, int Y) WorkspaceOffset(RECT primaryMonitor, RECT primaryWork, bool toolWindow)
     {
-        return toolWindow || primaryWork.Width <= 0 || primaryWork.Height <= 0
+        return toolWindow || primaryWork is not { Width: > 0, Height: > 0 }
             ? (0, 0)
             : (primaryWork.Left - primaryMonitor.Left, primaryWork.Top - primaryMonitor.Top);
     }

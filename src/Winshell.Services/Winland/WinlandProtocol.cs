@@ -65,7 +65,7 @@ internal static class WinlandProtocol
             : 0;
     }
 
-    public const string DefaultSpecial = "special:special";
+    private const string DefaultSpecial = "special:special";
 
     // The ids Winland gives Workspaces that have no number: the default special one is -99, other special ones count up
     // from -98, and named ones count down from -1.

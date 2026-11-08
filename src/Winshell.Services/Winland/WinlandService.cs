@@ -591,7 +591,7 @@ public sealed class WinlandService : ObservableObject, IDisposable
     {
         if (name.Length == 0)
             return null;
-        var named = _workspaceList.Where(w => w.Name == name);
+        var named = _workspaceList.Where(w => w.Name == name).ToList();
         var workspace = IsSpecial(name) ? named.FirstOrDefault()
             : monitorName.Length > 0 ? named.FirstOrDefault(w => w.Monitor?.Name == monitorName) ??
                                        named.FirstOrDefault(w => w.Monitor is null)

@@ -13,19 +13,19 @@ namespace Winshell;
 /// </summary>
 internal sealed class InstanceLog : IDisposable
 {
-    internal const long DefaultCap = 4 * 1024 * 1024;
+    private const long DefaultCap = 4 * 1024 * 1024;
 
     /// <summary>The log in an instance's folder.</summary>
     public const string FileName = "log.txt";
 
     /// <summary>The part before the last roll, beside <see cref="FileName"/>.</summary>
-    public const string RolledName = "log.1.txt";
+    private const string RolledName = "log.1.txt";
 
     private static readonly TimeSpan FollowPoll = TimeSpan.FromMilliseconds(200);
 
     private readonly string _path;
     private readonly long _cap;
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private static readonly TimeSpan Delay = TimeSpan.FromMilliseconds(500);
     private readonly ITimer _timer;
     private StreamWriter? _writer;
@@ -185,6 +185,7 @@ internal sealed class InstanceLog : IDisposable
 
             await Task.Delay(FollowPoll, cancel);
         }
+        // ReSharper disable once IteratorNeverReturns The follower yields lines until the caller cancels.
     }
 
     /// <summary>The lines of <paramref name="file"/> after byte <paramref name="from"/>, or none when it cannot be read.</summary>

@@ -13,7 +13,7 @@ internal sealed record MonitorGeometry(nint Handle, string Id, RECT Bounds, RECT
     public string Name => Id.Replace(@"\\.\", "", StringComparison.Ordinal);
 
     /// <summary>The area a window on this monitor lays out in: the work area, or the whole monitor when that area has no size.</summary>
-    public RECT Area => Work.Width > 0 && Work.Height > 0 ? Work : Bounds;
+    public RECT Area => Work is { Width: > 0, Height: > 0 } ? Work : Bounds;
 
     /// <summary>The whole monitor in logical pixels.</summary>
     public Rect Logical => DesktopSpace.ToLogical(Bounds, Bounds, Scale);
@@ -33,7 +33,7 @@ internal sealed record ConnectedMonitor(nint Handle, ScreenInfo Info, string Int
 }
 
 /// <summary>
-/// Reads the connected monitors. <see cref="List"/>, <see cref="Find"/>, <see cref="Primary"/>, <see cref="Read"/>
+/// Reads the connected monitors. <see cref="List"/>, <see cref="Find"/>, <see cref="Primary"/>
 /// and <see cref="Of"/> read only their geometry. <see cref="Describe"/> adds the names, model, size and refresh rate of one, and
 /// <see cref="Enumerate"/> describes them all.
 /// </summary>
@@ -69,7 +69,7 @@ internal static class Screens
     }
 
     /// <summary>The geometry of the monitor with this handle, or null once it is gone.</summary>
-    public static MonitorGeometry? Read(nint handle)
+    private static MonitorGeometry? Read(nint handle)
     {
         if (!Monitors.TryRead(handle, out var mi))
             return null;
