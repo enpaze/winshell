@@ -18,6 +18,7 @@ public sealed class DevCommandTests : IDisposable
 
     private readonly string _dir = TempFolder.NewPath();
     private readonly StringBuilder _printed = new();
+    private readonly HashSet<int> _watchPids = [];
     private Process? _dev;
     private string? _probeLink;
 
@@ -63,6 +64,7 @@ public sealed class DevCommandTests : IDisposable
                                                                        _ = new PanelWindow { Anchors = Edges.Top | Edges.Left, Width = 200, Height = 32, Content = view, Visible = true };
                                                                        shell.Ipc.Handle("probe", "value", Marker.Value);
                                                                        shell.Ipc.Handle("probe", "label", view.Shown);
+                                                                       shell.Ipc.Handle("probe", "reuse", () => Environment.GetEnvironmentVariable("MSBUILDDISABLENODEREUSE") ?? "");
                                                                        shell.Ipc.Handle("probe", "launch", (string name) =>
                                                                        {
                                                                            var app = shell.Apps.Find(name);
@@ -204,9 +206,11 @@ public sealed class DevCommandTests : IDisposable
         info.CreateNewProcessGroup = ownGroup;
         foreach (var (name, value) in Folders)
             info.Environment[name] = value;
-        // dotnet watch's builds leave idle MSBuild nodes that another test's build can take, and those nodes end
-        // when dotnet watch does, failing that build with MSB4166. Without node reuse, dotnet watch's builds leave none.
-        info.Environment["MSBUILDDISABLENODEREUSE"] = "1";
+        // A private handshake makes this watch create its own MSBuild nodes, so the test can see them on a machine
+        // that already has a reuse pool. They must not stay idle: stopping the watch ends them, and a build that
+        // borrowed one fails with MSB4166. Dropping MSBUILDDISABLENODEREUSE keeps that setting out of the shell.
+        info.Environment["MSBUILDNODEHANDSHAKESALT"] = _dir;
+        info.Environment.Remove("MSBUILDDISABLENODEREUSE");
         _dev = Process.Start(info)!;
         foreach (var stream in new[] { _dev.StandardOutput, _dev.StandardError })
             new Thread(() =>
@@ -231,6 +235,67 @@ public sealed class DevCommandTests : IDisposable
                 StringComparison.OrdinalIgnoreCase))
             .Select(p => $"{p["Name"]} {p["ProcessId"]}")
             .ToList();
+    }
+
+    /// <summary>Process ids under this <c>winshell dev</c>, including a build that has since exited.</summary>
+    private void NoteWatchProcesses()
+    {
+        if (_dev is null)
+            return;
+        var rows = Processes();
+        var parent = new Dictionary<int, int>(rows.Count);
+        foreach (var row in rows)
+            parent[row.Pid] = row.Parent;
+        foreach (var row in rows)
+            if (Reaches(row.Pid, parent, _dev.Id))
+                _watchPids.Add(row.Pid);
+    }
+
+    /// <summary>Idle MSBuild nodes this watch's build started and has not exited.</summary>
+    private List<int> IdleNodes()
+    {
+        return Processes()
+            .Where(row => row.Command.Contains("nodemode", StringComparison.OrdinalIgnoreCase)
+                          && (_watchPids.Contains(row.Pid) || _watchPids.Contains(row.Parent)))
+            .Select(row => row.Pid)
+            .ToList();
+    }
+
+    private static bool Reaches(int pid, Dictionary<int, int> parent, int root)
+    {
+        var seen = new HashSet<int>();
+        while (pid != 0 && seen.Add(pid))
+        {
+            if (pid == root)
+                return true;
+            if (!parent.TryGetValue(pid, out pid))
+                return false;
+        }
+
+        return false;
+    }
+
+    private static List<(int Pid, int Parent, string Command)> Processes()
+    {
+        using var search =
+            new ManagementObjectSearcher("SELECT ProcessId, ParentProcessId, CommandLine FROM Win32_Process");
+        using var found = search.Get();
+        return found.Cast<ManagementObject>()
+            .Select(p => (
+                Pid: Number(p["ProcessId"]),
+                Parent: Number(p["ParentProcessId"]),
+                Command: p["CommandLine"] as string ?? ""))
+            .ToList();
+    }
+
+    private static int Number(object? value)
+    {
+        return value switch
+        {
+            uint number => unchecked((int)number),
+            int number => number,
+            _ => 0
+        };
     }
 
     private bool Printed(string text)
@@ -263,7 +328,8 @@ public sealed class DevCommandTests : IDisposable
     }
 
     // One watch host covers in-place edits, a failed edit, a rebuild, an app opened from the shell, and graceful
-    // console shutdown.
+    // console shutdown. Its build leaves no idle MSBuild node, and the shell and an app it starts do not inherit
+    // MSBUILDDISABLENODEREUSE.
     [Fact(Timeout = 420_000)]
     public async Task Edits_rebuilds_an_opened_app_and_Ctrl_Break_keep_the_watch_lifecycle_correct()
     {
@@ -272,16 +338,27 @@ public sealed class DevCommandTests : IDisposable
             "The test program has no console to send a Ctrl+Break on.");
         CreateProbeShortcut();
         StartDev(true);
-        await Wait.UntilAsync(async () => await Value() == (0, "one"), "the first build", BuildPatience);
+        await Wait.UntilAsync(async () =>
+        {
+            NoteWatchProcesses();
+            return await Value() == (0, "one");
+        }, "the first build", BuildPatience);
         Assert.True(Printed("dotnet watch : "), "winshell dev printed nothing of dotnet watch's.");
         Assert.False(Printed("Ctrl+R") || Printed("Ctrl + R"), "winshell dev printed dotnet watch's Ctrl+R hint.");
         Assert.Contains(FromProject(), p => p.StartsWith("Dev.exe ", StringComparison.Ordinal));
+        var reuse = await ReadValue("reuse");
+        Assert.Equal(0, reuse.Code);
+        Assert.Equal("", reuse.Text);
+        var idle = IdleNodes();
+        Assert.True(idle.Count == 0, "winshell dev left an idle MSBuild node: " + string.Join(", ", idle));
         var shell = ShellProcess();
         var id = InstanceId();
         // Start opens this shortcut. The app has to outlive the rebuild and the end of winshell dev.
         await Wait.UntilAsync(async () => await LaunchProbe() == "launched", "the app to open",
             TimeSpan.FromSeconds(60));
         Wait.Until(ProbeAlive, "the opened app");
+        Wait.Until(() => File.Exists(Path.Combine(_dir, "reuse.txt")), "the opened app's environment");
+        Assert.Equal("", File.ReadAllText(Path.Combine(_dir, "reuse.txt")).Trim());
         // The first edit also warms the compiler up.
         Mark("""=> "two";""");
         await Wait.UntilAsync(async () => (await Value()).Text == "two", "the first edit", BuildPatience);
@@ -306,8 +383,17 @@ public sealed class DevCommandTests : IDisposable
 
         Label("three", true);
         Wait.Until(() => Printed("Building, because the XAML you saved needs it."), "the build the XAML needs");
-        await Wait.UntilAsync(async () => await Shown() == "three", "the shell to start again", BuildPatience);
+        await Wait.UntilAsync(async () =>
+        {
+            NoteWatchProcesses();
+            return await Shown() == "three";
+        }, "the shell to start again", BuildPatience);
         Assert.NotEqual(shell, ShellProcess());
+        idle = IdleNodes();
+        Assert.True(idle.Count == 0, "winshell dev left an idle MSBuild node: " + string.Join(", ", idle));
+        reuse = await ReadValue("reuse");
+        Assert.Equal(0, reuse.Code);
+        Assert.Equal("", reuse.Text);
         Assert.True(ProbeAlive(), "The app opened from the shell ended when the shell was rebuilt.");
         // A rebuild lets the old shell quit before replacing it: a forced end would not mark this record.
         var record = File.ReadAllText(Path.Combine(_dir, "local", "run", id, "instance.json"));
@@ -334,7 +420,8 @@ public sealed class DevCommandTests : IDisposable
         var powershell = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
         var pidFile = Path.Combine(_dir, "probe.pid");
         var arguments = "-NoProfile -WindowStyle Hidden -Command \"Set-Content -LiteralPath '" + pidFile +
-                        "' -Value $PID; Start-Sleep -Seconds 900\"";
+                        "' -Value $PID; Set-Content -LiteralPath '" + Path.Combine(_dir, "reuse.txt") +
+                        "' -Value ([string]$env:MSBUILDDISABLENODEREUSE); Start-Sleep -Seconds 900\"";
         var shellType = Type.GetTypeFromProgID("WScript.Shell");
         Assert.NotNull(shellType);
         var shell = Activator.CreateInstance(shellType)!;

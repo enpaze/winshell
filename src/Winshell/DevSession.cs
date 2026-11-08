@@ -57,8 +57,15 @@ internal static class DevSession
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
+        // The build must not leave a reusable MSBuild node. Those nodes are not children of dotnet watch, and
+        // they end with it, so stopping winshell dev fails another build that borrowed one (MSB4166).
+        // --disable-build-servers forwards /nodeReuse:false to that build. It is not an environment variable,
+        // so the shell and the apps it starts do not inherit it.
         foreach (var argument in new[]
-                     { "watch", "--non-interactive", "--project", project.ProjectFile, "run", "--no-launch-profile" })
+                 {
+                     "watch", "--non-interactive", "--disable-build-servers", "--project", project.ProjectFile, "run",
+                     "--no-launch-profile"
+                 })
             start.ArgumentList.Add(argument);
         DevOutput.Prepare(start.Environment);
         start.Environment[Shell.DevProjectVariable] = project.Folder;
