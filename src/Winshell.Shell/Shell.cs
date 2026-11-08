@@ -99,6 +99,9 @@ public sealed partial class Shell : IDisposable
 
     internal ShellPlatform Platform { get; }
 
+    private WidgetPlacements? _widgetPlacements;
+    internal WidgetPlacements WidgetPlacements => _widgetPlacements ??= new WidgetPlacements(this);
+
     /// <summary>The real input of <c>winshell inspect</c>, made by its first command. It gives a held cursor back on dispose.</summary>
     internal RealInput Input => _input ??= new RealInput(Loop);
 
@@ -358,7 +361,7 @@ public sealed partial class Shell : IDisposable
             return;
         _disposed = true;
         // The platform goes last, closing every window that is left.
-        DisposeEach([_input, Notices, .. ServicesInStopOrder, Platform]);
+        DisposeEach([_input, _widgetPlacements, Notices, .. ServicesInStopOrder, Platform]);
     }
 
     /// <summary>

@@ -7,11 +7,15 @@ namespace Winshell;
 /// <summary>
 /// An ordered area of widgets. Use it on the shell's thread and dispose it when its owner closes. Unloading or
 /// reparenting does not dispose widgets. Font and foreground inherit normally; area-sensitive XAML uses ThemeResource.
+/// Set the inherited Name to match an area in the shell's user placement file. An empty name uses only Defaults.
 /// </summary>
 public sealed partial class WidgetArea : UserControl, IDisposable
 {
     private readonly StackPanel _panel = new() { Orientation = Orientation.Horizontal };
     private IReadOnlyList<Placement> _defaults = [];
+    private IReadOnlyList<Placement>? _override;
+    private readonly WidgetPlacements _file;
+    private readonly long _nameChanged;
     private ResourceDictionary? _theme;
     private bool _disposed;
 
@@ -19,6 +23,9 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     public WidgetArea()
     {
         Content = _panel;
+        _file = Shell.Current.WidgetPlacements;
+        _nameChanged = RegisterPropertyChangedCallback(NameProperty, (_, _) => _file.Changed(this));
+        _file.Add(this);
     }
 
     /// <summary>The layout direction. Changing it disposes and recreates the placements with the new orientation.</summary>
@@ -37,7 +44,8 @@ public sealed partial class WidgetArea : UserControl, IDisposable
 
     /// <summary>
     /// The author's ordered placements. Assigning a list snapshots it, disposes the previous widgets, and creates the
-    /// new ones immediately. To apply edits, assign the list again. Settings are passed through without copying.
+    /// new ones immediately unless the user placement file overrides this area's Name. To apply edits, assign the
+    /// list again. Settings are passed through without copying.
     /// </summary>
     public IReadOnlyList<Placement> Defaults
     {
@@ -47,7 +55,9 @@ public sealed partial class WidgetArea : UserControl, IDisposable
             ObjectDisposedException.ThrowIf(_disposed, this);
             ArgumentNullException.ThrowIfNull(value);
             _defaults = Array.AsReadOnly(value.ToArray());
-            Rebuild();
+            if (_override is null)
+                Rebuild();
+            _file.Changed(this);
         }
     }
 
@@ -70,10 +80,21 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         }
     }
 
+    internal void ApplyPlacements(IReadOnlyList<Placement>? placements)
+    {
+        if ((_override is null && placements is null) ||
+            (_override is not null && placements is not null && _override.Count == placements.Count &&
+             _override.Zip(placements).All(pair => pair.First.Widget == pair.Second.Widget &&
+                 TomlDocument.Same(pair.First.Settings, pair.Second.Settings))))
+            return;
+        _override = placements;
+        Rebuild();
+    }
+
     private void Rebuild()
     {
         ClearWidgets();
-        foreach (var placement in _defaults)
+        foreach (var placement in _override ?? _defaults)
         {
             var context = new WidgetContext(Shell.Current, Orientation,
                 placement.Settings ?? ReadOnlyDictionary<string, object>.Empty);
@@ -84,6 +105,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
             }
             catch (Exception e) when (e is not OutOfMemoryException)
             {
+                Shell.Current.Log.Error("widgets", $"Could not create {placement.Widget} in area '{Name}': {e}");
                 widget = new TextBlock { Text = $"{placement.Widget}: {e.Message}" };
             }
 
@@ -104,6 +126,8 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         if (_disposed)
             return;
         _disposed = true;
+        UnregisterPropertyChangedCallback(NameProperty, _nameChanged);
+        _file.Remove(this);
         ClearWidgets();
     }
 }

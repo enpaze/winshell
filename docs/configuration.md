@@ -103,6 +103,7 @@ A [WidgetArea](reference/winshell.md#widgetarea) can go anywhere in a window. Re
         });
         var area = new WidgetArea
         {
+            Name = "end",
             Orientation = Orientation.Horizontal,
             Defaults =
             [
@@ -114,11 +115,31 @@ A [WidgetArea](reference/winshell.md#widgetarea) can go anywhere in a window. Re
         panel.Closed += area.Dispose;
 ```
 
-Assigning `Defaults` snapshots the list and replaces its widgets. Changing `Orientation` also recreates them. Both dispose every widget implementing `IDisposable`. The example treats a user closing the panel as permanent: `Closed` normally only hides a window. When your code tears the panel down with `panel.Dispose()`, explicitly call `area.Dispose()` too. Removing or reparenting the area does not dispose widgets. Treat placement settings, including nested tables, as read-only.
+Assigning `Defaults` snapshots the list and replaces its widgets unless the user placement file overrides the area. Changing `Orientation` also recreates them. Both dispose every widget implementing `IDisposable`. The example treats a user closing the panel as permanent: `Closed` normally only hides a window. When your code tears the panel down with `panel.Dispose()`, explicitly call `area.Dispose()` too. Removing or reparenting the area does not dispose widgets. Treat placement settings, including nested tables, as read-only.
 
 Set `Theme` to a `ResourceDictionary` source URI to merge it into the area's resources. Font and foreground inherit through the WinUI tree. Use `{ThemeResource}` for area-sensitive widget resources: `{StaticResource}` resolves at construction, before the area owns the widget. Popup windows need their own styling because resources and inherited properties do not cross windows.
 
-An unknown widget or a factory that throws shows a placeholder with its name and reason while the other placements keep running. Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Exceptions after creation follow the shell's normal crash supervision.
+An unknown widget or a factory that throws shows a placeholder with its name and reason while the other placements keep running. The exception and its stack trace are logged under `widgets` in the shell's log (`winshell log`). Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Exceptions after creation follow the shell's normal crash supervision.
+
+### User placement file
+
+Set an area's inherited WinUI `Name` to let the user replace its placements. Names are case-sensitive; areas with the same name use the same list. An area with no name always uses its defaults.
+
+The file is `%APPDATA%\winshell\widgets\<shell id>.toml`, or `<WINSHELL_CONFIG_DIR>\widgets\<shell id>.toml` when that variable is set. It lives outside the shell project and survives shell updates. When it is missing, Winshell writes the current named areas' defaults as comments. Uncomment a whole list and edit it:
+
+```toml
+[[end]]
+widget = "message"
+text = "Hello from the placement file"
+
+[[end]]
+widget = "message"
+text = "A second placement"
+```
+
+Each array of tables replaces that area's **whole** default list, in order. `widget` names the registered factory; the other keys become its `WidgetContext.Settings`, including nested tables and arrays. Use `end = []` before any `[[area]]` headers to leave an area empty. Remove the entry to return to the author's defaults. An area absent from the file keeps its defaults.
+
+Saving applies changes live. Each changed area disposes its old widgets and creates the new list; other areas keep their widgets. A syntax error or a list without string `widget` names keeps the last valid lists and logs the file location under `widgets`. A name that matches no area stays in the file and produces a warning naming it. Winshell does not migrate or merge user lists into new defaults.
 
 ## A service
 
