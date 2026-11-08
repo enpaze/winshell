@@ -30,14 +30,18 @@ public sealed class TomlFileTests
         public double Scale
         {
             get;
-            set => Set(ref field, value);
+            // TomlFile loads this key by calling the setter.
+            // ReSharper disable once UnusedMember.Local
+            init => Set(ref field, value);
         } = 1.5;
 
         [TomlComment("The tiles, in order.\nOne per key.")]
         public IReadOnlyList<string> Tiles
         {
             get;
-            set => Set(ref field, value);
+            // TomlFile loads this key by calling the setter.
+            // ReSharper disable once UnusedMember.Local
+            init => Set(ref field, value);
         } = ["wifi"];
 
         public IReadOnlyList<IReadOnlyDictionary<string, object?>> Hidden
@@ -45,9 +49,6 @@ public sealed class TomlFileTests
             get;
             set => Set(ref field, value);
         } = [];
-
-        // Not a key: it has no public setter.
-        public string Shown => Name.ToUpperInvariant();
     }
 
     /// <summary>launcher.toml: null until the file has pins, and [] is a choice.</summary>
@@ -71,6 +72,8 @@ public sealed class TomlFileTests
 
         public string Name
         {
+            // TomlFile reads this key through the getter when it writes the file.
+            // ReSharper disable once UnusedMember.Local
             get;
             set => Set(ref field, value);
         } = "default";
@@ -624,8 +627,8 @@ public sealed class TomlFileTests
     {
         using var fixture = new TomlFixture("name = \"broken");
         using var settings = Open(fixture);
-        const string Disk = "name = \"disk\" # keep\n";
-        File.WriteAllText(fixture.FilePath, Disk);
+        const string disk = "name = \"disk\" # keep\n";
+        File.WriteAllText(fixture.FilePath, disk);
         using (new FileStream(fixture.FilePath, FileMode.Open, FileAccess.Read, FileShare.None))
         {
             settings.On = false;
@@ -635,7 +638,7 @@ public sealed class TomlFileTests
             Assert.NotEqual("", settings.Error);
         }
 
-        Assert.Equal(Disk, fixture.Text);
+        Assert.Equal(disk, fixture.Text);
         Assert.Equal("default", settings.Name);
     }
 

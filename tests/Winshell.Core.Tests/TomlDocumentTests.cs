@@ -336,7 +336,7 @@ public sealed class TomlDocumentTests
     [Fact]
     public void An_unchanged_value_keeps_its_spelling_and_item_comment()
     {
-        const string Original = """
+        const string original = """
                                 name = 'mine'
                                 hidden = [
                                   { id = "Contoso.Chat", name = "Chat" }, # chat
@@ -347,13 +347,13 @@ public sealed class TomlDocumentTests
                                 grouped = 1_000
                                 size = 3
                                 """;
-        var document = Parse(Original);
+        var document = Parse(original);
 
         foreach (var (key, value) in document.Values)
             document.Set(key, value);
         document.Set("size", 4L);
 
-        Assert.Equal(Original.Replace("size = 3", "size = 4", StringComparison.Ordinal), document.ToString());
+        Assert.Equal(original.Replace("size = 3", "size = 4", StringComparison.Ordinal), document.ToString());
     }
 
     [Fact]

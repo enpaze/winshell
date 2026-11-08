@@ -27,7 +27,7 @@ public sealed class Log
     /// </summary>
     [PublicAPI] public static readonly Log Default = new();
 
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private Action<LogLevel, string>? _file;
     private LogLevel _minimum = LogLevel.Info;
 

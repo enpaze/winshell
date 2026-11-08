@@ -8,27 +8,27 @@ public sealed class AtomicFileTests
     {
         using var dir = new TempFolder();
         var path = Path.Combine(dir.Path, "settings.toml");
-        const string Incoming = "name = \"file\"\non = false\n";
-        const string Read = "name = \"file\"\n";
-        const string Hand = "name = \"by hand\"\n";
+        const string incoming = "name = \"file\"\non = false\n";
+        const string read = "name = \"file\"\n";
+        const string hand = "name = \"by hand\"\n";
 
-        Assert.Equal(AtomicSave.Saved, AtomicFile.Save(path, Incoming, false, null));
-        Assert.Equal(Incoming, Text(path));
+        Assert.Equal(AtomicSave.Saved, AtomicFile.Save(path, incoming, false, null));
+        Assert.Equal(incoming, Text(path));
 
-        File.WriteAllText(path, Read);
-        Assert.Equal(AtomicSave.Saved, AtomicFile.Save(path, Incoming, false, Text(path)));
-        Assert.Equal(Incoming, Text(path));
+        File.WriteAllText(path, read);
+        Assert.Equal(AtomicSave.Saved, AtomicFile.Save(path, incoming, false, Text(path)));
+        Assert.Equal(incoming, Text(path));
 
-        Assert.Equal(AtomicSave.Saved, AtomicFile.Save(path, Incoming, false, Read));
-        Assert.Equal(Incoming, Text(path));
+        Assert.Equal(AtomicSave.Saved, AtomicFile.Save(path, incoming, false, read));
+        Assert.Equal(incoming, Text(path));
 
-        File.WriteAllText(path, Hand);
-        Assert.Equal(AtomicSave.HandSaveWon, AtomicFile.Save(path, Incoming, false, Read));
-        Assert.Equal(Hand, Text(path));
+        File.WriteAllText(path, hand);
+        Assert.Equal(AtomicSave.HandSaveWon, AtomicFile.Save(path, incoming, false, read));
+        Assert.Equal(hand, Text(path));
         Assert.Empty(Directory.GetFiles(dir.Path, "settings.toml.tmp-*"));
 
-        Assert.Equal(AtomicSave.HandSaveWon, AtomicFile.Save(path, Incoming, false, null));
-        Assert.Equal(Hand, Text(path));
+        Assert.Equal(AtomicSave.HandSaveWon, AtomicFile.Save(path, incoming, false, null));
+        Assert.Equal(hand, Text(path));
     }
 
     [Fact]

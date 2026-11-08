@@ -264,8 +264,8 @@ internal sealed partial class TomlDocument
                                                                     a.Zip(b).All(pair => Same(pair.First, pair.Second)),
             (IReadOnlyDictionary<string, object?> a, IReadOnlyDictionary<string, object?> b) =>
                 a.Count == b.Count && a.All(pair => b.TryGetValue(pair.Key, out var other) && Same(pair.Value, other)),
-            (long a, double b) => a == b,
-            (double a, long b) => a == b,
+            (long a, double b) => ((double)a).Equals(b),
+            (double a, long b) => a.Equals(b),
             _ => Equals(left, right)
         };
     }

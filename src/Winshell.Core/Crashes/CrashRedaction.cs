@@ -10,7 +10,7 @@ namespace Winshell;
 /// </summary>
 internal static partial class CrashRedaction
 {
-    public const string Mask = "[redacted]";
+    private const string Mask = "[redacted]";
 
     public static string Redact(string text)
     {

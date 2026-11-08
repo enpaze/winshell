@@ -50,8 +50,6 @@ public abstract class TomlFile : ObservableObject, IDisposable
     /// <summary>The text last read or written, so the watch can tell a hand save from this object's own write.</summary>
     private string? _text;
 
-    private string _error = "";
-    private bool _loaded;
     private bool _loading;
     private bool _writePending;
     private bool _disposed;
@@ -86,20 +84,20 @@ public abstract class TomlFile : ObservableObject, IDisposable
     [PublicAPI]
     public string Error
     {
-        get => _error;
+        get;
         private set
         {
-            if (Set(ref _error, value))
+            if (Set(ref field, value))
                 _log.ReportFileError(_path, value);
         }
-    }
+    } = "";
 
     /// <summary>Whether the file is there and parses. Without it the properties keep the values they had.</summary>
     [PublicAPI]
     public bool Loaded
     {
-        get => _loaded;
-        private set => Set(ref _loaded, value);
+        get;
+        private set => Set(ref field, value);
     }
 
     /// <summary>Writes the file now, adding the keys it does not have, or making it and its folder when there is none.</summary>
@@ -111,7 +109,7 @@ public abstract class TomlFile : ObservableObject, IDisposable
 
     private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (_loading || _disposed || _keys.Find(key => key.Property.Name == e.PropertyName) is not { } key)
+        if (_loading || _disposed || _keys.Find(candidate => candidate.Property.Name == e.PropertyName) is not { } key)
             return;
         _assigned.Add(key);
         PostWrite();

@@ -82,7 +82,7 @@ internal sealed partial class TomlDocument
         catch (TomlException e)
         {
             message = e.Message;
-            if (e.Line is int at and > 0)
+            if (e.Line is { } at and > 0)
             {
                 line = at;
                 column = e.Column ?? 0;
@@ -244,8 +244,8 @@ internal sealed partial class TomlDocument
             return trailing;
         }
 
-        if (document.Tables.ChildrenCount > 0 && document.Tables.GetChild(0) is TableSyntaxBase table
-                                              && table.LeadingTrivia is { Count: > 0 } leading)
+        if (document.Tables.ChildrenCount > 0 &&
+            document.Tables.GetChild(0) is { LeadingTrivia: { Count: > 0 } leading } table)
         {
             table.LeadingTrivia = null;
             return leading;
@@ -262,7 +262,7 @@ internal sealed partial class TomlDocument
         var count = document.KeyValues.ChildrenCount;
         if (count > 0)
         {
-            var last = (KeyValueSyntax)document.KeyValues.GetChild(count - 1)!;
+            var last = document.KeyValues.GetChild(count - 1)!;
             last.EndOfLineToken ??= new SyntaxToken(TokenKind.NewLine, newline);
             after = last.EndOfLineToken.TrailingTrivia;
             last.EndOfLineToken.TrailingTrivia = null;
@@ -276,7 +276,7 @@ internal sealed partial class TomlDocument
     private static KeyValueSyntax ParseAssignment(string keyText, string tomlValue, string newline)
     {
         var parsed = SyntaxParser.Parse(keyText + " = " + tomlValue + newline);
-        var fresh = (KeyValueSyntax)parsed.KeyValues.GetChild(0)!;
+        var fresh = parsed.KeyValues.GetChild(0)!;
         parsed.KeyValues.RemoveChild(fresh);
         return fresh;
     }
@@ -360,7 +360,7 @@ internal sealed partial class TomlDocument
         }
         else if (document.KeyValues.ChildrenCount > 0)
         {
-            var last = (KeyValueSyntax)document.KeyValues.GetChild(document.KeyValues.ChildrenCount - 1)!;
+            var last = document.KeyValues.GetChild(document.KeyValues.ChildrenCount - 1)!;
             if (last.EndOfLineToken is not null)
                 last.EndOfLineToken.TrailingTrivia = [.. last.EndOfLineToken.TrailingTrivia ?? [], .. kept];
         }
@@ -485,14 +485,14 @@ internal sealed partial class TomlDocument
         if (trivia is null)
             return null;
         foreach (var item in trivia)
-            if (item.Kind == TokenKind.NewLine && item.Text is { Length: > 0 } text)
+            if (item is { Kind: TokenKind.NewLine, Text: { Length: > 0 } text })
                 return text == "\r\n" ? "\r\n" : "\n";
         return null;
     }
 
     private static string? Line(SyntaxToken? token)
     {
-        return token is { TokenKind: TokenKind.NewLine, Text: { } text } && text.Length > 0
+        return token is { TokenKind: TokenKind.NewLine, Text: { Length: > 0 } text }
             ? text == "\r\n" ? "\r\n" : "\n"
             : null;
     }

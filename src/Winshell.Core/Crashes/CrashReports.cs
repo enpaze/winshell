@@ -11,7 +11,15 @@ namespace Winshell;
 /// A crash report on disk, and what it is about. A window's report also names the window for a person,
 /// <see cref="Subject"/>, and says what Winshell did about it, <see cref="Recovery"/>.
 /// </summary>
-internal sealed record CrashReport(string Path, string Where, Exception Error, bool Fatal)
+internal sealed record CrashReport(
+    string Path,
+    // The report file names where the runtime failed, and the record keeps that place.
+    // ReSharper disable once NotAccessedPositionalProperty.Global
+    string Where,
+    // The report file includes the exception, and the record keeps that exception.
+    // ReSharper disable once NotAccessedPositionalProperty.Global
+    Exception Error,
+    bool Fatal)
 {
     /// <summary>What failed, as a sentence names it: "the taskbar", "a window". Empty when it is not a window.</summary>
     public string Subject { get; init; } = "";
@@ -76,9 +84,9 @@ internal sealed partial class CrashReports(
     /// <summary>The subfolder a report is written in before it is moved into the folder whole.</summary>
     private const string WritingFolder = "writing";
 
-    private static readonly object TimeGate = new();
+    private static readonly Lock TimeGate = new();
     private static long _lastTicks;
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private readonly HashSet<string> _reported = [];
 
     /// <summary>The folder reports go to.</summary>
@@ -147,7 +155,7 @@ internal sealed partial class CrashReports(
     /// What makes two failures the same: where, and each exception's type and full stack, inner and aggregated ones
     /// included. Messages are left out, since they often carry values that change from one run to the next.
     /// </summary>
-    internal static string Fingerprint(string where, Exception error)
+    private static string Fingerprint(string where, Exception error)
     {
         var text = new StringBuilder(where);
 
@@ -303,12 +311,12 @@ internal sealed partial class CrashReports(
         text.AppendLine();
         text.AppendLine(ExceptionHeading);
         text.AppendLine(CrashRedaction.Redact(Describe(error)));
-        var log = LogTail();
-        if (log.Count > 0)
+        var tail = LogTail();
+        if (tail.Count > 0)
         {
             text.AppendLine();
-            text.AppendLine(CultureInfo.InvariantCulture, $"Log: {logPath}, last {log.Count} lines");
-            foreach (var line in log)
+            text.AppendLine(CultureInfo.InvariantCulture, $"Log: {logPath}, last {tail.Count} lines");
+            foreach (var line in tail)
                 text.AppendLine(line);
         }
 
