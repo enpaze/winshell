@@ -6,8 +6,21 @@ using System.Xml.Linq;
 
 namespace Winshell;
 
-/// <summary>What a command printed and how it ended.</summary>
-internal sealed record CommandResult(int ExitCode, string Output);
+/// <summary>
+/// What a command printed and how it ended. <see cref="Output"/> is both streams, in the order they arrived.
+/// <see cref="StandardOutput"/> and <see cref="Error"/> keep them apart for a tool whose stdout is data.
+/// </summary>
+internal sealed record CommandResult(int ExitCode, string Output)
+{
+    /// <summary>Standard output alone. It is also part of <see cref="Output"/>.</summary>
+    public string StandardOutput { get; init; } = "";
+
+    /// <summary>Standard error alone. It is also part of <see cref="Output"/>.</summary>
+    public string Error { get; init; } = "";
+
+    /// <summary>The program could not be started. <see cref="Output"/> is then <see cref="ConfigurationProject.NeedsSdk"/>.</summary>
+    public bool Missing { get; init; }
+}
 
 /// <summary>Runs a program in a folder and waits for it. Tests replace this, so most of them build nothing.</summary>
 internal delegate CommandResult RunProcess(string file, IReadOnlyList<string> arguments, string folder);
@@ -300,8 +313,22 @@ internal sealed partial class ConfigurationProject
         return Downloaded() is { } file ? $"{file}: {ZoneIdentifier.Blocked(file)}" : null;
     }
 
-    /// <summary>Runs a program and collects what it prints, up to a limit. The streams get a short wait after it exits, because a build server that outlives it keeps them open. They have threads of their own, so a busy pool cannot lose the last lines.</summary>
+    /// <summary>
+    /// Runs a program and collects what it prints, up to a limit. The streams get a short wait after it exits, because a
+    /// build server that outlives it keeps them open. They have threads of their own, so a busy pool cannot lose the last
+    /// lines.
+    /// </summary>
     public static CommandResult Run(string file, IReadOnlyList<string> arguments, string folder)
+    {
+        return Run(file, arguments, folder, null);
+    }
+
+    /// <summary>
+    /// Runs a program as <see cref="Run(string, IReadOnlyList{string}, string)"/> does.
+    /// <paramref name="environment"/> replaces variables for this run, so a caller can keep git and dotnet from prompting.
+    /// </summary>
+    public static CommandResult Run(string file, IReadOnlyList<string> arguments, string folder,
+        IReadOnlyDictionary<string, string>? environment)
     {
         var start = new ProcessStartInfo(file)
         {
@@ -311,18 +338,28 @@ internal sealed partial class ConfigurationProject
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
+        if (environment is not null)
+        {
+            foreach (var (key, value) in environment)
+                start.Environment[key] = value;
+        }
+
         foreach (var argument in arguments)
             start.ArgumentList.Add(argument);
         var lines = new List<string>();
+        var output = new List<string>();
+        var error = new List<string>();
+        var gate = new object();
 
-        Thread Read(StreamReader stream)
+        Thread Read(StreamReader stream, List<string> into)
         {
             var reader = new Thread(() =>
                 {
                     while (stream.ReadLine() is { } line)
-                        lock (lines)
+                        lock (gate)
                         {
                             lines.Add(line);
+                            into.Add(line);
                         }
                 })
             { IsBackground = true };
@@ -334,7 +371,7 @@ internal sealed partial class ConfigurationProject
         {
             // Not disposed: a reader may still be waiting on a stream that a build server holds.
             var process = Process.Start(start)!;
-            Thread[] readers = [Read(process.StandardOutput), Read(process.StandardError)];
+            Thread[] readers = [Read(process.StandardOutput, output), Read(process.StandardError, error)];
             if (!process.WaitForExit(BuildLimit))
             {
                 process.Kill(true);
@@ -344,14 +381,18 @@ internal sealed partial class ConfigurationProject
 
             foreach (var reader in readers)
                 reader.Join(StreamLimit);
-            lock (lines)
+            lock (gate)
             {
-                return new CommandResult(process.ExitCode, string.Join('\n', lines));
+                return new CommandResult(process.ExitCode, string.Join('\n', lines))
+                {
+                    StandardOutput = string.Join('\n', output),
+                    Error = string.Join('\n', error)
+                };
             }
         }
         catch (Win32Exception)
         {
-            return new CommandResult(-1, NeedsSdk);
+            return new CommandResult(-1, NeedsSdk) { Missing = true };
         }
     }
 
@@ -383,7 +424,7 @@ internal sealed partial class ConfigurationProject
 
         if (parked is not null)
             Restore(destination, parked);
-        return $"{Name} did not build.\n{Errors(result.Output)}";
+        return $"{Name} did not build.\n{Errors(result.Output, Folder)}";
     }
 
     /// <summary>Moves <paramref name="folder"/> aside, or null when there was nothing to move or the move failed.</summary>
@@ -434,11 +475,11 @@ internal sealed partial class ConfigurationProject
     }
 
     /// <summary>The compiler's own lines, once each, as <see cref="ErrorLine"/> shows them. Any other failure keeps its last lines.</summary>
-    private string Errors(string output)
+    internal static string Errors(string output, string folder)
     {
         var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var errors = lines.Where(IsErrorLine)
-            .Select(line => ErrorLine(line, Folder)).Distinct().ToList();
+            .Select(line => ErrorLine(line, folder)).Distinct().ToList();
         return string.Join('\n', errors.Count > 0 ? errors.Take(MostErrors) : lines.TakeLast(MostErrors));
     }
 
