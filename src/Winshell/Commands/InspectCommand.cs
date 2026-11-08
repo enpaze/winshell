@@ -66,6 +66,9 @@ internal static class InspectCommand
         };
         if (frames is not null)
             lines.Add($"{recorded.Kept} frames and {Recorder.SheetName} in {frames}");
+        if (recorded.OnScreen)
+            lines.Add(
+                "Windows refused to capture the window by itself, so this is its place on its screen, with anything over it.");
         if (recorded.Closed)
             lines.Add("The window or screen went away before the end.");
         return string.Join(Environment.NewLine, lines);

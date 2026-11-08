@@ -31,6 +31,9 @@ internal sealed record Recording(
 /// </param>
 /// <param name="VideoFrames">The video's frames, with repeats.</param>
 /// <param name="Closed">Whether the target closed before the end.</param>
+/// <param name="OnScreen">
+/// Whether Windows refused to capture the window by itself, so its place on its screen was recorded instead.
+/// </param>
 internal sealed record Recorded(
     int Width,
     int Height,
@@ -39,7 +42,8 @@ internal sealed record Recorded(
     int Captured,
     int Kept,
     long VideoFrames,
-    bool Closed);
+    bool Closed,
+    bool OnScreen);
 
 /// <summary>
 /// <c>winshell inspect record</c>: captures a window or a screen for a while, keeps frames by <c>--fps</c>, and writes
@@ -76,7 +80,8 @@ internal static class Recorder
         var encoding = Task.Run(() => EncodeAsync(recording, frames.Reader, recorded.Task));
         TimeSpan length;
         bool closed;
-        using (new FrameStream(recording.Target, log, (frame, drawn) =>
+        bool onScreen;
+        using (var stream = new FrameStream(recording.Target, log, (frame, drawn) =>
                {
                    var at = drawn < start ? TimeSpan.Zero : drawn - start;
                    if (at >= recording.Length)
@@ -90,6 +95,7 @@ internal static class Recorder
             var finished = await Task.WhenAny(Task.Delay(recording.Length, time), ended.Task, encoding);
             length = finished == ended.Task ? Since(time, time.GetTimestamp()) - start : recording.Length;
             closed = finished == ended.Task && ended.Task.Result is null;
+            onScreen = stream.OnScreen;
         }
 
         length = Min(length, recording.Length);
@@ -100,7 +106,7 @@ internal static class Recorder
             throw failure;
         if (kept == 0)
             throw new InvalidOperationException($"No frame arrived in {length.TotalSeconds:0.0} s.");
-        return new Recorded(width, height, rate, length, captured, kept, videoFrames, closed);
+        return new Recorded(width, height, rate, length, captured, kept, videoFrames, closed, onScreen);
     }
 
     private static async Task<(int Width, int Height, int Rate, int Kept, long VideoFrames)> EncodeAsync(

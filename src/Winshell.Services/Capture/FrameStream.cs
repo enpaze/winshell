@@ -30,6 +30,9 @@ internal sealed class FrameStream : IDisposable
     private ID3D11Texture2D? _staging;
     private SizeInt32 _poolSize;
 
+    // The window's place on its screen, when Windows refused the window and its screen is captured instead.
+    private RECT? _crop;
+
     /// <summary>Starts capturing <paramref name="target"/>, with the pointer in the picture.</summary>
     /// <param name="target">The window or screen.</param>
     /// <param name="log">Where a teardown that fails is reported.</param>
@@ -50,7 +53,7 @@ internal sealed class FrameStream : IDisposable
             var monitor = target.Window == 0 ? WindowsCaptureBackend.MonitorHandle(target.MonitorId) : 0;
             if (target.Window == 0 && monitor == 0)
                 throw new ArgumentException("The screen is no longer connected.", nameof(target));
-            _item = CaptureInterop.CreateItem(target.Window, monitor);
+            _item = target.Window == 0 ? CaptureInterop.CreateItem(0, monitor) : WindowItem(target.Window);
             _poolSize = _item.Size;
             if (_poolSize.Width <= 0 || _poolSize.Height <= 0)
                 throw new InvalidOperationException("The window or screen has nothing to capture.");
@@ -63,6 +66,38 @@ internal sealed class FrameStream : IDisposable
         {
             Dispose();
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Whether Windows refused to capture the window by itself, so its place on its screen is captured instead, with
+    /// whatever covers it, from where it was when the capture started.
+    /// </summary>
+    public bool OnScreen => _crop is not null;
+
+    /// <summary>
+    /// A capture item for the window, or for its screen when Windows refuses the window. Windows Server 2025 refuses
+    /// every tool window, which every Winshell panel is, though Windows 11 build 26200 takes them.
+    /// </summary>
+    private GraphicsCaptureItem WindowItem(nint window)
+    {
+        try
+        {
+            return CaptureInterop.CreateItem(window, 0);
+        }
+        catch (ArgumentException) when (Screens.Of(window) is { } screen &&
+                                        TopLevelWindows.TryFrameBounds(window, out var frame))
+        {
+            var bounds = screen.Bounds;
+            var crop = new RECT(Math.Max(frame.Left, bounds.Left) - bounds.Left,
+                Math.Max(frame.Top, bounds.Top) - bounds.Top,
+                Math.Min(frame.Right, bounds.Right) - bounds.Left,
+                Math.Min(frame.Bottom, bounds.Bottom) - bounds.Top);
+            if (crop.Width <= 0 || crop.Height <= 0)
+                throw new InvalidOperationException(
+                    "Windows refused to capture the window by itself, and it is on no screen to capture instead.");
+            _crop = crop;
+            return CaptureInterop.CreateItem(0, screen.Handle);
         }
     }
 
@@ -139,16 +174,19 @@ internal sealed class FrameStream : IDisposable
     }
 
     /// <summary>
-    /// The frame's content in memory, or null when its buffer, made for an older size, cuts the content off. The next
-    /// frame comes at the new size.
+    /// The frame's content in memory, or the window's place in it, or null when its buffer, made for an older size, cuts
+    /// that off. The next frame comes at the new size.
     /// </summary>
     private PixelImage? Copy(Direct3D11CaptureFrame frame)
     {
         using var texture = CaptureInterop.Texture(frame.Surface);
         var desc = texture.Description;
-        var width = frame.ContentSize.Width;
-        var height = frame.ContentSize.Height;
-        if (width <= 0 || height <= 0 || width > desc.Width || height > desc.Height)
+        var content = new RECT(0, 0, frame.ContentSize.Width, frame.ContentSize.Height);
+        var (left, top, width, height) = _crop is { } crop
+            ? (crop.Left, crop.Top, crop.Width, crop.Height)
+            : (0, 0, content.Width, content.Height);
+        if (width <= 0 || height <= 0 || left + width > Math.Min(content.Width, desc.Width) ||
+            top + height > Math.Min(content.Height, desc.Height))
             return null;
         if (_staging is not { } staging || staging.Description.Width != width || staging.Description.Height != height)
         {
@@ -164,7 +202,8 @@ internal sealed class FrameStream : IDisposable
             staging = _staging = _device!.CreateTexture2D(desc);
         }
 
-        _context!.CopySubresourceRegion(staging, 0, 0, 0, 0, texture, 0, new Box(0, 0, 0, width, height, 1));
+        _context!.CopySubresourceRegion(staging, 0, 0, 0, 0, texture, 0,
+            new Box(left, top, 0, left + width, top + height, 1));
         var pixels = CaptureInterop.Read(_context, staging, width, height, true);
         return pixels is null ? null : new PixelImage(width, height, pixels, true);
     }
