@@ -12,6 +12,7 @@
   <s:Boolean x:Key="/Default/CodeInspection/NamespaceProvider/NamespaceFoldersToSkip/=input/@EntryIndexedValue">True</s:Boolean>
   <s:Boolean x:Key="/Default/CodeInspection/NamespaceProvider/NamespaceFoldersToSkip/=instances/@EntryIndexedValue">True</s:Boolean>
   <s:Boolean x:Key="/Default/CodeInspection/NamespaceProvider/NamespaceFoldersToSkip/=ipc/@EntryIndexedValue">True</s:Boolean>
+  <s:Boolean x:Key="/Default/CodeInspection/NamespaceProvider/NamespaceFoldersToSkip/=keyboard/@EntryIndexedValue">True</s:Boolean>
   <s:Boolean x:Key="/Default/CodeInspection/NamespaceProvider/NamespaceFoldersToSkip/=media/@EntryIndexedValue">True</s:Boolean>
   <s:Boolean x:Key="/Default/CodeInspection/NamespaceProvider/NamespaceFoldersToSkip/=network/@EntryIndexedValue">True</s:Boolean>
   <s:Boolean x:Key="/Default/CodeInspection/NamespaceProvider/NamespaceFoldersToSkip/=power/@EntryIndexedValue">True</s:Boolean>

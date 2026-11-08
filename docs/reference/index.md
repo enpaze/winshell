@@ -15,6 +15,7 @@ See also the [command line](command-line.md).
 | [Winshell.Diagnostics](winshell-diagnostics.md) | The checks `winshell doctor` prints. Reading a project does not build it. |
 | [Winshell.ExplorerTaskbar](winshell-explorertaskbar.md) | Whether Explorer's taskbar is hidden while this shell runs. |
 | [Winshell.Input](winshell-input.md) | A hotkey that works anywhere in Windows. |
+| [Winshell.Keyboard](winshell-keyboard.md) | The installed keyboard layouts, and the one the foreground window is using. |
 | [Winshell.Media](winshell-media.md) | What is playing, and play, pause, skip and seek. |
 | [Winshell.Network](winshell-network.md) | Adapters, Wi-Fi networks, connection profiles and connectivity. |
 | [Winshell.Notifications](winshell-notifications.md) | Notification Center, Focus, and toasts. |

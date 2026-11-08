@@ -4,6 +4,7 @@ using Winshell.Bluetooth;
 using Winshell.Cpu;
 using Winshell.ExplorerTaskbar;
 using Winshell.Input;
+using Winshell.Keyboard;
 using Winshell.Media;
 using Winshell.Network;
 using Winshell.Notifications;
@@ -26,6 +27,7 @@ public sealed partial class Shell
     private ExplorerTaskbarService? _explorerTaskbar;
     private HotkeyRegistrar? _hotkeys;
     private JumpListService? _jumpLists;
+    private KeyboardLayoutService? _keyboardLayout;
     private MediaService? _media;
     private NetworkingService? _networking;
     private NotificationListener? _notifications;
@@ -46,7 +48,7 @@ public sealed partial class Shell
     private IDisposable?[] ServicesInStopOrder =>
     [
         _winland, _windows, _virtualDesktops, _apps, _audio, _bluetooth, _brightness, _cpu, _explorerTaskbar, _media,
-        _networking, _notifications, _power, _powerMode, _systemTray, _hotkeys
+        _networking, _notifications, _power, _powerMode, _systemTray, _hotkeys, _keyboardLayout
     ];
 
     /// <summary>The apps Start lists.</summary>
@@ -69,6 +71,9 @@ public sealed partial class Shell
 
     /// <summary>The recent and frequent documents of an app, as its jump list shows them.</summary>
     public JumpListService JumpLists => _jumpLists ??= new JumpListService();
+
+    /// <summary>The installed keyboard layouts, and the one the foreground window is using. Read only while something listens.</summary>
+    public KeyboardLayoutService KeyboardLayout => _keyboardLayout ??= new KeyboardLayoutService(Loop);
 
     /// <summary>The media sessions Windows lets the shell see and control.</summary>
     public MediaService Media => _media ??= new MediaService(Loop, Log);
