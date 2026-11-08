@@ -5,8 +5,8 @@ param(
     [Parameter(ParameterSetName = 'Tests')]
     [switch] $NoBuild,
     [Parameter(ParameterSetName = 'Tests')]
-    [ValidateSet('All', 'Fast', 'Slow', 'Docs', 'Package')]
-    [string] $Tier = 'Fast',
+    [ValidateSet('Tests', 'Docs', 'Package')]
+    [string] $Tier = 'Tests',
     [Parameter(ParameterSetName = 'Tests')]
     [int] $Seed = 0,
     [Parameter(Mandatory, ParameterSetName = 'Lint')]
@@ -39,7 +39,7 @@ if ($Lint) {
 
 . (Join-Path $PSScriptRoot 'lib/Tests.ps1')
 
-$full = $Tier -in 'Fast', 'All'
+$full = $Tier -eq 'Tests'
 $run = Get-TestRun -Tier $Tier
 
 if ($full) {

@@ -5,7 +5,6 @@ using System.Text.Json;
 namespace Winshell.Tests;
 
 /// <summary>The real <c>winshell inspect</c> against the probe's panel, over the control pipe.</summary>
-[Trait("Category", "Slow")]
 public sealed class InspectCommandTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();

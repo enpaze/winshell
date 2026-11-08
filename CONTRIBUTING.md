@@ -27,14 +27,13 @@ A test waits on a real signal: an event, a task's completion, or a fake clock.
 - **Only `Wait.ForNothingToHappen` waits for a set time.** Use it when a check is that something did not happen. A slow machine can then miss a bug, but it can't fail a test that should pass.
 - **Pass `TestContext.Current.CancellationToken` to anything that waits.** It is cancelled when a test has run for two minutes, so the test fails alone and the run goes on.
 - **Time comes through a `TimeProvider`.** `DateTime.Now`, `Stopwatch` and their relatives don't build in `src/`. A test passes a `FakeTimeProvider`, given a UTC time. `TimeProvider.System` is for what only real time can drive: a file's write time, a Windows object, the CLI's own process.
-- **Use the real desktop only in a `Category=Slow` test.** A fast test depends on no window, running app, device or setting of the PC it runs on. `Wait.Until` is for what really gives no signal: another process, or a window.
+- **Use the cheapest boundary that proves the contract.** Service policy uses fake backends and fake time; native rendering, process lifecycle and transport contracts use real Windows objects. Reuse hosts and processes, and keep all of them in the same suite. `Wait.Until` is for what really gives no signal: another process, or a window.
 - **Don't depend on a free thread pool worker.** A busy pool can hold back queued work for seconds, so anything that has to happen on time needs its own thread.
-- **Mark what opens a window.** A test class that opens a WinUI window or starts `winshell.exe` carries `[Trait("Category", "Slow")]`.
 
 Nothing retries a test and nothing sets one aside. A test that fails sometimes is a bug in the test or in Winshell, so find the cause and fix it, on `main` as much as in a PR. Tests are built so that they can't flake:
 
 - **Each test owns what it uses.** It has its own temp folder and leaves no global state behind. A test that needs something one at a time, such as the keyboard hook, joins an xUnit collection with the others that do.
-- **Order and timing are shaken on every run.** Test assemblies run side by side, classes run in parallel on twice as many threads as cores, and the order changes each time. Coupling between tests fails at once. The run prints its seed, and `pwsh scripts/check.ps1 -Tier <tier> -Seed <seed>` plays each assembly's order back.
+- **Order and timing are shaken on every run.** Classes run in parallel on twice as many threads as cores, and the order changes each time. Test assemblies run in sequence locally to keep their desktop sessions apart; CI spreads the suite across four separate Windows workers. The run prints its seed, and `pwsh scripts/check.ps1 -Seed <seed>` plays each assembly's order back. Follow the [live UI procedure](docs/development.md#live-ui-with-winland-running) for the suite.
 - **A time limit only catches a hang.** A test claims nothing about how fast something is on this machine today, so set a limit far above what the work takes under load: only the defect it guards can miss it.
 
 ## Open a PR

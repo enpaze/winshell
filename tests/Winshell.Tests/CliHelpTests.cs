@@ -1,7 +1,6 @@
 namespace Winshell.Tests;
 
 /// <summary><c>--help</c> after a command prints that command's usage and does not run it.</summary>
-[Trait("Category", "Slow")]
 public class CliHelpTests
 {
     [Theory]
@@ -23,15 +22,9 @@ public class CliHelpTests
         result.AssertExitCode(0);
         Assert.Contains(expected, result.Output, StringComparison.Ordinal);
         Assert.DoesNotContain("No running instances", result.Output, StringComparison.Ordinal);
+        if (command == "--help")
+            Assert.Contains("2 the command line was wrong", result.Output, StringComparison.Ordinal);
         result.AssertNoError();
-    }
-
-    [Fact]
-    public void Help_names_the_exit_codes()
-    {
-        var result = Run(["--help"]);
-        result.AssertExitCode(0);
-        Assert.Contains("2 the command line was wrong", result.Output, StringComparison.Ordinal);
     }
 
     private static ChildProcess Run(string[] args)

@@ -12,7 +12,6 @@ namespace Winshell.ShellTests;
 /// the commands require. It skips, saying why, only when someone is still using the PC after that, or moves the mouse
 /// while it runs. Nothing else in this assembly runs beside these tests, so none of its input gets in the way.
 /// </summary>
-[Trait("Category", "Slow")]
 [Collection(nameof(RealInputTests))]
 public sealed class RealInputTests
 {
@@ -182,7 +181,8 @@ public sealed class RealInputTests
             await Send(shell, "press", "Go");
             await Signal(clicked);
 
-            return (states, clicks, before, Cursor());
+            // Snapshot on the UI thread before closing the panel can raise more state changes.
+            return (states.ToArray(), clicks, before, Cursor());
         });
 
         Assert.Contains("PointerOver", states);

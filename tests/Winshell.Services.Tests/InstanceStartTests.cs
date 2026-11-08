@@ -132,6 +132,9 @@ public sealed class InstanceStartTests
         {
             UseShellExecute = false,
             RedirectStandardInput = true,
+            // The pause prompt must not prefix a JSON message on xUnit's protocol stdout.
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
             CreateNoWindow = true
         })!;
         using var started = new ManualResetEventSlim();

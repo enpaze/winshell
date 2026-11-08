@@ -35,7 +35,7 @@ BeforeAll {
 
 Describe 'Choosing tests' {
     It 'leaves the package tests out of the whole run' {
-        (Get-TestRun -Tier All).Filter | Should -Be 'Category!=Package'
+        (Get-TestRun).Filter | Should -Be 'Category!=Package'
     }
 
     It 'expects a results file from each test project in the solution, or from the one project it runs' {
@@ -48,8 +48,22 @@ Describe 'Choosing tests' {
   <Folder Name="/tests/"><Project Path="tests/A.Tests/A.Tests.csproj" /><Project Path="tests/B.Tests/B.Tests.csproj" /></Folder>
 </Solution>
 '@
-            (Get-TestRun -Tier Fast).ProjectCount | Should -Be 2
+            (Get-TestRun).ProjectCount | Should -Be 2
             (Get-TestRun -Tier Docs).ProjectCount | Should -Be 1
+        } finally { $script:Root = $root }
+    }
+
+    It 'partitions every solution test project once and includes new projects in the fourth shard' {
+        $root = $script:Root
+        $script:Root = $TestDrive
+        try {
+            $projects = @('Winshell.Tests', 'Winshell.Shell.Tests', 'Winshell.Services.Tests', 'Winshell.Core.Tests', 'New.Tests') |
+                ForEach-Object { "tests/$_/$_.csproj" }
+            $nodes = ($projects | ForEach-Object { "<Project Path=`"$_`" />" }) -join ''
+            Set-Content -LiteralPath (Join-Path $TestDrive 'winshell.slnx') -Value "<Solution>$nodes</Solution>"
+            $routed = @(foreach ($shard in 1..4) { (Get-TestRun -Shard $shard).Projects })
+            ($routed | Sort-Object) | Should -Be ($projects | Sort-Object)
+            (Get-TestRun -Shard 4).ProjectCount | Should -Be 2
         } finally { $script:Root = $root }
     }
 }
@@ -96,7 +110,7 @@ Describe 'Reading test results' {
     }
 }
 
-Describe 'Running a tier' {
+Describe 'Running the suite' {
     BeforeAll {
         # A solution of this many test projects, which each write one results file.
         function Set-Solution([int] $Projects) {
@@ -165,15 +179,15 @@ Describe 'Running a tier' {
 
     It 'prints how to play back the tier it ran' {
         Mock Write-Host { }
-        Invoke-TestRun -Tier Fast -Seed 7 | Should -Be 0
-        Should -Invoke Write-Host -ParameterFilter { $Object -match 'check\.ps1 -Tier Fast -Seed 7' }
+        Invoke-TestRun -Seed 7 | Should -Be 0
+        Should -Invoke Write-Host -ParameterFilter { $Object -match 'check\.ps1 -Tier Tests -Seed 7' }
     }
 }
 
 Describe 'Check command' {
     BeforeAll {
         $script:Check = (Resolve-Path (Join-Path $PSScriptRoot '../../scripts/check.ps1')).Path
-        $script:ProjectCount = (Get-TestRun -Tier Fast).ProjectCount
+        $script:ProjectCount = (Get-TestRun).ProjectCount
 
         # pwsh prepends the user module folder to an inherited PSModulePath at startup, where a developer's real Pester
         # lives. Setting the path inside the child, after startup, leaves only the stub visible.
@@ -244,14 +258,14 @@ function Invoke-Pester {
         }
     }
 
-    It 'builds, formats, and runs fast .NET and tooling tests by default' {
+    It 'builds, formats, and runs the unified .NET and tooling suite by default' {
         Invoke-Check | Out-Null
         $LASTEXITCODE | Should -Be 0
         $calls = Get-Content -LiteralPath $env:WINSHELL_CHECK_LOG
         $calls[0] | Should -Match '^dotnet build '
         $calls | Should -Contain 'dotnet build scripts/generate-reference.cs --nologo'
-        $calls[-2] | Should -Match '--filter Category!=Package&Category!=Slow '
-        $calls[-2] | Should -Not -Match '(^| )-m:1( |$)'
+        $calls[-2] | Should -Match '--filter Category!=Package '
+        $calls[-2] | Should -Match '(^| )-m:1( |$)'
         $calls[-1] | Should -Be 'Pester tests/Scripts'
     }
 
@@ -263,16 +277,18 @@ function Invoke-Pester {
         @($calls | Where-Object { $_ -match '^dotnet test |^Pester ' }) | Should -HaveCount 0
     }
 
-    It 'runs only slow tests, one project at a time, on an existing build and forwards the seed and hang timeout' {
-        Invoke-Check @{ Tier = 'Slow'; NoBuild = $true; Seed = 7 } | Out-Null
+    It 'uses an existing build and forwards the seed and hang timeout for the whole suite' {
+        Invoke-Check @{ NoBuild = $true; Seed = 7 } | Out-Null
         $LASTEXITCODE | Should -Be 0
         $calls = @(Get-Content -LiteralPath $env:WINSHELL_CHECK_LOG)
-        $calls | Should -HaveCount 1
-        $calls[0] | Should -Match '--filter Category!=Package&Category=Slow '
-        $calls[0] | Should -Match '(^| )-m:1( |$)'
-        $calls[0] | Should -Match 'xUnit.Seed=7'
-        $calls[0] | Should -Match 'xUnit.MaxParallelThreads=2x'
-        $calls[0] | Should -Match '--blame-hang-timeout 3m'
+        $calls[0] | Should -Not -Match '^dotnet build '
+        $test = @($calls | Where-Object { $_ -match '^dotnet test ' })
+        $test | Should -HaveCount 1
+        $test[0] | Should -Match '--filter Category!=Package '
+        $test[0] | Should -Match '(^| )-m:1( |$)'
+        $test[0] | Should -Match 'xUnit.Seed=7'
+        $test[0] | Should -Match 'xUnit.MaxParallelThreads=2x'
+        $test[0] | Should -Match '--blame-hang-timeout 3m'
     }
 
     It 'builds and runs only <Project>, without Pester' -ForEach @(

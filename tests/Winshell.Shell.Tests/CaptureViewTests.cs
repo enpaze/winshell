@@ -9,7 +9,6 @@ using Winshell.Capture;
 namespace Winshell.ShellTests;
 
 /// <summary>The view shows a session's frames and lets go of it. What the screen then looks like is not asserted here.</summary>
-[Trait("Category", "Slow")]
 public sealed class CaptureViewTests
 {
     [Fact]
@@ -19,7 +18,8 @@ public sealed class CaptureViewTests
         {
             var screen = shell.Screens[0].Geometry;
             var backend = new FakeCapture();
-            using var session = new CaptureSession(shell.Loop, () => backend)
+            var loop = new ManualEventLoop();
+            using var session = new CaptureSession(loop, () => backend)
             {
                 FrameInterval = 16,
                 Target = CaptureTarget.ForWindow(1)
@@ -43,7 +43,7 @@ public sealed class CaptureViewTests
             var red = Solid(255, 0, 0);
             backend.Next = red;
             Assert.True(session.Start());
-            await NextFrame(session);
+            loop.Advance(TimeSpan.FromMilliseconds(16));
             var shown = Pixels(Shown(view));
             Assert.Equal(red.Bgra.ToArray(), shown);
 
@@ -52,7 +52,7 @@ public sealed class CaptureViewTests
 
             backend.Next = red;
             Assert.True(session.Start());
-            await NextFrame(session);
+            loop.Advance(TimeSpan.FromMilliseconds(16));
             var bitmap = Shown(view);
             var before = Pixels(bitmap);
 
@@ -63,7 +63,7 @@ public sealed class CaptureViewTests
 
             var blue = Solid(0, 0, 255);
             backend.Next = blue;
-            await NextFrame(session);
+            loop.Advance(TimeSpan.FromMilliseconds(16));
             Assert.Equal(before, Pixels(bitmap));
             Assert.Equal(blue, session.Frame);
             return true;
@@ -79,7 +79,8 @@ public sealed class CaptureViewTests
         {
             var screen = shell.Screens[0].Geometry;
             var backend = new FakeCapture();
-            using var session = new CaptureSession(shell.Loop, () => backend)
+            var loop = new ManualEventLoop();
+            using var session = new CaptureSession(loop, () => backend)
             {
                 FrameInterval = 16,
                 Target = CaptureTarget.ForWindow(1)
@@ -106,36 +107,17 @@ public sealed class CaptureViewTests
             GC.Collect();
 
             var found = ReferenceEquals(ShellWindow.Of(view), popup);
+            Assert.Null(ShellWindow.Of(new Grid()));
             var red = Solid(255, 0, 0);
             backend.Next = red;
             Assert.True(session.Start());
-            await NextFrame(session);
+            loop.Advance(TimeSpan.FromMilliseconds(16));
             var pixels = Pixels(Shown(view));
             return (found, same: pixels.AsSpan().SequenceEqual(red.Bgra));
         });
 
         Assert.True(shown.found);
         Assert.True(shown.same);
-    }
-
-    private static async Task NextFrame(CaptureSession session)
-    {
-        var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        void OnReady()
-        {
-            ready.TrySetResult();
-        }
-
-        session.FrameReady += OnReady;
-        try
-        {
-            await ready.Task.WaitAsync(TestContext.Current.CancellationToken);
-        }
-        finally
-        {
-            session.FrameReady -= OnReady;
-        }
     }
 
     private static PixelImage Solid(byte red, byte green, byte blue)

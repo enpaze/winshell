@@ -3,8 +3,7 @@ using Winshell.Diagnostics;
 
 namespace Winshell.ShellTests;
 
-/// <summary>A real panel window. Fullscreen stepping and a placement after release are fast tests.</summary>
-[Trait("Category", "Slow")]
+/// <summary>A real panel window. Fullscreen stepping and placement after release also have fake-backend tests.</summary>
 public sealed class PanelEdgeTests
 {
     [Fact]

@@ -6,7 +6,6 @@ namespace Winshell.Tests;
 /// <summary>
 /// <c>winshell ipc call notice dismiss</c> closes whichever notice is showing, and it takes no arguments.
 /// </summary>
-[Trait("Category", "Slow")]
 public sealed class NoticeDismissIpcTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();

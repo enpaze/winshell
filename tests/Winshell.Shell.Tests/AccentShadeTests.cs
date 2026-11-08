@@ -5,7 +5,6 @@ using Microsoft.UI.Xaml.Media;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Slow")]
 public sealed class AccentShadeTests
 {
     [Fact]

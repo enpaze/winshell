@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 
 namespace Winshell.Tests;
 
@@ -7,7 +6,6 @@ namespace Winshell.Tests;
 /// A <c>-d</c> start returns at once, and the shell it leaves behind holds nothing of its caller: output read to the end
 /// ends when the start does. The probe has no windows.
 /// </summary>
-[Trait("Category", "Slow")]
 public sealed class DetachOutputTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
@@ -40,8 +38,7 @@ public sealed class DetachOutputTests : IDisposable, IClassFixture<ProbeBuild>
 
     private List<int> Running()
     {
-        using var listed = JsonDocument.Parse(WinshellCli.Run(["list", "-j"], Folders).Output);
-        return listed.RootElement.EnumerateArray().Select(row => row.GetProperty("pid").GetInt32()).ToList();
+        return new Instances(Path.Combine(_dir, "local", "run")).List(false).Select(row => row.Info.Pid).ToList();
     }
 
     public void Dispose()

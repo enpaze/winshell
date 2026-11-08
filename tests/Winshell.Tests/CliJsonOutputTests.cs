@@ -8,7 +8,6 @@ namespace Winshell.Tests;
 /// <c>list --json</c> is a bare array of the command's own fields, and <c>ipc show -j</c> is JSON for the
 /// targets. Neither is the on-disk instance file.
 /// </summary>
-[Trait("Category", "Slow")]
 public sealed class CliJsonOutputTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();

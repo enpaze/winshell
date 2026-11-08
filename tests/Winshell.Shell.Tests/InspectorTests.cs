@@ -12,7 +12,6 @@ using Xunit.Sdk;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Slow")]
 public sealed class InspectorTests : IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
@@ -100,19 +99,6 @@ public sealed class InspectorTests : IDisposable
         Assert.True(press.GetProperty("width").GetDouble() > 0);
         Assert.Equal(4, Node(content, "Level").GetProperty("value").GetDouble());
         Assert.True(Node(content, "Wifi").GetProperty("on").GetBoolean());
-    }
-
-    [Fact]
-    public async Task A_password_stays_out_of_the_tree()
-    {
-        var tree = await ShellFixture.On(async shell =>
-        {
-            var page = Filled(out var button, out _);
-            using var panel = Panel(page);
-            await ShellFixture.LaidOut(button);
-            return await Inspector.Run(shell, "tree", []);
-        });
-
         Assert.DoesNotContain("hunter2", tree, StringComparison.Ordinal);
     }
 

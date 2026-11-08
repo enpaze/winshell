@@ -2,22 +2,37 @@
 $script:Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $script:TrxNamespace = 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'
 
-# What a tier tests: the solution, or one test project, and a filter. Docs builds the guide samples and checks the
+# What a run tests: the solution, or one test project, and a filter. Docs builds the guide samples and checks the
 # generated reference; Package packs the template and runs a shell from it. Each test project the run builds writes one
 # results file, so ProjectCount is how many to expect.
 function Get-TestRun {
-    param([string] $Tier = 'All')
+    param([ValidateSet('Tests', 'Docs', 'Package')][string] $Tier = 'Tests', [ValidateRange(0, 4)][int] $Shard = 0)
     $run = switch ($Tier) {
-        'Fast' { @{ Project = 'winshell.slnx'; Filter = 'Category!=Package&Category!=Slow' } }
-        'Slow' { @{ Project = 'winshell.slnx'; Filter = 'Category!=Package&Category=Slow' } }
         'Docs' { @{ Project = 'tests\Winshell.Shell.Tests'; Filter = 'FullyQualifiedName~Winshell.ShellTests.DocsTests' } }
         'Package' { @{ Project = 'tests\Winshell.Package.Tests'; Filter = 'Category=Package' } }
         default { @{ Project = 'winshell.slnx'; Filter = 'Category!=Package' } }
     }
+    $run.Projects = @($run.Project)
     $run.ProjectCount = 1
     if ($run.Project -like '*.slnx') {
         $solution = [xml] (Get-Content -LiteralPath (Join-Path $script:Root $run.Project) -Raw)
-        $run.ProjectCount = @($solution.SelectNodes('//Project') | Where-Object { $_.Path -like '*.Tests.csproj' }).Count
+        $projects = @($solution.SelectNodes('//Project') | Where-Object { $_.Path -like '*.Tests.csproj' } | ForEach-Object Path)
+        if ($Shard -gt 0) {
+            # Keep each desktop/process owner on its own CI desktop; all other projects share the fourth worker.
+            # A new test project automatically joins that worker instead of silently disappearing from CI.
+            $run.Projects = @($projects | Where-Object {
+                $owner = switch ([IO.Path]::GetFileNameWithoutExtension($_)) {
+                    'Winshell.Tests' { 1 }
+                    'Winshell.Shell.Tests' { 2 }
+                    'Winshell.Services.Tests' { 3 }
+                    default { 4 }
+                }
+                $owner -eq $Shard
+            })
+            if ($run.Projects.Count -eq 0) { throw "Test shard $Shard has no projects." }
+            $run.ProjectCount = $run.Projects.Count
+        }
+        else { $run.ProjectCount = $projects.Count }
     }
     $run
 }
@@ -57,29 +72,31 @@ function Invoke-DotnetTest {
         [Parameter(Mandatory)][string] $Project,
         [Parameter(Mandatory)][string] $Filter,
         [Parameter(Mandatory)][string] $ResultsDirectory,
-        [int] $Seed = 1,
-        [switch] $Serial
+        [int] $Seed = 1
     )
     # A native hang timeout ends the run and names the test. More threads than cores expose contention.
-    # -m:1 is MSBuild's node count, so a Slow run starts one VSTest project after the previous one finishes.
+    # -m:1 keeps desktop-using assemblies apart on a workstation. CI shards use separate Windows desktops.
     # Each project still writes its own results file.
-    $nodes = @()
-    if ($Serial) { $nodes = @('-m:1') }
-    dotnet test (Join-Path $script:Root $Project) --no-build --nologo @nodes --filter $Filter --logger trx --results-directory $ResultsDirectory --blame-hang-timeout 3m --blame-hang-dump-type none -- "xUnit.Seed=$Seed" xUnit.MaxParallelThreads=2x | Out-Host
+    dotnet test (Join-Path $script:Root $Project) --no-build --nologo '-m:1' --filter $Filter --logger trx --results-directory $ResultsDirectory --blame-hang-timeout 3m --blame-hang-dump-type none -- "xUnit.Seed=$Seed" xUnit.MaxParallelThreads=2x | Out-Host
     $LASTEXITCODE
 }
 
 function Invoke-TestRun {
     param(
-        [string] $Tier = 'Fast',
-        [int] $Seed = 0
+        [ValidateSet('Tests', 'Docs', 'Package')][string] $Tier = 'Tests',
+        [int] $Seed = 0,
+        [ValidateRange(0, 4)][int] $Shard = 0
     )
     if ($Seed -eq 0) { $Seed = Get-Random -Minimum 1 -Maximum ([int]::MaxValue) }
     Write-Host "Test order seed: $Seed. To run this order again: pwsh scripts/check.ps1 -Tier $Tier -Seed $Seed"
     $results = Join-Path ([IO.Path]::GetTempPath()) ('winshell-test-results-' + [guid]::NewGuid().ToString('N'))
     try {
-        $run = Get-TestRun -Tier $Tier
-        $exit = Invoke-DotnetTest -Project $run.Project -Filter $run.Filter -ResultsDirectory $results -Seed $Seed -Serial:($Tier -in 'Slow', 'All')
+        $run = Get-TestRun -Tier $Tier -Shard $Shard
+        $exit = 0
+        foreach ($project in $run.Projects) {
+            $code = Invoke-DotnetTest -Project $project -Filter $run.Filter -ResultsDirectory $results -Seed $Seed
+            if ($code -ne 0) { $exit = $code }
+        }
         # A crashed run can leave a results file that doesn't read; its exit code still decides.
         $outcome = try { Read-TestResult -Directory $results -ProjectCount $run.ProjectCount } catch { if ($exit -eq 0) { throw } }
         if ($outcome) { foreach ($skip in $outcome.Skipped) { Write-Host "Skipped $skip" } }

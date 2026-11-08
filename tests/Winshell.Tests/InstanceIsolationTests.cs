@@ -9,7 +9,6 @@ namespace Winshell.Tests;
 /// Runs several winshell instances at once, as separate processes, and checks that they keep apart: each has its own
 /// id, pipe and log, each answers for itself, and one that crashes or has a broken config leaves the others running.
 /// </summary>
-[Trait("Category", "Slow")]
 public sealed class InstanceIsolationTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
@@ -65,25 +64,24 @@ public sealed class InstanceIsolationTests : IDisposable, IClassFixture<ProbeBui
     [Fact]
     public void A_reused_process_id_is_listed_for_the_instance_that_owns_it()
     {
-        var process = Start(Config("once"));
-        var live = Info(process);
-        var liveId = live.GetProperty("id").GetString()!;
+        using var process = Process.GetCurrentProcess();
+        var liveId = Instances.NewId();
+        var instances = new Instances(Path.Combine(Local, "run"));
+        var live = new InstanceInfo(liveId, process.Id, "live", Environment.ProcessPath!,
+            new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            "winshell-" + liveId, Path.Combine(RunDir(liveId), "log.txt"),
+            process.StartTime.ToUniversalTime().Ticks, ProcessName: process.ProcessName);
+        instances.Write(live);
         var reusedId = Instances.NewId();
         var reusedDir = RunDir(reusedId);
         Directory.CreateDirectory(reusedDir);
-        // This process id already belongs to a winshell, but the file records a different process start.
-        var reused = new InstanceInfo(
-            reusedId,
-            process.Id,
-            "reused",
-            live.GetProperty("configPath").GetString()!,
-            DateTime.Now,
-            "winshell-" + reusedId,
-            Path.Combine(reusedDir, "log.txt"),
-            1,
-            ProcessName: process.ProcessName);
-        File.WriteAllText(Path.Combine(reusedDir, "instance.json"),
-            JsonSerializer.Serialize(reused, InstanceJson.Default.InstanceInfo));
+        // This process id already belongs to the live record, but the stale file names a different process start.
+        instances.Write(live with
+        {
+            Id = reusedId, ShellId = "reused", LaunchTime = live.LaunchTime.AddMinutes(1),
+            Pipe = "winshell-" + reusedId,
+            Log = Path.Combine(reusedDir, "log.txt"), ProcessStart = 1
+        });
 
         var rows = Listed().Where(i => i.GetProperty("pid").GetInt32() == process.Id).ToList();
         Assert.Single(rows);

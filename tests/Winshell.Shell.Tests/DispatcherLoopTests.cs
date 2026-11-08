@@ -1,6 +1,5 @@
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Slow")]
 public sealed class DispatcherLoopTests
 {
     [Fact]
@@ -10,14 +9,13 @@ public sealed class DispatcherLoopTests
 
         await ShellFixture.On(shell =>
         {
-            shell.Loop.Schedule(TimeSpan.FromMilliseconds(300), fired.SetResult);
-            return true;
-        });
-        for (var i = 0; i < 5; i++)
-        {
+            shell.Loop.Schedule(TimeSpan.Zero, fired.SetResult);
+            // The dispatcher cannot fire until this turn yields, so collect while the dropped handle is still pending.
             GC.Collect();
             GC.WaitForPendingFinalizers();
-        }
+            GC.Collect();
+            return true;
+        });
 
         await fired.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
     }

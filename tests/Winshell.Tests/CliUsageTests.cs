@@ -1,7 +1,6 @@
 namespace Winshell.Tests;
 
 /// <summary>A whole-number <c>--pid</c> that is no instance exits 1, and the largest <c>--tail</c> prints the file.</summary>
-[Trait("Category", "Slow")]
 public class CliUsageTests
 {
     [Fact]

@@ -4,7 +4,6 @@ using System.Text.Json;
 namespace Winshell.Tests;
 
 /// <summary>Starting a shell is <c>winshell run</c>, and a bare <c>winshell</c> prints help.</summary>
-[Trait("Category", "Slow")]
 public class CliRunCommandTests
 {
     [Fact]

@@ -11,7 +11,6 @@ namespace Winshell.Tests;
 /// tells it to show the notice. These tests edit and rebuild the probe, so they build one of their own that no other test
 /// starts. A probe can hide Explorer's real taskbar, which is put back however a test ends.
 /// </summary>
-[Trait("Category", "Slow")]
 public sealed class ReloadCommandTests : IDisposable, IClassFixture<ReloadCommandTests.OwnProbe>
 {
     // Each test runs a build, which can take minutes on a busy runner.
@@ -82,33 +81,6 @@ public sealed class ReloadCommandTests : IDisposable, IClassFixture<ReloadComman
             Assert.DoesNotContain("could not show the notice", result.Error, StringComparison.Ordinal);
             Assert.False(process.HasExited);
             Assert.Contains(Listed(), row => row.GetProperty("pid").GetInt32() == process.Id);
-        }
-        finally
-        {
-            File.WriteAllText(source, original);
-        }
-    }
-
-    [Fact(Timeout = BuildTimeout)]
-    public void A_rebuild_starts_the_next_process()
-    {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        var source = Path.Combine(_probe.Folder, "Program.cs");
-        var original = File.ReadAllText(source);
-        var process = StartProbe();
-        try
-        {
-            File.WriteAllText(source, original + "\n// rebuilt\n");
-            var result = Reload(process.Id);
-
-            result.AssertNoError();
-            Assert.StartsWith("Reloaded ", result.Output, StringComparison.Ordinal);
-            Wait.Until(() => process.HasExited, "the old process to exit");
-            Wait.Until(
-                () => Listed().Any(row =>
-                    row.GetProperty("shellId").GetString() == "probe" &&
-                    row.GetProperty("pid").GetInt32() != process.Id),
-                "the process that took over");
         }
         finally
         {
@@ -259,11 +231,9 @@ public sealed class ReloadCommandTests : IDisposable, IClassFixture<ReloadComman
         Wait.Until(
             () =>
             {
-                pid = Listed()
-                    .Where(row =>
-                        row.GetProperty("pid").GetInt32() != previous &&
-                        (shellId is null || row.GetProperty("shellId").GetString() == shellId))
-                    .Select(row => row.GetProperty("pid").GetInt32())
+                pid = new Instances(Path.Combine(_local, "run")).List(false)
+                    .Where(row => row.Info.Pid != previous && (shellId is null || row.Info.ShellId == shellId))
+                    .Select(row => row.Info.Pid)
                     .FirstOrDefault();
                 return pid != 0;
             },
@@ -275,14 +245,16 @@ public sealed class ReloadCommandTests : IDisposable, IClassFixture<ReloadComman
     {
         File.WriteAllText(Path.Combine(_probe.Folder, "Program.cs"),
             original.Replace("?? \"probe\"", $"?? \"{shellId}\"", StringComparison.Ordinal));
-        Reload(running.Id);
+        var result = Reload(running.Id);
+        result.AssertNoError();
+        Assert.StartsWith("Reloaded ", result.Output, StringComparison.Ordinal);
         Wait.Until(() => running.HasExited, "the old process to exit");
         var pid = 0;
         Wait.Until(
             () =>
             {
-                pid = Listed().Where(row => row.GetProperty("shellId").GetString() == shellId)
-                    .Select(row => row.GetProperty("pid").GetInt32()).FirstOrDefault();
+                pid = new Instances(Path.Combine(_local, "run")).List(false).Where(row => row.Info.ShellId == shellId)
+                    .Select(row => row.Info.Pid).FirstOrDefault();
                 return pid != 0;
             },
             $"the process that runs the {shellId} edit");

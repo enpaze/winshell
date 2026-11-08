@@ -60,6 +60,8 @@ public sealed class HotkeyTests : IDisposable
     public void An_empty_sequence_is_idle()
     {
         using var hotkey = Create();
+        Assert.False(hotkey.Active);
+        Assert.Empty(_backend.Registered);
         hotkey.Sequence = "Ctrl+K";
 
         hotkey.Sequence = "   ";

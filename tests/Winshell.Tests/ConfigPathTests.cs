@@ -1,7 +1,6 @@
 namespace Winshell.Tests;
 
 /// <summary>The CLI reads configurations from <c>WINSHELL_CONFIG_DIR</c>. Every path is under a temp folder this class creates.</summary>
-[Trait("Category", "Slow")]
 public sealed class ConfigPathTests : IDisposable
 {
     private readonly string _root =

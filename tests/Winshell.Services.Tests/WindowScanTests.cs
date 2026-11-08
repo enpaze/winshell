@@ -3,7 +3,6 @@ using Winshell.Windows;
 
 namespace Winshell.Services.Tests;
 
-[Trait("Category", "Slow")]
 public sealed class WindowScanTests
 {
     [Fact]
@@ -35,6 +34,7 @@ public sealed class WindowScanTests
         finally
         {
             release.Set();
+            Assert.True(owner.Join(TimeSpan.FromSeconds(10)), "The hidden window's owner did not exit.");
         }
     }
 }

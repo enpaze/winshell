@@ -4,7 +4,6 @@ using Winshell.Windows;
 namespace Winshell.Services.Tests;
 
 /// <summary>Explorer's desktops, read through the method table for this build of Windows.</summary>
-[Trait("Category", "Slow")]
 public sealed class VirtualDesktopBackendTests
 {
     [Fact]
