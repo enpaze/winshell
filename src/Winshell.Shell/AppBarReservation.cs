@@ -26,15 +26,15 @@ internal sealed class AppBarReservation
     /// </summary>
     public bool Reserve(RECT desired, Func<RECT, RECT> setPos)
     {
-        var repeated = _requested && desired.Equals(_lastRequest);
+        var repeated = _requested && Same(desired, _lastRequest);
         var retry = repeated && _shortGrantStale;
         _lastRequest = desired;
         _requested = true;
         _shortGrantStale = false;
-        if ((desired.Equals(Granted) || repeated) && !retry)
+        if ((Same(desired, Granted) || repeated) && !retry)
             return false;
         var granted = setPos(desired);
-        var moved = !granted.Equals(Granted);
+        var moved = !Same(granted, Granted);
         Granted = granted;
         return moved;
     }
@@ -45,7 +45,7 @@ internal sealed class AppBarReservation
     /// </summary>
     public void NoteExternalChange()
     {
-        if (_requested && !Granted.Equals(_lastRequest))
+        if (_requested && !Same(Granted, _lastRequest))
             _shortGrantStale = true;
     }
 
@@ -56,5 +56,12 @@ internal sealed class AppBarReservation
         _lastRequest = default;
         _requested = false;
         _shortGrantStale = false;
+    }
+
+    /// <summary>Field by field, which is what a rectangle's identity is. <see cref="RECT"/> has no equality of its own.</summary>
+    private static bool Same(RECT left, RECT right)
+    {
+        return left.Left == right.Left && left.Top == right.Top && left.Right == right.Right &&
+               left.Bottom == right.Bottom;
     }
 }

@@ -17,7 +17,7 @@ internal static class OpenToRead
     }
 
     /// <summary>The verb a file is opened with: null for the default, which only a report gets.</summary>
-    internal static string? VerbFor(string path)
+    private static string? VerbFor(string path)
     {
         return Path.GetExtension(path).Equals(".txt", StringComparison.OrdinalIgnoreCase) ? null : "edit";
     }

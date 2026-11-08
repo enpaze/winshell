@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml;
 namespace Winshell;
 
 /// <summary>A window anchored to an edge of a screen. It can reserve that edge.</summary>
-public sealed class PanelWindow : ShellWindow
+public sealed partial class PanelWindow : ShellWindow
 {
     private Edges _anchors;
     private Thickness _margins;

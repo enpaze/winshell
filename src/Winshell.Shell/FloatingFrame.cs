@@ -158,7 +158,12 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
     private void ApplyFrame(FloatingPlacement placement)
     {
         var first = !_placed;
-        if (first || placement.Width != _lastWidth || placement.Height != _lastHeight)
+        // The size was stored from the last placement, so only an exact change asks for a new frame.
+        // ReSharper disable CompareOfFloatsByEqualityOperator
+        var widthChanged = placement.Width != _lastWidth;
+        var heightChanged = placement.Height != _lastHeight;
+        // ReSharper restore CompareOfFloatsByEqualityOperator
+        if (first || widthChanged || heightChanged)
         {
             _lastWidth = placement.Width;
             _lastHeight = placement.Height;
@@ -194,7 +199,8 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
                 Win32.ShowWindow(Handle, (int)SHOW_WINDOW_CMD.SW_MINIMIZE);
             else if (placement.Maximized && !Win32.IsZoomed(Handle))
                 Win32.ShowWindow(Handle, (int)SHOW_WINDOW_CMD.SW_SHOWMAXIMIZED);
-            else if (!placement.Maximized && !placement.Minimized && (Win32.IsZoomed(Handle) || Win32.IsIconic(Handle)))
+            else if (placement is { Maximized: false, Minimized: false } &&
+                     (Win32.IsZoomed(Handle) || Win32.IsIconic(Handle)))
                 Win32.ShowWindow(Handle, (int)SHOW_WINDOW_CMD.SW_RESTORE);
         }
     }
@@ -234,7 +240,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
             next.ShowCmd = placement.StateRequested
                 ? RequestedShow(placement)
                 : Shown(saved);
-            if (placement.StateRequested && !placement.Maximized)
+            if (placement is { StateRequested: true, Maximized: false })
                 next.Flags &= ~(uint)WINDOWPLACEMENT_FLAGS.WPF_RESTORETOMAXIMIZED;
             if (Win32.SetWindowPlacement(Handle, next))
             {
@@ -299,7 +305,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
         {
             var primary = Screens.Primary();
             var tool =
-                ((long)Win32.GetWindowLongPtr(Handle, Win32.GWL_EXSTYLE) & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW) != 0;
+                (Win32.GetWindowLongPtr(Handle, Win32.GWL_EXSTYLE) & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW) != 0;
             normal = WindowOnScreen.Restored(
                 new WindowToMove(shown, placement.Normal, true, minimized, maximized, tool),
                 primary?.Bounds ?? default, primary?.Work ?? default);
@@ -390,6 +396,6 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
             return _fullscreen;
         if (Screens.Of(Handle)?.Bounds is not { Width: > 0, Height: > 0 } bounds)
             return _fullscreen;
-        return WindowRules.CoversMonitor((long)Win32.GetWindowLongPtr(Handle, Win32.GWL_STYLE), rect, bounds);
+        return WindowRules.CoversMonitor(Win32.GetWindowLongPtr(Handle, Win32.GWL_STYLE), rect, bounds);
     }
 }

@@ -3,7 +3,7 @@ using Windows.Foundation;
 namespace Winshell;
 
 /// <summary>A frameless window placed next to another window.</summary>
-public sealed class PopupWindow : ShellWindow
+public sealed partial class PopupWindow : ShellWindow
 {
     private Rect _rect = new(0, 0, 100, 100);
     private bool _grabFocus;

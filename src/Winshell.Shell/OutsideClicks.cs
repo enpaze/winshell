@@ -12,7 +12,7 @@ namespace Winshell;
 /// notices when one of this process's flyout windows shows. The mouse hook runs only while a popup grabs or a flyout
 /// is open.
 /// </summary>
-internal sealed class OutsideClicks : IDisposable
+internal sealed partial class OutsideClicks : IDisposable
 {
     private const string PopupClass = "Microsoft.UI.Content.PopupWindowSiteBridge";
 

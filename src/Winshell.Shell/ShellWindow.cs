@@ -14,8 +14,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
     private UIElement? _content;
     private bool _visible;
     private bool _active;
-    private double _width = double.NaN;
-    private double _height = double.NaN;
     private double _actualWidth;
     private double _actualHeight;
     private double _scale = 1;
@@ -89,25 +87,25 @@ public abstract class ShellWindow : ObservableObject, IDisposable
     [PublicAPI]
     public double Width
     {
-        get => _width;
+        get;
         set
         {
-            if (Set(ref _width, value))
+            if (Set(ref field, value))
                 OnPlacementChanged();
         }
-    }
+    } = double.NaN;
 
     /// <summary>The height in logical pixels. NaN leaves it to the window's kind: anchors, or the default size.</summary>
     [PublicAPI]
     public double Height
     {
-        get => _height;
+        get;
         set
         {
-            if (Set(ref _height, value))
+            if (Set(ref field, value))
                 OnPlacementChanged();
         }
-    }
+    } = double.NaN;
 
     /// <summary>The width the window has now, in logical pixels. 0 before it is first shown.</summary>
     [PublicAPI]
@@ -256,13 +254,15 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         return _host?.Placement.MapToScreen(x, y) ?? ((int)x, (int)y);
     }
 
-    private protected void EnsureHost()
+    private void EnsureHost()
     {
         if (_host is not null)
             return;
         _host = _shell.Platform.CreateWindow(Kind, this);
         _host.Presentation.Content = _content;
         _host.Presentation.SetBackdrop(_backdrop, _corners);
+        // 1 is the opacity this window starts with, so only an exact change is one the host has not been told.
+        // ReSharper disable once CompareOfFloatsByEqualityOperator
         if (_opacity != 1)
             _host.Presentation.SetOpacity(_opacity);
         if (_inputRegion is not null)

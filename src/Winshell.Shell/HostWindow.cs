@@ -9,7 +9,7 @@ namespace Winshell;
 /// before the window itself, and releases the window, its place and its content when its client disposes it or
 /// Windows destroys it. A window that throws while handling a message stops, and its client makes another.
 /// </summary>
-internal sealed class HostWindow : IDisposable
+internal sealed partial class HostWindow : IDisposable
 {
     private const string ClassName = DoctorScreens.WinshellClass;
 

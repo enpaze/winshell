@@ -20,7 +20,7 @@ namespace Winshell;
 /// a material, both following the shell's theme. The content's root exists before the native window; the island goes in
 /// once every part of the window exists.
 /// </summary>
-internal sealed class HostPresentation(HostWindow host, ShellPlatform platform) : IDisposable
+internal sealed partial class HostPresentation(HostWindow host, ShellPlatform platform) : IDisposable
 {
     private readonly Grid _root = new() { Background = null };
     private DesktopWindowXamlSource? _xaml;

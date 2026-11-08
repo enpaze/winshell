@@ -14,7 +14,7 @@ namespace Winshell;
 /// physical pixels relative to that window, and it is painted over the XAML, so nothing can overlap it. It follows
 /// this element's layout and the shell window moving, and it lets go of the preview when it leaves the tree.
 /// </summary>
-public sealed class WindowThumbnail : FrameworkElement
+public sealed partial class WindowThumbnail : FrameworkElement
 {
     /// <summary>The app window to preview, from <see cref="WindowListService.Windows"/>. Null shows nothing.</summary>
     [PublicAPI] public static readonly DependencyProperty WindowProperty = DependencyProperty.Register(
@@ -199,14 +199,14 @@ public sealed class WindowThumbnail : FrameworkElement
         }
 
         var inset = new RECT(_insets.Left, _insets.Top, width - _insets.Right, height - _insets.Bottom);
-        return inset.Width > 0 && inset.Height > 0 ? inset : new RECT(0, 0, width, height);
+        return inset is { Width: > 0, Height: > 0 } ? inset : new RECT(0, 0, width, height);
     }
 
     private bool TryBox(out RECT box)
     {
         box = default;
         if (Visibility != Visibility.Visible || ActualWidth <= 0 || ActualHeight <= 0 ||
-            XamlRoot?.Content is not UIElement root)
+            XamlRoot?.Content is not { } root)
             return false;
         GeneralTransform transform;
         try
@@ -228,7 +228,7 @@ public sealed class WindowThumbnail : FrameworkElement
             (int)Math.Round(top.Y * scale),
             (int)Math.Round(bottom.X * scale),
             (int)Math.Round(bottom.Y * scale));
-        return box.Width > 0 && box.Height > 0;
+        return box is { Width: > 0, Height: > 0 };
     }
 
     private byte OpacityOf()
