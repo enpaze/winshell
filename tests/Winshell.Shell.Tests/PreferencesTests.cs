@@ -17,6 +17,12 @@ public sealed class PreferencesTests
             get;
             set => Set(ref field, value);
         }
+
+        public string? Note
+        {
+            get;
+            set => Set(ref field, value);
+        }
     }
 
     private sealed partial class BarPreferences(string name) : Preferences(name)
@@ -73,8 +79,11 @@ public sealed class PreferencesTests
             }
             finally
             {
-                File.SetAttributes(path, FileAttributes.Normal);
-                File.Delete(path);
+                if (File.Exists(path))
+                {
+                    File.SetAttributes(path, FileAttributes.Normal);
+                    File.Delete(path);
+                }
             }
 
             return true;
@@ -135,7 +144,7 @@ public sealed class PreferencesTests
     }
 
     [Fact]
-    public async Task Assigning_a_property_writes_it_into_its_section_and_leaves_the_rest()
+    public async Task An_assigned_property_is_written_on_a_later_turn_into_its_section_and_the_file_is_still_followed()
     {
         await ShellFixture.On(async shell =>
         {
@@ -245,10 +254,9 @@ public sealed class PreferencesTests
         await ShellFixture.On(async shell =>
         {
             var path = PathOf(shell);
-            // An earlier test may have written it. It is written into a folder that is not there yet, as on a fresh machine.
-            var folder = Path.GetDirectoryName(path)!;
-            if (Directory.Exists(folder))
-                Directory.Delete(folder, true);
+            // An earlier test may have written it. On a fresh machine there is no folder yet either.
+            if (File.Exists(path))
+                File.Delete(path);
             var bar = "bar" + Guid.NewGuid().ToString("N");
             var name = "area" + Guid.NewGuid().ToString("N");
             var widget = Guid.NewGuid().ToString();
@@ -274,6 +282,8 @@ public sealed class PreferencesTests
                 Assert.All(text.Split('\n').Where(line => line.Length > 0),
                     line => Assert.True(line.StartsWith('#') || line.StartsWith('['), line));
                 Assert.Contains("# Show 13:00 rather than 1:00 PM.\n# clock24 = false\n", text, StringComparison.Ordinal);
+                // A key with no default has nothing to show.
+                Assert.DoesNotContain("note", text, StringComparison.Ordinal);
                 Assert.Contains("# top, bottom, left or right.\n# edge = \"top\"\n", text, StringComparison.Ordinal);
                 // The last line of each block after the file's own comment is a key, commented out.
                 var uncommented = string.Join("\n\n", text.Split("\n\n").Skip(1).Select(block =>

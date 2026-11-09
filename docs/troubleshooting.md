@@ -55,7 +55,7 @@ Explorer builds its taskbar again. Signing out and back in also starts Explorer 
 
 Ending `winshell run` and the shell together does that, such as `taskkill /F /T` on `winshell run`. Ending only the shell, a native crash such as a stack overflow, and `winshell kill --force` leave `winshell run` to put the taskbar back.
 
-## A change to a TOML file does nothing
+## A change to the preferences file does nothing
 
 The [preferences file](configuration.md#preferences) keeps the values in use when it can't use what the file says, and writes why to the log, which `winshell log` shows. Only under `winshell dev` does a file that doesn't parse also show in a notice.
 

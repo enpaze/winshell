@@ -23,6 +23,14 @@ public sealed class TomlKeysTests
         public IReadOnlyList<IReadOnlyDictionary<string, object?>> Hidden { get; set; } = [];
 
         public long Number { get; set; }
+
+        public int? Maybe { get; set; }
+
+        public object? Anything { get; set; }
+
+        public IReadOnlyDictionary<string, object?>? Taskbar { get; set; }
+
+        public IReadOnlyList<string>? Pins { get; set; }
     }
 
     private Settings Load(string text, Func<string, object, string>? check = null)
@@ -62,18 +70,22 @@ public sealed class TomlKeysTests
     }
 
     [Fact]
-    public void An_array_of_tables_reads_as_rows()
+    public void A_nullable_property_holds_null_until_the_file_has_its_key_and_an_empty_list_is_not_null()
     {
-        var settings = Load("""
-                            [[hidden]]
-                            id = "Contoso.Chat"
-                            name = "Chat"
+        var none = Load("");
+        Assert.Null(none.Maybe);
+        Assert.Null(none.Anything);
+        Assert.Null(none.Taskbar);
+        Assert.Null(none.Pins);
 
-                            [[hidden]]
-                            id = "Contoso.Mail"
-                            """);
+        var settings = Load("maybe = 2\nanything = \"text\"\ntaskbar.centered = true\npins = []\n");
 
-        Assert.Equal(["Contoso.Chat", "Contoso.Mail"], settings.Hidden.Select(row => row["id"]));
+        Assert.Equal(2, settings.Maybe);
+        Assert.Equal("text", settings.Anything);
+        Assert.Equal(true, settings.Taskbar!["centered"]);
+        Assert.NotNull(settings.Pins);
+        Assert.Empty(settings.Pins);
+        Assert.Empty(_warnings);
     }
 
     [Theory]
@@ -120,7 +132,7 @@ public sealed class TomlKeysTests
     [Theory]
     [InlineData("\"Mica\"", "default", true)]
     [InlineData("\"mica\"", "mica", false)]
-    public void A_value_the_check_refuses_is_named_and_the_one_in_use_stays(string value, string expected,
+    public void The_check_refuses_a_value_by_name_and_takes_one_it_allows(string value, string expected,
         bool refused)
     {
         var settings = Load($"name = {value}\nsize = 4\n", BackdropCheck);

@@ -1,6 +1,6 @@
 namespace Winshell.Core.Tests;
 
-/// <summary>A <see cref="FileWatch"/> follows a file whose folder is made, or deleted and made again, after it starts.</summary>
+/// <summary>A <see cref="FileWatch"/> follows a file whose folder is made, or deleted and made again, after it starts, and calls back on its loop.</summary>
 public sealed class FileWatchTests
 {
     /// <summary>The file's text, or null when it is missing. A file held by its writer keeps what was read before.</summary>
@@ -25,12 +25,19 @@ public sealed class FileWatchTests
         var loop = new ManualEventLoop();
         var path = Path.Combine(dir.Path, folder, "settings.toml");
         string? read = null;
-        using var watch = new FileWatch(path, loop, () => read = Read(path, read));
+        var threads = new HashSet<int>();
+        using var watch = new FileWatch(path, loop, () =>
+        {
+            threads.Add(Environment.CurrentManagedThreadId);
+            read = Read(path, read);
+        });
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, "by hand");
 
         Wait.Until(() => read == "by hand", "the file in the new folder", loop.Process);
+        // Only the loop calls back, and only this thread turns it.
+        Assert.Equal([Environment.CurrentManagedThreadId], threads);
     }
 
     [Fact]

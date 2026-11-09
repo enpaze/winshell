@@ -43,15 +43,11 @@ public sealed class TomlLimitsTests
     [Fact]
     public void The_limit_counts_bytes_and_not_characters()
     {
-        using var dir = new TempFolder();
-        var path = Path.Combine(dir.Path, "accented.toml");
         // Fewer characters than the limit, more bytes.
-        File.WriteAllText(path, "name = \"" + new string('é', Megabyte / 2) + "\"\n");
+        var text = "name = \"" + new string('é', Megabyte / 2) + "\"\n";
 
-        var load = TomlDocument.Load(path);
-
-        Assert.Equal(TomlRead.TooLarge, load.Kind);
-        Assert.Contains("above the limit of 1048576", load.Describe(path), StringComparison.Ordinal);
+        Assert.False(TomlDocument.TryParse("accented.toml", text, out _, out var error));
+        Assert.Contains("above the limit of 1048576", error, StringComparison.Ordinal);
     }
 
     [Fact]
