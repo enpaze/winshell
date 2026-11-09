@@ -379,7 +379,7 @@ Keeps a control current with what the services hold.
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `Watch(FrameworkElement control, Action block)` | void, static | Runs block now, and again whenever a service property or list it read changes, while control is loaded. Several changes in one turn run it once, on the control's thread, and a change the block makes itself does not run it again. The watch pauses while the control is unloaded or its shell window is disposed, and runs again when the control loads. A block that throws is logged under `watch` and runs again on the next change to what it read before the throw. Nothing needs disposing. |
+| `Watch(FrameworkElement control, Action block)` | void, static | Runs block now, and again whenever a service property or list it read changes, while control is loaded. Several changes in one turn run it once, on the control's thread, and a change the block makes itself does not run it again. The watch pauses while the control is unloaded, runs again when the control loads, and stops for good when the control's shell window is disposed. A block that throws is logged under `watch` and runs again on the next change to what it read before the throw. Nothing needs disposing. |
 
 ## WidgetArea
 
