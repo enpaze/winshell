@@ -316,6 +316,26 @@ public sealed class DoctorTests : IDisposable
     }
 
     [Fact]
+    public void A_sign_in_entry_that_names_no_config_starts_the_chosen_one()
+    {
+        const string here = @"C:\Program Files\Winshell\winshell.exe";
+        var command = $@"C:\Windows\System32\conhost.exe --headless ""{here}"" --no-build --no-duplicate";
+        foreach (var name in new[] { "a", "b" })
+        {
+            Directory.CreateDirectory(Path.Combine(_dir, name));
+            File.WriteAllText(Path.Combine(_dir, name, $"{name}.csproj"), "<Project />");
+        }
+
+        ConfigurationProject.Record(_dir, "b");
+
+        Assert.Equal(CheckStatus.Pass,
+            SignIn(command, false, here, _dir, _ => true, projectFile: Path.Combine(_dir, "b", "b.csproj")).Status);
+        var other = SignIn(command, false, here, _dir, _ => true, projectFile: Path.Combine(_dir, "a", "a.csproj"));
+        Assert.Equal(CheckStatus.Warn, other.Status);
+        Assert.Equal("Run winshell use a, so the entry starts it.", other.Fix);
+    }
+
+    [Fact]
     public void A_sign_in_entry_through_a_link_to_this_winshell_is_this_winshell()
     {
         const string here = @"C:\Users\a\AppData\Local\Microsoft\WinGet\Packages\Winshell\winshell.exe";

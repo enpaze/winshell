@@ -67,6 +67,8 @@ internal static class Cli
                     return NewCommand.Run(options);
                 case "widget":
                     return WidgetCommand.Run(options);
+                case "use":
+                    return await UseCommand.RunAsync(options);
                 default:
                     throw new UnreachableException($"No command \"{command}\".");
             }

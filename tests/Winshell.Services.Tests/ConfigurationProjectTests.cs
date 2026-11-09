@@ -118,6 +118,28 @@ public sealed class ConfigurationProjectTests : IDisposable
     }
 
     [Fact]
+    public void The_chosen_config_comes_before_the_root_default_and_the_others()
+    {
+        Project("a\\A.csproj");
+        var chosen = Project("b\\B.csproj");
+        Project("default\\Default.csproj");
+        Project("Top.csproj");
+
+        ConfigurationProject.Record(_root, "b");
+
+        Assert.Equal(chosen, Found().ProjectFile);
+    }
+
+    [Fact]
+    public void A_chosen_config_that_is_gone_says_to_choose_one()
+    {
+        Project("default\\Default.csproj");
+        ConfigurationProject.Record(_root, "gone");
+
+        Assert.Equal($"The chosen config \"gone\" is not in {_root}. Choose one with winshell use <name>.", Refusal());
+    }
+
+    [Fact]
     public void No_project_at_all_is_no_error_so_the_default_shell_runs()
     {
         Assert.Null(ConfigurationProject.Find(null, null, Path.Combine(_root, "missing"), out var error));

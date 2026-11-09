@@ -51,9 +51,21 @@ A configuration is a .NET project. Winshell looks for a `.csproj` in this order.
 | --- | --- |
 | `winshell run --path <folder or file>` | That `.csproj`, or the one `.csproj` in that folder |
 | `winshell run --config <name>` | The project in `%APPDATA%\winshell\<name>` |
-| `winshell run` | The project in `%APPDATA%\winshell`; else `%APPDATA%\winshell\default`; else the one subfolder of `%APPDATA%\winshell` that has a project. With several, Winshell asks you to pick one with `--config`. With none, nothing runs. |
+| `winshell run` | The configuration `winshell use` chose; else the project in `%APPDATA%\winshell`; else `%APPDATA%\winshell\default`; else the one subfolder of `%APPDATA%\winshell` that has a project. With several, Winshell asks you to choose one with `winshell use`. With none, nothing runs. |
 
 `WINSHELL_CONFIG_DIR` replaces `%APPDATA%\winshell` in this table.
+
+The sign-in entry and the Start tile start what `winshell run` would. With several configurations, such as two copies from `winshell new`, `winshell use <name>` chooses the one they start, and switches to it in one step:
+
+```powershell
+winshell new omarchy-style
+winshell new starter
+winshell use starter          # sign-in starts starter; a shell that is running gives way to it
+winshell use omarchy-style    # and back
+winshell use                  # lists the configurations, with * before the chosen one
+```
+
+`winshell use` builds the configuration first when it needs a build, so the next sign-in can start it. A build that fails changes nothing. The choice is the name in `chosen.txt` in the config folder. Choosing a configuration never changes its shell id, so its data, its state, its widgets and where they are placed stay its own through every switch. `winshell widget` with no `-c` acts on the chosen one.
 
 ## The program
 

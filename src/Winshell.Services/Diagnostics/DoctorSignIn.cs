@@ -35,12 +35,25 @@ internal static class DoctorSignIn
             !SignInEntry.Starts(launch, projectFile, configRoot))
             return new DoctorCheck("signIn", "Sign-in", CheckStatus.Warn,
                 "The sign-in entry does not start this configuration.",
-                "Turn on Run at sign-in for this configuration, so the entry starts it.");
+                // An entry that names none starts the chosen one, so choosing this one is the fix.
+                !launch.NamesConfiguration && NameIn(configRoot, projectFile) is { } name
+                    ? $"Run winshell use {name}, so the entry starts it."
+                    : "Turn on Run at sign-in for this configuration, so the entry starts it.");
         if (turnedOff)
             return new DoctorCheck("signIn", "Sign-in", CheckStatus.Warn,
                 "Winshell is set to start when you sign in, but Startup apps in Windows turned it off.",
                 "Turn Winshell on in Settings > Apps > Startup.");
         return new DoctorCheck("signIn", "Sign-in", CheckStatus.Pass, "Winshell starts when you sign in");
+    }
+
+    /// <summary>The <c>-c</c> name of <paramref name="projectFile"/>: its folder, when that is a folder of <paramref name="configRoot"/>.</summary>
+    private static string? NameIn(string configRoot, string projectFile)
+    {
+        var folder = Path.GetDirectoryName(Path.GetFullPath(projectFile));
+        return string.Equals(Path.GetDirectoryName(folder), Path.TrimEndingDirectorySeparator(Path.GetFullPath(configRoot)),
+            StringComparison.OrdinalIgnoreCase)
+            ? Path.GetFileName(folder)
+            : null;
     }
 
     /// <summary>Sign-in for a packaged Winshell: the startup task, which names no executable path.</summary>
