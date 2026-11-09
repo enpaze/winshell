@@ -3,6 +3,7 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
+[Trait("Category", "Window")]
 public sealed class ShellServicesTests
 {
     [Fact]

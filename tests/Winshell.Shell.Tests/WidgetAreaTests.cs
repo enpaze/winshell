@@ -9,6 +9,7 @@ namespace Winshell.ShellTests;
 public sealed class WidgetAreaTests
 {
     [Theory]
+    [Trait("Category", "Window")]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Popup_content_follows_its_area_until_the_widget_is_removed(bool disposeArea)
@@ -101,6 +102,7 @@ public sealed class WidgetAreaTests
     }
 
     [Theory]
+    [Trait("Category", "Window")]
     [InlineData(Orientation.Horizontal)]
     [InlineData(Orientation.Vertical)]
     public async Task Placements_are_arranged_in_order_with_their_own_inputs(Orientation orientation)
@@ -149,7 +151,7 @@ public sealed class WidgetAreaTests
     [InlineData("null", "returned null")]
     public async Task A_creation_failure_names_the_widget_and_reason_between_surviving_placements(string failure, string reason)
     {
-        await ShellFixture.On(async shell =>
+        await ShellFixture.On(shell =>
         {
             var good = Guid.NewGuid().ToString();
             var bad = Guid.NewGuid().ToString();
@@ -166,8 +168,6 @@ public sealed class WidgetAreaTests
                     _ => null!
                 });
             using var area = new WidgetArea { Defaults = [new(good), new(bad), new(good)] };
-            using var window = new PanelWindow { Width = 600, Height = 60, Content = area, Visible = true };
-            await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
 
             var text = TextIn(area).ToArray();
             Assert.Equal(3, text.Length);
@@ -339,6 +339,7 @@ public sealed class WidgetAreaTests
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task Widgets_survive_reparenting_and_are_disposed_on_rebuild_and_explicit_disposal()
     {
         await ShellFixture.On(async _ =>
@@ -423,6 +424,7 @@ public sealed class WidgetAreaTests
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task With_no_style_plain_controls_take_the_built_in_style_and_follow_the_windows_theme()
     {
         await ShellFixture.On(async _ =>
@@ -454,6 +456,7 @@ public sealed class WidgetAreaTests
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task The_shell_style_reaches_areas_and_popups_live_and_an_area_style_wins_over_it()
     {
         await ShellFixture.On(async shell =>
@@ -526,6 +529,7 @@ public sealed class WidgetAreaTests
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_tooltip_takes_the_shell_style_live_not_its_area_style_and_a_configuration_tooltip_style_wins()
     {
         await ShellFixture.On(async shell =>

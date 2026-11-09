@@ -12,6 +12,7 @@ namespace Winshell.ShellTests;
 /// work area, and the platform would read the screens again, at a time no test can wait for, and drop the made-up ones
 /// of whichever test runs then.
 /// </summary>
+[Trait("Category", "Window")]
 public sealed class BarTests
 {
     [Fact]

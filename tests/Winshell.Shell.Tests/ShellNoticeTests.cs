@@ -241,6 +241,7 @@ public sealed partial class ShellNoticeTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task The_window_sits_above_the_taskbar_at_the_right_of_the_screen_and_says_the_whole_notice()
     {
         var read = await ShellFixture.On(async shell =>
@@ -264,6 +265,7 @@ public sealed partial class ShellNoticeTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task The_window_is_tall_enough_for_its_button()
     {
         var fits = await ShellFixture.On(async shell =>
@@ -283,6 +285,7 @@ public sealed partial class ShellNoticeTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_timed_window_closes_itself_and_an_untimed_one_waits()
     {
         var dismissed = await ShellFixture.On(shell =>

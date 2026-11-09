@@ -77,6 +77,7 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task The_tree_has_names_sizes_positions_and_what_each_element_holds()
     {
         var tree = await ShellFixture.On(async shell =>
@@ -103,6 +104,7 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_click_runs_the_buttons_handler_through_its_own_event()
     {
         var clicks = await ShellFixture.On(async shell =>
@@ -123,6 +125,7 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_click_toggles_what_toggles()
     {
         var on = await ShellFixture.On(async shell =>
@@ -140,6 +143,7 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_click_finds_an_element_by_its_automation_name_even_when_what_it_holds_shares_it()
     {
         var clicks = await ShellFixture.On(async shell =>
@@ -163,6 +167,7 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_name_two_windows_share_clicks_neither_and_lists_both_until_a_window_is_named()
     {
         var (message, clicks) = await ShellFixture.On(async shell =>
@@ -205,6 +210,7 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task The_tree_marks_the_element_keyboard_focus_is_on()
     {
         var tree = await ShellFixture.On(async shell =>
@@ -223,6 +229,7 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_name_a_collapsed_element_shares_clicks_the_one_shown()
     {
         var clicks = await ShellFixture.On(async shell =>
@@ -248,6 +255,7 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_disabled_button_refuses_a_click_as_it_refuses_a_pointer()
     {
         var (clicks, refused) = await ShellFixture.On(async shell =>
@@ -277,6 +285,7 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Theory]
+    [Trait("Category", "Window")]
     [InlineData("click", "Missing", "No element is named Missing")]
     [InlineData("hover", "Missing", "No element is named Missing")]
     [InlineData("click", "Label", "takes no click")]
@@ -303,6 +312,7 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_hover_puts_a_control_in_its_pointer_look()
     {
         var said = await ShellFixture.On(async shell =>
@@ -317,6 +327,7 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_screenshot_is_a_png_of_the_whole_window_with_what_it_draws()
     {
         var file = Path.Combine(_dir, "padded.png");
@@ -343,6 +354,7 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task An_open_menu_is_in_the_tree_takes_a_click_and_has_a_screenshot()
     {
         var file = Path.Combine(_dir, "menu.png");
@@ -381,6 +393,7 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task An_open_tooltip_has_a_screenshot_of_what_it_shows()
     {
         var file = Path.Combine(_dir, "tooltip.png");
@@ -444,6 +457,7 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_window_that_is_not_open_is_named_as_missing()
     {
         var message = await ShellFixture.On(async shell =>
