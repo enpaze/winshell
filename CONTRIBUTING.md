@@ -70,12 +70,10 @@ CI checks the PR title. It also checks the branch name, but only as a reminder; 
 
 ### PR description
 
-Fill in the PR template:
+Fill in the PR template. An AI agent writes the body with the installed `pr` skill; the template uses the skill's sections and adds only the lines this repo needs. Skip preambles, keep prose brief, and use the words of [GLOSSARY.md](GLOSSARY.md).
 
-- **Problem**: what goes wrong, or what is missing, in a sentence or two.
-- **Change**: how this solves it, with the smallest diagram, diff sketch, or tree that shows it.
-- **Scope and approval**: the issue it fixes, or why it needs none.
-- **Verification**: what you checked for the changed behavior, how, and what you saw: the tests or manual steps you ran and their results, with a before and after. "Tests pass" is not verification. Add **Not verified** for anything you couldn't check. Don't commit evidence to `main`.
+- **Summary**: the smallest diagram, diff sketch or tree that makes the change clear, next to the short text it supports. Then `Fixes #<issue>`, or why the change needs no issue.
+- **Evidence**: concrete evidence that the change works, as a before and after: a screenshot for a visual change, otherwise the exact test or output that failed and now passes. "Tests pass" is not evidence. Add **Not verified:** for anything you couldn't check. Don't commit evidence to `main`.
 - **Proof for the type of change**: the `pr-rules` check reads these from your title, body and files.
   - `fix` adds a test that failed before the fix, and says how under **Before:** and **After:**. If it can't have a test, say why on a `**No test:**` line. A fix to docs alone doesn't need one.
   - `perf` gives a number under **Before:** and under **After:**, or in a table with those headings.
