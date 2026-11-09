@@ -123,7 +123,10 @@ public sealed class WatchTests
             var to = new StackPanel();
             using var window = new PanelWindow
             {
-                Width = 120, Height = 40, Content = new Grid { Children = { from, to } }, Visible = true
+                Width = 120,
+                Height = 40,
+                Content = new Grid { Children = { from, to } },
+                Visible = true
             };
             await Loaded(text);
             var unloaded = new TaskCompletionSource();
