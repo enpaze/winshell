@@ -98,7 +98,7 @@ internal sealed class Example
     private static string Describe(string name, List<(string Path, string Resource)> files)
     {
         if (name == "starter")
-            return "One panel along the bottom of the screen";
+            return "A bar with a clock and a battery";
         var readme = files.FirstOrDefault(file => file.Path.Equals("README.md", StringComparison.OrdinalIgnoreCase));
         if (readme.Resource is null)
             return "";

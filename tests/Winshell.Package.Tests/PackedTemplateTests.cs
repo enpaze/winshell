@@ -23,10 +23,20 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     private const int PatienceMs = 1_800_000;
 
     [Fact(Timeout = PatienceMs)]
-    public void The_small_shell_is_listed_and_killed()
+    public void The_starter_shows_its_clock_and_battery_and_is_listed_and_killed()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        Run(templates.SmallProject);
+        Run(templates.SmallProject, (pid, environment) =>
+        {
+            // The types, not the text: the time changes, and a PC with no battery hides the battery.
+            ChildProcess? tree = null;
+            Wait.Until(() =>
+            {
+                tree = WinshellCli.Run(["inspect", "--pid", pid, "tree"], environment);
+                return tree.Code == 0 && tree.Output.Contains("\"Clock\"", StringComparison.Ordinal);
+            }, "the starter's bar to show its clock");
+            Assert.Contains("\"Battery\"", tree!.Output, StringComparison.Ordinal);
+        });
     }
 
     [Fact(Timeout = PatienceMs)]
@@ -169,7 +179,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         var projectFile = CopyTemplate(folder.Path);
         var document = XDocument.Load(projectFile);
         document.Root!.Add(new XElement("ItemGroup",
-            new XElement("WinshellWidget", new XAttribute("Include", "clock"),
+            new XElement("WinshellWidget", new XAttribute("Include", "repo-clock"),
                 new XAttribute("Type", "PackedShell.ClockWidget"))));
         document.Save(projectFile);
         File.WriteAllText(Path.Combine(folder.Path, "AppShell.cs"), """
@@ -195,7 +205,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         Assert.True(built.ExitCode == 0, built.Output);
         var registration = File.ReadAllText(Assert.Single(Directory.GetFiles(Path.Combine(folder.Path, "obj"),
             "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories)));
-        Assert.Contains("\"clock\"", registration, StringComparison.Ordinal);
+        Assert.Contains("\"repo-clock\"", registration, StringComparison.Ordinal);
         Assert.Contains("PackedShell.ClockWidget", registration, StringComparison.Ordinal);
     }
 
@@ -236,7 +246,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
                 <PackageReference Include="Winshell" Version="{{version}}" />
               </ItemGroup>
               <ItemGroup>
-                <WinshellWidget Include="clock" Type="WidgetLib.ClockWidget" />
+                <WinshellWidget Include="installed-clock" Type="WidgetLib.ClockWidget" />
               </ItemGroup>
             </Project>
             """);
@@ -256,7 +266,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             <Project>
               <ItemGroup>
                 <ProjectReference Include="..\lib\WidgetLib.csproj" />
-                <WinshellWidget Include="clock" Type="WidgetLib.ClockWidget" />
+                <WinshellWidget Include="installed-clock" Type="WidgetLib.ClockWidget" />
               </ItemGroup>
             </Project>
             """);
@@ -272,7 +282,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
                 {
                     var area = new WidgetArea
                     {
-                        Defaults = [new("clock", new Dictionary<string, object> { ["value"] = "one" })]
+                        Defaults = [new("installed-clock", new Dictionary<string, object> { ["value"] = "one" })]
                     };
                     var window = new PanelWindow { Width = 250, Height = 80, Content = area, Visible = true };
                     window.Closed += area.Dispose;
@@ -287,7 +297,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         var listed = ConfigurationProject.Run(
             "dotnet", ["msbuild", libProject, "-getItem:WinshellWidget", "--nologo"], libDir);
         Assert.True(listed.ExitCode == 0, listed.Output);
-        Assert.Contains("clock", listed.Output, StringComparison.Ordinal);
+        Assert.Contains("installed-clock", listed.Output, StringComparison.Ordinal);
         Assert.Contains("WidgetLib.ClockWidget", listed.Output, StringComparison.Ordinal);
 
         Run(projectFile, (pid, environment) =>
@@ -302,7 +312,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         });
         var registration = File.ReadAllText(Assert.Single(Directory.GetFiles(
             Path.Combine(shellDir, "obj"), "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories)));
-        Assert.Contains("\"clock\"", registration, StringComparison.Ordinal);
+        Assert.Contains("\"installed-clock\"", registration, StringComparison.Ordinal);
         Assert.Contains("WidgetLib.ClockWidget", registration, StringComparison.Ordinal);
         Assert.Empty(Directory.GetFiles(libDir, "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
     }

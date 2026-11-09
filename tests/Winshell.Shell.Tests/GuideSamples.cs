@@ -130,7 +130,7 @@ public sealed partial class MessageWidget : UserControl
     }
 }
 
-/// <summary>The smallest shell: one panel. The <c>winshell</c> template does the same with its own view.</summary>
+/// <summary>The smallest shell: one panel.</summary>
 public sealed class AppShell : ShellConfiguration
 {
     public override void Start(Shell shell)
