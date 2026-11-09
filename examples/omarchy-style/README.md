@@ -1,18 +1,18 @@
 # Omarchy-style panel
 
-A Winshell configuration that draws the bar of [Omarchy](https://github.com/omacom/omarchy) v4.5.0 as a panel, in Omarchy's Tokyo Night style. Copy from it: it shows a panel per screen, on whichever edge you choose, Winland's workspaces, the tray, and the status of Bluetooth, the network, audio, the screen and the battery, each read from a Winshell service.
+A Winshell configuration that draws the bar of [Omarchy](https://github.com/omacom/omarchy) v4.5.0 as a panel, in Omarchy's Tokyo Night style. Copy from it: it shows a bar on every screen, on whichever edge you choose, Winland's workspaces, the tray, and the status of Bluetooth, the network, audio, the screen and the battery, each read from a Winshell service.
 
 ![The panel: the Windows glyph and workspaces 1 to 5 on the left, the clock in the middle, the tray chevron, tray icons and status glyphs on the right](screenshot.png)
 
 ## What it shows
 
-One panel on every screen, along the top unless the bar file says another edge. Top and bottom are `PanelHeight` thick; left and right are one `SlotWidth` wide. Both are in [PanelStyles.xaml](PanelStyles.xaml). The panel reserves that edge, and Explorer's taskbar is hidden while the shell runs; Winshell shows the taskbar again when the shell quits. The colors are Tokyo Night's, defined in [TokyoNight.xaml](TokyoNight.xaml), with an alert color for a network that can't reach the internet, whatever the Windows theme is.
+A bar on every screen, along the top unless the preferences file says another edge. It is one slot of the style thick, 26 pixels: the height of a top or bottom bar and the width of a side one. The bar reserves its edge, and Explorer's taskbar is hidden while the shell runs; Winshell shows the taskbar again when the shell quits. The colors are Tokyo Night's, with an alert color for a network that can't reach the internet, whatever the Windows theme is.
 
-The bar is three widget areas. The default layout names them `start`, `center` and `end`. A layout called `side` names them `side.start`, `side.center` and `side.end`, so each layout has its own lists in the preferences file. On the left or right edge the areas run vertically. Each glyph is its own widget, so a placement can reorder or repeat one without taking the others with it. With no lists in the preferences file the areas use the defaults below and a top bar looks as it does in the picture.
+The bar has three areas: start, center and end. On a left or right edge they run from top to bottom. Each glyph is its own widget, so a placement can reorder or repeat one without taking the others with it. With no lists in the preferences file the areas use the ones in [AppShell.cs](AppShell.cs), and a top bar looks as it does in the picture.
 
-- **Start:** the `windows` glyph, then `workspaces` for Winland's workspaces on that widget's own screen: 1 to 5 always, and any other that exists. An empty one is dimmed, the shown one is the tiling glyph, and a click shows it. Without Winland running there are no workspaces. On a vertical bar the buttons stack. A widget is created before its area is in a window, so these read the screen from `ShellWindow.Of` once they have loaded.
-- **Center:** the `clock`, the day and time, such as `Saturday 20:25`, in your Windows regional format. A `timezone` setting names another zone, such as `UTC`; without one the clock is local, and two clocks can show two zones. On a vertical bar the hours sit above the minutes, such as `20` over `25`, and the tooltip stays the full date.
-- **End:** `tray` on the primary screen only. Hovering its chevron slides out the icons Windows keeps in its overflow: out to the side on a top or bottom bar, and downwards where the icons stack. Then `bluetooth`, `network`, `audio`, `screen` and `battery`; each opens its Windows Settings page when clicked. The battery is left out on a PC without one, and Bluetooth when there is no adapter.
+- **Start:** the `windows` glyph, then `workspaces` for Winland's workspaces on that widget's own screen: 1 to 5 always, and any other that exists. An empty one is dimmed, the shown one is the tiling glyph, and a click shows it. Without Winland running there are no workspaces. On a side bar the buttons stack.
+- **Center:** the `clock`, the day and time, such as `Saturday 20:25`, in your Windows regional format. A `timezone` setting names another zone, such as `UTC`; without one the clock is local, and two clocks can show two zones. On a side bar the hours sit above the minutes, such as `20` over `25`, and the tooltip stays the full date.
+- **End:** `tray` on the primary screen only. Hovering its chevron slides out the icons Windows keeps in its overflow: out to the side on a top or bottom bar, and downwards on a side bar, where the icons stack. Then `bluetooth`, `network`, `audio`, `screen` and `battery`; each opens its Windows Settings page when clicked. The battery is left out on a PC without one, and Bluetooth when there is no adapter.
 
 | Widget | Area | Settings |
 | --- | --- | --- |
@@ -45,45 +45,24 @@ The project references Winshell's source, so the repo's own check builds it.
 | File | Job |
 | --- | --- |
 | [Program.cs](Program.cs) | Starts the shell with this configuration's identity. |
-| [AppShell.cs](AppShell.cs) | Hides Explorer's taskbar and places a panel on each screen, from the bar file. |
-| [BarSettings.cs](BarSettings.cs) | The bar file: the edge, and which monitors use which layout. |
-| [PanelView.xaml](PanelView.xaml) | Lays the three areas across the bar and gives each Tokyo Night as its theme. |
-| [PanelView.xaml.cs](PanelView.xaml.cs) | Names the areas for the layout, gives them the default placements, and disposes them with the panel. |
-| [PanelStyles.xaml](PanelStyles.xaml) | Merges Tokyo Night, names the sizes, and defines the button, text and tooltip styles. |
-| [Widgets/](Widgets) | One class per widget. `StatusWidget` is the shared status button; the others are the glyph, the workspaces, the clock and the tray. |
-| [TokyoNight.xaml](TokyoNight.xaml) | The areas' theme: the bar's brushes and font, and the WinUI text, accent, control-fill and font keys a stock control uses. |
+| [AppShell.cs](AppShell.cs) | Hides Explorer's taskbar, sets the style, and shows one [Bar](../../docs/configuration.md#a-bar-on-every-screen) with the default lists of widgets. |
+| [TokyoNight.xaml](TokyoNight.xaml) | The shell's [style](../../docs/configuration.md#style): Tokyo Night's colors, the font and the slot size, and the look of a button, text, an icon and a tooltip. |
+| [Widgets/](Widgets) | One class per widget, each a plain control that keeps itself current with `this.Watch(...)`. |
 | [Glyphs.cs](Glyphs.cs) | Names each glyph with its Nerd Fonts name and chooses status glyphs. |
-| [Watcher.cs](Watcher.cs) | Renders a widget again when a service object or list it read changes; [#1706](https://github.com/enpaze/winshell/issues/1706) will replace it with automatic tracking. |
+| [SettingsPage.cs](SettingsPage.cs) | Opens a Windows Settings page when a status glyph is clicked. |
 | [OmarchyStyle.csproj](OmarchyStyle.csproj) | References Winshell, registers each widget with a `WinshellWidget` item, and copies the font files beside the program. |
 | [Fonts/README.md](Fonts/README.md) | Records the bundled font's source and licences. |
 
 ## Change it
 
-- **Colors and font:** replace [TokyoNight.xaml](TokyoNight.xaml), the areas' `Theme`. A widget applies `PanelButton` or `PanelText` once it has loaded. Those styles use `{ThemeResource}`, which follows the area. The widget's own markup is loaded before the area owns it, so a resource lookup there cannot see the area yet. The dictionary also sets WinUI's text, accent, control-fill and `ContentControlThemeFontFamily` keys, in its theme dictionaries, so a widget written only with stock controls is Tokyo Night too.
-- **Size and controls:** edit [PanelStyles.xaml](PanelStyles.xaml) for the button template, tooltip styles and named sizes: `PanelHeight` for a top or bottom bar and the edge it reserves, `SlotWidth` for a left or right bar and for status and tray buttons, `IconSize` for tray icons, `PanelFontSize` for text and glyphs, `WorkspaceWidth` for workspace buttons, and `PanelInset` for the edges. The C# reads these resources too.
-- **Move the bar:** edit `%APPDATA%\winshell\bar\<shell id>.toml`, or `<WINSHELL_CONFIG_DIR>\bar\<shell id>.toml` when that variable is set. `<shell id>` is the preferences file's name without `.toml`. This file is apart from the preferences file for now. With no file, every screen gets a top bar and the areas `start`, `center` and `end`. Saving applies live. `winshell log` prints a `bar` line per screen, `manufacturer / model / serial on the <edge>`, which is the identity to copy. Match those three, never `\\.\DISPLAYn`, which Windows renumbers. A row for a monitor that is not connected stays in the file and is not shown on another screen.
+- **Colors, font and size:** edit [TokyoNight.xaml](TokyoNight.xaml). The widgets look nothing up: the style's `Button`, `TextBlock`, `FontIcon` and `ToolTip` entries style them, and `ShellSlotSize` is how thick the bar is. A status glyph is a button, a pixel wider than the bar is high, as Omarchy's are. Its `Alert` state shows the glyph in `ShellAlertBrush`, which the network widget uses.
+- **Move the bar or change its widgets:** edit the preferences file, `%APPDATA%\winshell\preferences\<shell id>.toml`, or `<WINSHELL_CONFIG_DIR>\preferences\<shell id>.toml` when that variable is set. Its `[bar]` section holds `edge` and the `start`, `center` and `end` lists, which replace the ones in [AppShell.cs](AppShell.cs) while the file has them. Saving applies it live. This moves the bar to the bottom, puts a UTC clock beside the local one and reverses the end:
 
   ```toml
-  edge = "top"
-
-  [[monitor]]
-  manufacturer = "GSM"
-  model = "LG ULTRAGEAR"
-  serial = "ABC123"
-  edge = "left"
-  layout = "side"
-  ```
-
-  `edge` is `top`, `bottom`, `left` or `right`. A monitor with no row uses that edge and the default areas. A row matches when manufacturer, model and serial all equal the monitor's, including an empty serial, and the first match wins. The row's `edge` overrides the file's; omit it to keep the file's. `layout` omitted, or `""`, uses `start`, `center` and `end`. A name such as `side` uses `side.start`, `side.center` and `side.end`. A name is a letter or `_`, then letters, digits, `_` and `-`.
-
-- **Rearrange the bar:** edit the preferences file, `%APPDATA%\winshell\preferences\<shell id>.toml` (or under `WINSHELL_CONFIG_DIR`). Each area has a section with one `widgets` list, and saving replaces that area's whole list, live. A layout's areas are quoted because of the dot: `["side.start"]`. This puts a UTC clock beside the local one and reverses the end of the default layout:
-
-  ```toml
-  [center]
-  widgets = [{ widget = "clock" }, { widget = "clock", timezone = "UTC" }]
-
-  [end]
-  widgets = [
+  [bar]
+  edge = "bottom"
+  center = [{ widget = "clock" }, { widget = "clock", timezone = "UTC" }]
+  end = [
     { widget = "battery" },
     { widget = "screen" },
     { widget = "audio" },
@@ -93,8 +72,23 @@ The project references Winshell's source, so the repo's own check builds it.
   ]
   ```
 
-- **Live-edit the layout:** run `winshell dev --path examples/omarchy-style` and save [PanelView.xaml](PanelView.xaml). Its markup avoids `x:Bind` so live editing keeps working without a rebuild or restart. Edits to the resource dictionaries rebuild and restart the shell; see [Develop a shell](../../docs/configuration.md#develop-a-shell).
-- **Add a widget:** copy [Widgets/AudioWidget.cs](Widgets/AudioWidget.cs), give the class its Settings page, and add a `WinshellWidget` item in [OmarchyStyle.csproj](OmarchyStyle.csproj) whose `Include` is the placement name. Put that name in an area's defaults in [PanelView.xaml.cs](PanelView.xaml.cs).
+  `edge` is `top`, `bottom`, `left` or `right`. Each list holds tables: `widget` names the widget, and the other keys are its settings.
+
+- **Give one monitor its own bar:** add a `[[bar.screen]]` row to the same file. It may change `edge` and any of the three lists for that monitor alone. `winshell log` prints a `bar` line per screen that starts `manufacturer / model / serial`, which is the identity to copy. Match those three, never `\\.\DISPLAYn`, which Windows renumbers. A row for a monitor that is not connected stays in the file and is not shown on another screen.
+
+  ```toml
+  [[bar.screen]]
+  manufacturer = "GSM"
+  model = "LG ULTRAGEAR"
+  serial = "ABC123"
+  edge = "left"
+  end = [{ widget = "tray" }, { widget = "battery" }]
+  ```
+
+  A row matches when manufacturer, model and serial all equal the monitor's, including an empty serial, and the first match wins. A key the row leaves out is the `[bar]` section's.
+
+- **Live-edit a widget:** run `winshell dev --path examples/omarchy-style` and save a file in [Widgets/](Widgets). See [Develop a shell](../../docs/configuration.md#develop-a-shell) for what reaches the running shell and what restarts it.
+- **Add a widget:** copy [Widgets/AudioWidget.cs](Widgets/AudioWidget.cs), read another service in its `Watch`, give it its Settings page, and add a `WinshellWidget` item in [OmarchyStyle.csproj](OmarchyStyle.csproj) whose `Include` is the placement name. Put that name in a list in [AppShell.cs](AppShell.cs) or in the preferences file.
 - **Keep the taskbar:** delete `shell.ExplorerTaskbar.Hidden = true;` in [AppShell.cs](AppShell.cs).
 
 ## Use it as your own configuration

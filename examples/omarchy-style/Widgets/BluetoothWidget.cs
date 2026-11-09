@@ -1,30 +1,30 @@
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
 using Winshell;
 
 namespace OmarchyStyle;
 
-/// <summary>Bluetooth: off, on, or the names of the devices connected to it.</summary>
-public sealed class BluetoothWidget(WidgetContext context) : StatusWidget(context, "ms-settings:bluetooth")
+/// <summary>Bluetooth: off, on, or the names of the devices connected to it. Hidden with no adapter.</summary>
+public sealed class BluetoothWidget : Button
 {
-    protected override void Show()
+    public BluetoothWidget(WidgetContext context)
     {
-        var bluetooth = Read(Shell.Bluetooth);
-        var adapter = bluetooth.DefaultAdapter;
-        if (adapter is null)
+        var bluetooth = context.Shell.Bluetooth;
+        this.Watch(() =>
         {
-            Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        Read(adapter);
-        var connected = Read(bluetooth.Devices).Where(device => Read(device).Connected).Select(device => device.Name)
-            .ToList();
-        Visibility = Visibility.Visible;
-        if (!adapter.Enabled)
-            Bar.Show(this, Glyphs.BluetoothOff, "Bluetooth off");
-        else if (connected.Count > 0)
-            Bar.Show(this, Glyphs.BluetoothConnected, string.Join('\n', connected));
-        else
-            Bar.Show(this, Glyphs.BluetoothOn, "Bluetooth on");
+            var adapter = bluetooth.DefaultAdapter;
+            Visibility = adapter is null ? Visibility.Collapsed : Visibility.Visible;
+            if (adapter is null)
+                return;
+            var connected = bluetooth.Devices.Where(device => device.Connected).Select(device => device.Name).ToList();
+            var (glyph, tip) = !adapter.Enabled ? (Glyphs.BluetoothOff, "Bluetooth off")
+                : connected.Count > 0 ? (Glyphs.BluetoothConnected, string.Join('\n', connected))
+                : (Glyphs.BluetoothOn, "Bluetooth on");
+            Content = glyph;
+            ToolTipService.SetToolTip(this, tip);
+            AutomationProperties.SetName(this, tip);
+        });
+        Click += (_, _) => SettingsPage.Open("ms-settings:bluetooth");
     }
 }

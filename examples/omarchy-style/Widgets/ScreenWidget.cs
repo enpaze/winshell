@@ -1,16 +1,26 @@
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
 using Winshell;
 
 namespace OmarchyStyle;
 
-/// <summary>This screen's monitor. A change of screens builds the panels again, so it is read once.</summary>
-public sealed class ScreenWidget(WidgetContext context) : StatusWidget(context, "ms-settings:display")
+/// <summary>The monitor this bar is on, and whether there are others.</summary>
+public sealed class ScreenWidget : Button
 {
-    protected override void Show()
+    public ScreenWidget(WidgetContext context)
     {
-        var screen = Bar.Screen(this, Shell);
-        if (screen is null)
-            return;
-        var several = Shell.Screens.Count > 1;
-        Bar.Show(this, several ? Glyphs.Screens : Glyphs.Screen, screen.Model.Length > 0 ? screen.Model : screen.Name);
+        var shell = context.Shell;
+        this.Watch(() =>
+        {
+            // Null until the widget is in its bar's window. The watch runs again when it loads.
+            var screen = ShellWindow.Of(this)?.Screen;
+            if (screen is null)
+                return;
+            var tip = screen.Model.Length > 0 ? screen.Model : screen.Name;
+            Content = shell.Screens.Count > 1 ? Glyphs.Screens : Glyphs.Screen;
+            ToolTipService.SetToolTip(this, tip);
+            AutomationProperties.SetName(this, tip);
+        });
+        Click += (_, _) => SettingsPage.Open("ms-settings:display");
     }
 }
