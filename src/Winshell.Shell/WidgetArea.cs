@@ -134,8 +134,11 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         Rebuild();
     }
 
-    private void Rebuild()
+    /// <summary>Disposes the widgets and makes them again from the placements. A disposed area makes none.</summary>
+    internal void Rebuild()
     {
+        if (_disposed)
+            return;
         ClearWidgets();
         foreach (var placement in _override ?? _defaults)
         {

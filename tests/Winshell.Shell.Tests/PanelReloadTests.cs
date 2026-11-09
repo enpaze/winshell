@@ -50,6 +50,21 @@ public sealed partial class PanelReloadTests
         }
     }
 
+    private sealed partial class EditedWidget : Grid, IDisposable
+    {
+        public bool Disposed { get; private set; }
+
+        public EditedWidget()
+        {
+            Width = 20;
+        }
+
+        public void Dispose()
+        {
+            Disposed = true;
+        }
+    }
+
     private static PanelWindow Panel(UIElement content)
     {
         return new PanelWindow
@@ -186,5 +201,61 @@ public sealed partial class PanelReloadTests
         });
 
         Assert.True(disposed);
+    }
+
+    [Fact]
+    public async Task An_edited_widget_in_a_bar_is_made_again_and_the_bar_keeps_the_rest()
+    {
+        var (before, after) = await ShellFixture.On(async shell =>
+        {
+            var edited = Guid.NewGuid().ToString();
+            Widgets.Register(edited, _ => new EditedWidget());
+            var unchanged = Guid.NewGuid().ToString();
+            Widgets.Register(unchanged, _ => new TextBlock { Text = "unchanged" });
+            var screen = ScreenWindowsTests.Screen("TST", "Reload", "1");
+            shell.Platform.Screens.Add(screen);
+            try
+            {
+                using var bar = new Bar
+                {
+                    Name = "bar" + Guid.NewGuid().ToString("N"),
+                    Reserve = false,
+                    Start = [unchanged],
+                    Center = [edited]
+                };
+                var shown = new TaskCompletionSource();
+                shell.Loop.Post(shown.SetResult);
+                await shown.Task.WaitAsync(TestContext.Current.CancellationToken);
+                var window = shell.Platform.Windows.Select(host => host.Client).OfType<PanelWindow>()
+                    .Single(panel => panel.Screen == screen);
+                var content = window.Content;
+                var before = Shows(window);
+                await ShellFixture.LaidOut((FrameworkElement)before[1]).WaitAsync(TestContext.Current.CancellationToken);
+
+                PanelReload.Apply(shell, [typeof(EditedWidget)]);
+
+                Assert.True(ReferenceEquals(window.Content, content), "The bar keeps its surface and its areas.");
+                return (before, Shows(window));
+            }
+            finally
+            {
+                shell.Platform.Screens.Remove(screen);
+            }
+        });
+
+        Assert.Equal(2, after.Count);
+        Assert.Same(before[0], after[0]);
+        Assert.True(Assert.IsType<EditedWidget>(before[1]).Disposed);
+        Assert.NotSame(before[1], Assert.IsType<EditedWidget>(after[1]));
+
+        // The widgets in the bar's areas, in order.
+        static List<UIElement> Shows(PanelWindow bar)
+        {
+            return
+            [
+                .. Assert.IsType<Grid>(Assert.IsType<Surface>(bar.Content).Content).Children.Cast<WidgetArea>()
+                    .SelectMany(area => Assert.IsAssignableFrom<Panel>(area.Content).Children)
+            ];
+        }
     }
 }
