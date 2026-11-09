@@ -50,6 +50,8 @@ Media keeps one type per job, the split from #1102. `ISmtcLink` (#1306) stays th
 
 Split `HostWindow` by responsibility, with explicit owners for window lifetime, placement, native message handling and presentation. Thin out `Shell.cs` and `ShellServices.cs` so they compose focused types instead of collecting feature behavior. Preserve disposal order, event-loop affinity, cancellation and the existing public Shell API.
 
+A shell author builds from primitives, building blocks and compositions such as `Bar`, and a composition uses only public API: see [shells are built from public building blocks](adr/0001-shells-are-built-from-public-building-blocks.md). A widget is a plain control the shell style styles: see [widgets are plain controls](adr/0003-widgets-are-plain-controls.md).
+
 ## Crash supervision
 
 The CLI supervises a shell in a child process. An unexpected shell exit triggers respawn with backoff; a requested stop ends supervision. Keep restart policy, cancellation and child ownership in a focused supervisor rather than in the window host. Drive policy time through `TimeProvider` so tests can advance it without sleeping. A reload is not a stop: the supervisor starts a reloaded configuration's program itself, so it owns the new child under the same rules as the first. A configuration that calls `shell.Reload()` itself still hands over to an unsupervised process: the supervisor cannot see that start. The two reload paths stay separate modules on purpose: each joins a different pair of processes, and the supervisor sees only its own. The supervised path (`ShellExit`, `ShellSupervisor`) joins `winshell reload` and the supervisor in `winshell run`; the unsupervised path (`Shell.Reload`, `--after`, `Instances.WaitForExit`) joins the shell that quits and the one that takes over.
@@ -60,7 +62,7 @@ The supervisor owns Explorer taskbar recovery independently of the child. Restor
 
 Keep one `Winshell` library NuGet package. It carries Native, Core, Services and Shell; a configuration must not acquire references to separately published module packages. The existing template package remains the delivery mechanism for `dotnet new` templates. Keep package and template contracts covered as assembly ownership changes. `scripts/build-template.ps1` compiles the template sources against the in-repo `Winshell.Shell`, with the repository's build and style policy. The full local check and CI's required Shell suite build run it, so the pack project does not compile them. Formatting verifies C# files without loading or building projects; builds own style and analyzer enforcement.
 
-User configuration stays TOML. Keep its file format, defaults and semantics through the refactor. Do not add a second configuration system or compatibility layer.
+User configuration stays TOML. Keep its defaults and semantics through the refactor. Its format changes once, to [one preferences file per shell](adr/0002-one-preferences-file-per-shell.md), with no code that reads the old files. Do not add a second configuration system or compatibility layer.
 
 Remove the orphan Qml, Runtime and Platform.Windows `bin`/`obj` trees. Verify each resolved deletion target is one of those build-output directories before deleting recursively; this cleanup does not authorize deleting source or another checkout's build outputs.
 
