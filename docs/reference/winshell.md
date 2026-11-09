@@ -17,6 +17,7 @@ Its section of the preferences file, named after Name, holds `edge`, `start`, `c
 | `Edge` | [Edges](#edges), init | The edge the bar runs along: one of Edges.Top, Bottom, Left and Right. |
 | `End` | IReadOnlyList of [Placement](#placement), init | The widgets at the end: the right, or the bottom on a side bar. |
 | `Name` | string, init | The bar's name, which names its section of the preferences file. Give each bar of a shell its own. |
+| `Padding` | double?, init | The space between the areas and each end of the bar, along its length, in logical pixels: at the left and right of a top or bottom bar, and at the top and bottom of a side bar. Null takes the style's `ShellPadding`. |
 | `Reserve` | bool, init | Whether the bar reserves its edge, so maximized windows stop short of it. False lays it over them. |
 | `Start` | IReadOnlyList of [Placement](#placement), init | The widgets at the start: the left, or the top on a side bar. A plain string names a widget with no settings. |
 | `Style` | Uri?, init | The source URI of the bar's own style, which wins over Shell.Style, or null for the shell's. |

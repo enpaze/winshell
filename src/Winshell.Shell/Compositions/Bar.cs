@@ -83,6 +83,13 @@ public sealed class Bar : IDisposable
     public double? Thickness { get; init; }
 
     /// <summary>
+    /// The space between the areas and each end of the bar, along its length, in logical pixels: at the left and
+    /// right of a top or bottom bar, and at the top and bottom of a side bar. Null takes the style's
+    /// <c>ShellPadding</c>.
+    /// </summary>
+    public double? Padding { get; init; }
+
+    /// <summary>
     /// The source URI of the bar's own style, which wins over <see cref="Shell.Style"/>, or null for the shell's.
     /// </summary>
     public Uri? Style { get; init; }
@@ -140,12 +147,11 @@ public sealed class Bar : IDisposable
         try
         {
             // The surface paints the style's background behind the areas, in the window's theme.
-            var surface = shown.Surface = new Surface
-            {
-                Style = Style,
-                Content = new Grid { Children = { start, center, end } }
-            };
+            var areas = new Grid { Children = { start, center, end } };
+            var surface = shown.Surface = new Surface { Style = Style, Content = areas };
             var thickness = Thickness ?? (double)surface.Resources["ShellSlotSize"];
+            var padding = Padding ?? (double)surface.Resources["ShellPadding"];
+            areas.Padding = vertical ? new Thickness(0, padding, 0, padding) : new Thickness(padding, 0, padding, 0);
             var window = shown.Window = new PanelWindow
             {
                 Screen = screen,

@@ -339,7 +339,7 @@ A [Bar](reference/winshell.md#bar) is a panel along one edge of every screen, wi
         };
 ```
 
-It shows on the next turn of the loop, once its properties are set, on every screen, and follows screens as they are connected and removed, as [ScreenWindows](#one-panel-per-screen) does. `Dispose` removes it. A bar reserves its edge, so maximized windows stop short of it, and `Reserve = false` lays it over them instead. It leaves Explorer's taskbar alone: `shell.ExplorerTaskbar.Hidden = true` hides that. A bar is as thick as the [style's](#style) `ShellSlotSize`: the height of a top or bottom bar, and the width of a left or right one, whose areas run from top to bottom. `Thickness` sets another size. A bar's own `Style` wins over the shell's, as an area's does.
+It shows on the next turn of the loop, once its properties are set, on every screen, and follows screens as they are connected and removed, as [ScreenWindows](#one-panel-per-screen) does. `Dispose` removes it. A bar reserves its edge, so maximized windows stop short of it, and `Reserve = false` lays it over them instead. It leaves Explorer's taskbar alone: `shell.ExplorerTaskbar.Hidden = true` hides that. A bar is as thick as the [style's](#style) `ShellSlotSize`: the height of a top or bottom bar, and the width of a left or right one, whose areas run from top to bottom. `Thickness` sets another size. The style's `ShellPadding` keeps space between the areas and each end of the bar: at its left and right, or at the top and bottom of a side bar. `Padding` sets another. A bar's own `Style` wins over the shell's, as an area's does.
 
 A shell can have several bars. Each has a `Name`, `"bar"` unless given, which names its section of the [preferences file](#preferences):
 
@@ -383,7 +383,7 @@ What a surface holds is in its style too, and stays loaded when the style change
 
 ### Style
 
-The style is how every widget area, surface and styled popup looks: its colors, font and slot size. With none set, the built-in style follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` once to a `ResourceDictionary` file to give the whole shell another look:
+The style is how every widget area, surface and styled popup looks: its colors, font, slot size and padding. With none set, the built-in style follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` once to a `ResourceDictionary` file to give the whole shell another look:
 
 ```csharp
         shell.Style = new Uri("ms-appx:///TokyoNight.xaml");
@@ -401,6 +401,7 @@ A style defines these keys, which a bar, a widget and its popups read with `{The
 | `ShellFontFamily` | `FontFamily` | Text | Segoe UI Variable Text, then Segoe UI |
 | `ShellFontSize` | `Double` | Text | 14 |
 | `ShellSlotSize` | `Double` | One button, and the thickness of a bar | 32 |
+| `ShellPadding` | `Double` | The space at each end of a bar | 4 |
 
 It also defines implicit styles, with no `x:Key`, for the plain controls a widget is made of. They apply inside a widget area, in a surface and in a popup styled with `context.StylePopup`, so a widget that is a `Button` holding a `FontIcon` looks right with no lookup:
 
@@ -421,6 +422,7 @@ A style that leaves out a key fails where something reads it. [BuiltInStyle.xaml
   <FontFamily x:Key="ShellFontFamily">Consolas</FontFamily>
   <x:Double x:Key="ShellFontSize">12</x:Double>
   <x:Double x:Key="ShellSlotSize">26</x:Double>
+  <x:Double x:Key="ShellPadding">8</x:Double>
 
   <Style TargetType="Button">
     <Setter Property="Background" Value="Transparent" />
