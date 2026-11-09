@@ -381,6 +381,43 @@ public sealed partial class InspectorTests : IDisposable
     }
 
     [Fact]
+    public async Task An_open_tooltip_has_a_screenshot_of_what_it_shows()
+    {
+        var file = Path.Combine(_dir, "tooltip.png");
+
+        var size = await ShellFixture.On(async shell =>
+        {
+            var anchor = new Button { Content = "Tip" };
+            var page = new Page();
+            page.Children.Add(anchor);
+            using var panel = Panel(page);
+            await ShellFixture.LaidOut(anchor).WaitAsync(TestContext.Current.CancellationToken);
+            var fill = new Border { Width = 40, Height = 20, Background = new SolidColorBrush(Colors.Red) };
+            var tip = new ToolTip { Content = fill };
+            ToolTipService.SetToolTip(anchor, tip);
+            tip.IsOpen = true;
+            try
+            {
+                await ShellFixture.LaidOut(fill).WaitAsync(TestContext.Current.CancellationToken);
+                await Inspector.Run(shell, "screenshot", [file, nameof(ToolTip)]);
+                var scale = tip.XamlRoot.RasterizationScale;
+                return ((int)Math.Round(tip.ActualWidth * scale), (int)Math.Round(tip.ActualHeight * scale));
+            }
+            finally
+            {
+                tip.IsOpen = false;
+            }
+        });
+
+        var (width, height, pixels) = await Decoded(
+            await File.ReadAllBytesAsync(file, TestContext.Current.CancellationToken));
+        Assert.Equal(size, (width, height));
+        var middle = (height / 2 * width + width / 2) * 4;
+        Assert.Equal((0, 0, 255, 255),
+            (pixels[middle], pixels[middle + 1], pixels[middle + 2], pixels[middle + 3]));
+    }
+
+    [Fact]
     public void A_screenshot_goes_on_a_solid_color_so_text_for_a_dark_backdrop_can_be_read()
     {
         // Clear, half white as premultiplied, and solid white.

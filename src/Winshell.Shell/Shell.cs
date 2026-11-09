@@ -72,6 +72,7 @@ public sealed partial class Shell : IDisposable
             (notice, act, dismiss) => new NoticeWindow(this, notice, act, dismiss, loop),
             path => OpenToRead.Open(path, log),
             ShellNotices.WindowsIsQuiet);
+        StartToolTipStyle();
     }
 
     /// <summary>

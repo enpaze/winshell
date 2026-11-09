@@ -525,13 +525,81 @@ public sealed class WidgetAreaTests
         });
     }
 
+    [Fact]
+    public async Task A_tooltip_takes_the_shell_style_live_not_its_area_style_and_a_configuration_tooltip_style_wins()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var widget = Guid.NewGuid().ToString();
+            var tip = new ToolTip { Content = "tip" };
+            Widgets.Register(widget, _ =>
+            {
+                var button = new Button { Content = "B" };
+                ToolTipService.SetToolTip(button, tip);
+                return button;
+            });
+            var other = new Uri("ms-appx:///OtherStyle.xaml");
+            using var area = new WidgetArea { Style = other, Defaults = [new(widget)] };
+            using var window = new PanelWindow { Width = 100, Height = 40, Content = area, Visible = true };
+            await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
+
+            TaskCompletionSource? toggled = null;
+            tip.Opened += (_, _) => toggled?.TrySetResult();
+            tip.Closed += (_, _) => toggled?.TrySetResult();
+            async Task Toggle(bool open)
+            {
+                toggled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                tip.IsOpen = open;
+                await toggled.Task.WaitAsync(TestContext.Current.CancellationToken);
+            }
+
+            async Task<(global::Windows.UI.Color Background, global::Windows.UI.Color Foreground, string Font)> Open()
+            {
+                await Toggle(true);
+                var look = (ColorOf(tip.Background), ColorOf(tip.Foreground), tip.FontFamily.Source);
+                await Toggle(false);
+                return look;
+            }
+
+            try
+            {
+                (string, ElementTheme)[] themes = [("Light", ElementTheme.Light), ("Default", ElementTheme.Dark)];
+                foreach (var (theme, requested) in themes)
+                {
+                    tip.RequestedTheme = requested;
+                    Assert.Equal((WindowsColor(theme, "SolidBackgroundFillColorBase"),
+                        WindowsColor(theme, "TextFillColorPrimary"), "Segoe UI Variable Text,Segoe UI"), await Open());
+                }
+
+                shell.Style = other;
+                Assert.Equal((global::Windows.UI.Color.FromArgb(0xff, 0x1a, 0x1b, 0x26), Microsoft.UI.Colors.Crimson,
+                    "Consolas"), await Open());
+
+                var own = new Style(typeof(ToolTip));
+                own.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Microsoft.UI.Colors.Gold)));
+                Application.Current.Resources[typeof(ToolTip)] = own;
+                shell.Style = null;
+                Assert.Equal(Microsoft.UI.Colors.Gold, (await Open()).Background);
+            }
+            finally
+            {
+                Application.Current.Resources.Remove(typeof(ToolTip));
+                shell.Style = null;
+            }
+            return true;
+        });
+    }
+
     private static global::Windows.UI.Color ColorOf(Brush brush) => Assert.IsType<SolidColorBrush>(brush).Color;
 
     /// <summary>The text color Windows gives a theme: "Light", or "Default" for dark.</summary>
-    private static global::Windows.UI.Color WindowsText(string theme)
+    private static global::Windows.UI.Color WindowsText(string theme) => WindowsColor(theme, "TextFillColorPrimary");
+
+    /// <summary>A color Windows gives a theme: "Light", or "Default" for dark.</summary>
+    private static global::Windows.UI.Color WindowsColor(string theme, string key)
     {
         var controls = Application.Current.Resources.MergedDictionaries.OfType<XamlControlsResources>().Single();
-        return (global::Windows.UI.Color)((ResourceDictionary)controls.ThemeDictionaries[theme])["TextFillColorPrimary"];
+        return (global::Windows.UI.Color)((ResourceDictionary)controls.ThemeDictionaries[theme])[key];
     }
 
     private static IEnumerable<string> TextIn(DependencyObject root)

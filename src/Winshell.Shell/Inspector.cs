@@ -375,6 +375,10 @@ internal static class Inspector
     {
         // A render leaves out what nothing draws at the edges, such as a margin. A clear background draws there, so the
         // picture of a window is the window's size.
+        // RenderTargetBitmap draws a tooltip as nothing, but draws the root of its template.
+        if (shown is ToolTip && VisualTreeHelper.GetChildrenCount(shown) > 0 &&
+            VisualTreeHelper.GetChild(shown, 0) is UIElement root)
+            shown = root;
         var clear = shown is Panel { Background: null } panel ? panel : null;
         var bitmap = new RenderTargetBitmap();
         try
