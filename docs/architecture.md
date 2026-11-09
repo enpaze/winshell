@@ -1,6 +1,6 @@
 # Architecture
 
-Winshell is a modular monolith: one program, with assembly boundaries for shared infrastructure and folder boundaries for service features. These are the decided target rules. The migration below introduces them in independently buildable steps; the build enforces the [sealed interop](#sealed-interop) boundary, and the [architecture tests](#architecture-proof) enforce the layers and feature backends.
+Winshell is a modular monolith: one program, with assembly boundaries for shared infrastructure and folder boundaries for service features. The build enforces the [sealed interop](#sealed-interop) boundary, and the [architecture tests](#architecture-proof) enforce the layers and feature backends.
 
 ## Dependency direction
 
@@ -10,7 +10,10 @@ The production libraries follow this order, from their consumers toward their de
 Winshell.Shell -> Winshell.Services -> Winshell.Core -> Winshell.Native
 ```
 
-A project may reference a lower layer directly when it needs that layer's contract. It must never reference a higher layer or form a cycle. For example, Shell can call a safe Native window operation without adding a forwarding method to Services. Native references no other Winshell project. The CLI composes these libraries and owns process supervision; the package project assembles their distribution.
+- A project may reference a lower layer directly when it needs that layer's contract. For example, Shell can call a safe Native window operation without adding a forwarding method to Services.
+- A project must never reference a higher layer or form a cycle.
+- Native references no other Winshell project.
+- The CLI composes these libraries and owns process supervision. The package project assembles their distribution.
 
 | Owner | Responsibility |
 | --- | --- |
@@ -26,11 +29,24 @@ Keep the existing public Shell API. Moving an implementation does not justify co
 
 Only `Winshell.Native` may contain `LibraryImport`, `DllImport`, `ComImport` or unsafe interop. This restriction applies to every other project, including tests. Other assemblies consume managed contracts that do not require pointers, unmanaged function pointers or unsafe callers.
 
-Adopt CsWin32 when introducing Native. Generate Win32 declarations there from an explicit API list, and remove the handwritten declarations they replace. Convert the remaining `DllImport` declarations during this migration. Native may own declarations CsWin32 cannot supply, such as undocumented interfaces; do not maintain duplicate Win32 declarations alongside generated ones.
+### Inside Native
 
-Keep allocation and release together: handles, COM objects, buffers and callbacks have an explicit owner and lifetime. Callback exceptions must not escape into native code. Put safe operations at this boundary; do not expose the generated declaration set as a public service API or move feature policy into Native.
+- **Declarations.** CsWin32 generates the Win32 declarations from an explicit API list, `NativeMethods.txt`. Native may own declarations CsWin32 cannot supply, such as undocumented interfaces. Do not maintain duplicate Win32 declarations alongside generated ones.
+- **Ownership.** Keep allocation and release together: handles, COM objects, buffers and callbacks have an explicit owner and lifetime. Callback exceptions must not escape into native code.
+- **The boundary.** Put safe operations at this boundary. Do not expose the generated declaration set as a public service API or move feature policy into Native.
 
-The build enforces this in the root `Directory.Build.targets`, for every project except Native. It adds `BannedSymbols.Interop.txt`, so `DllImport`, `LibraryImport`, `ComImport`, `GeneratedComInterface` and `GeneratedComClass` fail with RS0030, and so do `NativeLibrary` and `Marshal.GetDelegateForFunctionPointer`, which together would call native code with neither an attribute nor unsafe code. Outside WinUI projects it forces `AllowUnsafeBlocks` off, so unsafe code fails with CS0227. It runs after each project file, so setting `AllowUnsafeBlocks` there has no effect. A new project under `src/` or `tests/` is covered without edits. Native keeps the clock ban the other `src/` projects have. Do not exempt a consumer, suppress the diagnostics or exclude generated consumer code to bypass the boundary.
+### How the build enforces it
+
+The root `Directory.Build.targets` applies to every project except Native:
+
+- It adds `BannedSymbols.Interop.txt`, so `DllImport`, `LibraryImport`, `ComImport`, `GeneratedComInterface` and `GeneratedComClass` fail with RS0030. So do `NativeLibrary` and `Marshal.GetDelegateForFunctionPointer`, which together would call native code with neither an attribute nor unsafe code.
+- Outside WinUI projects it forces `AllowUnsafeBlocks` off, so unsafe code fails with CS0227. It runs after each project file, so setting `AllowUnsafeBlocks` there has no effect.
+- A new project under `src/` or `tests/` is covered without edits.
+- Native keeps the clock ban the other `src/` projects have.
+
+Do not exempt a consumer, suppress the diagnostics or exclude generated consumer code to bypass the boundary.
+
+### WinUI projects
 
 A project with `UseWinUI` keeps unsafe compilation, because CsWinRT generates its trim-safe vtables and generic instantiations only when unsafe code is allowed. Hand-written unsafe code there is still forbidden; the [architecture tests](#architecture-proof) check for it. The interop ban applies to WinUI projects too.
 
@@ -38,9 +54,11 @@ The one exception is the Windows App SDK's `UndockedRegFreeWinRT-AutoInitializer
 
 ## Services and feature ownership
 
-Services remains one assembly. Each feature folder owns its `I*Backend` seam and platform implementation. Complete the missing seams for Windows, Tray, Apps, Winland and Session, and retain the useful seams already present elsewhere. A seam describes platform operations the production service actually needs; avoid interfaces added only for tests.
+Services is one assembly. Each feature folder owns its `I*Backend` seam and platform implementation.
 
-Only a feature may consume its own backend contracts and implementations. Another feature uses the service's managed contract, events or shared Core infrastructure. It must not construct, resolve, reference or call a neighboring feature's backend. Composition belongs with the feature that owns the backend.
+- **A seam describes platform operations the production service actually needs.** Avoid interfaces added only for tests.
+- **Only a feature may consume its own backend contracts and implementations.** Another feature uses the service's managed contract, events or shared Core infrastructure. It must not construct, resolve, reference or call a neighboring feature's backend.
+- **Composition belongs with the feature that owns the backend.**
 
 Test service policy against fake backends on the test event loop in `tests/TestSupport` (`ManualEventLoop`, or `EventQueue` when the test pumps posted work itself). Fakes supply platform results and signals; the real service supplies the behavior under test. Keep tests that own distinct platform, transport or lifecycle contracts. Preserve assertion strength when moving tests to their new owner.
 
@@ -48,55 +66,60 @@ Media keeps one type per job, the split from #1102. `ISmtcLink` (#1306) stays th
 
 ## Shell
 
-Split `HostWindow` by responsibility, with explicit owners for window lifetime, placement, native message handling and presentation. Thin out `Shell.cs` and `ShellServices.cs` so they compose focused types instead of collecting feature behavior. Preserve disposal order, event-loop affinity, cancellation and the existing public Shell API.
+`HostWindow` is split by responsibility, with explicit owners for window lifetime, placement, native message handling and presentation. `Shell.cs` and `ShellServices.cs` compose focused types instead of collecting feature behavior. Preserve disposal order, event-loop affinity, cancellation and the existing public Shell API.
 
 A shell author builds from primitives, building blocks and compositions such as `Bar`, and a composition uses only public API: see [shells are built from public building blocks](adr/0001-shells-are-built-from-public-building-blocks.md). A widget is a plain control the shell style styles: see [widgets are plain controls](adr/0003-widgets-are-plain-controls.md).
 
 ## Crash supervision
 
-The CLI supervises a shell in a child process. An unexpected shell exit triggers respawn with backoff; a requested stop ends supervision. Keep restart policy, cancellation and child ownership in a focused supervisor rather than in the window host. Drive policy time through `TimeProvider` so tests can advance it without sleeping. A reload is not a stop: the supervisor starts a reloaded configuration's program itself, so it owns the new child under the same rules as the first. A configuration that calls `shell.Reload()` itself still hands over to an unsupervised process: the supervisor cannot see that start. The two reload paths stay separate modules on purpose: each joins a different pair of processes, and the supervisor sees only its own. The supervised path (`ShellExit`, `ShellSupervisor`) joins `winshell reload` and the supervisor in `winshell run`; the unsupervised path (`Shell.Reload`, `--after`, `Instances.WaitForExit`) joins the shell that quits and the one that takes over.
+The CLI supervises a shell in a child process. An unexpected shell exit triggers respawn with backoff; a requested stop ends supervision.
 
-The supervisor owns Explorer taskbar recovery independently of the child. Restore the taskbar after a child exits without its own cleanup, before waiting or respawning, after a launch failure, and when supervision stops. Recovery must run even if the shell cannot execute its cleanup. A child that exited cleanly has restored the taskbar itself, and a taskbar already hidden when a child started belongs to another shell: restoring either would take the taskbar from the shell that hid it. A new child acquires its own taskbar state; a restart must not inherit a stale hidden-taskbar lease. Verify recovery across crashes, repeated failures and intentional shutdown.
+- Keep restart policy, cancellation and child ownership in a focused supervisor rather than in the window host.
+- Drive policy time through `TimeProvider` so tests can advance it without sleeping.
+
+### Reload
+
+A reload is not a stop. The two reload paths stay separate modules on purpose: each joins a different pair of processes, and the supervisor sees only its own.
+
+| Path | Joins | Modules |
+| --- | --- | --- |
+| Supervised | `winshell reload` and the supervisor in `winshell run` | `ShellExit`, `ShellSupervisor` |
+| Unsupervised | The shell that quits and the one that takes over | `Shell.Reload`, `--after`, `Instances.WaitForExit` |
+
+On the supervised path, the supervisor starts a reloaded configuration's program itself, so it owns the new child under the same rules as the first. A configuration that calls `shell.Reload()` itself still hands over to an unsupervised process: the supervisor cannot see that start.
+
+### Explorer taskbar recovery
+
+The supervisor owns Explorer taskbar recovery independently of the child. Recovery must run even if the shell cannot execute its cleanup.
+
+- **Restore the taskbar** after a child exits without its own cleanup, before waiting or respawning, after a launch failure, and when supervision stops.
+- **Leave it** after a child that exited cleanly, which has restored the taskbar itself, and when the taskbar was already hidden when a child started, which belongs to another shell. Restoring either would take the taskbar from the shell that hid it.
+- **A new child acquires its own taskbar state.** A restart must not inherit a stale hidden-taskbar lease.
+- **Verify recovery** across crashes, repeated failures and intentional shutdown.
 
 ## Distribution and configuration
 
-Keep one `Winshell` library NuGet package. It carries Native, Core, Services and Shell; a configuration must not acquire references to separately published module packages. The existing template package remains the delivery mechanism for `dotnet new` templates. Keep package and template contracts covered as assembly ownership changes. `scripts/build-template.ps1` compiles the template sources against the in-repo `Winshell.Shell`, with the repository's build and style policy. The full local check and CI's required Shell suite build run it, so the pack project does not compile them. Formatting verifies C# files without loading or building projects; builds own style and analyzer enforcement.
-
-User configuration stays TOML. Keep its defaults and semantics through the refactor. Its format changes once, to [one preferences file per shell](adr/0002-one-preferences-file-per-shell.md), with no code that reads the old files. Do not add a second configuration system or compatibility layer.
-
-Remove the orphan Qml, Runtime and Platform.Windows `bin`/`obj` trees. Verify each resolved deletion target is one of those build-output directories before deleting recursively; this cleanup does not authorize deleting source or another checkout's build outputs.
+- **One package.** Keep one `Winshell` library NuGet package. It carries Native, Core, Services and Shell; a configuration must not acquire references to separately published module packages. Keep package and template contracts covered as assembly ownership changes.
+- **Templates.** The existing template package remains the delivery mechanism for `dotnet new` templates. `scripts/build-template.ps1` compiles the template sources against the in-repo `Winshell.Shell`, with the repository's build and style policy. The full local check and CI's required Shell suite build run it, so the pack project does not compile them.
+- **Formatting.** Formatting verifies C# files without loading or building projects; builds own style and analyzer enforcement.
+- **User configuration stays TOML**, in [one preferences file per shell](adr/0002-one-preferences-file-per-shell.md). No code reads the files from before that format. Do not add a second configuration system or compatibility layer.
 
 ## Architecture proof
 
 `Winshell.Architecture.Tests` runs in the unified suite. Each boundary has one guard:
 
-| Boundary | Guard |
-| --- | --- |
-| Interop outside Native: interop attributes, `NativeLibrary` and `Marshal.GetDelegateForFunctionPointer` | The build: RS0030 from `BannedSymbols.Interop.txt`, added by `Directory.Build.targets` |
-| Unsafe code outside Native, in a project without WinUI | The build: CS0227, since `Directory.Build.targets` turns `AllowUnsafeBlocks` off |
-| Hand-written unsafe code in a WinUI project | `WinUISourceTests`: parses the C# files of each `UseWinUI` project in `winshell.slnx`, outside `bin` and `obj`, and the files it links, for `unsafe`, `fixed` and pointer types |
-| Layer order | `LayerTests`: each layer's project references and its compiled assembly's Winshell references name only layers below it. Restore already fails on an upward project reference that closes a cycle (MSB4006); the test catches the rest, such as a reference to a project outside the layers or to a built DLL |
-| Feature backends | `FeatureBackendTests`: in the compiled Services and Shell, only types in an `I*Backend` interface's own namespace in Services, such as `Winshell.Session`, name the interface or a type that implements it, in a declaration, signature or method body |
-| Compositions use only public API ([ADR 0001](adr/0001-shells-are-built-from-public-building-blocks.md)) | `CompositionTests`: compiles the C# files in `src/Winshell.Shell/Compositions`, such as `Bar`, again as an assembly of their own against the built Winshell assemblies, which shows them only the public API, and fails on any compiler error. In Shell itself the compiler lets them see Shell's internals and those Core and Services show Shell |
+- **Interop outside Native** (interop attributes, `NativeLibrary` and `Marshal.GetDelegateForFunctionPointer`): the build. RS0030 from `BannedSymbols.Interop.txt`, added by `Directory.Build.targets`.
+- **Unsafe code outside Native, in a project without WinUI:** the build. CS0227, since `Directory.Build.targets` turns `AllowUnsafeBlocks` off.
+- **Hand-written unsafe code in a WinUI project:** `WinUISourceTests`. It parses the C# files of each `UseWinUI` project in `winshell.slnx`, outside `bin` and `obj`, and the files it links, for `unsafe`, `fixed` and pointer types.
+- **Layer order:** `LayerTests`. Each layer's project references and its compiled assembly's Winshell references name only layers below it. Restore already fails on an upward project reference that closes a cycle (MSB4006); the test catches the rest, such as a reference to a project outside the layers or to a built DLL.
+- **Feature backends:** `FeatureBackendTests`. In the compiled Services and Shell, only types in an `I*Backend` interface's own namespace in Services, such as `Winshell.Session`, name the interface or a type that implements it, in a declaration, signature or method body.
+- **Compositions use only public API** ([ADR 0001](adr/0001-shells-are-built-from-public-building-blocks.md)): `CompositionTests`. It compiles the C# files in `src/Winshell.Shell/Compositions`, such as `Bar`, again as an assembly of their own against the built Winshell assemblies, which shows them only the public API, and fails on any compiler error. In Shell itself the compiler lets them see Shell's internals and those Core and Services show Shell.
 
-The tests read the project files and the compiled assemblies, never a list of expected files, so a new project, reference, backend or composition is covered without editing them; only a new layer is added to `LayerTests`' list. The CLI, `src/Winshell`, composes the layers and is outside these guards. A WinUI project's assembly can't tell CsWinRT's generated unsafe code from ours, so that guard reads the sources. The composition guard reads them too, because only the compiler can say what a file may see. Show that a new or changed guard rejects a representative forbidden dependency or declaration, then remove that violation. Do not add production hooks solely to exercise the guards.
+How the guards work:
+
+- **They read the project files and the compiled assemblies**, never a list of expected files, so a new project, reference, backend or composition is covered without editing them. Only a new layer is added to `LayerTests`' list.
+- **The CLI, `src/Winshell`, is outside these guards:** it composes the layers.
+- **Two guards read sources.** A WinUI project's assembly can't tell CsWinRT's generated unsafe code from ours, so that guard reads the sources. The composition guard reads them too, because only the compiler can say what a file may see.
+- **Prove a new or changed guard.** Show that it rejects a representative forbidden dependency or declaration, then remove that violation. Do not add production hooks solely to exercise the guards.
 
 Tests follow the installed `test-audit` skill's gate, [where a test belongs](../CONTRIBUTING.md#where-a-test-belongs) and the [test rules](../CONTRIBUTING.md#write-tests-that-dont-flake). Never weaken a test, skip a failure or add flaky retries. Use fake clocks and real completion signals. A refactor that retains behavior retains its existing proof.
-
-## Migration and delivery
-
-Deliver in dependency order, with the rules documented first:
-
-1. Introduce Native with CsWin32 and package integration. Migrate interop and its callers in focused, independently buildable groups, converting the remaining `DllImport` declarations. Remove each replaced declaration in the same PR. Seal the boundary with build enforcement once the last consumer has moved; finish Native before starting the higher-layer restructuring.
-2. Extract Core and include it in the single package. Move infrastructure and its existing tests without changing behavior. Add architecture tests as the relevant boundaries become enforceable, and complete the full graph guard when all layers exist.
-3. Complete the Services feature seams and their fake-based tests. Split HostWindow and thin Shell composition while preserving its public API. These can proceed side by side only when their files and shared types do not overlap.
-4. Add CLI crash supervision with taskbar recovery. Remove the named orphan build trees. Keep independent changes in separate PRs and serialize any shared build or package edits.
-5. Verify the complete dependency graph, interop ban, feature isolation, package contents, TOML behavior and recovery contracts. Confirm every migration PR has merged.
-
-Each small PR owns one issue, thread, worktree and branch. Record its allowed paths, prerequisites and acceptance checks in its issue. Prefer [PR stacks](development.md#pull-request-stacks) for dependent layers; each layer must still build and be reviewable on its own. An intermediate migration step is not permission to add new interop outside Native or expand an old boundary violation.
-
-Before parallel work, inspect open PR files. Only one PR at a time changes a shared build file, solution, package version list, banned-symbol list, lockfile, test support file or shared type. Follow the [conflict rules](../CONTRIBUTING.md#conflicts-and-merging): rebase onto the current base, resolve by intent, preserve both behaviors, and escalate collisions in the same behavior instead of guessing. Re-run checks after rebasing.
-
-Run the [checks for the change](development.md#checks-by-change) before each push, including applicable package checks. Use free CI runners only. For the suite and live UI work, follow the [Winland procedure](development.md#live-ui-with-winland-running), inspect a visual change with `winshell inspect`, view its screenshot and check its tree. A test never injects input of its own. Only `winshell inspect`'s real input commands do, to check a running shell, and a test may run them: they send nothing while the PC is in use, and no mouse event where another window is on top, and they put the cursor back.
-
-Review each diff against these rules, AGENTS.md and the test-audit gate before opening its PR. Enable auto-merge for standalone PRs; merge a ready stack with the stack workflow. The author owns failing checks, cancelled runs and conflicts until GitHub reports every opened PR as `MERGED`. Report anything that could not be verified.
