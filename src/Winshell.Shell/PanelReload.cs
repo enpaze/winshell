@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Reflection.Metadata;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Winshell;
 
@@ -10,9 +11,11 @@ namespace Winshell;
 
 /// <summary>
 /// Called by .NET when <c>dotnet watch</c> applies an edit to the running program. An edited method already runs its new
-/// code. What a constructor built does not, so a widget area showing an edited type makes its widgets again, and a window
-/// showing one anywhere else gets a new one of its content. Every other window, and the window itself with its place and
-/// state, stays as it is. A bar's surface, say, is filled by the code that made it, which its constructor can't repeat.
+/// code. What a constructor built does not, so a widget area showing an edited type makes its widgets again, and
+/// anywhere else the outermost of the configuration's own controls around one, a type from an edited assembly, is made
+/// again in its place. Its constructor builds what it shows. A Winshell or WinUI control around it, such as a bar's
+/// surface or a grid filled in code, is filled by whoever made it, which its constructor can't repeat, so it stays with
+/// the rest of what it holds.
 /// </summary>
 internal static class PanelReload
 {
@@ -27,16 +30,18 @@ internal static class PanelReload
     internal static void Apply(Shell shell, IReadOnlyCollection<Type> updated)
     {
         var edited = updated.Select(Written).ToHashSet();
+        var own = edited.Select(type => type.Assembly).ToHashSet();
         foreach (var window in shell.Platform.Windows.Select(host => host.Client).ToList())
         {
             if (window.Content is not { } content)
                 continue;
+            List<UIElement> controls = [];
             List<WidgetArea> areas = [];
-            if (Shows(content, edited, areas))
-                Rebuild(shell, window, content);
-            else
-                foreach (var area in areas)
-                    area.Rebuild();
+            Find(content, edited, own, controls, areas);
+            foreach (var control in controls)
+                MakeAgain(shell, window, control);
+            foreach (var area in areas)
+                area.Rebuild();
         }
     }
 
@@ -46,6 +51,35 @@ internal static class PanelReload
         while (type.Name.StartsWith('<') && type.DeclaringType is { } outer)
             type = outer;
         return type;
+    }
+
+    /// <summary>
+    /// Finds what to make again in <paramref name="element"/>. A widget area that shows an edited type goes in
+    /// <paramref name="areas"/>. So does one inside the outermost control of a type from an edited assembly, the
+    /// configuration's own, unless that control shows an edited type outside every area: then it goes in
+    /// <paramref name="controls"/>.
+    /// </summary>
+    private static void Find(DependencyObject element, HashSet<Type> edited, HashSet<Assembly> own,
+        List<UIElement> controls, List<WidgetArea> areas)
+    {
+        if (element is WidgetArea)
+        {
+            Shows(element, edited, areas);
+            return;
+        }
+
+        if (element is UIElement control && own.Contains(element.GetType().Assembly))
+        {
+            List<WidgetArea> inside = [];
+            if (Shows(control, edited, inside))
+                controls.Add(control);
+            else
+                areas.AddRange(inside);
+            return;
+        }
+
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(element); i++)
+            Find(VisualTreeHelper.GetChild(element, i), edited, own, controls, areas);
     }
 
     /// <summary>
@@ -67,12 +101,28 @@ internal static class PanelReload
         return false;
     }
 
-    private static void Rebuild(Shell shell, ShellWindow window, UIElement content)
+    private static void MakeAgain(Shell shell, ShellWindow window, UIElement control)
     {
-        var type = content.GetType();
+        var type = control.GetType();
         if (type.GetConstructor(Type.EmptyTypes) is not { } constructor)
         {
-            shell.Log.Info("dev", $"{type.Name} needs arguments, so its window keeps it. Edited methods still run.");
+            shell.Log.Info("dev", $"{type.Name} needs arguments, so it stays. Edited methods still run.");
+            return;
+        }
+
+        Action<UIElement>? place = ReferenceEquals(window.Content, control)
+            ? fresh => window.Content = fresh
+            : (control as FrameworkElement)?.Parent switch
+            {
+                Panel panel when panel.Children.IndexOf(control) is var at and >= 0 =>
+                    fresh => panel.Children[at] = fresh,
+                ContentControl holder when ReferenceEquals(holder.Content, control) => fresh => holder.Content = fresh,
+                Border border when ReferenceEquals(border.Child, control) => fresh => border.Child = fresh,
+                _ => null
+            };
+        if (place is null)
+        {
+            shell.Log.Info("dev", $"{type.Name} has no place a new one can go, so it stays. Edited methods still run.");
             return;
         }
 
@@ -80,7 +130,7 @@ internal static class PanelReload
         {
             var fresh = (UIElement)constructor.Invoke(null);
             XamlReload.Refresh(fresh);
-            window.Content = fresh;
+            place(fresh);
         }
         catch (TargetInvocationException e)
         {
@@ -89,7 +139,7 @@ internal static class PanelReload
             return;
         }
 
-        (content as IDisposable)?.Dispose();
+        (control as IDisposable)?.Dispose();
         shell.Log.Info("dev", $"Rebuilt {type.Name}.");
     }
 }

@@ -142,7 +142,7 @@ public sealed partial class PanelReloadTests
         {
         }
 
-        public NestedRoot(Edited child)
+        public NestedRoot(UIElement child)
         {
             Children.Add(child);
         }
@@ -201,6 +201,60 @@ public sealed partial class PanelReloadTests
         });
 
         Assert.True(disposed);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task An_edited_control_on_a_surface_is_made_again_in_its_place(bool besideOthers)
+    {
+        var (keptSurface, keptOther, disposed, old, made) = await ShellFixture.On(async shell =>
+        {
+            var edited = new EditedWidget();
+            var other = new TextBlock { Text = "kept" };
+            var row = new StackPanel { Children = { other } };
+            if (besideOthers)
+                row.Children.Add(edited);
+            using var surface = new Surface { Content = besideOthers ? row : edited };
+            using var panel = Panel(surface);
+            await ShellFixture.LaidOut(edited).WaitAsync(TestContext.Current.CancellationToken);
+
+            PanelReload.Apply(shell, [typeof(EditedWidget)]);
+
+            return (ReferenceEquals(panel.Content, surface), ReferenceEquals(row.Children[0], other), edited.Disposed,
+                edited, besideOthers ? row.Children[1] : surface.Content);
+        });
+
+        Assert.True(keptSurface, "The window keeps the surface a composition filled.");
+        if (besideOthers)
+            Assert.True(keptOther, "The panel keeps the controls next to the edited one.");
+        Assert.True(disposed);
+        Assert.NotSame(old, Assert.IsType<EditedWidget>(made));
+    }
+
+    [Fact]
+    public async Task An_edited_widget_in_a_view_is_made_again_and_the_view_stays()
+    {
+        var (keptView, disposed, old, made) = await ShellFixture.On(async shell =>
+        {
+            var name = Guid.NewGuid().ToString();
+            Widgets.Register(name, _ => new EditedWidget());
+            using var area = new WidgetArea { Defaults = [name] };
+            var view = new NestedRoot(area);
+            using var panel = Panel(view);
+            var widget = (EditedWidget)Assert.IsAssignableFrom<Panel>(area.Content).Children.Single();
+            await ShellFixture.LaidOut(widget).WaitAsync(TestContext.Current.CancellationToken);
+
+            PanelReload.Apply(shell, [typeof(EditedWidget)]);
+
+            // Read before the area is disposed, which disposes its widgets.
+            return (ReferenceEquals(panel.Content, view), widget.Disposed, widget,
+                Assert.IsAssignableFrom<Panel>(area.Content).Children.Single());
+        });
+
+        Assert.True(keptView, "The view keeps its other state, and its area makes the widget again.");
+        Assert.True(disposed);
+        Assert.NotSame(old, Assert.IsType<EditedWidget>(made));
     }
 
     [Fact]
