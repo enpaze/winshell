@@ -81,10 +81,12 @@ public sealed class TrayWidget : UserControl
 
         this.Watch(() =>
         {
-            // Null until the widget is in its bar's window. The watch runs again when it loads.
-            var screen = ShellWindow.Of(this)?.Screen;
-            var primary = screen is not null && shell.Screens.Any(each => each.Id == screen.Id && each.IsPrimary);
-            var items = primary ? shell.SystemTray.Items.ToList() : [];
+            // The bar's window keeps the screen it was made for, so the screen as it is now, primary or not and at
+            // what scale, is the one in shell.Screens. Null until the widget is in its window; the watch runs again
+            // when it loads.
+            var id = ShellWindow.Of(this)?.Screen?.Id;
+            var screen = shell.Screens.FirstOrDefault(each => each.Id == id);
+            var items = screen is { IsPrimary: true } ? shell.SystemTray.Items.ToList() : [];
             Visibility = items.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             hidden.Children.Clear();
             pinned.Children.Clear();
@@ -96,7 +98,9 @@ public sealed class TrayWidget : UserControl
 
     private static Button TrayButton(SystemTrayItem item, double scale)
     {
-        var icon = item.IconAt((int)Math.Round(IconSize * scale)) ?? item.Icon;
+        // Icon first: IconAt doesn't report a read, and reading Icon makes the watch follow a new icon.
+        var icon = item.Icon;
+        icon = item.IconAt((int)Math.Round(IconSize * scale)) ?? icon;
         var button = new Button
         {
             Content = new Image { Width = IconSize, Height = IconSize, Source = icon?.ToImageSource() }

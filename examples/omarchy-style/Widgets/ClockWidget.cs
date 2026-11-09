@@ -26,7 +26,11 @@ public sealed class ClockWidget : UserControl
         void Show()
         {
             var now = zone is null ? DateTime.Now : TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone);
-            text.Text = vertical ? $"{now:HH}\n{now:mm}" : $"{now:dddd HH:mm}";
+            var time = vertical ? $"{now:HH}\n{now:mm}" : $"{now:dddd HH:mm}";
+            // Only on a new minute: a new tooltip closes the one showing.
+            if (time == text.Text)
+                return;
+            text.Text = time;
             ToolTipService.SetToolTip(text, zone is null ? $"{now:D}" : $"{now:D} · {zone.Id}");
         }
 
