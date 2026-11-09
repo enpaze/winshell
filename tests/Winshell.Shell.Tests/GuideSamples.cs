@@ -1,3 +1,4 @@
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Winshell.ShellTests;
@@ -81,6 +82,19 @@ public static class GuideSamples
         };
         var side = new Bar { Name = "side", Edge = Edges.Left, Reserve = false, Start = ["clock"] };
         return (bar, side);
+    }
+
+    public static PanelWindow ASurface()
+    {
+        var area = new WidgetArea { Defaults = ["start", "tasks"] };
+        var surface = new Surface { Padding = new Thickness(4), Content = area };
+        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = surface, Visible = true };
+        dock.Closed += () =>
+        {
+            area.Dispose();
+            surface.Dispose();
+        };
+        return dock;
     }
 
     public static void AStyle(Shell shell)

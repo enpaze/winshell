@@ -39,7 +39,7 @@ _Avoid_: dump, telemetry
 ## What it shows
 
 **Window**:
-A top-level surface the shell places on the desktop.
+A native window the shell places on the desktop, such as a panel or a popup window.
 _Avoid_: form, view
 
 **Panel**:
@@ -113,6 +113,10 @@ _Avoid_: module, applet, plugin
 **Widget area**:
 A control a shell author puts anywhere in a window. It shows its placements in order, in one orientation, and styles them.
 _Avoid_: slot, zone
+
+**Surface**:
+What a bar, a dock or any composition is painted on: the style's background, in the window's theme, behind its widget areas.
+_Avoid_: backdrop (that is the window's material), background
 
 **Placement**:
 One widget in a widget area, with its own settings. One widget can have several placements.

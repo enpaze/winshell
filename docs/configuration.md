@@ -363,28 +363,43 @@ Saving applies it live. A changed row replaces that screen's bar, and the other 
 
 `Bar` uses only the public API a configuration has, and a test holds it to that, so [its source](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/Compositions/Bar.cs) is a start for a dock, a sidebar or a bar of your own.
 
+A bar's areas sit on a [Surface](reference/winshell.md#surface), which paints the [style's](#style) `ShellBackgroundBrush` behind them in the window's light or dark theme, and follows a switch while the shell runs. A brush your code reads from the style comes back in the theme the app started in, so give a window of your own a surface too:
+
+```csharp
+        var area = new WidgetArea { Defaults = ["start", "tasks"] };
+        var surface = new Surface { Padding = new Thickness(4), Content = area };
+        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = surface, Visible = true };
+        dock.Closed += () =>
+        {
+            area.Dispose();
+            surface.Dispose();
+        };
+```
+
+What a surface holds is in its style too, and stays loaded when the style changes. Its own `Style` wins over the shell's, as an area's does, and `Dispose` stops it following the shell's.
+
 ### Style
 
-The style is how every widget area and styled popup looks: its colors, font and slot size. With none set, the built-in style follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` once to a `ResourceDictionary` file to give the whole shell another look:
+The style is how every widget area, surface and styled popup looks: its colors, font and slot size. With none set, the built-in style follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` once to a `ResourceDictionary` file to give the whole shell another look:
 
 ```csharp
         shell.Style = new Uri("ms-appx:///TokyoNight.xaml");
 ```
 
-A new value reaches what is already on screen, and `null` returns to the built-in style. A file that does not load throws and changes nothing. An area's own `Style` wins over the shell's, except for tooltips, and `null` there follows the shell. The file is a XAML page of your project, as `ms-appx:///` names it.
+A new value reaches what is already on screen, and `null` returns to the built-in style. A file that does not load throws and changes nothing. An area's or a surface's own `Style` wins over the shell's, except for tooltips, and `null` there follows the shell. The file is a XAML page of your project, as `ms-appx:///` names it.
 
 A style defines these keys, which a bar, a widget and its popups read with `{ThemeResource}`:
 
 | Key | Type | What it is | Built-in |
 | --- | --- | --- | --- |
-| `ShellBackgroundBrush` | `Brush` | Behind a bar or a popup | Windows' solid background |
+| `ShellBackgroundBrush` | `Brush` | Behind a surface, such as a bar's, and a popup | Windows' solid background |
 | `ShellForegroundBrush` | `Brush` | Text and glyphs | Windows' primary text color |
 | `ShellAlertBrush` | `Brush` | Something that needs attention, such as a low battery | Windows' critical color |
 | `ShellFontFamily` | `FontFamily` | Text | Segoe UI Variable Text, then Segoe UI |
 | `ShellFontSize` | `Double` | Text | 14 |
 | `ShellSlotSize` | `Double` | One button, and the thickness of a bar | 32 |
 
-It also defines implicit styles, with no `x:Key`, for the plain controls a widget is made of. They apply inside a widget area and in a popup styled with `context.StylePopup`, so a widget that is a `Button` holding a `FontIcon` looks right with no lookup:
+It also defines implicit styles, with no `x:Key`, for the plain controls a widget is made of. They apply inside a widget area, in a surface and in a popup styled with `context.StylePopup`, so a widget that is a `Button` holding a `FontIcon` looks right with no lookup:
 
 - `Button`: flat, at least one slot wide and high, its content centered, in the style's foreground, font and font size.
 - `TextBlock`: the style's foreground, font and font size, centered vertically. A text block keeps that foreground inside a pressed or disabled button, so give a button its text as a string to take the button's colors.
