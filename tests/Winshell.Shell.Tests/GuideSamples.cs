@@ -109,6 +109,13 @@ public static class GuideSamples
         hotkey.Pressed += (_, _) => { };
     }
 
+    public static Button ASettingsButton(Shell shell)
+    {
+        var sound = new Button { Content = "Sound" };
+        sound.Click += (_, _) => shell.Open("ms-settings:sound");
+        return sound;
+    }
+
     public static TextBlock ABatteryLabel(Shell shell)
     {
         var label = new TextBlock();

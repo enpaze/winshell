@@ -185,6 +185,27 @@ public sealed partial class Shell : IDisposable
         return Path.Combine(CacheDir, path);
     }
 
+    /// <summary>
+    /// Opens a Settings page, an app or a URL as Windows would, such as <c>ms-settings:sound</c>,
+    /// <c>https://example.com</c> or an app's path: a URI or a path, not a command line. It opens off the loop, so a
+    /// slow app does not hold up the shell. What Windows can't start, such as a path that is not there, is logged, not
+    /// thrown. A scheme no app handles shows Windows' own app picker.
+    /// </summary>
+    public void Open(string target)
+    {
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
+            }
+            catch (Exception e) when (e is Win32Exception or InvalidOperationException)
+            {
+                Log.Warn("shell", $"Could not open {target}: {e.Message}");
+            }
+        });
+    }
+
     private static string Ensure(string dir)
     {
         Directory.CreateDirectory(dir);

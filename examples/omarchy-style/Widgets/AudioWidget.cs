@@ -22,6 +22,6 @@ public sealed class AudioWidget : Button
             ToolTipService.SetToolTip(this, tip);
             AutomationProperties.SetName(this, tip);
         });
-        Click += (_, _) => SettingsPage.Open("ms-settings:sound");
+        Click += (_, _) => context.Shell.Open("ms-settings:sound");
     }
 }

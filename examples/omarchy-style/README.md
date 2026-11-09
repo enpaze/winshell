@@ -49,7 +49,6 @@ The project references Winshell's source, so the repo's own check builds it.
 | [TokyoNight.xaml](TokyoNight.xaml) | The shell's [style](../../docs/configuration.md#style): Tokyo Night's colors, the font and the slot size, and the look of a button, text, an icon and a tooltip. |
 | [Widgets/](Widgets) | One class per widget, each a plain control that keeps itself current with `this.Watch(...)`. |
 | [Glyphs.cs](Glyphs.cs) | Names each glyph with its Nerd Fonts name and chooses status glyphs. |
-| [SettingsPage.cs](SettingsPage.cs) | Opens a Windows Settings page when a status glyph is clicked. |
 | [OmarchyStyle.csproj](OmarchyStyle.csproj) | References Winshell, registers each widget with a `WinshellWidget` item, and copies the font files beside the program. |
 | [Fonts/README.md](Fonts/README.md) | Records the bundled font's source and licences. |
 
@@ -88,7 +87,7 @@ The project references Winshell's source, so the repo's own check builds it.
   A row matches when manufacturer, model and serial all equal the monitor's, including an empty serial, and the first match wins. A key the row leaves out is the `[bar]` section's.
 
 - **Live-edit a widget:** run `winshell dev --path examples/omarchy-style` and save a file in [Widgets/](Widgets). See [Develop a shell](../../docs/configuration.md#develop-a-shell) for what reaches the running shell and what restarts it.
-- **Add a widget:** copy [Widgets/AudioWidget.cs](Widgets/AudioWidget.cs), read another service in its `Watch`, give it its Settings page, and add a `WinshellWidget` item in [OmarchyStyle.csproj](OmarchyStyle.csproj) whose `Include` is the placement name. Put that name in a list in [AppShell.cs](AppShell.cs) or in the preferences file.
+- **Add a widget:** copy [Widgets/AudioWidget.cs](Widgets/AudioWidget.cs), read another service in its `Watch`, give it its Settings page with `context.Shell.Open`, and add a `WinshellWidget` item in [OmarchyStyle.csproj](OmarchyStyle.csproj) whose `Include` is the placement name. Put that name in a list in [AppShell.cs](AppShell.cs) or in the preferences file.
 - **Keep the taskbar:** delete `shell.ExplorerTaskbar.Hidden = true;` in [AppShell.cs](AppShell.cs).
 
 ## Use it as your own configuration
