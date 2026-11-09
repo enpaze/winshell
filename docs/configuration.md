@@ -665,9 +665,11 @@ Make one on the shell's thread, and dispose it when its component goes. It reads
         var dock = new DockPreferences("dock");
 ```
 
-Saving the file applies it live, and changes only the properties whose keys changed, so a component whose section is the same keeps what it shows. A key the file does not have holds its default, so commenting one out goes back to it. Assigning a property writes that key into its section and leaves the rest of the file: comments, other sections and keys no class reads. When the file is missing, Winshell writes it with each section's keys commented out at their defaults, under their comments.
+Saving the file applies it live, and changes only the properties whose keys changed, so a component whose section is the same keeps what it shows. A key the file does not have holds its default, so commenting one out goes back to it. Assigning a property writes that key at the end of its section and leaves the rest of the file: comments, other sections and keys no class reads. When the file is missing, Winshell writes it with each section's keys commented out at their defaults, under their comments. A component made after that, whose section the file does not have, adds its section at the end of the file the same way, under its own `[name]` header. A section you take out stays out until the component is made again, as when the shell starts or reloads, or one of its properties is assigned.
 
 What can't be used is logged under `preferences`, with its line, and the values in use stay: a file that does not parse, a section that is not a table, and a value the property can't hold or the check refuses. A section no component reads stays in the file and is logged by name. An unknown key that differs from a key the class reads only in case, by a letter, or by two in a longer key is logged with that key. A file past 1 MiB, or nested past 64 levels, is not read. A file of your own, outside the preferences file, is a `TomlFile`, which reads and writes a whole file the same way.
+
+`winshell doctor` checks the file of the configuration it checks for TOML errors, and names the line. It finds the file by the shell id the configuration has without a `ShellId` in its `ShellOptions`, as [The program](#the-program) describes. For a program that sets one, it checks that default file, not the one the shell reads.
 
 `shell.DataPath`, `shell.StatePath` and `shell.CachePath` are per shell under `%LOCALAPPDATA%\winshell`. State does not survive a reload unless the configuration writes it itself. Every window is replaced.
 

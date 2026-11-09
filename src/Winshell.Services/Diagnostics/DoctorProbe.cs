@@ -71,12 +71,16 @@ internal static class DoctorProbe
     }
 
     /// <summary>
-    /// Why <c>preferences.toml</c> in <paramref name="configRoot"/>, where the configuration guide keeps a shell's
-    /// preferences, cannot be loaded, or null when it is missing or loads.
+    /// Why the preferences file of <paramref name="project"/>'s shell, <c>preferences\&lt;shell id&gt;.toml</c> in the
+    /// config folder, cannot be loaded, or null when it is missing or loads. The shell id is the one its program has
+    /// when it does not set <c>ShellOptions.ShellId</c>, which only running the program could tell.
     /// </summary>
-    public static string? PreferencesProblem(string configRoot)
+    public static string? PreferencesProblem(ShellLocations locations, ConfigurationProject project)
     {
-        return string.IsNullOrEmpty(configRoot) ? null : UserFileProblem(Path.Combine(configRoot, "preferences.toml"));
+        if (string.IsNullOrEmpty(locations.ConfigRoot))
+            return null;
+        var id = ShellIdentity.Resolve(project.Program, locations, null, null, null, null).ShellId;
+        return UserFileProblem(Path.Combine(locations.ConfigRoot, "preferences", id + ".toml"));
     }
 
     /// <summary>Why this file cannot be loaded, or null when it is missing or loads.</summary>

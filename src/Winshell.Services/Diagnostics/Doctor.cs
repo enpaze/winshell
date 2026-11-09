@@ -108,8 +108,8 @@ public static class Doctor
         var configFolder = chosen.Folder;
         var configuration = DoctorProject.Configuration(chosen.Project, chosen.Problem).ToList();
         var blocked = configuration.Any(check => check is { Id: "downloaded", Status: CheckStatus.Fail });
-        if (!blocked && configuration[0].Status == CheckStatus.Pass &&
-            DoctorProbe.PreferencesProblem(context.Locations.ConfigRoot) is { } preferences)
+        if (!blocked && configuration[0].Status == CheckStatus.Pass && chosen.Project is { } project &&
+            DoctorProbe.PreferencesProblem(context.Locations, project) is { } preferences)
             configuration[0] = WithPreferences(configuration[0], preferences);
         var instances = ListedInstances(context.Locations.Instances);
         var monitors = new Lazy<IReadOnlyList<DoctorScreens.MonitorFacts>>(DoctorProbe.Monitors);
@@ -235,7 +235,7 @@ public static class Doctor
     }
 
     /// <summary>
-    /// A <c>preferences.toml</c> that does not parse is a warning on a project check that passed. A project that is not
+    /// A preferences file that does not parse is a warning on a project check that passed. A project that is not
     /// there or failed already says what to fix, and with no project nothing reads the file.
     /// </summary>
     private static DoctorCheck WithPreferences(DoctorCheck check, string problem)

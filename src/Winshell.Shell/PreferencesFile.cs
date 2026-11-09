@@ -16,6 +16,9 @@ internal sealed class PreferencesFile : IDisposable
     private readonly FileWatch _watch;
     private readonly List<Preferences> _sections = [];
 
+    /// <summary>The sections made since the file was last written or found to have them all.</summary>
+    private readonly List<Preferences> _made = [];
+
     /// <summary>The file as last read or written, or null while it is missing.</summary>
     private TomlDocument? _document;
 
@@ -50,6 +53,7 @@ internal sealed class PreferencesFile : IDisposable
         // A save the watch has not delivered yet is read now, so the section starts from the file as it is.
         Follow();
         _sections.Add(section);
+        _made.Add(section);
         Load(section, null);
         PostCheck();
     }
@@ -61,6 +65,7 @@ internal sealed class PreferencesFile : IDisposable
         if (section.Assigned.Count > 0)
             Write();
         _sections.Remove(section);
+        _made.Remove(section);
     }
 
     /// <summary>Writes the assigned values of every section on the next turn of the loop.</summary>
@@ -82,9 +87,9 @@ internal sealed class PreferencesFile : IDisposable
     }
 
     /// <summary>
-    /// Writes a missing file and names sections no component reads, once a whole turn of the loop has passed with no
-    /// section made: a component such as a bar makes its section on the turn after it is made, once its properties are
-    /// set.
+    /// Writes a missing file, adds the sections made since that the file does not have, and names sections no component
+    /// reads, once a whole turn of the loop has passed with no section made: a component such as a bar makes its
+    /// section on the turn after it is made, once its properties are set.
     /// </summary>
     private void PostCheck()
     {
@@ -106,8 +111,12 @@ internal sealed class PreferencesFile : IDisposable
         }
 
         _checkPending = false;
-        if (_document is null && _sections.Count > 0 && TomlDocument.Load(_path).Kind == TomlRead.Missing)
-            WriteDefaults();
+        var load = TomlDocument.Load(_path);
+        if (_sections.Count > 0 &&
+            (load.Kind == TomlRead.Missing || (load.Document is { } document && Unwritten(document).Any())))
+            Write();
+        else if (load.Kind == TomlRead.Parsed)
+            _made.Clear();
         WarnUnknown();
     }
 
@@ -218,7 +227,10 @@ internal sealed class PreferencesFile : IDisposable
         }
     }
 
-    /// <summary>Puts the assigned values of every section into the file, which a hand save may have changed.</summary>
+    /// <summary>
+    /// Puts the assigned values of every section into the file, which a hand save may have changed. A section the file
+    /// does not have yet is added first, under its own header with its keys commented out, as a missing file is written.
+    /// </summary>
     private void Write()
     {
         _writePending = false;
@@ -241,6 +253,9 @@ internal sealed class PreferencesFile : IDisposable
                 Load(section, section.Assigned);
         }
 
+        foreach (var group in Unwritten(document))
+            document.AddTable(group.Key, Commented(group));
+
         foreach (var section in Attached().Where(section => section.Assigned.Count > 0))
             if (section.Section.Length == 0)
                 foreach (var key in section.Assigned)
@@ -257,6 +272,22 @@ internal sealed class PreferencesFile : IDisposable
         Report("");
         foreach (var section in _sections)
             section.Assigned.Clear();
+        _made.Clear();
+    }
+
+    /// <summary>
+    /// The sections, each with every other of its name, that were just made or assigned and that
+    /// <paramref name="document"/> does not have. A section taken out by hand is not added back until its component is
+    /// made again or assigned.
+    /// </summary>
+    private IEnumerable<IGrouping<string, Preferences>> Unwritten(TomlDocument document)
+    {
+        var due = _sections
+            .Where(section => section.Section.Length > 0 && (section.Assigned.Count > 0 || _made.Contains(section)) &&
+                              !document.Values.ContainsKey(section.Section))
+            .Select(section => section.Section)
+            .ToHashSet();
+        return _sections.Where(section => due.Contains(section.Section)).GroupBy(section => section.Section);
     }
 
     /// <summary>Puts the text down, or returns false with the assigned values still waiting.</summary>
@@ -277,18 +308,6 @@ internal sealed class PreferencesFile : IDisposable
         }
     }
 
-    private void WriteDefaults()
-    {
-        try
-        {
-            AtomicFile.Save(_path, Defaults(), false, null);
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-            Warn($"failed to write {_path}: {e.Message}");
-        }
-    }
-
     /// <summary>
     /// The file a missing one is written as: the configuration's own keys, then a header for each section, each key
     /// commented out at its default under its comment.
@@ -304,19 +323,30 @@ internal sealed class PreferencesFile : IDisposable
         {
             if (group.Key.Length > 0)
                 text.Append('\n').Append('[').Append(TomlDocument.Key(group.Key)).Append("]\n");
-            foreach (var key in group.SelectMany(section => section.Keys.All.Select(key => (Section: section, Key: key)))
-                         .DistinctBy(pair => pair.Key.Name))
-            {
-                if (TomlDocument.Format(TomlDocument.Plain(key.Section.Commented(key.Key))) is not { } value)
-                    continue;
-                text.Append('\n');
-                foreach (var line in TomlDocument.CommentLines(key.Key.Comment))
-                    text.Append(line).Append('\n');
-                text.Append("# ").Append(TomlDocument.Key(key.Key.Name)).Append(" = ").Append(value).Append('\n');
-            }
+            foreach (var line in Commented(group))
+                text.Append(line).Append('\n');
         }
 
         return text.ToString();
+    }
+
+    /// <summary>
+    /// The lines of each key of <paramref name="group"/>, sections of one name: a blank line, its comment, and the key
+    /// commented out at its default.
+    /// </summary>
+    private static IEnumerable<string> Commented(IEnumerable<Preferences> group)
+    {
+        foreach (var (section, key) in group
+                     .SelectMany(section => section.Keys.All.Select(key => (Section: section, Key: key)))
+                     .DistinctBy(pair => pair.Key.Name))
+        {
+            if (TomlDocument.Format(TomlDocument.Plain(section.Commented(key))) is not { } value)
+                continue;
+            yield return "";
+            foreach (var line in TomlDocument.CommentLines(key.Comment))
+                yield return line;
+            yield return "# " + TomlDocument.Key(key.Name) + " = " + value;
+        }
     }
 
     /// <summary>Names each section of the file that no component reads. It stays in the file.</summary>
@@ -341,5 +371,6 @@ internal sealed class PreferencesFile : IDisposable
             Write();
         _disposed = true;
         _sections.Clear();
+        _made.Clear();
     }
 }

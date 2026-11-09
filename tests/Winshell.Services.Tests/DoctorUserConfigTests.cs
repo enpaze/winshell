@@ -4,8 +4,9 @@ using static Winshell.Diagnostics.Doctor;
 namespace Winshell.Services.Tests;
 
 /// <summary>
-/// The project check reads the <c>preferences.toml</c> the configuration guide keeps in the config folder, and the
-/// Windows check mentions transparency and a contrast theme. Neither adds a check. Every file is under a temp folder this class creates.
+/// The project check reads the shell's preferences file, <c>preferences\&lt;shell id&gt;.toml</c> in the config folder,
+/// and the Windows check mentions transparency and a contrast theme. Neither adds a check. Every file is under a temp
+/// folder this class creates.
 /// </summary>
 public sealed class DoctorUserConfigTests : IDisposable
 {
@@ -55,15 +56,15 @@ public sealed class DoctorUserConfigTests : IDisposable
         var config = Path.Combine(_dir, "config");
         Directory.CreateDirectory(config);
         File.WriteAllText(Path.Combine(config, "Mine.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
-        var preferences = Path.Combine(config, "preferences.toml");
-        File.WriteAllText(preferences, "colorScheme =\n");
+        // The project in the config folder itself is the shell "root".
+        var preferences = Preferences(config, "root", "# mine\ncolorScheme =\n");
         var local = Path.Combine(_dir, "local");
 
         var warned = Run(Context(config, local)).Single(c => c.Id == "project");
 
         Assert.Equal(CheckStatus.Warn, warned.Status);
         Assert.Contains("Mine.csproj", warned.Message, StringComparison.Ordinal);
-        Assert.Contains(Printed(preferences), warned.Message, StringComparison.Ordinal);
+        Assert.Contains(Printed(preferences) + "[2:", warned.Message, StringComparison.Ordinal);
         Assert.Contains("until the file parses", warned.Fix, StringComparison.Ordinal);
 
         var missing = Path.Combine(_dir, "missing");
@@ -72,7 +73,7 @@ public sealed class DoctorUserConfigTests : IDisposable
         Assert.Equal(CheckStatus.Fail, failed.Status);
         Assert.StartsWith("No .csproj at ", failed.Message, StringComparison.Ordinal);
         Assert.EndsWith(@"\missing.", failed.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("preferences.toml", failed.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("root.toml", failed.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -80,7 +81,7 @@ public sealed class DoctorUserConfigTests : IDisposable
     {
         var config = Path.Combine(_dir, "config");
         Directory.CreateDirectory(config);
-        File.WriteAllText(Path.Combine(config, "preferences.toml"), "colorScheme =\n");
+        Preferences(config, "root", "colorScheme =\n");
 
         var check = Run(Context(config, Path.Combine(_dir, "local")))
             .Single(c => c.Id == "project");
@@ -95,23 +96,29 @@ public sealed class DoctorUserConfigTests : IDisposable
     {
         var config = Path.Combine(_dir, "config");
         Directory.CreateDirectory(config);
+        File.WriteAllText(Path.Combine(config, "Mine.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        var locations = new ShellLocations(config, Path.Combine(_dir, "local"));
+        var project = Project(config);
 
-        Assert.Null(DoctorProbe.PreferencesProblem(config));
-        File.WriteAllText(Path.Combine(config, "preferences.toml"), "# keep\ncolorScheme = \"dark\"\n");
-        Assert.Null(DoctorProbe.PreferencesProblem(config));
+        Assert.Null(DoctorProbe.PreferencesProblem(locations, project));
+        Preferences(config, "root", "# keep\ncolorScheme = \"dark\"\n\n[bar]\nedge = \"left\"\n");
+        Assert.Null(DoctorProbe.PreferencesProblem(locations, project));
     }
 
     [Fact]
-    public void Preferences_are_read_from_the_config_folder_and_not_the_project_folder()
+    public void A_configuration_in_a_folder_of_the_config_folder_is_checked_in_the_file_named_after_that_folder()
     {
         var config = Path.Combine(_dir, "config");
         var shell = Path.Combine(config, "Work");
         Directory.CreateDirectory(shell);
         var projectFile = Path.Combine(shell, "Work.csproj");
         File.WriteAllText(projectFile, "<Project Sdk=\"Microsoft.NET.Sdk\" />");
-        var preferences = Path.Combine(config, "preferences.toml");
-        File.WriteAllText(preferences, "colorScheme =\n");
-        var decoy = Path.Combine(shell, "preferences.toml");
+        var preferences = Preferences(config, "work", "colorScheme =\n");
+        var other = Preferences(config, "root", "colorScheme =\n");
+        var old = Path.Combine(config, "preferences.toml");
+        File.WriteAllText(old, "colorScheme =\n");
+        var decoy = Path.Combine(shell, "preferences", "work.toml");
+        Directory.CreateDirectory(Path.GetDirectoryName(decoy)!);
         File.WriteAllText(decoy, "colorScheme =\n");
 
         var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
@@ -119,6 +126,8 @@ public sealed class DoctorUserConfigTests : IDisposable
 
         Assert.Equal(CheckStatus.Warn, check.Status);
         Assert.Contains(Printed(preferences) + "[", check.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(Printed(other), check.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(Printed(old), check.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(Printed(decoy), check.Message, StringComparison.Ordinal);
     }
 
@@ -127,10 +136,13 @@ public sealed class DoctorUserConfigTests : IDisposable
     {
         var config = Path.Combine(_dir, "config");
         Directory.CreateDirectory(config);
-        var preferences = Path.Combine(config, "preferences.toml");
+        File.WriteAllText(Path.Combine(config, "Mine.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        var preferences = Path.Combine(config, "preferences", "root.toml");
+        Directory.CreateDirectory(Path.GetDirectoryName(preferences)!);
         using var locked = new FileStream(preferences, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
 
-        var problem = DoctorProbe.PreferencesProblem(config);
+        var problem = DoctorProbe.PreferencesProblem(new ShellLocations(config, Path.Combine(_dir, "local")),
+            Project(config));
 
         Assert.StartsWith(preferences + ": could not be read:", problem, StringComparison.Ordinal);
     }
@@ -143,15 +155,32 @@ public sealed class DoctorUserConfigTests : IDisposable
         var project = Path.Combine(config, "Mine.csproj");
         File.WriteAllText(project, "<Project Sdk=\"Microsoft.NET.Sdk\" />");
         File.WriteAllText(project + ":Zone.Identifier", "[ZoneTransfer]\r\nZoneId=3\r\n");
-        File.WriteAllText(Path.Combine(config, "preferences.toml"), "colorScheme =\n");
+        Preferences(config, "root", "colorScheme =\n");
 
         var checks = Run(Context(config, Path.Combine(_dir, "local"), project));
 
         var downloaded = checks.Single(c => c.Id == "downloaded");
         Assert.Equal(CheckStatus.Fail, downloaded.Status);
         Assert.Contains("was downloaded from the internet", downloaded.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("preferences.toml", checks.Single(c => c.Id == "project").Message,
+        Assert.DoesNotContain("root.toml", checks.Single(c => c.Id == "project").Message,
             StringComparison.Ordinal);
+    }
+
+    /// <summary>Writes the preferences file of the shell <paramref name="id"/> in <paramref name="config"/> and returns its path.</summary>
+    private static string Preferences(string config, string id, string text)
+    {
+        var path = Path.Combine(config, "preferences", id + ".toml");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, text);
+        return path;
+    }
+
+    private static ConfigurationProject Project(string folder)
+    {
+        var project = ConfigurationProject.Find(folder, null, folder, out var error);
+        Assert.NotNull(project);
+        Assert.Null(error);
+        return project;
     }
 
     private static DoctorContext Context(string config, string local, string? path = null)

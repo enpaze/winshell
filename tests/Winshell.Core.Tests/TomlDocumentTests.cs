@@ -584,6 +584,41 @@ public sealed class TomlDocumentTests
         Assert.Equal(1, Count(text, "[taskbar]"));
     }
 
+    [Theory]
+    [InlineData("[a]\nz = 1\n\n[b]\ny = 1\n", "[a]\nz = 1\nx = 2\n\n[b]\ny = 1\n")]
+    [InlineData("[a]\nz = 1\n\n# about b\n[b]\ny = 1\n", "[a]\nz = 1\nx = 2\n\n# about b\n[b]\ny = 1\n")]
+    [InlineData("[a]\n\n# x is 1 unless set\n# x = 1\n\n[b]\ny = 1\n",
+        "[a]\n\n# x is 1 unless set\n# x = 1\nx = 2\n\n[b]\ny = 1\n")]
+    [InlineData("[a]\n\n# x is 1 unless set\n# x = 1\n", "[a]\n\n# x is 1 unless set\n# x = 1\nx = 2\n")]
+    [InlineData("[a]\nz = 1", "[a]\nz = 1\nx = 2\n")]
+    public void A_key_added_to_a_table_goes_above_the_blank_line_before_the_next(string original, string expected)
+    {
+        var document = Parse(original);
+
+        document.Set("a", Row(("x", 2L)));
+
+        Assert.Equal(expected, document.ToString());
+    }
+
+    [Theory]
+    [InlineData("a = 1\n", "a = 1\n\n[dock]\n\n# c\n")]
+    [InlineData("a = 1", "a = 1\n\n[dock]\n\n# c\n")]
+    [InlineData("a = 1\n\n", "a = 1\n\n[dock]\n\n# c\n")]
+    [InlineData("# only a comment\n", "# only a comment\n\n[dock]\n\n# c\n")]
+    [InlineData("", "[dock]\n\n# c\n")]
+    [InlineData("a = 1\r\n", "a = 1\r\n\r\n[dock]\r\n\r\n# c\r\n")]
+    [InlineData("[dock]\nx = 1\n", "[dock]\nx = 1\n")]
+    [InlineData("dock = { x = 1 }\n", "dock = { x = 1 }\n")]
+    public void A_table_is_added_under_its_own_header_at_the_end_unless_the_file_has_it(string original,
+        string expected)
+    {
+        var document = Parse(original);
+
+        document.AddTable("dock", ["", "# c"]);
+
+        Assert.Equal(expected, document.ToString());
+    }
+
     [Fact]
     public void An_inline_table_is_updated_in_place()
     {

@@ -102,10 +102,12 @@ internal readonly struct TomlLoad
 /// <see cref="IReadOnlyList{T}"/> of object and <see cref="IReadOnlyDictionary{TKey, TValue}"/> of string and object.
 /// A date or a time reads as a string, and its token stays while that string does. <see cref="Set"/> changes one key
 /// and leaves the rest of the text: comments, blank lines, number spellings and other keys stay. A table, an array of
-/// tables, or a dotted key already in the file is the value: only what changed in it is updated, in place. When that
+/// tables, or a dotted key already in the file is the value: only what changed in it is updated, in place, and a key
+/// it does not have yet goes at the end of its table, above the blank line before the next one. When that
 /// would write a part the file has elsewhere a second time, such as a key of a table that is under its own header, or
 /// leave a part that null takes out, the value is written again whole instead, inline, where a key the file does not
-/// have yet goes: at the end of its top-level keys, under its comment. <see cref="Load"/> reads a file and says when
+/// have yet goes: at the end of its top-level keys, under its comment. <see cref="AddTable"/> adds a table under its
+/// own header at the end of the file. <see cref="Load"/> reads a file and says when
 /// it is missing, too large, unreadable, or not TOML, and <see cref="LocationOf(string)"/> says where a key is defined.
 /// </summary>
 internal sealed partial class TomlDocument
@@ -239,6 +241,27 @@ internal sealed partial class TomlDocument
             }
         }
 
+        _values = null;
+    }
+
+    /// <summary>
+    /// Adds the table <paramref name="name"/> at the end of the file, after a blank line, with <paramref name="lines"/>
+    /// under its header: comments, each starting with <c>#</c>, or empty for a blank line. A file that already has
+    /// <paramref name="name"/> is left as it is.
+    /// </summary>
+    public void AddTable(string name, IEnumerable<string> lines)
+    {
+        if (FindOwned(_document, name).Defined)
+            return;
+        var text = new StringBuilder(_document.ToString());
+        if (text.Length > 0 && text[^1] != '\n')
+            text.Append(_newline);
+        if (text.Length > 0 && !text.ToString().EndsWith(_newline + _newline, StringComparison.Ordinal))
+            text.Append(_newline);
+        text.Append('[').Append(Key(name)).Append(']').Append(_newline);
+        foreach (var line in lines)
+            text.Append(line).Append(_newline);
+        _document = SyntaxParser.Parse(text.ToString());
         _values = null;
     }
 
@@ -592,7 +615,7 @@ internal sealed partial class TomlDocument
             if (existing is not null)
                 UpdateKeyValue(existing, child);
             else if (Format(child) is { } text)
-                items.Add(ParseAssignment(Key(key), text, _newline));
+                AddKey(_document, table, ParseAssignment(Key(key), text, _newline), _newline);
         }
     }
 

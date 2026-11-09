@@ -19,8 +19,8 @@ namespace Winshell;
 /// properties whose keys changed. A key the file does not have holds its default. Assigning a property writes it into
 /// the section, on the shell's thread, and leaves the rest of the file as it is. When the file is missing, it is
 /// written with each section's keys at their defaults, commented out, under their
-/// <see cref="TomlCommentAttribute"/>. Several objects may read one section. Make one on the shell's thread and
-/// dispose it when its component goes.
+/// <see cref="TomlCommentAttribute"/>, and a component's section the file does not have is added at its end the same
+/// way. Several objects may read one section. Make one on the shell's thread and dispose it when its component goes.
 /// </summary>
 public abstract class Preferences : ObservableObject, IDisposable
 {
