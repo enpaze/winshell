@@ -6,7 +6,7 @@ $script:TrxNamespace = 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'
 # generated reference; Package packs the template and runs a shell from it. Each test project the run builds writes one
 # results file, so ProjectCount is how many to expect.
 function Get-TestRun {
-    param([ValidateSet('Tests', 'Docs', 'Package')][string] $Tier = 'Tests', [ValidateRange(0, 4)][int] $Shard = 0)
+    param([ValidateSet('Tests', 'Docs', 'Package')][string] $Tier = 'Tests', [ValidateRange(0, 5)][int] $Shard = 0)
     $run = switch ($Tier) {
         'Docs' { @{ Project = 'tests\Winshell.Shell.Tests'; Filter = 'FullyQualifiedName~Winshell.ShellTests.DocsTests' } }
         'Package' { @{ Project = 'tests\Winshell.Package.Tests'; Filter = 'Category=Package' } }
@@ -22,7 +22,7 @@ function Get-TestRun {
             # A new test project automatically joins that worker instead of silently disappearing from CI.
             $run.Projects = @($projects | Where-Object {
                 $owner = switch ([IO.Path]::GetFileNameWithoutExtension($_)) {
-                    'Winshell.Tests' { 1 }
+                    'Winshell.Tests' { if ($Shard -eq 5) { 5 } else { 1 } }
                     'Winshell.Shell.Tests' { 2 }
                     'Winshell.Services.Tests' { 3 }
                     default { 4 }
@@ -31,6 +31,11 @@ function Get-TestRun {
             })
             if ($run.Projects.Count -eq 0) { throw "Test shard $Shard has no projects." }
             $run.ProjectCount = $run.Projects.Count
+            # These are complementary filters: a new CLI class stays in the first worker. Widget tests run many
+            # real git/build processes; keep them off the desktop that dev and reload use to compile their shells.
+            $widgets = 'FullyQualifiedName~Winshell.Tests.WidgetCommandTests.'
+            if ($Shard -eq 1) { $run.Filter += '&' + $widgets.Replace('~', '!~') }
+            if ($Shard -eq 5) { $run.Filter += '&' + $widgets }
         }
         else { $run.ProjectCount = $projects.Count }
     }
@@ -46,6 +51,7 @@ function Read-TestResult {
     $passed = 0
     $failed = 0
     $skipped = @()
+    $timings = @()
     $complete = $files.Count -eq $ProjectCount
     foreach ($file in $files) {
         $xml = [xml]::new()
@@ -58,13 +64,19 @@ function Read-TestResult {
         if ($summary -ne 'Completed' -and $failures -eq 0) { $complete = $false }
         $passed += $xml.SelectNodes('//t:UnitTestResult[@outcome="Passed"]', $names).Count
         $failed += $failures
+        foreach ($test in $xml.SelectNodes('//t:UnitTestResult[@duration]', $names)) {
+            $timings += [pscustomobject]@{ Name = $test.GetAttribute('testName'); Duration = [timespan]::Parse($test.GetAttribute('duration')) }
+        }
         # VSTest's console shows a skipped test without its reason, which only the results file keeps.
         foreach ($skip in $xml.SelectNodes('//t:UnitTestResult[@outcome="NotExecuted"]', $names)) {
             $reason = $skip.SelectSingleNode('t:Output/t:ErrorInfo/t:Message', $names)
             $skipped += "$($skip.GetAttribute('testName')): $(if ($reason) { $reason.InnerText } else { 'no reason given' })"
         }
     }
-    [pscustomobject]@{ Passed = $passed; Failed = $failed; Skipped = $skipped; Complete = $complete }
+    [pscustomobject]@{
+        Passed = $passed; Failed = $failed; Skipped = $skipped; Complete = $complete
+        Slowest = @($timings | Sort-Object Duration -Descending | Select-Object -First 10)
+    }
 }
 
 function Invoke-DotnetTest {
@@ -85,11 +97,15 @@ function Invoke-TestRun {
     param(
         [ValidateSet('Tests', 'Docs', 'Package')][string] $Tier = 'Tests',
         [int] $Seed = 0,
-        [ValidateRange(0, 4)][int] $Shard = 0
+        [ValidateRange(0, 5)][int] $Shard = 0,
+        [string] $ResultsDirectory
     )
     if ($Seed -eq 0) { $Seed = Get-Random -Minimum 1 -Maximum ([int]::MaxValue) }
     Write-Host "Test order seed: $Seed. To run this order again: pwsh scripts/check.ps1 -Tier $Tier -Seed $Seed"
-    $results = Join-Path ([IO.Path]::GetTempPath()) ('winshell-test-results-' + [guid]::NewGuid().ToString('N'))
+    # A caller-supplied parent retains even a crashed run's evidence. A unique child prevents stale results from
+    # satisfying the missing-project guard when the parent was used before. Local runs still clean up automatically.
+    $parent = if ($ResultsDirectory) { $ResultsDirectory } else { [IO.Path]::GetTempPath() }
+    $results = Join-Path $parent ('winshell-test-results-' + [guid]::NewGuid().ToString('N'))
     try {
         $run = Get-TestRun -Tier $Tier -Shard $Shard
         $exit = 0
@@ -100,12 +116,13 @@ function Invoke-TestRun {
         # A crashed run can leave a results file that doesn't read; its exit code still decides.
         $outcome = try { Read-TestResult -Directory $results -ProjectCount $run.ProjectCount } catch { if ($exit -eq 0) { throw } }
         if ($outcome) { foreach ($skip in $outcome.Skipped) { Write-Host "Skipped $skip" } }
+        if ($outcome) { foreach ($test in $outcome.Slowest) { Write-Host "Slow test $($test.Duration): $($test.Name)" } }
         if ($exit -ne 0) { return $exit }
         if ($outcome.Passed -gt 0 -and $outcome.Failed -eq 0 -and $outcome.Complete) { return 0 }
         Write-Host 'A test failed, no test ran, or a test project wrote no results.'
         return 1
     }
     finally {
-        Remove-Item -LiteralPath $results -Recurse -Force -ErrorAction SilentlyContinue
+        if (-not $ResultsDirectory) { Remove-Item -LiteralPath $results -Recurse -Force -ErrorAction SilentlyContinue }
     }
 }
