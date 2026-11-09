@@ -34,37 +34,38 @@ BeforeAll {
 }
 
 Describe 'Choosing tests' {
-    It 'leaves the package tests out of the whole run' {
-        (Get-TestRun).Filter | Should -Be 'Category!=Package'
+    BeforeAll {
+        # A solution with the two windowed projects, two others, and a project added later.
+        function Set-WinshellSolution {
+            $script:Projects = @('Winshell.Tests', 'Winshell.Shell.Tests', 'Winshell.Services.Tests', 'Winshell.Core.Tests', 'New.Tests') |
+                ForEach-Object { "tests/$_/$_.csproj" }
+            $nodes = ($script:Projects | ForEach-Object { "<Project Path=`"$_`" />" }) -join ''
+            Set-Content -LiteralPath (Join-Path $TestDrive 'winshell.slnx') -Value "<Solution>$nodes</Solution>"
+        }
     }
 
-    It 'expects a results file from each test project in the solution, or from the one project it runs' {
+    It 'runs locally only the projects and tests that open no windows, and no package tests' {
         $root = $script:Root
         $script:Root = $TestDrive
         try {
-            Set-Content -LiteralPath (Join-Path $TestDrive 'winshell.slnx') -Value @'
-<Solution>
-  <Folder Name="/src/"><Project Path="src/A/A.csproj" /></Folder>
-  <Folder Name="/tests/"><Project Path="tests/A.Tests/A.Tests.csproj" /><Project Path="tests/B.Tests/B.Tests.csproj" /></Folder>
-</Solution>
-'@
-            (Get-TestRun).ProjectCount | Should -Be 2
-            (Get-TestRun -Tier Docs).ProjectCount | Should -Be 1
+            Set-WinshellSolution
+            $run = Get-TestRun
+            $run.Projects | Should -Be @('tests/Winshell.Services.Tests/Winshell.Services.Tests.csproj', 'tests/Winshell.Core.Tests/Winshell.Core.Tests.csproj', 'tests/New.Tests/New.Tests.csproj')
+            $run.ProjectCount | Should -Be 3
+            $run.Filter | Should -Be 'Category!=Package&Category!=Window'
         } finally { $script:Root = $root }
     }
 
-    It 'partitions every solution test project once and includes new projects in the fourth shard' {
+    It 'partitions every solution test project once, includes new projects in the fourth shard, and runs windowed tests' {
         $root = $script:Root
         $script:Root = $TestDrive
         try {
-            $projects = @('Winshell.Tests', 'Winshell.Shell.Tests', 'Winshell.Services.Tests', 'Winshell.Core.Tests', 'New.Tests') |
-                ForEach-Object { "tests/$_/$_.csproj" }
-            $nodes = ($projects | ForEach-Object { "<Project Path=`"$_`" />" }) -join ''
-            Set-Content -LiteralPath (Join-Path $TestDrive 'winshell.slnx') -Value "<Solution>$nodes</Solution>"
+            Set-WinshellSolution
             $routed = @(foreach ($shard in 1..4) { (Get-TestRun -Shard $shard).Projects })
-            ($routed | Sort-Object) | Should -Be ($projects | Sort-Object)
+            ($routed | Sort-Object) | Should -Be ($script:Projects | Sort-Object)
             (Get-TestRun -Shard 4).ProjectCount | Should -Be 2
             (Get-TestRun -Shard 5).Projects | Should -Be @('tests/Winshell.Tests/Winshell.Tests.csproj')
+            foreach ($shard in 1..5) { (Get-TestRun -Shard $shard).Filter | Should -Not -Match 'Category!=Window' }
         } finally { $script:Root = $root }
     }
 }
@@ -128,9 +129,11 @@ Describe 'Running the suite' {
         Set-Solution 1
         $script:Exit = 0
         $script:Rows = @('Ns.Class.Good=Passed')
+        # A project that writes no results file, as after a test host crash.
+        $script:Silent = $null
         Mock Invoke-DotnetTest {
             $script:WrittenResults = $ResultsDirectory
-            Write-Trx -Directory $ResultsDirectory -Rows $script:Rows
+            if ($Project -ne $script:Silent) { Write-Trx -Directory $ResultsDirectory -Rows $script:Rows }
             $script:Exit
         }
     }
@@ -152,6 +155,7 @@ Describe 'Running the suite' {
         @(Get-ChildItem -LiteralPath $parent -Filter '*.trx' -Recurse) | Should -HaveCount 1
         # Reusing that folder must not let the previous complete run hide a missing test project.
         Set-Solution 2
+        $script:Silent = 'tests/T2.Tests/T2.Tests.csproj'
         $script:Rows = @('Ns.Class.Good=Passed')
         $script:Exit = 0
         Invoke-TestRun -Seed 7 -ResultsDirectory $parent | Should -Be 1
@@ -177,6 +181,7 @@ Describe 'Running the suite' {
 
     It 'fails a run that exits 0 with a test project missing' {
         Set-Solution 2
+        $script:Silent = 'tests/T2.Tests/T2.Tests.csproj'
         Invoke-TestRun | Should -Be 1
     }
 
@@ -201,6 +206,14 @@ Describe 'Running the suite' {
         Mock Write-Host { }
         Invoke-TestRun -Seed 7 | Should -Be 0
         Should -Invoke Write-Host -ParameterFilter { $Object -match 'check\.ps1 -Tier Tests -Seed 7' }
+    }
+
+    # A shard runs windowed tests, which check.ps1 leaves out.
+    It 'prints how to play back a shard with dotnet test' {
+        Mock Write-Host { }
+        Invoke-TestRun -Seed 7 -Shard 4 | Should -Be 0
+        Should -Invoke Write-Host -ParameterFilter { $Object -match '-- xUnit\.Seed=7' }
+        Should -Invoke Write-Host -Times 0 -ParameterFilter { $Object -match 'check\.ps1' }
     }
 }
 
@@ -244,19 +257,16 @@ if ($env:WINSHELL_CHECK_FAIL_LINT -eq $tool) { exit 23 }
 exit 0
 '@
         }
-        foreach ($i in 1..$script:ProjectCount) {
-            Write-Trx -Directory $env:WINSHELL_CHECK_RESULTS -Rows @('Ns.Class.Fact=Passed')
-        }
+        Write-Trx -Directory $env:WINSHELL_CHECK_RESULTS -Rows @('Ns.Class.Fact=Passed')
         Set-Content -LiteralPath (Join-Path $script:Stub 'dotnet.ps1') -Value @'
 "dotnet $($args -join ' ')" | Add-Content -LiteralPath $env:WINSHELL_CHECK_LOG
 if ($env:WINSHELL_CHECK_FAIL_FORMAT -and $args[0] -eq 'format') { exit 23 }
 if ($args[0] -eq 'test') {
     $dest = $args[[array]::IndexOf($args, '--results-directory') + 1]
     New-Item -ItemType Directory -Path $dest -Force | Out-Null
-    # One results file for each project the run tests.
-    $files = @(Get-ChildItem -Path (Join-Path $env:WINSHELL_CHECK_RESULTS '*.trx'))
-    if ($args[1] -notlike '*.slnx') { $files = $files | Select-Object -First 1 }
-    $files | Copy-Item -Destination $dest
+    # Each project tested writes a results file of its own.
+    Get-ChildItem -Path (Join-Path $env:WINSHELL_CHECK_RESULTS '*.trx') |
+        Copy-Item -Destination (Join-Path $dest ([guid]::NewGuid().ToString('N') + '.trx'))
 }
 exit 0
 '@
@@ -278,14 +288,15 @@ function Invoke-Pester {
         }
     }
 
-    It 'builds, formats, and runs the unified .NET and tooling suite by default' {
+    It 'builds, formats, and runs the windowless .NET suites and the tooling suite by default' {
         Invoke-Check | Out-Null
         $LASTEXITCODE | Should -Be 0
         $calls = Get-Content -LiteralPath $env:WINSHELL_CHECK_LOG
         $calls[0] | Should -Match '^dotnet build '
         $calls | Should -Contain 'dotnet build scripts/generate-reference.cs --nologo'
-        $calls[-2] | Should -Match '--filter Category!=Package '
-        $calls[-2] | Should -Match '(^| )-m:1( |$)'
+        $test = @($calls | Where-Object { $_ -match '^dotnet test ' })
+        $test | Should -HaveCount $script:ProjectCount
+        $test | ForEach-Object { $_ | Should -Match '--filter Category!=Package&Category!=Window ' }
         $calls[-1] | Should -Be 'Pester tests/Scripts'
     }
 
@@ -297,15 +308,12 @@ function Invoke-Pester {
         @($calls | Where-Object { $_ -match '^dotnet test |^Pester ' }) | Should -HaveCount 0
     }
 
-    It 'uses an existing build and forwards the seed and hang timeout for the whole suite' {
+    It 'uses an existing build and forwards the seed and hang timeout' {
         Invoke-Check @{ NoBuild = $true; Seed = 7 } | Out-Null
         $LASTEXITCODE | Should -Be 0
         $calls = @(Get-Content -LiteralPath $env:WINSHELL_CHECK_LOG)
         $calls[0] | Should -Not -Match '^dotnet build '
         $test = @($calls | Where-Object { $_ -match '^dotnet test ' })
-        $test | Should -HaveCount 1
-        $test[0] | Should -Match '--filter Category!=Package '
-        $test[0] | Should -Match '(^| )-m:1( |$)'
         $test[0] | Should -Match 'xUnit.Seed=7'
         $test[0] | Should -Match 'xUnit.MaxParallelThreads=2x'
         $test[0] | Should -Match '--blame-hang-timeout 3m'

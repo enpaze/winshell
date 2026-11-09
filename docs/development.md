@@ -134,25 +134,32 @@ After the merge, confirm each layer's issue is closed with `gh issue view <issue
 dotnet test tests/Winshell.Core.Tests --filter FullyQualifiedName~DirectoryWatchTests
 ```
 
-`--filter` takes a class or a test name. `Winshell.Architecture.Tests`, `Winshell.Core.Tests` and `Winshell.Services.Tests` don't open shell windows, so they're safe to run while you work. `Winshell.Shell.Tests` and `Winshell.Tests` put windows and shells on your desktop.
+`--filter` takes a class or a test name. `Winshell.Architecture.Tests`, `Winshell.Core.Tests` and `Winshell.Services.Tests` open no windows, so they're safe to run while you work, except for a test in the category `Window`, such as `FocusTakeoverTests` in the Services suite.
+
+### A windowed test
+
+A test is windowed when it shows a window on the desktop, takes the foreground, or sends real input. `Winshell.Shell.Tests` and `Winshell.Tests` are windowed whole, and a windowed test in any other project carries `[Trait("Category", "Window")]`. The full check leaves them all out, and CI's [test shards](#test-shards) run them on every PR.
+
+To run one on purpose, such as a test you changed, to see it fail and then pass, follow [Live UI with Winland running](#live-ui-with-winland-running):
+
+```powershell
+dotnet test tests/Winshell.Shell.Tests --filter FullyQualifiedName~PanelWindowTests
+dotnet test tests/Winshell.Services.Tests --filter Category=Window
+```
 
 ## Live UI with Winland running
 
-Winland tiles every normal window, so the windows a live run or a test opens would change size and land among the user's windows. When `winland` is running, keep them out of tiling with an `ignore` rule, and leave the user's workspaces as they are:
+Winland tiles every normal window, so the windows a live run or a windowed test opens would change size and land among the user's windows. The owner's Winland configuration keeps them out of tiling with this line, which a `winland reload` keeps:
 
-```powershell
-winland keyword windowrule 'ignore, exe:(winshell|winshellw|Winshell\..*Tests|Probe|Dev)\.exe'
+```text
+windowrule = ignore, exe:(winshell|winshellw|Winshell\..*Tests|Probe|Dev)\.exe
 ```
 
-- One run at a time on a machine. The rule is shared, so a parallel run's `winland reload` would drop it.
-- The rule reaches windows that open after it. Test projects are their own programs, not `testhost`; `Probe` and `Dev` are their shell fixtures. Without the rule `A_floating_window_has_the_size_and_title_it_was_given` fails.
+- Leave the rule and the user's workspaces as they are. A run never adds the rule or reloads Winland.
+- One live run or windowed test at a time on a machine: they share the desktop and the foreground.
+- Test projects are their own programs, not `testhost`; `Probe` and `Dev` are their shell fixtures. Without the rule `A_floating_window_has_the_size_and_title_it_was_given` fails.
 - No workspace contains what the rule ignores: an ignored window opens where Windows puts it, usually on the primary monitor, and a taskbar opens on every screen. Keep what a test opens small and short.
 - `winland -j clients` must list no Winshell window, and the user's windows must be where they were when you finish.
-- Finish in a `finally`, so the rule goes:
-
-```powershell
-winland reload
-```
 
 ## See what you changed
 
@@ -208,6 +215,7 @@ Choose checks from the complete change against the PR's base, including renamed 
 
 Some changes need more than checks:
 
+- A new or changed windowed test: run it on purpose, as [A windowed test](#a-windowed-test) describes, and see it fail before the change and pass after it.
 - A changed public member of `Winshell.Shell`, `Winshell.Services` or `Winshell.Core`: update its `///` comment, run `dotnet run scripts/generate-reference.cs`, and commit the pages it writes.
 - An added or changed command, prerequisite, environment variable or top-level folder: update this page or its [project structure](#project-structure).
 
@@ -223,7 +231,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 
 | Command | What it does |
 | --- | --- |
-| `pwsh scripts/check.ps1 [-Tier Tests\|Docs\|Package] [-Seed <seed>] [-NoBuild]` | Builds, verifies formatting, and runs the complete .NET suite and the PowerShell suites. See [The full check](#the-full-check). |
+| `pwsh scripts/check.ps1 [-Tier Tests\|Docs\|Package] [-Seed <seed>] [-NoBuild]` | By default, builds, verifies formatting, and runs the .NET tests that open no windows and the PowerShell suites. See [The full check](#the-full-check). |
 | `pwsh -NoProfile scripts/check.ps1 -Lint` | Checks Markdown links and workflows, without building. See [Lint](#lint). |
 | `Invoke-Pester -Path tests/Scripts/<Name>.Tests.ps1` | Runs one of the PowerShell suites `check.ps1` runs, each named after the script or tooling it tests. None changes the checkout or GitHub. Requires Pester 5.6.1 and PowerShell 7; `Install.Tests.ps1` also runs on Windows PowerShell 5.1. |
 | `pwsh -NoProfile scripts/format.ps1 [-VerifyNoChanges]` | Formats handwritten C# files, or verifies them. See [What the formatter covers](#what-the-formatter-covers). |
@@ -243,9 +251,9 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 
 ### The full check
 
-`pwsh scripts/check.ps1` builds with warnings as errors, verifies formatting, compiles the template against source libraries, builds `scripts/generate-reference.cs` as the program it runs as, and runs the complete .NET suite plus every PowerShell 7 suite in `tests/Scripts/`.
+`pwsh scripts/check.ps1` builds with warnings as errors, verifies formatting, compiles the template against source libraries, builds `scripts/generate-reference.cs` as the program it runs as, and runs every PowerShell 7 suite in `tests/Scripts/` and the .NET tests that open no windows: every test project but `Winshell.Shell.Tests` and `Winshell.Tests`, one after another, leaving out the category `Window`.
 
-It includes real windows and processes: follow [Live UI with Winland running](#live-ui-with-winland-running). Projects run in sequence locally so their desktop sessions stay apart.
+It opens no windows, so any number of agents can run it at once. CI runs the [windowed tests](#a-windowed-test) on every PR.
 
 | Option | What it does |
 | --- | --- |
@@ -359,7 +367,7 @@ The `changes` job selects checks for PRs and pushes to `main`:
 | Job | When it runs | How to run it locally |
 | --- | --- | --- |
 | `installer` | PRs and pushes to `main` that change `scripts/`, `tests/Scripts/` or workflows/actions. | Windows PowerShell 5.1 runs `tests/Scripts/Install.Tests.ps1` with Pester 5.6.1 against temporary profiles and releases served on loopback. PowerShell 7 tooling suites run once in `quality`. |
-| `tests (1/5)` through `tests (5/5)` | Non-draft PRs and pushes to `main` that change more than docs or Markdown, in `ci.yml`. Results feed the one required `ci` check. | `pwsh scripts/check.ps1`, under [Live UI with Winland running](#live-ui-with-winland-running). See [Test shards](#test-shards). |
+| `tests (1/5)` through `tests (5/5)` | Non-draft PRs and pushes to `main` that change more than docs or Markdown, in `ci.yml`. Results feed the one required `ci` check. | `pwsh scripts/check.ps1` for the tests that open no windows, and [A windowed test](#a-windowed-test) for the rest. See [Test shards](#test-shards). |
 | `close-fixed-issues` | Every merged pull request, in `close-fixed-issues.yml`. Not required. | Nothing to run. Once the merge commit is on `main`, it closes each issue the pull request fixes that GitHub left open, with a comment naming the pull request. |
 | `pr-size` | Every pull request, from `pr-size.yml` on the base branch. Not required. | Nothing to run. It labels the pull request `size:XS` to `size:XL`, as "PR description" in `CONTRIBUTING.md` says. |
 | `trim-caches` | Every push to `main`, after `ci`, in `ci.yml` | Nothing to run. It deletes all but the two newest CodeQL databases of each language from the Actions cache, which would otherwise pass the 10 GB GitHub keeps. |
@@ -371,6 +379,7 @@ The `changes` job selects checks for PRs and pushes to `main`:
 
 CI calls `Get-TestRun -Shard <1..5>` and `Invoke-TestRun -Shard <1..5>` from `scripts/lib/Tests.ps1`:
 
+- Together they run every test project, the windowed ones and the category `Window` included.
 - CLI, Shell and Services use the first three workers. Other test projects share the fourth, and CLI widget tests use the fifth.
 - New projects join the fourth, and new CLI classes join the first.
 - Shard 2 also compiles the template against source libraries, the solution's projects under `examples/` and `docs/samples/`, and the reference generator as a program, sharing the Shell libraries it already builds.
@@ -493,7 +502,7 @@ The startup tests, such as `StartupRegistryTests`, use a fake, or a key of their
 
 ### Hotkeys
 
-Tests may register an unused chord such as Ctrl+Alt+Shift+F24 and may install a keyboard hook while a Windows-key hotkey is enabled or a key sequence is in progress. Each test removes the registration and the hook before it ends. Tests do not inject keystrokes of their own or change keyboard settings. A test may run `winshell inspect`'s real input commands, which keep to the rules under [See what you changed](#see-what-you-changed). See [hotkeys](reference/winshell-input.md).
+Tests may register an unused chord such as Ctrl+Alt+Shift+F24 and may install a keyboard hook while a Windows-key hotkey is enabled or a key sequence is in progress. Each test removes the registration and the hook before it ends. Tests do not inject keystrokes of their own or change keyboard settings. The one exception is `FocusTakeoverTests`, a [windowed test](#a-windowed-test): it sends one key tap, and sets the session's foreground lock timeout and puts it back. A test may run `winshell inspect`'s real input commands, which keep to the rules under [See what you changed](#see-what-you-changed). See [hotkeys](reference/winshell-input.md).
 
 ### Checks only a live session can do
 
@@ -608,7 +617,7 @@ To submit a release:
 ├── tests/
 │   ├── Winshell.Architecture.Tests/ # The layer and feature backend boundaries, and no hand-written unsafe code in WinUI projects
 │   ├── Winshell.Core.Tests/         # The log, TOML files, crash reports and file helpers
-│   ├── Winshell.Services.Tests/     # The services, with no window
+│   ├── Winshell.Services.Tests/     # The services; only the category Window opens a window
 │   ├── Winshell.Shell.Tests/        # Boots a real shell, opens real windows, and proves the event-loop contract
 │   ├── Winshell.Tests/              # Runs winshell.exe instances side by side
 │   ├── Winshell.Package.Tests/      # Packs the template and runs its shell; Category=Package, left out of the main run

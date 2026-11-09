@@ -27,5 +27,5 @@ A delegate that finds its ticket unclear or wrong reports back instead of buildi
 ## How many at once
 
 - At most four delegates run at once.
-- At most one of them has a ticket that opens windows locally, the full suite included, because those share the one [live session](../development.md#live-ui-with-winland-running).
+- At most one of them has a ticket that runs a windowed test or a live shell on purpose, because those share the one [live session](../development.md#live-ui-with-winland-running). The full check doesn't count: it runs only the tests that open no windows, and CI runs the windowed ones.
 - Run tickets side by side only when their areas and files don't overlap. Each ticket's `area:*` label names its area, and `gh pr list --json number,headRefName,files` shows what open PRs touch.
