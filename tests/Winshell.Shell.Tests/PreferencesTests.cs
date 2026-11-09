@@ -127,7 +127,9 @@ public sealed class PreferencesTests
         await ShellFixture.On(async shell =>
         {
             var path = PathOf(shell);
-            File.Delete(path);
+            // An earlier test may have written it. On a fresh machine there is no folder yet either.
+            if (File.Exists(path))
+                File.Delete(path);
             var bar = "bar" + Guid.NewGuid().ToString("N");
             var name = "area" + Guid.NewGuid().ToString("N");
             var widget = Guid.NewGuid().ToString();
