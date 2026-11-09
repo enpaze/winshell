@@ -4,7 +4,7 @@
   "classifications": [ "WinUI", "Shell" ],
   "identity": "Winshell.Templates.Shell",
   "name": "Winshell shell",
-  "description": "The smallest Winshell shell: one panel of XAML.",
+  "description": "The smallest Winshell shell: a bar with a clock and a battery.",
   "shortName": "winshell",
   "tags": {
     "language": "C#",

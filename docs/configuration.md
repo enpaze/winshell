@@ -1,16 +1,105 @@
 # Configuration guide
 
-A configuration is a .NET project that references the Winshell package and builds into one program. This guide builds one up from a single panel. For a whole panel to copy from, see the [Omarchy-style example](https://github.com/enpaze/winshell/tree/main/examples/omarchy-style). The [reference](reference/index.md) lists every type and member. The C# on this page is copied from files the solution builds: [GuideSamples.cs](https://github.com/enpaze/winshell/blob/main/tests/Winshell.Shell.Tests/GuideSamples.cs) and the [message widget](samples/message-widget/Message.xaml.cs). Nothing in GuideSamples runs. Call `Shell.Run` from `Main`, marked `[STAThread]`.
+A configuration is a .NET project that references the Winshell package and builds into one program: your shell. This page begins with the starter, a bar with a clock and a battery, and reads it file by file. The sections after that explain each part in full. The [reference](reference/index.md) lists every type and member, and the [Omarchy-style example](https://github.com/enpaze/winshell/tree/main/examples/omarchy-style) is a whole panel to copy from. The C# on this page is copied from files that build: the starter, [GuideSamples.cs](https://github.com/enpaze/winshell/blob/main/tests/Winshell.Shell.Tests/GuideSamples.cs) and the [message widget](samples/message-widget/Message.xaml.cs). Nothing in GuideSamples runs.
 
-## Create one
+## Your first bar
 
-You need the [.NET SDK](https://dotnet.microsoft.com/download). `winshell new` lists what it can copy: the starter, which is one panel along the bottom of the screen, and each example, such as the Omarchy-style panel. `winshell new <name>` copies one into your config folder:
+You need the [.NET SDK](https://dotnet.microsoft.com/download). Make the starter and run it:
 
 ```powershell
-winshell new
 winshell new starter
 winshell run -c starter
 ```
+
+A bar shows along the top of every screen, with the time in the middle and the battery's charge at the end. It reserves that edge, so maximized windows stop short of it. `winshell kill` closes it. The project is in `%APPDATA%\winshell\starter`, and the C# below is its own text.
+
+### The shell
+
+`AppShell.cs` says what the shell shows. `Start` runs once the shell is up, and makes one [bar](#a-bar-on-every-screen):
+
+```csharp
+public sealed class AppShell : ShellConfiguration
+{
+    public override void Start(Shell shell)
+    {
+        // "clock" and "battery" are the names MyShell.csproj registers the widgets under.
+        _ = new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] };
+    }
+}
+```
+
+The bar keeps itself on screen, so nothing needs to hold it. `Edges.Bottom` puts it at the bottom, and the bar's `Start` is a third list, at the left. With no [style](#style) set, it takes Windows' colors and font, in light or dark.
+
+### A clock
+
+A widget is a plain WinUI control whose constructor takes a [WidgetContext](reference/winshell.md#widgetcontext). It needs no base class of Winshell's and no XAML. The clock is a `UserControl` that holds one `TextBlock`:
+
+```csharp
+public sealed class Clock : UserControl
+{
+    public Clock(WidgetContext context)
+    {
+        var text = new TextBlock { Text = $"{DateTime.Now:t}" };
+        Content = text;
+        // Watch follows the shell's services, not the time, so a timer sets the text each second while it shows.
+        var timer = DispatcherQueue.CreateTimer();
+        timer.Interval = TimeSpan.FromSeconds(1);
+        timer.Tick += (_, _) => text.Text = $"{DateTime.Now:t}";
+        Loaded += (_, _) => timer.Start();
+        Unloaded += (_, _) => timer.Stop();
+    }
+}
+```
+
+`{DateTime.Now:t}` is the time as Windows is set to write it, such as `14:05` or `2:05 PM`. `DispatcherQueue.CreateTimer()` makes a timer that ticks on the shell's thread, the one thread that may change a control. `Loaded` and `Unloaded` run as the clock comes on screen and leaves it, so the timer runs only while there is a clock to show.
+
+### A battery
+
+The battery reads the shell's `Power` service, which holds what Windows reports:
+
+```csharp
+public sealed class Battery : UserControl
+{
+    public Battery(WidgetContext context)
+    {
+        var text = new TextBlock { Margin = new Thickness(8, 0, 8, 0) };
+        Content = text;
+        var battery = context.Shell.Power.DisplayDevice;
+        // Each Watch runs its block now, and again whenever what the block read changes.
+        this.Watch(() => text.Text = $"{battery.Percentage:P0}");
+        this.Watch(() => Visibility = battery.IsPresent ? Visibility.Visible : Visibility.Collapsed);
+    }
+}
+```
+
+`context.Shell` is the running shell. [Watch](#keep-a-control-current) keeps the text at the charge with no event to subscribe to and nothing to dispose. A PC with no battery has `IsPresent` false, so the widget hides itself. The margin keeps the text off the screen's edge.
+
+### Register the widgets
+
+`MyShell.csproj` names each widget and its class, and the bar places a widget by that name:
+
+```xml
+<ItemGroup>
+  <WinshellWidget Include="clock" Type="MyShell.Clock" />
+  <WinshellWidget Include="battery" Type="MyShell.Battery" />
+</ItemGroup>
+```
+
+`Program.cs` starts the shell, and you won't need to change it.
+
+### Change it
+
+Edit a file, then build it into the running shell:
+
+```powershell
+winshell reload
+```
+
+`Start = ["battery"]` in place of `End` moves the battery to the left. Or write a widget of your own: a control like these, and a `WinshellWidget` item for it. [Widgets](#widgets) has the rest, and [A service](#a-service) lists what else the shell can read. Whoever uses the shell can rearrange the bar without a build, in the `[bar]` section of its [preferences file](#preferences), which applies as it is saved.
+
+## Create one
+
+`winshell new` lists what it can copy: the starter, and each example, such as the Omarchy-style panel. `winshell new <name>` copies one into your config folder.
 
 The copy goes to `%APPDATA%\winshell\<name>`, or under `WINSHELL_CONFIG_DIR`. `--path <folder>` puts it somewhere else. A folder that exists and isn't empty is refused. The copy's project references the `Winshell` package of the same release as `winshell`. A release keeps that package in a `packages` folder beside `winshell.exe`, and the copy's `nuget.config` adds that folder as a source. Its shell id comes from its folder, so two copies keep their data apart.
 
@@ -69,7 +158,7 @@ winshell use                  # lists the configurations, with * before the chos
 
 ## The program
 
-`Shell.Run` runs until the shell quits. `ShellId` in `ShellOptions` names the data, state and cache folders. Without it, as in the starter, a configuration in the config folder is named after its folder, and any other after its path.
+`Shell.Run` runs until the shell quits. Call it from `Main`, marked `[STAThread]`, as the starter's `Program.cs` does. `ShellId` in `ShellOptions` names the data, state and cache folders. Without it, as in the starter, a configuration in the config folder is named after its folder, and any other after its path.
 
 `DataDir`, `StateDir` and `CacheDir` replace those folders. A relative path is in the project folder, so `data` is `<project>\data`, and a rebuild of `bin\shell` leaves it there. A program a reload built in `bin\shell.next` uses that same folder. A program in neither keeps a relative path next to itself. `%NAME%` expands, and `$BASE` is the folder above `by-shell`, such as `%LOCALAPPDATA%\winshell\data`.
 

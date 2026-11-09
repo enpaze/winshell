@@ -16,7 +16,7 @@ Releases are currently unsigned. Custom configurations may break between release
 
 ## Get started
 
-`winshell new` lists the starter and the examples, and `winshell new <name>` copies one into your config folder. Run it with `winshell run -c <name>`. Until there is a configuration, `winshell run` starts nothing. The [configuration guide](docs/configuration.md) builds a shell up from one panel.
+`winshell new` lists the starter and the examples, and `winshell new <name>` copies one into your config folder. Run it with `winshell run -c <name>`. Until there is a configuration, `winshell run` starts nothing. The [configuration guide](docs/configuration.md) begins with the starter, a bar with a clock and a battery.
 
 Stop a shell with `winshell kill`. If something goes wrong, run `winshell doctor` or read [troubleshooting](docs/troubleshooting.md).
 
