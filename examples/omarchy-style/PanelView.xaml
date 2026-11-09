@@ -22,11 +22,11 @@
 
   <Grid x:Name="Root" Background="{StaticResource PanelBackground}" Padding="{StaticResource PanelInset}"
         Loaded="OnLayoutLoaded">
-    <shell:WidgetArea x:Name="StartArea" Theme="ms-appx:///TokyoNight.xaml" HorizontalAlignment="Left"
+    <shell:WidgetArea x:Name="StartArea" Style="ms-appx:///TokyoNight.xaml" HorizontalAlignment="Left"
                       VerticalAlignment="Stretch" />
-    <shell:WidgetArea x:Name="CenterArea" Theme="ms-appx:///TokyoNight.xaml" HorizontalAlignment="Center"
+    <shell:WidgetArea x:Name="CenterArea" Style="ms-appx:///TokyoNight.xaml" HorizontalAlignment="Center"
                       VerticalAlignment="Center" />
-    <shell:WidgetArea x:Name="EndArea" Theme="ms-appx:///TokyoNight.xaml" HorizontalAlignment="Right"
+    <shell:WidgetArea x:Name="EndArea" Style="ms-appx:///TokyoNight.xaml" HorizontalAlignment="Right"
                       VerticalAlignment="Stretch" />
   </Grid>
 </UserControl>

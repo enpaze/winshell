@@ -35,9 +35,10 @@ public sealed class WidgetContext
 
     /// <summary>
     /// Wraps content for a PopupWindow in the area's styling. Assign the result to the popup's Content on the shell's
-    /// thread. Each call loads a fresh dictionary from the area's Theme URI, preserving the content's own resources.
-    /// The wrapper follows the area's resolved theme, Theme URI, FontFamily, FontSize and Foreground until the area
-    /// removes the widget or is disposed. The widget still owns and disposes its popup windows.
+    /// thread. Each call loads a fresh dictionary of the area's style, preserving the content's own resources, so the
+    /// popup's plain controls look like the area's. The wrapper follows the area's resolved theme, style, FontFamily,
+    /// FontSize and Foreground until the area removes the widget or is disposed. The widget still owns and disposes its
+    /// popup windows.
     /// </summary>
     /// <param name="content">The popup's unparented content.</param>
     /// <returns>A new wrapper to use as the popup window's content.</returns>
@@ -46,12 +47,12 @@ public sealed class WidgetContext
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(content);
         var wrapper = new UserControl { Content = content };
-        LoadTheme(wrapper);
+        LoadStyle(wrapper);
         CopyStyle(wrapper);
         if (_popups.Count == 0)
         {
             _area.ActualThemeChanged += ThemeChanged;
-            _area.ThemeChanged += ReloadThemes;
+            _area.StyleChanged += ReloadStyles;
             foreach (var property in new[] { Control.FontFamilyProperty, Control.FontSizeProperty, Control.ForegroundProperty })
                 _callbacks.Add((property, _area.RegisterPropertyChangedCallback(property, (_, _) => CopyStyles())));
         }
@@ -75,24 +76,23 @@ public sealed class WidgetContext
 
     private void ThemeChanged(FrameworkElement sender, object args) => CopyStyles();
 
-    private void LoadTheme(UserControl wrapper)
+    private void LoadStyle(UserControl wrapper)
     {
         wrapper.Resources.MergedDictionaries.Clear();
-        if (_area.Theme is { } source)
-            wrapper.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = source });
+        wrapper.Resources.MergedDictionaries.Add(Shell.LoadStyle(_area.ActiveStyle));
     }
 
-    private void ReloadThemes()
+    private void ReloadStyles()
     {
         foreach (var wrapper in _popups)
-            LoadTheme(wrapper);
+            LoadStyle(wrapper);
     }
 
     internal void StopStyling()
     {
         _disposed = true;
         _area.ActualThemeChanged -= ThemeChanged;
-        _area.ThemeChanged -= ReloadThemes;
+        _area.StyleChanged -= ReloadStyles;
         foreach (var (property, token) in _callbacks)
             _area.UnregisterPropertyChangedCallback(property, token);
         _callbacks.Clear();

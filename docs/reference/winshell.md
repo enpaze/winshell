@@ -250,6 +250,7 @@ The running shell: its screens and services. There is one in a process. Each ser
 | `ShellId` | string, read-only | The name that identifies this configuration across runs. |
 | `Startup` | [StartupService](winshell-session.md#startupservice), read-only | Whether this shell runs when the user signs in. |
 | `StateDir` | string, read-only | This shell's state folder, which exists once read. |
+| `Style` | Uri? | The source URI of a `ResourceDictionary` that styles every widget area and styled popup, or null for the built-in style, which follows Windows' colors, Segoe UI and Segoe Fluent Icons. Set it on the shell's thread. A new value reaches what is already on screen. An area's own WidgetArea.Style wins over it. |
 | `SystemAccent` | string, read-only | The accent Windows is using, as `#RRGGBB`. |
 | `SystemTray` | [SystemTray](winshell-tray.md#systemtray), read-only | The notification area. Only one running instance in the Windows session owns it. |
 | `Version` | string, static, read-only | The Winshell release this program is built on. |
@@ -383,16 +384,16 @@ Keeps a control current with what the services hold.
 
 ## WidgetArea
 
-An ordered area of widgets. Use it on the shell's thread and dispose it when its owner closes. Unloading or reparenting does not dispose widgets. Font and foreground inherit normally; area-sensitive XAML uses ThemeResource. Set the inherited Name to match an area in the shell's user placement file. An empty name uses only Defaults.
+An ordered area of widgets. Use it on the shell's thread and dispose it when its owner closes. Unloading or reparenting does not dispose widgets. The shell's Shell.Style, or the area's own, styles its plain controls; area-sensitive XAML uses ThemeResource. Set the inherited Name to match an area in the shell's user placement file. An empty name uses only Defaults.
 
 A WinUI UserControl. The members here are the ones Winshell adds.
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `WidgetArea()` | constructor | Creates an empty, horizontal area. |
+| `WidgetArea()` | constructor | Creates an empty, horizontal area in the shell's style. |
 | `Defaults` | IReadOnlyList of [Placement](#placement) | The author's ordered placements. Assigning a list snapshots it, disposes the previous widgets, and creates the new ones immediately unless the user placement file overrides this area's Name. To apply edits, assign the list again. Settings are passed through without copying. |
 | `Orientation` | Orientation | The layout direction. Changing it disposes and recreates the placements with the new orientation. |
-| `Theme` | Uri? | A ResourceDictionary source URI merged into this area's resources, or null for the inherited theme. Changing it replaces only the dictionary this property loaded, leaving the area's other resources intact. |
+| `Style` | Uri? | The source URI of this area's own style, which wins over the shell's, or null for Shell.Style. Changing it replaces only the dictionary the style loaded, leaving the area's other resources intact. It hides the inherited WinUI `Style`, which a widget area does not use. |
 | `Dispose()` | void | Detaches and disposes every disposable widget, once. All are attempted even if one disposal throws. |
 
 ## WidgetContext
@@ -404,7 +405,7 @@ The placement's inputs and popup styling, passed to its widget factory on the sh
 | `Orientation` | Orientation, read-only | The direction in which the area arranges its placements. |
 | `Settings` | IReadOnlyDictionary of string, object, read-only | This placement's settings. Empty when the placement supplied none. |
 | `Shell` | [Shell](#shell), read-only | The shell that owns the area. |
-| `StylePopup(UIElement content)` | FrameworkElement | Wraps content for a PopupWindow in the area's styling. Assign the result to the popup's Content on the shell's thread. Each call loads a fresh dictionary from the area's Theme URI, preserving the content's own resources. The wrapper follows the area's resolved theme, Theme URI, FontFamily, FontSize and Foreground until the area removes the widget or is disposed. The widget still owns and disposes its popup windows. A new wrapper to use as the popup window's content. |
+| `StylePopup(UIElement content)` | FrameworkElement | Wraps content for a PopupWindow in the area's styling. Assign the result to the popup's Content on the shell's thread. Each call loads a fresh dictionary of the area's style, preserving the content's own resources, so the popup's plain controls look like the area's. The wrapper follows the area's resolved theme, style, FontFamily, FontSize and Foreground until the area removes the widget or is disposed. The widget still owns and disposes its popup windows. A new wrapper to use as the popup window's content. |
 
 ## Widgets
 

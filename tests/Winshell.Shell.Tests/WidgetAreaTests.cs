@@ -23,7 +23,7 @@ public sealed class WidgetAreaTests
             });
             using var area = new WidgetArea
             {
-                Theme = new Uri("ms-appx:///WidgetTheme.xaml"),
+                Style = new Uri("ms-appx:///WidgetTheme.xaml"),
                 RequestedTheme = ElementTheme.Light,
                 FontFamily = new FontFamily("Consolas"),
                 FontSize = 23,
@@ -73,9 +73,9 @@ public sealed class WidgetAreaTests
             Assert.Equal("Georgia", text.FontFamily.Source);
             Assert.Equal(27, text.FontSize);
             Assert.Equal(Microsoft.UI.Colors.LimeGreen, Assert.IsType<SolidColorBrush>(text.Foreground).Color);
-            area.Theme = null;
+            area.Style = null;
             Assert.False(root.Resources.ContainsKey("WidgetThemeMessage"));
-            area.Theme = new Uri("ms-appx:///WidgetTheme.xaml");
+            area.Style = new Uri("ms-appx:///WidgetTheme.xaml");
             Assert.Equal("widget theme", root.Resources["WidgetThemeMessage"]);
 
             if (disposeArea)
@@ -87,7 +87,7 @@ public sealed class WidgetAreaTests
             area.FontSize = 12;
             area.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Blue);
             if (!disposeArea)
-                area.Theme = null;
+                area.Style = null;
             await Wait.UntilAsync(() => area.ActualTheme == ElementTheme.Light, "the area to return to light");
             Assert.Equal(ElementTheme.Dark, root.RequestedTheme);
             Assert.Equal("Georgia", text.FontFamily.Source);
@@ -409,21 +409,124 @@ public sealed class WidgetAreaTests
     }
 
     [Fact]
-    public async Task The_theme_loads_from_its_uri_and_leaves_other_resources_owned_by_the_area()
+    public async Task The_style_loads_from_its_uri_and_leaves_other_resources_owned_by_the_area()
     {
         await ShellFixture.On(_ =>
         {
             using var area = new WidgetArea();
-            var theme = new Uri("ms-appx:///WidgetTheme.xaml");
+            var style = new Uri("ms-appx:///WidgetTheme.xaml");
             area.Resources["author"] = "keep";
-            area.Theme = theme;
-            Assert.Equal(theme, area.Theme);
+            area.Style = style;
+            Assert.Equal(style, area.Style);
             Assert.Equal("widget theme", area.Resources["WidgetThemeMessage"]);
-            area.Theme = null;
+            area.Style = null;
             Assert.False(area.Resources.ContainsKey("WidgetThemeMessage"));
             Assert.Equal("keep", area.Resources["author"]);
             return true;
         });
+    }
+
+    [Fact]
+    public async Task With_no_style_plain_controls_take_the_built_in_style_and_follow_the_windows_theme()
+    {
+        await ShellFixture.On(async _ =>
+        {
+            var controls = new PlainControls();
+            using var area = new WidgetArea
+            {
+                RequestedTheme = ElementTheme.Light, Defaults = [new(controls.Button), new(controls.Text)]
+            };
+            using var window = new PanelWindow { Width = 200, Height = 60, Content = area, Visible = true };
+            await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
+
+            var (glyphButton, glyph) = Assert.Single(controls.Buttons);
+            var text = Assert.Single(controls.Lines);
+            Assert.Equal((32, 32), (glyphButton.ActualWidth, glyphButton.ActualHeight));
+            Assert.Equal("Segoe Fluent Icons,Segoe MDL2 Assets", glyph.FontFamily.Source);
+            Assert.Equal("Segoe UI Variable Text,Segoe UI", text.FontFamily.Source);
+            Assert.Equal(14, text.FontSize);
+            Assert.Equal(WindowsText("Light"), ColorOf(text.Foreground));
+            Assert.Equal(WindowsText("Light"), ColorOf(glyphButton.Foreground));
+
+            area.RequestedTheme = ElementTheme.Dark;
+            await Wait.UntilAsync(() => ColorOf(text.Foreground) == WindowsText("Default"),
+                "the text to take Windows' dark text color");
+            Assert.Equal(WindowsText("Default"), ColorOf(glyphButton.Foreground));
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task The_shell_style_reaches_areas_and_popups_live_and_an_area_style_wins_over_it()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var other = new Uri("ms-appx:///OtherStyle.xaml");
+            WidgetContext? context = null;
+            var controls = new PlainControls();
+            var popupWidget = Guid.NewGuid().ToString();
+            Widgets.Register(popupWidget, input =>
+            {
+                context = input;
+                return new TextBlock();
+            });
+            using var follows = new WidgetArea
+            {
+                Defaults = [new(controls.Button), new(controls.Text), new(popupWidget)]
+            };
+            using var own = new WidgetArea { Style = other, Defaults = [new(controls.Text)] };
+            var (glyphButton, glyph) = Assert.Single(controls.Buttons);
+            var text = controls.Lines[0];
+            var ownText = controls.Lines[1];
+            using var window = new PanelWindow
+            {
+                Width = 400,
+                Height = 60,
+                Content = new StackPanel { Orientation = Orientation.Horizontal, Children = { follows, own } },
+                Visible = true
+            };
+            var popupText = new TextBlock { Text = "popup" };
+            using var popup = new PopupWindow
+            {
+                Rect = new Rect(200, 100, 200, 90), Content = context!.StylePopup(popupText), Visible = true
+            };
+            try
+            {
+                await ShellFixture.LaidOut(popupText).WaitAsync(TestContext.Current.CancellationToken);
+                Assert.Equal("Segoe UI Variable Text,Segoe UI", text.FontFamily.Source);
+                Assert.Equal("Segoe UI Variable Text,Segoe UI", popupText.FontFamily.Source);
+                Assert.Equal("Consolas", ownText.FontFamily.Source);
+
+                shell.Style = other;
+                await Wait.UntilAsync(() => glyphButton.ActualWidth == 40 && glyphButton.ActualHeight == 40,
+                    "the glyph button to take the other style's slot size");
+                Assert.Equal(("Consolas", 18.0), (text.FontFamily.Source, text.FontSize));
+                Assert.Equal(Microsoft.UI.Colors.Crimson, ColorOf(text.Foreground));
+                Assert.Equal(Microsoft.UI.Colors.Crimson, ColorOf(glyphButton.Foreground));
+                Assert.Equal(20, glyph.FontSize);
+                Assert.Equal(("Consolas", 18.0), (popupText.FontFamily.Source, popupText.FontSize));
+
+                shell.Style = null;
+                await Wait.UntilAsync(() => glyphButton.ActualWidth == 32, "the area to return to the built-in style");
+                Assert.Equal("Segoe UI Variable Text,Segoe UI", text.FontFamily.Source);
+                Assert.Equal("Segoe UI Variable Text,Segoe UI", popupText.FontFamily.Source);
+                Assert.Equal("Consolas", ownText.FontFamily.Source);
+            }
+            finally
+            {
+                shell.Style = null;
+            }
+            return true;
+        });
+    }
+
+    private static global::Windows.UI.Color ColorOf(Brush brush) => Assert.IsType<SolidColorBrush>(brush).Color;
+
+    /// <summary>The text color Windows gives a theme: "Light", or "Default" for dark.</summary>
+    private static global::Windows.UI.Color WindowsText(string theme)
+    {
+        var controls = Application.Current.Resources.MergedDictionaries.OfType<XamlControlsResources>().Single();
+        return (global::Windows.UI.Color)((ResourceDictionary)controls.ThemeDictionaries[theme])["TextFillColorPrimary"];
     }
 
     private static IEnumerable<string> TextIn(DependencyObject root)
@@ -433,6 +536,32 @@ public sealed class WidgetAreaTests
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
             foreach (var child in TextIn(VisualTreeHelper.GetChild(root, i)))
                 yield return child;
+    }
+
+    /// <summary>Two widgets of plain controls, a button holding a glyph and a line of text, and what each placement made.</summary>
+    private sealed class PlainControls
+    {
+        public PlainControls()
+        {
+            Widgets.Register(Button, _ =>
+            {
+                var glyph = new FontIcon { Glyph = "" };
+                var button = new Button { Content = glyph };
+                Buttons.Add((button, glyph));
+                return button;
+            });
+            Widgets.Register(Text, _ =>
+            {
+                var line = new TextBlock { Text = "12:00" };
+                Lines.Add(line);
+                return line;
+            });
+        }
+
+        public string Button { get; } = Guid.NewGuid().ToString();
+        public string Text { get; } = Guid.NewGuid().ToString();
+        public List<(Button Button, FontIcon Glyph)> Buttons { get; } = [];
+        public List<TextBlock> Lines { get; } = [];
     }
 
     private sealed partial class DisposableWidget : UserControl, IDisposable

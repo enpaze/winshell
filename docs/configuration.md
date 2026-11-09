@@ -181,7 +181,7 @@ Each placement creates a fresh WinUI element with its own settings, the area's o
 
 Assigning `Defaults` snapshots the list and replaces its widgets unless the user placement file overrides the area. Changing `Orientation` also recreates them. Both dispose every widget implementing `IDisposable`. The example treats a user closing the panel as permanent: `Closed` normally only hides a window. When your code tears the panel down with `panel.Dispose()`, explicitly call `area.Dispose()` too. Removing or reparenting the area does not dispose widgets. Treat placement settings, including nested tables, as read-only.
 
-Set `Theme` to a `ResourceDictionary` source URI to merge it into the area's resources. Font and foreground inherit through the WinUI tree. Use `{ThemeResource}` for area-sensitive widget resources: `{StaticResource}` resolves at construction, before the area owns the widget. Assign `context.StylePopup(content)` to a `PopupWindow.Content` to load a fresh dictionary from the area's `Theme` URI and follow its resolved theme, font, font size and foreground until the area removes the widget or is disposed; the widget still owns its popup windows.
+The [shell style](#style) styles the plain controls in an area. Use `{ThemeResource}` for area-sensitive widget resources: `{StaticResource}` resolves at construction, before the area owns the widget. Assign `context.StylePopup(content)` to a `PopupWindow.Content` to load a fresh dictionary of the area's style and follow its resolved theme, style, font, font size and foreground until the area removes the widget or is disposed; the widget still owns its popup windows.
 
 An unknown widget or a factory that throws shows a placeholder with its name and reason while the other placements keep running. The exception and its stack trace are logged under `widgets` in the shell's log (`winshell log`). Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Exceptions after creation follow the shell's normal crash supervision.
 
@@ -204,6 +204,78 @@ text = "A second placement"
 Each array of tables replaces that area's **whole** default list, in order. `widget` names the registered factory; the other keys become its `WidgetContext.Settings`, including nested tables and arrays. Use `end = []` before any `[[area]]` headers to leave an area empty. Remove the entry to return to the author's defaults. An area absent from the file keeps its defaults.
 
 Saving applies changes live. Each changed area disposes its old widgets and creates the new list; other areas keep their widgets. A syntax error or a list without string `widget` names keeps the last valid lists and logs the file location under `widgets`. A name that matches no area stays in the file and produces a warning naming it. Winshell does not migrate or merge user lists into new defaults.
+
+### Style
+
+The style is how every widget area and styled popup looks: its colors, font and slot size. With none set, the built-in style follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` once to a `ResourceDictionary` file to give the whole shell another look:
+
+```csharp
+        shell.Style = new Uri("ms-appx:///TokyoNight.xaml");
+```
+
+A new value reaches what is already on screen, and `null` returns to the built-in style. An area's own `Style` wins over the shell's, and `null` there follows the shell. The file is a XAML page of your project, as `ms-appx:///` names it.
+
+A style defines these keys, which a bar, a widget and its popups read with `{ThemeResource}`:
+
+| Key | Type | What it is | Built-in |
+| --- | --- | --- | --- |
+| `ShellBackgroundBrush` | `Brush` | Behind a bar or a popup | Windows' solid background |
+| `ShellForegroundBrush` | `Brush` | Text and glyphs | Windows' primary text color |
+| `ShellAlertBrush` | `Brush` | Something that needs attention, such as a low battery | Windows' critical color |
+| `ShellFontFamily` | `FontFamily` | Text | Segoe UI Variable Text, then Segoe UI |
+| `ShellFontSize` | `Double` | Text | 14 |
+| `ShellSlotSize` | `Double` | One button, and the thickness of a bar | 32 |
+
+It also defines implicit styles, with no `x:Key`, for the plain controls a widget is made of. They apply inside a widget area and in a popup styled with `context.StylePopup`, so a widget that is a `Button` holding a `FontIcon` looks right with no lookup:
+
+- `Button`: flat, at least one slot wide and high, its content centered, in the style's foreground, font and font size.
+- `TextBlock`: the style's foreground, font and font size, centered vertically.
+- `FontIcon`: the style's icon font. Its color comes from what holds it, so a button's pressed and disabled colors reach the glyph.
+- `ToolTip`: the style's background, foreground and font. WinUI looks up a tooltip's style only in the app's resources, because a tooltip opens outside the area, so this entry does not yet reach a tooltip a widget sets with `ToolTipService`.
+
+A style that leaves out a key fails where something reads it. [BuiltInStyle.xaml](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/BuiltInStyle.xaml) is the built-in style, and a start for your own:
+
+```xml
+<ResourceDictionary
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <SolidColorBrush x:Key="ShellBackgroundBrush" Color="#1a1b26" />
+  <SolidColorBrush x:Key="ShellForegroundBrush" Color="#a9b1d6" />
+  <SolidColorBrush x:Key="ShellAlertBrush" Color="#f7768e" />
+  <FontFamily x:Key="ShellFontFamily">Consolas</FontFamily>
+  <x:Double x:Key="ShellFontSize">12</x:Double>
+  <x:Double x:Key="ShellSlotSize">26</x:Double>
+
+  <Style TargetType="Button">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="MinWidth" Value="{StaticResource ShellSlotSize}" />
+    <Setter Property="MinHeight" Value="{StaticResource ShellSlotSize}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{StaticResource ShellForegroundBrush}" />
+    <Setter Property="FontFamily" Value="{StaticResource ShellFontFamily}" />
+    <Setter Property="FontSize" Value="{StaticResource ShellFontSize}" />
+  </Style>
+  <Style TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource ShellForegroundBrush}" />
+    <Setter Property="FontFamily" Value="{StaticResource ShellFontFamily}" />
+    <Setter Property="FontSize" Value="{StaticResource ShellFontSize}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style TargetType="FontIcon">
+    <Setter Property="FontFamily" Value="Segoe Fluent Icons,Segoe MDL2 Assets" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+  <Style TargetType="ToolTip">
+    <Setter Property="Background" Value="{StaticResource ShellBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{StaticResource ShellForegroundBrush}" />
+    <Setter Property="FontFamily" Value="{StaticResource ShellFontFamily}" />
+  </Style>
+</ResourceDictionary>
+```
+
+A style with one look whatever the theme uses plain keys, as this one does. A style that changes with the theme puts its brushes in `ResourceDictionary.ThemeDictionaries`, under `Default` for dark, `Light` and `HighContrast`, as the built-in style does.
 
 ## Write a widget
 
@@ -303,7 +375,7 @@ public sealed partial class Message : IDisposable
 
 `text` is the placement's setting. The line is that string followed by a middle dot. A value that is not a string throws [UnsupportedWidgetException](reference/winshell.md#unsupportedwidgetexception), and so does a vertical area. The area shows the widget's name and that reason, and the other placements keep running.
 
-[StylePopup](reference/winshell.md#widgetcontext) wraps content for a [PopupWindow](reference/winshell.md#popupwindow). Assign the result to the popup's `Content`. The wrapper loads the area's theme and follows its font, font size and foreground. The widget still owns the popup: this one disposes the previous popup, and disposes it again with the widget.
+[StylePopup](reference/winshell.md#widgetcontext) wraps content for a [PopupWindow](reference/winshell.md#popupwindow). Assign the result to the popup's `Content`. The wrapper loads the area's style and follows its theme, font, font size and foreground. The widget still owns the popup: this one disposes the previous popup, and disposes it again with the widget.
 
 [ShellWindow.Of](reference/winshell.md#shellwindow) is null in the constructor. The widget is created before its area is in a window, so the screen is read from `Loaded`. Null is the primary screen.
 

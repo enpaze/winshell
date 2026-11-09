@@ -6,7 +6,8 @@ namespace Winshell;
 
 /// <summary>
 /// An ordered area of widgets. Use it on the shell's thread and dispose it when its owner closes. Unloading or
-/// reparenting does not dispose widgets. Font and foreground inherit normally; area-sensitive XAML uses ThemeResource.
+/// reparenting does not dispose widgets. The shell's <see cref="Shell.Style"/>, or the area's own, styles its plain
+/// controls; area-sensitive XAML uses ThemeResource.
 /// Set the inherited Name to match an area in the shell's user placement file. An empty name uses only Defaults.
 /// </summary>
 public sealed partial class WidgetArea : UserControl, IDisposable
@@ -14,19 +15,24 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     private readonly StackPanel _panel = new() { Orientation = Orientation.Horizontal };
     private IReadOnlyList<Placement> _defaults = [];
     private IReadOnlyList<Placement>? _override;
+    private readonly Shell _shell;
     private readonly WidgetPlacements _file;
     private readonly long _nameChanged;
-    private ResourceDictionary? _theme;
+    private Uri? _style;
+    private ResourceDictionary? _styleResources;
     private readonly List<WidgetContext> _contexts = [];
     private bool _disposed;
 
-    internal event Action? ThemeChanged;
+    internal event Action? StyleChanged;
 
-    /// <summary>Creates an empty, horizontal area.</summary>
+    /// <summary>Creates an empty, horizontal area in the shell's style.</summary>
     public WidgetArea()
     {
         Content = _panel;
-        _file = Shell.Current.WidgetPlacements;
+        _shell = Shell.Current;
+        _shell.StyleChanged += FollowShellStyle;
+        LoadStyle();
+        _file = _shell.WidgetPlacements;
         _nameChanged = RegisterPropertyChangedCallback(NameProperty, (_, _) => _file.Changed(this));
         _file.Add(this);
     }
@@ -65,23 +71,39 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     }
 
     /// <summary>
-    /// A ResourceDictionary source URI merged into this area's resources, or null for the inherited theme.
-    /// Changing it replaces only the dictionary this property loaded, leaving the area's other resources intact.
+    /// The source URI of this area's own style, which wins over the shell's, or null for <see cref="Shell.Style"/>.
+    /// Changing it replaces only the dictionary the style loaded, leaving the area's other resources intact. It hides
+    /// the inherited WinUI <c>Style</c>, which a widget area does not use.
     /// </summary>
-    public Uri? Theme
+    public new Uri? Style
     {
-        get => _theme?.Source;
+        get => _style;
         set
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            var next = value is null ? null : new ResourceDictionary { Source = value };
-            if (_theme is not null)
-                Resources.MergedDictionaries.Remove(_theme);
-            _theme = next;
-            if (next is not null)
-                Resources.MergedDictionaries.Add(next);
-            ThemeChanged?.Invoke();
+            _style = value;
+            LoadStyle();
         }
+    }
+
+    /// <summary>The style the area shows: its own, the shell's, or the built-in style for null.</summary>
+    internal Uri? ActiveStyle => _style ?? _shell.Style;
+
+    private void FollowShellStyle()
+    {
+        if (_style is null)
+            LoadStyle();
+    }
+
+    private void LoadStyle()
+    {
+        var next = Shell.LoadStyle(ActiveStyle);
+        if (_styleResources is not null)
+            Resources.MergedDictionaries.Remove(_styleResources);
+        _styleResources = next;
+        // First, so a dictionary the author merged into the area wins over the style.
+        Resources.MergedDictionaries.Insert(0, next);
+        StyleChanged?.Invoke();
     }
 
     internal void ApplyPlacements(IReadOnlyList<Placement>? placements)
@@ -135,6 +157,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         if (_disposed)
             return;
         _disposed = true;
+        _shell.StyleChanged -= FollowShellStyle;
         UnregisterPropertyChangedCallback(NameProperty, _nameChanged);
         _file.Remove(this);
         ClearWidgets();
