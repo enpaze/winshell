@@ -39,7 +39,7 @@ function Get-TestRun {
         }
         else {
             # The local check opens no windows, so any number of them can run at once. The CLI and Shell suites, and
-            # a test elsewhere in the category Window, run only in CI's shards.
+            # a test elsewhere in the category Window, run in CI's shards.
             $run.Projects = @($projects | Where-Object { [IO.Path]::GetFileNameWithoutExtension($_) -notin 'Winshell.Tests', 'Winshell.Shell.Tests' })
             $run.ProjectCount = $run.Projects.Count
             $run.Filter += '&Category!=Window'

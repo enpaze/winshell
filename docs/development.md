@@ -231,7 +231,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 
 | Command | What it does |
 | --- | --- |
-| `pwsh scripts/check.ps1 [-Tier Tests\|Docs\|Package] [-Seed <seed>] [-NoBuild]` | Builds, verifies formatting, and runs the .NET suites that open no windows and the PowerShell suites. See [The full check](#the-full-check). |
+| `pwsh scripts/check.ps1 [-Tier Tests\|Docs\|Package] [-Seed <seed>] [-NoBuild]` | By default, builds, verifies formatting, and runs the .NET tests that open no windows and the PowerShell suites. See [The full check](#the-full-check). |
 | `pwsh -NoProfile scripts/check.ps1 -Lint` | Checks Markdown links and workflows, without building. See [Lint](#lint). |
 | `Invoke-Pester -Path tests/Scripts/<Name>.Tests.ps1` | Runs one of the PowerShell suites `check.ps1` runs, each named after the script or tooling it tests. None changes the checkout or GitHub. Requires Pester 5.6.1 and PowerShell 7; `Install.Tests.ps1` also runs on Windows PowerShell 5.1. |
 | `pwsh -NoProfile scripts/format.ps1 [-VerifyNoChanges]` | Formats handwritten C# files, or verifies them. See [What the formatter covers](#what-the-formatter-covers). |
