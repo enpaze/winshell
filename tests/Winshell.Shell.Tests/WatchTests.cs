@@ -102,6 +102,11 @@ public sealed class WatchTests
             source.First = 2;
             await NextTurn(shell);
             Assert.Equal(before + 1, runs);
+
+            // The watch ended with its window, so loading the control into another does not start it again.
+            using var next = new PanelWindow { Width = 120, Height = 40, Content = text, Visible = true };
+            await Loaded(text);
+            Assert.Equal(before + 1, runs);
             return true;
         });
     }

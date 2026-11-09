@@ -11,9 +11,10 @@ public static class WatchExtensions
     /// <summary>
     /// Runs <paramref name="block"/> now, and again whenever a service property or list it read changes, while
     /// <paramref name="control"/> is loaded. Several changes in one turn run it once, on the control's thread, and a
-    /// change the block makes itself does not run it again. The watch pauses while the control is unloaded or its
-    /// shell window is disposed, and runs again when the control loads. A block that throws is logged under
-    /// <c>watch</c> and runs again on the next change to what it read before the throw. Nothing needs disposing.
+    /// change the block makes itself does not run it again. The watch pauses while the control is unloaded, runs again
+    /// when the control loads, and stops for good when the control's shell window is disposed. A block that throws is
+    /// logged under <c>watch</c> and runs again on the next change to what it read before the throw. Nothing needs
+    /// disposing.
     /// </summary>
     /// <param name="control">The control the block keeps current.</param>
     /// <param name="block">Reads the services and sets the control from them.</param>
@@ -27,7 +28,7 @@ public static class WatchExtensions
 
 /// <summary>
 /// One <see cref="WatchExtensions.Watch"/>. It follows what its block read only while its control is loaded, so a
-/// control that is never shown again holds nothing.
+/// control that is never shown again holds nothing, and it ends with its control's window.
 /// </summary>
 internal sealed class ControlWatch
 {
@@ -38,6 +39,7 @@ internal sealed class ControlWatch
     private ShellWindow? _window;
     private bool _loaded;
     private bool _running;
+    private bool _stopped;
     private int _queued;
 
     public ControlWatch(FrameworkElement control, Action block)
@@ -55,10 +57,12 @@ internal sealed class ControlWatch
 
     private void OnLoaded(object sender, RoutedEventArgs? e)
     {
+        if (_stopped)
+            return;
         _loaded = true;
-        _window?.Disposing -= Pause;
+        _window?.Disposing -= Stop;
         _window = ShellWindow.Of(_control);
-        _window?.Disposing += Pause;
+        _window?.Disposing += Stop;
         Run();
     }
 
@@ -67,16 +71,25 @@ internal sealed class ControlWatch
         Pause();
     }
 
-    /// <summary>
-    /// Stops following until the control loads again. A disposed window's content may unload only later, so the
-    /// window's disposal pauses the watch at once.
-    /// </summary>
+    /// <summary>Stops following until the control loads again.</summary>
     private void Pause()
     {
         _loaded = false;
-        _window?.Disposing -= Pause;
+        _window?.Disposing -= Stop;
         _window = null;
         Follow(Reads.None);
+    }
+
+    /// <summary>
+    /// Stops for good: the control's window is disposed. Its content may unload only later, so this does not wait for
+    /// that, and a later load does not start the watch again.
+    /// </summary>
+    private void Stop()
+    {
+        _stopped = true;
+        _control.Loaded -= OnLoaded;
+        _control.Unloaded -= OnUnloaded;
+        Pause();
     }
 
     private void Run()
