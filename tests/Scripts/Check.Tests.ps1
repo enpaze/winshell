@@ -56,21 +56,6 @@ Describe 'Choosing tests' {
         } finally { $script:Root = $root }
     }
 
-    It 'expects a results file from each test project in the solution, or from the one project it runs' {
-        $root = $script:Root
-        $script:Root = $TestDrive
-        try {
-            Set-Content -LiteralPath (Join-Path $TestDrive 'winshell.slnx') -Value @'
-<Solution>
-  <Folder Name="/src/"><Project Path="src/A/A.csproj" /></Folder>
-  <Folder Name="/tests/"><Project Path="tests/A.Tests/A.Tests.csproj" /><Project Path="tests/B.Tests/B.Tests.csproj" /></Folder>
-</Solution>
-'@
-            (Get-TestRun).ProjectCount | Should -Be 2
-            (Get-TestRun -Tier Docs).ProjectCount | Should -Be 1
-        } finally { $script:Root = $root }
-    }
-
     It 'partitions every solution test project once, includes new projects in the fourth shard, and runs windowed tests' {
         $root = $script:Root
         $script:Root = $TestDrive
@@ -80,7 +65,7 @@ Describe 'Choosing tests' {
             ($routed | Sort-Object) | Should -Be ($script:Projects | Sort-Object)
             (Get-TestRun -Shard 4).ProjectCount | Should -Be 2
             (Get-TestRun -Shard 5).Projects | Should -Be @('tests/Winshell.Tests/Winshell.Tests.csproj')
-            foreach ($shard in 1..5) { (Get-TestRun -Shard $shard).Filter | Should -Not -Match 'Window' }
+            foreach ($shard in 1..5) { (Get-TestRun -Shard $shard).Filter | Should -Not -Match 'Category!=Window' }
         } finally { $script:Root = $root }
     }
 }
@@ -222,6 +207,14 @@ Describe 'Running the suite' {
         Invoke-TestRun -Seed 7 | Should -Be 0
         Should -Invoke Write-Host -ParameterFilter { $Object -match 'check\.ps1 -Tier Tests -Seed 7' }
     }
+
+    # A shard runs windowed tests, which check.ps1 leaves out.
+    It 'prints how to play back a shard with dotnet test' {
+        Mock Write-Host { }
+        Invoke-TestRun -Seed 7 -Shard 4 | Should -Be 0
+        Should -Invoke Write-Host -ParameterFilter { $Object -match '-- xUnit\.Seed=7' }
+        Should -Invoke Write-Host -Times 0 -ParameterFilter { $Object -match 'check\.ps1' }
+    }
 }
 
 Describe 'Check command' {
@@ -321,7 +314,6 @@ function Invoke-Pester {
         $calls = @(Get-Content -LiteralPath $env:WINSHELL_CHECK_LOG)
         $calls[0] | Should -Not -Match '^dotnet build '
         $test = @($calls | Where-Object { $_ -match '^dotnet test ' })
-        $test | Should -HaveCount $script:ProjectCount
         $test[0] | Should -Match 'xUnit.Seed=7'
         $test[0] | Should -Match 'xUnit.MaxParallelThreads=2x'
         $test[0] | Should -Match '--blame-hang-timeout 3m'

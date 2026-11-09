@@ -253,7 +253,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 
 `pwsh scripts/check.ps1` builds with warnings as errors, verifies formatting, compiles the template against source libraries, builds `scripts/generate-reference.cs` as the program it runs as, and runs every PowerShell 7 suite in `tests/Scripts/` and the .NET tests that open no windows: every test project but `Winshell.Shell.Tests` and `Winshell.Tests`, one after another, leaving out the category `Window`.
 
-It opens no windows, so any number of agents can run it at once. Only CI runs the [windowed tests](#a-windowed-test).
+It opens no windows, so any number of agents can run it at once. CI runs the [windowed tests](#a-windowed-test) on every PR.
 
 | Option | What it does |
 | --- | --- |
@@ -367,7 +367,7 @@ The `changes` job selects checks for PRs and pushes to `main`:
 | Job | When it runs | How to run it locally |
 | --- | --- | --- |
 | `installer` | PRs and pushes to `main` that change `scripts/`, `tests/Scripts/` or workflows/actions. | Windows PowerShell 5.1 runs `tests/Scripts/Install.Tests.ps1` with Pester 5.6.1 against temporary profiles and releases served on loopback. PowerShell 7 tooling suites run once in `quality`. |
-| `tests (1/5)` through `tests (5/5)` | Non-draft PRs and pushes to `main` that change more than docs or Markdown, in `ci.yml`. Results feed the one required `ci` check. | The whole .NET suite but `Category=Package`, the windowed tests included. See [Test shards](#test-shards). |
+| `tests (1/5)` through `tests (5/5)` | Non-draft PRs and pushes to `main` that change more than docs or Markdown, in `ci.yml`. Results feed the one required `ci` check. | `pwsh scripts/check.ps1` for the tests that open no windows, and [A windowed test](#a-windowed-test) for the rest. See [Test shards](#test-shards). |
 | `close-fixed-issues` | Every merged pull request, in `close-fixed-issues.yml`. Not required. | Nothing to run. Once the merge commit is on `main`, it closes each issue the pull request fixes that GitHub left open, with a comment naming the pull request. |
 | `pr-size` | Every pull request, from `pr-size.yml` on the base branch. Not required. | Nothing to run. It labels the pull request `size:XS` to `size:XL`, as "PR description" in `CONTRIBUTING.md` says. |
 | `trim-caches` | Every push to `main`, after `ci`, in `ci.yml` | Nothing to run. It deletes all but the two newest CodeQL databases of each language from the Actions cache, which would otherwise pass the 10 GB GitHub keeps. |
@@ -617,7 +617,7 @@ To submit a release:
 ├── tests/
 │   ├── Winshell.Architecture.Tests/ # The layer and feature backend boundaries, and no hand-written unsafe code in WinUI projects
 │   ├── Winshell.Core.Tests/         # The log, TOML files, crash reports and file helpers
-│   ├── Winshell.Services.Tests/     # The services, with no window but the category Window
+│   ├── Winshell.Services.Tests/     # The services; only the category Window opens a window
 │   ├── Winshell.Shell.Tests/        # Boots a real shell, opens real windows, and proves the event-loop contract
 │   ├── Winshell.Tests/              # Runs winshell.exe instances side by side
 │   ├── Winshell.Package.Tests/      # Packs the template and runs its shell; Category=Package, left out of the main run

@@ -24,7 +24,7 @@ Scripts are PowerShell 7; `scripts/install.ps1` and `scripts/uninstall.ps1` also
 ## Before you push
 
 - Build the ticket with `tdd`. A test you write, change or review passes the installed `test-audit` skill and [Where a test belongs](CONTRIBUTING.md#where-a-test-belongs).
-- Run the [checks for the change](docs/development.md#checks-by-change). The full check opens no windows, so run it alongside other agents. The windowed tests run only in CI; to run one on purpose, follow [A windowed test](docs/development.md#a-windowed-test).
+- Run the [checks for the change](docs/development.md#checks-by-change). The full check runs only the tests that open no windows, so it runs alongside other agents; CI runs the windowed ones, and [A windowed test](docs/development.md#a-windowed-test) says how to run one on purpose.
 - Before opening the PR, review the diff with `code-review`, from `origin/main` or the branch below yours in a stack. Fix what it finds and run it again, until it finds nothing.
 - Open the PR as [Open a PR](CONTRIBUTING.md#open-a-pr) describes, and own it until `gh pr view <number> --json state --jq .state` prints `MERGED`. A delegate hands it to its lead instead.
 

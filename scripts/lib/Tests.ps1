@@ -105,7 +105,8 @@ function Invoke-TestRun {
         [string] $ResultsDirectory
     )
     if ($Seed -eq 0) { $Seed = Get-Random -Minimum 1 -Maximum ([int]::MaxValue) }
-    Write-Host "Test order seed: $Seed. To run this order again: pwsh scripts/check.ps1 -Tier $Tier -Seed $Seed"
+    $replay = if ($Shard -gt 0) { "end a dotnet test command with -- xUnit.Seed=$Seed" } else { "pwsh scripts/check.ps1 -Tier $Tier -Seed $Seed" }
+    Write-Host "Test order seed: $Seed. To run this order again: $replay"
     # A caller-supplied parent retains even a crashed run's evidence. A unique child prevents stale results from
     # satisfying the missing-project guard when the parent was used before. Local runs still clean up automatically.
     $parent = if ($ResultsDirectory) { $ResultsDirectory } else { [IO.Path]::GetTempPath() }
