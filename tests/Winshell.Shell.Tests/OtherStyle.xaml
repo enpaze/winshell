@@ -7,7 +7,6 @@
   <FontFamily x:Key="ShellFontFamily">Consolas</FontFamily>
   <x:Double x:Key="ShellFontSize">18</x:Double>
   <x:Double x:Key="ShellSlotSize">40</x:Double>
-  <x:Double x:Key="ShellPadding">10</x:Double>
 
   <Style TargetType="Button">
     <Setter Property="Background" Value="Transparent" />

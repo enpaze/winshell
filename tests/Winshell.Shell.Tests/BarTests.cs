@@ -297,10 +297,20 @@ public sealed class BarTests
                     Start = [widget],
                     End = [widget]
                 };
+                using var bottom = new Bar
+                {
+                    Name = "bottom" + Guid.NewGuid().ToString("N"),
+                    Edge = Edges.Bottom,
+                    Reserve = false,
+                    Style = new Uri("ms-appx:///OtherStyle.xaml"),
+                    Start = [widget],
+                    End = [widget]
+                };
                 await NextTurn(shell);
                 var bars = BarsOn(shell, screen);
 
-                var (start, end) = await Ends(Assert.Single(bars, window => window.Anchors.HasFlag(Edges.Right)));
+                var (start, end) =
+                    await Ends(Assert.Single(bars, window => window.Anchors == (Edges.Top | Edges.Left | Edges.Right)));
                 Assert.Equal(12, start.X, 0.5);
                 Assert.Equal(12, end.X, 0.5);
                 Assert.Equal(0, start.Y, 0.5);
@@ -310,6 +320,12 @@ public sealed class BarTests
                 (start, end) = await Ends(Assert.Single(bars, window => !window.Anchors.HasFlag(Edges.Right)));
                 Assert.Equal(4, start.Y, 0.5);
                 Assert.Equal(4, end.Y, 0.5);
+                Assert.Equal(0, start.X, 0.5);
+                Assert.Equal(0, end.X, 0.5);
+
+                // A style with no ShellPadding gives a bar none.
+                (start, end) =
+                    await Ends(Assert.Single(bars, window => window.Anchors == (Edges.Bottom | Edges.Left | Edges.Right)));
                 Assert.Equal(0, start.X, 0.5);
                 Assert.Equal(0, end.X, 0.5);
             }

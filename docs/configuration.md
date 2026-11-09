@@ -401,7 +401,7 @@ A style defines these keys, which a bar, a widget and its popups read with `{The
 | `ShellFontFamily` | `FontFamily` | Text | Segoe UI Variable Text, then Segoe UI |
 | `ShellFontSize` | `Double` | Text | 14 |
 | `ShellSlotSize` | `Double` | One button, and the thickness of a bar | 32 |
-| `ShellPadding` | `Double` | The space at each end of a bar | 4 |
+| `ShellPadding` | `Double` | The space at each end of a bar. Optional: a style without it gives bars none. | 4 |
 
 It also defines implicit styles, with no `x:Key`, for the plain controls a widget is made of. They apply inside a widget area, in a surface and in a popup styled with `context.StylePopup`, so a widget that is a `Button` holding a `FontIcon` looks right with no lookup:
 
