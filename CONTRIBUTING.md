@@ -1,5 +1,18 @@
 # Contributing
 
+## Where the standards live
+
+A change is held to these, by people and by the `code-review` skill:
+
+- [How we build](AGENTS.md#how-we-build): the owner's notes on simple systems and scope.
+- [The architecture](docs/architecture.md): the layers, their boundaries and the sealed interop.
+- [Formatting and style](docs/development.md#formatting-and-style): C# whitespace, code style, names and XAML.
+- The test rules: [Where a test belongs](#where-a-test-belongs), [Write tests that don't flake](#write-tests-that-dont-flake), and the installed `test-audit` skill.
+- [The glossary](GLOSSARY.md): the words to name things with.
+- [The ADRs](docs/adr/): the decisions already made.
+
+## Run the checks
+
 The [development runbook](docs/development.md) covers the prerequisites, the first checkout, and every command. Before every push, run the [checks for the change](docs/development.md#checks-by-change): prose-only changes need lint; compiled documentation needs its targeted tests; other changes need the full check.
 
 ## Where a test belongs
@@ -45,7 +58,7 @@ Nothing retries a test and nothing sets one aside. A test that fails sometimes i
 
 `<type>/<short-description>`, lowercase, using a type from the table below. For example, `fix/duplicate-orders` or `feat/csv-export`.
 
-An AI agent names its branch `agent/<tool>/<issue#>-<slug>` instead, after the task's issue, such as `agent/claude/123-tray-overflow`.
+An AI agent names its branch `agent/<tool>/<issue#>-<slug>` instead, after its ticket, such as `agent/claude/123-tray-overflow`.
 
 ### PR title
 
@@ -114,7 +127,7 @@ One PR at a time changes a shared file. `gh pr list --json number,headRefName,fi
 You own the PR until it merges:
 
 - Fix every failing check, and re-run a cancelled one with `gh run rerun <run-id>`.
-- For a standalone PR, enable auto-merge with `gh pr merge <number> --squash --auto`. A delegated one goes to its lead, as [Lead a set of tasks](docs/agents/lead.md) describes.
+- For a standalone PR, enable auto-merge with `gh pr merge <number> --squash --auto`. A delegated one goes to its lead, as [the lead page](docs/agents/lead.md) describes.
 - Confirm `gh pr view <number> --json state --jq .state` prints `MERGED`.
-- Whoever sees it to `MERGED` then removes the task's worktree and local branch.
+- Whoever sees it to `MERGED` then removes the ticket's worktree and local branch.
 - Keep `release-please--branches--main`: it is the release bot's branch, and deleting it closes the open release PR.
