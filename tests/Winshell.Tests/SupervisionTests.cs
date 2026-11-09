@@ -84,6 +84,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
     /// test's own local folder, never to the user's crash folder.
     /// </summary>
     [Fact]
+    [Trait("Category", "Window")]
     public void A_crash_as_the_shell_starts_writes_one_report_and_leaves_no_running_instance()
     {
         File.WriteAllText(Path.Combine(_dir, "config", ProbeShell.CrashMarker), "");
@@ -112,6 +113,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public void A_crashed_shell_starts_again_with_the_taskbar_back()
     {
         Assert.False(_taskbarHidden, "Explorer's taskbar was hidden before the test.");

@@ -135,11 +135,11 @@ After the merge, confirm each layer's issue is closed with `gh issue view <issue
 dotnet test tests/Winshell.Core.Tests --filter FullyQualifiedName~DirectoryWatchTests
 ```
 
-`--filter` takes a class or a test name. `Winshell.Architecture.Tests`, `Winshell.Core.Tests`, `Winshell.Services.Tests` and `Winshell.Shell.Tests` open no windows, so they're safe to run while you work, except for a test in the category `Window`, such as `FocusTakeoverTests` in the Services suite or `PanelWindowTests` in the Shell suite. `--filter Category!=Window` leaves those out.
+`--filter` takes a class or a test name. `Winshell.Architecture.Tests`, `Winshell.Core.Tests`, `Winshell.Services.Tests`, `Winshell.Shell.Tests` and `Winshell.Tests` open no windows, so they're safe to run while you work, except for a test in the category `Window`, such as `FocusTakeoverTests` in the Services suite, `PanelWindowTests` in the Shell suite or `InspectCommandTests` in the CLI suite. `--filter Category!=Window` leaves those out.
 
 ### A windowed test
 
-A test is windowed when it shows a window on the desktop, takes the foreground, or sends real input. `Winshell.Tests` is windowed whole, and a windowed test in any other project carries `[Trait("Category", "Window")]`. The full check leaves them all out, and CI's [test shards](#test-shards) run them on every PR.
+A test is windowed when it shows a window on the desktop, takes the foreground, or sends real input. It carries `[Trait("Category", "Window")]`. The full check leaves them all out, and CI's [test shards](#test-shards) run them on every PR.
 
 To run one on purpose, such as a test you changed, to see it fail and then pass, follow [Live UI with Winland running](#live-ui-with-winland-running):
 
@@ -252,7 +252,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 
 ### The full check
 
-`pwsh scripts/check.ps1` builds with warnings as errors, verifies formatting, compiles the template against source libraries, builds `scripts/generate-reference.cs` as the program it runs as, and runs every PowerShell 7 suite in `tests/Scripts/` and the .NET tests that open no windows: every test project but `Winshell.Tests`, one after another, leaving out the category `Window`.
+`pwsh scripts/check.ps1` builds with warnings as errors, verifies formatting, compiles the template against source libraries, builds `scripts/generate-reference.cs` as the program it runs as, and runs every PowerShell 7 suite in `tests/Scripts/` and the .NET tests that open no windows: every test project, one after another, leaving out the category `Window`.
 
 It opens no windows, so any number of agents can run it at once. CI runs the [windowed tests](#a-windowed-test) on every PR.
 
@@ -620,7 +620,7 @@ To submit a release:
 │   ├── Winshell.Core.Tests/         # The log, TOML files, crash reports and file helpers
 │   ├── Winshell.Services.Tests/     # The services; only the category Window opens a window
 │   ├── Winshell.Shell.Tests/        # A real shell and the event-loop contract; only the category Window opens a window
-│   ├── Winshell.Tests/              # Runs winshell.exe instances side by side
+│   ├── Winshell.Tests/              # Runs winshell.exe instances side by side; only the category Window opens a window
 │   ├── Winshell.Package.Tests/      # Packs the template and runs its shell; Category=Package, left out of the main run
 │   ├── Scripts/                     # PowerShell tooling tests and their fixtures
 │   ├── TestSupport/                 # Source files every test project links instead of copying

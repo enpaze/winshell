@@ -64,6 +64,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
     }
 
     [Fact(Timeout = BuildTimeout)]
+    [Trait("Category", "Window")]
     public void A_build_that_fails_leaves_the_instance_running()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
@@ -115,6 +116,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
     /// a crash, with the taskbar that shell hid back.
     /// </summary>
     [Fact(Timeout = BuildTimeout)]
+    [Trait("Category", "Window")]
     public void A_reload_under_winshell_run_stays_supervised()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
