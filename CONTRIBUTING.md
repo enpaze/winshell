@@ -42,7 +42,7 @@ Nothing retries a test and nothing sets one aside. A test that fails sometimes i
 
 `<type>/<short-description>`, lowercase, using a type from the table below. For example, `fix/duplicate-orders` or `feat/csv-export`.
 
-An AI agent names its branch `agent/<tool>/<issue#>-<slug>` instead, such as `agent/claude/123-tray-overflow`, as [AGENTS.md](AGENTS.md#parallel-work) describes.
+An AI agent names its branch `agent/<tool>/<issue#>-<slug>` instead, after the task's issue, such as `agent/claude/123-tray-overflow`.
 
 ### PR title
 
@@ -83,3 +83,15 @@ Fill in the PR template. An AI agent writes the body with the installed `pr` ski
 - **Agent**: if an AI agent wrote the PR, the model and the harness, such as "Claude Opus 5.5 in Claude Code".
 
 The `pr-size` job labels each pull request `size:XS` to `size:XL` by its changed lines: XS under 10, S under 30, M under 100, L under 500, and XL 500 or more. Lines in `tests/` count only when nothing else changed.
+
+## Conflicts and merging
+
+`main` has no merge queue and doesn't require a PR to be up to date, so two PRs that each pass can break `main` together.
+
+One PR at a time changes a shared file: a `Directory.*` build file such as `Directory.Packages.props` or `Directory.Build.targets`, `global.json`, `nuget.config`, `.editorconfig`, `winshell.slnx`, `src/BannedSymbols.txt`, `BannedSymbols.Interop.txt`, `tests/TestSupport/`, a lockfile, or a type more than one module uses. `gh pr list --json number,headRefName,files` shows what open PRs touch.
+
+1. When your PR conflicts with `main`, rebase onto the latest `origin/main` (a stacked PR runs `gh stack rebase`); never merge `main` into your branch. Force-push only your own PR branch, with `git push --force-with-lease origin HEAD`, never `main`.
+2. Resolve each conflict by intent: find the PR that changed the same code with `git log --oneline <your-branch>..origin/main -- <file>`, read it, and keep both behaviors. Taking "ours" or "theirs" wholesale is never a resolution.
+3. If both sides change the same behavior, run `git rebase --abort`, comment on your PR naming the other PR and the collision, and escalate to the lead thread, or to the user if there is none, instead of guessing.
+4. Run the [checks for the change](docs/development.md#checks-by-change) again before you push, even after a clean rebase: it can still break logic.
+5. You own the PR until it merges: fix every failing check, re-run a cancelled one with `gh run rerun <run-id>`, and confirm `gh pr view <number> --json state --jq .state` prints `MERGED`. For a standalone PR, enable auto-merge with `gh pr merge <number> --squash --auto`; a delegated one goes to its lead, as [Lead a set of tasks](docs/agents/lead.md) describes. Whoever sees it to `MERGED` then removes the task's worktree and local branch. Keep `release-please--branches--main`: it is the release bot's branch, and deleting it closes the open release PR.
