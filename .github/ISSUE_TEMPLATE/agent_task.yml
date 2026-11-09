@@ -1,19 +1,19 @@
 name: Agent task
-description: One task an agent can finish in one pull request.
+description: One ticket, which one pull request builds and closes.
 labels:
-  - needs-triage
+  - ready-for-agent
 body:
   - type: markdown
     attributes:
       value: |
-        One task is one issue, one branch and one pull request. Keep it small enough that it touches no other open task's files.
-        Label the issue with the `area:` label of each area you pick.
+        A ticket has these sections whether `/to-tickets` wrote it or you fill in this form.
+        Label the issue with the `area:` label of the area you pick. If the ticket belongs to a spec, make it a sub-issue of the spec and add its blockers as blocked-by links.
 
   - type: textarea
-    id: goal
+    id: what-to-build
     attributes:
-      label: Goal
-      description: What should be true when this is done, and why? Describe the behavior, not the implementation.
+      label: What to build
+      description: The end-to-end behavior this ticket makes work, from the user's side, not a list of changes layer by layer.
     validations:
       required: true
 
@@ -29,24 +29,17 @@ body:
       required: true
 
   - type: textarea
-    id: files
+    id: blocked-by
     attributes:
-      label: Files it may touch
-      description: |
-        Paths or globs, tests included. Name a shared file, such as a Directory.*.props, global.json or winshell.slnx, only if the task
-        must change it; one pull request at a time changes those.
-      placeholder: |
-        src/Winshell.Services/Tray/**
-        tests/Winshell.Services.Tests/*Tray*Tests.cs
-    validations:
-      required: true
+      label: Blocked by
+      description: Each ticket that must close before this one can start.
+      placeholder: None (can start immediately)
 
   - type: dropdown
     id: area
     attributes:
       label: Area
       description: Each area is an `area:` label. A test or a doc page belongs to the area it covers.
-      multiple: true
       options:
         - cli (src/Winshell)
         - services (src/Winshell.Services)
