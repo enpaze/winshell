@@ -26,56 +26,56 @@ public sealed class BluetoothDevice : ObservableObject
     internal string Key => _info.Key;
 
     /// <summary>The Windows id of the device's endpoint, a paired one when there is one.</summary>
-    public string Id => _info.Id;
+    public string Id => Read(_info).Id;
 
     /// <summary>The adapter that found the device.</summary>
-    public BluetoothAdapter Adapter { get; }
+    public BluetoothAdapter Adapter { get => Read(field); }
 
     /// <summary>The device's Bluetooth address, in capital letters. Empty when Windows gives none.</summary>
-    public string Address => _info.Address;
+    public string Address => Read(_info).Address;
 
     /// <summary>The device's name, or its <see cref="Address"/> when Windows gives no name.</summary>
-    public string Name => _info.Name;
+    public string Name => Read(_info).Name;
 
     /// <summary>A device-type name, such as <c>audio-headset</c> or <c>input-keyboard</c>. Empty when Windows reports no class, or a class that has no name.</summary>
-    public string Icon => _info.Icon;
+    public string Icon => Read(_info).Icon;
 
     /// <summary>Whether the device is paired with this PC.</summary>
-    public bool Paired => _info.Paired;
+    public bool Paired => Read(_info).Paired;
 
     /// <summary>Whether Windows sees the device now. A paired device that is off or out of range is not.</summary>
-    public bool Present => _info.Present;
+    public bool Present => Read(_info).Present;
 
     /// <summary>Whether the device is not paired and Windows says it can be, so <see cref="Pair"/> can work.</summary>
-    public bool CanPair => _info is { Paired: false, CanPair: true };
+    public bool CanPair => Read(_info) is { Paired: false, CanPair: true };
 
     /// <summary>Whether the device is connected.</summary>
-    public bool Connected => _info.Connected;
+    public bool Connected => Read(_info).Connected;
 
     /// <summary><see cref="Connected"/>, as a state.</summary>
     public BluetoothDeviceState State =>
-        _info.Connected ? BluetoothDeviceState.Connected : BluetoothDeviceState.Disconnected;
+        Read(_info).Connected ? BluetoothDeviceState.Connected : BluetoothDeviceState.Disconnected;
 
     /// <summary>Whether Windows reports the device's battery level. Only a connected device can have one.</summary>
-    public bool BatteryAvailable => _info.Battery.HasValue;
+    public bool BatteryAvailable => Read(_info).Battery.HasValue;
 
     /// <summary>The battery level, from 0 to 1. 0 when <see cref="BatteryAvailable"/> is false.</summary>
-    public double Battery => _info.Battery ?? 0;
+    public double Battery => Read(_info).Battery ?? 0;
 
     /// <summary>The action running on the device, or <see cref="BluetoothOperation.None"/>.</summary>
-    public BluetoothOperation Operation => _operation;
+    public BluetoothOperation Operation => Read(_operation);
 
     /// <summary>An action is running. Other actions are ignored until it ends.</summary>
-    public bool Busy => _operation != BluetoothOperation.None;
+    public bool Busy => Read(_operation) != BluetoothOperation.None;
 
     /// <summary>Whether <see cref="Pair"/> is running. <see cref="CancelPairing"/> stops it.</summary>
-    public bool Pairing => _operation == BluetoothOperation.Pairing;
+    public bool Pairing => Read(_operation) == BluetoothOperation.Pairing;
 
     /// <summary>
     /// Why the last action failed, or <c>Cancelled</c> after <see cref="CancelPairing"/>. Empty while an action runs
     /// and after one succeeds.
     /// </summary>
-    public string Error => _error;
+    public string Error => Read(_error);
 
     /// <summary>Asks Windows to connect a paired audio device. Fails for other device types, which reconnect through Windows.</summary>
     public void Connect()

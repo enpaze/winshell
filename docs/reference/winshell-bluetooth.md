@@ -93,13 +93,13 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `Adapters` | ObservableCollection of [BluetoothAdapter](#bluetoothadapter), read-only | Only the DefaultAdapter, or empty when there is none. |
+| `Adapters` | ObservableList of [BluetoothAdapter](#bluetoothadapter), read-only | Only the DefaultAdapter, or empty when there is none. |
 | `DefaultAdapter` | [BluetoothAdapter](#bluetoothadapter)?, read-only | The default adapter Windows returns, or null when there is none. |
-| `Devices` | ObservableCollection of [BluetoothDevice](#bluetoothdevice), read-only | The paired devices and the nearby ones found during discovery: connected first, then paired, then by name. Empty when there is no adapter. |
+| `Devices` | ObservableList of [BluetoothDevice](#bluetoothdevice), read-only | The paired devices and the nearby ones found during discovery: connected first, then paired, then by name. Empty when there is no adapter. |
 | `Discovering` | bool, read-only | Whether Windows is looking for nearby devices, after StartDiscovery. |
 | `Error` | string, read-only | Why the last read, or starting or stopping discovery, failed. Empty when it succeeded. |
-| `NearbyDevices` | ObservableCollection of [BluetoothDevice](#bluetoothdevice), read-only | The present unpaired devices found during discovery. |
-| `PairedDevices` | ObservableCollection of [BluetoothDevice](#bluetoothdevice), read-only | The paired devices, in the order of Devices. |
+| `NearbyDevices` | ObservableList of [BluetoothDevice](#bluetoothdevice), read-only | The present unpaired devices found during discovery. |
+| `PairedDevices` | ObservableList of [BluetoothDevice](#bluetoothdevice), read-only | The paired devices, in the order of Devices. |
 | `Ready` | bool, read-only | A read has completed. A completed read can have no adapter. |
 | `OperationFailed` | Action of string | Starting or stopping discovery failed. |
 | `Dispose()` | void | Stops monitoring and discovery, and cancels a running pairing. |

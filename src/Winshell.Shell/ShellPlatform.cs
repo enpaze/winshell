@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Security;
 using Microsoft.UI.Composition.SystemBackdrops;
@@ -36,7 +35,7 @@ internal sealed partial class ShellPlatform : IDisposable
     {
         Loop = loop;
         Log = log;
-        Screens = new ObservableCollection<ScreenInfo>(Winshell.Screens.Enumerate().Select(m => m.Info));
+        Screens = new ObservableList<ScreenInfo>(Winshell.Screens.Enumerate().Select(m => m.Info));
         ReadTheme();
         _uiSettings = new UISettings();
         _uiSettings.ColorValuesChanged += OnColorValuesChanged;
@@ -58,7 +57,7 @@ internal sealed partial class ShellPlatform : IDisposable
 
     public Log Log { get; }
 
-    public ObservableCollection<ScreenInfo> Screens { get; }
+    public ObservableList<ScreenInfo> Screens { get; }
 
     internal OutsideClicks OutsideClicks { get; }
 

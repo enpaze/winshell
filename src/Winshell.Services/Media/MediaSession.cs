@@ -62,43 +62,45 @@ public sealed class MediaSession : ObservableObject
     internal SmtcSession Native => _session;
 
     /// <summary>Whether the app accepts <see cref="Play"/>.</summary>
-    public bool CanPlay => _session.CanPlay;
+    public bool CanPlay => Read(_session).CanPlay;
 
     /// <summary>Whether the app accepts <see cref="Pause"/>.</summary>
-    public bool CanPause => _session.CanPause;
+    public bool CanPause => Read(_session).CanPause;
 
     /// <summary>Whether the app accepts <see cref="Stop"/>.</summary>
-    public bool CanStop => _session.CanStop;
+    public bool CanStop => Read(_session).CanStop;
 
     /// <summary>
     /// Whether <see cref="TogglePlaying"/> can work: <see cref="CanPause"/> while playing, <see cref="CanPlay"/>
     /// otherwise.
     /// </summary>
-    public bool CanTogglePlaying => IsPlaying ? _session.CanPause : _session.CanPlay;
+    public bool CanTogglePlaying => Read(_session).PlaybackState == MediaPlaybackState.Playing ? _session.CanPause : _session.CanPlay;
 
     /// <summary>Whether the app accepts a new <see cref="Position"/> and <see cref="Seek"/>.</summary>
-    public bool CanSeek => _session.CanSeek;
+    public bool CanSeek => Read(_session).CanSeek;
 
     /// <summary>Whether the app accepts <see cref="Next"/>.</summary>
-    public bool CanGoNext => _session.CanGoNext;
+    public bool CanGoNext => Read(_session).CanGoNext;
 
     /// <summary>Whether the app accepts <see cref="Previous"/>.</summary>
-    public bool CanGoPrevious => _session.CanGoPrevious;
+    public bool CanGoPrevious => Read(_session).CanGoPrevious;
 
     /// <summary>True when the session accepts at least one playback command.</summary>
-    public bool CanControl => CanPlay || CanPause || CanStop || CanSeek || CanGoNext || CanGoPrevious;
+    public bool CanControl => Read(_session).CanPlay || _session.CanPause || _session.CanStop || _session.CanSeek ||
+                              _session.CanGoNext || _session.CanGoPrevious;
 
     /// <summary>
     /// True when <see cref="SwitchTo"/> knows how to find the app: a Store app, or a program whose
     /// <see cref="AppId"/> is its file name.
     /// </summary>
-    public bool CanSwitchTo => AppIdentity.IsPackaged(AppId) || AppIdentity.ProgramName(AppId) is not null;
+    public bool CanSwitchTo => AppIdentity.IsPackaged(Read(_session).AppId) ||
+                               AppIdentity.ProgramName(_session.AppId) is not null;
 
     /// <summary>The name Windows shows for the app.</summary>
-    public string AppName => _session.AppName;
+    public string AppName => Read(_session).AppName;
 
     /// <summary>The app's AppUserModelID, such as <c>Spotify.exe</c> or a Store app's id.</summary>
-    public string AppId => _session.AppId;
+    public string AppId => Read(_session).AppId;
 
     /// <summary>
     /// Where playback is in the track, in seconds. It counts forward while playing, but a change is only raised
@@ -107,7 +109,7 @@ public sealed class MediaSession : ObservableObject
     /// </summary>
     public double Position
     {
-        get => _session.PositionNow();
+        get => Read(_session).PositionNow();
         set
         {
             if (!_session.PositionSupported)
@@ -127,13 +129,13 @@ public sealed class MediaSession : ObservableObject
     }
 
     /// <summary>Whether the app reports where playback is. When false, <see cref="Position"/> is 0.</summary>
-    public bool PositionSupported => _session.PositionSupported;
+    public bool PositionSupported => Read(_session).PositionSupported;
 
     /// <summary>The track's length in seconds. When the app does not report one, it is the same as <see cref="Position"/>.</summary>
-    public double Length => _session.LengthSupported ? _session.Length : _session.PositionNow();
+    public double Length => Read(_session).LengthSupported ? _session.Length : _session.PositionNow();
 
     /// <summary>Whether the app reports the track's length.</summary>
-    public bool LengthSupported => _session.LengthSupported;
+    public bool LengthSupported => Read(_session).LengthSupported;
 
     /// <summary>
     /// The track as Windows reports it: <c>title</c>, <c>artist</c>, <c>album</c> and <c>albumArtist</c>, and when the
@@ -145,7 +147,7 @@ public sealed class MediaSession : ObservableObject
         {
             var metadata = new Dictionary<string, object?>
             {
-                ["title"] = _session.Title,
+                ["title"] = Read(_session).Title,
                 ["artist"] = _session.Artist,
                 ["album"] = _session.Album,
                 ["albumArtist"] = _session.AlbumArtist
@@ -163,27 +165,27 @@ public sealed class MediaSession : ObservableObject
     }
 
     /// <summary>A number that goes up by one each time the title, artist or album changes.</summary>
-    public uint UniqueId => _session.UniqueId;
+    public uint UniqueId => Read(_session).UniqueId;
 
     /// <summary>The track's title. Empty when the app gives none.</summary>
-    public string TrackTitle => _session.Title;
+    public string TrackTitle => Read(_session).Title;
 
     /// <summary>The track's artist. Empty when the app gives none.</summary>
-    public string TrackArtist => _session.Artist;
+    public string TrackArtist => Read(_session).Artist;
 
     /// <summary>The track's album. Empty when the app gives none.</summary>
-    public string TrackAlbum => _session.Album;
+    public string TrackAlbum => Read(_session).Album;
 
     /// <summary>The artist of the track's album. Empty when the app gives none.</summary>
-    public string TrackAlbumArtist => _session.AlbumArtist;
+    public string TrackAlbumArtist => Read(_session).AlbumArtist;
 
     /// <summary>A <c>file:///</c> url of the art Windows gives, written to the temp folder.</summary>
-    public string TrackArtUrl => _session.ArtUrl;
+    public string TrackArtUrl => Read(_session).ArtUrl;
 
     /// <summary>Setting it calls <see cref="Play"/>, <see cref="Pause"/> or <see cref="Stop"/>.</summary>
     public MediaPlaybackState PlaybackState
     {
-        get => _session.PlaybackState;
+        get => Read(_session).PlaybackState;
         set
         {
             if (value == PlaybackState)
@@ -218,7 +220,7 @@ public sealed class MediaSession : ObservableObject
     /// <summary>True while playing. Setting it plays or pauses.</summary>
     public bool IsPlaying
     {
-        get => PlaybackState == MediaPlaybackState.Playing;
+        get => Read(_session).PlaybackState == MediaPlaybackState.Playing;
         set
         {
             if (value != IsPlaying)
@@ -232,7 +234,7 @@ public sealed class MediaSession : ObservableObject
     /// </summary>
     public MediaLoopState LoopState
     {
-        get => _session.LoopState;
+        get => Read(_session).LoopState;
         set
         {
             if (!_session.LoopSupported)
@@ -254,12 +256,12 @@ public sealed class MediaSession : ObservableObject
     }
 
     /// <summary>Whether the app accepts a new <see cref="LoopState"/>.</summary>
-    public bool LoopSupported => _session.LoopSupported;
+    public bool LoopSupported => Read(_session).LoopSupported;
 
     /// <summary>The playback speed; 1 is normal.</summary>
     public double Rate
     {
-        get => _session.Rate;
+        get => Read(_session).Rate;
         set
         {
             // Exact rate stored for this session. A nearby value is still a new request.
@@ -277,10 +279,10 @@ public sealed class MediaSession : ObservableObject
     }
 
     /// <summary>Windows does not say which rates an app accepts; these are the common ones when it takes any.</summary>
-    public double MinRate => _session.RateSupported ? 0.25 : 1;
+    public double MinRate => Read(_session).RateSupported ? 0.25 : 1;
 
     /// <summary>The fastest <see cref="Rate"/> to set: 4 when the app accepts rate changes, otherwise 1.</summary>
-    public double MaxRate => _session.RateSupported ? 4 : 1;
+    public double MaxRate => Read(_session).RateSupported ? 4 : 1;
 
     /// <summary>
     /// Whether the app plays in shuffled order. False when <see cref="ShuffleSupported"/> is false, and then setting
@@ -288,7 +290,7 @@ public sealed class MediaSession : ObservableObject
     /// </summary>
     public bool Shuffle
     {
-        get => _session.Shuffle;
+        get => Read(_session).Shuffle;
         set
         {
             if (!_session.ShuffleSupported)
@@ -302,7 +304,7 @@ public sealed class MediaSession : ObservableObject
     }
 
     /// <summary>Whether the app accepts a new <see cref="Shuffle"/>.</summary>
-    public bool ShuffleSupported => _session.ShuffleSupported;
+    public bool ShuffleSupported => Read(_session).ShuffleSupported;
 
     /// <summary>The track changed. It comes before the track's properties are updated.</summary>
     public event Action? TrackChanged;

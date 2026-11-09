@@ -152,6 +152,14 @@ internal static class ShellFixture
         return sized.Task;
     }
 
+    /// <summary>What the shell has logged so far.</summary>
+    public static string ReadLog(Shell shell)
+    {
+        using var stream = InstanceLog.OpenToRead(shell.LogPath);
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
+    }
+
     /// <summary>The names of the windows <paramref name="test"/>'s turns on the shell left open.</summary>
     internal static List<string> LeftOpenBy(IXunitTest test)
     {

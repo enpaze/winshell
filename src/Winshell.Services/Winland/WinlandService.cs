@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Text.Json;
 using Winshell.Windows;
@@ -46,40 +45,40 @@ public sealed class WinlandService : ObservableObject, IDisposable
     public event Action<WinlandEvent>? RawEvent;
 
     /// <summary>The Monitors, by id.</summary>
-    public ObservableCollection<WinlandMonitor> Monitors { get; } = [];
+    public ObservableList<WinlandMonitor> Monitors { get => Read(field); } = [];
 
     /// <summary>The Workspaces, by id, then by Monitor where two have the same number.</summary>
-    public ObservableCollection<WinlandWorkspace> Workspaces { get; } = [];
+    public ObservableList<WinlandWorkspace> Workspaces { get => Read(field); } = [];
 
     /// <summary>The windows Winland manages, in the order they were first reported.</summary>
-    public ObservableCollection<WinlandWindow> Windows { get; } = [];
+    public ObservableList<WinlandWindow> Windows { get => Read(field); } = [];
 
     /// <summary>The Monitor that has the focus, or null while Winland is not running or has not said.</summary>
-    public WinlandMonitor? FocusedMonitor => _focusedMonitor;
+    public WinlandMonitor? FocusedMonitor => Read(_focusedMonitor);
 
     /// <summary>The Workspace shown on <see cref="FocusedMonitor"/>, or null.</summary>
-    public WinlandWorkspace? FocusedWorkspace => _focusedWorkspace;
+    public WinlandWorkspace? FocusedWorkspace => Read(_focusedWorkspace);
 
     /// <summary>The window that has the focus in Winland, or null when none does.</summary>
-    public WinlandWindow? ActiveWindow => _activeWindow;
+    public WinlandWindow? ActiveWindow => Read(_activeWindow);
 
     /// <summary>Winland's pipe. It takes requests and, after an <c>events</c> request, streams events.</summary>
-    public string PipePath => _backend.PipePath;
+    public string PipePath => Read(_backend).PipePath;
 
     /// <summary>The process that answers on the pipe, or 0 while none does.</summary>
-    public int ProcessId => _backend.ProcessId;
+    public int ProcessId => Read(_backend).ProcessId;
 
     /// <summary>
     /// The full path of the config Winland read, as its <c>files</c> request reports it. Null while no Winland answers,
     /// and for a Winland too old to answer <c>files</c>.
     /// </summary>
-    public string? ConfigPath => _configPath;
+    public string? ConfigPath => Read(_configPath);
 
     /// <summary>
     /// The full path of the log Winland writes now, as its <c>files</c> request reports it. Null while it writes none:
     /// <c>debug:disable_logs</c> is true, or it runs elevated.
     /// </summary>
-    public string? LogPath => _logPath;
+    public string? LogPath => Read(_logPath);
 
     /// <summary>Resolves windows from this list. Null clears them. The list is not created just to answer a window.</summary>
     internal void Attach(WindowListService? windows)
@@ -676,7 +675,7 @@ public sealed class WinlandService : ObservableObject, IDisposable
         Set(ref _focusedWorkspace, focused, nameof(FocusedWorkspace));
     }
 
-    private static void Follow<T>(ObservableCollection<T> items, IEnumerable<T> next)
+    private static void Follow<T>(ObservableList<T> items, IEnumerable<T> next)
         where T : notnull
     {
         items.Sync(next, i => i, i => i, i => i, (_, _) => { });

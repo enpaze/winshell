@@ -9,10 +9,10 @@ public sealed class WiredDevice : NetworkDevice
     }
 
     /// <summary>The link speed in Mbps. 0 without a link.</summary>
-    public int LinkSpeed => (int)Math.Min(int.MaxValue, Info.LinkSpeed);
+    public int LinkSpeed => (int)Math.Min(int.MaxValue, Read(Info).LinkSpeed);
 
     /// <summary>Whether the adapter has a link, such as a plugged-in cable.</summary>
-    public bool HasLink => Info.HasLink;
+    public bool HasLink => Read(Info).HasLink;
 
     internal override void Update(NetworkDeviceInfo info)
     {

@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
@@ -136,7 +135,7 @@ public sealed partial class Shell : IDisposable
     public string CacheDir => Ensure(_identity.CacheDir);
 
     /// <summary>The connected screens. The primary screen comes first.</summary>
-    public ObservableCollection<ScreenInfo> Screens => Platform.Screens;
+    public ObservableList<ScreenInfo> Screens => Platform.Screens;
 
     /// <summary>Whether windows are dark. <see cref="ColorScheme"/> overrides Windows mode, and <see cref="ColorScheme.System"/> follows it.</summary>
     public bool IsDark => Platform.IsDark;

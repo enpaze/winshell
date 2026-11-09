@@ -9,10 +9,10 @@ public sealed class WifiNetwork : Network
     }
 
     /// <summary>The signal strength, from 0 to 1.</summary>
-    public double SignalStrength => Info.SignalStrength;
+    public double SignalStrength => Read(Info).SignalStrength;
 
     /// <summary>How the network is secured.</summary>
-    public WifiSecurityType Security => Info.Security;
+    public WifiSecurityType Security => Read(Info).Security;
 
     /// <summary>Connects with a password, for a secured network that isn't saved. The password is not kept.</summary>
     public void ConnectWithPassword(string password)

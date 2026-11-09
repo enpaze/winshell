@@ -28,7 +28,7 @@ public sealed class CpuService : INotifyPropertyChanged, IDisposable
     /// The share of the last 2 seconds the processors were busy, across all cores, from 0 to 100. 0 while nothing
     /// listens, and for the first 2 seconds after something starts to.
     /// </summary>
-    public double Usage => _usage;
+    public double Usage => Reads.Property(this, _usage);
 
     /// <summary>
     /// Raised on the loop's thread when <see cref="Usage"/> changes. The first handler added starts reading Windows,

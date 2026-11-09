@@ -121,7 +121,7 @@ internal static partial class ReferencePages
 
         public string Section(Type type)
         {
-            var text = new StringBuilder($"\n## {type.Name}\n\n");
+            var text = new StringBuilder($"\n## {Bare(type.Name)}\n\n");
             var summary = Doc("T:" + Id(type), type, true);
             if (summary.Length > 0)
                 text.Append(summary).Append("\n\n");

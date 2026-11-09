@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 
 namespace Winshell.Power;
@@ -24,19 +23,19 @@ public sealed class BrightnessMonitor : ObservableObject
     /// The name Windows knows the monitor by: a WMI instance name for a built-in panel, a display name like
     /// <c>\\.\DISPLAY1</c> for an external monitor.
     /// </summary>
-    public string DeviceName => _info.DeviceName;
+    public string DeviceName => Read(_info).DeviceName;
 
     /// <summary>The monitor's model name, or its Windows device name when the monitor reports no model.</summary>
-    public string Name => _info.Name;
+    public string Name => Read(_info).Name;
 
     /// <summary>Whether the monitor is a built-in panel or an external monitor.</summary>
-    public BrightnessConnection Connection => _info.Connection;
+    public BrightnessConnection Connection => Read(_info).Connection;
 
     /// <summary>The lowest brightness the monitor accepts.</summary>
-    public int Minimum => _info.Minimum;
+    public int Minimum => Read(_info).Minimum;
 
     /// <summary>The highest brightness the monitor accepts, often 100.</summary>
-    public int Maximum => _info.Maximum;
+    public int Maximum => Read(_info).Maximum;
 
     /// <summary>
     /// The brightness, from <see cref="Minimum"/> to <see cref="Maximum"/>. A value set outside that range is clamped
@@ -44,7 +43,7 @@ public sealed class BrightnessMonitor : ObservableObject
     /// </summary>
     public int Brightness
     {
-        get => _requested ?? _info.Current;
+        get => Read(_requested) ?? _info.Current;
         set
         {
             value = Math.Clamp(value, _info.Minimum, _info.Maximum);
@@ -107,10 +106,10 @@ public sealed class BrightnessService : ObservableObject, IDisposable
     }
 
     /// <summary>The connected monitors whose brightness Windows can read. Empty until <see cref="Ready"/>.</summary>
-    public ObservableCollection<BrightnessMonitor> Monitors { get; } = [];
+    public ObservableList<BrightnessMonitor> Monitors { get => Read(field); } = [];
 
     /// <summary>Whether the first read of the monitors has finished.</summary>
-    public bool Ready => _ready;
+    public bool Ready => Read(_ready);
 
     private void Apply(BrightnessSnapshot snapshot)
     {

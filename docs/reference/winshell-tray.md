@@ -24,7 +24,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `Items` | ObservableCollection of [SystemTrayItem](#systemtrayitem), read-only | The icons apps show, in the order they were added. Empty while another instance has the tray. |
+| `Items` | ObservableList of [SystemTrayItem](#systemtrayitem), read-only | The icons apps show, in the order they were added. Empty while another instance has the tray. |
 | `Dispose()` | void | Gives the notification area up. Call on the loop's thread. |
 
 ## SystemTrayItem

@@ -35,7 +35,7 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
     /// </summary>
     public AudioNode? Node
     {
-        get => _node;
+        get => Read(_node);
         set
         {
             if (_node == value)
@@ -50,7 +50,7 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
     /// <summary>Whether the monitor reads the meter. While it is false, <see cref="Peak"/> is 0 and the lists are empty.</summary>
     public bool Enabled
     {
-        get => _enabled;
+        get => Read(_enabled);
         set
         {
             if (Set(ref _enabled, value))
@@ -59,13 +59,13 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
     }
 
     /// <summary>The highest of <see cref="Peaks"/>, from 0 to 1.</summary>
-    public double Peak => _peak;
+    public double Peak => Read(_peak);
 
     /// <summary>The peak of each channel since the last read, from 0 to 1.</summary>
-    public IReadOnlyList<double> Peaks => _peaks;
+    public IReadOnlyList<double> Peaks => Read(_peaks);
 
     /// <summary>The speaker position of each entry of <see cref="Peaks"/>.</summary>
-    public IReadOnlyList<AudioChannel> Channels => _channels;
+    public IReadOnlyList<AudioChannel> Channels => Read(_channels);
 
     private void Restart()
     {

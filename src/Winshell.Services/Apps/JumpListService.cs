@@ -47,10 +47,10 @@ public sealed class AppJumpList : ObservableObject
     }
 
     /// <summary>False when the recent and frequent lists cannot be read.</summary>
-    public bool Available => _available;
+    public bool Available => Read(_available);
 
     /// <summary>Document names, recent first. Empty when the list cannot be read, or when it was read and has none.</summary>
-    public IReadOnlyList<string> Destinations => _destinations;
+    public IReadOnlyList<string> Destinations => Read(_destinations);
 
     internal void Apply(bool available, IReadOnlyList<string> destinations)
     {

@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Windows.Devices.Radios;
 
 namespace Winshell.Bluetooth;
@@ -49,31 +48,31 @@ public sealed class BluetoothService : ObservableObject, IDisposable
     internal IBluetoothBackend Backend { get; }
 
     /// <summary>The default adapter Windows returns, or null when there is none.</summary>
-    public BluetoothAdapter? DefaultAdapter => _adapter;
+    public BluetoothAdapter? DefaultAdapter => Read(_adapter);
 
     /// <summary>Only the <see cref="DefaultAdapter"/>, or empty when there is none.</summary>
-    public ObservableCollection<BluetoothAdapter> Adapters { get; } = [];
+    public ObservableList<BluetoothAdapter> Adapters { get => Read(field); } = [];
 
     /// <summary>
     /// The paired devices and the nearby ones found during discovery: connected first, then paired, then by name.
     /// Empty when there is no adapter.
     /// </summary>
-    public ObservableCollection<BluetoothDevice> Devices { get; } = [];
+    public ObservableList<BluetoothDevice> Devices { get => Read(field); } = [];
 
     /// <summary>The paired devices, in the order of <see cref="Devices"/>.</summary>
-    public ObservableCollection<BluetoothDevice> PairedDevices { get; } = [];
+    public ObservableList<BluetoothDevice> PairedDevices { get => Read(field); } = [];
 
     /// <summary>The present unpaired devices found during discovery.</summary>
-    public ObservableCollection<BluetoothDevice> NearbyDevices { get; } = [];
+    public ObservableList<BluetoothDevice> NearbyDevices { get => Read(field); } = [];
 
     /// <summary>A read has completed. A completed read can have no adapter.</summary>
-    public bool Ready => _snapshot.Ready;
+    public bool Ready => Read(_snapshot).Ready;
 
     /// <summary>Whether Windows is looking for nearby devices, after <see cref="StartDiscovery"/>.</summary>
-    public bool Discovering => _snapshot.Discovering;
+    public bool Discovering => Read(_snapshot).Discovering;
 
     /// <summary>Why the last read, or starting or stopping discovery, failed. Empty when it succeeded.</summary>
-    public string Error => _error;
+    public string Error => Read(_error);
 
     /// <summary>Reads adapter and device state, and again at every change Windows reports, until <see cref="StopMonitoring"/>. Nothing is read before this.</summary>
     public void StartMonitoring()
@@ -320,7 +319,7 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         NearbyDevices.Clear();
     }
 
-    private static void Mirror(ObservableCollection<BluetoothDevice> list, IEnumerable<BluetoothDevice> next)
+    private static void Mirror(ObservableList<BluetoothDevice> list, IEnumerable<BluetoothDevice> next)
     {
         list.Sync(next, d => d, d => d, d => d, (_, _) => { });
     }

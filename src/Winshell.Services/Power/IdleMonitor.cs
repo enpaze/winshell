@@ -34,7 +34,7 @@ public sealed class IdleMonitor : ObservableObject, IDisposable
     /// </summary>
     public bool Enabled
     {
-        get => _enabled;
+        get => Read(_enabled);
         set
         {
             if (Set(ref _enabled, value))
@@ -45,7 +45,7 @@ public sealed class IdleMonitor : ObservableObject, IDisposable
     /// <summary>The seconds without input after which <see cref="IsIdle"/> turns on.</summary>
     public double Timeout
     {
-        get => _timeout;
+        get => Read(_timeout);
         set
         {
             if (Set(ref _timeout, value))
@@ -56,14 +56,14 @@ public sealed class IdleMonitor : ObservableObject, IDisposable
     /// <summary>When a <see cref="KeepAwake"/> is on, this monitor does not report idle.</summary>
     public bool RespectKeepAwake
     {
-        get => _respectKeepAwake;
+        get => Read(_respectKeepAwake);
         set => Set(ref _respectKeepAwake, value);
     }
 
     /// <summary>
     /// Whether there has been no input for <see cref="Timeout"/> seconds. False while <see cref="Timeout"/> is 0.
     /// </summary>
-    public bool IsIdle => _isIdle;
+    public bool IsIdle => Read(_isIdle);
 
     private static double IdleSeconds()
     {

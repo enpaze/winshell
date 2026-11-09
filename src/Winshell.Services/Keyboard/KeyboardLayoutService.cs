@@ -28,10 +28,10 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
     }
 
     /// <summary>The installed layouts, in the order Windows cycles them. Empty while nothing listens.</summary>
-    public IReadOnlyList<KeyboardLayout> Layouts => _layouts;
+    public IReadOnlyList<KeyboardLayout> Layouts => Reads.Property(this, _layouts);
 
     /// <summary>The layout the foreground window is using, or null when it has none or nothing is listening.</summary>
-    public KeyboardLayout? Current => _current;
+    public KeyboardLayout? Current => Reads.Property(this, _current);
 
     /// <summary>
     /// Raised on the loop's thread when <see cref="Layouts"/> or <see cref="Current"/> changes. The first handler

@@ -61,6 +61,17 @@ public static class GuideSamples
         hotkey.Pressed += (_, _) => { };
     }
 
+    public static TextBlock ABatteryLabel(Shell shell)
+    {
+        var label = new TextBlock();
+        label.Watch(() =>
+        {
+            var battery = shell.Power.DisplayDevice;
+            label.Text = battery.IsPresent ? $"{battery.Percentage:P0}" : "";
+        });
+        return label;
+    }
+
     public static void Reload(Shell shell)
     {
         if (!shell.Reload())

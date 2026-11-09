@@ -32,7 +32,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `Sessions` | ObservableCollection of [MediaSession](#mediasession), read-only | One session for each app in the Windows media controls. Empty when no app plays media. |
+| `Sessions` | ObservableList of [MediaSession](#mediasession), read-only | One session for each app in the Windows media controls. Empty when no app plays media. |
 | `Dispose()` | void | Stops following the Windows media sessions. The ones in Sessions stop updating. |
 
 ## MediaSession

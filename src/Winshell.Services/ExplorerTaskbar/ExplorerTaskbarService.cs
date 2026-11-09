@@ -29,7 +29,7 @@ public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
     {
         get
         {
-            lock (_gate)
+            lock (Read(_gate))
             {
                 return _hidden;
             }

@@ -1,5 +1,3 @@
-using System.Collections.ObjectModel;
-
 namespace Winshell.Windows;
 
 /// <summary>
@@ -48,18 +46,18 @@ public sealed class VirtualDesktopsService : ObservableObject, IDisposable
     }
 
     /// <summary>The desktops in Task View's order. Empty while <see cref="Supported"/> is false.</summary>
-    public ObservableCollection<VirtualDesktop> Desktops { get; } = [];
+    public ObservableList<VirtualDesktop> Desktops { get => Read(field); } = [];
 
     /// <summary>
     /// Whether this Windows build's desktop list can be read, so the list, switching, creating and removing work.
     /// </summary>
-    public bool Supported => _supported;
+    public bool Supported => Read(_supported);
 
     /// <summary>Why <see cref="Supported"/> is false. Empty when the list can be used.</summary>
-    public string UnsupportedReason => _reason;
+    public string UnsupportedReason => Read(_reason);
 
     /// <summary>The desktop on screen, or null while <see cref="Supported"/> is false.</summary>
-    public VirtualDesktop? Current => _current;
+    public VirtualDesktop? Current => Read(_current);
 
     /// <summary>Raised after each read of the list, so windows can say which desktop they are on.</summary>
     internal event Action? Refreshed;
@@ -232,18 +230,18 @@ public sealed class VirtualDesktop : ObservableObject
     }
 
     /// <summary>The desktop's id, the same text <see cref="AppWindow.DesktopId"/> uses.</summary>
-    public string Id { get; }
+    public string Id { get => Read(field); }
 
     /// <summary>
     /// The name Task View shows: the one the user gave it, or <c>Desktop 1</c>, <c>Desktop 2</c> and so on.
     /// </summary>
-    public string Name => _name;
+    public string Name => Read(_name);
 
     /// <summary>Where the desktop sits in <see cref="VirtualDesktopsService.Desktops"/>, starting at zero.</summary>
-    public int Index => _index;
+    public int Index => Read(_index);
 
     /// <summary>Whether this is the desktop on screen.</summary>
-    public bool Current => _current;
+    public bool Current => Read(_current);
 
     internal void Apply(string name, int index, bool current)
     {

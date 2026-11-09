@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Windows.Media.Control;
 
 namespace Winshell.Media;
@@ -27,7 +26,7 @@ public sealed class MediaService : ObservableObject, IDisposable
     }
 
     /// <summary>One session for each app in the Windows media controls. Empty when no app plays media.</summary>
-    public ObservableCollection<MediaSession> Sessions { get; } = [];
+    public ObservableList<MediaSession> Sessions { get => Read(field); } = [];
 
     private void Refresh(SmtcSession? _)
     {

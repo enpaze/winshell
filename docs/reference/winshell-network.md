@@ -62,7 +62,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Error` | string, read-only | Why the last action failed. Empty while an action runs and after one succeeds. |
 | `Name` | string, read-only | The SSID of a Wi-Fi network. For a wired network, the connection profile's name, or the adapter's. |
 | `Saved` | bool, read-only | A saved profile matches this network. True for a wired network. |
-| `SavedProfiles` | ObservableCollection of [WifiProfile](#wifiprofile), read-only | The saved Wi-Fi profiles for this network: those whose SSID is its name, and those that can't be read whose profile name is. Empty for a wired network. |
+| `SavedProfiles` | ObservableList of [WifiProfile](#wifiprofile), read-only | The saved Wi-Fi profiles for this network: those whose SSID is its name, and those that can't be read whose profile name is. Empty for a wired network. |
 | `State` | [ConnectionState](#connectionstate), read-only | The adapter's connection state on this network. ConnectionState.Disconnected for every Wi-Fi network the adapter is not on. |
 | `OperationFailed` | Action of string | An action failed, with the same text as Error. |
 | `Connect()` | void | Connects to this Wi-Fi network with saved credentials. Fails for a wired network. |
@@ -116,7 +116,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Connected` | bool, read-only | Whether the adapter is connected. |
 | `Id` | string, read-only | The adapter's interface GUID. NetworkProfile.AdapterId matches it. |
 | `Name` | string, read-only | The adapter's connection name, such as `Wi-Fi` or `Ethernet 2`. |
-| `Networks` | ObservableCollection of [Network](#network), read-only | For Wi-Fi, the networks of the last scan and the connected network, connected first, then strongest first. |
+| `Networks` | ObservableList of [Network](#network), read-only | For Wi-Fi, the networks of the last scan and the connected network, connected first, then strongest first. |
 | `State` | [ConnectionState](#connectionstate), read-only | The adapter's connection state. A wired adapter is only ConnectionState.Connected or ConnectionState.Disconnected. |
 | `Type` | [DeviceType](#devicetype), read-only | Whether the adapter is Wi-Fi or wired. |
 
@@ -150,9 +150,9 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `AccessStatus` | [NetworkAccessStatus](#networkaccessstatus), read-only | Whether Windows lets Winshell scan and connect Wi-Fi. NetworkAccessStatus.Unspecified until RequestAccess has an answer. |
 | `AirplaneMode` | [AirplaneModeState](#airplanemodestate), read-only | Airplane mode, read from the registry on a best-effort basis. |
 | `Connectivity` | [NetworkConnectivity](#networkconnectivity), read-only | What the connection Windows uses for the internet can reach. NetworkConnectivity.None without such a connection. |
-| `Devices` | ObservableCollection of [NetworkDevice](#networkdevice), read-only | The PC's Wi-Fi and Ethernet adapters. Virtual adapters, VPNs and Bluetooth are left out. |
+| `Devices` | ObservableList of [NetworkDevice](#networkdevice), read-only | The PC's Wi-Fi and Ethernet adapters. Virtual adapters, VPNs and Bluetooth are left out. |
 | `Error` | string, read-only | Why the last read, access request or Wi-Fi radio change failed. Empty when none did. |
-| `Profiles` | ObservableCollection of [NetworkProfile](#networkprofile), read-only | The Windows connection profiles connected on an adapter now, local-only and captive-portal ones included. A saved profile that is not connected is left out. |
+| `Profiles` | ObservableList of [NetworkProfile](#networkprofile), read-only | The Windows connection profiles connected on an adapter now, local-only and captive-portal ones included. A saved profile that is not connected is left out. |
 | `Ready` | bool, read-only | Whether the first read has finished. False again while the last read failed, and Error says why. |
 | `RequestingAccess` | bool, read-only | Whether an access request is waiting for Windows. RequestAccess does nothing until it ends. |
 | `WifiEnabled` | bool | Whether at least one Wi-Fi radio is on. Setting it asks Windows to turn on or off every Wi-Fi radio the last read found, and the value stays what Windows last reported until a later read shows the radios changed. |
