@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         A ticket has these sections whether `/to-tickets` wrote it or you fill in this form.
-        Label the issue with the `area:` label of the area you pick. If the ticket belongs to a spec, make it a sub-issue of the spec and add its blockers as blocked-by links.
+        Label the issue with the `area:` label of the area you pick. A ticket of a spec is published as `docs/agents/issue-tracker.md` describes.
 
   - type: textarea
     id: what-to-build
@@ -32,7 +32,7 @@ body:
     id: blocked-by
     attributes:
       label: Blocked by
-      description: Each ticket that must close before this one can start.
+      description: Each ticket that must close before this one can start. Leave it empty when every blocker is a blocked-by link.
       placeholder: None (can start immediately)
 
   - type: dropdown
