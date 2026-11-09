@@ -8,14 +8,15 @@ namespace Winshell.Tests;
 
 /// <summary>
 /// <c>winshell run</c> supervises the probe as a configuration's program. The probe hides Explorer's real taskbar when a
-/// test asks, so these tests take the taskbar from the desktop they run on, and put it back however they end.
+/// test asks, so that test takes the taskbar from the desktop it runs on, and puts it back however it ends.
 /// </summary>
 public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<Process> _started = [];
     private readonly StringBuilder _printed = new();
-    private readonly bool _taskbarHidden = ExplorerTaskbarRecovery.AnyHidden();
+    // Whether Explorer's taskbar was hidden when a test that hides it began, and null in any other test.
+    private bool? _taskbarHidden;
 
     public SupervisionTests()
     {
@@ -103,6 +104,8 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         Assert.Contains("FATAL: Winshell crashed: System.InvalidOperationException", logged, StringComparison.Ordinal);
         Assert.Contains("Wrote a crash report to", logged, StringComparison.Ordinal);
         Assert.Empty(Listed());
+        // The next start would show this report in a notice, which is a window.
+        Directory.Delete(Path.Combine(_dir, "local", "crashes"), true);
 
         // Its shell id is free again, with no mutex or record left behind.
         var next = ProbeShell.Launch(Path.Combine(_dir, "config"), Path.Combine(_dir, "local"), ["--no-duplicate"]);
@@ -112,8 +115,10 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public void A_crashed_shell_starts_again_with_the_taskbar_back()
     {
+        _taskbarHidden = ExplorerTaskbarRecovery.AnyHidden();
         Assert.False(_taskbarHidden, "Explorer's taskbar was hidden before the test.");
         var marker = Path.Combine(_dir, "config", ProbeShell.HideTaskbarMarker);
         File.WriteAllText(marker, "");
@@ -230,7 +235,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         }
 
         // A test that failed can leave the taskbar its probe hid. One that another program hid stays hidden.
-        if (!_taskbarHidden)
+        if (_taskbarHidden == false)
             ExplorerTaskbarRecovery.RestoreHidden();
         try
         {

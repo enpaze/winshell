@@ -349,6 +349,7 @@ public sealed partial class DevCommandTests : IDisposable
     // console shutdown. Its build leaves no idle MSBuild node, and the shell and an app it starts do not inherit
     // MSBUILDDISABLENODEREUSE.
     [Fact(Timeout = 420_000)]
+    [Trait("Category", "Window")]
     public async Task Edits_rebuilds_an_opened_app_and_Ctrl_Break_keep_the_watch_lifecycle_correct()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();

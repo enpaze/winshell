@@ -35,7 +35,7 @@ BeforeAll {
 
 Describe 'Choosing tests' {
     BeforeAll {
-        # A solution with the CLI project, which is windowed whole, three others, and a project added later.
+        # A solution with the CLI, Shell, Services and Core projects, and a project added later.
         function Set-WinshellSolution {
             $script:Projects = @('Winshell.Tests', 'Winshell.Shell.Tests', 'Winshell.Services.Tests', 'Winshell.Core.Tests', 'New.Tests') |
                 ForEach-Object { "tests/$_/$_.csproj" }
@@ -50,8 +50,8 @@ Describe 'Choosing tests' {
         try {
             Set-WinshellSolution
             $run = Get-TestRun
-            $run.Projects | Should -Be @('tests/Winshell.Shell.Tests/Winshell.Shell.Tests.csproj', 'tests/Winshell.Services.Tests/Winshell.Services.Tests.csproj', 'tests/Winshell.Core.Tests/Winshell.Core.Tests.csproj', 'tests/New.Tests/New.Tests.csproj')
-            $run.ProjectCount | Should -Be 4
+            $run.Projects | Should -Be $script:Projects
+            $run.ProjectCount | Should -Be 5
             $run.Filter | Should -Be 'Category!=Package&Category!=Window'
         } finally { $script:Root = $root }
     }

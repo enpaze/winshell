@@ -162,6 +162,22 @@ public sealed partial class ShellSupervisorTests
         Assert.Equal(0, await run);
     }
 
+    /// <summary>The supervisor owns a shell a reload started as it owned the first, so its crash brings the taskbar back too.</summary>
+    [Fact]
+    public async Task A_crash_of_a_shell_a_reload_started_brings_the_taskbar_back()
+    {
+        var run = Supervise(CancellationToken.None);
+        (await _shells.Started(1)).Exit(0, ExitIntent.Reload);
+
+        (await _shells.Started(2)).Exit(AccessViolation);
+        await _time.Waiting();
+
+        Assert.Equal(["start", "start", "restore"], _shells.Events);
+        _time.Advance(TimeSpan.FromSeconds(1));
+        (await _shells.Started(3)).Exit(0);
+        Assert.Equal(0, await run);
+    }
+
     [Fact]
     public async Task A_shell_that_does_not_start_ends_supervision_with_the_taskbar_back()
     {
