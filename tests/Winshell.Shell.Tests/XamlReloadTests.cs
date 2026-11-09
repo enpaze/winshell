@@ -163,16 +163,24 @@ public sealed partial class XamlReloadTests : IDisposable
     }
 
     [Theory]
+    [Trait("Category", "Window")]
     [InlineData("""<TextBlock Text="{x:Bind Remembered}" />""")]
     [InlineData("""<TextBlock x:Load="False" />""")]
-    public async Task Markup_only_the_compiler_can_read_asks_for_a_build(string body)
+    public async Task Markup_only_the_compiler_can_read_asks_for_a_build_and_changes_nothing(string body)
     {
         var file = Saved(Open + ">" + body + "</UserControl>");
         using var request = new EventWaitHandle(false, EventResetMode.ManualReset, XamlReload.BuildRequest(_dir));
 
-        var problem = await ShellFixture.On(shell => XamlReload.Apply(shell, _dir, file));
+        var unchanged = await ShellFixture.On(shell =>
+        {
+            var content = new TextBlock { Text = "old" };
+            var live = new LivePanel { Content = content };
+            using var panel = Panel(live);
+            XamlReload.Apply(shell, _dir, file);
+            return ReferenceEquals(live.Content, content);
+        });
 
-        Assert.Null(problem);
+        Assert.True(unchanged);
         Assert.True(request.WaitOne(0));
     }
 
