@@ -32,7 +32,7 @@ Logs are in `%LOCALAPPDATA%\winshell\run\<instance id>\log.txt`. A shell that ex
 
 Those starts have no console window, so a Winshell that cannot start shows a dialog with the same text. **Open config folder** opens the folder the message is about. A console, including `winshell run -d` from a terminal, prints the text and shows no dialog.
 
-No dialog and nothing on screen means the shell is already running (`--no-duplicate`), or it started and the failure is in the log.
+Nothing in the dialog and nothing on screen means the shell is already running (`--no-duplicate`), or it started and the failure is in the log.
 
 ## The build failed
 
@@ -56,7 +56,7 @@ Windows keeps a few hotkeys for its own taskbar while Explorer runs, such as `Wi
 
 A shell that set `ExplorerTaskbar.Hidden` hid it. While that shell is still running, quit it with `winshell kill`. It puts Explorer's taskbar window back and reserves its edge again.
 
-When only the shell ends, `winshell run` puts the taskbar back: after a native crash such as a stack overflow, or after `winshell kill --force`.
+When only the shell ends, `winshell run` puts the taskbar back, for example after a native crash such as a stack overflow or `winshell kill --force`.
 
 The window stays hidden, and the edge stays released, when nothing is left to do that:
 

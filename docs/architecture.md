@@ -31,20 +31,19 @@ Only `Winshell.Native` may contain `LibraryImport`, `DllImport`, `ComImport` or 
 
 ### Inside Native
 
-- **Declarations.** CsWin32 generates the Win32 declarations from an explicit API list, `NativeMethods.txt`. Native may own declarations CsWin32 cannot supply, such as undocumented interfaces. Do not maintain duplicate Win32 declarations alongside generated ones.
+- **Declarations.** CsWin32 generates the Win32 declarations from an explicit API list, `NativeMethods.txt`. Add a Win32 API to that list, and remove the handwritten declarations a generated one replaces. Native may own declarations CsWin32 cannot supply, such as undocumented interfaces. Do not maintain duplicate Win32 declarations alongside generated ones.
 - **Ownership.** Keep allocation and release together: handles, COM objects, buffers and callbacks have an explicit owner and lifetime. Callback exceptions must not escape into native code.
 - **The boundary.** Put safe operations at this boundary. Do not expose the generated declaration set as a public service API or move feature policy into Native.
 
 ### How the build enforces it
 
-The root `Directory.Build.targets` applies to every project except Native:
+The root `Directory.Build.targets` enforces it for every project except Native:
 
 - It adds `BannedSymbols.Interop.txt`, so `DllImport`, `LibraryImport`, `ComImport`, `GeneratedComInterface` and `GeneratedComClass` fail with RS0030. So do `NativeLibrary` and `Marshal.GetDelegateForFunctionPointer`, which together would call native code with neither an attribute nor unsafe code.
 - Outside WinUI projects it forces `AllowUnsafeBlocks` off, so unsafe code fails with CS0227. It runs after each project file, so setting `AllowUnsafeBlocks` there has no effect.
 - A new project under `src/` or `tests/` is covered without edits.
-- Native keeps the clock ban the other `src/` projects have.
 
-Do not exempt a consumer, suppress the diagnostics or exclude generated consumer code to bypass the boundary.
+Native keeps the clock ban the other `src/` projects have. Do not exempt a consumer, suppress the diagnostics or exclude generated consumer code to bypass the boundary.
 
 ### WinUI projects
 
@@ -54,7 +53,7 @@ The one exception is the Windows App SDK's `UndockedRegFreeWinRT-AutoInitializer
 
 ## Services and feature ownership
 
-Services is one assembly. Each feature folder owns its `I*Backend` seam and platform implementation.
+Services remains one assembly. Each feature folder owns its `I*Backend` seam and platform implementation.
 
 - **A seam describes platform operations the production service actually needs.** Avoid interfaces added only for tests.
 - **Only a feature may consume its own backend contracts and implementations.** Another feature uses the service's managed contract, events or shared Core infrastructure. It must not construct, resolve, reference or call a neighboring feature's backend.
@@ -66,7 +65,7 @@ Media keeps one type per job, the split from #1102. `ISmtcLink` (#1306) stays th
 
 ## Shell
 
-`HostWindow` is split by responsibility, with explicit owners for window lifetime, placement, native message handling and presentation. `Shell.cs` and `ShellServices.cs` compose focused types instead of collecting feature behavior. Preserve disposal order, event-loop affinity, cancellation and the existing public Shell API.
+Keep `HostWindow` split by responsibility, with explicit owners for window lifetime, placement, native message handling and presentation. Keep `Shell.cs` and `ShellServices.cs` thin: they compose focused types instead of collecting feature behavior. Preserve disposal order, event-loop affinity, cancellation and the existing public Shell API.
 
 A shell author builds from primitives, building blocks and compositions such as `Bar`, and a composition uses only public API: see [shells are built from public building blocks](adr/0001-shells-are-built-from-public-building-blocks.md). A widget is a plain control the shell style styles: see [widgets are plain controls](adr/0003-widgets-are-plain-controls.md).
 
@@ -115,10 +114,10 @@ The supervisor owns Explorer taskbar recovery independently of the child. Recove
 - **Feature backends:** `FeatureBackendTests`. In the compiled Services and Shell, only types in an `I*Backend` interface's own namespace in Services, such as `Winshell.Session`, name the interface or a type that implements it, in a declaration, signature or method body.
 - **Compositions use only public API** ([ADR 0001](adr/0001-shells-are-built-from-public-building-blocks.md)): `CompositionTests`. It compiles the C# files in `src/Winshell.Shell/Compositions`, such as `Bar`, again as an assembly of their own against the built Winshell assemblies, which shows them only the public API, and fails on any compiler error. In Shell itself the compiler lets them see Shell's internals and those Core and Services show Shell.
 
-How the guards work:
+How the tests work:
 
-- **They read the project files and the compiled assemblies**, never a list of expected files, so a new project, reference, backend or composition is covered without editing them. Only a new layer is added to `LayerTests`' list.
-- **The CLI, `src/Winshell`, is outside these guards:** it composes the layers.
+- **The tests read the project files and the compiled assemblies**, never a list of expected files, so a new project, reference, backend or composition is covered without editing them. Only a new layer is added to `LayerTests`' list.
+- **The CLI, `src/Winshell`, is outside the tests' guards:** it composes the layers.
 - **Two guards read sources.** A WinUI project's assembly can't tell CsWinRT's generated unsafe code from ours, so that guard reads the sources. The composition guard reads them too, because only the compiler can say what a file may see.
 - **Prove a new or changed guard.** Show that it rejects a representative forbidden dependency or declaration, then remove that violation. Do not add production hooks solely to exercise the guards.
 

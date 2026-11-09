@@ -114,7 +114,7 @@ After the merge, confirm each layer's issue is closed with `gh issue view <issue
 
 ### What the formatter covers
 
-`scripts/format.ps1` runs `dotnet format whitespace` in folder mode, without loading projects, restoring packages or building. It requires Git, .NET and PowerShell 7.
+`scripts/format.ps1` runs `dotnet format whitespace --folder`: folder mode, without loading projects, restoring packages or building. It requires Git, .NET and PowerShell 7.
 
 - Git supplies the existing tracked and untracked C# files under `src/`, `tests/`, `examples/`, `templates/` and `docs/samples/`, plus `scripts/generate-reference.cs`. Ignored build outputs are excluded.
 - Other standalone C# scripts are not formatted.
@@ -204,7 +204,7 @@ Choose checks from the complete change against the PR's base, including renamed 
 | --- | --- |
 | Only Markdown or files under `docs/` outside `docs/samples/`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`. No application build, formatting or test suite is needed. |
 | A page in `docs/` (outside `docs/agents/`) or `README.md` containing or removing a C# example fence, or a generated `docs/reference/winshell*.md` page | Lint, then `pwsh scripts/check.ps1 -Tier Docs`. This builds the samples and checks the generated reference, without unrelated tests or windows. |
-| Other changes, including source, scripts, workflows and build configuration | `pwsh scripts/check.ps1`, followed by the focused checks its [CI jobs](#jobs) list for that change. |
+| Other changes, including source, scripts, workflows and build configuration | `pwsh scripts/check.ps1`, followed by the focused checks the [Jobs](#jobs) table lists for that change. |
 
 Some changes need more than checks:
 
@@ -223,7 +223,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 
 | Command | What it does |
 | --- | --- |
-| `pwsh scripts/check.ps1 [-Tier Tests\|Docs\|Package] [-Seed <seed>] [-NoBuild]` | Builds, verifies formatting and runs every test suite. See [The full check](#the-full-check). |
+| `pwsh scripts/check.ps1 [-Tier Tests\|Docs\|Package] [-Seed <seed>] [-NoBuild]` | Builds, verifies formatting, and runs the complete .NET suite and the PowerShell suites. See [The full check](#the-full-check). |
 | `pwsh -NoProfile scripts/check.ps1 -Lint` | Checks Markdown links and workflows, without building. See [Lint](#lint). |
 | `Invoke-Pester -Path tests/Scripts/<Name>.Tests.ps1` | Runs one of the PowerShell suites `check.ps1` runs, each named after the script or tooling it tests. None changes the checkout or GitHub. Requires Pester 5.6.1 and PowerShell 7; `Install.Tests.ps1` also runs on Windows PowerShell 5.1. |
 | `pwsh -NoProfile scripts/format.ps1 [-VerifyNoChanges]` | Formats handwritten C# files, or verifies them. See [What the formatter covers](#what-the-formatter-covers). |
@@ -280,7 +280,7 @@ Install these versions, matching `.github/workflows/ci.yml`, and put their execu
 - **The library** carries `Winshell.Native`, `Winshell.Core`, `Winshell.Services` and `Winshell.Shell`, and depends on `Microsoft.WindowsAppSDK.WinUI` and `Microsoft.WindowsAppSDK.Foundation` at the versions in `Directory.Packages.props`. CsWin32 generates Native's declarations at build time and is not a package consumer dependency.
 - **The template package** is `dotnet new winshell`, the starter: a bar with a clock and a battery. The template references only `Winshell` and gets WindowsAppSDK through it.
 - **Neither package is published to a feed.** `scripts/package.ps1` puts the library in each release.
-- The Package workflow runs the `Category=Package` tests, which call this.
+- The Package workflow runs the `Category=Package` tests, which call `scripts/pack.ps1`.
 - `-Out` chooses the folder, and `-Version` overrides the release from `.release-please-manifest.json`.
 
 ### Package a release
@@ -301,7 +301,7 @@ It checks:
 - the library in each zip and Store package: that version and no other
 - the architecture of each zip's binaries
 - the version the x64 `winshell.exe` reports
-- that every `winshell doctor` check runs from that zip
+- that every `winshell doctor` check runs from the x64 zip
 - the manifests, against the validator the pinned `wingetcreate` uses, downloaded from NuGet into `artifacts/tools/`
 - each architecture's identity, version and executables in the Store bundle
 
@@ -338,7 +338,7 @@ The single required test check, `ci`, collects suite, installer compatibility an
 - `pr-title` checks the pull request title.
 - `pr-rules` checks that each type of change carries its proof, as "PR description" in `CONTRIBUTING.md` lists.
 - The Package workflow runs the `-Tier Package` deployment validation on PRs that `scripts/ci-changes.ps1` flags `package`; it is not required. Leave `scripts/package.ps1` and arm64 to CI.
-- CodeQL uses GitHub's separately managed default setup; its security-analysis triggers are independent of this workflow's file selection.
+- CodeQL uses GitHub's separately managed default setup; its security-analysis triggers are independent of the CI workflow's file selection.
 
 ### How checks are selected
 
@@ -556,7 +556,7 @@ The Store package is not published. Publishing waits on Partner Center setup: th
 
 The Package workflow also builds `winshell-<version>.msixbundle` (x64 and arm64) from `packaging/msix/AppxManifest.xml` and keeps it as the run's `store-package` artifact. It is not attached to the release: it is unsigned, and the Store signs it. Each run also test-signs the x64 package with a certificate only that runner trusts, installs it there and runs the `winshell` alias.
 
-What the Store build does differently:
+About the Store build:
 
 - **Files.** It reads and writes the same `%APPDATA%\winshell` config folder as every other build. The manifest turns off file and registry write virtualization (`unvirtualizedResources`), so those writes are the real ones.
 - **Sign-in** is the package's startup task, declared off, not the user's `Run` key: Windows starts `winshellw.exe --no-build --no-duplicate`, which keeps working after a Store update.

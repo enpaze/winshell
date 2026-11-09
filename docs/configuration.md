@@ -111,6 +111,9 @@ Change both `{DateTime.Now:t}` in `Clock.cs` to `{DateTime.Now:T}` and save it, 
 - **Where it goes.** The copy goes to `%APPDATA%\winshell\<name>`, or under `WINSHELL_CONFIG_DIR`. `--path <folder>` puts it somewhere else. A folder that exists and isn't empty is refused.
 - **The package.** The copy's project references the `Winshell` package of the same release as `winshell`. A release keeps that package in a `packages` folder beside `winshell.exe`, and the copy's `nuget.config` adds that folder as a source.
 - **Its shell id** comes from its folder, so two copies keep their data apart.
+
+When Winshell runs a configuration:
+
 - **Building.** Winshell builds to `bin\shell` in the project folder when a source is newer, then starts that program. `--no-build` runs the program the last build left, and does not build. A failed build does not start the last good build.
 - **A downloaded project is refused before any build.** Winshell looks for a `Zone.Identifier` stream on the `.csproj` and on `.props` and `.targets` beside it. Unblock the file (right-click > Properties > Unblock, or `Unblock-File`) if you trust it. `git clone` writes no zone, so it is not caught.
 - **A `winshell` and a shell of different releases refuse each other**, except `kill`. The message names both releases.
@@ -167,7 +170,7 @@ winshell use                  # lists the configurations, with * before the chos
 
 ## The program
 
-`Shell.Run` runs until the shell quits. Call it from `Main`, marked `[STAThread]`, as the starter's `Program.cs` does:
+`Shell.Run` runs until the shell quits. Call it from `Main`, marked `[STAThread]`, as the starter's `Program.cs` does. With a `ShellId`, the call reads:
 
 ```csharp
 Shell.Run<AppShell>(new ShellOptions { ShellId = "MyShell" });
@@ -199,7 +202,7 @@ Windows stay Winshell's. The content is any `UIElement`. Sizes are logical pixel
 - **[PopupWindow](reference/winshell.md#popupwindow)** is a frameless window placed next to another. `GrabFocus` gives it the keyboard. `Dismissed` fires when it closes.
 - **[FloatingWindow](reference/winshell.md#floatingwindow)** is a normal window with a title bar.
 
-Every window has these:
+On any window:
 
 - **`Backdrop`** is `WindowBackdrop.Mica`, `Acrylic`, `MicaAlt` or `None`.
 - **`Corners`** rounds the window.
@@ -244,13 +247,14 @@ edge = "top"
 - **Matching.** A row matches a screen when its `manufacturer`, `model` and `serial` are strings that all equal the screen's, and the first match wins. A key the row leaves out matches nothing, so an empty serial is written `serial = ""`. The name Windows numbers, such as `DISPLAY1`, is never matched, because Windows renumbers it.
 - **The identity to copy.** `winshell log` prints a line per screen under the component's name, `manufacturer / model / serial`.
 - **What the function is given.** The whole row, the three keys included, as a dictionary of TOML values. The rest of it is the component's.
-- **Changes.** When a screen's row changes, only that screen's window is disposed and made again, once the whole save is read. A row for a screen that is not connected stays in the file.
+- **When a row changes.** Only that screen's window is disposed and made again, once the whole save is read.
+- **A row for a screen that is not connected** stays in the file.
 
 It is a shortcut: a configuration can still make any window on any screen itself. `shell.Screens` lists the screens, the primary first, and changes as monitors are connected and removed.
 
 ## A bar on every screen
 
-A [Bar](reference/winshell.md#bar) is a panel along one edge of every screen, with three widget areas: start, center and end. Each list names widgets by the names they are registered under. A plain string is a placement with no settings:
+A [Bar](reference/winshell.md#bar) is a panel along one edge of every screen, with three [widget areas](#widgets): start, center and end. Each list names widgets by the names they are registered under. A plain string is a placement with no settings:
 
 ```csharp
         var bar = new Bar
@@ -280,7 +284,7 @@ A shell can have several bars. Each has a `Name`, `"bar"` unless given, which na
 
 ### Let the user change a bar
 
-The section holds `edge` and the three lists, each a list of tables like a [named area's](#let-the-user-change-an-area) `widgets`. A key the file has replaces the property of the same name, and a missing file is written with the bar's own values commented out. A `[[bar.screen]]` row, matched as `ScreenWindows` matches it, may change any of the four keys for one screen:
+A bar's section of the [preferences file](#preferences) holds `edge` and the three lists, each a list of tables like a [named area's](#let-the-user-change-an-area) `widgets`. A key the file has replaces the property of the same name, and a missing file is written with the bar's own values commented out. A `[[bar.screen]]` row, matched as `ScreenWindows` matches it, may change any of the four keys for one screen:
 
 ```toml
 [bar]
@@ -334,9 +338,7 @@ A [WidgetArea](reference/winshell.md#widgetarea) can go anywhere in a window. Li
 - A missing type, a type that is not a C# type name, and a duplicate name fail the build, and the error names the widget.
 - You can still call `Widgets.Register` directly for factories that need custom construction.
 
-The build writes registration code only for an executable, an `OutputType` of `Exe` or `WinExe`. A widget library can list `WinshellWidget` items so `dotnet msbuild -getItem:WinshellWidget` can read them, and that library does not register the widgets. The configuration that references the library does. Registering one name from both fails when the shell starts.
-
-### Place widgets in an area
+The build writes registration code only for an executable, an `OutputType` of `Exe` or `WinExe`. A [widget library](#write-a-widget) can list `WinshellWidget` items so `dotnet msbuild -getItem:WinshellWidget` can read them, and that library does not register the widgets. The configuration that references the library does. Registering one name from both fails when the shell starts.
 
 For example, define this widget in your project's `MyShell` namespace:
 
@@ -349,6 +351,8 @@ public sealed partial class MessageWidget : UserControl
     }
 }
 ```
+
+### Place widgets in an area
 
 Each placement creates a fresh WinUI element with its own settings, the area's orientation and the running `Shell` in its `WidgetContext`. Several placements may use one widget:
 
@@ -471,7 +475,7 @@ A style with one look whatever the theme uses plain keys, as this one does. A st
 
 A widget other people install is a WinUI class library. [samples/message-widget](samples/message-widget) is one, and the solution builds it: a line of text, with one `text` setting. It is a sample for this guide, not a widget Winshell ships.
 
-The project lists each widget. `Include` is the placement name and `Type` is the C# type, as in a configuration. `winshell widget install` reads those items with `dotnet msbuild -getItem:WinshellWidget`. The library does not register them. Registration is generated only for an executable, so the configuration that references the library is the one that constructs the widget.
+The project lists each widget. `Include` is the placement name and `Type` is the C# type, as in a configuration. [`winshell widget install`](#installed-widgets) reads those items with `dotnet msbuild -getItem:WinshellWidget`. The library does not register them. Registration is generated only for an executable, so the configuration that references the library is the one that constructs the widget.
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">

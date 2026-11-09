@@ -23,7 +23,7 @@ winshell run -c starter     # build it and run it
 winshell kill               # stop it
 ```
 
-The starter is a bar with a clock and a battery, and the [configuration guide](docs/configuration.md) begins by reading it file by file. Until there is a configuration, `winshell run` starts nothing.
+`winshell new <name>` copies any of the examples the same way. The starter is a bar with a clock and a battery, and the [configuration guide](docs/configuration.md) begins by reading it file by file. Until there is a configuration, `winshell run` starts nothing.
 
 If something goes wrong, run `winshell doctor` or read [troubleshooting](docs/troubleshooting.md).
 
