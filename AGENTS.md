@@ -1,7 +1,5 @@
 # Winshell
 
-A desktop shell toolkit for Windows 11. A configuration is a .NET project that builds into one program, which `winshell.exe` builds and supervises. Winshell ships no shell of its own.
-
 ## How we build
 
 I like ambitious ideas, simple systems, and software that feels obvious. Do not preserve complexity just because it already exists. Do not introduce machinery because it looks architecturally impressive. Understand the real constraint, then fight for the smallest model that makes the correct behavior unsurprising.
