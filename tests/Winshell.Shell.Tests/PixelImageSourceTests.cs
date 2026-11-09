@@ -7,6 +7,7 @@ using Windows.Foundation;
 
 namespace Winshell.ShellTests;
 
+[Trait("Category", "Window")]
 public sealed class PixelImageSourceTests
 {
     [Theory]

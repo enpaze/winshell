@@ -4,6 +4,7 @@ using Winshell.Diagnostics;
 namespace Winshell.ShellTests;
 
 /// <summary>A real panel window. Fullscreen stepping and placement after release also have fake-backend tests.</summary>
+[Trait("Category", "Window")]
 public sealed class PanelEdgeTests
 {
     [Fact]

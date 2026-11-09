@@ -85,6 +85,7 @@ public sealed class ShellInstanceTests
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_build_error_shows_on_the_running_shell()
     {
         await ShellFixture.Hold(async () =>
@@ -110,6 +111,7 @@ public sealed class ShellInstanceTests
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task Work_that_fails_on_the_shell_thread_writes_a_report_and_the_shell_goes_on()
     {
         await ShellFixture.Hold(async () =>

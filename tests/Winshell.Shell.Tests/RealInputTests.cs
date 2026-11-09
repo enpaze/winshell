@@ -13,6 +13,7 @@ namespace Winshell.ShellTests;
 /// while it runs. Nothing else in this assembly runs beside these tests, so none of its input gets in the way.
 /// </summary>
 [Collection(nameof(RealInputTests))]
+[Trait("Category", "Window")]
 public sealed class RealInputTests
 {
     private static readonly TimeSpan Limit = TimeSpan.FromSeconds(10);

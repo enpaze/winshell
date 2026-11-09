@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Winshell.ShellTests;
 
+[Trait("Category", "Window")]
 public sealed class WatchTests
 {
     [Fact]

@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Winshell.ShellTests;
 
+[Trait("Category", "Window")]
 public sealed partial class PanelReloadTests
 {
     private sealed partial class Edited : Grid

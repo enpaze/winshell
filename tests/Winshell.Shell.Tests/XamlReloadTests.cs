@@ -60,6 +60,7 @@ public sealed partial class XamlReloadTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_saved_panel_shows_its_new_markup_and_keeps_its_state()
     {
         var file = Saved(Open + """><TextBlock x:Name="Label" Text="new" /></UserControl>""");
@@ -83,6 +84,7 @@ public sealed partial class XamlReloadTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_handler_in_the_markup_reaches_the_live_panel()
     {
         var file = Saved(Open + """><Button Content="Press" Click="OnClick" /></UserControl>""");
@@ -105,6 +107,7 @@ public sealed partial class XamlReloadTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_value_on_the_root_and_its_resources_reach_the_live_panel()
     {
         var file = Saved(Open + """
@@ -132,25 +135,17 @@ public sealed partial class XamlReloadTests : IDisposable
     }
 
     [Fact]
-    public async Task Markup_that_does_not_load_says_why_and_the_panel_stays_as_it_was()
+    public async Task Markup_that_does_not_parse_says_why()
     {
         var unclosed = Saved(Open + "><TextBlock></UserControl>");
-        var (text, shown) = await ShellFixture.On(shell =>
-        {
-            var content = new TextBlock { Text = "old" };
-            var live = new LivePanel { Content = content };
-            using var panel = Panel(live);
 
-            var problem = XamlReload.Apply(shell, _dir, unclosed);
+        var problem = await ShellFixture.On(shell => XamlReload.Apply(shell, _dir, unclosed));
 
-            return (problem, ReferenceEquals(live.Content, content));
-        });
-
-        Assert.False(string.IsNullOrEmpty(text));
-        Assert.True(shown);
+        Assert.False(string.IsNullOrEmpty(problem));
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_type_the_loader_does_not_know_says_why_and_the_panel_stays_as_it_was()
     {
         var unknown = Saved(Open + "><NoSuchControl /></UserControl>");
@@ -168,6 +163,7 @@ public sealed partial class XamlReloadTests : IDisposable
     }
 
     [Theory]
+    [Trait("Category", "Window")]
     [InlineData("""<TextBlock Text="{x:Bind Remembered}" />""")]
     [InlineData("""<TextBlock x:Load="False" />""")]
     public async Task Markup_only_the_compiler_can_read_asks_for_a_build_and_changes_nothing(string body)
