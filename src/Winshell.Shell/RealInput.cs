@@ -248,7 +248,7 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
                     throw new IpcException(
                         $"{chord.Text} holds a modifier, which only the real keyboard carries, and Windows gives that to the window in front. This window isn't in front, so nothing more was sent. A plain key, such as Tab or Enter, reaches any window.");
                 RefuseWhileUsed();
-                Sent(KeyInput.Chord([.. Modifiers(chord.Modifiers), chord.VirtualKey]));
+                Sent(KeyInput.Chord((int[])[.. Modifiers(chord.Modifiers), chord.VirtualKey]));
             }
 
             await Task.Delay(Settle, loop.Time);

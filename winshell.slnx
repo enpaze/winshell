@@ -10,6 +10,9 @@
   <Folder Name="/examples/">
     <Project Path="examples/omarchy-style/OmarchyStyle.csproj" />
   </Folder>
+  <Folder Name="/docs/">
+    <Project Path="docs/samples/message-widget/MessageWidget.csproj" />
+  </Folder>
   <Folder Name="/templates/">
     <Project Path="templates/Winshell.Templates.csproj" />
   </Folder>

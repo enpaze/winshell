@@ -206,7 +206,7 @@ public sealed partial class Shell : IDisposable
     {
         var code = InstanceStart.Run(new InstanceLaunch(
                 Environment.ProcessPath!,
-                [.. Environment.GetCommandLineArgs().Skip(1)],
+                (string[])[.. Environment.GetCommandLineArgs().Skip(1)],
                 options.ShellId,
                 options.DataDir,
                 options.StateDir,
@@ -361,7 +361,7 @@ public sealed partial class Shell : IDisposable
             return;
         _disposed = true;
         // The platform goes last, closing every window that is left.
-        DisposeEach([_input, _widgetPlacements, Notices, .. ServicesInStopOrder, Platform]);
+        DisposeEach((IDisposable?[])[_input, _widgetPlacements, Notices, .. ServicesInStopOrder, Platform]);
     }
 
     /// <summary>

@@ -28,6 +28,9 @@ internal static partial class WidgetCommand
 
     private const string WidgetsFile = "WinshellWidgetsFile";
 
+    /// <summary>What <c>remove</c> leaves when the last source goes. The file stays, so the next build sees it.</summary>
+    private const string EmptyProject = "<Project />\n";
+
     /// <summary>Keeps git and dotnet from prompting, and keeps a build from leaving a server for the next command.</summary>
     private static readonly Dictionary<string, string> QuietTools = new()
     {
@@ -221,12 +224,19 @@ internal static partial class WidgetCommand
             var staged = Path.Combine(scratch, "widgets.props");
             var empty = Path.Combine(scratch, "empty.props");
             File.WriteAllText(staged, content, Utf8);
-            File.WriteAllText(empty, "<Project />\n", Utf8);
+            File.WriteAllText(empty, EmptyProject, Utf8);
             // Package props are imported only after a project has an assets file, so the widget is restored on its own
-            // before the configuration can see it. NuGet's restore then walks project-reference paths and drops their
-            // metadata, which would hand the staged file to the library and make the library reference itself. The
-            // reference clears that property for the build. Restore against an empty file, then build without restoring.
-            var restored = Invoke(dotnet, ["restore", widgetProject, "--nologo", "-nodeReuse:false"], locations.LocalRoot);
+            // before the configuration can see it. The clone is not under the configuration, so that restore would miss
+            // the nuget.config winshell new wrote beside the project. RestoreRootConfigDirectory is the folder NuGet
+            // walks up from, and the SDK forwards it to GetRestoreSettingsTask. The Winshell package is not on
+            // nuget.org. NuGet's restore then walks project-reference paths and drops their metadata, which would hand
+            // the staged file to the library and make the library reference itself. The reference clears that property
+            // for the build. Restore the configuration against an empty file, then build without restoring.
+            var restored = Invoke(dotnet,
+            [
+                "restore", widgetProject, "--nologo", "-nodeReuse:false",
+                "-p:RestoreRootConfigDirectory=" + project.Folder
+            ], locations.LocalRoot);
             if (Failed(restored, Path.GetFileName(widgetProject), "restore", Path.GetDirectoryName(widgetProject)!) is { } widgetRestore)
                 return widgetRestore;
             var prepared = Invoke(dotnet,
@@ -330,15 +340,9 @@ internal static partial class WidgetCommand
         var kept = installed.Where(item => !ReferenceEquals(item, matches[0])).ToList();
         try
         {
-            if (kept.Count == 0)
-            {
-                if (File.Exists(props))
-                    File.Delete(props);
-            }
-            else
-            {
-                Replace(props, Write(kept));
-            }
+            // Deleting the last file leaves nothing newer than the program, so the next run would keep the old one.
+            // An empty project is still a source, and writing it makes that check rebuild.
+            Replace(props, kept.Count == 0 ? EmptyProject : Write(kept));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
