@@ -238,7 +238,7 @@ public sealed class WidgetCommandTests : IDisposable
 
         Assert.Equal(0, byName.Code);
         Assert.Equal($"Removed {repo}.{NewLine}", byName.Output);
-        Assert.False(File.Exists(Props));
+        Assert.Equal("<Project />\n", File.ReadAllText(Props));
         Assert.Equal($"No widgets are installed.{NewLine}", Run(["list"]).Output);
         File.WriteAllBytes(Props, written);
 
@@ -246,7 +246,47 @@ public sealed class WidgetCommandTests : IDisposable
 
         Assert.Equal(0, bySource.Code);
         Assert.Equal($"Removed {repo}.{NewLine}", bySource.Output);
-        Assert.False(File.Exists(Props));
+        Assert.Equal("<Project />\n", File.ReadAllText(Props));
+        Assert.Equal($"No widgets are installed.{NewLine}", Run(["list"]).Output);
+    }
+
+    [Fact]
+    public void Removing_the_last_widget_leaves_an_empty_props_that_needs_a_build()
+    {
+        File.WriteAllText(Props, """
+                                 <Project>
+                                   <ItemGroup>
+                                     <ProjectReference Include="clock.csproj">
+                                       <WinshellSource>github.com/someone/clock</WinshellSource>
+                                       <WinshellRef>main</WinshellRef>
+                                       <WinshellCommit>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</WinshellCommit>
+                                     </ProjectReference>
+                                     <WinshellWidget Include="clock" Type="ClockWidget.Clock">
+                                       <WinshellSource>github.com/someone/clock</WinshellSource>
+                                     </WinshellWidget>
+                                   </ItemGroup>
+                                 </Project>
+                                 """);
+        var program = PlantProgram();
+        var old = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        File.SetLastWriteTimeUtc(ProjectFile, old);
+        File.SetLastWriteTimeUtc(Path.Combine(ConfigDir, "Program.cs"), old);
+        File.SetLastWriteTimeUtc(Props, old);
+        File.SetLastWriteTimeUtc(ProgramFile, old.AddMinutes(1));
+        var project = Winshell.ConfigurationProject.ForProgram(ProgramFile);
+        Assert.NotNull(project);
+        Assert.False(project.NeedsBuild());
+
+        var run = Run(["remove", "clock"]);
+
+        Assert.Equal(0, run.Code);
+        Assert.Null(run.Error);
+        Assert.Equal($"Removed github.com/someone/clock.{NewLine}", run.Output);
+        Assert.Equal("<Project />\n", File.ReadAllText(Props));
+        Assert.Equal($"No widgets are installed.{NewLine}", Run(["list"]).Output);
+        Assert.True(File.GetLastWriteTimeUtc(Props) > File.GetLastWriteTimeUtc(ProgramFile));
+        Assert.True(project.NeedsBuild());
+        Assert.Equal(program, File.ReadAllBytes(ProgramFile));
     }
 
     [Fact]

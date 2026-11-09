@@ -1,7 +1,5 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Globalization;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
@@ -287,133 +285,14 @@ internal sealed partial class ConfigurationProject
         }
     }
 
-    /// <summary>
-    /// Whether a build would change the program: there is none, a file of the project is newer, or
-    /// <c>widgets.props</c> was removed while the last registration still names a widget it added.
-    /// </summary>
+    /// <summary>Whether a build would change the program: there is none, or a file of the project is newer.</summary>
     public bool NeedsBuild()
     {
         var program = Program;
         if (!File.Exists(program))
             return true;
         var built = File.GetLastWriteTimeUtc(program);
-        return Sources(Folder).Any(source => File.GetLastWriteTimeUtc(source) > built) || RemovedWidget();
-    }
-
-    /// <summary>
-    /// <c>widgets.props</c> is the install record, and removing the last widget deletes it, so nothing left is newer
-    /// than the program. The newest generated registration still names that widget. One that only names widgets from
-    /// the project file is the build <c>winshell run</c> would produce.
-    /// </summary>
-    private bool RemovedWidget()
-    {
-        if (File.Exists(Path.Combine(Folder, "widgets.props")))
-            return false;
-        // winshell run builds Release. Another configuration's registration is not this program.
-        var obj = Path.Combine(Folder, "obj", "Release");
-        if (!Directory.Exists(obj))
-            return false;
-
-        string? newest = null;
-        var newestWrite = DateTime.MinValue;
-        foreach (var generated in Directory.EnumerateFiles(obj, "WinshellWidgetRegistration.g.cs",
-                     SearchOption.AllDirectories))
-        {
-            DateTime write;
-            try
-            {
-                write = File.GetLastWriteTimeUtc(generated);
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-            {
-                continue;
-            }
-
-            if (newest is not null && write <= newestWrite)
-                continue;
-            newest = generated;
-            newestWrite = write;
-        }
-
-        if (newest is null)
-            return false;
-        var own = WidgetNames(ProjectFile);
-        foreach (var name in RegisteredNames(newest))
-            if (!own.Contains(name))
-                return true;
-        return false;
-    }
-
-    /// <summary>The <c>WinshellWidget</c> names in the project file. A file that does not parse has none.</summary>
-    private static HashSet<string> WidgetNames(string project)
-    {
-        var names = new HashSet<string>(StringComparer.Ordinal);
-        try
-        {
-            foreach (var item in XDocument.Load(project).Descendants())
-                if (item.Name.LocalName == "WinshellWidget" && item.Attribute("Include")?.Value is { Length: > 0 } name)
-                    names.Add(name);
-        }
-        catch (Exception e) when (e is XmlException or IOException or UnauthorizedAccessException)
-        {
-        }
-
-        return names;
-    }
-
-    /// <summary>Widget names in a generated registration. The generator writes each as a C# string literal.</summary>
-    private static IEnumerable<string> RegisteredNames(string path)
-    {
-        const string Marker = "Widgets.Register(\"";
-        string text;
-        try
-        {
-            text = File.ReadAllText(path);
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-            yield break;
-        }
-
-        var start = 0;
-        while ((start = text.IndexOf(Marker, start, StringComparison.Ordinal)) >= 0)
-        {
-            start += Marker.Length;
-            var end = start;
-            while (end < text.Length && text[end] != '"')
-                end += text[end] == '\\' && end + 1 < text.Length ? 2 : 1;
-            if (end >= text.Length)
-                yield break;
-            yield return Literal(text[start..end]);
-            start = end + 1;
-        }
-    }
-
-    /// <summary>The value of a literal written by the widget registration: <c>\\</c>, <c>\"</c> and <c>\u</c>.</summary>
-    private static string Literal(string escaped)
-    {
-        var builder = new StringBuilder(escaped.Length);
-        for (var i = 0; i < escaped.Length; i++)
-        {
-            if (escaped[i] != '\\' || i + 1 >= escaped.Length)
-            {
-                builder.Append(escaped[i]);
-                continue;
-            }
-
-            var next = escaped[++i];
-            if (next == 'u' && i + 4 < escaped.Length &&
-                int.TryParse(escaped.AsSpan(i + 1, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture,
-                    out var code))
-            {
-                builder.Append((char)code);
-                i += 4;
-            }
-            else
-                builder.Append(next);
-        }
-
-        return builder.ToString();
+        return Sources(Folder).Any(source => File.GetLastWriteTimeUtc(source) > built);
     }
 
     /// <summary>
