@@ -4,6 +4,7 @@
 
 A change is held to these, by people and by the `code-review` skill:
 
+- [How we build](AGENTS.md#how-we-build): the owner's notes on simple systems and scope.
 - [The architecture](docs/architecture.md): the layers, their boundaries and the sealed interop.
 - [Formatting and style](docs/development.md#formatting-and-style): C# whitespace, code style, names and XAML.
 - The test rules: [Where a test belongs](#where-a-test-belongs), [Write tests that don't flake](#write-tests-that-dont-flake), and the installed `test-audit` skill.

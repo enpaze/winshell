@@ -14,7 +14,7 @@ Work starts from a ticket: one issue that one PR closes. [The main flow](docs/ag
 
 1. Run `git fetch origin main` and `git rev-list --left-right --count HEAD...origin/main`. A second count above 0 means this checkout, and this file, are behind `main`: update the base as [the development page](docs/development.md#start-a-task) describes before you edit or rely on them.
 2. Install the agent skills with `pwsh scripts/install-skills.ps1`. A skill these documents name is installed at `.claude/skills/<name>/SKILL.md` and `.agents/skills/<name>/SKILL.md`: read that copy and follow it.
-3. One ticket is one thread, one worktree, one branch and one small PR. An idea with no ticket gets one before it is built: file it with the Agent task form in `.github/ISSUE_TEMPLATE/agent_task.yml` and its `area:*` label when it fits one PR, and take it to the owner for `/grill-with-docs` when it needs more.
+3. One ticket is one thread, one worktree, one branch and one small PR. An idea with no ticket gets one before it is built: file it with the ticket form in `.github/ISSUE_TEMPLATE/agent_task.yml` and its `area:*` label when it fits one PR, and take it to the owner for `/grill-with-docs` when it needs more.
 4. Many agents work here at once: check `gh pr list --json number,headRefName,files`, and keep your files apart from other open PRs outside your own stack.
 
 ## Stack
