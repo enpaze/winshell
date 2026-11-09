@@ -6,7 +6,7 @@ namespace Winshell;
 
 /// <summary>
 /// The TOML keys of an object: one per public read-write property, the key being the property's name with a lowercase
-/// first letter. It loads a table read from a file into those properties, as <see cref="TomlFile"/> describes.
+/// first letter. It loads a table read from a file into those properties.
 /// </summary>
 internal sealed class TomlKeys
 {
@@ -53,11 +53,9 @@ internal sealed class TomlKeys
     /// <param name="values">The table read from the file.</param>
     /// <param name="where">Says where a name of <paramref name="values"/> is in the file, as <c>path[line:column]</c>.</param>
     /// <param name="keep">Keys left as they are, such as ones assigned and not written yet.</param>
-    /// <param name="defaults">
-    /// What a key <paramref name="values"/> does not have goes back to, or null to leave such a key as it is.
-    /// </param>
+    /// <param name="defaults">What a key <paramref name="values"/> does not have goes back to.</param>
     public void Apply(IReadOnlyDictionary<string, object?> values, Func<string, string> where,
-        IReadOnlySet<TomlKey>? keep = null, IReadOnlyDictionary<TomlKey, object?>? defaults = null)
+        IReadOnlySet<TomlKey>? keep, IReadOnlyDictionary<TomlKey, object?> defaults)
     {
         foreach (var name in values.Keys)
             if (!All.Any(key => key.Name == name) && Nearest(name) is { } near)
@@ -71,7 +69,7 @@ internal sealed class TomlKeys
                     continue;
                 if (!values.TryGetValue(key.Name, out var value))
                 {
-                    if (defaults is not null && defaults.TryGetValue(key, out var fallback) &&
+                    if (defaults.TryGetValue(key, out var fallback) &&
                         !TomlDocument.Same(TomlDocument.Plain(key.Value(_owner)), TomlDocument.Plain(fallback)))
                         key.Property.SetValue(_owner, fallback);
                     continue;

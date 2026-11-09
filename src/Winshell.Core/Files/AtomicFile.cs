@@ -134,8 +134,8 @@ internal static class AtomicFile
     /// <summary>
     /// Replaces <paramref name="path"/> with <paramref name="temp"/>. Antivirus and indexers often hold the new file
     /// for a moment, so a lock is tried again for a few hundred milliseconds. The wait blocks the caller, which may be
-    /// the loop: <see cref="TomlFile.Save"/> promises the file is written when it returns, and a write still on its way
-    /// at <see cref="TomlFile.Dispose"/> must land before the process ends.
+    /// the loop: a write still on its way when a section or the preferences file is disposed must land before the
+    /// process ends.
     /// </summary>
     private static void MoveReplacing(string temp, string path)
     {

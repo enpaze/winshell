@@ -32,6 +32,17 @@ public sealed class AtomicFileTests
     }
 
     [Fact]
+    public void A_save_makes_the_folders_the_file_needs()
+    {
+        using var dir = new TempFolder();
+        var path = Path.Combine(dir.Path, "later", "nested", "settings.toml");
+
+        Assert.Equal(AtomicSave.Saved, AtomicFile.Save(path, "name = \"mine\"\n", false, null));
+
+        Assert.Equal("name = \"mine\"\n", Text(path));
+    }
+
+    [Fact]
     public void A_temp_from_a_dead_process_is_removed_and_a_live_one_stays()
     {
         using var dir = new TempFolder();

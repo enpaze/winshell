@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace Winshell.Core.Tests;
 
 /// <summary>
@@ -8,15 +6,6 @@ namespace Winshell.Core.Tests;
 public sealed class TomlLimitsTests
 {
     private const int Megabyte = 1024 * 1024;
-
-    private sealed class Settings(string path, IEventLoop loop, Log log) : TomlFile(path, loop, log)
-    {
-        public string Name
-        {
-            get;
-            set => Set(ref field, value);
-        } = "default";
-    }
 
     private static string Dotted(int segments)
     {
@@ -52,77 +41,13 @@ public sealed class TomlLimitsTests
     }
 
     [Fact]
-    public void A_file_past_the_limit_keeps_the_values_and_the_file()
-    {
-        using var fixture = new TomlFixture("name = \"kept\"");
-        using var settings = new Settings(fixture.FilePath, fixture.Loop, fixture.Log);
-        Assert.Equal("kept", settings.Name);
-
-        var oversized = Encoding.UTF8.GetBytes("name = \"" + new string('x', Megabyte) + "\"\n");
-        File.WriteAllBytes(fixture.FilePath, oversized);
-
-        // The wait reads this file before the method disposes it.
-        Wait.Until(() => settings.Error.Length > 0, "the file past the limit", fixture.Loop.Process);
-        Assert.Equal("kept", settings.Name);
-        Assert.Contains("above the limit", settings.Error, StringComparison.Ordinal);
-        Assert.Contains(fixture.Messages, m => m.Contains("above the limit", StringComparison.Ordinal));
-
-        settings.Name = "next";
-        fixture.Loop.Process();
-        Assert.Equal(oversized, File.ReadAllBytes(fixture.FilePath));
-        Assert.Contains(fixture.Messages, m => m.Contains("left unchanged", StringComparison.Ordinal));
-    }
-
-    [Fact]
     public void The_limit_counts_bytes_and_not_characters()
     {
         // Fewer characters than the limit, more bytes.
-        var accented = Encoding.UTF8.GetBytes("name = \"" + new string('é', Megabyte / 2) + "\"\n");
-        Assert.True(accented.Length > Megabyte);
-        using var fixture = new TomlFixture("name = \"kept\"");
-        using var settings = new Settings(fixture.FilePath, fixture.Loop, fixture.Log);
+        var text = "name = \"" + new string('é', Megabyte / 2) + "\"\n";
 
-        File.WriteAllBytes(fixture.FilePath, accented);
-
-        // The wait reads this file before the method disposes it.
-        Wait.Until(() => settings.Error.Length > 0, "the file past the limit", fixture.Loop.Process);
-        Assert.Equal("kept", settings.Name);
-        Assert.Contains("above the limit", settings.Error, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_file_back_under_the_limit_clears_the_error()
-    {
-        using var fixture = new TomlFixture("name = \"kept\"");
-        using var settings = new Settings(fixture.FilePath, fixture.Loop, fixture.Log);
-        File.WriteAllText(fixture.FilePath, "name = \"" + new string('x', Megabyte) + "\"\n");
-        // The wait reads this file before the method disposes it.
-        Wait.Until(() => settings.Error.Length > 0, "the file past the limit", fixture.Loop.Process);
-
-        File.WriteAllText(fixture.FilePath, "name = \"kept\"");
-
-        // The wait reads this file before the method disposes it.
-        Wait.Until(() => settings.Error.Length == 0, "the file back under the limit", fixture.Loop.Process);
-    }
-
-    [Fact]
-    public void A_file_nested_too_deep_keeps_the_values_and_the_file()
-    {
-        using var fixture = new TomlFixture("name = \"kept\"");
-        using var settings = new Settings(fixture.FilePath, fixture.Loop, fixture.Log);
-        var bomb = Encoding.UTF8.GetBytes("bomb = " + new string('[', 64) + "1" + new string(']', 64) + "\n");
-        Assert.InRange(bomb.Length, 1, 4096);
-
-        File.WriteAllBytes(fixture.FilePath, bomb);
-
-        // The wait reads this file before the method disposes it.
-        Wait.Until(() => settings.Error.Length > 0, "the file nested too deep", fixture.Loop.Process);
-        Assert.Equal("kept", settings.Name);
-        Assert.Contains("maximum depth of 64", settings.Error, StringComparison.Ordinal);
-
-        settings.Name = "next";
-        fixture.Loop.Process();
-        Assert.Equal(bomb, File.ReadAllBytes(fixture.FilePath));
+        Assert.False(TomlDocument.TryParse("accented.toml", text, out _, out var error));
+        Assert.Contains("above the limit of 1048576", error, StringComparison.Ordinal);
     }
 
     [Fact]
