@@ -29,6 +29,6 @@ public sealed class BatteryWidget : Button
             ToolTipService.SetToolTip(this, tip);
             AutomationProperties.SetName(this, tip);
         });
-        Click += (_, _) => SettingsPage.Open("ms-settings:powersleep");
+        Click += (_, _) => context.Shell.Open("ms-settings:powersleep");
     }
 }

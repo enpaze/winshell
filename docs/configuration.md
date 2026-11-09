@@ -569,6 +569,15 @@ Reading does not ask for permission and does not change anything. Wi-Fi scanning
         hotkey.Pressed += (_, _) => { };
 ```
 
+`shell.Open` opens a Settings page, an app or a URL as Windows would: `ms-settings:sound`, `https://example.com` or an app's path. It takes a URI or a path as a string, not a command line.
+
+```csharp
+        var sound = new Button { Content = "Sound" };
+        sound.Click += (_, _) => shell.Open("ms-settings:sound");
+```
+
+It opens off the shell's thread, so a slow app does not hold up the shell. What Windows can't start, such as a path that is not there, is logged under `shell`, not thrown into the click handler. A scheme no app handles shows Windows' own app picker.
+
 `shell.Log` writes to the instance log, which `winshell log` prints.
 
 ### Keep a control current

@@ -21,6 +21,6 @@ public sealed class ScreenWidget : Button
             ToolTipService.SetToolTip(this, tip);
             AutomationProperties.SetName(this, tip);
         });
-        Click += (_, _) => SettingsPage.Open("ms-settings:display");
+        Click += (_, _) => shell.Open("ms-settings:display");
     }
 }

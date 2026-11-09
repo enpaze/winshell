@@ -25,6 +25,6 @@ public sealed class BluetoothWidget : Button
             ToolTipService.SetToolTip(this, tip);
             AutomationProperties.SetName(this, tip);
         });
-        Click += (_, _) => SettingsPage.Open("ms-settings:bluetooth");
+        Click += (_, _) => context.Shell.Open("ms-settings:bluetooth");
     }
 }

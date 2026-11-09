@@ -31,6 +31,6 @@ public sealed class NetworkWidget : Button
             // TokyoNight.xaml's button has an Alert state, in the style's alert color.
             VisualStateManager.GoToState(this, restricted ? "Alert" : "Calm", false);
         });
-        Click += (_, _) => SettingsPage.Open("ms-settings:network-status");
+        Click += (_, _) => context.Shell.Open("ms-settings:network-status");
     }
 }
