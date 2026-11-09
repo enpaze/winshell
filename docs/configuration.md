@@ -65,7 +65,7 @@ winshell use omarchy-style    # and back
 winshell use                  # lists the configurations, with * before the chosen one
 ```
 
-`winshell use` builds the configuration first when it needs a build, so the next sign-in can start it. A build that fails changes nothing. The choice is the name in `chosen.txt` in the config folder. Each configuration keeps its folder name as its shell id, so its data, its state, its widgets and where they are placed stay its own through every switch. `winshell widget` with no `-c` acts on the chosen one.
+`winshell use` builds the configuration first when it needs a build, so the next sign-in can start it. A build that fails changes nothing. The choice is the name in `chosen.txt` in the config folder. Choosing a configuration never changes its shell id, so its data, its state, its widgets and where they are placed stay its own through every switch. `winshell widget` with no `-c` acts on the chosen one.
 
 ## The program
 

@@ -198,7 +198,7 @@ internal sealed partial class ConfigurationProject
     }
 
     /// <summary>The file in the config folder that names the configuration <c>winshell use</c> chose.</summary>
-    internal const string ChoiceFile = "chosen.txt";
+    private const string ChoiceFile = "chosen.txt";
 
     /// <summary>The name <c>winshell use</c> recorded in <paramref name="root"/>, or null when it recorded none.</summary>
     public static string? Chosen(string root)
@@ -209,7 +209,7 @@ internal sealed partial class ConfigurationProject
     }
 
     /// <summary>Records <paramref name="name"/> as the configuration a run with no <c>-p</c> or <c>-c</c> starts.</summary>
-    public static void Choose(string root, string name)
+    public static void Record(string root, string name)
     {
         Directory.CreateDirectory(root);
         File.WriteAllText(Path.Combine(root, ChoiceFile), name + Environment.NewLine);

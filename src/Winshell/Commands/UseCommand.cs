@@ -37,11 +37,14 @@ internal static class UseCommand
             return null;
         }
 
-        ConfigurationProject.Choose(root, name);
+        ConfigurationProject.Record(root, name);
         return project;
     }
 
-    /// <summary>Lists the configurations in <paramref name="root"/>, with <c>*</c> before the one a bare run starts.</summary>
+    /// <summary>
+    /// Lists the configurations in <paramref name="root"/>, with <c>*</c> before the one a bare run starts. When it would
+    /// start none, as with several and none chosen, none has one.
+    /// </summary>
     private static int List(string root)
     {
         var names = ConfigurationProject.Names(root);
@@ -51,17 +54,14 @@ internal static class UseCommand
             return 0;
         }
 
-        var started = ConfigurationProject.Find(null, null, root, out var error)?.Folder;
+        var started = ConfigurationProject.Find(null, null, root, out _)?.Folder;
         foreach (var name in names)
         {
             var chosen = string.Equals(started, Path.Combine(root, name), StringComparison.OrdinalIgnoreCase);
             Console.WriteLine($"{(chosen ? "*" : " ")} {name}");
         }
 
-        if (error is null)
-            return 0;
-        Console.Error.WriteLine(error);
-        return 1;
+        return 0;
     }
 
     /// <summary>
@@ -84,7 +84,7 @@ internal static class UseCommand
                 if (quit.Answer.Problem($"Instance {info.Id} refused") is { } problem)
                     await Console.Error.WriteLineAsync(problem);
                 await Console.Error.WriteLineAsync(
-                    $"Instance {info.Id} is still running, so {name} did not start. winshell kill --force ends it.");
+                    $"Instance {info.Id} is still running, so {name} was not started. winshell kill --force -i {info.Id} ends it.");
                 return 1;
             }
 

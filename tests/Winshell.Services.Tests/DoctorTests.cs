@@ -326,7 +326,7 @@ public sealed class DoctorTests : IDisposable
             File.WriteAllText(Path.Combine(_dir, name, $"{name}.csproj"), "<Project />");
         }
 
-        ConfigurationProject.Choose(_dir, "b");
+        ConfigurationProject.Record(_dir, "b");
 
         Assert.Equal(CheckStatus.Pass,
             SignIn(command, false, here, _dir, _ => true, projectFile: Path.Combine(_dir, "b", "b.csproj")).Status);

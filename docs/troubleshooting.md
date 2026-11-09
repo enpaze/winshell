@@ -101,7 +101,7 @@ See [the notification area](reference/winshell-tray.md).
 The sign-in entry starts your configuration. With none, it starts nothing. `install.ps1 -AutoStart` adds the entry, and the Sign-in check of `winshell doctor` says what is wrong with it:
 
 - **Windows' Startup apps page turned it off.** Only that page (Windows Settings > Apps > Startup) can turn it back on. A Windows policy that keeps a packaged Winshell off is the same.
-- **The entry starts another configuration.** An entry with no `--config` starts what `winshell run` would. With several configurations and none chosen, that is none, and signing in shows an error that lists them. `winshell use <name>` chooses one, and `winshell doctor` names that command.
+- **The entry starts another configuration, or none.** An entry with no `--config` starts what `winshell run` would. With several configurations and none chosen, that is none, and signing in shows an error that lists them. `winshell use <name>` chooses one. `winshell doctor` names that command: in its Configuration check when it can't tell which one to start, and in the fix of its Sign-in check when the entry starts another.
 - **The unpackaged entry starts another `winshell.exe`**, as after unzipping an update into a new folder, or other options. Install Winshell again with `-AutoStart` to point the entry at the one you use. A packaged Winshell has no path to rewrite: Windows starts the package.
 
 The sign-in entry runs the last build. It does not build, so a broken edit and a missing SDK do not block signing in. `WINSHELL_CONFIG_DIR` applies at sign-in only when it is set for your user account.

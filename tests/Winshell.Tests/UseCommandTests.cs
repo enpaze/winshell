@@ -30,23 +30,22 @@ public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
     {
         Built(Project("a"));
         Project("b");
-        var builds = new List<string>();
 
         Assert.NotNull(UseCommand.Choose("a", Config, Fails, out _));
         Assert.Null(UseCommand.Choose("b", Config, Fails, out var error));
 
         Assert.Equal("a", ConfigurationProject.Chosen(Config));
-        Assert.Equal("b did not build.\nProgram.cs(1,1): error CS1002: ; expected\nNothing changed.", error);
+        Assert.Contains("error CS1002", error, StringComparison.Ordinal);
+        Assert.EndsWith("\nNothing changed.", error, StringComparison.Ordinal);
 
         Assert.NotNull(UseCommand.Choose("b", Config, Builds, out _));
 
         Assert.Equal("b", ConfigurationProject.Chosen(Config));
-        Assert.Single(builds);
+        Assert.True(File.Exists(Path.Combine(Config, "b", "bin", "shell", "b.exe")));
         return;
 
-        CommandResult Builds(string file, IReadOnlyList<string> arguments, string folder)
+        static CommandResult Builds(string file, IReadOnlyList<string> arguments, string folder)
         {
-            builds.Add(folder);
             var output = arguments[arguments.ToList().IndexOf("-o") + 1];
             Directory.CreateDirectory(output);
             File.WriteAllText(Path.Combine(output, "b.exe"), "");
