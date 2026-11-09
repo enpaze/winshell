@@ -120,7 +120,7 @@ A [ScreenWindows](reference/winshell.md#screenwindows) keeps one window on each 
         });
 ```
 
-It makes a window for each screen when it is made, makes one for a screen that is connected, and disposes the window of a screen that is removed. The other screens' windows stay as they are, and so do their widgets. A screen whose resolution or scale changes keeps its window. `Dispose` removes every window. The function can return anything disposable that holds the window, such as an object that also disposes the window's widget areas. A function that throws is logged under the component's name, and that screen has no window until it or its row changes.
+It makes a window for each screen when it is made, makes one for a screen that is connected, and disposes the window of a screen that is removed. The other screens' windows stay as they are, and so do their widgets. A screen whose resolution or scale changes keeps its window, made with the screen as it was then: `shell.Screens` has it as it is now. `Dispose` removes every window. The function can return anything disposable that holds the window, such as an object that also disposes the window's widget areas. A function that throws is logged under the component's name, and that screen has no window until the screens or the rows change.
 
 A screen that differs from the rest has a row in the component's section of the [preferences file](#preferences), and the function is given that row, or null:
 

@@ -82,8 +82,11 @@ public sealed class ScreenWindowsTests
                 // Making a section reads the file as it is now, without waiting for the file watch: the platform's
                 // next refresh drops made-up screens, so they are kept in the list as briefly as possible.
                 new Section(name).Dispose();
-                await Wait.UntilAsync(() => made.Count(window => window.Screen == wide) == 2,
-                    "the changed row to replace its screen's window");
+                await Wait.UntilAsync(() =>
+                {
+                    Assert.True(shell.Screens.Contains(wide), "The platform refreshed the screens and dropped the made-up ones.");
+                    return made.Count(window => window.Screen == wide) == 2;
+                }, "the changed row to replace its screen's window");
                 Assert.True(wideWindow.Disposed);
                 Assert.Equal("bottom", made.Last(window => window.Screen == wide).Row?["edge"]);
                 Assert.Same(otherWideWindow, Assert.Single(made, window => window.Screen == otherWide));

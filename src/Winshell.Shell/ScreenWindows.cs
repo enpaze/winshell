@@ -3,7 +3,8 @@ namespace Winshell;
 /// <summary>
 /// One window on each screen for a component, such as a bar or a dock. It makes a screen's window when the screen
 /// appears and disposes it when the screen goes, and leaves every other screen's window as it is, so their widgets keep
-/// their state. A screen whose size, scale or work area changes keeps its window.
+/// their state. A screen whose size, scale or work area changes keeps its window, and the screen it was made with: read
+/// <see cref="Shell.Screens"/> for the screen as it is now.
 /// <code>
 /// var dock = new ScreenWindows("dock", (screen, row) => new PanelWindow
 /// {
@@ -50,7 +51,7 @@ public sealed class ScreenWindows : IDisposable
     /// the file has it, the three matching keys included, with each value as TOML reads it: a string, a bool, a long,
     /// a double, a list or a table. Return the window, or anything disposable that holds it with what else the
     /// screen's window needs, such as its widget areas. A function that throws is logged under the component's name,
-    /// and that screen has no window until it or its row changes.
+    /// and that screen has no window until the screens or the rows change.
     /// </param>
     public ScreenWindows(string name, Func<ScreenInfo, IReadOnlyDictionary<string, object?>?, IDisposable> make)
     {
@@ -67,6 +68,8 @@ public sealed class ScreenWindows : IDisposable
         Sync();
     }
 
+    // Each change is followed as it is made. The platform adds a renumbered screen's new id before it removes the old
+    // one, so that monitor has two windows until the removal, in the same turn.
     private void OnScreensChanged(object? sender, EventArgs e)
     {
         Sync();
