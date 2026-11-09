@@ -102,6 +102,10 @@ _Avoid_: blur, wallpaper, effect
 A WinUI control.
 _Avoid_: widget (that is placed in a widget area), item
 
+**Watch**:
+A block of a control's code that runs again whenever a service property or list it read changes, while the control is loaded.
+_Avoid_: binding, subscription, observer
+
 **Widget**:
 A piece of UI a widget area creates by name from a placement's settings. It can come from the configuration, an example, or a separate project; it is not the Windows 11 Widgets board.
 _Avoid_: module, applet, plugin
