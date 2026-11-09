@@ -15,8 +15,7 @@ public abstract class ObservableObject : INotifyPropertyChanged
 
     /// <summary>
     /// Reports a read of <paramref name="property"/>, by default the calling property, and returns
-    /// <paramref name="value"/>. A getter reports before it computes anything, as in <c>Read(_info).Name</c>, so a
-    /// getter that throws is still followed.
+    /// <paramref name="value"/>. A getter reports before it computes anything, as in <c>Read(_info).Name</c>.
     /// </summary>
     protected T Read<T>(T value, [CallerMemberName] string property = "")
     {

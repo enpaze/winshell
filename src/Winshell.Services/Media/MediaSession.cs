@@ -53,7 +53,7 @@ public sealed class MediaSession : ObservableObject
         _session = session;
         _loop = loop;
         _log = log;
-        _reported = Read();
+        _reported = Snapshot();
         _track = session.UniqueId;
         session.Changed += OnChanged;
         session.Seeked += RefreshPosition;
@@ -463,7 +463,7 @@ public sealed class MediaSession : ObservableObject
         _log.Warn("media", message);
     }
 
-    private object?[] Read()
+    private object?[] Snapshot()
     {
         return Array.ConvertAll(Reported, p => p.Read(this));
     }
@@ -471,7 +471,7 @@ public sealed class MediaSession : ObservableObject
     private void OnChanged()
     {
         var was = _reported;
-        _reported = Read();
+        _reported = Snapshot();
         var newTrack = _track != UniqueId;
         _track = UniqueId;
         if (newTrack)

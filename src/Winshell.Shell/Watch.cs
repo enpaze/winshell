@@ -11,9 +11,9 @@ public static class WatchExtensions
     /// <summary>
     /// Runs <paramref name="block"/> now, and again whenever a service property or list it read changes, while
     /// <paramref name="control"/> is loaded. Several changes in one turn run it once, on the control's thread, and a
-    /// change the block makes itself does not run it again. The watch pauses while the control is unloaded, runs again
-    /// when it loads, and stops for good when the control's shell window is disposed. A block that throws is logged
-    /// under <c>watch</c> and runs again on the next change to what it read before the throw. Nothing needs disposing.
+    /// change the block makes itself does not run it again. The watch pauses while the control is unloaded or its
+    /// shell window is disposed, and runs again when the control loads. A block that throws is logged under
+    /// <c>watch</c> and runs again on the next change to what it read before the throw. Nothing needs disposing.
     /// </summary>
     /// <param name="control">The control the block keeps current.</param>
     /// <param name="block">Reads the services and sets the control from them.</param>
@@ -56,29 +56,25 @@ internal sealed class ControlWatch
     private void OnLoaded(object sender, RoutedEventArgs? e)
     {
         _loaded = true;
-        _window?.Disposing -= Stop;
+        _window?.Disposing -= Pause;
         _window = ShellWindow.Of(_control);
-        _window?.Disposing += Stop;
+        _window?.Disposing += Pause;
         Run();
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
-        // A control moved to another parent can hear its new Loaded before its old Unloaded.
-        if (_control.IsLoaded)
-            return;
-        _loaded = false;
-        _window?.Disposing -= Stop;
-        _window = null;
-        Follow(Reads.None);
+        Pause();
     }
 
-    private void Stop()
+    /// <summary>
+    /// Stops following until the control loads again. A disposed window's content may unload only later, so the
+    /// window's disposal pauses the watch at once.
+    /// </summary>
+    private void Pause()
     {
-        _control.Loaded -= OnLoaded;
-        _control.Unloaded -= OnUnloaded;
         _loaded = false;
-        _window?.Disposing -= Stop;
+        _window?.Disposing -= Pause;
         _window = null;
         Follow(Reads.None);
     }

@@ -15,7 +15,7 @@ A project may reference a lower layer directly when it needs that layer's contra
 | Owner | Responsibility |
 | --- | --- |
 | `Winshell.Native` | Native declarations, COM contracts, unsafe interop, marshaling, native resource ownership and safe managed operations. |
-| `Winshell.Core` | `IEventLoop`, `Log`, `ObservableObject`, TOML and Crashes, with the file and version helpers they use. Shared infrastructure has no dependency on a service feature or WinUI. |
+| `Winshell.Core` | `IEventLoop`, `Log`, `ObservableObject` and `ObservableList` with the read tracking `Watch` follows, TOML and Crashes, with the file and version helpers they use. Shared infrastructure has no dependency on a service feature or WinUI. |
 | `Winshell.Services` | One assembly of feature folders. Services apply policy and publish state on the event loop; feature backends perform platform work. |
 | `Winshell.Shell` | WinUI hosting, the production event loop, window lifecycle and composition through the existing public Shell API. |
 | CLI (`src/Winshell`) | Commands, configuration builds and shell process supervision. |

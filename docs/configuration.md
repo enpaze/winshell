@@ -336,7 +336,7 @@ Reading does not ask for permission and does not change anything. Wi-Fi scanning
         });
 ```
 
-Several changes in one turn run the block once, on the control's thread, and a change the block makes itself does not run it again. The watch pauses while the control is unloaded, as the content of a hidden popup is, and runs again when it loads. It stops for good when the control's window is disposed, so there is nothing to dispose. A block that throws is logged under `watch`, and the next change to what it read before the throw runs it again.
+Several changes in one turn run the block once, on the control's thread, and a change the block makes itself does not run it again. The watch pauses while the control is unloaded, as the content of a hidden popup is, and runs again when it loads. It stops when the control's window is disposed, so there is nothing to dispose. A block that throws is logged under `watch`, and the next change to what it read before the throw runs it again.
 
 A service list, such as `shell.Power.Devices`, is an [ObservableList](reference/winshell.md#observablelist): going through it, counting it or indexing it is a read. Only its service changes it. A class of your own that derives from `ObservableObject` reports a read from each getter, as in `get => Read(field);`.
 

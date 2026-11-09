@@ -61,6 +61,7 @@ public sealed class WatchTests
 
             source.First = 1;
             await NextTurn(shell);
+            await NextTurn(shell);
             Assert.Equal(before + 1, runs);
             Assert.Equal(2, source.Second);
             return true;
@@ -101,6 +102,43 @@ public sealed class WatchTests
             source.First = 2;
             await NextTurn(shell);
             Assert.Equal(before + 1, runs);
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task A_watch_follows_its_control_to_another_parent()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var source = new Source();
+            var text = new TextBlock();
+            var runs = 0;
+            text.Watch(() =>
+            {
+                runs++;
+                text.Text = $"{source.First}";
+            });
+            var from = new StackPanel { Children = { text } };
+            var to = new StackPanel();
+            using var window = new PanelWindow
+            {
+                Width = 120, Height = 40, Content = new Grid { Children = { from, to } }, Visible = true
+            };
+            await Loaded(text);
+            var unloaded = new TaskCompletionSource();
+            text.Unloaded += (_, _) => unloaded.TrySetResult();
+            var loaded = new TaskCompletionSource();
+            text.Loaded += (_, _) => loaded.TrySetResult();
+            from.Children.Remove(text);
+            to.Children.Add(text);
+            await Task.WhenAll(unloaded.Task, loaded.Task).WaitAsync(TestContext.Current.CancellationToken);
+            var before = runs;
+
+            source.First = 1;
+            await NextTurn(shell);
+            Assert.Equal(before + 1, runs);
+            Assert.Equal("1", text.Text);
             return true;
         });
     }
