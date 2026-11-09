@@ -1,85 +1,38 @@
 # Winshell
 
-A desktop shell toolkit for Windows 11. A configuration is a .NET project that builds into one program.
-
-## Stack
-
-- Windows 11. Projects target `net10.0-windows10.0.22621.0`. The template package targets `net10.0`.
-- .NET 10 SDK, pinned in `global.json`. `Directory.Build.props` treats warnings as errors.
-- Use `.editorconfig` and `dotnet format` for C# formatting and style verification.
-- C# and WinUI 3. `winshell.exe` builds and supervises a configuration. Winshell ships no shell of its own.
-- xUnit v3 for `tests/`, through VSTest.
-- PowerShell 7 for `scripts/`. `scripts/install.ps1` and `scripts/uninstall.ps1` also run on Windows PowerShell 5.1.
-
-For the folder map, see [Project structure](docs/development.md#project-structure).
-
-## Parallel work
-
-Many agents work on this repo at once.
-
-- First, in every session, run `git fetch origin main` and `git rev-list --left-right --count HEAD...origin/main`. A second count above 0 means this checkout, and the `AGENTS.md` you just read, are behind `main`: update the base as [Start a task](docs/development.md#start-a-task) describes before you edit or rely on them.
-- Next, before any other work, install the agent skills with `pwsh scripts/install-skills.ps1` ([Agent skills](docs/development.md#agent-skills)). Use the installed skills, such as `test-audit`; never read a skill from a copy of its source.
-- One task is one thread, one issue, one worktree, one branch and one small PR. If the task has no issue, file one with the fields of the Agent task form in `.github/ISSUE_TEMPLATE/agent_task.yml` and its `area:*` labels.
-- Name the branch `agent/<tool>/<issue#>-<slug>`, such as `agent/claude/123-tray-overflow`, and put `Fixes #<issue#>` in the PR body.
-- Run tasks side by side, and assign them to parallel threads, only when their areas and files don't overlap. `gh pr list --json number,headRefName,files` shows what open PRs touch. A task that runs the test suite or opens a window also needs the one [live session](#live-ui-with-winland-running), so those tasks run one at a time even when their files don't overlap.
-- One PR at a time changes a shared file: a `Directory.*` build file such as `Directory.Packages.props` or `Directory.Build.targets`, `global.json`, `nuget.config`, `.editorconfig`, `winshell.slnx`, `src/BannedSymbols.txt`, `BannedSymbols.Interop.txt`, `tests/TestSupport/`, a lockfile, or a type more than one module uses.
-- Prefer a stack of small, focused PRs for related work, using `gh stack` (`gh extension install github/gh-stack`). Each layer still owns its issue and worktree; follow the [PR stack workflow](docs/development.md#pull-request-stacks).
-- A lead thread with several tasks keeps a one-screen checklist on its tracking issue: merged PRs, open PRs, the next slice, and each child's worktree path. Whoever picks the work up reads that first.
-
-### Conflicts and merging
-
-`main` has no merge queue and doesn't require a PR to be up to date, so two PRs that each pass can break `main` together.
-
-1. When your PR conflicts with `main`, rebase onto the latest `origin/main` (a stacked PR runs `gh stack rebase`); never merge `main` into your branch. Force-push only your own PR branch, with `git push --force-with-lease origin HEAD`, never `main`.
-2. Resolve each conflict by intent: find the PR that changed the same code with `git log --oneline <your-branch>..origin/main -- <file>`, read it, and keep both behaviors. Taking "ours" or "theirs" wholesale is never a resolution.
-3. If both sides change the same behavior, run `git rebase --abort`, comment on your PR naming the other PR and the collision, and escalate to the lead thread, or to the user if there is none, instead of guessing.
-4. Run the [checks for the change](docs/development.md#checks-by-change) again before you push, even after a clean rebase: it can still break logic.
-5. You own the PR until it merges: fix every failing check, re-run a cancelled one with `gh run rerun <run-id>`, and confirm `gh pr view <number> --json state --jq .state` prints `MERGED`. For a standalone PR, enable auto-merge with `gh pr merge <number> --squash --auto`. A delegated agent leaves auto-merge off and hands its PR to the lead thread once it is open, or once every layer of its stack is open. The lead reviews the diff and, once the checks pass, merges it by hand with `gh pr merge <number> --squash`, then sees it to `MERGED`. Whoever sees it to `MERGED` then removes the task's worktree and local branch. Keep `release-please--branches--main`: it is the release bot's branch, and deleting it closes the open release PR.
-6. For a stack, wait until every PR meets its merge requirements, then merge the whole stack with `gh stack merge <stack-number> --squash` as one operation to avoid intermediate rebases and repeated CI runs.
-
-## Before you finish
-
-- Writing, changing or reviewing a test? It must pass the installed `test-audit` skill's gate and [Where a test belongs](CONTRIBUTING.md#where-a-test-belongs).
-- Before every push, run the [checks for the change](docs/development.md#checks-by-change). Prose-only changes need `pwsh -NoProfile scripts/check.ps1 -Lint`. Pages containing or removing C# examples, and generated reference pages, also need `pwsh scripts/check.ps1 -Tier Docs`. Other changes need `pwsh scripts/check.ps1`: build with 0 warnings, formatting, the complete .NET suite and PowerShell tooling tests, following [the live UI procedure](docs/development.md#live-ui-with-winland-running).
-- `pwsh scripts/check.ps1 -Tier Package` packs a shell from the template and runs it; the main stage leaves it out. The Package workflow runs it, not required, on PRs that `scripts/ci-changes.ps1` flags `package`.
-- CI runs the remaining checks, so leave `package.ps1` and arm64 to it. The single required test check, `ci`, collects the suite shards, PowerShell 5.1 installer tests and quality checks, selecting prose-only, compiled-documentation or full checks on PRs and pushes to `main`. The ruleset also requires `actionlint`, `pr-title` and `pr-rules`.
-- After changing Markdown or workflows, run `pwsh -NoProfile scripts/check.ps1 -Lint` immediately. If you touched `scripts/`, `tests/Scripts/` or `.github/`, also run the jobs [docs/development.md](docs/development.md#commands) lists for that change.
-- Before opening a PR, get a fresh review: a subagent, or a second pass of your own, reads the diff against this file, [docs/architecture.md](docs/architecture.md) and the installed `test-audit` skill. Fix what it finds and review again, until it finds nothing.
-- Title the PR as [CONTRIBUTING.md](CONTRIBUTING.md#open-a-pr) describes, and fill in the PR template, writing its body with the installed `pr` skill. The `pr-rules` job holds each type of PR to its proof: a `fix` adds a test that failed before the fix, a `perf` gives before and after numbers, and a XAML change shows a `winshell inspect` screenshot.
-- Say what you couldn't verify.
-- Changed a public member of `Winshell.Shell`, `Winshell.Services` or `Winshell.Core`? Update its `///` comment, run `dotnet run scripts/generate-reference.cs`, and commit the pages it writes.
-- Added or changed a command, prerequisite, environment variable, or top-level folder? Update [docs/development.md](docs/development.md) or its project structure section.
-- Don't edit `.agents/skills/` or `.claude/skills/`; the `skills` CLI overwrites them.
-- Never commit `.env` files or credentials.
-
-## Live UI with Winland running
-
-Before running the test suite, a shell, or packaging that opens windows, follow [Live UI with Winland running](docs/development.md#live-ui-with-winland-running). Run one live session at a time, leave the user's workspaces as they are, and drop the `ignore` rule with `winland reload` in `finally`.
-
-For a visual change, follow [See what you changed](docs/development.md#see-what-you-changed): run a shell built from the `winshell` template, or the probe shell, with the change, inspect it, view its screenshot, and check the tree. For hover, a press, focus or an animation, record with `winshell inspect record` in the background, `point` at the element, then look at the contact sheet.
-
-## Agent skills
-
-`skills-lock.json` pins each skill to its source; the installed copies in `.agents/skills/` and `.claude/skills/` are ignored by Git. [Development](docs/development.md#agent-skills) covers installing and updating them.
-
-### Issue tracker
-
-Issues live in GitHub Issues for enpaze/winshell, used through `gh`. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-The five default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
-
-### Test audit
-
-Audits and sweeps of `tests/` follow the installed `test-audit` skill, from OpenClaw at the commit `skills-lock.json` pins. This repo's test boundaries are in [Where a test belongs](CONTRIBUTING.md#where-a-test-belongs).
-
-### Domain docs
-
-One `GLOSSARY.md` at the repo root. See `docs/agents/domain.md`.
-
-## Notes
+## How we build
 
 I like ambitious ideas, simple systems, and software that feels obvious. Do not preserve complexity just because it already exists. Do not introduce machinery because it looks architecturally impressive. Understand the real constraint, then fight for the smallest model that makes the correct behavior unsurprising.
 
 Channel both "measure twice, cut once" and "yagni". Fight scope creep. Try to honor the dev's intent in both a minimal and realistic fashion.
+
+When the documentation and existing code conflict, follow the code's conventions, and in your final reply, list all the inconsistencies you found.
+
+## Start a task
+
+1. Run `git fetch origin main` and `git rev-list --left-right --count HEAD...origin/main`. A second count above 0 means this checkout, and this file, are behind `main`: update the base as [Start a task](docs/development.md#start-a-task) describes before you edit or rely on them.
+2. Install the agent skills with `pwsh scripts/install-skills.ps1`, and use the installed copies.
+3. One task is one thread, one issue, one worktree, one branch and one small PR. If the task has no issue, file one with the Agent task form in `.github/ISSUE_TEMPLATE/agent_task.yml` and its `area:*` labels.
+4. Many agents work here at once: check `gh pr list --json number,headRefName,files`, and keep your files apart from other open PRs outside your own stack.
+
+## Stack
+
+Scripts are PowerShell 7; `scripts/install.ps1` and `scripts/uninstall.ps1` also run on Windows PowerShell 5.1. [Project structure](docs/development.md#project-structure) maps the folders.
+
+## Before you push
+
+- A test you write, change or review passes the installed `test-audit` skill and [Where a test belongs](CONTRIBUTING.md#where-a-test-belongs).
+- Run the [checks for the change](docs/development.md#checks-by-change). Anything that opens a window, the full suite included, follows [Live UI with Winland running](docs/development.md#live-ui-with-winland-running).
+- Before opening the PR, get a fresh review: a subagent, or a second pass of your own, reads the diff against this file, [docs/architecture.md](docs/architecture.md) and the `test-audit` skill. Fix what it finds and review again, until it finds nothing.
+- Open the PR as [Open a PR](CONTRIBUTING.md#open-a-pr) describes, and own it until `gh pr view <number> --json state --jq .state` prints `MERGED`. A delegate hands it to its lead instead.
+
+## When you
+
+- Resolve a conflict, merge, or change a shared file (a build file, `tests/TestSupport/`, a lockfile, a type more than one module uses): [Conflicts and merging](CONTRIBUTING.md#conflicts-and-merging).
+- Build related work as a stack: [Pull request stacks](docs/development.md#pull-request-stacks).
+- Lead several tasks, or work as a delegate: [Lead a set of tasks](docs/agents/lead.md).
+- Change something visible: [See what you changed](docs/development.md#see-what-you-changed).
+
+## Agent skills
+
+Issues live in GitHub Issues for enpaze/winshell, used through `gh`: see the [issue tracker](docs/agents/issue-tracker.md) and [triage labels](docs/agents/triage-labels.md). Name things with the words of `GLOSSARY.md`: see [domain docs](docs/agents/domain.md).

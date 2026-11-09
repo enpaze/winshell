@@ -87,7 +87,7 @@ Install the extension once with `gh extension install github/gh-stack`.
 | `gh stack add <next-branch>` | Create the next branch on top of the stack. Return the current worktree to its previous branch, then use `git worktree add <folder> <next-branch>` for the new layer before editing. |
 | `gh stack view` | Inspect the layers and their PR status. |
 | `gh stack submit` | Fill in each PR's title and description in the interactive editor, then push and publish the stack. Follow the [PR template](../CONTRIBUTING.md#pr-description). Run the required checks in each affected worktree before this command, since it pushes. |
-| `gh stack rebase` | Fetch the latest trunk and rebase each layer onto its updated parent. Resolve conflicts by intent, as [AGENTS.md](../AGENTS.md#conflicts-and-merging) describes. |
+| `gh stack rebase` | Fetch the latest trunk and rebase each layer onto its updated parent. Resolve conflicts by intent, as [Conflicts and merging](../CONTRIBUTING.md#conflicts-and-merging) describes. |
 | `gh stack push` | Push updated layers together with explicit leases. Run the [checks for the change](#checks-by-change) in each affected worktree after rebasing and before pushing. |
 | `gh stack merge <stack-number> --squash` | Merge the ready stack in one operation, with one squash commit per PR. Every layer must meet its required checks and reviews. This avoids intermediate rebases and repeated CI runs between individual merges. |
 
@@ -104,6 +104,11 @@ Choose checks from the complete change against the PR's base, including renamed 
 | Only Markdown or files under `docs/` outside `docs/samples/`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`. No application build, formatting or test suite is needed. |
 | A page in `docs/` (outside `docs/agents/`) or `README.md` containing or removing a C# example fence, or a generated `docs/reference/winshell*.md` page | Lint, then `pwsh scripts/check.ps1 -Tier Docs`. This builds the samples and checks the generated reference, without unrelated tests or windows. |
 | Other changes, including source, scripts, workflows and build configuration | `pwsh scripts/check.ps1`, followed by the focused checks listed below for that change. |
+
+Some changes need more than checks:
+
+- A changed public member of `Winshell.Shell`, `Winshell.Services` or `Winshell.Core`: update its `///` comment, run `dotnet run scripts/generate-reference.cs`, and commit the pages it writes.
+- An added or changed command, prerequisite, environment variable or top-level folder: update this page or its [project structure](#project-structure).
 
 Pages that still contain C# fences get the targeted documentation checks even when the edit changes only their prose. Deleting the last fence or a whole example page also needs those checks. The existing documentation tests own this contract; no application tests are needed just for wording changes.
 
@@ -131,7 +136,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | `pwsh scripts/install-skills.ps1` | Installs every skill in `skills-lock.json` for Codex and Claude Code, each at its pinned ref, as copies. See [Agent skills](#agent-skills). |
 | `npx -y skills@1.7.4 update -p` | Update the unpinned agent skills. Pinned ones (with a `ref` in `skills-lock.json`) change only when re-added with a newer `#<sha>`. |
 
-Before every push, run the [checks for the change](#checks-by-change), then its focused checks. `pwsh scripts/check.ps1 -Tier Package` packs the library and the template, builds a shell from it and runs it. The Package workflow runs this deployment validation on PRs that `scripts/ci-changes.ps1` flags `package`; it is not required. The single required test check, `ci`, collects suite, installer compatibility and quality results. The ruleset also requires `actionlint`, `pr-title` and `pr-rules`.
+Before every push, run the [checks for the change](#checks-by-change), then its focused checks. `pwsh scripts/check.ps1 -Tier Package` packs the library and the template, builds a shell from it and runs it. The Package workflow runs this deployment validation on PRs that `scripts/ci-changes.ps1` flags `package`; it is not required. Leave `scripts/package.ps1` and arm64 to CI. The single required test check, `ci`, collects suite, installer compatibility and quality results. The ruleset also requires `actionlint`, `pr-title` and `pr-rules`.
 
 `check.ps1` requires Pester 5.6.1 and runs the PowerShell 7 suites. CI installs hash-verified modules through `.github/actions/powershell`; the installer job additionally runs the combined installer/uninstaller tests on Windows PowerShell 5.1 and feeds the required `ci` result. Workflow and link checks remain separate:
 
@@ -348,7 +353,7 @@ Real mixed-DPI movement, Acrylic composition, Narrator speech, native toast plac
 .
 ├── .github/                         # CI, issue and PR templates, Dependabot
 ├── docs/
-│   ├── agents/                      # How the engineering skills use this repo
+│   ├── agents/                      # How agents work on this repo
 │   ├── reference/                   # A page per namespace
 │   ├── research/                    # Research notes that a tracked decision builds on
 │   ├── samples/message-widget/      # The message widget the configuration guide builds; not a shell
