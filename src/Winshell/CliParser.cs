@@ -210,6 +210,15 @@ internal static class CliParser
                                       A folder that exists and isn't empty is refused, and nothing changes.
                                     """;
 
+    private const string UseUsage = """
+                                    winshell use [<name>]
+                                      With a name, builds that config in {config-root} when it needs a build, and
+                                      chooses it: sign-in, the Start tile and winshell run with no -c or -p start it.
+                                      A shell that is running stops, and the chosen one starts in its place.
+                                      A failed build changes nothing.
+                                      With no name, lists the configs, with * before the one winshell run starts.
+                                    """;
+
     private const string Summary = """
                                    winshell {version}: a desktop shell for Windows 11
 
@@ -237,6 +246,7 @@ internal static class CliParser
                                           winshell doctor [config options] [-j] [--no-color]
                                                                               check this PC's setup for Winshell
                                           winshell new [<name>] [-p <folder>] list the examples, or copy one to start from
+                                          winshell use [<name>]               choose the config sign-in starts, and switch to it
                                           winshell widget install <source>[@ref] [--yes]
                                                                               install widgets from a GitHub repository
                                           winshell widget list                list the widgets a configuration has
@@ -315,6 +325,7 @@ internal static class CliParser
             Option.Flag(new CommandWord("--no-color"), o => o with { NoColor = true })
         ]),
         Entry("new", NewUsage, WordRule.One, [PathOption]),
+        Entry("use", UseUsage, WordRule.One, []),
         Entry("widget", WidgetUsage, WordRule.Subcommand, [PathOption, ConfigOption, ProjectOption, YesOption],
         [
             new Subcommand("install", 1, "a source", AtMost: 1),
@@ -387,6 +398,9 @@ internal static class CliParser
                         CheckWidget(line, positional);
                     break;
             }
+
+            if (name == "use" && positional.Count == 1 && !CommandWords.IsConfigName(positional[0]))
+                throw new ArgumentException($"winshell use needs the name of a config folder, not \"{positional[0]}\".");
         }
 
         return options with

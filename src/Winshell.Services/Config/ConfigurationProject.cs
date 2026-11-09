@@ -197,11 +197,38 @@ internal sealed partial class ConfigurationProject
         return Path.Combine(folder, AssemblyName() + ".exe");
     }
 
+    /// <summary>The file in the config folder that names the configuration <c>winshell use</c> chose.</summary>
+    internal const string ChoiceFile = "chosen.txt";
+
+    /// <summary>The name <c>winshell use</c> recorded in <paramref name="root"/>, or null when it recorded none.</summary>
+    public static string? Chosen(string root)
+    {
+        var file = Path.Combine(root, ChoiceFile);
+        var name = File.Exists(file) ? File.ReadAllText(file).Trim() : "";
+        return name.Length > 0 ? name : null;
+    }
+
+    /// <summary>Records <paramref name="name"/> as the configuration a run with no <c>-p</c> or <c>-c</c> starts.</summary>
+    public static void Choose(string root, string name)
+    {
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, ChoiceFile), name + Environment.NewLine);
+    }
+
+    /// <summary>The folders of <paramref name="root"/> that hold a project: the names <c>-c</c> takes.</summary>
+    public static IReadOnlyList<string> Names(string root)
+    {
+        return Directory.Exists(root)
+            ? Directory.EnumerateDirectories(root).Where(folder => Projects(folder).Length > 0)
+                .Select(folder => Path.GetFileName(folder)).ToList()
+            : [];
+    }
+
     /// <summary>
     /// The project to run: <paramref name="path"/>, a project or a folder holding one; or a named folder in
-    /// <paramref name="root"/>; or else the one in <paramref name="root"/>, then its <c>default</c> folder, then its only
-    /// folder with a project. Null with no error when there is none, so nothing runs. A folder Winshell cannot read is
-    /// an error.
+    /// <paramref name="root"/>; or else the one <see cref="Chosen"/> names, then the one in <paramref name="root"/>, then
+    /// its <c>default</c> folder, then its only folder with a project. Null with no error when there is none, so nothing
+    /// runs. A folder Winshell cannot read is an error.
     /// </summary>
     public static ConfigurationProject? Find(string? path, string? name, string root, out string? error)
     {
@@ -246,23 +273,31 @@ internal sealed partial class ConfigurationProject
             return found;
         }
 
+        if (Chosen(root) is { } chosen)
+        {
+            var found = CommandWords.IsConfigName(chosen) ? In(Path.Combine(root, chosen), out error) : null;
+            if (found is null && error is null)
+                error = $"The chosen config \"{chosen}\" is not in {root}. Choose one with winshell use <name>.";
+            return found;
+        }
+
         if (In(root, out error) is { } atRoot)
             return atRoot;
         if (error is not null)
             return null;
         if (In(Path.Combine(root, "default"), out error) is { } usual)
             return usual;
-        if (error is not null || !Directory.Exists(root))
+        if (error is not null)
             return null;
-        var folders = Directory.EnumerateDirectories(root).Where(folder => Projects(folder).Length > 0).ToList();
-        if (folders.Count > 1)
+        var names = Names(root);
+        if (names.Count > 1)
         {
             error =
-                $"Several configs in {root}; pick one with -c: {string.Join(", ", folders.Select(Path.GetFileName))}.";
+                $"Several configs in {root}; choose one with winshell use <name>, or pick one with -c: {string.Join(", ", names)}.";
             return null;
         }
 
-        return folders.Count == 1 ? In(folders[0], out error) : null;
+        return names.Count == 1 ? In(Path.Combine(root, names[0]), out error) : null;
     }
 
     /// <summary>
