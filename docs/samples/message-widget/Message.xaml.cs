@@ -22,7 +22,7 @@ public sealed partial class Message : IDisposable
 
         InitializeComponent();
         _context = context;
-        Label.Text = text;
+        Label.Text = text + " ·";
         Label.PointerPressed += (_, _) => ShowPopup();
         Loaded += (_, _) => ShowScreen();
     }

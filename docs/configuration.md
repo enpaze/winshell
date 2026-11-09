@@ -249,7 +249,7 @@ public sealed partial class Message : IDisposable
 
         InitializeComponent();
         _context = context;
-        Label.Text = text;
+        Label.Text = text + " ·";
         Label.PointerPressed += (_, _) => ShowPopup();
         Loaded += (_, _) => ShowScreen();
     }
@@ -289,7 +289,7 @@ public sealed partial class Message : IDisposable
 }
 ```
 
-`text` is the placement's setting. A value that is not a string throws [UnsupportedWidgetException](reference/winshell.md#unsupportedwidgetexception), and so does a vertical area. The area shows the widget's name and that reason, and the other placements keep running.
+`text` is the placement's setting. The line is that string followed by a middle dot. A value that is not a string throws [UnsupportedWidgetException](reference/winshell.md#unsupportedwidgetexception), and so does a vertical area. The area shows the widget's name and that reason, and the other placements keep running.
 
 [StylePopup](reference/winshell.md#widgetcontext) wraps content for a [PopupWindow](reference/winshell.md#popupwindow). Assign the result to the popup's `Content`. The wrapper loads the area's theme and follows its font, font size and foreground. The widget still owns the popup: this one disposes the previous popup, and disposes it again with the widget.
 
