@@ -70,6 +70,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
 
     /// <summary>
     /// The source URI of this area's own style, which wins over the shell's, or null for <see cref="Shell.Style"/>.
+    /// Tooltips follow the shell's style, not the area's.
     /// Changing it replaces only the dictionary the style loaded, leaving the area's other resources intact, and a file
     /// that does not load throws and changes nothing. It hides
     /// the inherited WinUI <c>Style</c>, which a widget area does not use.

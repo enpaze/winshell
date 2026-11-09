@@ -209,7 +209,7 @@ The style is how every widget area and styled popup looks: its colors, font and 
         shell.Style = new Uri("ms-appx:///TokyoNight.xaml");
 ```
 
-A new value reaches what is already on screen, and `null` returns to the built-in style. A file that does not load throws and changes nothing. An area's own `Style` wins over the shell's, and `null` there follows the shell. The file is a XAML page of your project, as `ms-appx:///` names it.
+A new value reaches what is already on screen, and `null` returns to the built-in style. A file that does not load throws and changes nothing. An area's own `Style` wins over the shell's, except for tooltips, and `null` there follows the shell. The file is a XAML page of your project, as `ms-appx:///` names it.
 
 A style defines these keys, which a bar, a widget and its popups read with `{ThemeResource}`:
 
@@ -227,7 +227,7 @@ It also defines implicit styles, with no `x:Key`, for the plain controls a widge
 - `Button`: flat, at least one slot wide and high, its content centered, in the style's foreground, font and font size.
 - `TextBlock`: the style's foreground, font and font size, centered vertically. A text block keeps that foreground inside a pressed or disabled button, so give a button its text as a string to take the button's colors.
 - `FontIcon`: the style's icon font. Its color comes from what holds it, so a button's pressed and disabled colors reach the glyph.
-- `ToolTip`: the style's background, foreground and font. WinUI looks up a tooltip's style only in the app's resources, because a tooltip opens outside the area, so this entry does not yet reach a tooltip a widget sets with `ToolTipService`.
+- `ToolTip`: the style's background, foreground and font. A tooltip opens in a popup of its own, outside the area, and WinUI looks up its style only in the app's resources, so Winshell puts the `ToolTip` entry of `shell.Style` there. It styles every tooltip in the shell, in your own windows too, and an area's own `Style` does not change it. A `ToolTip` style you put in `Application.Current.Resources` yourself wins over it.
 
 A style that leaves out a key fails where something reads it. [BuiltInStyle.xaml](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/BuiltInStyle.xaml) is the built-in style, and a start for your own:
 

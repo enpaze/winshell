@@ -387,6 +387,11 @@ internal static class Inspector
             clear?.Background = null;
         }
 
+        // A tooltip renders as nothing, though what its template made renders.
+        if (bitmap.PixelWidth == 0 && VisualTreeHelper.GetChildrenCount(shown) > 0 &&
+            VisualTreeHelper.GetChild(shown, 0) is UIElement drawn)
+            await bitmap.RenderAsync(drawn);
+
         var pixels = await bitmap.GetPixelsAsync();
         var image = new PixelImage(bitmap.PixelWidth, bitmap.PixelHeight,
             Flattened(pixels.ToArray(), dark ? DarkBack : LightBack));
