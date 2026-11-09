@@ -9,6 +9,14 @@
   <!-- This dictionary is merged by Source; WinUI builds FontFamily from its content string. -->
   <FontFamily x:Key="PanelFont">ms-appx:///Fonts/JetBrainsMonoNerdFont-Regular.ttf#JetBrainsMono NF</FontFamily>
 
+  <!-- The keys every shell style defines, so a widget that reads them fits here too. -->
+  <StaticResource x:Key="ShellBackgroundBrush" ResourceKey="PanelBackground" />
+  <StaticResource x:Key="ShellForegroundBrush" ResourceKey="PanelForeground" />
+  <StaticResource x:Key="ShellAlertBrush" ResourceKey="PanelAlert" />
+  <StaticResource x:Key="ShellFontFamily" ResourceKey="PanelFont" />
+  <x:Double x:Key="ShellFontSize">12</x:Double>
+  <x:Double x:Key="ShellSlotSize">26</x:Double>
+
   <!-- WinUI looks up a stock control's brushes in the theme dictionaries, ahead of the keys above. The same Tokyo
        Night values are the fallback for every theme, so a stock button stays this color whatever Windows is using. -->
   <ResourceDictionary.ThemeDictionaries>

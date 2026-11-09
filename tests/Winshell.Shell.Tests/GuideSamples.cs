@@ -54,6 +54,11 @@ public static class GuideSamples
         return (area, panel);
     }
 
+    public static void AStyle(Shell shell)
+    {
+        shell.Style = new Uri("ms-appx:///TokyoNight.xaml");
+    }
+
     public static void AHotkey(Shell shell)
     {
         var hotkey = shell.NewHotkey();
