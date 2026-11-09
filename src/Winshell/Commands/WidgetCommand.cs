@@ -9,13 +9,17 @@ using System.Xml.Linq;
 namespace Winshell.Commands;
 
 /// <summary>
-/// <c>winshell widget install</c>, <c>list</c> and <c>remove</c>. <c>widgets.props</c> beside the configuration is the
-/// only record: one <c>ProjectReference</c> per repository, with the source, ref and commit, then that repository's
-/// <c>WinshellWidget</c> items. The clone of a commit lives under the local root and is not a second copy of that record.
+/// <c>winshell widget install</c>, <c>list</c>, <c>remove</c> and <c>update</c>. <c>widgets.props</c> beside the
+/// configuration is the only record: one <c>ProjectReference</c> per repository, with the source, ref and commit,
+/// then that repository's <c>WinshellWidget</c> items. The clone of a commit lives under the local root and is not a
+/// second copy of that record. <c>update</c> resolves each recorded ref again and, when the commit moved, builds that
+/// commit the same way <c>install</c> builds a new one.
 /// </summary>
 internal static partial class WidgetCommand
 {
     internal const string NeedsGit = "Installing a widget needs git, from https://git-scm.com/download/win.";
+
+    private const string NeedsGitToUpdate = "Updating a widget needs git, from https://git-scm.com/download/win.";
 
     private const string Warning =
         "Building runs this repository's code and MSBuild targets in a program that starts at sign-in.";
@@ -65,20 +69,13 @@ internal static partial class WidgetCommand
             return List(installed, output);
         if (command == "remove")
             return Remove(options.Positional[1], props, installed, output);
+        if (command == "update")
+            return Update(options, project, props, installed, input, output, git, dotnet, locations);
 
-        try
-        {
-            Directory.CreateDirectory(locations.LocalRoot);
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-            return Fail(1, e.Message);
-        }
-
-        if (!Tool(git, locations.LocalRoot, out var missing) && missing)
-            return Fail(1, NeedsGit);
-        if (!Tool(dotnet, locations.LocalRoot, out missing) && missing)
-            return Fail(1, ConfigurationProject.NeedsSdk);
+        if (EnsureLocal(locations.LocalRoot) is { } local)
+            return local;
+        if (RequireTools(git, dotnet, locations.LocalRoot, NeedsGit) is { } tools)
+            return tools;
         if (!TryParse(options.Positional[1], out var source, out error))
             return Fail(2, error!);
         var prior = installed.FirstOrDefault(item => SameSource(item.Source, source.Canonical));
@@ -113,23 +110,110 @@ internal static partial class WidgetCommand
         output.WriteLine($"Commit {pin.Commit}");
         output.WriteLine($"Widgets: {string.Join(", ", widgets.Select(widget => $"{widget.Name} ({widget.Type})"))}");
         output.WriteLine(Warning);
-        if (!options.Yes)
+        if (!Agreed(options, input, output, "Install? [y/N] ", "Nothing was installed."))
+            return Ok();
+
+        var next = installed.Append(new Installed(widgetProject, source.Canonical, pin.Ref, pin.Commit, widgets)).ToList();
+        if (Stage(dotnet, project, locations, props, Write(next), cache, widgetProject) is { } failed)
+            return failed;
+
+        var names = string.Join(", ", widgets.Select(widget => widget.Name));
+        output.WriteLine($"Installed {names} from {source.Canonical} at {pin.Commit}.");
+        return Ok();
+    }
+
+    /// <summary>
+    /// Resolves each installed source's recorded ref, or the one <paramref name="options"/> names. An unchanged commit
+    /// is reported. A moved one is shown, then built with <see cref="Stage"/> and recorded only when that build succeeds.
+    /// </summary>
+    private static Result Update(CliOptions options, ConfigurationProject project, string props, List<Installed> installed,
+        TextReader input, TextWriter output, string git, string dotnet, ShellLocations locations)
+    {
+        var name = options.Positional.Length > 1 ? options.Positional[1] : null;
+        if (Choose(installed, name, out var chosen) is { } choice)
+            return choice;
+        if (chosen.Count == 0)
         {
-            output.Write("Install? [y/N] ");
-            output.Flush();
-            var answer = input.ReadLine()?.Trim() ?? "";
-            if (!answer.Equals("y", StringComparison.OrdinalIgnoreCase) &&
-                !answer.Equals("yes", StringComparison.OrdinalIgnoreCase))
-            {
-                output.WriteLine("Nothing was installed.");
-                return Ok();
-            }
+            output.WriteLine("No widgets are installed.");
+            return Ok();
         }
 
+        if (EnsureLocal(locations.LocalRoot) is { } local)
+            return local;
+        if (RequireTools(git, dotnet, locations.LocalRoot, NeedsGitToUpdate) is { } tools)
+            return tools;
+
+        var next = installed.ToList();
+        foreach (var item in chosen)
+        {
+            if (!TryParse(item.Source, out var source, out var error))
+                return Fail(1, error!);
+            source = source with { Ref = item.Ref.Length == 0 ? null : item.Ref };
+            if (!TryPin(git, source, locations.LocalRoot, out var pin, out error))
+                return Fail(1, error!);
+            if (pin.Commit.Equals(item.Commit, StringComparison.OrdinalIgnoreCase))
+            {
+                output.WriteLine($"{source.Canonical} is up to date at {item.Commit}.");
+                continue;
+            }
+
+            var cache = Cache(locations.LocalRoot, source, pin.Commit);
+            if (!TryClone(git, source, pin.Commit, cache, locations.LocalRoot, out error))
+                return Fail(1, error!);
+            if (!TryUpdatedProject(locations.LocalRoot, source, item, pin.Commit, out var widgetProject, out error))
+                return Fail(1, error!);
+            if (!TryReadWidgets(dotnet, widgetProject, locations.LocalRoot, out var widgets, out error))
+                return Fail(1, error!);
+            if (widgets.Count == 0)
+                return Fail(1, $"{Path.GetFileName(widgetProject)} lists no widgets.");
+            foreach (var widget in widgets)
+            {
+                var other = next.FirstOrDefault(have => !SameSource(have.Source, item.Source) &&
+                                                         have.Widgets.Any(existing => existing.Name == widget.Name));
+                if (other is not null)
+                    return Fail(1,
+                        $"{widget.Name} is already installed from {other.Source}. {source.Canonical} also provides it.");
+            }
+
+            if (!VersionsAllow(project.ProjectFile, widgetProject, out error))
+                return Fail(1, error!);
+            if (!TryLog(git, source, item.Commit, pin.Commit, locations, out var log, out error))
+                return Fail(1, error!);
+
+            var added = widgets.Where(widget => item.Widgets.All(existing => existing.Name != widget.Name))
+                .Select(widget => widget.Name).ToList();
+            var dropped = item.Widgets.Where(existing => widgets.All(widget => widget.Name != existing.Name))
+                .Select(existing => existing.Name).ToList();
+            output.WriteLine(source.Canonical);
+            output.WriteLine($"{item.Commit}..{pin.Commit}");
+            foreach (var line in log.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                output.WriteLine(line);
+            output.WriteLine("Added: " + Names(added));
+            output.WriteLine("Dropped: " + Names(dropped));
+            output.WriteLine(Warning);
+            if (!Agreed(options, input, output, "Update? [y/N] ", "Nothing was updated."))
+                continue;
+
+            var index = next.FindIndex(have => ReferenceEquals(have, item));
+            next[index] = new Installed(widgetProject, source.Canonical, pin.Ref, pin.Commit, widgets);
+            if (Stage(dotnet, project, locations, props, Write(next), cache, widgetProject) is { } failed)
+                return failed;
+            output.WriteLine($"Updated {Names(widgets.Select(widget => widget.Name))} from {source.Canonical} at {pin.Commit}.");
+        }
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Restores <paramref name="widgetProject"/> on its own, restores the configuration against an empty props file,
+    /// and builds it against a staged <c>widgets.props</c>. The file beside the project is replaced only when that
+    /// build succeeds. The clone at <paramref name="cache"/> is left in place either way.
+    /// </summary>
+    private static Result? Stage(string dotnet, ConfigurationProject project, ShellLocations locations, string props,
+        string content, string cache, string widgetProject)
+    {
         if (project.Blocked() is { } blocked)
             return Fail(1, blocked);
-        var next = installed.Append(new Installed(widgetProject, source.Canonical, pin.Ref, pin.Commit, widgets)).ToList();
-        var content = Write(next);
         var scratch = Path.Combine(locations.CacheRoot, "widget-build", Guid.NewGuid().ToString("N"));
         try
         {
@@ -160,6 +244,7 @@ internal static partial class WidgetCommand
                 return configurationBuild;
             MarkReadOnly(cache);
             Replace(props, content);
+            return null;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -169,10 +254,6 @@ internal static partial class WidgetCommand
         {
             DeleteTree(scratch);
         }
-
-        var names = string.Join(", ", widgets.Select(widget => widget.Name));
-        output.WriteLine($"Installed {names} from {source.Canonical} at {pin.Commit}.");
-        return Ok();
     }
 
     internal readonly record struct Result(int Code, string? Error);
@@ -240,9 +321,7 @@ internal static partial class WidgetCommand
 
     private static Result Remove(string name, string props, List<Installed> installed, TextWriter output)
     {
-        var matches = installed.Where(item => item.Widgets.Any(widget => widget.Name == name) || SourceNamed(item, name))
-            .Distinct()
-            .ToList();
+        var matches = Matches(installed, name);
         if (matches.Count == 0)
             return Fail(1, $"No installed widget or source is named \"{name}\".");
         if (matches.Count > 1)
@@ -270,6 +349,68 @@ internal static partial class WidgetCommand
         return Ok();
     }
 
+    private static Result? EnsureLocal(string localRoot)
+    {
+        try
+        {
+            Directory.CreateDirectory(localRoot);
+            return null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return Fail(1, e.Message);
+        }
+    }
+
+    private static Result? RequireTools(string git, string dotnet, string localRoot, string gitMissing)
+    {
+        if (!Tool(git, localRoot, out var missing) && missing)
+            return Fail(1, gitMissing);
+        if (!Tool(dotnet, localRoot, out missing) && missing)
+            return Fail(1, ConfigurationProject.NeedsSdk);
+        return null;
+    }
+
+    /// <summary><c>--yes</c> agrees. Otherwise the answer is read from <paramref name="input"/>, and a no prints <paramref name="declined"/>.</summary>
+    private static bool Agreed(CliOptions options, TextReader input, TextWriter output, string question, string declined)
+    {
+        if (options.Yes)
+            return true;
+        output.Write(question);
+        output.Flush();
+        var answer = input.ReadLine()?.Trim() ?? "";
+        if (answer.Equals("y", StringComparison.OrdinalIgnoreCase) ||
+            answer.Equals("yes", StringComparison.OrdinalIgnoreCase))
+            return true;
+        output.WriteLine(declined);
+        return false;
+    }
+
+    /// <summary>No name selects every installed source. A name selects one widget or source, with <c>remove</c>'s errors.</summary>
+    private static Result? Choose(List<Installed> installed, string? name, out List<Installed> chosen)
+    {
+        if (name is null)
+        {
+            chosen = installed.Count == 0 || installed.All(item => item.Widgets.Count == 0) ? [] : installed.ToList();
+            return null;
+        }
+
+        chosen = Matches(installed, name);
+        if (chosen.Count == 0)
+            return Fail(1, $"No installed widget or source is named \"{name}\".");
+        if (chosen.Count > 1)
+            return Fail(1,
+                $"\"{name}\" matches more than one installed source: {string.Join(", ", chosen.Select(item => item.Source))}.");
+        return null;
+    }
+
+    private static List<Installed> Matches(List<Installed> installed, string name)
+    {
+        return installed.Where(item => item.Widgets.Any(widget => widget.Name == name) || SourceNamed(item, name))
+            .Distinct()
+            .ToList();
+    }
+
     private static bool SourceNamed(Installed item, string name)
     {
         if (item.Source.Equals(name, StringComparison.OrdinalIgnoreCase))
@@ -284,6 +425,124 @@ internal static partial class WidgetCommand
     private static bool SameSource(string installed, string canonical)
     {
         return installed.Equals(canonical, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>The same project path, inside the clone of <paramref name="commit"/>.</summary>
+    private static bool TryUpdatedProject(string localRoot, WidgetSource source, Installed item, string commit,
+        out string widgetProject, out string? error)
+    {
+        widgetProject = "";
+        error = null;
+        var oldCache = Cache(localRoot, source, item.Commit);
+        if (!Inside(oldCache, item.Project))
+        {
+            error = $"{item.Project} is not a project in {source.Canonical}.";
+            return false;
+        }
+
+        var relative = Relative(oldCache, item.Project);
+        var candidate = Path.GetFullPath(Path.Combine(Cache(localRoot, source, commit), relative));
+        if (!File.Exists(candidate))
+        {
+            error = $"{relative} is not in the new commit of {source.Canonical}.";
+            return false;
+        }
+
+        widgetProject = candidate;
+        return true;
+    }
+
+    /// <summary><c>git log --oneline old..new</c> in the source repository. A remote ref is fetched into a temporary clone first.</summary>
+    private static bool TryLog(string git, WidgetSource source, string oldCommit, string newCommit, ShellLocations locations,
+        out string log, out string? error)
+    {
+        var repo = LocalRepository(source);
+        if (repo is not null)
+            return ReadLog(git, repo, oldCommit, newCommit, locations.LocalRoot, out log, out error);
+
+        log = "";
+        error = null;
+        var scratch = Path.Combine(locations.CacheRoot, "widget-log", Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(scratch);
+            string[][] steps =
+            [
+                ["-C", scratch, "init", "--quiet"],
+                ["-C", scratch, "remote", "add", "origin", source.GitUrl],
+                ["-C", scratch, "fetch", "--quiet", "origin", source.Ref ?? "HEAD"]
+            ];
+            foreach (var step in steps)
+            {
+                var result = Git(git, step, locations.LocalRoot);
+                if (result.Missing)
+                {
+                    error = NeedsGitToUpdate;
+                    return false;
+                }
+
+                if (result.ExitCode != 0)
+                {
+                    var detail = FirstLine(result.Error, result.StandardOutput);
+                    error = detail.Length == 0
+                        ? $"Could not read {source.Canonical}."
+                        : $"Could not read {source.Canonical}: {detail}";
+                    return false;
+                }
+            }
+
+            return ReadLog(git, scratch, oldCommit, newCommit, locations.LocalRoot, out log, out error);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            error = e.Message;
+            return false;
+        }
+        finally
+        {
+            DeleteTree(scratch);
+        }
+    }
+
+    private static string? LocalRepository(WidgetSource source)
+    {
+        if (Directory.Exists(source.GitUrl))
+            return source.GitUrl;
+        if (Uri.TryCreate(source.GitUrl, UriKind.Absolute, out var uri) && uri.IsFile && Directory.Exists(uri.LocalPath))
+            return uri.LocalPath;
+        return null;
+    }
+
+    private static bool ReadLog(string git, string repo, string oldCommit, string newCommit, string localRoot,
+        out string log, out string? error)
+    {
+        log = "";
+        error = null;
+        var result = Git(git,
+        [
+            "-c", "color.ui=never", "--no-pager", "-C", repo, "log", "--oneline", $"{oldCommit}..{newCommit}"
+        ], localRoot);
+        if (result.Missing)
+        {
+            error = NeedsGitToUpdate;
+            return false;
+        }
+
+        if (result.ExitCode != 0)
+        {
+            var detail = FirstLine(result.Error, result.StandardOutput);
+            error = detail.Length == 0 ? $"Could not read the commits between {oldCommit} and {newCommit}." : detail;
+            return false;
+        }
+
+        log = result.StandardOutput;
+        return true;
+    }
+
+    private static string Names(IEnumerable<string> names)
+    {
+        var text = string.Join(", ", names);
+        return text.Length == 0 ? "none" : text;
     }
 
     private static bool TryFile(string text, out WidgetSource source, out string? error)

@@ -312,21 +312,241 @@ public sealed class WidgetCommandTests : IDisposable
     }
 
     [Fact]
-    public void Help_describes_install_list_and_remove()
+    public void Update_moves_to_the_new_commit_and_shows_its_log()
+    {
+        var repo = Commit("clocks", Clock("FIRST"), Library("""<WinshellWidget Include="clock" Type="ClockWidget.Clock" />"""),
+            "first");
+        Assert.Equal(0, Run(["install", repo], yes: true).Code);
+        var old = Rev(repo, "HEAD");
+        var oldCopy = ClockFile(old);
+        File.WriteAllText(Path.Combine(repo, "Clock.cs"), Clock("SECOND"));
+        File.WriteAllText(Path.Combine(repo, "Clock.csproj"), Library("""
+                                                                      <WinshellWidget Include="clock" Type="ClockWidget.Clock" />
+                                                                      <WinshellWidget Include="date" Type="ClockWidget.Date" />
+                                                                      """));
+        CommitExisting(repo, "second adds date");
+        File.WriteAllText(Path.Combine(repo, "Clock.cs"), Clock("THIRD"));
+        File.WriteAllText(Path.Combine(repo, "Clock.csproj"),
+            Library("""<WinshellWidget Include="date" Type="ClockWidget.Date" />"""));
+        CommitExisting(repo, "third drops clock");
+        var head = Rev(repo, "HEAD");
+
+        var run = Run(["update"], yes: true);
+
+        Assert.Equal(0, run.Code);
+        Assert.Null(run.Error);
+        Assert.Contains(repo, run.Output, StringComparison.Ordinal);
+        Assert.Contains($"{old}..{head}", run.Output, StringComparison.Ordinal);
+        Assert.Contains("second adds date", run.Output, StringComparison.Ordinal);
+        Assert.Contains("third drops clock", run.Output, StringComparison.Ordinal);
+        Assert.Contains("Added: date", run.Output, StringComparison.Ordinal);
+        Assert.Contains("Dropped: clock", run.Output, StringComparison.Ordinal);
+        Assert.Contains(Warning, run.Output, StringComparison.Ordinal);
+        Assert.DoesNotContain("Update?", run.Output, StringComparison.Ordinal);
+        Assert.Contains($"Updated date from {repo} at {head}.", run.Output, StringComparison.Ordinal);
+        var reference = Assert.Single(XDocument.Load(Props).Descendants("ProjectReference"));
+        var widget = Assert.Single(reference.Parent!.Elements("WinshellWidget"));
+        Assert.Equal(repo, Value(reference, "WinshellSource"));
+        Assert.Equal("master", Value(reference, "WinshellRef"));
+        Assert.Equal(head, Value(reference, "WinshellCommit"));
+        Assert.Equal("WinshellWidgetsFile", Value(reference, "UndefineProperties"));
+        Assert.Contains(head, (string)reference.Attribute("Include")!, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("date", widget.Attribute("Include")!.Value);
+        Assert.Equal("ClockWidget.Date", widget.Attribute("Type")!.Value);
+        Assert.Contains("FIRST", File.ReadAllText(oldCopy), StringComparison.Ordinal);
+        Assert.True(File.GetAttributes(oldCopy).HasFlag(FileAttributes.ReadOnly));
+        var updated = ClockFile(head);
+        Assert.NotEqual(oldCopy, updated);
+        Assert.Contains("THIRD", File.ReadAllText(updated), StringComparison.Ordinal);
+        Assert.DoesNotContain("SECOND", File.ReadAllText(updated), StringComparison.Ordinal);
+        Assert.True(File.GetAttributes(updated).HasFlag(FileAttributes.ReadOnly));
+    }
+
+    [Fact]
+    public void An_unchanged_ref_is_up_to_date()
+    {
+        var repo = Commit("tagged", Clock("FIRST"), Library("""<WinshellWidget Include="clock" Type="ClockWidget.Clock" />"""),
+            "first");
+        Git(repo, "tag", "v1");
+        var tagged = Rev(repo, "v1");
+        Assert.Equal(0, Run(["install", repo + "@v1"], yes: true).Code);
+        File.WriteAllText(Path.Combine(repo, "Clock.cs"), Clock("SECOND"));
+        CommitExisting(repo, "second");
+        var props = File.ReadAllBytes(Props);
+
+        var run = Run(["update"], yes: true);
+
+        Assert.Equal(0, run.Code);
+        Assert.Null(run.Error);
+        Assert.Equal($"{repo} is up to date at {tagged}.{NewLine}", run.Output);
+        Assert.DoesNotContain("second", run.Output, StringComparison.Ordinal);
+        Assert.DoesNotContain("Update?", run.Output, StringComparison.Ordinal);
+        Assert.Equal(props, File.ReadAllBytes(Props));
+        var copy = Assert.Single(Directory.GetFiles(Path.Combine(Local, "widgets"), "Clock.cs", SearchOption.AllDirectories));
+        Assert.Contains(tagged, copy, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("FIRST", File.ReadAllText(copy), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_failed_update_keeps_the_old_commit()
+    {
+        var program = PlantProgram();
+        var repo = Commit("breaks", Clock("FIRST"), Library("""<WinshellWidget Include="clock" Type="ClockWidget.Clock" />"""),
+            "first");
+        Assert.Equal(0, Run(["install", repo], yes: true).Code);
+        var old = Rev(repo, "HEAD");
+        var props = File.ReadAllBytes(Props);
+        File.WriteAllText(Path.Combine(repo, "Clock.cs"), Broken);
+        CommitExisting(repo, "breaks the build");
+
+        var run = Run(["update"], yes: true);
+
+        Assert.Equal(1, run.Code);
+        Assert.Contains("error CS", run.Error, StringComparison.Ordinal);
+        Assert.Contains($"{old}..", run.Output, StringComparison.Ordinal);
+        Assert.Contains("breaks the build", run.Output, StringComparison.Ordinal);
+        Assert.Equal(props, File.ReadAllBytes(Props));
+        Assert.Equal(old, Value(XDocument.Load(Props).Descendants("ProjectReference").Single(), "WinshellCommit"));
+        Assert.Equal(program, File.ReadAllBytes(ProgramFile));
+        Assert.Contains("FIRST", File.ReadAllText(ClockFile(old)), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Declining_an_update_changes_nothing()
+    {
+        var program = PlantProgram();
+        var repo = Commit("asked", Clock("FIRST"), Library("""<WinshellWidget Include="clock" Type="ClockWidget.Clock" />"""),
+            "first");
+        Assert.Equal(0, Run(["install", repo], yes: true).Code);
+        var old = Rev(repo, "HEAD");
+        var props = File.ReadAllBytes(Props);
+        File.WriteAllText(Path.Combine(repo, "Clock.cs"), Clock("SECOND"));
+        CommitExisting(repo, "second changes the clock");
+        var head = Rev(repo, "HEAD");
+
+        var run = Run(["update", "clock"], input: "n");
+
+        Assert.Equal(0, run.Code);
+        Assert.Null(run.Error);
+        Assert.Contains($"{old}..{head}", run.Output, StringComparison.Ordinal);
+        Assert.Contains("second changes the clock", run.Output, StringComparison.Ordinal);
+        Assert.Contains("Added: none", run.Output, StringComparison.Ordinal);
+        Assert.Contains("Dropped: none", run.Output, StringComparison.Ordinal);
+        Assert.Contains(Warning, run.Output, StringComparison.Ordinal);
+        Assert.Contains("Update? [y/N] ", run.Output, StringComparison.Ordinal);
+        Assert.Contains("Nothing was updated.", run.Output, StringComparison.Ordinal);
+        Assert.Equal(props, File.ReadAllBytes(Props));
+        Assert.Equal(program, File.ReadAllBytes(ProgramFile));
+    }
+
+    [Fact]
+    public void A_newer_Winshell_requirement_stops_an_update_before_building()
+    {
+        var repo = Commit("newer", Clock("FIRST"), Library("""<WinshellWidget Include="clock" Type="ClockWidget.Clock" />"""),
+            "first");
+        Assert.Equal(0, Run(["install", repo], yes: true).Code);
+        var props = File.ReadAllBytes(Props);
+        WriteConfig("0.6.0");
+        File.WriteAllText(Path.Combine(repo, "Clock.csproj"),
+            Library("""<WinshellWidget Include="clock" Type="ClockWidget.Clock" />""", "9.0.0"));
+        CommitExisting(repo, "needs a newer winshell");
+
+        var run = Run(["update"], input: "y");
+
+        Assert.Equal(1, run.Code);
+        Assert.Equal("This widget needs Winshell 9.0.0 and this configuration uses 0.6.0.", run.Error);
+        Assert.DoesNotContain("Update?", run.Output, StringComparison.Ordinal);
+        Assert.DoesNotContain("needs a newer winshell", run.Output, StringComparison.Ordinal);
+        Assert.Equal(props, File.ReadAllBytes(Props));
+    }
+
+    [Fact]
+    public void Update_with_nothing_installed_says_so()
+    {
+        var run = Run(["update"]);
+
+        Assert.Equal(0, run.Code);
+        Assert.Null(run.Error);
+        Assert.Equal($"No widgets are installed.{NewLine}", run.Output);
+        Assert.False(File.Exists(Props));
+    }
+
+    [Fact]
+    public void Update_refuses_a_name_that_is_not_installed()
+    {
+        File.WriteAllText(Props, """
+                                 <Project>
+                                   <ItemGroup>
+                                     <ProjectReference Include="kept.csproj">
+                                       <WinshellSource>kept-source</WinshellSource>
+                                       <WinshellRef>kept-ref</WinshellRef>
+                                       <WinshellCommit>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</WinshellCommit>
+                                     </ProjectReference>
+                                     <WinshellWidget Include="kept" Type="Kept.Widget">
+                                       <WinshellSource>kept-source</WinshellSource>
+                                     </WinshellWidget>
+                                   </ItemGroup>
+                                 </Project>
+                                 """);
+        var props = File.ReadAllBytes(Props);
+
+        var run = Run(["update", "missing"]);
+
+        Assert.Equal(1, run.Code);
+        Assert.Equal("No installed widget or source is named \"missing\".", run.Error);
+        Assert.Equal(props, File.ReadAllBytes(Props));
+    }
+
+    [Fact]
+    public void Updating_needs_git()
+    {
+        File.WriteAllText(Props, """
+                                 <Project>
+                                   <ItemGroup>
+                                     <WinshellWidget Include="kept" Type="Kept.Widget">
+                                       <WinshellSource>kept-source</WinshellSource>
+                                     </WinshellWidget>
+                                   </ItemGroup>
+                                 </Project>
+                                 """);
+        var props = File.ReadAllBytes(Props);
+
+        var run = Run(["update"], git: Path.Combine(Root, "missing-git.exe"));
+
+        Assert.Equal(1, run.Code);
+        Assert.Equal("Updating a widget needs git, from https://git-scm.com/download/win.", run.Error);
+        Assert.Equal(props, File.ReadAllBytes(Props));
+    }
+
+    [Fact]
+    public void Help_describes_install_list_remove_and_update()
     {
         var missing = Assert.Throws<ArgumentException>(() => CliParser.Parse(["widget"]));
         var yes = Assert.Throws<ArgumentException>(() => CliParser.Parse(["widget", "list", "--yes"]));
         var project = Assert.Throws<ArgumentException>(() => CliParser.Parse(["widget", "remove", "clock", "--project", "X"]));
+        var projectOnUpdate = Assert.Throws<ArgumentException>(() => CliParser.Parse(["widget", "update", "--project", "X"]));
+        var spare = Assert.Throws<ArgumentException>(() => CliParser.Parse(["widget", "update", "clock", "extra"]));
+        var named = CliParser.Parse(["widget", "update", "clock", "--yes", "-c", "myshell"]);
         var summary = CliParser.Help(null);
         var help = CliParser.Help("widget");
 
         Assert.Equal("winshell widget needs a command. Run winshell widget --help.", missing.Message);
         Assert.Equal("winshell widget list does not take \"--yes\".", yes.Message);
         Assert.Equal("winshell widget remove does not take \"--project\".", project.Message);
+        Assert.Equal("winshell widget update does not take \"--project\".", projectOnUpdate.Message);
+        Assert.Equal("Unexpected argument \"extra\".", spare.Message);
+        Assert.Equal("update", named.Positional[0]);
+        Assert.Equal("clock", named.Positional[1]);
+        Assert.True(named.Yes);
+        Assert.Equal("myshell", named.Config);
         Assert.Contains("winshell widget install <source>[@ref] [--yes]", summary, StringComparison.Ordinal);
         Assert.Contains("winshell widget list", summary, StringComparison.Ordinal);
         Assert.Contains("list the widgets a configuration has", summary, StringComparison.Ordinal);
         Assert.Contains("winshell widget remove <name>", summary, StringComparison.Ordinal);
+        Assert.Contains("winshell widget update [<name>] [--yes]", summary, StringComparison.Ordinal);
+        Assert.Contains("move installed widgets to the ref's new commit", summary, StringComparison.Ordinal);
+        Assert.Contains("update [<name>] [--yes]", help, StringComparison.Ordinal);
+        Assert.Contains("up to date", help, StringComparison.Ordinal);
         Assert.Contains(Warning, help, StringComparison.Ordinal);
         Assert.Contains("--project", help, StringComparison.Ordinal);
         Assert.Contains("--yes", help, StringComparison.Ordinal);
@@ -444,6 +664,12 @@ public sealed class WidgetCommandTests : IDisposable
     private static string Rev(string repo, string revision)
     {
         return GitOut(repo, "rev-parse", revision).Trim();
+    }
+
+    private string ClockFile(string commit)
+    {
+        return Directory.GetFiles(Path.Combine(Local, "widgets"), "Clock.cs", SearchOption.AllDirectories)
+            .Single(file => file.Contains(commit, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string Value(XElement element, string name)
