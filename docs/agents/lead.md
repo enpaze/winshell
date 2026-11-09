@@ -8,6 +8,7 @@ A lead thread works a spec's tickets through to merged PRs, handing each ticket 
 2. Delegate each unblocked ticket with the brief below, within [the limits](#how-many-at-once). A ticket whose one open blocker has an open PR may be delegated too, stacked on that PR's branch.
 3. A delegate leaves auto-merge off and hands its PR back once it is open. Review the diff and, once the checks pass, merge it by hand with `gh pr merge <number> --squash`, or a ready stack with `gh stack merge <stack-number> --squash`. Then see it through [Until it merges](../../CONTRIBUTING.md#until-it-merges).
 4. Delegate the tickets each merge unblocks, until every ticket of the spec is closed.
+5. When the last ticket merges, run `/retro` with the owner, as [the main flow](flow.md#where-this-repo-overrides-a-skill) says. Each finding the owner accepts becomes a ticket.
 
 ## The brief
 
