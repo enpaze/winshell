@@ -2,9 +2,9 @@
 $script:Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $script:TrxNamespace = 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'
 
-# What a run tests: the solution, or one test project, and a filter. Docs builds the guide samples and checks the
-# generated reference; Package packs the template and runs a shell from it. Each test project the run builds writes one
-# results file, so ProjectCount is how many to expect.
+# What a run builds, the test projects it runs one after another, and a filter. Docs builds the guide samples and checks
+# the generated reference; Package packs the template and runs a shell from it. Each test project writes one results
+# file, so ProjectCount is how many to expect.
 function Get-TestRun {
     param([ValidateSet('Tests', 'Docs', 'Package')][string] $Tier = 'Tests', [ValidateRange(0, 5)][int] $Shard = 0)
     $run = switch ($Tier) {
@@ -37,7 +37,13 @@ function Get-TestRun {
             if ($Shard -eq 1) { $run.Filter += '&' + $widgets.Replace('~', '!~') }
             if ($Shard -eq 5) { $run.Filter += '&' + $widgets }
         }
-        else { $run.ProjectCount = $projects.Count }
+        else {
+            # The local check opens no windows, so any number of them can run at once. The CLI and Shell suites, and
+            # a test elsewhere in the category Window, run only in CI's shards.
+            $run.Projects = @($projects | Where-Object { [IO.Path]::GetFileNameWithoutExtension($_) -notin 'Winshell.Tests', 'Winshell.Shell.Tests' })
+            $run.ProjectCount = $run.Projects.Count
+            $run.Filter += '&Category!=Window'
+        }
     }
     $run
 }
@@ -87,9 +93,7 @@ function Invoke-DotnetTest {
         [int] $Seed = 1
     )
     # A native hang timeout ends the run and names the test. More threads than cores expose contention.
-    # -m:1 keeps desktop-using assemblies apart on a workstation. CI shards use separate Windows desktops.
-    # Each project still writes its own results file.
-    dotnet test (Join-Path $script:Root $Project) --no-build --nologo '-m:1' --filter $Filter --logger trx --results-directory $ResultsDirectory --blame-hang-timeout 3m --blame-hang-dump-type none -- "xUnit.Seed=$Seed" xUnit.MaxParallelThreads=2x | Out-Host
+    dotnet test (Join-Path $script:Root $Project) --no-build --nologo --filter $Filter --logger trx --results-directory $ResultsDirectory --blame-hang-timeout 3m --blame-hang-dump-type none -- "xUnit.Seed=$Seed" xUnit.MaxParallelThreads=2x | Out-Host
     $LASTEXITCODE
 }
 
