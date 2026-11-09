@@ -179,31 +179,27 @@ Each placement creates a fresh WinUI element with its own settings, the area's o
         panel.Closed += area.Dispose;
 ```
 
-Assigning `Defaults` snapshots the list and replaces its widgets unless the user placement file overrides the area. Changing `Orientation` also recreates them. Both dispose every widget implementing `IDisposable`. The example treats a user closing the panel as permanent: `Closed` normally only hides a window. When your code tears the panel down with `panel.Dispose()`, explicitly call `area.Dispose()` too. Removing or reparenting the area does not dispose widgets. Treat placement settings, including nested tables, as read-only.
+Assigning `Defaults` snapshots the list and replaces its widgets unless the [preferences file](#preferences) has a list for the area. Changing `Orientation` also recreates them. Both dispose every widget implementing `IDisposable`. The example treats a user closing the panel as permanent: `Closed` normally only hides a window. When your code tears the panel down with `panel.Dispose()`, explicitly call `area.Dispose()` too. Removing or reparenting the area does not dispose widgets. Treat placement settings, including nested tables, as read-only.
 
 The [shell style](#style) styles the plain controls in an area. Use `{ThemeResource}` for area-sensitive widget resources: `{StaticResource}` resolves at construction, before the area owns the widget. Assign `context.StylePopup(content)` to a `PopupWindow.Content` to load a fresh dictionary of the area's style and follow its resolved theme, style, font, font size and foreground until the area removes the widget or is disposed; the widget still owns its popup windows.
 
 An unknown widget or a factory that throws shows a placeholder with its name and reason while the other placements keep running. The exception and its stack trace are logged under `widgets` in the shell's log (`winshell log`). Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Exceptions after creation follow the shell's normal crash supervision.
 
-### User placement file
+### Let the user change an area
 
-Set an area's inherited WinUI `Name` to let the user replace its placements. Names are case-sensitive; areas with the same name use the same list. An area with no name always uses its defaults.
-
-The file is `%APPDATA%\winshell\widgets\<shell id>.toml`, or `<WINSHELL_CONFIG_DIR>\widgets\<shell id>.toml` when that variable is set. It lives outside the shell project and survives shell updates. When it is missing, Winshell writes the current named areas' defaults as comments. Uncomment a whole list and edit it:
+Set an area's inherited WinUI `Name` to let the user replace its placements. The area is then a component, and its section of the [preferences file](#preferences) holds one `widgets` list. Names are case-sensitive, and areas with the same name use the same section. An area with no name always uses its defaults. A missing file is written with each named area's defaults commented out. Uncomment the list and edit it:
 
 ```toml
-[[end]]
-widget = "message"
-text = "Hello from the placement file"
-
-[[end]]
-widget = "message"
-text = "A second placement"
+[end]
+widgets = [
+  { widget = "message", text = "Hello from the preferences file" },
+  { widget = "message", text = "A second placement" },
+]
 ```
 
-Each array of tables replaces that area's **whole** default list, in order. `widget` names the registered factory; the other keys become its `WidgetContext.Settings`, including nested tables and arrays. Use `end = []` before any `[[area]]` headers to leave an area empty. Remove the entry to return to the author's defaults. An area absent from the file keeps its defaults.
+The list replaces the area's **whole** default list, in order. `widget` names the registered factory, and the other keys become its `WidgetContext.Settings`, including nested tables and arrays. `widgets = []` leaves the area empty. Comment the list out or remove it to return to the author's defaults. An area absent from the file keeps its defaults.
 
-Saving applies changes live. Each changed area disposes its old widgets and creates the new list; other areas keep their widgets. A syntax error or a list without string `widget` names keeps the last valid lists and logs the file location under `widgets`. A name that matches no area stays in the file and produces a warning naming it. Winshell does not migrate or merge user lists into new defaults.
+Saving applies changes live. Each changed area disposes its old widgets and creates the new list, and other areas keep their widgets. A syntax error or a list without string `widget` names keeps the last valid list and logs the file location under `preferences`. Winshell does not migrate or merge user lists into new defaults. The old placement file, `widgets\<shell id>.toml`, is not read.
 
 ### Style
 
@@ -426,21 +422,63 @@ A service list, such as `shell.Power.Devices`, is an [ObservableList](reference/
 
 ## Preferences
 
-Preferences stay TOML. A subclass of `TomlFile` has one public read-write property per key. The key is the property name with a lowercase first letter. `Set` writes the field and the file. A comment on a key the file does not have yet comes from `TomlComment`.
+A shell keeps the user's choices in one TOML file, `preferences\<shell id>.toml` in `%APPDATA%\winshell`, or in `WINSHELL_CONFIG_DIR` when that is set. It lives outside the shell project and survives shell updates. The configuration's own preferences are the keys before the first section, and each component, such as a [named widget area](#let-the-user-change-an-area), has a section named after it:
+
+```toml
+clock24 = true
+
+[dock]
+edge = "left"
+
+[end]
+widgets = [{ widget = "message", text = "Hello" }]
+```
+
+A class that derives from `Preferences` declares a section. It has one public read-write property per key, and the key is the property name with a lowercase first letter. A key takes the types a [TomlFile](reference/winshell.md#tomlfile) does: a string, a number, `true` or `false`, a list or a table. The property's initializer is its default, and `TomlComment` is the comment written above it. Made with no name, the class holds the configuration's own keys:
 
 ```csharp
-public sealed class ShellPreferences(string path, IEventLoop loop) : TomlFile(path, loop)
+public sealed class ShellPreferences : Preferences
 {
-    [TomlComment("\"system\" follows Windows; or \"light\" or \"dark\".")]
-    public string ColorScheme
+    [TomlComment("Show 13:00 rather than 1:00 PM.")]
+    public bool Clock24
     {
-        get;
+        get => Read(field);
         set => Set(ref field, value);
-    } = "system";
+    }
 }
 ```
 
-Pass `Path.Combine(shell.ConfigRoot, "preferences.toml")` and `shell.Loop`. The object follows hand edits. Unknown keys and comments stay. An unknown key that differs from a key the class reads only in case, by a letter, or by two in a longer key is logged with its line and that key. A file that does not parse is not written. A file past 1 MiB, or nested past 64 levels, is not read. `Error` is `path[line:column]: message`, or empty.
+A component's class passes its name. The check returns why a value is refused, or `""`:
+
+```csharp
+public sealed class DockPreferences(string name) : Preferences(name, Check)
+{
+    [TomlComment("bottom, left or right.")]
+    public string Edge
+    {
+        get => Read(field);
+        set => Set(ref field, value);
+    } = "bottom";
+
+    private static string Check(string key, object value)
+    {
+        return key == "edge" && value is not ("bottom" or "left" or "right") ? "must be bottom, left or right" : "";
+    }
+}
+```
+
+Make one on the shell's thread, and dispose it when its component goes. It reads its section when it is made, and its getters report their reads, so a [watch](#keep-a-control-current) follows the file:
+
+```csharp
+        var preferences = new ShellPreferences();
+        var clock = new TextBlock();
+        clock.Watch(() => clock.Text = preferences.Clock24 ? "13:00" : "1:00 PM");
+        var dock = new DockPreferences("dock");
+```
+
+Saving the file applies it live, and changes only the properties whose keys changed, so a component whose section is the same keeps what it shows. A key the file does not have holds its default, so commenting one out goes back to it. Assigning a property writes that key into its section and leaves the rest of the file: comments, other sections and keys no class reads. When the file is missing, Winshell writes it with each section's keys commented out at their defaults, under their comments.
+
+What can't be used is logged under `preferences`, with its line, and the values in use stay: a file that does not parse, a section that is not a table, and a value the property can't hold or the check refuses. A section no component reads stays in the file and is logged by name. An unknown key that differs from a key the class reads only in case, by a letter, or by two in a longer key is logged with that key. A file past 1 MiB, or nested past 64 levels, is not read. A file of your own, outside the preferences file, is a `TomlFile`, which reads and writes a whole file the same way.
 
 `shell.DataPath`, `shell.StatePath` and `shell.CachePath` are per shell under `%LOCALAPPDATA%\winshell`. State does not survive a reload unless the configuration writes it itself. Every window is replaced.
 

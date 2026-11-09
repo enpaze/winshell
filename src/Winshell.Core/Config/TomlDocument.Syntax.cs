@@ -38,6 +38,19 @@ internal sealed partial class TomlDocument
     }
 
     /// <summary>
+    /// <c>path[line:column]</c> of <paramref name="key"/> under the header of the table <paramref name="table"/>, or
+    /// where that table is when the key is written another way, or the path when neither is in the file.
+    /// </summary>
+    private static string KeyAt(string where, DocumentSyntax document, string table, string key)
+    {
+        foreach (var header in FindOwned(document, table).Tables)
+            if (header is TableSyntax && IsSimple(header.Name) && FindItem(header.Items, key) is
+                { Span.Start: var start })
+                return string.Create(CultureInfo.InvariantCulture, $"{where}[{start.Line + 1}:{start.Column + 1}]");
+        return KeyAt(where, document, table);
+    }
+
+    /// <summary>
     /// Whether <paramref name="text"/> loads. On failure <paramref name="line"/> is 1-based, or 0 when the error has
     /// no position: a file past 1 MiB, or nesting past 64 levels, which makes Tomlyn throw and is not applied.
     /// </summary>
@@ -531,7 +544,8 @@ internal sealed partial class TomlDocument
         node.Token.Text = value ? "true" : "false";
     }
 
-    private static string Key(string key)
+    /// <summary>A key as TOML: bare when it can be, quoted otherwise.</summary>
+    public static string Key(string key)
     {
         return key.Length > 0 && key.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-') ? key : Quote(key);
     }

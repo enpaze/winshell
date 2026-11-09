@@ -4,7 +4,7 @@ namespace OmarchyStyle;
 
 /// <summary>
 /// Where the bar sits, and which layout each monitor uses. The file is
-/// <c>bar/&lt;shell id&gt;.toml</c> under the config root, next to the widget placement file and not part of it.
+/// <c>bar/&lt;shell id&gt;.toml</c> under the config root, apart from the shell's preferences file.
 /// A missing file leaves every property at its default: a top bar and no per-monitor rows.
 /// </summary>
 internal sealed class BarSettings : TomlFile
@@ -83,7 +83,7 @@ internal static class BarLayout
         return new BarChoice(fallback, "", null);
     }
 
-    /// <summary>The placement-file area for one part of a layout. The default layout keeps <paramref name="part"/>.</summary>
+    /// <summary>The widget area's name for one part of a layout. The default layout keeps <paramref name="part"/>.</summary>
     public static string Area(string layout, string part)
     {
         return layout.Length == 0 ? part : layout + "." + part;

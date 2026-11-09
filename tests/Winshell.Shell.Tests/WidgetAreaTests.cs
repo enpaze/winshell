@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -185,11 +186,11 @@ public sealed class WidgetAreaTests
     }
 
     [Fact]
-    public async Task The_file_replaces_named_lists_live_and_keeps_unmatched_entries()
+    public async Task A_named_area_takes_its_widgets_from_its_section_live()
     {
         await ShellFixture.On(async shell =>
         {
-            var path = Path.Combine(shell.ConfigRoot, "widgets", shell.ShellId + ".toml");
+            var path = PreferencesTests.PathOf(shell);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             var name = "area" + Guid.NewGuid().ToString("N");
             var unknown = "missing" + Guid.NewGuid().ToString("N");
@@ -201,29 +202,27 @@ public sealed class WidgetAreaTests
                 created.Add((view, context));
                 return view;
             });
-            File.WriteAllText(path, $"[[{name}]]\nwidget = '{widget}'\ntext = 'first'\ncount = 3\noptions = {{ enabled = true }}\n" +
-                                    $"[[{name}]]\nwidget = '{widget}'\ntext = 'second'\n" +
-                                    $"[[{unknown}]]\nwidget = 'not-installed'\n");
+            File.WriteAllText(path, $"[{name}]\nwidgets = [\n  {{ widget = '{widget}', text = 'first', count = 3, options = {{ enabled = true }} }},\n" +
+                                    $"  {{ widget = '{widget}', text = 'second' }},\n]\n\n" +
+                                    $"[{unknown}]\nwidgets = [{{ widget = 'not-installed' }}]\n");
             try
             {
                 using var area = new WidgetArea { Name = name, Defaults = [new(widget)] };
                 using var other = new WidgetArea { Name = name + "other", Defaults = [new(widget)] };
-                await Wait.UntilAsync(() => created.Count(item => item.Context.Settings.ContainsKey("text")) == 2,
-                    "the file's two placements to replace the named area's default");
                 var placed = created.Where(item => item.Context.Settings.ContainsKey("text")).ToArray();
                 Assert.Equal(["first", "second"], placed.Select(item => item.Context.Settings["text"]));
                 Assert.Equal(3L, placed[0].Context.Settings["count"]);
                 Assert.Equal(true, Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(
                     placed[0].Context.Settings["options"])["enabled"]);
-                var unchanged = created.Last(item => item.Context.Settings.Count == 0).View;
-                await Wait.UntilAsync(() => ShellFixture.ReadLog(shell).Contains($"no widget area named '{unknown}'", StringComparison.Ordinal),
-                    "the warning for the unmatched area");
-                Assert.Contains($"[[{unknown}]]", File.ReadAllText(path), StringComparison.Ordinal);
+                var unchanged = Assert.Single(created, item => item.Context.Settings.Count == 0).View;
+                await Wait.UntilAsync(() => ShellFixture.ReadLog(shell).Contains($"no component named '{unknown}'", StringComparison.Ordinal),
+                    "the warning for the section no component reads");
+                Assert.Contains($"[{unknown}]", File.ReadAllText(path), StringComparison.Ordinal);
 
                 var before = created.Count;
                 // Replacing the file also exercises editors that save by rename.
                 var next = path + ".next";
-                File.WriteAllText(next, $"[[{name}]]\nwidget = '{widget}'\ntext = 'updated'\n");
+                File.WriteAllText(next, $"[{name}]\nwidgets = [{{ widget = '{widget}', text = 'updated' }}]\n");
                 File.Move(next, path, true);
                 await Wait.UntilAsync(() => created.Count > before, "the saved list to rebuild");
                 Assert.All(placed, item => Assert.Equal(1, item.View.Disposals));
@@ -233,22 +232,22 @@ public sealed class WidgetAreaTests
 
                 before = created.Count;
                 var anotherUnknown = unknown + "again";
-                File.WriteAllText(path, $"# A comment and an unrelated area leave the existing widgets alone.\n" +
-                                        $"[[{name}]]\nwidget = '{widget}'\ntext = 'updated'\n" +
-                                        $"[[{anotherUnknown}]]\nwidget = 'not-installed'\n");
-                await Wait.UntilAsync(() => ShellFixture.ReadLog(shell).Contains($"no widget area named '{anotherUnknown}'", StringComparison.Ordinal),
+                File.WriteAllText(path, $"# A comment and an unrelated section leave the existing widgets alone.\n" +
+                                        $"[{name}]\nwidgets = [{{ widget = '{widget}', text = 'updated' }}]\n" +
+                                        $"[{anotherUnknown}]\n");
+                await Wait.UntilAsync(() => ShellFixture.ReadLog(shell).Contains($"no component named '{anotherUnknown}'", StringComparison.Ordinal),
                     "the equivalent list to be read");
                 Assert.Equal(before, created.Count);
                 Assert.Equal(0, updated.Disposals);
 
-                File.WriteAllText(path, $"{name} = []\n");
+                File.WriteAllText(path, $"[{name}]\nwidgets = []\n");
                 await Wait.UntilAsync(() => updated.Disposals == 1, "the empty list to remove the widget");
                 Assert.Empty(TextIn(area));
                 Assert.Equal(0, unchanged.Disposals);
 
                 before = created.Count;
-                File.WriteAllText(path, "# Use the author's defaults again.\n");
-                await Wait.UntilAsync(() => created.Count > before, "removing the entry to restore defaults");
+                File.WriteAllText(path, $"# The area is absent, so it uses the author's defaults again.\n");
+                await Wait.UntilAsync(() => created.Count > before, "the absent section to restore the defaults");
                 Assert.Empty(created[^1].Context.Settings);
                 Assert.Equal(0, unchanged.Disposals);
             }
@@ -260,40 +259,30 @@ public sealed class WidgetAreaTests
         });
     }
 
-    [Theory]
-    [InlineData("[[broken]\n", "[1:")]
-    [InlineData("broken = [{ widget = 42 }]\n", "must be a list of tables")]
-    public async Task A_broken_edit_keeps_the_last_valid_lists(string broken, string diagnostic)
+    [Fact]
+    public async Task Renaming_an_area_reads_the_section_of_its_new_name()
     {
-        await ShellFixture.On(async shell =>
+        await ShellFixture.On(shell =>
         {
-            var path = Path.Combine(shell.ConfigRoot, "widgets", shell.ShellId + ".toml");
+            var path = PreferencesTests.PathOf(shell);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             var name = "area" + Guid.NewGuid().ToString("N");
             var widget = Guid.NewGuid().ToString();
-            var views = new List<DisposableWidget>();
-            Widgets.Register(widget, _ =>
+            Widgets.Register(widget, context => new TextBlock
             {
-                var view = new DisposableWidget();
-                views.Add(view);
-                return view;
+                Text = context.Settings.TryGetValue("text", out var text) ? (string)text : "default"
             });
-            File.WriteAllText(path, $"[[{name}]]\nwidget = '{widget}'\n");
+            File.WriteAllText(path, $"[{name}side]\nwidgets = [{{ widget = '{widget}', text = 'side' }}]\n");
             try
             {
-                using var area = new WidgetArea { Name = name };
-                await Wait.UntilAsync(() => views.Count == 1, "the last valid placement to load");
-                var logLength = ShellFixture.ReadLog(shell).Length;
-                File.WriteAllText(path, broken);
-                await Wait.UntilAsync(() => ShellFixture.ReadLog(shell)[logLength..].Contains(diagnostic, StringComparison.Ordinal),
-                    "the broken edit to be diagnosed with its location");
-                Assert.Equal(broken, File.ReadAllText(path));
-                Assert.Equal(0, Assert.Single(views).Disposals);
-                Assert.Single(TextIn(area));
+                using var area = new WidgetArea { Name = name, Defaults = [new(widget)] };
+                Assert.Equal(["default"], TextIn(area));
 
-                File.WriteAllText(path, $"{name} = []\n");
-                await Wait.UntilAsync(() => views[0].Disposals == 1, "a valid edit after the broken one to apply");
-                Assert.Empty(TextIn(area));
+                area.Name = name + "side";
+                Assert.Equal(["side"], TextIn(area));
+
+                area.Name = "";
+                Assert.Equal(["default"], TextIn(area));
             }
             finally
             {
@@ -303,45 +292,43 @@ public sealed class WidgetAreaTests
         });
     }
 
-    [Fact]
-    public async Task A_missing_file_starts_with_commented_defaults_for_each_named_area()
+    [Theory]
+    [InlineData("[{0}\n", "[1:")]
+    [InlineData("[{0}]\nwidgets = [{{ widget = 42 }}]\n", "[2:1]: widgets must name a widget in each of its tables")]
+    [InlineData("{0} = []\n", "[1:1]: {0} should be a section")]
+    public async Task A_broken_edit_keeps_the_last_valid_list(string broken, string diagnostic)
     {
         await ShellFixture.On(async shell =>
         {
-            var path = Path.Combine(shell.ConfigRoot, "widgets", shell.ShellId + ".toml");
+            var path = PreferencesTests.PathOf(shell);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.Delete(path);
             var name = "area" + Guid.NewGuid().ToString("N");
+            broken = string.Format(CultureInfo.InvariantCulture, broken, name);
+            diagnostic = string.Format(CultureInfo.InvariantCulture, diagnostic, name);
             var widget = Guid.NewGuid().ToString();
-            Widgets.Register(widget, _ => new TextBlock { Text = "default" });
+            var views = new List<DisposableWidget>();
+            Widgets.Register(widget, _ =>
+            {
+                var view = new DisposableWidget();
+                views.Add(view);
+                return view;
+            });
+            File.WriteAllText(path, $"[{name}]\nwidgets = [{{ widget = '{widget}' }}]\n");
             try
             {
-                using var area = new WidgetArea
-                {
-                    Name = name,
-                    Defaults = [new(widget, new Dictionary<string, object>
-                    {
-                        ["text"] = "a \"quoted\" value\nand a line break",
-                        ["count"] = 7,
-                        ["nested"] = new Dictionary<string, object> { ["enabled"] = true }
-                    }), new(widget)]
-                };
-                using var empty = new WidgetArea { Name = name + "empty" };
-                await Wait.UntilAsync(() => File.Exists(path), "the initial placement file to be written");
-                var text = File.ReadAllText(path);
-                Assert.All(text.Split('\n').Where(line => line.Length > 0), line => Assert.StartsWith("#", line));
-                var uncommented = string.Join('\n', text.Split('\n').SkipWhile(line => line.Length > 0)
-                    .Select(line => line.StartsWith("# ", StringComparison.Ordinal) ? line[2..] : line));
-                Assert.True(TomlDocument.TryParse(path, uncommented, out var document, out var error), error);
-                var rows = Assert.IsAssignableFrom<IReadOnlyList<object>>(document.Values[name]);
-                Assert.Equal(2, rows.Count);
-                var first = Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(rows[0]);
-                Assert.Equal(widget, first["widget"]);
-                Assert.Equal("a \"quoted\" value\nand a line break", first["text"]);
-                Assert.Equal(7L, first["count"]);
-                Assert.Equal(true, Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(first["nested"])["enabled"]);
-                Assert.Empty(Assert.IsAssignableFrom<IReadOnlyList<object>>(document.Values[name + "empty"]));
-                Assert.Equal(["default", "default"], TextIn(area));
+                using var area = new WidgetArea { Name = name };
+                Assert.Single(views);
+                var logLength = ShellFixture.ReadLog(shell).Length;
+                File.WriteAllText(path, broken);
+                await Wait.UntilAsync(() => ShellFixture.ReadLog(shell)[logLength..].Contains(diagnostic, StringComparison.Ordinal),
+                    "the broken edit to be diagnosed with its location");
+                Assert.Equal(broken, File.ReadAllText(path));
+                Assert.Equal(0, Assert.Single(views).Disposals);
+                Assert.Single(TextIn(area));
+
+                File.WriteAllText(path, $"[{name}]\nwidgets = []\n");
+                await Wait.UntilAsync(() => views[0].Disposals == 1, "a valid edit after the broken one to apply");
+                Assert.Empty(TextIn(area));
             }
             finally
             {

@@ -1,7 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.Reflection;
 
 namespace Winshell;
 
@@ -37,18 +34,16 @@ public abstract class TomlFile : ObservableObject, IDisposable
     private readonly string _path;
     private readonly IEventLoop _loop;
     private readonly Log _log;
-    private readonly Func<string, object, string>? _check;
-    private readonly List<Key> _keys;
+    private readonly TomlKeys _keys;
 
     /// <summary>Keys assigned since the last read that parsed and the write they are waiting for.</summary>
-    private readonly HashSet<Key> _assigned = [];
+    private readonly HashSet<TomlKey> _assigned = [];
 
     private readonly FileWatch _watch;
 
     /// <summary>The text last read or written, so the watch can tell a hand save from this object's own write.</summary>
     private string? _text;
 
-    private bool _loading;
     private bool _writePending;
     private bool _disposed;
 
@@ -64,14 +59,7 @@ public abstract class TomlFile : ObservableObject, IDisposable
         _path = Path.GetFullPath(path);
         _loop = loop;
         _log = log ?? Log.Default;
-        _check = check;
-        _keys =
-        [
-            .. GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => p.SetMethod is { IsPublic: true } && p.GetIndexParameters().Length == 0)
-                .OrderBy(p => p.MetadataToken)
-                .Select(p => new Key(p))
-        ];
+        _keys = new TomlKeys(this, check, Warn);
         PropertyChanged += OnPropertyChanged;
         // Watching first, so a save between the two is not missed.
         _watch = new FileWatch(_path, loop, Follow);
@@ -104,7 +92,7 @@ public abstract class TomlFile : ObservableObject, IDisposable
 
     private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (_loading || _disposed || _keys.Find(candidate => candidate.Property.Name == e.PropertyName) is not { } key)
+        if (_keys.Loading || _disposed || _keys.Of(e.PropertyName) is not { } key)
             return;
         _assigned.Add(key);
         PostWrite();
@@ -185,9 +173,9 @@ public abstract class TomlFile : ObservableObject, IDisposable
         if (load.Text != _text)
             Apply(document, true);
         var read = document.Values;
-        foreach (var key in _keys)
+        foreach (var key in _keys.All)
         {
-            var value = key.Property.GetValue(this);
+            var value = key.Value(this);
             if (_assigned.Contains(key) || (value is not null && !read.ContainsKey(key.Name)))
                 document.Set(key.Name, value, key.Comment);
         }
@@ -225,163 +213,13 @@ public abstract class TomlFile : ObservableObject, IDisposable
     /// </summary>
     private void Apply(TomlDocument document, bool keepAssigned)
     {
-        string Where(string name)
-        {
-            return document.LocationOf(name);
-        }
-
-        // A key like none of these may be another reader's: a configuration can share preferences.toml.
-        foreach (var name in document.Values.Keys)
-            if (!_keys.Exists(key => key.Name == name) && Nearest(name) is { } near)
-                Warn($"{Where(name)}: {name} was ignored; did you mean {near}?");
-        _loading = true;
-        try
-        {
-            foreach (var key in _keys)
-            {
-                if ((keepAssigned && _assigned.Contains(key)) || !document.Values.TryGetValue(key.Name, out var value))
-                    continue;
-                if (!TryConvert(value!, key.Property.PropertyType, out var converted))
-                    Leave(Where(key.Name), key,
-                        $"should be {Expected(key.Property.PropertyType)}, not {Shown(value!)}");
-                else if (_check?.Invoke(key.Name, converted) is { Length: > 0 } reason)
-                    Leave(Where(key.Name), key, reason);
-                else if (!TomlDocument.Same(TomlDocument.Plain(key.Property.GetValue(this)), value))
-                    key.Property.SetValue(this, converted);
-            }
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
-
-    /// <summary>The key <paramref name="name"/> may be a misspelling of: one that differs in case or in a letter or two.</summary>
-    private string? Nearest(string name)
-    {
-        var best = (Name: (string?)null, Distance: 3);
-        foreach (var key in _keys)
-        {
-            var distance = Distance(name.ToLowerInvariant(), key.Name.ToLowerInvariant());
-            if (distance < best.Distance && (distance == 0 || distance < Math.Max(name.Length, key.Name.Length) / 2))
-                best = (key.Name, distance);
-        }
-
-        return best.Name;
-    }
-
-    /// <summary>The fewest letters to add, remove or change to turn one word into the other.</summary>
-    private static int Distance(string a, string b)
-    {
-        var previous = Enumerable.Range(0, b.Length + 1).ToArray();
-        for (var i = 1; i <= a.Length; i++)
-        {
-            var current = new int[b.Length + 1];
-            current[0] = i;
-            for (var j = 1; j <= b.Length; j++)
-                current[j] = Math.Min(Math.Min(current[j - 1], previous[j]) + 1,
-                    previous[j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1));
-            previous = current;
-        }
-
-        return previous[b.Length];
-    }
-
-    private void Leave(string where, Key key, string reason)
-    {
-        Warn($"{where}: {key.Name} {reason}, so it was left unchanged");
+        // A key like none of these may be another reader's: a configuration can share a file.
+        _keys.Apply(document.Values, document.LocationOf, keepAssigned ? _assigned : null);
     }
 
     private void Warn(string message)
     {
         _log.Warn("io", "TomlFile: " + message);
-    }
-
-    /// <summary>What a property of <paramref name="type"/> takes, for a warning about a value it does not.</summary>
-    private static string Expected(Type type)
-    {
-        var target = Nullable.GetUnderlyingType(type) ?? type;
-        if (target.IsGenericType && target.GetGenericTypeDefinition() == typeof(IReadOnlyList<>))
-            return "a list of " + Plural(target.GetGenericArguments()[0]);
-        if (target == typeof(bool))
-            return "true or false";
-        if (target == typeof(int))
-            return string.Create(CultureInfo.InvariantCulture, $"a whole number from {int.MinValue} to {int.MaxValue}");
-        if (target == typeof(long))
-            return "a whole number";
-        if (target == typeof(double))
-            return "a number";
-        return target == typeof(string) ? "a string" : "a table";
-    }
-
-    private static string Plural(Type type)
-    {
-        var target = Nullable.GetUnderlyingType(type) ?? type;
-        if (target == typeof(bool))
-            return "true or false values";
-        if (target == typeof(int))
-            return string.Create(CultureInfo.InvariantCulture, $"whole numbers from {int.MinValue} to {int.MaxValue}");
-        if (target == typeof(long))
-            return "whole numbers";
-        if (target == typeof(double))
-            return "numbers";
-        if (target == typeof(string))
-            return "strings";
-        return target.IsGenericType && target.GetGenericTypeDefinition() == typeof(IReadOnlyList<>)
-            ? "lists"
-            : "tables";
-    }
-
-    /// <summary>A value read from the file, as TOML, cut short past 100 characters.</summary>
-    private static string Shown(object value)
-    {
-        var text = TomlDocument.Format(value) ?? "";
-        if (text.Length <= 100)
-            return text;
-        return text[..(char.IsHighSurrogate(text[99]) ? 99 : 100)] + "…";
-    }
-
-    private static bool TryConvert(object value, Type type, [NotNullWhen(true)] out object? converted)
-    {
-        var target = Nullable.GetUnderlyingType(type) ?? type;
-        converted = null;
-        if (target.IsInstanceOfType(value))
-        {
-            converted = value;
-        }
-        else if (target == typeof(bool))
-        {
-            converted = value switch
-            {
-                long number => number != 0,
-                double number => number != 0 && !double.IsNaN(number),
-                _ => null
-            };
-        }
-        else if (target == typeof(int) && value is long and >= int.MinValue and <= int.MaxValue)
-        {
-            converted = (int)(long)value;
-        }
-        else if (target == typeof(double) && value is long whole)
-        {
-            converted = (double)whole;
-        }
-        else if (target.IsGenericType && target.GetGenericTypeDefinition() == typeof(IReadOnlyList<>) &&
-                 value is IReadOnlyList<object?> items)
-        {
-            var element = target.GetGenericArguments()[0];
-            var list = Array.CreateInstance(element, items.Count);
-            for (var i = 0; i < items.Count; i++)
-            {
-                if (!TryConvert(items[i]!, element, out var item))
-                    return false;
-                list.SetValue(item, i);
-            }
-
-            converted = list;
-        }
-
-        return converted is not null;
     }
 
     /// <summary>Stops following the file. A write that was on its way runs now.</summary>
@@ -394,14 +232,5 @@ public abstract class TomlFile : ObservableObject, IDisposable
         if (_writePending)
             Write();
         GC.SuppressFinalize(this);
-    }
-
-    private sealed class Key(PropertyInfo property)
-    {
-        public PropertyInfo Property { get; } = property;
-
-        public string Name { get; } = char.ToLowerInvariant(property.Name[0]) + property.Name[1..];
-
-        public string? Comment { get; } = property.GetCustomAttribute<TomlCommentAttribute>()?.Text;
     }
 }
