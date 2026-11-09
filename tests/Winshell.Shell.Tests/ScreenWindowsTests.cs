@@ -138,7 +138,7 @@ public sealed class ScreenWindowsTests
     }
 
     /// <summary>A screen with an id no monitor has, as the platform would report a monitor that was connected.</summary>
-    private static ScreenInfo Screen(string manufacturer, string model, string serial)
+    internal static ScreenInfo Screen(string manufacturer, string model, string serial)
     {
         var name = "TEST" + Guid.NewGuid().ToString("N");
         return new ScreenInfo(@"\\.\" + name, name, model, manufacturer, serial, new Rect(0, 0, 1920, 1080),

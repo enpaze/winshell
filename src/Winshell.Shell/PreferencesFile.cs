@@ -27,6 +27,9 @@ internal sealed class PreferencesFile : IDisposable
 
     private bool _writePending;
     private bool _checkPending;
+
+    /// <summary>The turns of the loop the check still waits, counted again from each section made.</summary>
+    private int _checkTurns;
     private bool _disposed;
 
     /// <param name="path">The file. It and its folder need not exist yet.</param>
@@ -79,23 +82,33 @@ internal sealed class PreferencesFile : IDisposable
     }
 
     /// <summary>
-    /// Writes a missing file and names sections no component reads, once the configuration has made the sections it
-    /// makes in this turn of the loop.
+    /// Writes a missing file and names sections no component reads, once a whole turn of the loop has passed with no
+    /// section made: a component such as a bar makes its section on the turn after it is made, once its properties are
+    /// set.
     /// </summary>
     private void PostCheck()
     {
+        _checkTurns = 2;
         if (_checkPending || _disposed)
             return;
         _checkPending = true;
-        _loop.Post(() =>
+        _loop.Post(Check);
+    }
+
+    private void Check()
+    {
+        if (_disposed)
+            return;
+        if (--_checkTurns > 0)
         {
-            _checkPending = false;
-            if (_disposed)
-                return;
-            if (_document is null && _sections.Count > 0 && TomlDocument.Load(_path).Kind == TomlRead.Missing)
-                WriteDefaults();
-            WarnUnknown();
-        });
+            _loop.Post(Check);
+            return;
+        }
+
+        _checkPending = false;
+        if (_document is null && _sections.Count > 0 && TomlDocument.Load(_path).Kind == TomlRead.Missing)
+            WriteDefaults();
+        WarnUnknown();
     }
 
     /// <summary>Takes in the file as it is now. Each section changes only the properties whose keys changed.</summary>

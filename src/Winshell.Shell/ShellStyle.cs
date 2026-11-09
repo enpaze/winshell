@@ -35,8 +35,11 @@ public sealed partial class Shell
         }
     }
 
-    /// <summary>Raised on the shell's thread after <see cref="Style"/> is set.</summary>
-    internal event Action? StyleChanged;
+    /// <summary>
+    /// Raised on the shell's thread after <see cref="Style"/> is set, so what reads the style outside a widget area, such
+    /// as the thickness of a <see cref="Bar"/>, can read it again.
+    /// </summary>
+    public event Action? StyleChanged;
 
     /// <summary>Starts every tooltip in the shell on the built-in style.</summary>
     private void StartToolTipStyle()

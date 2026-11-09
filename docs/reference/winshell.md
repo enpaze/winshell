@@ -4,6 +4,25 @@ The configuration's program uses these types. `Shell.Run<T>()` starts one, from 
 
 <!-- generated below: dotnet run scripts/generate-reference.cs -->
 
+## Bar
+
+A panel along one edge of every screen, with start, center and end widget areas. It is built only from Winshell's public building blocks, so a variant of your own can start as a copy of it. It shows on the next turn of the loop, once its properties are set, and Dispose removes it. A bar reserves its edge and leaves Explorer's taskbar as it is. A left or right edge runs the areas from top to bottom.
+
+Its section of the preferences file, named after Name, holds `edge`, `start`, `center` and `end`, which replace the properties of the same names while the file has them. A `[[bar.screen]]` row, as ScreenWindows matches it, may change any of them for one screen. A change to a row replaces that screen's bar, and a change to the section replaces every screen's. A value in the section that can't be used is logged, and the bar keeps the one it had. One in a row is logged under the bar's name, and that screen uses the section's.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `Bar()` | constructor | A bar on the top edge with no widgets. Make it on the shell's thread. |
+| `Center` | IReadOnlyList of [Placement](#placement), init | The widgets in the middle. |
+| `Edge` | [Edges](#edges), init | The edge the bar runs along: one of Edges.Top, Bottom, Left and Right. |
+| `End` | IReadOnlyList of [Placement](#placement), init | The widgets at the end: the right, or the bottom on a side bar. |
+| `Name` | string, init | The bar's name, which names its section of the preferences file. Give each bar of a shell its own. |
+| `Reserve` | bool, init | Whether the bar reserves its edge, so maximized windows stop short of it. False lays it over them. |
+| `Start` | IReadOnlyList of [Placement](#placement), init | The widgets at the start: the left, or the top on a side bar. A plain string names a widget with no settings. |
+| `Style` | Uri?, init | The source URI of the bar's own style, which wins over Shell.Style, or null for the shell's. |
+| `Thickness` | double?, init | The height of a top or bottom bar, or the width of a side bar, in logical pixels. Null takes the style's `ShellSlotSize`. |
+| `Dispose()` | void | Removes the bar from every screen, and stops following the screens, the file and the style. |
+
 ## CaptureView
 
 A live view of a CaptureSession. The frame is fitted and centered, keeping its aspect ratio. Its natural size is the frame's physical size divided by this window's scale. The frame is written once into the bitmap, on the thread that delivered it, so the session's loop is this window's. The view lets go of the session when it leaves the tree.
@@ -170,7 +189,7 @@ Pictures in memory as sources WinUI can show.
 
 ## Placement
 
-One entry in a widget area. Several placements may name the same widget.
+One entry in a widget area. Several placements may name the same widget. A string converts to a placement with no settings, so a list of placements can be written `["clock", "battery"]`.
 
 | Member | Type | Description |
 | --- | --- | --- |
@@ -279,6 +298,7 @@ The running shell: its screens and services. There is one in a process. Each ser
 | `Wallpaper` | [WallpaperService](winshell-wallpaper.md#wallpaperservice), read-only | The desktop wallpaper: each screen's image, the fit and the background color. |
 | `WindowList` | [WindowListService](winshell-windows.md#windowlistservice), read-only | The app windows the taskbar and Alt+Tab list. |
 | `Winland` | [WinlandService](winshell-winland.md#winlandservice), read-only | The Winland window manager's Monitors, Workspaces and windows. The lists are empty while it is not running. |
+| `StyleChanged` | Action | Raised on the shell's thread after Style is set, so what reads the style outside a widget area, such as the thickness of a Bar, can read it again. |
 | `CachePath(string path)` | string | A path in CacheDir. |
 | `ConfigPath(string path)` | string | A path in ConfigDir. |
 | `DataPath(string path)` | string | A path in DataDir. |
