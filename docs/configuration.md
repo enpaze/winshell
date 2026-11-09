@@ -582,7 +582,7 @@ It opens off the shell's thread, so a slow app does not hold up the shell. What 
 
 ### Keep a control current
 
-`Watch` keeps a control showing what the services hold. Winshell runs the block, records each service property and list it reads, and runs it again when one of them changes:
+`Watch` keeps a control showing what the services hold. Winshell runs the block, records each service property, list and method answer it reads, and runs it again when one of them changes:
 
 ```csharp
         var label = new TextBlock();

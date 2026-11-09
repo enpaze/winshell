@@ -195,6 +195,22 @@ public sealed class SystemTrayTests
     }
 
     [Fact]
+    public void A_watch_of_the_icon_at_a_size_runs_again_when_the_app_changes_its_icon()
+    {
+        using var tray = Tray();
+        var changed = new PixelImage(1, 1, new byte[4]);
+        _backend.Images[0x42] = new PixelImage(1, 1, new byte[4]);
+        _backend.Images[0x43] = changed;
+        _backend.Send(Call(TrayProtocol.Add, TrayProtocol.NIF_ICON) with { Icon = 0x42 });
+        var item = tray.Items[0];
+
+        Assert.True(ServiceReadTests.ChangesWhatItRead(
+            () => item.IconAt(32),
+            () => _backend.Send(Call(TrayProtocol.Modify, TrayProtocol.NIF_ICON) with { Icon = 0x43 })));
+        Assert.Same(changed, item.IconAt(32));
+    }
+
+    [Fact]
     public void An_icon_from_a_resource_is_drawn_again_at_a_new_size()
     {
         using var tray = Tray();

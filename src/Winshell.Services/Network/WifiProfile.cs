@@ -70,13 +70,13 @@ public sealed class WifiProfile : ObservableObject
     {
         return new Dictionary<string, object?>
         {
-            ["id"] = _info.Id,
-            ["name"] = _info.Name,
-            ["ssid"] = _info.Ssid,
-            ["autoConnect"] = _info.AutoConnect,
-            ["security"] = _info.Security.ToString(),
-            ["hasPassword"] = _info.HasPassword,
-            ["loaded"] = _info.Loaded
+            ["id"] = Id,
+            ["name"] = Name,
+            ["ssid"] = Ssid,
+            ["autoConnect"] = AutoConnect,
+            ["security"] = Security.ToString(),
+            ["hasPassword"] = HasPassword,
+            ["loaded"] = Loaded
         };
     }
 

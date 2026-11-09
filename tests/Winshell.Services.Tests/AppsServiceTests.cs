@@ -83,6 +83,21 @@ public sealed class AppsServiceTests : IDisposable
     }
 
     [Fact]
+    public void A_watch_of_a_lookup_runs_again_when_the_apps_change_even_out_of_the_lists()
+    {
+        using var apps = Start([App("Alpha")]);
+
+        // A hidden app changes none of the lists, but ById and Find answer with it.
+        Assert.True(ServiceReadTests.ChangesWhatItRead(
+            () => apps.Find("uninstall"),
+            () => Change([App("Alpha"), App("Uninstall", true)])));
+        Assert.Equal("Uninstall", apps.Find("uninstall")?.Name);
+        Assert.True(ServiceReadTests.ChangesWhatItRead(
+            () => apps.Search("alp"),
+            () => Change([App("Alpine")])));
+    }
+
+    [Fact]
     public void An_app_that_stays_is_the_same_object_and_an_app_that_goes_leaves_every_list()
     {
         var usage = Usage(("Beta!App", new AppUsage(3, 1000)));

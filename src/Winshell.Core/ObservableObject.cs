@@ -5,8 +5,8 @@ namespace Winshell;
 
 /// <summary>
 /// The base of what a service exposes. A change is raised on the thread that made it, which for a service is its
-/// event loop, so XAML bindings and Reactor can read it. Each public getter reports its read with
-/// <see cref="Read{T}"/>, so a watch that reads it runs again when it changes.
+/// event loop, so XAML bindings and Reactor can read it. Each public getter, and each public method that answers from
+/// its state, reports its read with <see cref="Read{T}"/>, so a watch that reads it runs again when it changes.
 /// </summary>
 public abstract class ObservableObject : INotifyPropertyChanged
 {
