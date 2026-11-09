@@ -89,11 +89,14 @@ public sealed class Battery : UserControl
 
 ### Change it
 
-Edit a file, then build it into the running shell:
+Close the bar with `winshell kill`, and run the starter under `winshell dev` instead. It applies each edit to the running bar as you save it, until you press Ctrl+C:
 
 ```powershell
-winshell reload
+winshell kill
+winshell dev -c starter
 ```
+
+Change both `{DateTime.Now:t}` in `Clock.cs` to `{DateTime.Now:T}` and save it, and the clock shows the seconds. The bar stays where it is, and so does the battery.
 
 `Start = ["battery"]` in place of `End` moves the battery to the left. Or write a widget of your own: a control like these, and a `WinshellWidget` item for it. [Widgets](#widgets) has the rest, and [A service](#a-service) lists what else the shell can read. Whoever uses the shell can rearrange the bar without a build, in the `[bar]` section of its [preferences file](#preferences), which applies as it is saved.
 
@@ -679,7 +682,8 @@ winshell dev --path .
 `winshell dev` builds your project, starts it, and applies each save to the running shell until you press Ctrl+C, which closes that shell and stops `dotnet watch`, as closing the terminal does. It needs the .NET SDK, and it runs a Debug build. With no project it prints `winshell dev needs a configuration project. Run winshell new to make one.` and exits with 1.
 
 - **A C# edit** reaches the running shell in about a second. The first one takes a little longer, while the compiler warms up. An edited method runs its new code at its next call.
-- **A window showing an edited type** gets a new one of its content, so a change to a constructor shows too. The window keeps its place, and every other window keeps its content and its state. A view whose constructor takes arguments stays, and its edited methods still run. Keep state that must survive in a model the view is given.
+- **A widget that shows an edited type** is made again, with the rest of its widget area, so a change to its constructor shows too. The window, its other areas and every other window stay as they are.
+- **A window showing an edited type** anywhere else gets a new one of its content, so a change to a constructor shows there too. The window keeps its place, and every other window keeps its content and its state. A view whose constructor takes arguments stays, and its edited methods still run. Keep state that must survive in a model the view is given.
 - **A XAML edit** goes into the panels of that class as you save, in a moment and with no build. The control stays the same object, so its C# fields keep their values, and its `x:Name` fields and event handlers point at the new elements. `{x:Bind}`, `x:Load` and `x:Phase` are the compiler's, and so is a file with no `x:Class`, so saving one of those builds and starts the shell again. A panel with no window open yet shows the new markup when it opens.
 - **An edit .NET can't apply to running code**, such as a new base class, restarts the shell. That takes as long as a build, and the state of every window goes with it.
 - **Code that doesn't compile** shows in a notice on screen, and the last version that did keeps running. The notice goes when the next save compiles. Before the first successful build there is no shell to show it, so the error is in the console.
