@@ -106,7 +106,7 @@ internal readonly struct TomlLoad
 /// would write a part the file has elsewhere a second time, such as a key of a table that is under its own header, or
 /// leave a part that null takes out, the value is written again whole instead, inline, where a key the file does not
 /// have yet goes: at the end of its top-level keys, under its comment. <see cref="Load"/> reads a file and says when
-/// it is missing, too large, unreadable, or not TOML, and <see cref="LocationOf"/> says where a key is defined.
+/// it is missing, too large, unreadable, or not TOML, and <see cref="LocationOf(string)"/> says where a key is defined.
 /// </summary>
 internal sealed partial class TomlDocument
 {
@@ -169,6 +169,15 @@ internal sealed partial class TomlDocument
     public string LocationOf(string key)
     {
         return KeyAt(_where, _document, key);
+    }
+
+    /// <summary>
+    /// <c>path[line:column]</c> of where <paramref name="key"/> of the table <paramref name="table"/> is defined, or of
+    /// the table when that key is not under its header, or the path when the table is not in the file.
+    /// </summary>
+    public string LocationOf(string table, string key)
+    {
+        return KeyAt(_where, _document, table, key);
     }
 
     /// <summary>The top-level keys and their values.</summary>
@@ -343,7 +352,8 @@ internal sealed partial class TomlDocument
             AppendRaw(_document, Key(key), text, _newline, CommentLines(comment));
     }
 
-    private static IEnumerable<string> CommentLines(string? comment)
+    /// <summary>The lines of <paramref name="comment"/> as TOML comments, each starting with <c>#</c>.</summary>
+    public static IEnumerable<string> CommentLines(string? comment)
     {
         if (comment is null)
             yield break;

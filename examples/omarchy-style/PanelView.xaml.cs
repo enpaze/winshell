@@ -8,7 +8,8 @@ namespace OmarchyStyle;
 /// <summary>
 /// The panel on one screen. Three widget areas hold the bar. The default layout names them <c>start</c>,
 /// <c>center</c> and <c>end</c>; a layout called <c>side</c> names them <c>side.start</c>, <c>side.center</c> and
-/// <c>side.end</c>. Left and right edges run the areas vertically. With no placement file the areas use the defaults.
+/// <c>side.end</c>. Left and right edges run the areas vertically. With no lists in the preferences file the areas
+/// use the defaults.
 /// </summary>
 public sealed partial class PanelView : IDisposable
 {

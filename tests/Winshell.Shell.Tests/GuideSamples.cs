@@ -77,6 +77,15 @@ public static class GuideSamples
         return label;
     }
 
+    public static (TextBlock Clock, DockPreferences Dock) AClock()
+    {
+        var preferences = new ShellPreferences();
+        var clock = new TextBlock();
+        clock.Watch(() => clock.Text = preferences.Clock24 ? "13:00" : "1:00 PM");
+        var dock = new DockPreferences("dock");
+        return (clock, dock);
+    }
+
     public static void Reload(Shell shell)
     {
         if (!shell.Reload())
@@ -102,15 +111,30 @@ public sealed class AppShell : ShellConfiguration
     }
 }
 
-// The configuration guide's sample: DocsTests matches this text, and the suite never passes it across the WinRT ABI.
+// The configuration guide's samples: DocsTests matches this text, and the suite never passes them across the WinRT ABI.
 #pragma warning disable CsWinRT1028
-public sealed class ShellPreferences(string path, IEventLoop loop) : TomlFile(path, loop)
+public sealed class ShellPreferences : Preferences
 {
-    [TomlComment("\"system\" follows Windows; or \"light\" or \"dark\".")]
-    public string ColorScheme
+    [TomlComment("Show 13:00 rather than 1:00 PM.")]
+    public bool Clock24
     {
-        get;
+        get => Read(field);
         set => Set(ref field, value);
-    } = "system";
+    }
+}
+
+public sealed class DockPreferences(string name) : Preferences(name, Check)
+{
+    [TomlComment("bottom, left or right.")]
+    public string Edge
+    {
+        get => Read(field);
+        set => Set(ref field, value);
+    } = "bottom";
+
+    private static string Check(string key, object value)
+    {
+        return key == "edge" && value is not ("bottom" or "left" or "right") ? "must be bottom, left or right" : "";
+    }
 }
 #pragma warning restore CsWinRT1028

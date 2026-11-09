@@ -98,8 +98,11 @@ public sealed partial class Shell : IDisposable
 
     internal ShellPlatform Platform { get; }
 
-    private WidgetPlacements? _widgetPlacements;
-    internal WidgetPlacements WidgetPlacements => _widgetPlacements ??= new WidgetPlacements(this);
+    private PreferencesFile? _preferencesFile;
+
+    /// <summary>The user's preferences for this shell, <c>preferences\&lt;shell id&gt;.toml</c> in <see cref="ConfigRoot"/>.</summary>
+    internal PreferencesFile PreferencesFile => _preferencesFile ??=
+        new PreferencesFile(Path.Combine(ConfigRoot, "preferences", ShellId + ".toml"), Loop, Log);
 
     /// <summary>The real input of <c>winshell inspect</c>, made by its first command. It gives a held cursor back on dispose.</summary>
     internal RealInput Input => _input ??= new RealInput(Loop);
@@ -360,7 +363,7 @@ public sealed partial class Shell : IDisposable
             return;
         _disposed = true;
         // The platform goes last, closing every window that is left.
-        DisposeEach((IDisposable?[])[_input, _widgetPlacements, Notices, .. ServicesInStopOrder, Platform]);
+        DisposeEach((IDisposable?[])[_input, _preferencesFile, Notices, .. ServicesInStopOrder, Platform]);
     }
 
     /// <summary>

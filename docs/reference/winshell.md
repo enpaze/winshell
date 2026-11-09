@@ -191,6 +191,16 @@ Has the members of [ShellWindow](#shellwindow).
 | `Rect` | Rect | Where the popup sits, in logical pixels on the virtual desktop. |
 | `Dismissed` | Action | A click outside the popup and its open flyouts, or Esc, dismissed it. It is hidden. |
 
+## Preferences
+
+One section of the shell's preferences file, `preferences\<shell id>.toml` in the config folder, as an object. A component's section is named after the component, as in `[bar]`. A type made with no name holds the configuration's own preferences, the keys before the first section. A type derives from this and has one public read-write property per key, as TomlFile describes, and a default belongs in the property's initializer. The section is read in the constructor, and after that the object follows the file: a save changes only the properties whose keys changed. A key the file does not have holds its default. Assigning a property writes it into the section, on the shell's thread, and leaves the rest of the file as it is. When the file is missing, it is written with each section's keys at their defaults, commented out, under their TomlCommentAttribute. Several objects may read one section. Make one on the shell's thread and dispose it when its component goes.
+
+Has the members of [ObservableObject](#observableobject).
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `Dispose()` | void | Stops following the file. A write of this section that was on its way runs now. |
+
 ## ScreenInfo
 
 A monitor, as the platform reports it. Coordinates are logical pixels on the virtual desktop: a monitor keeps its physical top-left corner and its size is divided by its scale, so monitors of mixed DPI never overlap.
@@ -384,14 +394,14 @@ Keeps a control current with what the services hold.
 
 ## WidgetArea
 
-An ordered area of widgets. Use it on the shell's thread and dispose it when its owner closes. Unloading or reparenting does not dispose widgets. The shell's Shell.Style, or the area's own, styles its plain controls; area-sensitive XAML uses ThemeResource. Set the inherited Name to match an area in the shell's user placement file. An empty name uses only Defaults.
+An ordered area of widgets. Use it on the shell's thread and dispose it when its owner closes. Unloading or reparenting does not dispose widgets. The shell's Shell.Style, or the area's own, styles its plain controls; area-sensitive XAML uses ThemeResource. Set the inherited Name to make the area a component: its section of the shell's preferences file holds one `widgets` list, which replaces Defaults while the file has it. An empty name uses only Defaults.
 
 A WinUI UserControl. The members here are the ones Winshell adds.
 
 | Member | Type | Description |
 | --- | --- | --- |
 | `WidgetArea()` | constructor | Creates an empty, horizontal area in the shell's style. |
-| `Defaults` | IReadOnlyList of [Placement](#placement) | The author's ordered placements. Assigning a list snapshots it, disposes the previous widgets, and creates the new ones immediately unless the user placement file overrides this area's Name. To apply edits, assign the list again. Settings are passed through without copying. |
+| `Defaults` | IReadOnlyList of [Placement](#placement) | The author's ordered placements. Assigning a list snapshots it, disposes the previous widgets, and creates the new ones immediately unless the preferences file has a list for this area's Name. To apply edits, assign the list again. Settings are passed through without copying. |
 | `Orientation` | Orientation | The layout direction. Changing it disposes and recreates the placements with the new orientation. |
 | `Style` | Uri? | The source URI of this area's own style, which wins over the shell's, or null for Shell.Style. Changing it replaces only the dictionary the style loaded, leaving the area's other resources intact, and a file that does not load throws and changes nothing. It hides the inherited WinUI `Style`, which a widget area does not use. |
 | `Dispose()` | void | Detaches and disposes every disposable widget, once. All are attempted even if one disposal throws. |
