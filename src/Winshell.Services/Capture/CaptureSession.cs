@@ -44,7 +44,7 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     /// </summary>
     public CaptureTarget? Target
     {
-        get => _target;
+        get => Read(_target);
         set
         {
             if (_target == value && ReferenceEquals(_watched, value?.Source))
@@ -57,31 +57,31 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     }
 
     /// <summary>Whether a capture is in progress, from a successful <see cref="Start"/> until it stops.</summary>
-    public bool Running => _backend is not null;
+    public bool Running => Read(_backend) is not null;
 
     /// <summary>The latest frame, in physical pixels, or null before one arrives and after a stop.</summary>
-    public PixelImage? Frame => _frame;
+    public PixelImage? Frame => Read(_frame);
 
     /// <summary>Whether <see cref="Frame"/> holds a frame.</summary>
-    public bool HasFrame => _frame is not null;
+    public bool HasFrame => Read(_frame) is not null;
 
     /// <summary>Why the last start or export failed, or why a running capture failed. Empty after a successful start or export.</summary>
-    public string Error => _error;
+    public string Error => Read(_error);
 
     /// <summary>The size of <see cref="Frame"/> in physical pixels, or zero without a frame.</summary>
-    public Size PixelSize => new(_frame?.Width ?? 0, _frame?.Height ?? 0);
+    public Size PixelSize => new(Read(_frame)?.Width ?? 0, _frame?.Height ?? 0);
 
     /// <summary>Applied on the next start. Previews omit the pointer by default.</summary>
     public bool IncludeCursor
     {
-        get => _includeCursor;
+        get => Read(_includeCursor);
         set => Set(ref _includeCursor, value);
     }
 
     /// <summary>Minimum time between frame reads; 16–1000 ms. Frames stay on D3D until consumed.</summary>
     public int FrameInterval
     {
-        get => _frameInterval;
+        get => Read(_frameInterval);
         set => Set(ref _frameInterval, Math.Clamp(value, 16, 1000));
     }
 

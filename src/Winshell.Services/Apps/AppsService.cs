@@ -38,13 +38,13 @@ public sealed class AppsService : ObservableObject, IDisposable
     }
 
     /// <summary>The apps that are shown in Start, by name.</summary>
-    public ObservableCollection<AppEntry> Apps { get; } = [];
+    public ObservableList<AppEntry> Apps { get => Read(field); } = [];
 
     /// <summary>Visible apps Windows has a last-used time for, newest first.</summary>
-    public ObservableCollection<AppEntry> Recent { get; } = [];
+    public ObservableList<AppEntry> Recent { get => Read(field); } = [];
 
     /// <summary>Visible apps with a use count, most used first.</summary>
-    public ObservableCollection<AppEntry> Frequent { get; } = [];
+    public ObservableList<AppEntry> Frequent { get => Read(field); } = [];
 
     /// <summary>An entry by its id: a shortcut's path under Programs, or a packaged app's AppUserModelID. Includes hidden entries.</summary>
     public AppEntry? ById(string id)
@@ -114,7 +114,7 @@ public sealed class AppsService : ObservableObject, IDisposable
         Show(Frequent, AppIndex.Frequent(_entries, UsageFor));
     }
 
-    private void Show(ObservableCollection<AppEntry> list, IEnumerable<AppRecord> records)
+    private void Show(ObservableList<AppEntry> list, IEnumerable<AppRecord> records)
     {
         list.Sync(records.Select(entry => _byId[entry.Id]), entry => entry, entry => entry, entry => entry,
             static (_, _) => { });
@@ -162,48 +162,48 @@ public sealed class AppEntry : ObservableObject
     internal Action<AppRecord>? Launched { get; set; }
 
     /// <summary>A shortcut's path under Programs, such as <c>Accessories/Notepad</c>, or a packaged app's AppUserModelID.</summary>
-    public string Id { get; }
+    public string Id { get => Read(field); }
 
     /// <summary>
     /// The name Start shows: the shortcut's file name without <c>.lnk</c>, or the packaged app's display name.
     /// </summary>
-    public string Name => _entry.Name;
+    public string Name => Read(_entry).Name;
 
     /// <summary>The shortcut's comment, or the packaged app's description. May be empty.</summary>
-    public string Description => _entry.Description;
+    public string Description => Read(_entry).Description;
 
     /// <summary>A path an icon is read from: the shortcut, or <c>shell:AppsFolder\&lt;id&gt;</c> for a packaged app.</summary>
-    public string Icon => _entry.Path;
+    public string Icon => Read(_entry).Path;
 
     /// <summary>The program the shortcut opens, or <c>shell:AppsFolder\&lt;id&gt;</c> for a packaged app.</summary>
-    public string Target => _entry.Target;
+    public string Target => Read(_entry).Target;
 
     /// <summary>The shortcut's arguments. Empty for a packaged app.</summary>
-    public string Arguments => _entry.Arguments;
+    public string Arguments => Read(_entry).Arguments;
 
     /// <summary>A command line that describes how the app is opened.</summary>
-    public string CommandLine => _entry.CommandLine;
+    public string CommandLine => Read(_entry).CommandLine;
 
     /// <summary>The shortcut's Start in folder.</summary>
-    public string StartIn => _entry.StartIn;
+    public string StartIn => Read(_entry).StartIn;
 
     /// <summary>The AppUserModelID the app's windows carry, or its program's name in lower case.</summary>
-    public string AppId => _entry.AppId;
+    public string AppId => Read(_entry).AppId;
 
     /// <summary>The Start menu folders the shortcut is in. Empty for a packaged app.</summary>
-    public IReadOnlyList<string> Folders => _entry.Folders;
+    public IReadOnlyList<string> Folders => Read(_entry).Folders;
 
     /// <summary>True for an uninstaller or a document shortcut. Hidden apps stay out of <c>Apps</c>, <c>Search</c>, <c>Recent</c> and <c>Frequent</c>.</summary>
-    public bool Hidden => _entry.Hidden;
+    public bool Hidden => Read(_entry).Hidden;
 
     /// <summary>True when the app came from PackageManager.</summary>
-    public bool Packaged => _entry.Packaged;
+    public bool Packaged => Read(_entry).Packaged;
 
     /// <summary>How many times Windows, or <see cref="Launch"/>, has run the app.</summary>
-    public int RunCount => _usage.RunCount;
+    public int RunCount => Read(_usage).RunCount;
 
     /// <summary>When the app was last used, in Unix milliseconds, or 0 when Windows has no record.</summary>
-    public long LastUsed => _usage.LastUsedUnixMilliseconds;
+    public long LastUsed => Read(_usage).LastUsedUnixMilliseconds;
 
     /// <summary>
     /// Opens the app as the Start menu does, through its shortcut or its AppUserModelID. A packaged app starts in

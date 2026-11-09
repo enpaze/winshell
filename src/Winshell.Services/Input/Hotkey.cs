@@ -39,7 +39,7 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
     /// </summary>
     public string Sequence
     {
-        get => _sequence;
+        get => Read(_sequence);
         set
         {
             if (Set(ref _sequence, value))
@@ -50,7 +50,7 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
     /// <summary>Whether the hotkey claims its keys. False gives them back. True by default.</summary>
     public bool Enabled
     {
-        get => _enabled;
+        get => Read(_enabled);
         set
         {
             if (Set(ref _enabled, value))
@@ -59,19 +59,19 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
     }
 
     /// <summary>Whether the keys are claimed and a press raises <see cref="Pressed"/>.</summary>
-    public bool Active => _active;
+    public bool Active => Read(_active);
 
     /// <summary>Whether Windows or another app already holds the keys, so this hotkey could not claim them.</summary>
-    public bool Taken => _taken;
+    public bool Taken => Read(_taken);
 
     /// <summary>True from the press until the keys of the last chord are up.</summary>
-    public bool IsPressed => _pressed;
+    public bool IsPressed => Read(_pressed);
 
     /// <summary>
     /// Why the hotkey is not active, such as a sequence that does not parse or keys that are taken. Empty when it is
     /// active, disabled, or has no sequence.
     /// </summary>
-    public string Error => _error;
+    public string Error => Read(_error);
 
     /// <summary>The last chord of the sequence went down.</summary>
     public event EventHandler? Pressed;

@@ -20,7 +20,7 @@ public sealed class KeepAwake : ObservableObject, IDisposable
     /// <summary>Whether this keep-awake holds the screen on and the PC awake. False by default.</summary>
     public bool Enabled
     {
-        get;
+        get => Read(field);
         set
         {
             if (!Set(ref field, value))

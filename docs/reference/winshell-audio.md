@@ -79,6 +79,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | --- | --- | --- |
 | `DefaultPlaybackDevice` | [AudioNode](#audionode)? | The default playback device. Setting it makes that device the Windows default. |
 | `DefaultRecordingDevice` | [AudioNode](#audionode)? | The default recording device. Setting it makes that device the Windows default. |
-| `Nodes` | ObservableCollection of [AudioNode](#audionode), read-only | Every node: the active devices and the audio sessions on them. |
+| `Nodes` | ObservableList of [AudioNode](#audionode), read-only | Every node: the active devices and the audio sessions on them. |
 | `Ready` | bool, read-only | False when Windows audio cannot be opened, and then Nodes is empty. |
 | `Dispose()` | void | Stops following Windows audio changes. Peak monitors on its nodes stop reading. |

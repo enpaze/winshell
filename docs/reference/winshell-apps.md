@@ -47,9 +47,9 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `Apps` | ObservableCollection of [AppEntry](#appentry), read-only | The apps that are shown in Start, by name. |
-| `Frequent` | ObservableCollection of [AppEntry](#appentry), read-only | Visible apps with a use count, most used first. |
-| `Recent` | ObservableCollection of [AppEntry](#appentry), read-only | Visible apps Windows has a last-used time for, newest first. |
+| `Apps` | ObservableList of [AppEntry](#appentry), read-only | The apps that are shown in Start, by name. |
+| `Frequent` | ObservableList of [AppEntry](#appentry), read-only | Visible apps with a use count, most used first. |
+| `Recent` | ObservableList of [AppEntry](#appentry), read-only | Visible apps Windows has a last-used time for, newest first. |
 | `ById(string id)` | [AppEntry](#appentry)? | An entry by its id: a shortcut's path under Programs, or a packaged app's AppUserModelID. Includes hidden entries. |
 | `Dispose()` | void | Stops following changes to the Start menu and the installed apps. |
 | `Find(string name)` | [AppEntry](#appentry)? | Finds an app by id, then by the app id a window carries, then by display name. Includes hidden entries. |

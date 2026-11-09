@@ -323,6 +323,23 @@ Reading does not ask for permission and does not change anything. Wi-Fi scanning
 
 `shell.Log` writes to the instance log, which `winshell log` prints.
 
+### Keep a control current
+
+`Watch` keeps a control showing what the services hold. Winshell runs the block, records each service property and list it reads, and runs it again when one of them changes:
+
+```csharp
+        var label = new TextBlock();
+        label.Watch(() =>
+        {
+            var battery = shell.Power.DisplayDevice;
+            label.Text = battery.IsPresent ? $"{battery.Percentage:P0}" : "";
+        });
+```
+
+Several changes in one turn run the block once, on the control's thread, and a change the block makes itself does not run it again. The watch pauses while the control is unloaded, as the content of a hidden popup is, and runs again when it loads. It stops when the control's window is disposed, so there is nothing to dispose. A block that throws is logged under `watch`, and the next change to what it read before the throw runs it again.
+
+A service list, such as `shell.Power.Devices`, is an [ObservableList](reference/winshell.md#observablelist): going through it, counting it or indexing it is a read. Only its service changes it. A class of your own that derives from `ObservableObject` reports a read from each getter, as in `get => Read(field);`.
+
 ## IPC
 
 `shell.Ipc` is what `winshell ipc` calls. The handler's own types say what it takes and returns. `string`, `int`, `bool`, `double`, `float` and `Windows.UI.Color` cross the pipe. Nothing is evaluated.

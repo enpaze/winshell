@@ -36,7 +36,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `Monitors` | ObservableCollection of [BrightnessMonitor](#brightnessmonitor), read-only | The connected monitors whose brightness Windows can read. Empty until Ready. |
+| `Monitors` | ObservableList of [BrightnessMonitor](#brightnessmonitor), read-only | The connected monitors whose brightness Windows can read. Empty until Ready. |
 | `Ready` | bool, read-only | Whether the first read of the monitors has finished. |
 | `Dispose()` | void | Stops following brightness changes. |
 
@@ -159,7 +159,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `Devices` | ObservableCollection of [PowerDevice](#powerdevice), read-only | Each battery Windows lists, as it comes and goes. Empty on a PC with no battery. |
+| `Devices` | ObservableList of [PowerDevice](#powerdevice), read-only | Each battery Windows lists, as it comes and goes. Empty on a PC with no battery. |
 | `DisplayDevice` | [PowerDevice](#powerdevice), read-only | All the batteries as one, as Windows reports its aggregate battery. |
 | `OnBattery` | bool, read-only | Whether the PC has a battery and runs on it, with no power supply plugged in. |
 | `Dispose()` | void | Stops following battery changes. |

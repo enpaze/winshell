@@ -174,7 +174,7 @@ public sealed class WidgetAreaTests
             Assert.Contains(bad, text[1], StringComparison.Ordinal);
             Assert.Contains(reason, text[1], StringComparison.Ordinal);
             Assert.Equal("survivor", text[2]);
-            var log = ReadLog(shell);
+            var log = ShellFixture.ReadLog(shell);
             var entry = $"ERROR widgets: Could not create {bad}";
             Assert.Contains(entry, log, StringComparison.Ordinal);
             log = log[log.IndexOf(entry, StringComparison.Ordinal)..];
@@ -216,7 +216,7 @@ public sealed class WidgetAreaTests
                 Assert.Equal(true, Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(
                     placed[0].Context.Settings["options"])["enabled"]);
                 var unchanged = created.Last(item => item.Context.Settings.Count == 0).View;
-                await Wait.UntilAsync(() => ReadLog(shell).Contains($"no widget area named '{unknown}'", StringComparison.Ordinal),
+                await Wait.UntilAsync(() => ShellFixture.ReadLog(shell).Contains($"no widget area named '{unknown}'", StringComparison.Ordinal),
                     "the warning for the unmatched area");
                 Assert.Contains($"[[{unknown}]]", File.ReadAllText(path), StringComparison.Ordinal);
 
@@ -236,7 +236,7 @@ public sealed class WidgetAreaTests
                 File.WriteAllText(path, $"# A comment and an unrelated area leave the existing widgets alone.\n" +
                                         $"[[{name}]]\nwidget = '{widget}'\ntext = 'updated'\n" +
                                         $"[[{anotherUnknown}]]\nwidget = 'not-installed'\n");
-                await Wait.UntilAsync(() => ReadLog(shell).Contains($"no widget area named '{anotherUnknown}'", StringComparison.Ordinal),
+                await Wait.UntilAsync(() => ShellFixture.ReadLog(shell).Contains($"no widget area named '{anotherUnknown}'", StringComparison.Ordinal),
                     "the equivalent list to be read");
                 Assert.Equal(before, created.Count);
                 Assert.Equal(0, updated.Disposals);
@@ -283,9 +283,9 @@ public sealed class WidgetAreaTests
             {
                 using var area = new WidgetArea { Name = name };
                 await Wait.UntilAsync(() => views.Count == 1, "the last valid placement to load");
-                var logLength = ReadLog(shell).Length;
+                var logLength = ShellFixture.ReadLog(shell).Length;
                 File.WriteAllText(path, broken);
-                await Wait.UntilAsync(() => ReadLog(shell)[logLength..].Contains(diagnostic, StringComparison.Ordinal),
+                await Wait.UntilAsync(() => ShellFixture.ReadLog(shell)[logLength..].Contains(diagnostic, StringComparison.Ordinal),
                     "the broken edit to be diagnosed with its location");
                 Assert.Equal(broken, File.ReadAllText(path));
                 Assert.Equal(0, Assert.Single(views).Disposals);
@@ -349,13 +349,6 @@ public sealed class WidgetAreaTests
             }
             return true;
         });
-    }
-
-    private static string ReadLog(Shell shell)
-    {
-        using var stream = InstanceLog.OpenToRead(shell.LogPath);
-        using var reader = new StreamReader(stream);
-        return reader.ReadToEnd();
     }
 
     [Fact]

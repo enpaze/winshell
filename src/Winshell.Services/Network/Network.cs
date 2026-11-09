@@ -1,5 +1,3 @@
-using System.Collections.ObjectModel;
-
 namespace Winshell.Network;
 
 /// <summary>A network of an adapter. Wi-Fi networks are <see cref="WifiNetwork"/> objects.</summary>
@@ -26,34 +24,34 @@ public class Network : ObservableObject
     private bool Removed { get; set; }
 
     /// <summary>The SSID of a Wi-Fi network. For a wired network, the connection profile's name, or the adapter's.</summary>
-    public string Name => _info.Name;
+    public string Name => Read(_info).Name;
 
     /// <summary>The adapter this network is on.</summary>
-    public NetworkDevice Device { get; }
+    public NetworkDevice Device { get => Read(field); }
 
     /// <summary>Whether the adapter is connected to this network.</summary>
-    public bool Connected => _info.State == ConnectionState.Connected;
+    public bool Connected => Read(_info).State == ConnectionState.Connected;
 
     /// <summary>A saved profile matches this network. True for a wired network.</summary>
-    public bool Saved => _info.Known;
+    public bool Saved => Read(_info).Known;
 
     /// <summary>
     /// The adapter's connection state on this network. <see cref="ConnectionState.Disconnected"/> for every Wi-Fi
     /// network the adapter is not on.
     /// </summary>
-    public ConnectionState State => _info.State;
+    public ConnectionState State => Read(_info).State;
 
     /// <summary>An action is running. Other calls are ignored until it ends.</summary>
-    public bool Busy => _action.Running;
+    public bool Busy => Read(_action).Running;
 
     /// <summary>Why the last action failed. Empty while an action runs and after one succeeds.</summary>
-    public string Error => _error;
+    public string Error => Read(_error);
 
     /// <summary>
     /// The saved Wi-Fi profiles for this network: those whose SSID is its name, and those that can't be read whose
     /// profile name is. Empty for a wired network.
     /// </summary>
-    public ObservableCollection<WifiProfile> SavedProfiles { get; } = [];
+    public ObservableList<WifiProfile> SavedProfiles { get => Read(field); } = [];
 
     /// <summary>Connects to this Wi-Fi network with saved credentials. Fails for a wired network.</summary>
     public void Connect()

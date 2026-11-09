@@ -1,5 +1,3 @@
-using System.Collections.ObjectModel;
-
 namespace Winshell.Power;
 
 /// <summary>A battery, or the aggregate display device.</summary>
@@ -15,58 +13,58 @@ public sealed class PowerDevice : ObservableObject
     /// <summary>
     /// Whether the device is a battery. <see cref="PowerDeviceType.Unknown"/> on a PC with no battery.
     /// </summary>
-    public PowerDeviceType Type => _info.Type;
+    public PowerDeviceType Type => Read(_info).Type;
 
     /// <summary>Whether the battery powers the PC, rather than a connected device.</summary>
-    public bool PowersTheSystem => _info.PowersTheSystem;
+    public bool PowersTheSystem => Read(_info).PowersTheSystem;
 
     /// <summary>Remaining capacity, in watt-hours.</summary>
-    public double RemainingCapacity => _info.RemainingCapacity;
+    public double RemainingCapacity => Read(_info).RemainingCapacity;
 
     /// <summary>Full-charge capacity, in watt-hours.</summary>
-    public double FullChargeCapacity => _info.FullChargeCapacity;
+    public double FullChargeCapacity => Read(_info).FullChargeCapacity;
 
     /// <summary>Charge rate, in watts. Negative while discharging.</summary>
-    public double ChargeRate => _info.ChargeRate;
+    public double ChargeRate => Read(_info).ChargeRate;
 
     /// <summary>
     /// The seconds left until the battery is empty. 0 when it is not discharging or Windows does not know.
     /// </summary>
-    public double TimeToEmpty => _info.TimeToEmpty;
+    public double TimeToEmpty => Read(_info).TimeToEmpty;
 
     /// <summary>
     /// The seconds left until the battery is full. 0 when it is not charging or Windows does not know.
     /// </summary>
-    public double TimeToFull => _info.TimeToFull;
+    public double TimeToFull => Read(_info).TimeToFull;
 
     /// <summary>The charge, from 0 to 1.</summary>
-    public double Percentage => _info.Percentage;
+    public double Percentage => Read(_info).Percentage;
 
     /// <summary>Whether a battery is present. False on a PC with no battery.</summary>
-    public bool IsPresent => _info.IsPresent;
+    public bool IsPresent => Read(_info).IsPresent;
 
     /// <summary>Whether the battery is charging, discharging, full or empty.</summary>
-    public PowerDeviceState State => _info.State;
+    public PowerDeviceState State => Read(_info).State;
 
     /// <summary>Full charge capacity over design capacity, from 0 to 100.</summary>
-    public double HealthPercentage => _info.HealthPercentage;
+    public double HealthPercentage => Read(_info).HealthPercentage;
 
     /// <summary>Whether Windows reports the capacities <see cref="HealthPercentage"/> needs.</summary>
-    public bool HealthSupported => _info.HealthPercentage != 0;
+    public bool HealthSupported => Read(_info).HealthPercentage != 0;
 
     /// <summary>Whether the device is a battery that powers the PC.</summary>
-    public bool IsSystemBattery => _info is { Type: PowerDeviceType.Battery, PowersTheSystem: true };
+    public bool IsSystemBattery => Read(_info) is { Type: PowerDeviceType.Battery, PowersTheSystem: true };
 
     /// <summary>The Windows device ID of the battery. Empty for <see cref="PowerService.DisplayDevice"/>.</summary>
-    public string DeviceId => _info.DeviceId;
+    public string DeviceId => Read(_info).DeviceId;
 
     /// <summary>
     /// The battery's name, as Windows lists the device. Empty for <see cref="PowerService.DisplayDevice"/>.
     /// </summary>
-    public string Model => _info.Model;
+    public string Model => Read(_info).Model;
 
     /// <summary>Whether the first read of the batteries has finished.</summary>
-    public bool Ready => _ready;
+    public bool Ready => Read(_ready);
 
     internal void Update(PowerDeviceInfo info, bool ready)
     {
@@ -122,13 +120,13 @@ public sealed class PowerService : ObservableObject, IDisposable
     }
 
     /// <summary>All the batteries as one, as Windows reports its aggregate battery.</summary>
-    public PowerDevice DisplayDevice { get; } = new();
+    public PowerDevice DisplayDevice { get => Read(field); } = new();
 
     /// <summary>Each battery Windows lists, as it comes and goes. Empty on a PC with no battery.</summary>
-    public ObservableCollection<PowerDevice> Devices { get; } = [];
+    public ObservableList<PowerDevice> Devices { get => Read(field); } = [];
 
     /// <summary>Whether the PC has a battery and runs on it, with no power supply plugged in.</summary>
-    public bool OnBattery => _onBattery;
+    public bool OnBattery => Read(_onBattery);
 
     private void Apply(PowerSnapshot snapshot)
     {
@@ -173,7 +171,7 @@ public sealed class PowerModeService : ObservableObject, IDisposable
     /// </summary>
     public PowerModeLevel Mode
     {
-        get => _mode;
+        get => Read(_mode);
         set
         {
             if (!Enum.IsDefined(value))
@@ -192,13 +190,13 @@ public sealed class PowerModeService : ObservableObject, IDisposable
     /// The power mode Windows is applying now, which can differ from <see cref="Mode"/> while energy saver or game
     /// mode is on.
     /// </summary>
-    public EffectivePowerMode Effective => _effective;
+    public EffectivePowerMode Effective => Read(_effective);
 
     /// <summary>The public power-mode API answered. When this is false, <see cref="Mode"/> stays Balanced.</summary>
-    public bool Available => _available;
+    public bool Available => Read(_available);
 
     /// <summary>Whether the first read of the power mode has finished.</summary>
-    public bool Ready => _ready;
+    public bool Ready => Read(_ready);
 
     private void Apply(PowerModeSnapshot snapshot)
     {

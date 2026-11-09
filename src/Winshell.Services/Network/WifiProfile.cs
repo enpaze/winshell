@@ -25,13 +25,13 @@ public sealed class WifiProfile : ObservableObject
     internal bool Removed { get; private set; }
 
     /// <summary>The adapter's ID and the profile's name, joined by a colon.</summary>
-    public string Id => _info.Id;
+    public string Id => Read(_info).Id;
 
     /// <summary>The profile's name in Windows. Usually the SSID, but it can differ.</summary>
-    public string Name => _info.Name;
+    public string Name => Read(_info).Name;
 
     /// <summary>The SSID the profile connects to. Empty when <see cref="Loaded"/> is false.</summary>
-    public string Ssid => _info.Ssid;
+    public string Ssid => Read(_info).Ssid;
 
     /// <summary>
     /// Whether the connection mode is automatic. Setting it changes only that element, and the value stays what the
@@ -39,7 +39,7 @@ public sealed class WifiProfile : ObservableObject
     /// </summary>
     public bool AutoConnect
     {
-        get => _info.AutoConnect;
+        get => Read(_info).AutoConnect;
         set
         {
             if (Removed || _write.Running || value == _info.AutoConnect)
@@ -52,20 +52,18 @@ public sealed class WifiProfile : ObservableObject
     /// How the profile's network is secured. <see cref="WifiSecurityType.Unknown"/> when <see cref="Loaded"/> is
     /// false.
     /// </summary>
-    public WifiSecurityType Security => _info.Security;
+    public WifiSecurityType Security => Read(_info).Security;
 
     /// <summary>Whether the profile has a key element. The key text is not read.</summary>
-    public bool HasPassword => _info.HasPassword;
+    public bool HasPassword => Read(_info).HasPassword;
 
     /// <summary>
     /// Whether the profile could be read. When false, only <see cref="Id"/> and <see cref="Name"/> are set.
     /// </summary>
-    public bool Loaded => _info.Loaded;
+    public bool Loaded => Read(_info).Loaded;
 
     /// <summary>Why the last change failed, or else why the profile can't be read. Empty when neither did.</summary>
-    public string Error => ShownError;
-
-    private string ShownError => _actionError.Length > 0 ? _actionError : _info.Error;
+    public string Error => Read(_actionError).Length > 0 ? _actionError : _info.Error;
 
     /// <summary>The profile's fields. There is no key in the result.</summary>
     public Dictionary<string, object?> Read()
@@ -114,7 +112,7 @@ public sealed class WifiProfile : ObservableObject
     internal void Update(WifiProfileInfo info)
     {
         var old = _info;
-        var oldError = ShownError;
+        var oldError = Error;
         _info = info;
         Changed(old.Name != info.Name, nameof(Name));
         Changed(old.Ssid != info.Ssid, nameof(Ssid));
@@ -122,7 +120,7 @@ public sealed class WifiProfile : ObservableObject
         Changed(old.Security != info.Security, nameof(Security));
         Changed(old.HasPassword != info.HasPassword, nameof(HasPassword));
         Changed(old.Loaded != info.Loaded, nameof(Loaded));
-        Changed(oldError != ShownError, nameof(Error));
+        Changed(oldError != Error, nameof(Error));
     }
 
     internal void Remove()
@@ -132,9 +130,9 @@ public sealed class WifiProfile : ObservableObject
 
     private void SetActionError(string error)
     {
-        var old = ShownError;
+        var old = Error;
         _actionError = error;
-        Changed(old != ShownError, nameof(Error));
+        Changed(old != Error, nameof(Error));
     }
 
     private Task WriteAsync(Func<Task<string?>> action)

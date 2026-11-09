@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.Globalization;
 
 namespace Winshell.Notifications;
@@ -64,22 +63,22 @@ public sealed class NotificationListener : ObservableObject, IDisposable
     public event Action<string>? OperationFailed;
 
     /// <summary>Every readable notification, newest first. Empty without access.</summary>
-    public ObservableCollection<Notification> Notifications { get; } = [];
+    public ObservableList<Notification> Notifications { get => Read(field); } = [];
 
     /// <summary>The notifications in one group per app, newest first.</summary>
-    public ObservableCollection<NotificationGroup> Groups { get; } = [];
+    public ObservableList<NotificationGroup> Groups { get => Read(field); } = [];
 
     /// <summary>Whether the shell may read the notifications. Ask with <see cref="RequestAccess"/>.</summary>
-    public NotificationAccessStatus AccessStatus => _accessStatus;
+    public NotificationAccessStatus AccessStatus => Read(_accessStatus);
 
     /// <summary>Whether a Focus session is on.</summary>
-    public NotificationState FocusState => _focusState;
+    public NotificationState FocusState => Read(_focusState);
 
     /// <summary>Windows' current notification restriction.</summary>
-    public NotificationMode NotificationMode => _notificationMode;
+    public NotificationMode NotificationMode => Read(_notificationMode);
 
     /// <summary>On for priority-only or alarms-only, Off for unrestricted.</summary>
-    public NotificationState DoNotDisturbState => _notificationMode switch
+    public NotificationState DoNotDisturbState => Read(_notificationMode) switch
     {
         NotificationMode.Unrestricted => NotificationState.Off,
         NotificationMode.PriorityOnly or NotificationMode.AlarmsOnly => NotificationState.On,
@@ -87,7 +86,7 @@ public sealed class NotificationListener : ObservableObject, IDisposable
     };
 
     /// <summary>Why access or the last operation failed.</summary>
-    public string Error => _error;
+    public string Error => Read(_error);
 
     /// <summary>Asks Windows for access and returns at once. Call from a button in a foreground window.</summary>
     public void RequestAccess()
@@ -362,31 +361,31 @@ public sealed class Notification : ObservableObject
     }
 
     /// <summary>The Windows notification id.</summary>
-    public uint Id => _toast.Id;
+    public uint Id => Read(_toast).Id;
 
     /// <summary>The AppUserModelID of the app that sent it. Can be empty.</summary>
-    public string AppId => _toast.AppId;
+    public string AppId => Read(_toast).AppId;
 
     /// <summary>The display name of the app that sent it. Can be empty.</summary>
-    public string AppName => _toast.AppName;
+    public string AppName => Read(_toast).AppName;
 
     /// <summary>A <c>file:///</c> url of the sending app's logo. Empty until the read finishes, and when Windows gives none.</summary>
-    public string AppIcon => _appIcon;
+    public string AppIcon => Read(_appIcon);
 
     /// <summary>The first line of text. Can be empty.</summary>
-    public string Title => _toast.Title;
+    public string Title => Read(_toast).Title;
 
     /// <summary>The lines of text after the title, joined by line breaks. Can be empty.</summary>
-    public string Body => _toast.Body;
+    public string Body => Read(_toast).Body;
 
     /// <summary>When the notification was created.</summary>
-    public DateTimeOffset CreatedAt => _toast.CreatedAt;
+    public DateTimeOffset CreatedAt => Read(_toast).CreatedAt;
 
     /// <summary>When it expires, or null when Windows supplied no expiry.</summary>
-    public DateTimeOffset? ExpiresAt => _toast.ExpiresAt;
+    public DateTimeOffset? ExpiresAt => Read(_toast).ExpiresAt;
 
     /// <summary>Always false: Windows gives a shell no way to activate another app's notification.</summary>
-    public bool CanInvoke => false;
+    public bool CanInvoke => Read(false);
 
     /// <summary>Removes the notification from Windows. Returns true only when Windows accepted the removal.</summary>
     public bool Dismiss()
@@ -472,13 +471,13 @@ public sealed class NotificationGroup : ObservableObject
     internal string Key { get; }
 
     /// <summary>The AppUserModelID of the app that sent the notifications. Empty when the app has none.</summary>
-    public string AppId => _appId;
+    public string AppId => Read(_appId);
 
     /// <summary>The display name of the app that sent the notifications. Can be empty.</summary>
-    public string AppName => _appName;
+    public string AppName => Read(_appName);
 
     /// <summary>The app's notifications, newest first.</summary>
-    public ObservableCollection<Notification> Notifications { get; } = [];
+    public ObservableList<Notification> Notifications { get => Read(field); } = [];
 
     /// <summary>Dismisses the group's current notifications. Returns whether every removal succeeded; failed ones stay.</summary>
     public bool Dismiss()

@@ -53,7 +53,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | Member | Type | Description |
 | --- | --- | --- |
 | `Current` | [VirtualDesktop](#virtualdesktop)?, read-only | The desktop on screen, or null while Supported is false. |
-| `Desktops` | ObservableCollection of [VirtualDesktop](#virtualdesktop), read-only | The desktops in Task View's order. Empty while Supported is false. |
+| `Desktops` | ObservableList of [VirtualDesktop](#virtualdesktop), read-only | The desktops in Task View's order. Empty while Supported is false. |
 | `Supported` | bool, read-only | Whether this Windows build's desktop list can be read, so the list, switching, creating and removing work. |
 | `UnsupportedReason` | string, read-only | Why Supported is false. Empty when the list can be used. |
 | `Create()` | [VirtualDesktop](#virtualdesktop)? | Adds a desktop at the end of the list without switching to it. The new desktop, or null when it was not created or Supported is false. |
@@ -70,5 +70,5 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | Member | Type | Description |
 | --- | --- | --- |
 | `ActiveWindow` | [AppWindow](#appwindow)?, read-only | The listed window that has the focus, or owns the window that has it. Null when none does. |
-| `Windows` | ObservableCollection of [AppWindow](#appwindow), read-only | The windows, in the order they opened. |
+| `Windows` | ObservableList of [AppWindow](#appwindow), read-only | The windows, in the order they opened. |
 | `Dispose()` | void | Stops following the windows. The list stays as it was. |

@@ -20,16 +20,16 @@ public sealed class BluetoothAdapter : ObservableObject
     public event Action<string>? OperationFailed;
 
     /// <summary>The adapter's Windows device id.</summary>
-    public string Id => _info.Id;
+    public string Id => Read(_info).Id;
 
     /// <summary>The adapter's name as Windows gives it, or <c>Bluetooth</c> when it gives none.</summary>
-    public string Name => _info.Name;
+    public string Name => Read(_info).Name;
 
     /// <summary>The adapter's Bluetooth address, such as <c>00:1A:7D:DA:71:13</c>.</summary>
-    public string Address => _info.Address;
+    public string Address => Read(_info).Address;
 
     /// <summary>The state of the adapter's radio.</summary>
-    public BluetoothAdapterState State => _info.State;
+    public BluetoothAdapterState State => Read(_info).State;
 
     /// <summary>
     /// Whether the radio is on: <see cref="State"/> is <see cref="BluetoothAdapterState.On"/>. Setting it asks
@@ -37,7 +37,7 @@ public sealed class BluetoothAdapter : ObservableObject
     /// </summary>
     public bool Enabled
     {
-        get => ReportsOn;
+        get => Read(_info).State == BluetoothAdapterState.On;
         set => _ = _service.SetAdapterEnabledAsync(this, value);
     }
 
@@ -47,7 +47,7 @@ public sealed class BluetoothAdapter : ObservableObject
     /// </summary>
     public bool Discoverable
     {
-        get => _info.Discoverable;
+        get => Read(_info).Discoverable;
         set => _ = _service.SetDiscoverableAsync(this, value);
     }
 
@@ -57,7 +57,7 @@ public sealed class BluetoothAdapter : ObservableObject
     /// </summary>
     public bool Pairable
     {
-        get => _info.Pairable;
+        get => Read(_info).Pairable;
         set => _ = _service.SetPairableAsync(this, value);
     }
 
@@ -65,7 +65,7 @@ public sealed class BluetoothAdapter : ObservableObject
     /// Why the last radio, discoverable or incoming-connection change failed. Empty after one succeeds, and when the
     /// adapter's state changes.
     /// </summary>
-    public string Error => _error;
+    public string Error => Read(_error);
 
     internal bool ReportsOn => _info.State == BluetoothAdapterState.On;
 

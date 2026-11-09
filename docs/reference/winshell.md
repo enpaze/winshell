@@ -109,9 +109,23 @@ How serious a log message is, from least to most.
 | `Error` | 3 | An operation failed. |
 | `Fatal` | 4 | A failure that ends the process. |
 
+## ObservableList
+
+A list a service keeps current. A configuration reads it, and only its service changes it. Enumerating, counting or indexing it is a read a watch follows. A change is raised on the thread that made it, which for a service is its event loop, so XAML bindings can show it.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `Count` | int, read-only | How many items there are. |
+| `Item` | T?, read-only | The item at index. |
+| `CollectionChanged` | NotifyCollectionChangedEventHandler | Raised when an item is added, removed, moved or replaced. |
+| `PropertyChanged` | PropertyChangedEventHandler | Raised when ObservableList.Count or the items change, for XAML bindings. |
+| `Contains(T? item)` | bool | Whether item is in the list. |
+| `GetEnumerator()` | IEnumerator of T | Goes through the items in order. |
+| `IndexOf(T? item)` | int | Where item is, or -1 when it is not in the list. |
+
 ## ObservableObject
 
-The base of what a service exposes. A change is raised on the thread that made it, which for a service is its event loop, so XAML bindings and Reactor can read it.
+The base of what a service exposes. A change is raised on the thread that made it, which for a service is its event loop, so XAML bindings and Reactor can read it. Each public getter reports its read with Read, so a watch that reads it runs again when it changes.
 
 | Member | Type | Description |
 | --- | --- | --- |
@@ -231,7 +245,7 @@ The running shell: its screens and services. There is one in a process. Each ser
 | `PowerMode` | [PowerModeService](winshell-power.md#powermodeservice), read-only | The Windows power mode: best power efficiency, balanced, or best performance. |
 | `Privacy` | [PrivacyService](winshell-privacy.md#privacyservice), read-only | Which apps are using the microphone, the camera or location. Read only while something listens. |
 | `RecentDocuments` | [RecentDocuments](winshell-apps.md#recentdocuments), read-only | The documents in the user's Recent folder, found by name. |
-| `Screens` | ObservableCollection of [ScreenInfo](#screeninfo), read-only | The connected screens. The primary screen comes first. |
+| `Screens` | ObservableList of [ScreenInfo](#screeninfo), read-only | The connected screens. The primary screen comes first. |
 | `Session` | [SessionService](winshell-session.md#sessionservice), read-only | The Windows session: locking it, and what state it is in. |
 | `ShellId` | string, read-only | The name that identifies this configuration across runs. |
 | `Startup` | [StartupService](winshell-session.md#startupservice), read-only | Whether this shell runs when the user signs in. |
@@ -358,6 +372,14 @@ An exception.
 | Member | Type | Description |
 | --- | --- | --- |
 | `UnsupportedWidgetException(string message)` | constructor |  |
+
+## WatchExtensions
+
+Keeps a control current with what the services hold.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `Watch(FrameworkElement control, Action block)` | void, static | Runs block now, and again whenever a service property or list it read changes, while control is loaded. Several changes in one turn run it once, on the control's thread, and a change the block makes itself does not run it again. The watch pauses while the control is unloaded, runs again when the control loads, and stops for good when the control's shell window is disposed. A block that throws is logged under `watch` and runs again on the next change to what it read before the throw. Nothing needs disposing. |
 
 ## WidgetArea
 

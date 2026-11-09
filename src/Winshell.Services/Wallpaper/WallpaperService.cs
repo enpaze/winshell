@@ -34,15 +34,15 @@ public sealed class WallpaperService : ObservableObject, IDisposable
     /// Each screen's wallpaper, in the order Windows lists the monitors. Empty when the desktop wallpaper cannot
     /// be read.
     /// </summary>
-    public IReadOnlyList<WallpaperScreen> Screens => _screens;
+    public IReadOnlyList<WallpaperScreen> Screens => Read(_screens);
 
     /// <summary>How the image is fitted. The same fit is used on every screen.</summary>
-    public WallpaperFit Fit => _fit;
+    public WallpaperFit Fit => Read(_fit);
 
     /// <summary>
     /// The color behind the image, and the color of a screen with no image. The same color is used on every screen.
     /// </summary>
-    public WallpaperColor Background => _background;
+    public WallpaperColor Background => Read(_background);
 
     /// <summary>
     /// Sets <paramref name="image"/> on <paramref name="screen"/> and leaves the others as they are. An unknown

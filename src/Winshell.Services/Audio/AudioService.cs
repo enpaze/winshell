@@ -38,40 +38,40 @@ public sealed class AudioNode : ObservableObject
     internal event Action? Removed;
 
     /// <summary>A number that tells nodes apart while the shell runs. Windows does not store it.</summary>
-    public int Id => _node.Id;
+    public int Id => Read(_node).Id;
 
     /// <summary>For a device, the Windows endpoint id. For a session, the program's file name without <c>.exe</c>, or <c>system-sounds</c>.</summary>
-    public string Name => _node.Name;
+    public string Name => Read(_node).Name;
 
     /// <summary>The name to show.</summary>
-    public string Description => _description;
+    public string Description => Read(_description);
 
     /// <summary>For a device, the description Windows gives the endpoint, such as <c>Speakers</c>. Empty for a session.</summary>
-    public string InterfaceName => _node.InterfaceName;
+    public string InterfaceName => Read(_node).InterfaceName;
 
     /// <summary>True for a playback device and for a session that plays to one.</summary>
-    public bool IsPlayback => _node.IsPlayback;
+    public bool IsPlayback => Read(_node).IsPlayback;
 
     /// <summary>True for an app's audio session, false for a device.</summary>
-    public bool IsSession => _node.IsSession;
+    public bool IsSession => Read(_node).IsSession;
 
     /// <summary>The device a session plays to or records from. Null for a device.</summary>
-    public AudioNode? Device => Service.Find(_node.Device);
+    public AudioNode? Device => Service.Find(Read(_node).Device);
 
     /// <summary>True while a session plays or records, false while it is open but idle. A device stays false.</summary>
-    public bool Active => _active;
+    public bool Active => Read(_active);
 
     /// <summary>
     /// More about the node. A device has <c>endpointId</c>, <c>friendlyName</c>, <c>interfaceName</c>, <c>flow</c>,
     /// <c>adapter</c>, <c>icon</c> and <c>formFactor</c>. A session has <c>sessionId</c>, <c>friendlyName</c>,
     /// <c>flow</c>, <c>appName</c>, <c>icon</c>, <c>processId</c> and <c>processName</c>.
     /// </summary>
-    public IReadOnlyDictionary<string, string> Properties => _node.Properties;
+    public IReadOnlyDictionary<string, string> Properties => Read(_node).Properties;
 
     /// <summary>Whether the device or session is muted. Setting it mutes or unmutes it in Windows.</summary>
     public bool Muted
     {
-        get => _muted;
+        get => Read(_muted);
         set => Apply(() => _node.SetMuted(value));
     }
 
@@ -81,7 +81,7 @@ public sealed class AudioNode : ObservableObject
     /// </summary>
     public double Volume
     {
-        get => Average(_volumes);
+        get => Average(Read(_volumes));
         set
         {
             var old = Average(_volumes);
@@ -96,7 +96,7 @@ public sealed class AudioNode : ObservableObject
     /// </summary>
     public IReadOnlyList<double> Volumes
     {
-        get => [.. _volumes.Select(v => (double)v)];
+        get => [.. Read(_volumes).Select(v => (double)v)];
         set
         {
             // A configuration can pass null, so the setter keeps this guard.
@@ -106,7 +106,7 @@ public sealed class AudioNode : ObservableObject
     }
 
     /// <summary>The speaker position of each entry of <see cref="Volumes"/>.</summary>
-    public IReadOnlyList<AudioChannel> Channels { get; }
+    public IReadOnlyList<AudioChannel> Channels { get => Read(field); }
 
     internal void Remove()
     {
@@ -183,24 +183,24 @@ public sealed class AudioService : ObservableObject, IDisposable
     }
 
     /// <summary>Every node: the active devices and the audio sessions on them.</summary>
-    public ObservableCollection<AudioNode> Nodes { get; } = [];
+    public ObservableList<AudioNode> Nodes { get => Read(field); } = [];
 
     /// <summary>The default playback device. Setting it makes that device the Windows default.</summary>
     public AudioNode? DefaultPlaybackDevice
     {
-        get => _defaultPlayback;
+        get => Read(_defaultPlayback);
         set => SetDefault(value, true);
     }
 
     /// <summary>The default recording device. Setting it makes that device the Windows default.</summary>
     public AudioNode? DefaultRecordingDevice
     {
-        get => _defaultRecording;
+        get => Read(_defaultRecording);
         set => SetDefault(value, false);
     }
 
     /// <summary>False when Windows audio cannot be opened, and then <see cref="Nodes"/> is empty.</summary>
-    public bool Ready => _graph.Ready;
+    public bool Ready => Read(_graph).Ready;
 
     internal AudioNode? Find(AudioGraphNode? node)
     {

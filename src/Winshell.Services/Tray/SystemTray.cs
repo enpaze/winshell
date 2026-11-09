@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Winshell.Apps;
 
 namespace Winshell.Tray;
@@ -60,7 +59,7 @@ public sealed class SystemTray : ObservableObject, IDisposable
     }
 
     /// <summary>The icons apps show, in the order they were added. Empty while another instance has the tray.</summary>
-    public ObservableCollection<SystemTrayItem> Items { get; } = [];
+    public ObservableList<SystemTrayItem> Items { get => Read(field); } = [];
 
     /// <summary>Becomes the notification area, or waits for the instance that has it to exit.</summary>
     private void Start()
@@ -241,25 +240,25 @@ public sealed class SystemTrayItem : ObservableObject
     public event Action<string, string, BalloonIcon>? Balloon;
 
     /// <summary>The program's file name without its extension.</summary>
-    public string Id { get; }
+    public string Id { get => Read(field); }
 
     /// <summary>The program's description, as Task Manager shows it, or its file name.</summary>
-    public string AppName { get; }
+    public string AppName { get => Read(field); }
 
     /// <summary>The full path of the program that added the icon.</summary>
-    public string Executable { get; }
+    public string Executable { get => Read(field); }
 
     /// <summary>The process that added the icon, the owner of the window its clicks go to.</summary>
-    public int ProcessId { get; }
+    public int ProcessId { get => Read(field); }
 
     /// <summary>The icon as the app set it, at the size it chose. It changes when the app changes the icon.</summary>
-    public PixelImage? Icon => _image;
+    public PixelImage? Icon => Read(_image);
 
     /// <summary>The icon's tooltip, which may run over several lines.</summary>
-    public string Tooltip => _tooltip;
+    public string Tooltip => Read(_tooltip);
 
     /// <summary>Windows shows this icon in the hidden icons flyout, not in the taskbar. Users choose in Settings.</summary>
-    public bool Overflow => _overflow;
+    public bool Overflow => Read(_overflow);
 
     /// <summary>
     /// The icon at a size in pixels, for the screen's scale. An icon loaded from a resource is drawn again at that size.

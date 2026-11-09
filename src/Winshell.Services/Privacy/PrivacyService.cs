@@ -36,22 +36,22 @@ public sealed class PrivacyService : INotifyPropertyChanged, IDisposable
     }
 
     /// <summary>The apps using the microphone. Empty while nothing listens, and while none is.</summary>
-    public IReadOnlyList<PrivacyApp> Microphone => _microphone;
+    public IReadOnlyList<PrivacyApp> Microphone => Reads.Property(this, _microphone);
 
     /// <summary>Whether any app is using the microphone. False while nothing listens.</summary>
-    public bool MicrophoneInUse => _microphoneInUse;
+    public bool MicrophoneInUse => Reads.Property(this, _microphoneInUse);
 
     /// <summary>The apps using the camera. Empty while nothing listens, and while none is.</summary>
-    public IReadOnlyList<PrivacyApp> Camera => _camera;
+    public IReadOnlyList<PrivacyApp> Camera => Reads.Property(this, _camera);
 
     /// <summary>Whether any app is using the camera. False while nothing listens.</summary>
-    public bool CameraInUse => _cameraInUse;
+    public bool CameraInUse => Reads.Property(this, _cameraInUse);
 
     /// <summary>The apps using location. Empty while nothing listens, and while none is.</summary>
-    public IReadOnlyList<PrivacyApp> Location => _location;
+    public IReadOnlyList<PrivacyApp> Location => Reads.Property(this, _location);
 
     /// <summary>Whether any app is using location. False while nothing listens.</summary>
-    public bool LocationInUse => _locationInUse;
+    public bool LocationInUse => Reads.Property(this, _locationInUse);
 
     /// <summary>
     /// Raised on the loop's thread when one of the lists or its in-use flag changes. The first handler added starts

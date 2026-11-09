@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.Xml.Linq;
 
 namespace Winshell.Notifications;
@@ -28,57 +27,57 @@ public sealed class ToastMessage : ObservableObject
     /// <summary>The AppUserModelID of the sending app's installed Windows identity. Required.</summary>
     public string AppId
     {
-        get;
+        get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
     /// <summary>The first line. Required.</summary>
     public string Title
     {
-        get;
+        get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
     /// <summary>The text under the title, as plain text.</summary>
     public string Body
     {
-        get;
+        get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
     /// <summary>An absolute protocol URI Windows opens when the user clicks the toast. Without one, the toast is informational.</summary>
     public string ActivationUri
     {
-        get;
+        get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
     /// <summary>An optional Windows replacement identifier, at most 64 characters.</summary>
     public string Tag
     {
-        get;
+        get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
     /// <summary>An optional Windows replacement group, at most 64 characters. Needs a <see cref="Tag"/>.</summary>
     public string Group
     {
-        get;
+        get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
     /// <summary>Whether the toast plays no sound.</summary>
     public bool Silent
     {
-        get;
+        get => Read(field);
         set => Set(ref field, value);
     }
 
     /// <summary>Why the last send failed. Cleared by a send that passes validation.</summary>
-    public string Error => _error;
+    public string Error => Read(_error);
 
     /// <summary>Up to five buttons on the toast.</summary>
-    public ObservableCollection<ToastAction> Actions { get; } = [];
+    public ObservableList<ToastAction> Actions { get => Read(field); } = [];
 
     /// <summary>Sends the toast. Returns whether validation and submission succeeded; Windows can still hold back the banner.</summary>
     public bool Send()
@@ -159,14 +158,14 @@ public sealed class ToastAction : ObservableObject
     /// <summary>The button's label. Required.</summary>
     public string Text
     {
-        get;
+        get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
     /// <summary>The absolute protocol URI Windows opens when the user clicks the button.</summary>
     public string ActivationUri
     {
-        get;
+        get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 }

@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Winshell.Native;
 
 namespace Winshell.Windows;
@@ -70,10 +69,10 @@ public sealed class WindowListService : ObservableObject, IDisposable
     }
 
     /// <summary>The windows, in the order they opened.</summary>
-    public ObservableCollection<AppWindow> Windows { get; } = [];
+    public ObservableList<AppWindow> Windows { get => Read(field); } = [];
 
     /// <summary>The listed window that has the focus, or owns the window that has it. Null when none does.</summary>
-    public AppWindow? ActiveWindow => _activeWindow;
+    public AppWindow? ActiveWindow => Read(_activeWindow);
 
     /// <summary>The window with this handle, or null when it is not listed.</summary>
     internal AppWindow? Find(nint hwnd)
@@ -283,54 +282,54 @@ public sealed class AppWindow : ObservableObject
     internal nint Owner => _info.Owner;
 
     /// <summary>The window's title, as its title bar shows it. May be empty.</summary>
-    public string Title => _info.Title;
+    public string Title => Read(_info).Title;
 
     /// <summary>The AppUserModelID the window carries, or its process package's, or its program's name in lower case.</summary>
-    public string AppId => _info.AppId;
+    public string AppId => Read(_info).AppId;
 
     /// <summary>The full path of the program that owns the window, or empty when it cannot be read.</summary>
-    public string Executable => _info.Executable;
+    public string Executable => Read(_info).Executable;
 
     /// <summary>A path an icon is read from: a packaged app's Start icon, or the program's own icon.</summary>
-    public string Icon => _info.Icon;
+    public string Icon => Read(_info).Icon;
 
     /// <summary>The virtual desktop this window is on, or empty when Windows does not report one. This uses the supported desktop API.</summary>
-    public string DesktopId => _backend.DesktopId(Hwnd);
+    public string DesktopId => Read(_backend).DesktopId(Hwnd);
 
     /// <summary>The desktop in <see cref="VirtualDesktopsService.Desktops"/> whose id is <see cref="DesktopId"/>, when that list is loaded.</summary>
-    public VirtualDesktop? Desktop => _desktops?.Find(DesktopId);
+    public VirtualDesktop? Desktop => Read(_desktops)?.Find(DesktopId);
 
     /// <summary>Whether this is <see cref="WindowListService.ActiveWindow"/>.</summary>
-    public bool Activated => _activated;
+    public bool Activated => Read(_activated);
 
     /// <summary>
     /// Whether the window flashed to ask for attention, as a chat or a finished download does, and has not been
     /// activated since. The taskbar shows this as a highlighted button.
     /// </summary>
-    public bool Attention => _attention;
+    public bool Attention => Read(_attention);
 
     /// <summary>The listed window that owns this one, as a main window owns its dialog, or null.</summary>
-    public AppWindow? Parent => _parent;
+    public AppWindow? Parent => Read(_parent);
 
     /// <summary>The screen the window is on: the one Windows says it is nearest.</summary>
-    public IReadOnlyList<ScreenInfo> Screens => _backend.Screen(_info.Monitor) is { } screen ? [screen] : [];
+    public IReadOnlyList<ScreenInfo> Screens => Read(_backend).Screen(_info.Monitor) is { } screen ? [screen] : [];
 
     /// <summary>Whether the window is maximized. Setting it maximizes the window, or restores it.</summary>
     public bool Maximized
     {
-        get => _info.Maximized;
+        get => Read(_info).Maximized;
         set => _backend.SetMaximized(Hwnd, value);
     }
 
     /// <summary>Whether the window is minimized. Setting it minimizes the window, or restores it.</summary>
     public bool Minimized
     {
-        get => _info.Minimized;
+        get => Read(_info).Minimized;
         set => _backend.SetMinimized(Hwnd, value);
     }
 
     /// <summary>Whether the window covers its screen without a frame. Windows has no request that puts another program's window into fullscreen.</summary>
-    public bool Fullscreen => _info.Fullscreen;
+    public bool Fullscreen => Read(_info).Fullscreen;
 
     /// <summary>The window closed. This comes after it has left <see cref="WindowListService.Windows"/>.</summary>
     public event EventHandler? Closed;

@@ -49,11 +49,11 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `FocusedMonitor` | [WinlandMonitor](#winlandmonitor)?, read-only | The Monitor that has the focus, or null while Winland is not running or has not said. |
 | `FocusedWorkspace` | [WinlandWorkspace](#winlandworkspace)?, read-only | The Workspace shown on FocusedMonitor, or null. |
 | `LogPath` | string?, read-only | The full path of the log Winland writes now, as its `files` request reports it. Null while it writes none: `debug:disable_logs` is true, or it runs elevated. |
-| `Monitors` | ObservableCollection of [WinlandMonitor](#winlandmonitor), read-only | The Monitors, by id. |
+| `Monitors` | ObservableList of [WinlandMonitor](#winlandmonitor), read-only | The Monitors, by id. |
 | `PipePath` | string, read-only | Winland's pipe. It takes requests and, after an `events` request, streams events. |
 | `ProcessId` | int, read-only | The process that answers on the pipe, or 0 while none does. |
-| `Windows` | ObservableCollection of [WinlandWindow](#winlandwindow), read-only | The windows Winland manages, in the order they were first reported. |
-| `Workspaces` | ObservableCollection of [WinlandWorkspace](#winlandworkspace), read-only | The Workspaces, by id, then by Monitor where two have the same number. |
+| `Windows` | ObservableList of [WinlandWindow](#winlandwindow), read-only | The windows Winland manages, in the order they were first reported. |
+| `Workspaces` | ObservableList of [WinlandWorkspace](#winlandworkspace), read-only | The Workspaces, by id, then by Monitor where two have the same number. |
 | `RawEvent` | Action of [WinlandEvent](#winlandevent) | Emitted for every line of the event stream, after the objects are updated. |
 | `Dispatch(string request)` | void | Sends `dispatch` and the request to Winland. A failure is logged. |
 | `Dispose()` | void | Stops following Winland: the lists no longer change. The process keeps its one connection to Winland's pipe. |
@@ -98,5 +98,5 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Monitor` | [WinlandMonitor](#winlandmonitor)?, read-only | The Monitor the Workspace belongs to, or null when Winland has not said. |
 | `Name` | string, read-only | The Workspace's name: its number, a name, or `special:` and a name. |
 | `Urgent` | bool, read-only | Whether a window on it is urgent while the Workspace is not focused. |
-| `Windows` | ObservableCollection of [WinlandWindow](#winlandwindow), read-only | The windows on the Workspace, in the order they arrived there. |
+| `Windows` | ObservableList of [WinlandWindow](#winlandwindow), read-only | The windows on the Workspace, in the order they arrived there. |
 | `Activate()` | void | Shows the Workspace. A Workspace number means that number on the focused Monitor in Winland, so the Workspace's own Monitor is focused first when it is another one. |

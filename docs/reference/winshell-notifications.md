@@ -46,7 +46,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | --- | --- | --- |
 | `AppId` | string, read-only | The AppUserModelID of the app that sent the notifications. Empty when the app has none. |
 | `AppName` | string, read-only | The display name of the app that sent the notifications. Can be empty. |
-| `Notifications` | ObservableCollection of [Notification](#notification), read-only | The app's notifications, newest first. |
+| `Notifications` | ObservableList of [Notification](#notification), read-only | The app's notifications, newest first. |
 | `Dismiss()` | bool | Dismisses the group's current notifications. Returns whether every removal succeeded; failed ones stay. |
 
 ## NotificationListener
@@ -61,9 +61,9 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `DoNotDisturbState` | [NotificationState](#notificationstate), read-only | On for priority-only or alarms-only, Off for unrestricted. |
 | `Error` | string, read-only | Why access or the last operation failed. |
 | `FocusState` | [NotificationState](#notificationstate), read-only | Whether a Focus session is on. |
-| `Groups` | ObservableCollection of [NotificationGroup](#notificationgroup), read-only | The notifications in one group per app, newest first. |
+| `Groups` | ObservableList of [NotificationGroup](#notificationgroup), read-only | The notifications in one group per app, newest first. |
 | `NotificationMode` | [NotificationMode](#notificationmode), read-only | Windows' current notification restriction. |
-| `Notifications` | ObservableCollection of [Notification](#notification), read-only | Every readable notification, newest first. Empty without access. |
+| `Notifications` | ObservableList of [Notification](#notification), read-only | Every readable notification, newest first. Empty without access. |
 | `NotificationAdded` | Action of [Notification](#notification) | Raised after Notifications holds a newly seen notification, including those in the first read. |
 | `OperationFailed` | Action of string | An access request, a dismissal or Notification.Invoke failed. The text is Error. |
 | `ClearAll()` | bool | Dismisses this listener's current snapshot. Returns whether every removal succeeded; failed ones stay. |
@@ -112,7 +112,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | Member | Type | Description |
 | --- | --- | --- |
 | `ToastMessage([IEventLoop](winshell.md#ieventloop) loop)` | constructor | Creates an empty toast whose Failed event is raised on the given event loop. |
-| `Actions` | ObservableCollection of [ToastAction](#toastaction), read-only | Up to five buttons on the toast. |
+| `Actions` | ObservableList of [ToastAction](#toastaction), read-only | Up to five buttons on the toast. |
 | `ActivationUri` | string | An absolute protocol URI Windows opens when the user clicks the toast. Without one, the toast is informational. |
 | `AppId` | string | The AppUserModelID of the sending app's installed Windows identity. Required. |
 | `Body` | string | The text under the title, as plain text. |
