@@ -1,9 +1,8 @@
 name: PR Size
 
 on:
-  # pull_request_target can label a fork's pull request. The job reads the changed files from the API and never checks
-  # out PR code.
-  pull_request_target: # zizmor: ignore[dangerous-triggers]
+  # pull_request gives a fork's PR a read-only token and no secrets. The job reads the changed files from the API.
+  pull_request:
     types: [opened, synchronize, reopened]
 
 permissions:
@@ -18,6 +17,8 @@ concurrency:
 jobs:
   pr-size:
     name: pr-size
+    # A fork's pull request has a read-only token, which can't set a label.
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

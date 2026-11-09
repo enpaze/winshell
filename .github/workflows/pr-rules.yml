@@ -1,9 +1,9 @@
 name: PR Rules
 
 on:
-  # pull_request_target runs from the base branch, so a pull request can't change the rules it is held to, and it runs on
-  # fork PRs without a maintainer's approval. The job checks out the base branch and never checks out PR code.
-  pull_request_target: # zizmor: ignore[dangerous-triggers]
+  # pull_request gives a fork's PR a read-only token and no secrets. The job checks out the base commit, so the rules a
+  # pull request is held to are the base branch's, not its own.
+  pull_request:
     types: [opened, edited, synchronize, reopened]
 
 permissions:
@@ -21,6 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
       - name: What this kind of change must carry
         shell: pwsh
