@@ -28,11 +28,19 @@ Logs are in `%LOCALAPPDATA%\winshell\run\<instance id>\log.txt`. A shell that ex
 | `This shell is Winshell … and this winshell is …` | The CLI and the shell are different releases. Use the `winshell` that matches, or build the shell with this one. `kill` still works. |
 | `Unknown command "<name>". Run winshell --help.` | The first word isn't a command. Options start with `-`. |
 
-Started from Start or at sign-in, and Winshell cannot start? It shows a dialog with the same text, because those starts have no console window. **Open config folder** opens the folder the message is about. A console, including `winshell run -d` from a terminal, prints the text and shows no dialog. Nothing in the dialog and nothing on screen means the shell is already running (`--no-duplicate`) or it started and the failure is in the log.
+### Started from Start or at sign-in
+
+Those starts have no console window, so a Winshell that cannot start shows a dialog with the same text. **Open config folder** opens the folder the message is about. A console, including `winshell run -d` from a terminal, prints the text and shows no dialog.
+
+Nothing in the dialog and nothing on screen means the shell is already running (`--no-duplicate`), or it started and the failure is in the log.
 
 ## The build failed
 
-A notice says the configuration did not build, with the compiler's lines. **Open file** opens the project. **Dismiss** closes the notice, as does Escape once you have clicked it. The notice does not take the keyboard when it appears, so from the keyboard, without clicking it, run `winshell ipc call notice dismiss`.
+A notice says the configuration did not build, with the compiler's lines:
+
+- **Open file** opens the project.
+- **Dismiss** closes the notice, as does Escape once you have clicked it.
+- The notice does not take the keyboard when it appears. To close it from the keyboard without clicking it, run `winshell ipc call notice dismiss`.
 
 `winshell reload` leaves the running instance up when the build fails. Fix the project and reload again. [`winshell dev`](configuration.md#develop-a-shell) is the loop while you are editing. Check names against the [reference](reference/index.md).
 
@@ -40,20 +48,27 @@ A notice says the configuration did not build, with the compiler's lines. **Open
 
 Winshell does not hide or replace Explorer's taskbar unless your shell does, and it never restarts Explorer. A panel that reserves the bottom of the screen stacks with Explorer's taskbar. To leave Explorer's taskbar where it is and only get it out of the way, turn on **Automatically hide the taskbar** in Windows Settings > Personalization > Taskbar.
 
-To make your shell the only bar, set `shell.ExplorerTaskbar.Hidden = true`. Winshell then hides Explorer's taskbar window and releases the screen edge it reserved. It puts both back when it exits: quitting, Ctrl+C, `winshell kill`, or a crash. A crash that skips Winshell's own exit is caught by `winshell run`, which [puts the taskbar back](reference/command-line.md#crashes) and starts the shell again. Windows keeps a few hotkeys for its own taskbar while Explorer runs, such as `Win+T`, `Win+S`, `Win+A`, `Win+N`, and `Win+1` through `Win+9`.
+To make your shell the only bar, set `shell.ExplorerTaskbar.Hidden = true`. Winshell then hides Explorer's taskbar window and releases the screen edge it reserved. It puts both back when it exits: quitting, Ctrl+C, `winshell kill`, or a crash. A crash that skips Winshell's own exit is caught by `winshell run`, which [puts the taskbar back](reference/command-line.md#crashes) and starts the shell again.
+
+Windows keeps a few hotkeys for its own taskbar while Explorer runs, such as `Win+T`, `Win+S`, `Win+A`, `Win+N`, and `Win+1` through `Win+9`.
 
 ## Explorer's taskbar is missing
 
 A shell that set `ExplorerTaskbar.Hidden` hid it. While that shell is still running, quit it with `winshell kill`. It puts Explorer's taskbar window back and reserves its edge again.
 
-If `winshell run` was ended too, or the shell ran without it, as a configuration's program started directly does, the window stays hidden and the edge stays released. Bring the taskbar back yourself:
+When only the shell ends, `winshell run` puts the taskbar back, for example after a native crash such as a stack overflow or `winshell kill --force`.
+
+The window stays hidden, and the edge stays released, when nothing is left to do that:
+
+- `winshell run` was ended together with the shell, as `taskkill /F /T` on `winshell run` does.
+- The shell ran without `winshell run`, as a configuration's program started directly does.
+
+Then bring the taskbar back yourself:
 
 1. Press Ctrl+Shift+Esc to open Task Manager.
 2. Find **Windows Explorer**, right-click it and choose **Restart**.
 
 Explorer builds its taskbar again. Signing out and back in also starts Explorer again, which brings the taskbar back.
-
-Ending `winshell run` and the shell together does that, such as `taskkill /F /T` on `winshell run`. Ending only the shell, a native crash such as a stack overflow, and `winshell kill --force` leave `winshell run` to put the taskbar back.
 
 ## A change to the preferences file does nothing
 

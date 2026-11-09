@@ -1,6 +1,10 @@
 # Configuration guide
 
-A configuration is a .NET project that references the Winshell package and builds into one program: your shell. This page begins with the starter, a bar with a clock and a battery, and reads it file by file. The sections after that explain each part in full. The [reference](reference/index.md) lists every type and member, and the [Omarchy-style example](https://github.com/enpaze/winshell/tree/main/examples/omarchy-style) is a whole panel to copy from. The C# on this page is copied from files that build: the starter, [GuideSamples.cs](https://github.com/enpaze/winshell/blob/main/tests/Winshell.Shell.Tests/GuideSamples.cs) and the [message widget](samples/message-widget/Message.xaml.cs). Nothing in GuideSamples runs.
+A configuration is a .NET project that references the Winshell package and builds into one program: your shell. This page begins with the starter, a bar with a clock and a battery, and reads it file by file. The sections after that explain each part in full.
+
+- The [reference](reference/index.md) lists every type and member.
+- The [Omarchy-style example](https://github.com/enpaze/winshell/tree/main/examples/omarchy-style) is a whole panel to copy from.
+- The C# on this page is copied from files that build: the starter, [GuideSamples.cs](https://github.com/enpaze/winshell/blob/main/tests/Winshell.Shell.Tests/GuideSamples.cs) and the [message widget](samples/message-widget/Message.xaml.cs). Nothing in GuideSamples runs.
 
 ## Your first bar
 
@@ -104,9 +108,15 @@ Change both `{DateTime.Now:t}` in `Clock.cs` to `{DateTime.Now:T}` and save it, 
 
 `winshell new` lists what it can copy: the starter, and each example, such as the Omarchy-style panel. `winshell new <name>` copies one into your config folder.
 
-The copy goes to `%APPDATA%\winshell\<name>`, or under `WINSHELL_CONFIG_DIR`. `--path <folder>` puts it somewhere else. A folder that exists and isn't empty is refused. The copy's project references the `Winshell` package of the same release as `winshell`. A release keeps that package in a `packages` folder beside `winshell.exe`, and the copy's `nuget.config` adds that folder as a source. Its shell id comes from its folder, so two copies keep their data apart.
+- **Where it goes.** The copy goes to `%APPDATA%\winshell\<name>`, or under `WINSHELL_CONFIG_DIR`. `--path <folder>` puts it somewhere else. A folder that exists and isn't empty is refused.
+- **The package.** The copy's project references the `Winshell` package of the same release as `winshell`. A release keeps that package in a `packages` folder beside `winshell.exe`, and the copy's `nuget.config` adds that folder as a source.
+- **Its shell id** comes from its folder, so two copies keep their data apart.
 
-Winshell builds to `bin\shell` in the project folder when a source is newer, then starts that program. `--no-build` runs the program the last build left, and does not build. A failed build does not start the last good build.
+When Winshell runs a configuration:
+
+- **Building.** Winshell builds to `bin\shell` in the project folder when a source is newer, then starts that program. `--no-build` runs the program the last build left, and does not build. A failed build does not start the last good build.
+- **A downloaded project is refused before any build.** Winshell looks for a `Zone.Identifier` stream on the `.csproj` and on `.props` and `.targets` beside it. Unblock the file (right-click > Properties > Unblock, or `Unblock-File`) if you trust it. `git clone` writes no zone, so it is not caught.
+- **A `winshell` and a shell of different releases refuse each other**, except `kill`. The message names both releases.
 
 ### From a clone
 
@@ -131,10 +141,6 @@ winshell run --path .
 
 `dotnet new install .\winshell\artifacts\packages\Winshell.Templates.<version>.nupkg`, then `dotnet new winshell -n MyShell`, makes the same starter.
 
-A downloaded project is refused before any build. Winshell looks for a `Zone.Identifier` stream on the `.csproj` and on `.props` and `.targets` beside it. Unblock the file (right-click > Properties > Unblock, or `Unblock-File`) if you trust it. `git clone` writes no zone, so it is not caught.
-
-A `winshell` and a shell of different releases refuse each other, except `kill`. The message names both releases.
-
 ## Where a configuration lives
 
 A configuration is a .NET project. Winshell looks for a `.csproj` in this order. With none, `winshell run` starts nothing and says nothing.
@@ -157,19 +163,25 @@ winshell use omarchy-style    # and back
 winshell use                  # lists the configurations, with * before the chosen one
 ```
 
-`winshell use` builds the configuration first when it needs a build, so the next sign-in can start it. A build that fails changes nothing. The choice is the name in `chosen.txt` in the config folder. Choosing a configuration never changes its shell id, so its data, its state, its widgets and where they are placed stay its own through every switch. `winshell widget` with no `-c` acts on the chosen one.
+- `winshell use` builds the configuration first when it needs a build, so the next sign-in can start it. A build that fails changes nothing.
+- The choice is the name in `chosen.txt` in the config folder.
+- Choosing a configuration never changes its shell id, so its data, its state, its widgets and where they are placed stay its own through every switch.
+- `winshell widget` with no `-c` acts on the chosen one.
 
 ## The program
 
-`Shell.Run` runs until the shell quits. Call it from `Main`, marked `[STAThread]`, as the starter's `Program.cs` does. `ShellId` in `ShellOptions` names the data, state and cache folders. Without it, as in the starter, a configuration in the config folder is named after its folder, and any other after its path.
-
-`DataDir`, `StateDir` and `CacheDir` replace those folders. A relative path is in the project folder, so `data` is `<project>\data`, and a rebuild of `bin\shell` leaves it there. A program a reload built in `bin\shell.next` uses that same folder. A program in neither keeps a relative path next to itself. `%NAME%` expands, and `$BASE` is the folder above `by-shell`, such as `%LOCALAPPDATA%\winshell\data`.
+`Shell.Run` runs until the shell quits. Call it from `Main`, marked `[STAThread]`, as the starter's `Program.cs` does. With a `ShellId`, the call reads:
 
 ```csharp
 Shell.Run<AppShell>(new ShellOptions { ShellId = "MyShell" });
 ```
 
 `AppShell` is a `ShellConfiguration`. `Start` runs once the shell is up. `Shell.Current` is that shell.
+
+`ShellOptions` names where the shell keeps its files:
+
+- **`ShellId`** names the data, state and cache folders. Without it, as in the starter, a configuration in the config folder is named after its folder, and any other after its path.
+- **`DataDir`, `StateDir` and `CacheDir`** replace those folders. A relative path is in the project folder, so `data` is `<project>\data`, and a rebuild of `bin\shell` leaves it there. A program a reload built in `bin\shell.next` uses that same folder. A program in neither keeps a relative path next to itself. `%NAME%` expands, and `$BASE` is the folder above `by-shell`, such as `%LOCALAPPDATA%\winshell\data`.
 
 ## A window
 
@@ -190,7 +202,11 @@ Windows stay Winshell's. The content is any `UIElement`. Sizes are logical pixel
 - **[PopupWindow](reference/winshell.md#popupwindow)** is a frameless window placed next to another. `GrabFocus` gives it the keyboard. `Dismissed` fires when it closes.
 - **[FloatingWindow](reference/winshell.md#floatingwindow)** is a normal window with a title bar.
 
-`Backdrop` is `WindowBackdrop.Mica`, `Acrylic`, `MicaAlt` or `None`. `Corners` rounds the window. A flyout is a WinUI `Flyout` in the window's content. Winshell closes an open flyout on a window that does not activate.
+On any window:
+
+- **`Backdrop`** is `WindowBackdrop.Mica`, `Acrylic`, `MicaAlt` or `None`.
+- **`Corners`** rounds the window.
+- **A flyout** is a WinUI `Flyout` in the window's content. Winshell closes an open flyout on a window that does not activate.
 
 Reactor is the configuration's choice. Add `Microsoft.UI.Reactor` in the project and set `new ReactorHostControl(component)` as a window's content. Winshell never references it.
 
@@ -212,7 +228,11 @@ A [ScreenWindows](reference/winshell.md#screenwindows) keeps one window on each 
         });
 ```
 
-It makes a window for each screen when it is made, makes one for a screen that is connected, and disposes the window of a screen that is removed. The other screens' windows stay as they are, and so do their widgets. A screen whose resolution or scale changes keeps its window, made with the screen as it was then: `shell.Screens` has it as it is now. `Dispose` removes every window. The function can return anything disposable that holds the window, such as an object that also disposes the window's widget areas. A function that throws is logged under the component's name, and that screen has no window until the screens or the rows change.
+- It makes a window for each screen when it is made, makes one for a screen that is connected, and disposes the window of a screen that is removed. The other screens' windows stay as they are, and so do their widgets.
+- A screen whose resolution or scale changes keeps its window, made with the screen as it was then: `shell.Screens` has it as it is now.
+- `Dispose` removes every window.
+- The function can return anything disposable that holds the window, such as an object that also disposes the window's widget areas.
+- A function that throws is logged under the component's name, and that screen has no window until the screens or the rows change.
 
 A screen that differs from the rest has a row in the component's section of the [preferences file](#preferences), and the function is given that row, or null:
 
@@ -224,9 +244,83 @@ serial = "ABC123"
 edge = "top"
 ```
 
-A row matches a screen when its `manufacturer`, `model` and `serial` are strings that all equal the screen's, and the first match wins. A key the row leaves out matches nothing, so an empty serial is written `serial = ""`. The function is given the whole row, the three keys included, as a dictionary of TOML values, and the rest of it is the component's. The name Windows numbers, such as `DISPLAY1`, is never matched, because Windows renumbers it. `winshell log` prints a line per screen under the component's name, `manufacturer / model / serial`, which is the identity to copy. A row for a screen that is not connected stays in the file. When a screen's row changes, only that screen's window is disposed and made again, once the whole save is read.
+- **Matching.** A row matches a screen when its `manufacturer`, `model` and `serial` are strings that all equal the screen's, and the first match wins. A key the row leaves out matches nothing, so an empty serial is written `serial = ""`. The name Windows numbers, such as `DISPLAY1`, is never matched, because Windows renumbers it.
+- **The identity to copy.** `winshell log` prints a line per screen under the component's name, `manufacturer / model / serial`.
+- **What the function is given.** The whole row, the three keys included, as a dictionary of TOML values. The rest of it is the component's.
+- **When a row changes.** Only that screen's window is disposed and made again, once the whole save is read.
+- **A row for a screen that is not connected** stays in the file.
 
 It is a shortcut: a configuration can still make any window on any screen itself. `shell.Screens` lists the screens, the primary first, and changes as monitors are connected and removed.
+
+## A bar on every screen
+
+A [Bar](reference/winshell.md#bar) is a panel along one edge of every screen, with three [widget areas](#widgets): start, center and end. Each list names widgets by the names they are registered under. A plain string is a placement with no settings:
+
+```csharp
+        var bar = new Bar
+        {
+            Edge = Edges.Top,
+            Start = ["workspaces"],
+            Center = ["clock"],
+            End = ["tray", new("message", new Dictionary<string, object> { ["text"] = "Hello" })]
+        };
+```
+
+- **When it shows.** It shows on the next turn of the loop, once its properties are set, on every screen, and follows screens as they are connected and removed, as [ScreenWindows](#one-panel-per-screen) does. `Dispose` removes it.
+- **Its edge.** A bar reserves its edge, so maximized windows stop short of it, and `Reserve = false` lays it over them instead. It leaves Explorer's taskbar alone: `shell.ExplorerTaskbar.Hidden = true` hides that.
+- **Its thickness.** A bar is as thick as the [style's](#style) `ShellSlotSize`: the height of a top or bottom bar, and the width of a left or right one, whose areas run from top to bottom. `Thickness` sets another size.
+- **Its padding.** The style's `ShellPadding` keeps space between the areas and each end of the bar: at its left and right, or at the top and bottom of a side bar. `Padding` sets another space.
+- **Its style.** A bar's own `Style` wins over the shell's, as an area's does.
+
+`Bar` uses only the public API a configuration has, and a test holds it to that, so [its source](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/Compositions/Bar.cs) is a start for a dock, a sidebar or a bar of your own.
+
+### Several bars
+
+A shell can have several bars. Each has a `Name`, `"bar"` unless given, which names its section of the [preferences file](#preferences):
+
+```csharp
+        var side = new Bar { Name = "side", Edge = Edges.Left, Reserve = false, Start = ["clock"] };
+```
+
+### Let the user change a bar
+
+A bar's section of the [preferences file](#preferences) holds `edge` and the three lists, each a list of tables like a [named area's](#let-the-user-change-an-area) `widgets`. A key the file has replaces the property of the same name, and a missing file is written with the bar's own values commented out. A `[[bar.screen]]` row, matched as `ScreenWindows` matches it, may change any of the four keys for one screen:
+
+```toml
+[bar]
+edge = "top"
+end = [{ widget = "tray" }, { widget = "message", text = "Hello" }]
+
+[[bar.screen]]
+manufacturer = "DEL"
+model = "DELL U2720Q"
+serial = "ABC123"
+edge = "left"
+end = []
+```
+
+Saving applies it live:
+
+- A changed row replaces that screen's bar, and the other screens keep theirs.
+- A changed section replaces the bar on every screen, which starts its widgets again, and so does a new `shell.Style` for a bar without a style of its own.
+- A value in the section that can't be used is logged under `preferences` with its line, and the bar keeps the one it had. One in a row is logged under the bar's name, and that screen uses the section's.
+
+### A surface of your own
+
+A bar's areas sit on a [Surface](reference/winshell.md#surface), which paints the [style's](#style) `ShellBackgroundBrush` behind them in the window's light or dark theme, and follows a switch while the shell runs. A brush your code reads from the style comes back in the theme the app started in, so give a window of your own a surface too:
+
+```csharp
+        var area = new WidgetArea { Defaults = ["start", "tasks"] };
+        var surface = new Surface { Padding = new Thickness(4), Content = area };
+        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = surface, Visible = true };
+        dock.Closed += () =>
+        {
+            area.Dispose();
+            surface.Dispose();
+        };
+```
+
+What a surface holds is in its style too, and stays loaded when the style changes. Its own `Style` wins over the shell's, as an area's does, and `Dispose` stops it following the shell's.
 
 ## Widgets
 
@@ -238,41 +332,13 @@ A [WidgetArea](reference/winshell.md#widgetarea) can go anywhere in a window. Li
 </ItemGroup>
 ```
 
-`Include` is the case-sensitive placement name; `Type` is the C# type name of a WinUI element with a constructor that takes a `WidgetContext`. The build generates direct factory registrations that run before `Main`, without reflection. A missing type, a type that is not a C# type name, and a duplicate name fail the build, and the error names the widget. Names are escaped for C# automatically. You can still call `Widgets.Register` directly for factories that need custom construction.
+- `Include` is the case-sensitive placement name.
+- `Type` is the C# type name of a WinUI element with a constructor that takes a `WidgetContext`.
+- The build generates direct factory registrations that run before `Main`, without reflection. Names are escaped for C# automatically.
+- A missing type, a type that is not a C# type name, and a duplicate name fail the build, and the error names the widget.
+- You can still call `Widgets.Register` directly for factories that need custom construction.
 
-### Installed widgets
-
-Installed widgets live in `widgets.props`, beside the project file. When that file exists, the build imports it, so `dotnet build`, Visual Studio and `winshell run` include the same widgets. The file is the only record of an install. `winshell widget install` writes it, `winshell widget list` reads it, `winshell widget update` moves an installed source to a newer commit, and `winshell widget remove` rewrites it. An empty `<Project />` means nothing is installed. The template ignores it, and so does the Omarchy example, so an install stays out of the shell's source.
-
-```xml
-<Project>
-  <ItemGroup>
-    <ProjectReference Include="C:\Users\me\AppData\Local\winshell\widgets\someone\clock-widget\0123abc...\ClockWidget.csproj">
-      <WinshellSource>github.com/someone/clock-widget</WinshellSource>
-      <WinshellRef>v1.2</WinshellRef>
-      <WinshellCommit>0123abc...</WinshellCommit>
-      <UndefineProperties>WinshellWidgetsFile</UndefineProperties>
-    </ProjectReference>
-    <WinshellWidget Include="clock" Type="ClockWidget.Clock">
-      <WinshellSource>github.com/someone/clock-widget</WinshellSource>
-    </WinshellWidget>
-  </ItemGroup>
-</Project>
-```
-
-`Include` on the project reference is the project inside a clone of one commit. `WinshellSource` is the repository, `WinshellRef` is the branch, tag or commit that was asked for, and `WinshellCommit` is the commit that was cloned. `UndefineProperties` names `WinshellWidgetsFile`, so that global property does not flow into the referenced project and the library does not import this file and reference itself. Each `WinshellWidget` item follows the reference it came from.
-
-`winshell widget install github.com/someone/clock-widget@v1.2` resolves that ref to a commit and clones it under `%LOCALAPPDATA%\winshell\widgets\someone\clock-widget\<commit>`, or under `WINSHELL_LOCAL_DIR` when that is set. A `file://` URL or a folder is cloned the same way, under `widgets\local`. With no `--project`, the repository must contain one project that lists `WinshellWidget` items; otherwise the command names the projects and installs nothing. It prints the repository, the commit and the widget names, warns that building runs the repository's code and MSBuild targets in a program that starts at sign-in, and asks. `--yes` skips the question. Declining changes nothing.
-
-A widget whose `Winshell` package reference needs a newer version than the configuration's is refused before that build, and the message names both versions. A widget name already installed from another source is refused, and so is a source that is already installed. Installing builds the configuration against a staged copy, with `-p:WinshellWidgetsFile` set to that copy's absolute path, into a scratch folder. `widgets.props` is replaced only when that build succeeds. A failed build leaves the previous file and the previous program, and prints the build errors. The next `winshell run` or `reload` builds as usual.
-
-`winshell widget list` prints each widget's name, source, ref and commit. `winshell widget remove <name>` drops that source's project reference and its widget items. `<name>` is a widget name or the source. Removing the last source leaves an empty `<Project />`. That file is newer than the program, so the next `winshell run` rebuilds and the shell no longer constructs the removed widget. `winshell widget list` reads an empty file as nothing installed. Install, list, remove and update take `-c` and `-p`. Install and update need `git` and the .NET SDK, and say so when either is missing.
-
-`winshell widget update [<name>]` fetches the recorded ref of every installed source, or of the source `<name>` selects. A ref that still names the recorded commit prints `<source> is up to date at <commit>.` Otherwise the command prints the old and new commit, the commits `git log --oneline` lists between them, and the widget names that would be added or dropped, then the same warning as install, and asks. `--yes` skips the question. Declining prints `Nothing was updated.` and leaves that source as it is. The version check and the staged build are install's: a widget that needs a newer Winshell is refused before the build, and a failed build leaves the previous commit, `widgets.props` and the program. Older commits stay in the cache.
-
-Set `WinshellWidgetsFile` to an absolute path to import a different file: `dotnet build -p:WinshellWidgetsFile=...`. A relative path is resolved from the folder that contains `Winshell.props`, not from the project. The default is `widgets.props` in the project directory.
-
-The build writes registration code only for an executable, an `OutputType` of `Exe` or `WinExe`. A widget library can list `WinshellWidget` items so `dotnet msbuild -getItem:WinshellWidget` can read them, and that library does not register the widgets. The configuration that references the library does. Registering one name from both fails when the shell starts.
+The build writes registration code only for an executable, an `OutputType` of `Exe` or `WinExe`. A [widget library](#write-a-widget) can list `WinshellWidget` items so `dotnet msbuild -getItem:WinshellWidget` can read them, and that library does not register the widgets. The configuration that references the library does. Registering one name from both fails when the shell starts.
 
 For example, define this widget in your project's `MyShell` namespace:
 
@@ -285,6 +351,8 @@ public sealed partial class MessageWidget : UserControl
     }
 }
 ```
+
+### Place widgets in an area
 
 Each placement creates a fresh WinUI element with its own settings, the area's orientation and the running `Shell` in its `WidgetContext`. Several placements may use one widget:
 
@@ -303,11 +371,12 @@ Each placement creates a fresh WinUI element with its own settings, the area's o
         panel.Closed += area.Dispose;
 ```
 
-Assigning `Defaults` snapshots the list and replaces its widgets unless the [preferences file](#preferences) has a list for the area. Changing `Orientation` also recreates them. Both dispose every widget implementing `IDisposable`. The example treats a user closing the panel as permanent: `Closed` normally only hides a window. When your code tears the panel down with `panel.Dispose()`, explicitly call `area.Dispose()` too. Removing or reparenting the area does not dispose widgets. Treat placement settings, including nested tables, as read-only.
-
-The [shell style](#style) styles the plain controls in an area. Use `{ThemeResource}` for area-sensitive widget resources: `{StaticResource}` resolves at construction, before the area owns the widget. Assign `context.StylePopup(content)` to a `PopupWindow.Content` to load a fresh dictionary of the area's style and follow its resolved theme, style, font, font size and foreground until the area removes the widget or is disposed; the widget still owns its popup windows.
-
-An unknown widget or a factory that throws shows a placeholder with its name and reason while the other placements keep running. The exception and its stack trace are logged under `widgets` in the shell's log (`winshell log`). Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Exceptions after creation follow the shell's normal crash supervision.
+- **Replacing widgets.** Assigning `Defaults` snapshots the list and replaces its widgets unless the [preferences file](#preferences) has a list for the area. Changing `Orientation` also recreates them. Both dispose every widget implementing `IDisposable`.
+- **Disposing an area.** The example treats a user closing the panel as permanent: `Closed` normally only hides a window. When your code tears the panel down with `panel.Dispose()`, explicitly call `area.Dispose()` too. Removing or reparenting the area does not dispose widgets.
+- **Settings.** Treat placement settings, including nested tables, as read-only.
+- **Styling.** The [shell style](#style) styles the plain controls in an area. Use `{ThemeResource}` for area-sensitive widget resources: `{StaticResource}` resolves at construction, before the area owns the widget.
+- **Popups.** Assign `context.StylePopup(content)` to a `PopupWindow.Content` to load a fresh dictionary of the area's style and follow its resolved theme, style, font, font size and foreground until the area removes the widget or is disposed; the widget still owns its popup windows.
+- **A widget that fails.** An unknown widget or a factory that throws shows a placeholder with its name and reason while the other placements keep running. The exception and its stack trace are logged under `widgets` in the shell's log (`winshell log`). Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Exceptions after creation follow the shell's normal crash supervision.
 
 ### Let the user change an area
 
@@ -321,67 +390,14 @@ widgets = [
 ]
 ```
 
-The list replaces the area's **whole** default list, in order. `widget` names the registered factory, and the other keys become its `WidgetContext.Settings`, including nested tables and arrays. `widgets = []` leaves the area empty. Comment the list out or remove it to return to the author's defaults. An area absent from the file keeps its defaults.
+- The list replaces the area's **whole** default list, in order.
+- `widget` names the registered factory, and the other keys become its `WidgetContext.Settings`, including nested tables and arrays.
+- `widgets = []` leaves the area empty.
+- Comment the list out or remove it to return to the author's defaults. An area absent from the file keeps its defaults.
 
 Saving applies changes live. Each changed area disposes its old widgets and creates the new list, and other areas keep their widgets. A syntax error or a list without string `widget` names keeps the last valid list and logs the file location under `preferences`. Winshell does not migrate or merge user lists into new defaults. The old placement file, `widgets\<shell id>.toml`, is not read.
 
-### A bar on every screen
-
-A [Bar](reference/winshell.md#bar) is a panel along one edge of every screen, with three widget areas: start, center and end. Each list names widgets by the names they are registered under. A plain string is a placement with no settings:
-
-```csharp
-        var bar = new Bar
-        {
-            Edge = Edges.Top,
-            Start = ["workspaces"],
-            Center = ["clock"],
-            End = ["tray", new("message", new Dictionary<string, object> { ["text"] = "Hello" })]
-        };
-```
-
-It shows on the next turn of the loop, once its properties are set, on every screen, and follows screens as they are connected and removed, as [ScreenWindows](#one-panel-per-screen) does. `Dispose` removes it. A bar reserves its edge, so maximized windows stop short of it, and `Reserve = false` lays it over them instead. It leaves Explorer's taskbar alone: `shell.ExplorerTaskbar.Hidden = true` hides that. A bar is as thick as the [style's](#style) `ShellSlotSize`: the height of a top or bottom bar, and the width of a left or right one, whose areas run from top to bottom. `Thickness` sets another size. The style's `ShellPadding` keeps space between the areas and each end of the bar: at its left and right, or at the top and bottom of a side bar. `Padding` sets another space. A bar's own `Style` wins over the shell's, as an area's does.
-
-A shell can have several bars. Each has a `Name`, `"bar"` unless given, which names its section of the [preferences file](#preferences):
-
-```csharp
-        var side = new Bar { Name = "side", Edge = Edges.Left, Reserve = false, Start = ["clock"] };
-```
-
-The section holds `edge` and the three lists, each a list of tables like a [named area's](#let-the-user-change-an-area) `widgets`. A key the file has replaces the property of the same name, and a missing file is written with the bar's own values commented out. A `[[bar.screen]]` row, matched as `ScreenWindows` matches it, may change any of the four keys for one screen:
-
-```toml
-[bar]
-edge = "top"
-end = [{ widget = "tray" }, { widget = "message", text = "Hello" }]
-
-[[bar.screen]]
-manufacturer = "DEL"
-model = "DELL U2720Q"
-serial = "ABC123"
-edge = "left"
-end = []
-```
-
-Saving applies it live. A changed row replaces that screen's bar, and the other screens keep theirs. A changed section replaces the bar on every screen, which starts its widgets again, and so does a new `shell.Style` for a bar without a style of its own. A value in the section that can't be used is logged under `preferences` with its line, and the bar keeps the one it had. One in a row is logged under the bar's name, and that screen uses the section's.
-
-`Bar` uses only the public API a configuration has, and a test holds it to that, so [its source](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/Compositions/Bar.cs) is a start for a dock, a sidebar or a bar of your own.
-
-A bar's areas sit on a [Surface](reference/winshell.md#surface), which paints the [style's](#style) `ShellBackgroundBrush` behind them in the window's light or dark theme, and follows a switch while the shell runs. A brush your code reads from the style comes back in the theme the app started in, so give a window of your own a surface too:
-
-```csharp
-        var area = new WidgetArea { Defaults = ["start", "tasks"] };
-        var surface = new Surface { Padding = new Thickness(4), Content = area };
-        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = surface, Visible = true };
-        dock.Closed += () =>
-        {
-            area.Dispose();
-            surface.Dispose();
-        };
-```
-
-What a surface holds is in its style too, and stays loaded when the style changes. Its own `Style` wins over the shell's, as an area's does, and `Dispose` stops it following the shell's.
-
-### Style
+## Style
 
 The style is how every widget area, surface and styled popup looks: its colors, font and slot size. With none set, the built-in style follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` once to a `ResourceDictionary` file to give the whole shell another look:
 
@@ -459,7 +475,7 @@ A style with one look whatever the theme uses plain keys, as this one does. A st
 
 A widget other people install is a WinUI class library. [samples/message-widget](samples/message-widget) is one, and the solution builds it: a line of text, with one `text` setting. It is a sample for this guide, not a widget Winshell ships.
 
-The project lists each widget. `Include` is the placement name and `Type` is the C# type, as in a configuration. `winshell widget install` reads those items with `dotnet msbuild -getItem:WinshellWidget`. The library does not register them. Registration is generated only for an executable, so the configuration that references the library is the one that constructs the widget.
+The project lists each widget. `Include` is the placement name and `Type` is the C# type, as in a configuration. [`winshell widget install`](#installed-widgets) reads those items with `dotnet msbuild -getItem:WinshellWidget`. The library does not register them. Registration is generated only for an executable, so the configuration that references the library is the one that constructs the widget.
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -557,6 +573,68 @@ public sealed partial class Message : IDisposable
 
 [ShellWindow.Of](reference/winshell.md#shellwindow) is null in the constructor. The widget is created before its area is in a window, so the screen is read from `Loaded`. Null is the primary screen.
 
+## Installed widgets
+
+Installed widgets live in `widgets.props`, beside the project file. When that file exists, the build imports it, so `dotnet build`, Visual Studio and `winshell run` include the same widgets. The file is the only record of an install:
+
+- `winshell widget install` writes it.
+- `winshell widget list` reads it.
+- `winshell widget update` moves an installed source to a newer commit.
+- `winshell widget remove` rewrites it.
+
+Install, list, remove and update take `-c` and `-p`. Install and update need `git` and the .NET SDK, and say so when either is missing.
+
+### The widgets file
+
+An empty `<Project />` means nothing is installed. The template ignores the file, and so does the Omarchy example, so an install stays out of the shell's source. With one source installed, it reads:
+
+```xml
+<Project>
+  <ItemGroup>
+    <ProjectReference Include="C:\Users\me\AppData\Local\winshell\widgets\someone\clock-widget\0123abc...\ClockWidget.csproj">
+      <WinshellSource>github.com/someone/clock-widget</WinshellSource>
+      <WinshellRef>v1.2</WinshellRef>
+      <WinshellCommit>0123abc...</WinshellCommit>
+      <UndefineProperties>WinshellWidgetsFile</UndefineProperties>
+    </ProjectReference>
+    <WinshellWidget Include="clock" Type="ClockWidget.Clock">
+      <WinshellSource>github.com/someone/clock-widget</WinshellSource>
+    </WinshellWidget>
+  </ItemGroup>
+</Project>
+```
+
+- `Include` on the project reference is the project inside a clone of one commit.
+- `WinshellSource` is the repository, `WinshellRef` is the branch, tag or commit that was asked for, and `WinshellCommit` is the commit that was cloned.
+- `UndefineProperties` names `WinshellWidgetsFile`, so that global property does not flow into the referenced project and the library does not import this file and reference itself.
+- Each `WinshellWidget` item follows the reference it came from.
+
+Set `WinshellWidgetsFile` to an absolute path to import a different file: `dotnet build -p:WinshellWidgetsFile=...`. A relative path is resolved from the folder that contains `Winshell.props`, not from the project. The default is `widgets.props` in the project directory.
+
+### Install
+
+`winshell widget install github.com/someone/clock-widget@v1.2` resolves that ref to a commit and clones it under `%LOCALAPPDATA%\winshell\widgets\someone\clock-widget\<commit>`, or under `WINSHELL_LOCAL_DIR` when that is set. A `file://` URL or a folder is cloned the same way, under `widgets\local`.
+
+- **Which project.** With no `--project`, the repository must contain one project that lists `WinshellWidget` items; otherwise the command names the projects and installs nothing.
+- **It asks first.** It prints the repository, the commit and the widget names, warns that building runs the repository's code and MSBuild targets in a program that starts at sign-in, and asks. `--yes` skips the question. Declining changes nothing.
+- **What it refuses.** A widget whose `Winshell` package reference needs a newer version than the configuration's is refused before that build, and the message names both versions. A widget name already installed from another source is refused, and so is a source that is already installed.
+- **The staged build.** Installing builds the configuration against a staged copy, with `-p:WinshellWidgetsFile` set to that copy's absolute path, into a scratch folder. `widgets.props` is replaced only when that build succeeds. A failed build leaves the previous file and the previous program, and prints the build errors. The next `winshell run` or `reload` builds as usual.
+
+### List and remove
+
+`winshell widget list` prints each widget's name, source, ref and commit. It reads an empty file as nothing installed.
+
+`winshell widget remove <name>` drops that source's project reference and its widget items. `<name>` is a widget name or the source. Removing the last source leaves an empty `<Project />`. That file is newer than the program, so the next `winshell run` rebuilds and the shell no longer constructs the removed widget.
+
+### Update
+
+`winshell widget update [<name>]` fetches the recorded ref of every installed source, or of the source `<name>` selects.
+
+- A ref that still names the recorded commit prints `<source> is up to date at <commit>.`
+- Otherwise the command prints the old and new commit, the commits `git log --oneline` lists between them, and the widget names that would be added or dropped, then the same warning as install, and asks. `--yes` skips the question. Declining prints `Nothing was updated.` and leaves that source as it is.
+- The version check and the staged build are install's: a widget that needs a newer Winshell is refused before the build, and a failed build leaves the previous commit, `widgets.props` and the program.
+- Older commits stay in the cache.
+
 ## A service
 
 Services hang off `Shell`, created when first read. `shell.Audio`, `shell.Power`, `shell.Apps`, `shell.WindowList`, `shell.Networking`, `shell.Bluetooth`, `shell.Notifications`, `shell.SystemTray`, `shell.Media` and the others are on the [Winshell](reference/winshell.md#shell) page, and each namespace has its own page.
@@ -598,18 +676,6 @@ It opens off the shell's thread, so a slow app does not hold up the shell. What 
 Several changes in one turn run the block once, on the control's thread, and a change the block makes itself does not run it again. The watch pauses while the control is unloaded, as the content of a hidden popup is, and runs again when it loads. It stops when the control's window is disposed, so there is nothing to dispose. A block that throws is logged under `watch`, and the next change to what it read before the throw runs it again.
 
 A service list, such as `shell.Power.Devices`, is an [ObservableList](reference/winshell.md#observablelist): going through it, counting it or indexing it is a read. Only its service changes it. A class of your own that derives from `ObservableObject` reports a read from each getter, as in `get => Read(field);`.
-
-## IPC
-
-`shell.Ipc` is what `winshell ipc` calls. The handler's own types say what it takes and returns. `string`, `int`, `bool`, `double`, `float` and `Windows.UI.Color` cross the pipe. Nothing is evaluated.
-
-```csharp
-        shell.Ipc.Handle("notes", "hello", (string name) => "hi " + name);
-```
-
-`winshell ipc call notes hello Ada` prints `hi Ada`. `Property` and `Signal` are on [ShellIpc](reference/winshell.md#shellipc). Dispose the registration to take it away.
-
-`winshell ipc call notice dismiss` closes Winshell's own notice. That call is not a target you register, so `ipc show` does not list it.
 
 ## Preferences
 
@@ -667,22 +733,57 @@ Make one on the shell's thread, and dispose it when its component goes. It reads
         var dock = new DockPreferences("dock");
 ```
 
-Saving the file applies it live, and changes only the properties whose keys changed, so a component whose section is the same keeps what it shows. A key the file does not have holds its default, so commenting one out goes back to it. Assigning a property writes that key at the end of its section and leaves the rest of the file: comments, other sections and keys no class reads. When the file is missing, Winshell writes it with each section's keys commented out at their defaults, under their comments. A component made after that, whose section the file does not have, adds its section at the end of the file the same way, under its own `[name]` header. A section you take out stays out until the component is made again, as when the shell starts or reloads, or one of its properties is assigned.
+### How the file and the shell stay in step
 
-What can't be used is logged under `preferences`, with its line, and the values in use stay: a file that does not parse, a section that is not a table, and a value the property can't hold or the check refuses. A section no component reads stays in the file and is logged by name. An unknown key that differs from a key the class reads only in case, by a letter, or by two in a longer key is logged with that key. A file past 1 MiB, or nested past 64 levels, is not read.
+- **Saving the file applies it live**, and changes only the properties whose keys changed, so a component whose section is the same keeps what it shows.
+- **A key the file does not have holds its default**, so commenting one out goes back to it.
+- **Assigning a property writes that key** at the end of its section and leaves the rest of the file: comments, other sections and keys no class reads.
+- **When the file is missing**, Winshell writes it with each section's keys commented out at their defaults, under their comments. A component made after that, whose section the file does not have, adds its section at the end of the file the same way, under its own `[name]` header.
+- **A section you take out stays out** until the component is made again, as when the shell starts or reloads, or one of its properties is assigned.
+
+### What can't be used
+
+What can't be used is logged under `preferences`, with its line, and the values in use stay: a file that does not parse, a section that is not a table, and a value the property can't hold or the check refuses.
+
+- A section no component reads stays in the file and is logged by name.
+- An unknown key that differs from a key the class reads only in case, by a letter, or by two in a longer key is logged with that key.
+- A file past 1 MiB, or nested past 64 levels, is not read.
 
 `winshell doctor` checks the file of the configuration it checks for TOML errors, and names the line. It finds the file by the shell id the configuration has without a `ShellId` in its `ShellOptions`, as [The program](#the-program) describes. For a program that sets one, it checks that default file, not the one the shell reads.
 
+### Data, state and cache
+
 `shell.DataPath`, `shell.StatePath` and `shell.CachePath` are per shell under `%LOCALAPPDATA%\winshell`. State does not survive a reload unless the configuration writes it itself. Every window is replaced.
 
+## IPC
+
+`shell.Ipc` is what `winshell ipc` calls. The handler's own types say what it takes and returns. `string`, `int`, `bool`, `double`, `float` and `Windows.UI.Color` cross the pipe. Nothing is evaluated.
+
+```csharp
+        shell.Ipc.Handle("notes", "hello", (string name) => "hi " + name);
+```
+
+`winshell ipc call notes hello Ada` prints `hi Ada`. `Property` and `Signal` are on [ShellIpc](reference/winshell.md#shellipc). Dispose the registration to take it away.
+
+`winshell ipc call notice dismiss` closes Winshell's own notice. That call is not a target you register, so `ipc show` does not list it.
+
 ## Reload
+
+A configuration can reload itself:
 
 ```csharp
         if (!shell.Reload())
             shell.Log.Warn("shell", "Reload did not start.");
 ```
 
-That starts this program again with `--after` and quits. It does not build, and the new process runs with no supervisor. `winshell reload` builds first. On failure the running instance stays and a notice shows. On success the new instance takes over, and under `winshell run` it stays supervised: `winshell run` starts it after this one quits. There is no file watcher. [`winshell dev`](#develop-a-shell) applies each edit as you save.
+That starts this program again with `--after` and quits. It does not build, and the new process runs with no supervisor.
+
+`winshell reload` builds first:
+
+- On failure the running instance stays and a notice shows.
+- On success the new instance takes over, and under `winshell run` it stays supervised: `winshell run` starts it after this one quits.
+
+There is no file watcher. [`winshell dev`](#develop-a-shell) applies each edit as you save.
 
 `winshell run --no-build` skips the build. The sign-in entry uses it, so signing in does not need the SDK and does not run a broken edit.
 
@@ -693,6 +794,8 @@ winshell dev --path .
 ```
 
 `winshell dev` builds your project, starts it, and applies each save to the running shell until you press Ctrl+C, which closes that shell and stops `dotnet watch`, as closing the terminal does. It needs the .NET SDK, and it runs a Debug build. With no project it prints `winshell dev needs a configuration project. Run winshell new to make one.` and exits with 1.
+
+What each kind of edit does:
 
 - **A C# edit** reaches the running shell in about a second. The first one takes a little longer, while the compiler warms up. An edited method runs its new code at its next call.
 - **A widget that shows an edited type** is made again, with the rest of its widget area, so a change to its constructor shows too. The window, its other areas and every other window stay as they are.
