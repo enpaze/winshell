@@ -102,6 +102,11 @@ public static class GuideSamples
         shell.Style = new Uri("ms-appx:///TokyoNight.xaml");
     }
 
+    public static void AnAlert(Button button, bool low)
+    {
+        VisualStateManager.GoToState(button, low ? "Alert" : "NoAlert", false);
+    }
+
     public static void AHotkey(Shell shell)
     {
         var hotkey = shell.NewHotkey();

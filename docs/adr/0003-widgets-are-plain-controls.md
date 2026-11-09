@@ -22,14 +22,17 @@ public sealed class BatteryWidget : Button
 }
 ```
 
-The style is one XAML resource file, set once with `shell.Style`, and a component can take its own. With none set, a built-in style follows Windows: its theme colors, Segoe UI and Segoe Fluent Icons. A style defines six keys every bar, widget area, widget and styled popup reads, may define `ShellPadding` for the space at a bar's ends, and defines implicit styles for `Button`, `TextBlock`, `FontIcon` and `ToolTip`. So an installed widget matches whatever shell it lands in. A `Surface` is the root of a bar, a dock or any composition: it paints the style's `ShellBackgroundBrush` behind its content in the window's theme, so a style needs no entry for it. Code can't do that itself, as WinUI reads a brush from code in the app's theme. Tooltips follow the shell's style, not a component's: a tooltip opens in a popup of its own, and WinUI looks up its style only in the app's resources, so the `ToolTip` entry of `shell.Style` styles every tooltip in the shell. `shell.Open(uri)` opens a Settings page, an app or a URL.
+The style is one XAML resource file, set once with `shell.Style`, and a component can take its own. With none set, a built-in style follows Windows: its theme colors, Segoe UI and Segoe Fluent Icons. A style defines six keys every bar, widget area, widget and styled popup reads, may define `ShellPadding` for the space at a bar's ends, and defines implicit styles for `Button`, `TextBlock`, `FontIcon` and `ToolTip`. So an installed widget matches whatever shell it lands in. A `Surface` is the root of a bar, a dock or any composition: it paints the style's `ShellBackgroundBrush` behind its content in the window's theme, so a style needs no entry for it. Code can't do that itself, as WinUI reads a brush from code in the app's theme. For the same reason, a widget shows an alert through the style: the implicit `Button` style's template has an `AlertStates` visual state group, and `VisualStateManager.GoToState(button, "Alert", false)` shows what the button holds in `ShellAlertBrush`, in any style and theme, until `"NoAlert"` clears it. Tooltips follow the shell's style, not a component's: a tooltip opens in a popup of its own, and WinUI looks up its style only in the app's resources, so the `ToolTip` entry of `shell.Style` styles every tooltip in the shell. `shell.Open(uri)` opens a Settings page, an app or a URL.
 
 ## Considered options
 
 - **A `GlyphWidget` base class** with an icon, a tooltip, an alert color and a click. It fits only a single status icon and is a second shape to learn; `Watch` and the implicit styles cover it.
 - **Keys for each component**, such as `BarBackground`. A style would then not carry over to a dock or to an installed widget.
+- **`Normal` to clear an alert.** A button puts itself in `Normal` each time the pointer leaves it, so that name would clear an alert on hover. The alert's states are a group of their own.
+- **An `Alert` state on `TextBlock`.** A `TextBlock` is not a `Control` and has no visual states, so text that alerts is a button's string content.
 
 ## Consequences
 
 - A WinUI `Style` is one entry of a style. The glossary's Style is the whole look.
+- A style's `Button` entry sets a `Template`, because the alert's states live in it.
 - Proposed keys, settled in review: `ShellBackgroundBrush`, `ShellForegroundBrush`, `ShellAlertBrush`, `ShellFontFamily`, `ShellFontSize` and `ShellSlotSize`.

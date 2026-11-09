@@ -54,7 +54,7 @@ The project references Winshell's source, so the repo's own check builds it.
 
 ## Change it
 
-- **Colors, font and size:** edit [TokyoNight.xaml](TokyoNight.xaml). The widgets look nothing up: the style's `Button`, `TextBlock`, `FontIcon` and `ToolTip` entries style them. `ShellSlotSize` is how thick the bar is, and `ShellPadding` the space at its ends. A status glyph is a button, a pixel wider than the bar is high, as Omarchy's are. Its `Alert` state shows the glyph in `ShellAlertBrush`, which the network widget uses.
+- **Colors, font and size:** edit [TokyoNight.xaml](TokyoNight.xaml). The widgets look nothing up: the style's `Button`, `TextBlock`, `FontIcon` and `ToolTip` entries style them. `ShellSlotSize` is how thick the bar is, and `ShellPadding` the space at its ends. A status glyph is a button, a pixel wider than the bar is high, as Omarchy's are. Its `Alert` state, the style contract's, shows the glyph in `ShellAlertBrush`, and the network widget uses it.
 - **Move the bar or change its widgets:** edit the preferences file, `%APPDATA%\winshell\preferences\<shell id>.toml`, or `<WINSHELL_CONFIG_DIR>\preferences\<shell id>.toml` when that variable is set. Its `[bar]` section holds `edge` and the `start`, `center` and `end` lists, which replace the ones in [AppShell.cs](AppShell.cs) while the file has them. Saving applies it live. This moves the bar to the bottom, puts a UTC clock beside the local one and reverses the end:
 
   ```toml

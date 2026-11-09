@@ -454,6 +454,37 @@ public sealed class WidgetAreaTests
     }
 
     [Fact]
+    public async Task A_button_in_the_alert_state_shows_the_alert_color_in_its_theme_until_cleared_whatever_its_own_state()
+    {
+        await ShellFixture.On(async _ =>
+        {
+            var controls = new PlainControls();
+            using var area = new WidgetArea { RequestedTheme = ElementTheme.Light, Defaults = [new(controls.Button)] };
+            using var window = new PanelWindow { Width = 100, Height = 60, Content = area, Visible = true };
+            await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
+            var (button, glyph) = Assert.Single(controls.Buttons);
+
+            Assert.True(VisualStateManager.GoToState(button, "Alert", false));
+            Assert.Equal(WindowsColor("Light", "SystemFillColorCritical"), ColorOf(glyph.Foreground));
+            area.RequestedTheme = ElementTheme.Dark;
+            await Wait.UntilAsync(() => ColorOf(glyph.Foreground) == WindowsColor("Default", "SystemFillColorCritical"),
+                "the alert to take Windows' dark critical color");
+
+            // The button goes through its own states as the pointer moves. They leave the alert as it is.
+            VisualStateManager.GoToState(button, "Pressed", false);
+            Assert.Equal(WindowsColor("Default", "SystemFillColorCritical"), ColorOf(glyph.Foreground));
+            VisualStateManager.GoToState(button, "Normal", false);
+            Assert.Equal(WindowsColor("Default", "SystemFillColorCritical"), ColorOf(glyph.Foreground));
+
+            Assert.True(VisualStateManager.GoToState(button, "NoAlert", false));
+            Assert.Equal(WindowsText("Default"), ColorOf(glyph.Foreground));
+            VisualStateManager.GoToState(button, "Pressed", false);
+            Assert.Equal(WindowsColor("Default", "TextFillColorSecondary"), ColorOf(glyph.Foreground));
+            return true;
+        });
+    }
+
+    [Fact]
     public async Task The_shell_style_reaches_areas_and_popups_live_and_an_area_style_wins_over_it()
     {
         await ShellFixture.On(async shell =>

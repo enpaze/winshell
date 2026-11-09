@@ -28,8 +28,7 @@ public sealed class NetworkWidget : Button
             Content = Glyphs.Network(device?.Type ?? DeviceType.None, profile?.SignalStrength ?? 0, restricted);
             ToolTipService.SetToolTip(this, tip);
             AutomationProperties.SetName(this, tip);
-            // TokyoNight.xaml's button has an Alert state, in the style's alert color.
-            VisualStateManager.GoToState(this, restricted ? "Alert" : "Calm", false);
+            VisualStateManager.GoToState(this, restricted ? "Alert" : "NoAlert", false);
         });
         Click += (_, _) => context.Shell.Open("ms-settings:network-status");
     }

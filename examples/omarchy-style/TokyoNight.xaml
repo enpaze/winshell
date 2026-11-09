@@ -14,7 +14,8 @@
   <x:Double x:Key="ShellPadding">8</x:Double>
 
   <!-- A glyph slot a pixel wider than the bar is high. It has no hover fill and no corners, and shrinks a little
-       while pressed. A widget puts it in the Alert state to show its glyph in the alert color. -->
+       while pressed. Its Alert and NoAlert states are the style contract's: a widget shows its glyph in the alert
+       color with Alert. -->
   <Style TargetType="Button">
     <Setter Property="MinWidth" Value="27" />
     <Setter Property="MinHeight" Value="{StaticResource ShellSlotSize}" />
@@ -50,7 +51,7 @@
                 <VisualState x:Name="Disabled" />
               </VisualStateGroup>
               <VisualStateGroup x:Name="AlertStates">
-                <VisualState x:Name="Calm" />
+                <VisualState x:Name="NoAlert" />
                 <VisualState x:Name="Alert">
                   <VisualState.Setters>
                     <Setter Target="Presenter.Foreground" Value="{StaticResource ShellAlertBrush}" />

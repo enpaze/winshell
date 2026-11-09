@@ -405,10 +405,18 @@ A style defines these keys, which a bar, a widget and its popups read with `{The
 
 It also defines implicit styles, with no `x:Key`, for the plain controls a widget is made of. They apply inside a widget area, in a surface and in a popup styled with `context.StylePopup`, so a widget that is a `Button` holding a `FontIcon` looks right with no lookup:
 
-- `Button`: flat, at least one slot wide and high, its content centered, in the style's foreground, font and font size.
+- `Button`: flat, at least one slot wide and high, its content centered, in the style's foreground, font and font size. Its template has an `AlertStates` visual state group with two states: `Alert` shows the text or glyph it holds in `ShellAlertBrush`, and `NoAlert` clears it.
 - `TextBlock`: the style's foreground, font and font size, centered vertically. A text block keeps that foreground inside a pressed or disabled button, so give a button its text as a string to take the button's colors.
 - `FontIcon`: the style's icon font. Its color comes from what holds it, so a button's pressed and disabled colors reach the glyph.
 - `ToolTip`: the style's background, foreground and font. A tooltip opens in a popup of its own, outside the area, and WinUI looks up its style only in the app's resources, so Winshell puts the `ToolTip` entry of `shell.Style` there. It styles every tooltip in the shell, in your own windows too, and an area's own `Style` does not change it. A `ToolTip` style you put in `Application.Current.Resources` yourself wins over it.
+
+A widget shows an alert, such as a low battery, by putting its button in the `Alert` state, and clears it with `NoAlert`. It works in any style and theme with no lookup:
+
+```csharp
+        VisualStateManager.GoToState(button, low ? "Alert" : "NoAlert", false);
+```
+
+Code can't set the color itself: WinUI reads a brush from code in the app's theme, not the window's. The states are a group of their own, so the button's pointer-over and pressed states don't clear the alert. A `TextBlock` has no visual states, so text that alerts is a button's string content. A style's `Button` entry sets a `Template` with the `AlertStates` group. With WinUI's own template a button shows no alert, and `GoToState` returns false.
 
 A style that leaves out a key fails where something reads it. [BuiltInStyle.xaml](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/BuiltInStyle.xaml) is the built-in style, and a start for your own:
 
@@ -434,6 +442,31 @@ A style that leaves out a key fails where something reads it. [BuiltInStyle.xaml
     <Setter Property="Foreground" Value="{StaticResource ShellForegroundBrush}" />
     <Setter Property="FontFamily" Value="{StaticResource ShellFontFamily}" />
     <Setter Property="FontSize" Value="{StaticResource ShellFontSize}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <ContentPresenter
+            x:Name="Presenter"
+            Background="{TemplateBinding Background}"
+            Foreground="{TemplateBinding Foreground}"
+            Content="{TemplateBinding Content}"
+            Padding="{TemplateBinding Padding}"
+            HorizontalContentAlignment="Center"
+            VerticalContentAlignment="Center">
+            <VisualStateManager.VisualStateGroups>
+              <VisualStateGroup x:Name="AlertStates">
+                <VisualState x:Name="NoAlert" />
+                <VisualState x:Name="Alert">
+                  <VisualState.Setters>
+                    <Setter Target="Presenter.Foreground" Value="{StaticResource ShellAlertBrush}" />
+                  </VisualState.Setters>
+                </VisualState>
+              </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
+          </ContentPresenter>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
   <Style TargetType="TextBlock">
     <Setter Property="Foreground" Value="{StaticResource ShellForegroundBrush}" />
@@ -453,7 +486,7 @@ A style that leaves out a key fails where something reads it. [BuiltInStyle.xaml
 </ResourceDictionary>
 ```
 
-A style with one look whatever the theme uses plain keys, as this one does. A style that changes with the theme puts its brushes in `ResourceDictionary.ThemeDictionaries`, under `Default` for dark, `Light` and `HighContrast`, as the built-in style does.
+This button has no pointer-over, pressed or disabled look. The built-in style's keeps WinUI's, in a `CommonStates` group beside `AlertStates`. A style with one look whatever the theme uses plain keys, as this one does. A style that changes with the theme puts its brushes in `ResourceDictionary.ThemeDictionaries`, under `Default` for dark, `Light` and `HighContrast`, as the built-in style does.
 
 ## Write a widget
 
