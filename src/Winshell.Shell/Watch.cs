@@ -68,7 +68,9 @@ internal sealed class ControlWatch
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
-        Pause();
+        // WinUI can raise a moved control's Loaded in its new place before the Unloaded from its old one.
+        if (!_control.IsLoaded)
+            Pause();
     }
 
     /// <summary>Stops following until the control loads again.</summary>

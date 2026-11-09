@@ -152,6 +152,58 @@ public sealed class WatchTests
     }
 
     [Fact]
+    public async Task A_watch_follows_its_control_moved_to_another_window_during_layout()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var source = new Source();
+            var text = new TextBlock();
+            var runs = 0;
+            text.Watch(() =>
+            {
+                runs++;
+                text.Text = $"{source.First}";
+            });
+            var from = new StackPanel { Children = { text } };
+            var to = new StackPanel();
+            using var window = new PanelWindow { Width = 120, Height = 40, Content = from, Visible = true };
+            using var next = new PanelWindow { Width = 120, Height = 40, Content = to, Visible = true };
+            await Task.WhenAll(Loaded(text), Loaded(to));
+            var events = new List<string>();
+            var unloaded = new TaskCompletionSource();
+            text.Loaded += (_, _) => events.Add("Loaded");
+            text.Unloaded += (_, _) =>
+            {
+                events.Add("Unloaded");
+                unloaded.TrySetResult();
+            };
+            void Move(object sender, SizeChangedEventArgs e)
+            {
+                from.SizeChanged -= Move;
+                from.Children.Remove(text);
+                to.Children.Add(text);
+            }
+            from.SizeChanged += Move;
+            from.Width = 60;
+            await unloaded.Task.WaitAsync(TestContext.Current.CancellationToken);
+            // A move made during layout raises the control's Loaded in its new window before its old Unloaded.
+            Assert.Equal(["Loaded", "Unloaded"], events);
+            var before = runs;
+
+            source.First = 1;
+            await NextTurn(shell);
+            Assert.Equal(before + 1, runs);
+            Assert.Equal("1", text.Text);
+
+            next.Dispose();
+            source.First = 2;
+            await NextTurn(shell);
+            Assert.Equal(before + 1, runs);
+            return true;
+        });
+    }
+
+    [Fact]
     public async Task A_block_that_throws_is_logged_and_runs_again_on_the_next_change()
     {
         await ShellFixture.On(async shell =>
