@@ -98,9 +98,7 @@ public sealed class TrayWidget : UserControl
 
     private static Button TrayButton(SystemTrayItem item, double scale)
     {
-        // Icon first: IconAt doesn't report a read, and reading Icon makes the watch follow a new icon.
-        var icon = item.Icon;
-        icon = item.IconAt((int)Math.Round(IconSize * scale)) ?? icon;
+        var icon = item.IconAt((int)Math.Round(IconSize * scale));
         var button = new Button
         {
             Content = new Image { Width = IconSize, Height = IconSize, Source = icon?.ToImageSource() }

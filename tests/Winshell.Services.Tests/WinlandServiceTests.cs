@@ -393,6 +393,18 @@ public sealed class WinlandServiceTests
     }
 
     [Fact]
+    public void A_watch_of_a_screens_monitor_runs_again_when_the_monitor_goes()
+    {
+        using var service = Connected();
+        var screen = new ScreenInfo(@"\\.\DISPLAY2", "DISPLAY2", "", "", "", default, default, 1, 0, 0, 60, false);
+
+        Assert.True(ServiceReadTests.ChangesWhatItRead(
+            () => service.MonitorFor(screen),
+            () => Raise(@"monitorremoved>>\\.\DISPLAY2")));
+        Assert.Null(service.MonitorFor(screen));
+    }
+
+    [Fact]
     public void Dispatch_sends_the_request_and_a_refusal_is_logged()
     {
         var lines = new List<string>();

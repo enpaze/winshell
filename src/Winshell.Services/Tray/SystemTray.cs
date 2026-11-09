@@ -266,7 +266,7 @@ public sealed class SystemTrayItem : ObservableObject
     /// </summary>
     public PixelImage? IconAt(int size)
     {
-        if (_icon.Image is not { } image)
+        if (Icon is not { } image)
             return null;
         return size > 0 && size != image.Width && _icon.Resource is { } resource
             ? _backend.DrawIcon(resource, size) ?? image

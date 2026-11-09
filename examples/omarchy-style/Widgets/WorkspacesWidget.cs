@@ -29,10 +29,9 @@ public sealed class WorkspacesWidget : UserControl
         this.Watch(() =>
         {
             buttons.Children.Clear();
-            // None before the widget is in its bar's window, while Winland isn't running, or until it reports this
-            // screen's monitor.
-            var screen = ShellWindow.Of(this)?.Screen;
-            var monitor = winland.Monitors.FirstOrDefault(each => each.Name == screen?.Id);
+            // None before the widget is in its bar's window, while Winland isn't running, or once it reports no monitor
+            // for this screen.
+            var monitor = winland.ProcessId > 0 ? winland.MonitorFor(ShellWindow.Of(this)?.Screen) : null;
             Visibility = monitor is null ? Visibility.Collapsed : Visibility.Visible;
             if (monitor is null)
                 return;

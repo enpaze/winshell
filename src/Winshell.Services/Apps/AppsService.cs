@@ -46,22 +46,25 @@ public sealed class AppsService : ObservableObject, IDisposable
     /// <summary>Visible apps with a use count, most used first.</summary>
     public ObservableList<AppEntry> Frequent { get => Read(field); } = [];
 
+    // What ById, Find and Search answer from. Reading it is a read a watch follows, and it changes with the lists.
+    private IReadOnlyList<AppRecord> Entries => Read(_entries);
+
     /// <summary>An entry by its id: a shortcut's path under Programs, or a packaged app's AppUserModelID. Includes hidden entries.</summary>
     public AppEntry? ById(string id)
     {
-        return _byId.GetValueOrDefault(id);
+        return Read(_byId, nameof(Entries)).GetValueOrDefault(id);
     }
 
     /// <summary>Finds an app by id, then by the app id a window carries, then by display name. Includes hidden entries.</summary>
     public AppEntry? Find(string name)
     {
-        return AppIndex.Find(_entries, name) is { } found ? _byId[found.Id] : null;
+        return AppIndex.Find(Entries, name) is { } found ? _byId[found.Id] : null;
     }
 
     /// <summary>Visible apps the query matches, best first. A blank query matches nothing.</summary>
     public IReadOnlyList<AppEntry> Search(string query)
     {
-        return AppIndex.Search(_entries, query, UsageFor, _loop.Time.GetUtcNow().ToUnixTimeMilliseconds())
+        return AppIndex.Search(Entries, query, UsageFor, _loop.Time.GetUtcNow().ToUnixTimeMilliseconds())
             .Select(entry => _byId[entry.Id]).ToList();
     }
 
@@ -112,6 +115,7 @@ public sealed class AppsService : ObservableObject, IDisposable
         Show(Apps, _entries.Where(entry => !entry.Hidden));
         Show(Recent, AppIndex.Recent(_entries, UsageFor));
         Show(Frequent, AppIndex.Frequent(_entries, UsageFor));
+        Changed(nameof(Entries));
     }
 
     private void Show(ObservableList<AppEntry> list, IEnumerable<AppRecord> records)
