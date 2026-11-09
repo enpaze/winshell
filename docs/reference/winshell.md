@@ -1,6 +1,6 @@
 # Winshell
 
-The configuration's program uses these types. `Shell.Run<T>()` starts one, from `Main` marked `[STAThread]`. Windows are `PanelWindow`, `PopupWindow` and `FloatingWindow`. Their content is any WinUI element. Services hang off `Shell.Current`: [apps](winshell-apps.md), [audio](winshell-audio.md), [Bluetooth](winshell-bluetooth.md), [capture](winshell-capture.md), the [Explorer taskbar](winshell-explorertaskbar.md), [media](winshell-media.md), [network](winshell-network.md), [notifications](winshell-notifications.md), [power](winshell-power.md), [session](winshell-session.md), the [tray](winshell-tray.md), [windows](winshell-windows.md) and [Winland](winshell-winland.md). `Shell.Ipc` is what `winshell ipc` calls. Preferences are a [TomlFile](#tomlfile).
+The configuration's program uses these types. `Shell.Run<T>()` starts one, from `Main` marked `[STAThread]`. Windows are `PanelWindow`, `PopupWindow` and `FloatingWindow`. Their content is any WinUI element. Services hang off `Shell.Current`: [apps](winshell-apps.md), [audio](winshell-audio.md), [Bluetooth](winshell-bluetooth.md), [capture](winshell-capture.md), the [Explorer taskbar](winshell-explorertaskbar.md), [media](winshell-media.md), [network](winshell-network.md), [notifications](winshell-notifications.md), [power](winshell-power.md), [session](winshell-session.md), the [tray](winshell-tray.md), [windows](winshell-windows.md) and [Winland](winshell-winland.md). `Shell.Ipc` is what `winshell ipc` calls. The user's choices are in [Preferences](#preferences).
 
 <!-- generated below: dotnet run scripts/generate-reference.cs -->
 
@@ -213,7 +213,7 @@ Has the members of [ShellWindow](#shellwindow).
 
 ## Preferences
 
-One section of the shell's preferences file, `preferences\<shell id>.toml` in the config folder, as an object. A component's section is named after the component, as in `[bar]`. A type made with no name holds the configuration's own preferences, the keys before the first section. A type derives from this and has one public read-write property per key, as TomlFile describes, and a default belongs in the property's initializer. The section is read in the constructor, and after that the object follows the file: a save changes only the properties whose keys changed. A key the file does not have holds its default. Assigning a property writes it into the section, on the shell's thread, and leaves the rest of the file as it is. When the file is missing, it is written with each section's keys at their defaults, commented out, under their TomlCommentAttribute, and a component's section the file does not have is added at its end the same way. Several objects may read one section. Make one on the shell's thread and dispose it when its component goes.
+One section of the shell's preferences file, `preferences\<shell id>.toml` in the config folder, as an object. A component's section is named after the component, as in `[bar]`. A type made with no name holds the configuration's own preferences, the keys before the first section. A type derives from this and has one public read-write property per key, the key being the property's name with a lowercase first letter. Its type is string, bool, int, long, double, IReadOnlyDictionary of string and object for a table, IReadOnlyList of any of those for an array or an array of tables, or object for anything. A property that holds null until the file has the key is nullable. A default belongs in the property's initializer. The section is read in the constructor, and after that the object follows the file: a save changes only the properties whose keys changed. A key the file does not have holds its default. Assigning a property writes it into the section, on the shell's thread, and leaves the rest of the file as it is. When the file is missing, it is written with each section's keys at their defaults, commented out, under their TomlCommentAttribute, and a component's section the file does not have is added at its end the same way. Several objects may read one section. Make one on the shell's thread and dispose it when its component goes.
 
 Has the members of [ObservableObject](#observableobject).
 
@@ -405,19 +405,6 @@ An attribute.
 | --- | --- | --- |
 | `TomlCommentAttribute(string text)` | constructor |  |
 | `Text` | string, read-only | The comment's text, without the leading `#`. |
-
-## TomlFile
-
-A TOML file a user can edit by hand, as an object. A type derives from this and has one public read-write property per key, the key being the property's name with a lowercase first letter. Its type is string, bool, int, long, double, IReadOnlyDictionary of string and object for a table, IReadOnlyList of any of those for an array or an array of tables, or object for anything. A property that holds null until the file has the key is nullable. The file is read in the constructor, so a default belongs in the property's initializer. After that the object follows the file, and assigning a property writes it, on the loop that was passed in. Everything else in the file stays, as TomlDocument says. A key no property reads stays too, and when it differs from one only in case, by a letter, or by two in a longer key, a warning names its line and the key it may be a misspelling of. A write reads the file again and puts only assigned values into it, and the keys it does not have yet. When that read fails or does not parse, nothing is written and a warning is logged.
-
-Has the members of [ObservableObject](#observableobject).
-
-| Member | Type | Description |
-| --- | --- | --- |
-| `Error` | string, read-only | Why the file could not be read, as `path[line:column]: message`, or empty when the last read parsed. |
-| `Loaded` | bool, read-only | Whether the file is there and parses. Without it the properties keep the values they had. |
-| `Dispose()` | void | Stops following the file. A write that was on its way runs now. |
-| `Save()` | void | Writes the file now, adding the keys it does not have, or making it and its folder when there is none. |
 
 ## UnsupportedWidgetException
 

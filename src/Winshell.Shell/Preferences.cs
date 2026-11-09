@@ -6,8 +6,10 @@ namespace Winshell;
 /// One section of the shell's preferences file, <c>preferences\&lt;shell id&gt;.toml</c> in the config folder, as an
 /// object. A component's section is named after the component, as in <c>[bar]</c>. A type made with no name holds the
 /// configuration's own preferences, the keys before the first section. A type derives from this and has one public
-/// read-write property per key, as <see cref="TomlFile"/> describes, and a default belongs in the property's
-/// initializer.
+/// read-write property per key, the key being the property's name with a lowercase first letter. Its type is string,
+/// bool, int, long, double, <see cref="IReadOnlyDictionary{TKey, TValue}"/> of string and object for a table,
+/// <see cref="IReadOnlyList{T}"/> of any of those for an array or an array of tables, or object for anything. A property
+/// that holds null until the file has the key is nullable. A default belongs in the property's initializer.
 /// <code>
 /// public sealed class ClockPreferences(string name) : Preferences(name)
 /// {
