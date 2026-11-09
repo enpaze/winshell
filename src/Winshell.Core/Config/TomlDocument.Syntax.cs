@@ -286,6 +286,42 @@ internal sealed partial class TomlDocument
         fresh.EndOfLineToken.TrailingTrivia = after;
     }
 
+    /// <summary>
+    /// Adds a key at the end of a table. When another table follows, the blank line above it and the comments under
+    /// that line, which are about the next table, follow the new key. The comments above that blank line stay above it.
+    /// </summary>
+    private static void AddKey(DocumentSyntax document, TableSyntaxBase table, KeyValueSyntax fresh, string newline)
+    {
+        var items = table.Items;
+        var end = items.ChildrenCount > 0
+            ? items.GetChild(items.ChildrenCount - 1)!.EndOfLineToken ??= new SyntaxToken(TokenKind.NewLine, newline)
+            : table.EndOfLineToken ??= new SyntaxToken(TokenKind.NewLine, newline);
+        items.Add(fresh);
+        if (ReferenceEquals(document.Tables.GetChild(document.Tables.ChildrenCount - 1), table) ||
+            end.TrailingTrivia is not { } after)
+            return;
+        var split = NextStarts(after);
+        fresh.EndOfLineToken ??= new SyntaxToken(TokenKind.NewLine, newline);
+        fresh.EndOfLineToken.TrailingTrivia = after[split..];
+        end.TrailingTrivia = after[..split];
+    }
+
+    /// <summary>
+    /// Where the part of the trivia after a line that belongs to what follows starts: the last blank line, and the
+    /// comment lines under it. With no blank line, all of it does.
+    /// </summary>
+    private static int NextStarts(List<SyntaxTrivia> trivia)
+    {
+        List<int> starts = [0];
+        for (var i = 0; i < trivia.Count; i++)
+            if (trivia[i].Kind == TokenKind.NewLine)
+                starts.Add(i + 1);
+        for (var line = starts.Count - 2; line >= 0; line--)
+            if (!trivia[starts[line]..starts[line + 1]].Exists(t => t.Kind == TokenKind.Comment))
+                return starts[line];
+        return 0;
+    }
+
     private static KeyValueSyntax ParseAssignment(string keyText, string tomlValue, string newline)
     {
         var parsed = SyntaxParser.Parse(keyText + " = " + tomlValue + newline);

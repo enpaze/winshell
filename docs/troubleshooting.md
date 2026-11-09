@@ -59,7 +59,7 @@ Ending `winshell run` and the shell together does that, such as `taskkill /F /T`
 
 The [preferences file](configuration.md#preferences) and a [`TomlFile`](reference/winshell.md#tomlfile) keep the values in use when they can't use what the file says, and write why to the log, which `winshell log` shows. Only under `winshell dev` does a file that doesn't parse also show in a notice.
 
-- **`failed to parse <file>[line:column]: …`**, under `preferences` or after `TomlFile:`. The file is not valid TOML, so none of it is read until you fix that line and save.
+- **`failed to parse <file>[line:column]: …`**, under `preferences` or after `TomlFile:`. The file is not valid TOML, so none of it is read until you fix that line and save. `winshell doctor` names the same line of the preferences file, even while the shell is not running.
 - **`<file>[line:column]: <key> should be <what it takes>, not <value>, so it was left unchanged`**, or another reason in place of "should be …". The file is read, but that one value isn't used. A switch is `true` or `false`, and a word is in quotes.
 - **`<file>[line:column]: <key> was ignored; did you mean <key>?`** Keys are case-sensitive and start with a lowercase letter. A key that differs from one the class reads only in case, by a letter, or by two in a longer key is named this way, and stays in the file.
 - **`<file>[line:column]: no component named '<name>'; the section was kept in the file.`** No component of the shell has that name. Section names are case-sensitive.

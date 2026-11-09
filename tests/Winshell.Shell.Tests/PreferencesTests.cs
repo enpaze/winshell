@@ -122,6 +122,74 @@ public sealed class PreferencesTests
     }
 
     [Fact]
+    public async Task Assigning_a_property_of_a_section_the_file_lacks_writes_it_under_its_own_header()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var path = PathOf(shell);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var bar = "bar" + Guid.NewGuid().ToString("N");
+            File.WriteAllText(path, "clock24 = true\n");
+            try
+            {
+                using var top = new BarPreferences(bar);
+
+                top.Size = 40;
+
+                await Wait.UntilAsync(() => File.ReadAllText(path).Contains("size = 40", StringComparison.Ordinal),
+                    "the assigned size to be written");
+                Assert.Equal(
+                    $"clock24 = true\n\n[{bar}]\n\n# top, bottom, left or right.\n# edge = \"top\"\n\n# size = 32\nsize = 40\n",
+                    File.ReadAllText(path));
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task A_component_made_after_the_file_exists_adds_its_section_once_with_defaults_commented_out()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var path = PathOf(shell);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var bar = "bar" + Guid.NewGuid().ToString("N");
+            File.WriteAllText(path, "# mine\nclock24 = true\n");
+            try
+            {
+                using var top = new BarPreferences(bar);
+
+                await Wait.UntilAsync(() => File.ReadAllText(path).Contains($"[{bar}]", StringComparison.Ordinal),
+                    "the new section to be added");
+                Assert.Equal(
+                    $"# mine\nclock24 = true\n\n[{bar}]\n\n# top, bottom, left or right.\n# edge = \"top\"\n\n# size = 32\n",
+                    File.ReadAllText(path));
+
+                // Taken out by hand, the section stays out: the check that names the unknown section adds nothing.
+                var logLength = ShellFixture.ReadLog(shell).Length;
+                var unknown = "unknown" + Guid.NewGuid().ToString("N");
+                var edited = $"# mine\nclock24 = false\n\n[{unknown}]\n";
+                File.WriteAllText(path, edited);
+                await Wait.UntilAsync(() => ShellFixture.ReadLog(shell)[logLength..]
+                        .Contains($"no component named '{unknown}'", StringComparison.Ordinal),
+                    "the hand save to be checked");
+                Assert.Equal(edited, File.ReadAllText(path));
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
     public async Task A_missing_file_is_written_with_each_sections_defaults_commented_out()
     {
         await ShellFixture.On(async shell =>
