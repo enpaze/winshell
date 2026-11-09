@@ -596,7 +596,7 @@ public sealed class WidgetAreaTests
     private static global::Windows.UI.Color WindowsText(string theme) => WindowsColor(theme, "TextFillColorPrimary");
 
     /// <summary>A color Windows gives a theme: "Light", or "Default" for dark.</summary>
-    private static global::Windows.UI.Color WindowsColor(string theme, string key)
+    internal static global::Windows.UI.Color WindowsColor(string theme, string key)
     {
         var controls = Application.Current.Resources.MergedDictionaries.OfType<XamlControlsResources>().Single();
         return (global::Windows.UI.Color)((ResourceDictionary)controls.ThemeDictionaries[theme])[key];

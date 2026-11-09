@@ -17,11 +17,11 @@ public sealed partial class Shell
     private readonly ResourceDictionary _toolTipStyle = [];
 
     /// <summary>
-    /// The source URI of a <c>ResourceDictionary</c> that styles every widget area, styled popup and tooltip, or null
-    /// for the built-in style, which follows Windows' colors, Segoe UI and Segoe Fluent Icons. Set it on the shell's
-    /// thread. A new value reaches what is already on screen, and the next tooltip that opens. An area's own
-    /// <see cref="WidgetArea.Style"/> wins over it, except for tooltips. A file that does not load throws, and the shell
-    /// keeps its style.
+    /// The source URI of a <c>ResourceDictionary</c> that styles every widget area, <see cref="Surface"/>, styled popup
+    /// and tooltip, or null for the built-in style, which follows Windows' colors, Segoe UI and Segoe Fluent Icons. Set it
+    /// on the shell's thread. A new value reaches what is already on screen, and the next tooltip that opens. An area's or
+    /// a surface's own style wins over it, except for tooltips. A file that does not load throws, and the shell keeps its
+    /// style.
     /// </summary>
     public Uri? Style
     {
@@ -59,15 +59,24 @@ public sealed partial class Shell
     /// <summary>A fresh dictionary of a style: the one at a URI, or the built-in style for null.</summary>
     internal static ResourceDictionary LoadStyle(Uri? source)
     {
-        if (source is not null)
-            return new ResourceDictionary { Source = source };
-        if (_builtInStyle is null)
-        {
-            using var stream = typeof(Shell).Assembly.GetManifestResourceStream("Winshell.BuiltInStyle.xaml")!;
-            using var reader = new StreamReader(stream);
-            _builtInStyle = reader.ReadToEnd();
-        }
+        return source is not null
+            ? new ResourceDictionary { Source = source }
+            : (ResourceDictionary)XamlReader.Load(BuiltInStyle);
+    }
 
-        return (ResourceDictionary)XamlReader.Load(_builtInStyle);
+    /// <summary>The XAML of the built-in style.</summary>
+    internal static string BuiltInStyle
+    {
+        get
+        {
+            if (_builtInStyle is null)
+            {
+                using var stream = typeof(Shell).Assembly.GetManifestResourceStream("Winshell.BuiltInStyle.xaml")!;
+                using var reader = new StreamReader(stream);
+                _builtInStyle = reader.ReadToEnd();
+            }
+
+            return _builtInStyle;
+        }
     }
 }

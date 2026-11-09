@@ -290,7 +290,7 @@ The running shell: its screens and services. There is one in a process. Each ser
 | `ShellId` | string, read-only | The name that identifies this configuration across runs. |
 | `Startup` | [StartupService](winshell-session.md#startupservice), read-only | Whether this shell runs when the user signs in. |
 | `StateDir` | string, read-only | This shell's state folder, which exists once read. |
-| `Style` | Uri? | The source URI of a `ResourceDictionary` that styles every widget area, styled popup and tooltip, or null for the built-in style, which follows Windows' colors, Segoe UI and Segoe Fluent Icons. Set it on the shell's thread. A new value reaches what is already on screen, and the next tooltip that opens. An area's own WidgetArea.Style wins over it, except for tooltips. A file that does not load throws, and the shell keeps its style. |
+| `Style` | Uri? | The source URI of a `ResourceDictionary` that styles every widget area, Surface, styled popup and tooltip, or null for the built-in style, which follows Windows' colors, Segoe UI and Segoe Fluent Icons. Set it on the shell's thread. A new value reaches what is already on screen, and the next tooltip that opens. An area's or a surface's own style wins over it, except for tooltips. A file that does not load throws, and the shell keeps its style. |
 | `SystemAccent` | string, read-only | The accent Windows is using, as `#RRGGBB`. |
 | `SystemTray` | [SystemTray](winshell-tray.md#systemtray), read-only | The notification area. Only one running instance in the Windows session owns it. |
 | `Version` | string, static, read-only | The Winshell release this program is built on. |
@@ -380,6 +380,18 @@ Has the members of [ObservableObject](#observableobject).
 | `Raise()` | void | Puts the window above the others at its level, without focusing it. |
 | `StartSystemMove()` | void | Lets the user move the window by dragging, as a title bar does. Call it when a pointer button goes down. |
 | `StartSystemResize([Edges](#edges) edges)` | void | Lets the user resize the window by dragging an edge or a corner, as its border does. Call it when a pointer button goes down. Two adjacent edges, such as top and left, name a corner. Any other combination resizes from the bottom-right corner. |
+
+## Surface
+
+A control that paints the style's `ShellBackgroundBrush` behind its content in the window's theme, as plain controls take theirs, so a switch between light and dark while the shell runs reaches it. What it holds is in its style too. Make it the root of a bar, a dock or any composition, use it on the shell's thread, and dispose it when its owner closes. The style gives its background, so its own `Background`, border and corners don't show.
+
+A WinUI ContentControl. The members here are the ones Winshell adds.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `Surface()` | constructor | An empty surface in the shell's style. |
+| `Style` | Uri? | The source URI of the surface's own style, which wins over the shell's, or null for Shell.Style. A file that does not load throws and changes nothing. It hides the inherited WinUI `Style`, which a surface does not use. |
+| `Dispose()` | void | Stops following the shell's style. The content is the owner's to dispose. |
 
 ## TomlCommentAttribute
 

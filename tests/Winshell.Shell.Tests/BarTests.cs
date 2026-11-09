@@ -218,8 +218,8 @@ public sealed class BarTests
                 Assert.Equal(32, followsBar.Height);
                 var ownBar = Assert.Single(bars, window => window.Anchors.HasFlag(Edges.Bottom) && window.Anchors.HasFlag(Edges.Right));
                 Assert.Equal(40, ownBar.Height);
-                Assert.Equal(global::Windows.UI.Color.FromArgb(0xff, 0x1a, 0x1b, 0x26),
-                    Assert.IsType<SolidColorBrush>(Assert.IsType<Grid>(ownBar.Content).Background).Color);
+                await ShellFixture.LaidOut(Assert.IsType<Surface>(ownBar.Content)).WaitAsync(TestContext.Current.CancellationToken);
+                Assert.Equal(global::Windows.UI.Color.FromArgb(0xff, 0x1a, 0x1b, 0x26), BackgroundOf(ownBar.Content!));
                 Assert.Equal(20, Assert.Single(bars, window => !window.Anchors.HasFlag(Edges.Right)).Width);
 
                 shell.Style = other;
@@ -230,6 +230,39 @@ public sealed class BarTests
             finally
             {
                 shell.Style = null;
+                shell.Platform.Screens.Remove(screen);
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task A_bar_shows_the_style_background_in_its_window_theme_and_follows_a_switch_while_it_runs()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var scheme = shell.ColorScheme;
+            var screen = ScreenWindowsTests.Screen("TST", "Only", "1");
+            shell.Platform.Screens.Add(screen);
+            try
+            {
+                shell.ColorScheme = ColorScheme.Light;
+                using var bar = new Bar { Name = "bar" + Guid.NewGuid().ToString("N"), Reserve = false };
+                await NextTurn(shell);
+                var window = Assert.Single(BarsOn(shell, screen));
+                var root = Assert.IsAssignableFrom<FrameworkElement>(window.Content);
+                await ShellFixture.LaidOut(root).WaitAsync(TestContext.Current.CancellationToken);
+                Assert.Equal(WidgetAreaTests.WindowsColor("Light", "SolidBackgroundFillColorBase"), BackgroundOf(root));
+
+                shell.ColorScheme = ColorScheme.Dark;
+                var dark = WidgetAreaTests.WindowsColor("Default", "SolidBackgroundFillColorBase");
+                await Wait.UntilAsync(() => BackgroundOf(root) == dark, "the bar to turn dark");
+                Assert.Same(window, Assert.Single(BarsOn(shell, screen)));
+            }
+            finally
+            {
+                shell.ColorScheme = scheme;
                 shell.Platform.Screens.Remove(screen);
             }
 
@@ -278,7 +311,25 @@ public sealed class BarTests
 
     private static IEnumerable<WidgetArea> AreasOf(PanelWindow bar)
     {
-        return Assert.IsType<Grid>(bar.Content).Children.Cast<WidgetArea>();
+        return Assert.IsType<Grid>(Assert.IsType<Surface>(bar.Content).Content).Children.Cast<WidgetArea>();
+    }
+
+    /// <summary>The color behind what <paramref name="root"/> holds: the first background in its tree.</summary>
+    internal static global::Windows.UI.Color? BackgroundOf(DependencyObject root)
+    {
+        return (First(root) as SolidColorBrush)?.Color;
+
+        static Brush? First(DependencyObject element)
+        {
+            return element switch
+            {
+                Border { Background: { } brush } => brush,
+                Panel { Background: { } brush } => brush,
+                _ => Enumerable.Range(0, VisualTreeHelper.GetChildrenCount(element))
+                    .Select(i => First(VisualTreeHelper.GetChild(element, i)))
+                    .FirstOrDefault(brush => brush is not null)
+            };
+        }
     }
 
     /// <summary>The text of each widget the test widget made in <paramref name="bar"/> that is still in it.</summary>

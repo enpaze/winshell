@@ -1,6 +1,5 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 namespace Winshell;
 
@@ -140,20 +139,19 @@ public sealed class Bar : IDisposable
         var shown = new Shown([start, center, end]);
         try
         {
-            // The areas hold the style, so they say how thick the bar is and what is behind it. WinUI looks a brush
-            // up from code in the app's theme, so a style whose background changes with the theme shows the one the
-            // app started in.
-            var thickness = Thickness ?? (double)start.Resources["ShellSlotSize"];
+            // The surface paints the style's background behind the areas, in the window's theme.
+            var surface = shown.Surface = new Surface
+            {
+                Style = Style,
+                Content = new Grid { Children = { start, center, end } }
+            };
+            var thickness = Thickness ?? (double)surface.Resources["ShellSlotSize"];
             var window = shown.Window = new PanelWindow
             {
                 Screen = screen,
                 Anchors = edge | (vertical ? Edges.Top | Edges.Bottom : Edges.Left | Edges.Right),
                 ReservedSize = Reserve ? thickness : 0,
-                Content = new Grid
-                {
-                    Background = (Brush)start.Resources["ShellBackgroundBrush"],
-                    Children = { start, center, end }
-                }
+                Content = surface
             };
             if (vertical)
                 window.Width = thickness;
@@ -277,15 +275,18 @@ public sealed class Bar : IDisposable
         }
     }
 
-    /// <summary>One screen's bar: its areas, whose widgets go with it, and its panel once there is one.</summary>
+    /// <summary>One screen's bar: its areas and their widgets, and its surface and panel once it has them.</summary>
     private sealed class Shown(WidgetArea[] areas) : IDisposable
     {
+        public Surface? Surface { get; set; }
+
         public PanelWindow? Window { get; set; }
 
         public void Dispose()
         {
             foreach (var area in areas)
                 area.Dispose();
+            Surface?.Dispose();
             Window?.Dispose();
         }
     }
