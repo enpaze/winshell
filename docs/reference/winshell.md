@@ -189,7 +189,7 @@ Pictures in memory as sources WinUI can show.
 
 ## Placement
 
-One entry in a widget area. Several placements may name the same widget.
+One entry in a widget area. Several placements may name the same widget. A string converts to a placement with no settings, so a list of placements can be written `["clock", "battery"]`.
 
 | Member | Type | Description |
 | --- | --- | --- |

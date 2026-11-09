@@ -3,7 +3,10 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Winshell;
 
-/// <summary>One entry in a widget area. Several placements may name the same widget.</summary>
+/// <summary>
+/// One entry in a widget area. Several placements may name the same widget. A string converts to a placement with no
+/// settings, so a list of placements can be written <c>["clock", "battery"]</c>.
+/// </summary>
 /// <param name="Widget">The case-sensitive name registered with <see cref="Widgets.Register"/>.</param>
 /// <param name="Settings">This placement's settings, or null for no settings. Widgets should treat nested values as read-only too.</param>
 public sealed record Placement(string Widget, IReadOnlyDictionary<string, object>? Settings = null)

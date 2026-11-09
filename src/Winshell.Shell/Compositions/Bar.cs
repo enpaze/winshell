@@ -106,6 +106,7 @@ public sealed class Bar : IDisposable
             _remakePosted = false;
             if (_disposed)
                 return;
+            // Reading the file runs the configuration's handlers, which can dispose this.
             if (_preferences is null)
             {
                 _preferences = new BarPreferences(this);
@@ -113,7 +114,11 @@ public sealed class Bar : IDisposable
             }
 
             _windows?.Dispose();
-            _windows = new ScreenWindows(Name, Show);
+            var windows = new ScreenWindows(Name, Show);
+            if (_disposed)
+                windows.Dispose();
+            else
+                _windows = windows;
         });
     }
 
@@ -126,27 +131,37 @@ public sealed class Bar : IDisposable
         var start = Area("start", section.Start, HorizontalAlignment.Left, VerticalAlignment.Top);
         var center = Area("center", section.Center, HorizontalAlignment.Center, VerticalAlignment.Center);
         var end = Area("end", section.End, HorizontalAlignment.Right, VerticalAlignment.Bottom);
-        // The areas hold the style, so they say how thick the bar is and what is behind it. WinUI looks a brush up
-        // from code in the app's theme, so a style whose background changes with the theme shows the one the app
-        // started in.
-        var thickness = Thickness ?? (double)start.Resources["ShellSlotSize"];
-        var window = new PanelWindow
+        var shown = new Shown([start, center, end]);
+        try
         {
-            Screen = screen,
-            Anchors = edge | (vertical ? Edges.Top | Edges.Bottom : Edges.Left | Edges.Right),
-            ReservedSize = Reserve ? thickness : 0,
-            Content = new Grid
+            // The areas hold the style, so they say how thick the bar is and what is behind it. WinUI looks a brush
+            // up from code in the app's theme, so a style whose background changes with the theme shows the one the
+            // app started in.
+            var thickness = Thickness ?? (double)start.Resources["ShellSlotSize"];
+            var window = shown.Window = new PanelWindow
             {
-                Background = (Brush)start.Resources["ShellBackgroundBrush"],
-                Children = { start, center, end }
-            }
-        };
-        if (vertical)
-            window.Width = thickness;
-        else
-            window.Height = thickness;
-        window.Visible = true;
-        return new Shown(window, [start, center, end]);
+                Screen = screen,
+                Anchors = edge | (vertical ? Edges.Top | Edges.Bottom : Edges.Left | Edges.Right),
+                ReservedSize = Reserve ? thickness : 0,
+                Content = new Grid
+                {
+                    Background = (Brush)start.Resources["ShellBackgroundBrush"],
+                    Children = { start, center, end }
+                }
+            };
+            if (vertical)
+                window.Width = thickness;
+            else
+                window.Height = thickness;
+            window.Visible = true;
+            return shown;
+        }
+        catch
+        {
+            // A style without a key the bar reads, say. The areas' widgets go with the bar that couldn't be shown.
+            shown.Dispose();
+            throw;
+        }
 
         WidgetArea Area(string key, object placements, HorizontalAlignment across, VerticalAlignment down)
         {
@@ -256,14 +271,16 @@ public sealed class Bar : IDisposable
         }
     }
 
-    /// <summary>One screen's bar: its panel, and the areas whose widgets go with it.</summary>
-    private sealed class Shown(PanelWindow window, WidgetArea[] areas) : IDisposable
+    /// <summary>One screen's bar: its areas, whose widgets go with it, and its panel once there is one.</summary>
+    private sealed class Shown(WidgetArea[] areas) : IDisposable
     {
+        public PanelWindow? Window { get; set; }
+
         public void Dispose()
         {
             foreach (var area in areas)
                 area.Dispose();
-            window.Dispose();
+            Window?.Dispose();
         }
     }
 }

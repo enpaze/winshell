@@ -80,14 +80,15 @@ internal sealed class PreferencesFile : IDisposable
 
     /// <summary>
     /// Writes a missing file and names sections no component reads, once the configuration has made the sections it
-    /// makes in this turn of the loop.
+    /// makes in this turn of the loop and the next: a component such as a bar makes its section on the turn after it
+    /// is made, once its properties are set.
     /// </summary>
     private void PostCheck()
     {
         if (_checkPending || _disposed)
             return;
         _checkPending = true;
-        _loop.Post(() =>
+        _loop.Post(() => _loop.Post(() =>
         {
             _checkPending = false;
             if (_disposed)
@@ -95,7 +96,7 @@ internal sealed class PreferencesFile : IDisposable
             if (_document is null && _sections.Count > 0 && TomlDocument.Load(_path).Kind == TomlRead.Missing)
                 WriteDefaults();
             WarnUnknown();
-        });
+        }));
     }
 
     /// <summary>Takes in the file as it is now. Each section changes only the properties whose keys changed.</summary>

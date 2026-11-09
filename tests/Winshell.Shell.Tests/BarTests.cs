@@ -7,13 +7,14 @@ namespace Winshell.ShellTests;
 /// <summary>
 /// A bar on every screen, from its properties, its section of the preferences file and each screen's row. The screens
 /// are made up and added to the shell's own list, as <see cref="ScreenWindowsTests"/> does. A panel on a screen
-/// Windows doesn't have is placed on the primary screen, so only one test reserves an edge: a reservation moves the
-/// work area, and the platform then reads the screens again and drops the made-up ones.
+/// Windows doesn't have is placed on the primary screen, so no bar here reserves its edge: that would move the real
+/// work area, and the platform would read the screens again, at a time no test can wait for, and drop the made-up ones
+/// of whichever test runs then.
 /// </summary>
 public sealed class BarTests
 {
     [Fact]
-    public async Task A_bar_shows_on_each_screen_reserves_its_edge_and_follows_a_screen_that_comes_or_goes()
+    public async Task A_bar_shows_on_each_screen_and_follows_a_screen_that_comes_or_goes()
     {
         await ShellFixture.On(async shell =>
         {
@@ -24,13 +25,11 @@ public sealed class BarTests
             screens.Add(first);
             try
             {
-                using var bar = new Bar { Name = "bar" + Guid.NewGuid().ToString("N"), Center = [widget] };
+                using var bar = new Bar { Name = "bar" + Guid.NewGuid().ToString("N"), Reserve = false, Center = [widget] };
                 await NextTurn(shell);
-                // Everything from here runs in this turn, before the platform reads the screens again.
                 var firstBar = Assert.Single(BarsOn(shell, first));
                 Assert.Equal(Edges.Left | Edges.Right | Edges.Top, firstBar.Anchors);
                 Assert.Equal(32, firstBar.Height);
-                Assert.Equal(32, firstBar.ReservedSize);
                 Assert.All(AreasOf(firstBar), area => Assert.Equal(Orientation.Horizontal, area.Orientation));
                 Assert.Equal([""], TextsOn(made, firstBar));
 
@@ -141,7 +140,7 @@ public sealed class BarTests
                 Assert.Equal(["bottom bar"], TextsOn(made, bottomWindow));
 
                 await Save(shell, path, Lists(top, widget, "top bar, saved") + Lists(bottom, widget, "bottom bar"));
-                await Wait.UntilAsync(() => !BarsOn(shell, screen).Contains(topWindow), "the top bar to be replaced");
+                await Until(shell, screen, () => !BarsOn(shell, screen).Contains(topWindow), "the top bar to be replaced");
                 topWindow = Assert.Single(BarsOn(shell, screen), window => window.Anchors.HasFlag(Edges.Top));
                 Assert.Equal(["top bar, saved"], TextsOn(made, topWindow));
                 Assert.Same(bottomWindow, Assert.Single(BarsOn(shell, screen), window => window.Anchors.HasFlag(Edges.Bottom)));
@@ -150,6 +149,38 @@ public sealed class BarTests
             {
                 shell.Platform.Screens.Remove(screen);
                 File.Delete(path);
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task A_missing_file_is_written_with_the_bar_own_values_commented_out()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var name = "bar" + Guid.NewGuid().ToString("N");
+            var widget = Widget(out _);
+            var path = PreferencesTests.PathOf(shell);
+            if (File.Exists(path))
+                File.Delete(path);
+            try
+            {
+                // A section the configuration makes first, in the same turn, posts the check that writes the file.
+                using var first = new Reader();
+                using var bar = new Bar { Name = name, Edge = Edges.Left, Reserve = false, End = [widget] };
+                await Wait.UntilAsync(() => File.Exists(path), "the missing file to be written");
+
+                var text = File.ReadAllText(path);
+                Assert.Contains($"[{name}]", text, StringComparison.Ordinal);
+                Assert.Contains("# edge = \"left\"", text, StringComparison.Ordinal);
+                Assert.Contains($"# end = [{{ widget = \"{widget}\" }}]", text, StringComparison.Ordinal);
+            }
+            finally
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
             }
 
             return true;
@@ -169,11 +200,17 @@ public sealed class BarTests
                 using var follows = new Bar { Name = "follows" + Guid.NewGuid().ToString("N"), Reserve = false };
                 using var own = new Bar
                 {
-                    Name = "own" + Guid.NewGuid().ToString("N"), Edge = Edges.Bottom, Reserve = false, Style = other
+                    Name = "own" + Guid.NewGuid().ToString("N"),
+                    Edge = Edges.Bottom,
+                    Reserve = false,
+                    Style = other
                 };
                 using var thin = new Bar
                 {
-                    Name = "thin" + Guid.NewGuid().ToString("N"), Edge = Edges.Left, Reserve = false, Thickness = 20
+                    Name = "thin" + Guid.NewGuid().ToString("N"),
+                    Edge = Edges.Left,
+                    Reserve = false,
+                    Thickness = 20
                 };
                 await NextTurn(shell);
                 var bars = BarsOn(shell, screen);
@@ -186,7 +223,7 @@ public sealed class BarTests
                 Assert.Equal(20, Assert.Single(bars, window => !window.Anchors.HasFlag(Edges.Right)).Width);
 
                 shell.Style = other;
-                await Wait.UntilAsync(() => !BarsOn(shell, screen).Contains(followsBar), "the bar to take the shell's new style");
+                await Until(shell, screen, () => !BarsOn(shell, screen).Contains(followsBar), "the bar to take the new style");
                 Assert.Equal(40, Assert.Single(BarsOn(shell, screen), window => window.Anchors == (Edges.Left | Edges.Right | Edges.Top)).Height);
                 Assert.Contains(ownBar, BarsOn(shell, screen));
             }
@@ -219,12 +256,19 @@ public sealed class BarTests
     /// <summary>Waits for a screen's bar to be replaced, and returns the new one.</summary>
     private static async Task<PanelWindow> Replaced(Shell shell, ScreenInfo screen, PanelWindow old)
     {
-        await Wait.UntilAsync(() =>
+        await Until(shell, screen, () => BarsOn(shell, screen) is [var only] && only != old,
+            "the bar of " + screen.Model + " to be replaced");
+        return Assert.Single(BarsOn(shell, screen));
+    }
+
+    /// <summary>Waits for <paramref name="done"/>, and fails at once when the platform has dropped the made-up screen.</summary>
+    private static Task Until(Shell shell, ScreenInfo screen, Func<bool> done, string what)
+    {
+        return Wait.UntilAsync(() =>
         {
             Assert.True(shell.Screens.Contains(screen), "The platform read the screens again and dropped the made-up ones.");
-            return BarsOn(shell, screen) is [var only] && only != old;
-        }, "the bar of " + screen.Model + " to be replaced");
-        return Assert.Single(BarsOn(shell, screen));
+            return done();
+        }, what);
     }
 
     private static List<PanelWindow> BarsOn(Shell shell, ScreenInfo screen)

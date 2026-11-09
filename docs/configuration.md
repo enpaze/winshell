@@ -270,7 +270,7 @@ edge = "left"
 end = []
 ```
 
-Saving applies it live. A changed row replaces that screen's bar, and the other screens keep theirs. A changed section replaces the bar on every screen, which starts its widgets again. A value in the section that can't be used is logged under `preferences` with its line, and the bar keeps the one it had. One in a row is logged under the bar's name, and that screen uses the section's.
+Saving applies it live. A changed row replaces that screen's bar, and the other screens keep theirs. A changed section replaces the bar on every screen, which starts its widgets again, and so does a new `shell.Style` for a bar without a style of its own. A value in the section that can't be used is logged under `preferences` with its line, and the bar keeps the one it had. One in a row is logged under the bar's name, and that screen uses the section's.
 
 `Bar` uses only the public API a configuration has, and a test holds it to that, so [its source](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/Compositions/Bar.cs) is a start for a dock, a sidebar or a bar of your own.
 
