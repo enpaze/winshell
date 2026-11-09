@@ -100,9 +100,41 @@ Windows stay Winshell's. The content is any `UIElement`. Sizes are logical pixel
 
 `Backdrop` is `WindowBackdrop.Mica`, `Acrylic`, `MicaAlt` or `None`. `Corners` rounds the window. A flyout is a WinUI `Flyout` in the window's content. Winshell closes an open flyout on a window that does not activate.
 
-One panel per screen walks `shell.Screens`. The primary screen is first. The collection changes as monitors are connected and removed.
-
 Reactor is the configuration's choice. Add `Microsoft.UI.Reactor` in the project and set `new ReactorHostControl(component)` as a window's content. Winshell never references it.
+
+### One panel per screen
+
+A [ScreenWindows](reference/winshell.md#screenwindows) keeps one window on each screen for a component. It is given the component's name and a function that makes the window for a screen:
+
+```csharp
+        var dock = new ScreenWindows("dock", (screen, row) => new PanelWindow
+        {
+            Screen = screen,
+            Anchors = row?.GetValueOrDefault("edge") is "top"
+                ? Edges.Left | Edges.Right | Edges.Top
+                : Edges.Left | Edges.Right | Edges.Bottom,
+            Height = 48,
+            ReservedSize = 48,
+            Content = new TextBlock { Text = screen.Name },
+            Visible = true
+        });
+```
+
+It makes a window for each screen when it is made, makes one for a screen that is connected, and disposes the window of a screen that is removed. The other screens' windows stay as they are, and so do their widgets. `Dispose` removes every window. The function can return anything disposable that holds the window, such as an object that also disposes the window's widget areas.
+
+A screen that differs from the rest has a row in the component's section of the [preferences file](#preferences), and the function is given that row, or null:
+
+```toml
+[[dock.screen]]
+manufacturer = "DEL"
+model = "DELL U2720Q"
+serial = "ABC123"
+edge = "top"
+```
+
+A row matches a screen when its `manufacturer`, `model` and `serial` all equal the screen's, an empty one included, and the first match wins. The rest of the row is the component's: the function reads it as the table, a dictionary of TOML values. The name Windows numbers, such as `DISPLAY1`, is never matched, because Windows renumbers it. `winshell log` prints a line per screen under the component's name, `manufacturer / model / serial`, which is the identity to copy. A row for a screen that is not connected stays in the file. When a screen's row changes, only that screen's window is disposed and made again.
+
+It is a shortcut: a configuration can still make any window on any screen itself. `shell.Screens` lists the screens, the primary first, and changes as monitors are connected and removed.
 
 ## Widgets
 

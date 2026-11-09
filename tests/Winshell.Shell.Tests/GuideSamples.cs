@@ -29,6 +29,22 @@ public static class GuideSamples
         };
     }
 
+    public static ScreenWindows ADockOnEachScreen()
+    {
+        var dock = new ScreenWindows("dock", (screen, row) => new PanelWindow
+        {
+            Screen = screen,
+            Anchors = row?.GetValueOrDefault("edge") is "top"
+                ? Edges.Left | Edges.Right | Edges.Top
+                : Edges.Left | Edges.Right | Edges.Bottom,
+            Height = 48,
+            ReservedSize = 48,
+            Content = new TextBlock { Text = screen.Name },
+            Visible = true
+        });
+        return dock;
+    }
+
     public static void ANote(Shell shell)
     {
         // The registration stays for the life of the shell. The call below is a docs sample.

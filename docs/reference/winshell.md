@@ -221,6 +221,17 @@ A monitor, as the platform reports it. Coordinates are logical pixels on the vir
 | `SerialNumber` | string, init | The instance part of the monitor's Windows device id, which tells two monitors of one model apart. Can be empty. |
 | `WorkArea` | Rect, init | The monitor without the taskbar and the edges panels reserve. |
 
+## ScreenWindows
+
+One window on each screen for a component, such as a bar or a dock. It makes a screen's window when the screen appears and disposes it when the screen goes, and leaves every other screen's window as it is, so their widgets keep their state. A screen that differs from the rest has a row in the component's section of the preferences file, a `[[dock.screen]]` table with its `manufacturer`, `model` and `serial`. A row matches a screen when all three equal the screen's ScreenInfo.Manufacturer, ScreenInfo.Model and ScreenInfo.SerialNumber, an empty one included, and the first match wins. The name Windows numbers, such as `DISPLAY1`, is never matched: Windows renumbers it. A row for a screen that is not connected stays in the file and matches no other screen. When a screen's row changes, its window is disposed and made again from the new row. The log says, under the component's name, which screens have a row of their own.
+
+It is a shortcut, not a limit: a configuration can still make any window on any screen itself. Make one on the shell's thread and dispose it when the component goes, which disposes its windows.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `ScreenWindows(string name, Func of [ScreenInfo](#screeninfo), IReadOnlyDictionary of string, object, IDisposable make)` | constructor | Makes the window of every screen there is now, and follows the screens and the rows from then on. |
+| `Dispose()` | void | Disposes every window and stops following the screens and the rows. All are attempted even if one disposal throws. |
+
 ## Shell
 
 The running shell: its screens and services. There is one in a process. Each service is made the first time it is read, so a service a configuration does not use costs nothing and asks Windows for nothing.
