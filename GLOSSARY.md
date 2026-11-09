@@ -44,7 +44,11 @@ _Avoid_: form, view
 
 **Panel**:
 A window anchored to an edge of a screen. It can reserve that edge.
-_Avoid_: bar, taskbar, dock, layer surface
+_Avoid_: taskbar, dock, layer surface
+
+**Bar**:
+A panel along one edge of every screen, with start, center and end widget areas. A shell can have several.
+_Avoid_: taskbar (that is Explorer's), panel bar
 
 **Popup window**:
 A frameless window placed next to another window.
@@ -59,16 +63,24 @@ Whether a window takes the keyboard, and with it activation from the app in fron
 _Avoid_: activation, foreground
 
 **Taskbar**:
-Explorer's own bar along the bottom of each screen, the Windows taskbar. A shell's bar is a panel.
-_Avoid_: bar, dock, task list
+Explorer's own bar along the bottom of each screen, the Windows taskbar. A shell's own is a bar.
+_Avoid_: dock, task list
 
 **Preview**:
 The live image of an app window the taskbar shows over its button.
 _Avoid_: thumbnail (that is the DWM API it uses), peek
 
 **Preferences**:
-A configuration's own choices, kept in a TOML file it reads through `TomlFile`.
+The choices a user makes for one shell: its configuration's own, and each component's.
 _Avoid_: settings (that is Windows Settings)
+
+**Preferences file**:
+The user's one TOML file for a shell, with a section for each component. It survives shell updates.
+_Avoid_: placement file, layout file, widget config
+
+**Component**:
+A named part of a shell with its own section in the preferences file, such as a bar or a widget area.
+_Avoid_: module, plugin
 
 **Screen**:
 One monitor on the desktop.
@@ -96,19 +108,19 @@ _Avoid_: module, applet, plugin
 
 **Widget area**:
 A control a shell author puts anywhere in a window. It shows its placements in order, in one orientation, and styles them.
-_Avoid_: slot, zone, bar
+_Avoid_: slot, zone
 
 **Placement**:
 One widget in a widget area, with its own settings. One widget can have several placements.
 _Avoid_: instance (that is a running shell process), item
 
-**Placement file**:
-The user's TOML file that lists a widget area's placements in place of the author's defaults. It survives shell updates.
-_Avoid_: layout file, widget config
-
 **Theme**:
 Light or dark, whether a contrast theme is on, the accent color and the system colors, as Windows reports them. A shell can choose light or dark and its own accent on top; a contrast theme still wins.
-_Avoid_: skin, style, palette
+_Avoid_: skin, palette
+
+**Style**:
+The look a shell gives its bars, widget areas, widgets and popups: colors, font and slot size. It is the shell's, whatever the theme is.
+_Avoid_: theme (that is Windows'), skin
 
 ## What it reads from Windows
 
