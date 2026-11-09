@@ -1,6 +1,6 @@
 # Configuration guide
 
-A configuration is a .NET project that references the Winshell package and builds into one program. This guide builds one up from a single panel. For a whole panel to copy from, see the [Omarchy-style example](https://github.com/enpaze/winshell/tree/main/examples/omarchy-style). The [reference](reference/index.md) lists every type and member. The C# on this page is copied from [tests/Winshell.Shell.Tests/GuideSamples.cs](https://github.com/enpaze/winshell/blob/main/tests/Winshell.Shell.Tests/GuideSamples.cs), which the solution builds. Nothing in that file runs. Call `Shell.Run` from `Main`, marked `[STAThread]`.
+A configuration is a .NET project that references the Winshell package and builds into one program. This guide builds one up from a single panel. For a whole panel to copy from, see the [Omarchy-style example](https://github.com/enpaze/winshell/tree/main/examples/omarchy-style). The [reference](reference/index.md) lists every type and member. The C# on this page is copied from files the solution builds: [GuideSamples.cs](https://github.com/enpaze/winshell/blob/main/tests/Winshell.Shell.Tests/GuideSamples.cs) and the [message widget](samples/message-widget/Message.xaml.cs). Nothing in GuideSamples runs. Call `Shell.Run` from `Main`, marked `[STAThread]`.
 
 ## Create one
 
@@ -192,6 +192,108 @@ text = "A second placement"
 Each array of tables replaces that area's **whole** default list, in order. `widget` names the registered factory; the other keys become its `WidgetContext.Settings`, including nested tables and arrays. Use `end = []` before any `[[area]]` headers to leave an area empty. Remove the entry to return to the author's defaults. An area absent from the file keeps its defaults.
 
 Saving applies changes live. Each changed area disposes its old widgets and creates the new list; other areas keep their widgets. A syntax error or a list without string `widget` names keeps the last valid lists and logs the file location under `widgets`. A name that matches no area stays in the file and produces a warning naming it. Winshell does not migrate or merge user lists into new defaults.
+
+## Write a widget
+
+A widget other people install is a WinUI class library. [samples/message-widget](samples/message-widget) is one, and the solution builds it: a line of text, with one `text` setting. It is a sample for this guide, not a widget Winshell ships.
+
+The project lists each widget. `Include` is the placement name and `Type` is the C# type, as in a configuration. `winshell widget install` reads those items with `dotnet msbuild -getItem:WinshellWidget`. The library does not register them. Registration is generated only for an executable, so the configuration that references the library is the one that constructs the widget.
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- In this repository the sample builds against Winshell's source, so the check builds it. A library you publish
+       drops this import and the ProjectReference and references the Winshell package instead. The package imports
+       these props. See docs/configuration.md. -->
+  <Import Project="..\..\..\src\Winshell.Package\buildTransitive\Winshell.props" />
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+    <RootNamespace>MessageWidget</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Winshell.Shell\Winshell.Shell.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <WinshellWidget Include="message" Type="MessageWidget.Message" />
+  </ItemGroup>
+</Project>
+```
+
+That import and the project reference are how this repository builds the sample, the same way the [Omarchy example](https://github.com/enpaze/winshell/blob/main/examples/omarchy-style/OmarchyStyle.csproj) builds. A library you publish references the package instead, and the package imports those props:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="Winshell" Version="0.7.0" />
+</ItemGroup>
+```
+
+`0.7.0` stands in for the release you built the widget against. A shell on an older release refuses the install, and the message names both versions. The package is not on nuget.org. A release keeps it in a `packages` folder beside `winshell.exe`, and `winshell new` writes a `nuget.config` that adds that folder. Installing a widget restores the library with the configuration's package sources, so the library needs no `nuget.config` of its own.
+
+[Message.xaml](samples/message-widget/Message.xaml) draws the line. Its foreground is `{ThemeResource TextFillColorPrimaryBrush}`, so it follows the area's theme, including a change of theme. `{StaticResource}` resolves at construction, before the area owns the widget, and does not follow a later change.
+
+The constructor takes a [WidgetContext](reference/winshell.md#widgetcontext):
+
+```csharp
+public sealed partial class Message : IDisposable
+{
+    private readonly WidgetContext _context;
+    private PopupWindow? _popup;
+    private bool _disposed;
+
+    public Message(WidgetContext context)
+    {
+        var text = TextOf(context);
+        if (context.Orientation == Orientation.Vertical)
+            throw new UnsupportedWidgetException("The message widget runs in a horizontal area.");
+
+        InitializeComponent();
+        _context = context;
+        Label.Text = text;
+        Label.PointerPressed += (_, _) => ShowPopup();
+        Loaded += (_, _) => ShowScreen();
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+        _disposed = true;
+        _popup?.Dispose();
+        _popup = null;
+    }
+
+    private static string TextOf(WidgetContext context)
+    {
+        if (context.Settings.TryGetValue("text", out var value) && value is string text)
+            return text;
+        throw new UnsupportedWidgetException("text must be a string.");
+    }
+
+    private void ShowPopup()
+    {
+        if (_disposed)
+            return;
+        _popup?.Dispose();
+        var body = new TextBlock { Text = Label.Text, Margin = new Thickness(12) };
+        _popup = new PopupWindow { Content = _context.StylePopup(body), Visible = true };
+    }
+
+    private void ShowScreen()
+    {
+        if (_disposed)
+            return;
+        var screen = ShellWindow.Of(this)?.Screen;
+        ToolTipService.SetToolTip(Label, screen is null ? "primary screen" : screen.Name);
+    }
+}
+```
+
+`text` is the placement's setting. A value that is not a string throws [UnsupportedWidgetException](reference/winshell.md#unsupportedwidgetexception), and so does a vertical area. The area shows the widget's name and that reason, and the other placements keep running.
+
+[StylePopup](reference/winshell.md#widgetcontext) wraps content for a [PopupWindow](reference/winshell.md#popupwindow). Assign the result to the popup's `Content`. The wrapper loads the area's theme and follows its font, font size and foreground. The widget still owns the popup: this one disposes the previous popup, and disposes it again with the widget.
+
+[ShellWindow.Of](reference/winshell.md#shellwindow) is null in the constructor. The widget is created before its area is in a window, so the screen is read from `Loaded`. Null is the primary screen.
 
 ## A service
 

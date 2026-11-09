@@ -223,10 +223,16 @@ internal static partial class WidgetCommand
             File.WriteAllText(staged, content, Utf8);
             File.WriteAllText(empty, "<Project />\n", Utf8);
             // Package props are imported only after a project has an assets file, so the widget is restored on its own
-            // before the configuration can see it. NuGet's restore then walks project-reference paths and drops their
-            // metadata, which would hand the staged file to the library and make the library reference itself. The
-            // reference clears that property for the build. Restore against an empty file, then build without restoring.
-            var restored = Invoke(dotnet, ["restore", widgetProject, "--nologo", "-nodeReuse:false"], locations.LocalRoot);
+            // before the configuration can see it. The clone is not under the configuration, so that restore would miss
+            // the sources winshell new wrote beside the project. The Winshell package is not on nuget.org. NuGet's
+            // restore then walks project-reference paths and drops their metadata, which would hand the staged file to
+            // the library and make the library reference itself. The reference clears that property for the build.
+            // Restore the configuration against an empty file, then build without restoring.
+            var restore = new List<string> { "restore", widgetProject, "--nologo", "-nodeReuse:false" };
+            var sources = PackageSources(project.Folder);
+            if (sources.Count > 0)
+                restore.Add("-p:RestoreAdditionalProjectSources=" + string.Join(';', sources));
+            var restored = Invoke(dotnet, restore, locations.LocalRoot);
             if (Failed(restored, Path.GetFileName(widgetProject), "restore", Path.GetDirectoryName(widgetProject)!) is { } widgetRestore)
                 return widgetRestore;
             var prepared = Invoke(dotnet,
@@ -1020,6 +1026,106 @@ internal static partial class WidgetCommand
     {
         var directory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)) + Path.DirectorySeparatorChar;
         return full.StartsWith(directory, StringComparison.OrdinalIgnoreCase) ? full[directory.Length..] : full;
+    }
+
+    /// <summary>
+    /// Package sources named by each <c>nuget.config</c> from <paramref name="projectFolder"/> up to the drive root.
+    /// A closer file wins, and <c>clear</c> drops the sources inherited so far. Disabled sources are left out.
+    /// Paths are relative to the file that named them. The widget restore already reads the user-level NuGet
+    /// configuration, so these sources are only added to it.
+    /// </summary>
+    private static List<string> PackageSources(string projectFolder)
+    {
+        var configs = new List<string>();
+        for (var dir = new DirectoryInfo(projectFolder); dir is not null; dir = dir.Parent)
+        {
+            string? config;
+            try
+            {
+                config = Directory.EnumerateFiles(dir.FullName, "nuget.config").FirstOrDefault();
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                break;
+            }
+
+            if (config is not null)
+                configs.Add(config);
+        }
+
+        var sources = new List<(string Key, string Value)>();
+        var disabled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var config in configs.AsEnumerable().Reverse())
+        {
+            XElement? root;
+            try
+            {
+                using var reader = XmlReader.Create(config,
+                    new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
+                root = XDocument.Load(reader).Root;
+            }
+            catch (Exception e) when (e is XmlException or IOException or UnauthorizedAccessException)
+            {
+                continue;
+            }
+
+            if (root is null)
+                continue;
+            var packageSources = root.Elements().FirstOrDefault(element => element.Name.LocalName == "packageSources");
+            if (packageSources is not null)
+            {
+                foreach (var child in packageSources.Elements())
+                {
+                    if (child.Name.LocalName == "clear")
+                    {
+                        sources.Clear();
+                        continue;
+                    }
+
+                    if (child.Name.LocalName != "add")
+                        continue;
+                    var key = (string?)child.Attribute("key");
+                    var value = (string?)child.Attribute("value");
+                    if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value))
+                        continue;
+                    sources.RemoveAll(source => source.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
+                    sources.Add((key, ResolveSource(config, value.Trim())));
+                }
+            }
+
+            var disabledSources = root.Elements()
+                .FirstOrDefault(element => element.Name.LocalName == "disabledPackageSources");
+            if (disabledSources is null)
+                continue;
+            foreach (var child in disabledSources.Elements())
+            {
+                if (child.Name.LocalName == "clear")
+                {
+                    disabled.Clear();
+                    continue;
+                }
+
+                if (child.Name.LocalName != "add")
+                    continue;
+                var key = (string?)child.Attribute("key");
+                if (string.IsNullOrWhiteSpace(key))
+                    continue;
+                var value = (string?)child.Attribute("value");
+                if (value is null || value.Equals("true", StringComparison.OrdinalIgnoreCase))
+                    disabled.Add(key);
+                else
+                    disabled.Remove(key);
+            }
+        }
+
+        return sources.Where(source => !disabled.Contains(source.Key)).Select(source => source.Value).ToList();
+    }
+
+    private static string ResolveSource(string configPath, string value)
+    {
+        if (value.Contains("://", StringComparison.Ordinal) || Path.IsPathRooted(value))
+            return value;
+        return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(configPath)!, value));
     }
 
     private static bool VersionsAllow(string configuration, string widget, out string? error)

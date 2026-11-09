@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
 using Winshell.Commands;
@@ -169,6 +170,33 @@ public sealed class WidgetCommandTests : IDisposable
         Assert.DoesNotContain("error CS", run.Error, StringComparison.Ordinal);
         Assert.False(File.Exists(Props));
         Assert.Equal(program, File.ReadAllBytes(ProgramFile));
+    }
+
+    [Fact]
+    public void A_Winshell_package_reference_restores_from_the_configurations_source()
+    {
+        // The package exists only in the folder the configuration's nuget.config names. That file is not a parent of
+        // the clone. The version is exact: an unbracketed version is a minimum, and a newer Winshell on the machine
+        // would satisfy it.
+        var packages = Path.Combine(Root, "packages");
+        WritePackage(packages, "Winshell", "0.1.0");
+        File.WriteAllText(Path.Combine(ConfigDir, "nuget.config"), $"""
+                                                                     <?xml version="1.0" encoding="utf-8"?>
+                                                                     <configuration>
+                                                                       <packageSources>
+                                                                         <add key="winshell" value="{packages}" />
+                                                                       </packageSources>
+                                                                     </configuration>
+                                                                     """);
+        var repo = Commit("packaged", Clock("FIRST"),
+            Library("""<WinshellWidget Include="clock" Type="ClockWidget.Clock" />""", "[0.1.0]"), "packaged");
+
+        var run = Run(["install", repo], yes: true);
+
+        Assert.Null(run.Error);
+        Assert.Equal(0, run.Code);
+        Assert.Contains("Installed clock", run.Output, StringComparison.Ordinal);
+        Assert.True(File.Exists(Props));
     }
 
     [Fact]
@@ -693,6 +721,48 @@ public sealed class WidgetCommandTests : IDisposable
     }
 
     private readonly record struct Outcome(int Code, string? Error, string Output);
+
+    /// <summary>A package with no assemblies. Restore can find it; the widget code does not use it.</summary>
+    private static void WritePackage(string folder, string id, string version)
+    {
+        Directory.CreateDirectory(folder);
+        var nuspec = $"""
+                      <?xml version="1.0" encoding="utf-8"?>
+                      <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+                        <metadata>
+                          <id>{id}</id>
+                          <version>{version}</version>
+                          <authors>Winshell</authors>
+                          <description>A package the widget restore can find only through the configuration.</description>
+                        </metadata>
+                      </package>
+                      """;
+        var contentTypes = """
+                           <?xml version="1.0" encoding="utf-8"?>
+                           <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+                             <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml" />
+                             <Default Extension="nuspec" ContentType="application/octet" />
+                             <Default Extension="_" ContentType="application/octet" />
+                           </Types>
+                           """;
+        var rels = $"""
+                    <?xml version="1.0" encoding="utf-8"?>
+                    <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                      <Relationship Type="http://schemas.microsoft.com/packaging/2010/07/manifest" Target="/{id}.nuspec" Id="nuspec" />
+                    </Relationships>
+                    """;
+        using var zip = ZipFile.Open(Path.Combine(folder, $"{id}.{version}.nupkg"), ZipArchiveMode.Create);
+        WriteEntry(zip, $"{id}.nuspec", nuspec);
+        WriteEntry(zip, "[Content_Types].xml", contentTypes);
+        WriteEntry(zip, "_rels/.rels", rels);
+        WriteEntry(zip, "lib/net10.0/_._", "");
+    }
+
+    private static void WriteEntry(ZipArchive zip, string name, string text)
+    {
+        using var writer = new StreamWriter(zip.CreateEntry(name).Open(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.Write(text);
+    }
 
     private static void Git(string repo, params string[] args)
     {

@@ -5,7 +5,7 @@ namespace Winshell.ShellTests;
 /// <summary>
 /// Each reference page is generated from the public API of <c>Winshell.Shell</c>, <c>Winshell.Services</c> and
 /// <c>Winshell.Core</c>. Each <c>csharp</c> sample in the docs and the README is text from <see cref="GuideSamples"/>,
-/// which this project builds.
+/// which this project builds, or from the message widget, which the solution builds.
 /// </summary>
 public sealed class DocsTests
 {
@@ -14,7 +14,9 @@ public sealed class DocsTests
     [Fact]
     public void Every_csharp_example_is_compiled()
     {
-        var source = File.ReadAllText(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs"))
+        var source = string.Join('\n',
+            File.ReadAllText(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs")),
+            File.ReadAllText(Path.Combine(Repo, "docs", "samples", "message-widget", "Message.xaml.cs")))
             .Replace("\r\n", "\n", StringComparison.Ordinal);
         var examples = Examples().ToList();
         Assert.NotEmpty(examples);
@@ -23,7 +25,7 @@ public sealed class DocsTests
             if (code.Length == 0)
                 problems.Add($"{Path.GetRelativePath(Repo, file)}:{line}: empty csharp fence");
             else if (!source.Contains(code, StringComparison.Ordinal))
-                problems.Add($"{Path.GetRelativePath(Repo, file)}:{line}: csharp fence is not in GuideSamples.cs");
+                problems.Add($"{Path.GetRelativePath(Repo, file)}:{line}: csharp fence is not in a file the solution builds");
         Assert.True(problems.Count == 0, "C# examples that are not compiled:\n" + string.Join("\n", problems));
     }
 
