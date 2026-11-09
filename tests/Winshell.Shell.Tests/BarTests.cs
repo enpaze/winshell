@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Windows.Foundation;
 
 namespace Winshell.ShellTests;
 
@@ -270,6 +271,73 @@ public sealed class BarTests
         });
     }
 
+    [Fact]
+    public async Task A_bar_keeps_its_padding_at_its_two_ends_and_takes_its_style_padding_without_one()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var screen = ScreenWindowsTests.Screen("TST", "Only", "1");
+            var widget = Widget(out _);
+            shell.Platform.Screens.Add(screen);
+            try
+            {
+                using var top = new Bar
+                {
+                    Name = "top" + Guid.NewGuid().ToString("N"),
+                    Reserve = false,
+                    Padding = 12,
+                    Start = [widget],
+                    End = [widget]
+                };
+                using var side = new Bar
+                {
+                    Name = "side" + Guid.NewGuid().ToString("N"),
+                    Edge = Edges.Left,
+                    Reserve = false,
+                    Start = [widget],
+                    End = [widget]
+                };
+                using var bottom = new Bar
+                {
+                    Name = "bottom" + Guid.NewGuid().ToString("N"),
+                    Edge = Edges.Bottom,
+                    Reserve = false,
+                    Style = new Uri("ms-appx:///OtherStyle.xaml"),
+                    Start = [widget],
+                    End = [widget]
+                };
+                await NextTurn(shell);
+                var bars = BarsOn(shell, screen);
+
+                var (start, end) =
+                    await Ends(Assert.Single(bars, window => window.Anchors == (Edges.Top | Edges.Left | Edges.Right)));
+                Assert.Equal(12, start.X, 0.5);
+                Assert.Equal(12, end.X, 0.5);
+                Assert.Equal(0, start.Y, 0.5);
+                Assert.Equal(0, end.Y, 0.5);
+
+                // The built-in style's ShellPadding.
+                (start, end) = await Ends(Assert.Single(bars, window => !window.Anchors.HasFlag(Edges.Right)));
+                Assert.Equal(4, start.Y, 0.5);
+                Assert.Equal(4, end.Y, 0.5);
+                Assert.Equal(0, start.X, 0.5);
+                Assert.Equal(0, end.X, 0.5);
+
+                // A style with no ShellPadding gives a bar none.
+                (start, end) =
+                    await Ends(Assert.Single(bars, window => window.Anchors == (Edges.Bottom | Edges.Left | Edges.Right)));
+                Assert.Equal(0, start.X, 0.5);
+                Assert.Equal(0, end.X, 0.5);
+            }
+            finally
+            {
+                shell.Platform.Screens.Remove(screen);
+            }
+
+            return true;
+        });
+    }
+
     /// <summary>Completes on the turn after the ones already posted, such as a new bar's first.</summary>
     private static Task NextTurn(Shell shell)
     {
@@ -312,6 +380,20 @@ public sealed class BarTests
     private static IEnumerable<WidgetArea> AreasOf(PanelWindow bar)
     {
         return Assert.IsType<Grid>(Assert.IsType<Surface>(bar.Content).Content).Children.Cast<WidgetArea>();
+    }
+
+    /// <summary>
+    /// How far the start area's first corner is from the bar's, and the end area's last corner from the bar's, once
+    /// the bar is laid out.
+    /// </summary>
+    private static async Task<(Point Start, Point End)> Ends(PanelWindow bar)
+    {
+        var surface = Assert.IsType<Surface>(bar.Content);
+        await ShellFixture.LaidOut(surface).WaitAsync(TestContext.Current.CancellationToken);
+        var areas = AreasOf(bar).ToList();
+        var start = areas[0].TransformToVisual(surface).TransformPoint(default);
+        var last = areas[2].TransformToVisual(surface).TransformPoint(new Point(areas[2].ActualWidth, areas[2].ActualHeight));
+        return (start, new Point(surface.ActualWidth - last.X, surface.ActualHeight - last.Y));
     }
 
     /// <summary>The color behind what <paramref name="root"/> holds: the first background in its tree.</summary>

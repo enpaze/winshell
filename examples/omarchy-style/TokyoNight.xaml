@@ -10,6 +10,8 @@
   <x:Double x:Key="ShellFontSize">12</x:Double>
   <!-- The height of a top or bottom bar, and the width of a left or right one. -->
   <x:Double x:Key="ShellSlotSize">26</x:Double>
+  <!-- The space between the widgets and each end of a bar. -->
+  <x:Double x:Key="ShellPadding">8</x:Double>
 
   <!-- A glyph slot a pixel wider than the bar is high. It has no hover fill and no corners, and shrinks a little
        while pressed. A widget puts it in the Alert state to show its glyph in the alert color. -->
