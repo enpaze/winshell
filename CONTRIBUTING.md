@@ -28,7 +28,7 @@ Every new or changed test passes the authoring gate of the `test-audit` skill, w
 | `Winshell.Tests` | `winshell.exe` and shell programs as separate processes |
 | `Winshell.Package.Tests` | The packed library and template, `Category=Package` |
 
-- **A windowed test** shows a window on the desktop, takes the foreground, or sends real input. It carries `[Trait("Category", "Window")]`, so the full check leaves it out. See [A windowed test](docs/development.md#a-windowed-test).
+- **A windowed test** shows a window on the desktop, takes the foreground, sends real input, or hides Explorer's taskbar. It carries `[Trait("Category", "Window")]`, so the full check leaves it out. See [A windowed test](docs/development.md#a-windowed-test).
 - **A regression test goes red before the fix** for the intended reason, and green after it. Say so in the PR, or say why you couldn't show it.
 - **One bug gets one test**, at its owner, however many layers it crossed.
 - **No seams for tests alone.** A test needs no `internal` member, constructor overload, flag or hook that production code doesn't use.

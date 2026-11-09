@@ -139,7 +139,7 @@ dotnet test tests/Winshell.Core.Tests --filter FullyQualifiedName~DirectoryWatch
 
 ### A windowed test
 
-A test is windowed when it shows a window on the desktop, takes the foreground, or sends real input. It carries `[Trait("Category", "Window")]`. The full check leaves them all out, and CI's [test shards](#test-shards) run them on every PR.
+A test is windowed when it shows a window on the desktop, takes the foreground, sends real input, or hides Explorer's taskbar. It carries `[Trait("Category", "Window")]`. The full check leaves them all out, and CI's [test shards](#test-shards) run them on every PR.
 
 To run one on purpose, such as a test you changed, to see it fail and then pass, follow [Live UI with Winland running](#live-ui-with-winland-running):
 
