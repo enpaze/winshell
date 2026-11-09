@@ -6,6 +6,8 @@ Describe 'Selecting CI checks from GitHub changed files' {
     It '<Name>' -ForEach @(
         @{ Name = 'keeps agent prose to link checks'; Path = 'AGENTS.md'; Text = '# Instructions'; Patch = '+A sentence'; Code = $false; Docs = $false },
         @{ Name = 'keeps guide prose to link checks'; Path = 'docs/development.md'; Text = '# Development'; Patch = '+A sentence'; Code = $false; Docs = $false },
+        @{ Name = 'runs code checks for a compiled documentation sample'; Path = 'docs/samples/message-widget/Message.xaml.cs'; Text = ''; Patch = '+code'; Code = $true; Docs = $false },
+        @{ Name = 'keeps documentation sample prose to link checks'; Path = 'docs/samples/message-widget/README.md'; Text = '# Sample'; Patch = '+A sentence'; Code = $false; Docs = $false },
         @{ Name = 'keeps script documentation out of installer checks'; Path = 'scripts/README.md'; Text = '# Scripts'; Patch = '+A sentence'; Code = $false; Docs = $false },
         @{ Name = 'keeps action documentation out of tooling checks'; Path = '.github/actions/README.md'; Text = '# Actions'; Patch = '+A sentence'; Code = $false; Docs = $false },
         @{ Name = 'keeps a deleted prose page to link checks'; Path = 'docs/privacy.md'; Text = $null; Patch = '-# Privacy'; Code = $false; Docs = $false },

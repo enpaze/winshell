@@ -84,8 +84,6 @@ jobs:
           $env:PSModulePath = "$(Join-Path $env:RUNNER_TEMP 'psmodules');$env:PSModulePath"
           ./scripts/format.ps1 -VerifyNoChanges
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet build scripts/generate-reference.cs --nologo
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Import-Module Pester -RequiredVersion 5.6.1
           $result = Invoke-Pester -Path tests/Scripts -PassThru
           if ($result.Result -ne 'Passed') { exit 1 }
@@ -118,6 +116,19 @@ jobs:
           $testRun = Get-TestRun -Shard $env:TEST_SHARD
           foreach ($project in $testRun.Projects) {
             dotnet build $project -warnaserror --nologo
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          # This worker already builds Shell and its dependencies. Keep template, sample and generator compilation
+          # required here, while quality verifies files without loading the project graph.
+          if ($env:TEST_SHARD -eq '2') {
+            ./scripts/build-template.ps1
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $solution = [xml](Get-Content winshell.slnx)
+            foreach ($project in $solution.SelectNodes('//Project') | Where-Object { $_.Path -match '^(examples|docs/samples)/' }) {
+              dotnet build $project.Path -warnaserror --nologo
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+            dotnet build scripts/generate-reference.cs --nologo
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
       - name: Run the suite shard

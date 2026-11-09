@@ -8,7 +8,7 @@ BeforeAll {
     }
 }
 
-Describe 'C# formatting and template compilation' {
+Describe 'C# file formatting' {
     BeforeEach {
         $script:Fixture = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
         foreach ($folder in @('scripts', 'src/Winshell.Shell', 'templates/winshell')) {
@@ -17,13 +17,12 @@ Describe 'C# formatting and template compilation' {
         foreach ($path in @('scripts/format.ps1', '.editorconfig', 'global.json')) {
             Copy-Item -LiteralPath (Join-Path $script:Repository $path) -Destination (Join-Path $script:Fixture $path)
         }
-        [IO.File]::WriteAllText((Join-Path $script:Fixture 'winshell.slnx'), '<Solution><Project Path="src/Winshell.Shell/Winshell.Shell.csproj" /></Solution>')
-        [IO.File]::WriteAllText((Join-Path $script:Fixture 'src/Winshell.Shell/Winshell.Shell.csproj'), '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        [IO.File]::WriteAllText((Join-Path $script:Fixture '.gitignore'), "bin/`nobj/`n")
         [IO.File]::WriteAllText((Join-Path $script:Fixture 'src/Winshell.Shell/Api.cs'), "namespace Winshell;`n`npublic static class Api`n{`n    public static string Message => `"current`";`n}`n")
         $script:Project = Join-Path $script:Fixture 'templates/winshell/MyShell.csproj'
-        [IO.File]::WriteAllText($script:Project, '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><PackageReference Include="Winshell" Version="__WINSHELL_VERSION__" /></ItemGroup></Project>')
+        [IO.File]::WriteAllText($script:Project, '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><PackageReference Include="Winshell" Version="__WINSHELL_VERSION__" /></ItemGroup></Project>')
         $script:Program = Join-Path $script:Fixture 'templates/winshell/Program.cs'
-        [IO.File]::WriteAllText($script:Program, 'internal static class Program{public static void Main(){System.Console.WriteLine(Winshell.Api.Message);}}')
+        [IO.File]::WriteAllText($script:Program, "internal static class Program`n{`n    public static void Main() { }`n}`n")
         git -C $script:Fixture init --quiet
         if ($LASTEXITCODE -ne 0) { throw 'Could not initialize fixture repository.' }
         git -C $script:Fixture add .
@@ -33,7 +32,8 @@ Describe 'C# formatting and template compilation' {
         $script:ProjectHash = (Get-FileHash -LiteralPath $script:Project).Hash
     }
 
-    It 'verifies without editing source or index, then applies template formatting without changing its package reference' {
+    It 'verifies without editing source or index, then formats a template without restoring its package reference' {
+        [IO.File]::WriteAllText($script:Program, 'internal static class Program{public static void Main(){}}')
         $sourceHash = (Get-FileHash -LiteralPath $script:Program).Hash
         $check = Invoke-FixtureFormat -VerifyNoChanges
         $check.ExitCode | Should -Not -Be 0 -Because $check.Output
@@ -52,11 +52,24 @@ Describe 'C# formatting and template compilation' {
         $again.ExitCode | Should -Be 0 -Because $again.Output
     }
 
-    It 'rejects template code that cannot compile against the current libraries' {
-        [IO.File]::WriteAllText($script:Program, 'internal static class Program{public static void Main(){System.Console.WriteLine(Winshell.Api.Missing);}}')
+    It 'includes untracked source paths with spaces, leaves ignored output alone and tolerates deleted sources' {
+        $folder = Join-Path $script:Fixture 'docs/samples/new widget'
+        $ignored = Join-Path $folder 'obj/Ignored.cs'
+        New-Item -ItemType Directory -Path (Split-Path -Parent $ignored) -Force | Out-Null
+        $added = Join-Path $folder 'Added.cs'
+        [IO.File]::WriteAllText($added, 'internal static class Added{public static int Value=>1;}')
+        [IO.File]::WriteAllText($ignored, 'internal static class Ignored{public static int Value=>1;}')
+        $ignoredHash = (Get-FileHash -LiteralPath $ignored).Hash
+        Remove-Item -LiteralPath (Join-Path $script:Fixture 'src/Winshell.Shell/Api.cs')
+
         $check = Invoke-FixtureFormat -VerifyNoChanges
         $check.ExitCode | Should -Not -Be 0 -Because $check.Output
-        $check.Output | Should -Match 'CS0117'
-        (Get-FileHash -LiteralPath $script:Project).Hash | Should -Be $script:ProjectHash
+        $check.Output | Should -Match 'Added.cs.*WHITESPACE'
+        $format = Invoke-FixtureFormat
+        $format.ExitCode | Should -Be 0 -Because $format.Output
+        $again = Invoke-FixtureFormat -VerifyNoChanges
+        $again.ExitCode | Should -Be 0 -Because $again.Output
+        (Get-FileHash -LiteralPath $ignored).Hash | Should -Be $ignoredHash
+        (Get-FileHash -LiteralPath $script:Index).Hash | Should -Be $script:IndexHash
     }
 }
