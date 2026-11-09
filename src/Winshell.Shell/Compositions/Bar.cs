@@ -110,6 +110,12 @@ public sealed class Bar : IDisposable
             if (_preferences is null)
             {
                 _preferences = new BarPreferences(this);
+                if (_disposed)
+                {
+                    _preferences.Dispose();
+                    return;
+                }
+
                 _preferences.PropertyChanged += (_, _) => PostRemake();
             }
 
