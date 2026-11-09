@@ -9,6 +9,7 @@ How to build, check and release Winshell. [CONTRIBUTING.md](../CONTRIBUTING.md) 
 - Pester 5.6.1, for the PowerShell tooling tests
 - .NET 10 SDK
 - Node.js, for `npx` when installing or updating agent skills
+- Claude Code 2.1.281 or later, only for an agent on Claude Code: an older one may not read `AGENTS.md`, and then starts without the repo's instructions and nothing says they are missing
 - The Windows SDK, for `makeappx.exe`, only to run `scripts/package.ps1`
 - GitHub CLI (`gh`), only when publishing a draft release outside GitHub Actions
 
