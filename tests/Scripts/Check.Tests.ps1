@@ -64,6 +64,7 @@ Describe 'Choosing tests' {
             $routed = @(foreach ($shard in 1..4) { (Get-TestRun -Shard $shard).Projects })
             ($routed | Sort-Object) | Should -Be ($projects | Sort-Object)
             (Get-TestRun -Shard 4).ProjectCount | Should -Be 2
+            (Get-TestRun -Shard 5).Projects | Should -Be @('tests/Winshell.Tests/Winshell.Tests.csproj')
         } finally { $script:Root = $root }
     }
 }
@@ -128,6 +129,7 @@ Describe 'Running the suite' {
         $script:Exit = 0
         $script:Rows = @('Ns.Class.Good=Passed')
         Mock Invoke-DotnetTest {
+            $script:WrittenResults = $ResultsDirectory
             Write-Trx -Directory $ResultsDirectory -Rows $script:Rows
             $script:Exit
         }
@@ -136,6 +138,24 @@ Describe 'Running the suite' {
     It 'passes when every test passes' {
         Invoke-TestRun -Seed 7 | Should -Be 0
         Should -Invoke Invoke-DotnetTest -Times 1 -Exactly -ParameterFilter { $Seed -eq 7 }
+        Test-Path -LiteralPath $script:WrittenResults | Should -BeFalse
+    }
+
+    It 'retains evidence from a <Outcome> run in a caller-owned folder' -ForEach @(
+        @{ Outcome = 'passing'; Exit = 0; Row = 'Ns.Class.Good=Passed' }
+        @{ Outcome = 'failing'; Exit = 1; Row = 'Ns.Class.Bad=Failed' }
+    ) {
+        $script:Rows = @($Row)
+        $script:Exit = $Exit
+        $parent = Join-Path $TestDrive "retained-$Outcome"
+        Invoke-TestRun -Seed 7 -ResultsDirectory $parent | Should -Be $Exit
+        @(Get-ChildItem -LiteralPath $parent -Filter '*.trx' -Recurse) | Should -HaveCount 1
+        # Reusing that folder must not let the previous complete run hide a missing test project.
+        Set-Solution 2
+        $script:Rows = @('Ns.Class.Good=Passed')
+        $script:Exit = 0
+        Invoke-TestRun -Seed 7 -ResultsDirectory $parent | Should -Be 1
+        @(Get-ChildItem -LiteralPath $parent -Directory) | Should -HaveCount 2
     }
 
     It 'fails on a failed test, once, with nothing run again' {

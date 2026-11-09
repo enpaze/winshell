@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -16,7 +17,7 @@ internal static class ProbeShell
 {
     private const string ShellIdVariable = "PROBE_SHELL_ID";
 
-    // Every probe builds the src/ projects it references, into their own obj folders, so one build runs at a time.
+    // Probe builds evaluate shared project references, so one initial build runs at a time.
     private static readonly object Gate = new();
 
     private static string? _program;
@@ -109,8 +110,8 @@ internal static class ProbeShell
 
     /// <summary>Builds the probe in <paramref name="folder"/>, with its source in <c>Program.cs</c>, and returns the program.</summary>
     /// <remarks>
-    /// Each new folder rebuilds the src/ projects into their shared obj folders, which <see cref="Gate"/> cannot keep
-    /// apart from a build <c>winshell reload</c> runs in another process. A test that wants the probe to behave
+    /// Project references keep the tested configuration and their usual output folders so dependencies stay reusable.
+    /// <see cref="Gate"/> cannot coordinate a build <c>winshell reload</c> runs in another process. A test that wants to behave
     /// differently puts a file in its config folder for <see cref="Source"/> to read, as <see cref="HangMarker"/> does,
     /// and runs the shared program.
     /// </remarks>
@@ -158,6 +159,7 @@ internal static class ProbeShell
     private static string Project(string shellProject)
     {
         var props = Path.Combine(Repo.Root, "src", "Winshell.Package", "buildTransitive", "Winshell.props");
+        var configuration = typeof(ProbeShell).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
         return $"""
                 <Project Sdk="Microsoft.NET.Sdk">
                   <Import Project="{props}" />
@@ -171,6 +173,14 @@ internal static class ProbeShell
                     <AssemblyName>Probe</AssemblyName>
                     <DisableWinExeOutputInference>true</DisableWinExeOutputInference>
                   </PropertyGroup>
+                  <!-- The SDK adds transitive references too. Give all of them the tested configuration and keep
+                       this probe's -o path out of their builds, including when reload builds the probe in Release. -->
+                  <ItemDefinitionGroup>
+                    <ProjectReference>
+                      <SetConfiguration>Configuration={configuration}</SetConfiguration>
+                      <GlobalPropertiesToRemove>OutputPath</GlobalPropertiesToRemove>
+                    </ProjectReference>
+                  </ItemDefinitionGroup>
                   <ItemGroup>
                     <ProjectReference Include="{shellProject}" />
                   </ItemGroup>
