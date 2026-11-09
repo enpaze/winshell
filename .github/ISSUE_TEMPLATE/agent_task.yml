@@ -1,4 +1,4 @@
-name: Agent task
+name: Ticket
 description: One ticket, which one pull request builds and closes.
 labels:
   - ready-for-agent
