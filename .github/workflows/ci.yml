@@ -113,21 +113,21 @@ jobs:
         shell: pwsh
         run: |
           . ./scripts/lib/Tests.ps1
-          $testRun = Get-TestRun -Shard $env:TEST_SHARD
-          foreach ($project in $testRun.Projects) {
-            dotnet build $project -warnaserror --nologo
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          }
+          $projects = @((Get-TestRun -Shard $env:TEST_SHARD).Projects)
           # This worker already builds Shell and its dependencies. Keep template, sample and generator compilation
           # required here, while quality verifies files without loading the project graph.
           if ($env:TEST_SHARD -eq '2') {
+            $solution = [xml](Get-Content winshell.slnx)
+            $projects += @($solution.SelectNodes('//Project') | Where-Object { $_.Path -match '^(examples|docs/samples)/' } | ForEach-Object Path)
+          }
+          # One solution filter builds the shard's projects in one parallel build, which checks shared references once.
+          $filter = Join-Path $env:RUNNER_TEMP 'shard.slnf'
+          ConvertTo-Json -Depth 3 @{ solution = @{ path = (Resolve-Path winshell.slnx).Path; projects = $projects } } | Set-Content -LiteralPath $filter
+          dotnet build $filter -warnaserror --nologo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($env:TEST_SHARD -eq '2') {
             ./scripts/build-template.ps1
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            $solution = [xml](Get-Content winshell.slnx)
-            foreach ($project in $solution.SelectNodes('//Project') | Where-Object { $_.Path -match '^(examples|docs/samples)/' }) {
-              dotnet build $project.Path -warnaserror --nologo
-              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            }
             dotnet build scripts/generate-reference.cs --nologo
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
