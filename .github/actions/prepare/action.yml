@@ -7,8 +7,9 @@ runs:
     - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
       with:
         global-json-file: global.json
-    # The runner's work drive extracts packages faster than the system drive, where NuGet keeps them by default. The
-    # value is the runner's own temporary folder, so nothing from the change under test reaches GITHUB_ENV.
+    # NuGet keeps packages on the system drive by default, where a restore took 30-37s; on the runner's work drive it
+    # takes 2-7s. The value is the runner's own temporary folder, so nothing from the change under test reaches
+    # GITHUB_ENV.
     - name: Keep NuGet packages on the work drive
       shell: pwsh
       run: Add-Content -LiteralPath $env:GITHUB_ENV -Value "NUGET_PACKAGES=$(Join-Path $env:RUNNER_TEMP 'nuget')" # zizmor: ignore[github-env]
