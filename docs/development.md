@@ -380,7 +380,7 @@ The `changes` job selects checks for PRs and pushes to `main`:
 
 CI calls `Get-TestRun -Shard <1..5>` and `Invoke-TestRun -Shard <1..5>` from `scripts/lib/Tests.ps1`:
 
-- Together they run every test project, the CLI suite and the category `Window` included.
+- Together they run every test project, the category `Window` included.
 - CLI, Shell and Services use the first three workers. Other test projects share the fourth, and CLI widget tests use the fifth.
 - New projects join the fourth, and new CLI classes join the first.
 - Shard 2 also compiles the template against source libraries, the solution's projects under `examples/` and `docs/samples/`, and the reference generator as a program, sharing the Shell libraries it already builds.
