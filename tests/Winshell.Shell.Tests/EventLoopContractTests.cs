@@ -39,6 +39,7 @@ public sealed partial class EventLoopContractTests
         await PostedWorkThatThrowsIsReported(Manual());
     }
 
+    // The shell shows its crash notice for the failure.
     [Fact]
     [Trait("Category", "Window")]
     public async Task Posted_work_that_throws_is_reported_and_later_work_runs_on_the_dispatcher()

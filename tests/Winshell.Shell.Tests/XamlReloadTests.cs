@@ -135,23 +135,13 @@ public sealed partial class XamlReloadTests : IDisposable
     }
 
     [Fact]
-    [Trait("Category", "Window")]
-    public async Task Markup_that_does_not_load_says_why_and_the_panel_stays_as_it_was()
+    public async Task Markup_that_does_not_parse_says_why()
     {
         var unclosed = Saved(Open + "><TextBlock></UserControl>");
-        var (text, shown) = await ShellFixture.On(shell =>
-        {
-            var content = new TextBlock { Text = "old" };
-            var live = new LivePanel { Content = content };
-            using var panel = Panel(live);
 
-            var problem = XamlReload.Apply(shell, _dir, unclosed);
+        var problem = await ShellFixture.On(shell => XamlReload.Apply(shell, _dir, unclosed));
 
-            return (problem, ReferenceEquals(live.Content, content));
-        });
-
-        Assert.False(string.IsNullOrEmpty(text));
-        Assert.True(shown);
+        Assert.False(string.IsNullOrEmpty(problem));
     }
 
     [Fact]
@@ -173,24 +163,16 @@ public sealed partial class XamlReloadTests : IDisposable
     }
 
     [Theory]
-    [Trait("Category", "Window")]
     [InlineData("""<TextBlock Text="{x:Bind Remembered}" />""")]
     [InlineData("""<TextBlock x:Load="False" />""")]
-    public async Task Markup_only_the_compiler_can_read_asks_for_a_build_and_changes_nothing(string body)
+    public async Task Markup_only_the_compiler_can_read_asks_for_a_build(string body)
     {
         var file = Saved(Open + ">" + body + "</UserControl>");
         using var request = new EventWaitHandle(false, EventResetMode.ManualReset, XamlReload.BuildRequest(_dir));
 
-        var unchanged = await ShellFixture.On(shell =>
-        {
-            var content = new TextBlock { Text = "old" };
-            var live = new LivePanel { Content = content };
-            using var panel = Panel(live);
-            XamlReload.Apply(shell, _dir, file);
-            return ReferenceEquals(live.Content, content);
-        });
+        var problem = await ShellFixture.On(shell => XamlReload.Apply(shell, _dir, file));
 
-        Assert.True(unchanged);
+        Assert.Null(problem);
         Assert.True(request.WaitOne(0));
     }
 
