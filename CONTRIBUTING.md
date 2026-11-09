@@ -15,9 +15,10 @@ Every new or changed test passes the authoring gate of the `test-audit` skill, w
 | `Winshell.Tests` | `winshell.exe` and shell programs as separate processes |
 | `Winshell.Package.Tests` | The packed library and template, `Category=Package` |
 
-A regression test goes red before the fix for the intended reason and green after it; say so in the PR, or say why you couldn't show it. One bug gets one test at its owner, however many layers it crossed. A test needs no `internal` member, constructor overload, flag or hook that production code doesn't use.
-
-Keep these even when they are static or slow: the public API of the `Winshell` package, the control pipe protocol, CLI output and exit codes, TOML and other files on disk, security guards, platform behavior, defaults, generated templates, the package, the release scripts, and observable ordering.
+- **A regression test goes red before the fix** for the intended reason, and green after it. Say so in the PR, or say why you couldn't show it.
+- **One bug gets one test**, at its owner, however many layers it crossed.
+- **A test needs nothing production code doesn't use:** no `internal` member, constructor overload, flag or hook.
+- **Keep these tests even when they are static or slow:** the public API of the `Winshell` package, the control pipe protocol, CLI output and exit codes, TOML and other files on disk, security guards, platform behavior, defaults, generated templates, the package, the release scripts, and observable ordering.
 
 ## Write tests that don't flake
 
@@ -29,6 +30,8 @@ A test waits on a real signal: an event, a task's completion, or a fake clock.
 - **Time comes through a `TimeProvider`.** `DateTime.Now`, `Stopwatch` and their relatives don't build in `src/`. A test passes a `FakeTimeProvider`, given a UTC time. `TimeProvider.System` is for what only real time can drive: a file's write time, a Windows object, the CLI's own process.
 - **Use the cheapest boundary that proves the contract.** Service policy uses fake backends and fake time; native rendering, process lifecycle and transport contracts use real Windows objects. Reuse hosts and processes, and keep all of them in the same suite. `Wait.Until` is for what really gives no signal: another process, or a window.
 - **Don't depend on a free thread pool worker.** A busy pool can hold back queued work for seconds, so anything that has to happen on time needs its own thread.
+
+### A test that fails sometimes is a bug
 
 Nothing retries a test and nothing sets one aside. A test that fails sometimes is a bug in the test or in Winshell, so find the cause and fix it, on `main` as much as in a PR. Tests are built so that they can't flake:
 
@@ -88,10 +91,30 @@ The `pr-size` job labels each pull request `size:XS` to `size:XL` by its changed
 
 `main` has no merge queue and doesn't require a PR to be up to date, so two PRs that each pass can break `main` together.
 
-One PR at a time changes a shared file: a `Directory.*` build file such as `Directory.Packages.props` or `Directory.Build.targets`, `global.json`, `nuget.config`, `.editorconfig`, `winshell.slnx`, `src/BannedSymbols.txt`, `BannedSymbols.Interop.txt`, `tests/TestSupport/`, a lockfile, or a type more than one module uses. `gh pr list --json number,headRefName,files` shows what open PRs touch.
+### Shared files
 
-1. When your PR conflicts with `main`, rebase onto the latest `origin/main` (a stacked PR runs `gh stack rebase`); never merge `main` into your branch. Force-push only your own PR branch, with `git push --force-with-lease origin HEAD`, never `main`.
-2. Resolve each conflict by intent: find the PR that changed the same code with `git log --oneline <your-branch>..origin/main -- <file>`, read it, and keep both behaviors. Taking "ours" or "theirs" wholesale is never a resolution.
-3. If both sides change the same behavior, run `git rebase --abort`, comment on your PR naming the other PR and the collision, and escalate to the lead thread, or to the user if there is none, instead of guessing.
-4. Run the [checks for the change](docs/development.md#checks-by-change) again before you push, even after a clean rebase: it can still break logic.
-5. You own the PR until it merges: fix every failing check, re-run a cancelled one with `gh run rerun <run-id>`, and confirm `gh pr view <number> --json state --jq .state` prints `MERGED`. For a standalone PR, enable auto-merge with `gh pr merge <number> --squash --auto`; a delegated one goes to its lead, as [Lead a set of tasks](docs/agents/lead.md) describes. Whoever sees it to `MERGED` then removes the task's worktree and local branch. Keep `release-please--branches--main`: it is the release bot's branch, and deleting it closes the open release PR.
+One PR at a time changes a shared file. `gh pr list --json number,headRefName,files` shows what open PRs touch. The shared files are:
+
+- a `Directory.*` build file, such as `Directory.Packages.props` or `Directory.Build.targets`
+- `global.json`, `nuget.config`, `.editorconfig` and `winshell.slnx`
+- `src/BannedSymbols.txt` and `BannedSymbols.Interop.txt`
+- `tests/TestSupport/`
+- a lockfile
+- a type more than one module uses
+
+### When your PR conflicts with `main`
+
+1. **Rebase** onto the latest `origin/main`; a stacked PR runs `gh stack rebase`. Never merge `main` into your branch. Force-push only your own PR branch, with `git push --force-with-lease origin HEAD`, never `main`.
+2. **Resolve each conflict by intent.** Find the PR that changed the same code with `git log --oneline <your-branch>..origin/main -- <file>`, read it, and keep both behaviors. Taking "ours" or "theirs" wholesale is never a resolution.
+3. **Escalate a collision.** If both sides change the same behavior, run `git rebase --abort`, comment on your PR naming the other PR and the collision, and escalate to the lead thread, or to the user if there is none, instead of guessing.
+4. **Check again.** Run the [checks for the change](docs/development.md#checks-by-change) before you push, even after a clean rebase: it can still break logic.
+
+### Until it merges
+
+You own the PR until it merges:
+
+- Fix every failing check, and re-run a cancelled one with `gh run rerun <run-id>`.
+- For a standalone PR, enable auto-merge with `gh pr merge <number> --squash --auto`. A delegated one goes to its lead, as [Lead a set of tasks](docs/agents/lead.md) describes.
+- Confirm `gh pr view <number> --json state --jq .state` prints `MERGED`.
+- Whoever sees it to `MERGED` then removes the task's worktree and local branch.
+- Keep `release-please--branches--main`: it is the release bot's branch, and deleting it closes the open release PR.
