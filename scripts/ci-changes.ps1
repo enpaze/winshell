@@ -9,7 +9,7 @@ param(
 # Prose is what no build, test or package reads.
 function Test-Prose {
     param([string] $Path)
-    $Path -match '^docs/|\.md$'
+    $Path -match '^docs/(?!samples/)|\.md$'
 }
 
 if ($MyInvocation.InvocationName -eq '.') { return }

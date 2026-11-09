@@ -58,6 +58,8 @@ try {
     if ($full) {
         & (Join-Path $PSScriptRoot 'format.ps1') -VerifyNoChanges
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        & (Join-Path $PSScriptRoot 'build-template.ps1')
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         # DocsTests compiles the reference generator as a library, which leaves out its entry point.
         dotnet build scripts/generate-reference.cs --nologo
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
