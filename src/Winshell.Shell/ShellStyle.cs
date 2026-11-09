@@ -11,13 +11,15 @@ public sealed partial class Shell
     /// <summary>
     /// The source URI of a <c>ResourceDictionary</c> that styles every widget area and styled popup, or null for the
     /// built-in style, which follows Windows' colors, Segoe UI and Segoe Fluent Icons. Set it on the shell's thread.
-    /// A new value reaches what is already on screen. An area's own <see cref="WidgetArea.Style"/> wins over it.
+    /// A new value reaches what is already on screen. An area's own <see cref="WidgetArea.Style"/> wins over it. A
+    /// file that does not load throws, and the shell keeps its style.
     /// </summary>
     public Uri? Style
     {
         get;
         set
         {
+            _ = LoadStyle(value);
             field = value;
             StyleChanged?.Invoke();
         }

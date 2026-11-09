@@ -409,19 +409,28 @@ public sealed class WidgetAreaTests
     }
 
     [Fact]
-    public async Task The_style_loads_from_its_uri_and_leaves_other_resources_owned_by_the_area()
+    public async Task The_style_loads_from_its_uri_keeps_the_last_on_a_failed_load_and_leaves_the_area_its_own_resources()
     {
-        await ShellFixture.On(_ =>
+        await ShellFixture.On(shell =>
         {
             using var area = new WidgetArea();
             var style = new Uri("ms-appx:///WidgetTheme.xaml");
             area.Resources["author"] = "keep";
+            var authors = new ResourceDictionary { ["ShellSlotSize"] = 50.0 };
+            area.Resources.MergedDictionaries.Add(authors);
             area.Style = style;
             Assert.Equal(style, area.Style);
             Assert.Equal("widget theme", area.Resources["WidgetThemeMessage"]);
+            var missing = new Uri("ms-appx:///Missing.xaml");
+            Assert.ThrowsAny<Exception>(() => area.Style = missing);
+            Assert.Equal(style, area.Style);
+            Assert.Equal("widget theme", area.Resources["WidgetThemeMessage"]);
+            Assert.ThrowsAny<Exception>(() => shell.Style = missing);
+            Assert.Null(shell.Style);
             area.Style = null;
             Assert.False(area.Resources.ContainsKey("WidgetThemeMessage"));
             Assert.Equal("keep", area.Resources["author"]);
+            Assert.Equal(50.0, area.Resources["ShellSlotSize"]);
             return true;
         });
     }
@@ -434,7 +443,8 @@ public sealed class WidgetAreaTests
             var controls = new PlainControls();
             using var area = new WidgetArea
             {
-                RequestedTheme = ElementTheme.Light, Defaults = [new(controls.Button), new(controls.Text)]
+                RequestedTheme = ElementTheme.Light,
+                Defaults = [new(controls.Button), new(controls.Text)]
             };
             using var window = new PanelWindow { Width = 200, Height = 60, Content = area, Visible = true };
             await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
@@ -474,7 +484,11 @@ public sealed class WidgetAreaTests
             {
                 Defaults = [new(controls.Button), new(controls.Text), new(popupWidget)]
             };
-            using var own = new WidgetArea { Style = other, Defaults = [new(controls.Text)] };
+            using var own = new WidgetArea
+            {
+                Style = new Uri("ms-appx:///WidgetTheme.xaml"),
+                Defaults = [new(controls.Text)]
+            };
             var (glyphButton, glyph) = Assert.Single(controls.Buttons);
             var text = controls.Lines[0];
             var ownText = controls.Lines[1];
@@ -488,14 +502,15 @@ public sealed class WidgetAreaTests
             var popupText = new TextBlock { Text = "popup" };
             using var popup = new PopupWindow
             {
-                Rect = new Rect(200, 100, 200, 90), Content = context!.StylePopup(popupText), Visible = true
+                Rect = new Rect(200, 100, 200, 90),
+                Content = context!.StylePopup(popupText),
+                Visible = true
             };
             try
             {
                 await ShellFixture.LaidOut(popupText).WaitAsync(TestContext.Current.CancellationToken);
-                Assert.Equal("Segoe UI Variable Text,Segoe UI", text.FontFamily.Source);
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", popupText.FontFamily.Source);
-                Assert.Equal("Consolas", ownText.FontFamily.Source);
+                var ownFont = ownText.FontFamily.Source;
 
                 shell.Style = other;
                 await Wait.UntilAsync(() => glyphButton.ActualWidth == 40 && glyphButton.ActualHeight == 40,
@@ -505,12 +520,15 @@ public sealed class WidgetAreaTests
                 Assert.Equal(Microsoft.UI.Colors.Crimson, ColorOf(glyphButton.Foreground));
                 Assert.Equal(20, glyph.FontSize);
                 Assert.Equal(("Consolas", 18.0), (popupText.FontFamily.Source, popupText.FontSize));
+                Assert.Equal("widget theme", own.Resources["WidgetThemeMessage"]);
+                Assert.NotEqual("Consolas", ownText.FontFamily.Source);
+                Assert.Equal(ownFont, ownText.FontFamily.Source);
 
                 shell.Style = null;
                 await Wait.UntilAsync(() => glyphButton.ActualWidth == 32, "the area to return to the built-in style");
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", text.FontFamily.Source);
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", popupText.FontFamily.Source);
-                Assert.Equal("Consolas", ownText.FontFamily.Source);
+                Assert.Equal("widget theme", own.Resources["WidgetThemeMessage"]);
             }
             finally
             {

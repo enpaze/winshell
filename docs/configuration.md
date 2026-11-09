@@ -213,7 +213,7 @@ The style is how every widget area and styled popup looks: its colors, font and 
         shell.Style = new Uri("ms-appx:///TokyoNight.xaml");
 ```
 
-A new value reaches what is already on screen, and `null` returns to the built-in style. An area's own `Style` wins over the shell's, and `null` there follows the shell. The file is a XAML page of your project, as `ms-appx:///` names it.
+A new value reaches what is already on screen, and `null` returns to the built-in style. A file that does not load throws and changes nothing. An area's own `Style` wins over the shell's, and `null` there follows the shell. The file is a XAML page of your project, as `ms-appx:///` names it.
 
 A style defines these keys, which a bar, a widget and its popups read with `{ThemeResource}`:
 
@@ -229,7 +229,7 @@ A style defines these keys, which a bar, a widget and its popups read with `{The
 It also defines implicit styles, with no `x:Key`, for the plain controls a widget is made of. They apply inside a widget area and in a popup styled with `context.StylePopup`, so a widget that is a `Button` holding a `FontIcon` looks right with no lookup:
 
 - `Button`: flat, at least one slot wide and high, its content centered, in the style's foreground, font and font size.
-- `TextBlock`: the style's foreground, font and font size, centered vertically.
+- `TextBlock`: the style's foreground, font and font size, centered vertically. A text block keeps that foreground inside a pressed or disabled button, so give a button its text as a string to take the button's colors.
 - `FontIcon`: the style's icon font. Its color comes from what holds it, so a button's pressed and disabled colors reach the glyph.
 - `ToolTip`: the style's background, foreground and font. WinUI looks up a tooltip's style only in the app's resources, because a tooltip opens outside the area, so this entry does not yet reach a tooltip a widget sets with `ToolTipService`.
 

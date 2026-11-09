@@ -30,8 +30,8 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     {
         Content = _panel;
         _shell = Shell.Current;
+        LoadStyle(null);
         _shell.StyleChanged += FollowShellStyle;
-        LoadStyle();
         _file = _shell.WidgetPlacements;
         _nameChanged = RegisterPropertyChangedCallback(NameProperty, (_, _) => _file.Changed(this));
         _file.Add(this);
@@ -72,7 +72,8 @@ public sealed partial class WidgetArea : UserControl, IDisposable
 
     /// <summary>
     /// The source URI of this area's own style, which wins over the shell's, or null for <see cref="Shell.Style"/>.
-    /// Changing it replaces only the dictionary the style loaded, leaving the area's other resources intact. It hides
+    /// Changing it replaces only the dictionary the style loaded, leaving the area's other resources intact, and a file
+    /// that does not load throws and changes nothing. It hides
     /// the inherited WinUI <c>Style</c>, which a widget area does not use.
     /// </summary>
     public new Uri? Style
@@ -81,8 +82,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         set
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            _style = value;
-            LoadStyle();
+            LoadStyle(value);
         }
     }
 
@@ -92,12 +92,14 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     private void FollowShellStyle()
     {
         if (_style is null)
-            LoadStyle();
+            LoadStyle(null);
     }
 
-    private void LoadStyle()
+    /// <summary>Shows a style, the area's own or null for the shell's. One that does not load changes nothing.</summary>
+    private void LoadStyle(Uri? own)
     {
-        var next = Shell.LoadStyle(ActiveStyle);
+        var next = Shell.LoadStyle(own ?? _shell.Style);
+        _style = own;
         if (_styleResources is not null)
             Resources.MergedDictionaries.Remove(_styleResources);
         _styleResources = next;
