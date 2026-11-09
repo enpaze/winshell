@@ -1,40 +1,36 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
 using Winshell;
 using Winshell.Network;
 
 namespace OmarchyStyle;
 
-/// <summary>The connection in use, wired before Wi-Fi, in the alert color when it cannot reach the internet.</summary>
-public sealed class NetworkWidget(WidgetContext context) : StatusWidget(context, "ms-settings:network-status")
+/// <summary>The connection in use, wired before Wi-Fi, in the alert color when it can't reach the internet.</summary>
+public sealed class NetworkWidget : Button
 {
-    protected override void Show()
+    public NetworkWidget(WidgetContext context)
     {
-        var networking = Read(Shell.Networking);
-        var device = Read(networking.Devices)
-            .Where(item => Read(item).Connected)
-            .OrderBy(item => item.Type == DeviceType.Wired ? 0 : 1)
-            .FirstOrDefault();
-        var profile = device is null
-            ? null
-            : Read(networking.Profiles).Select(Read)
-                .FirstOrDefault(item => item.AdapterId == device.Id);
-        var portal = networking.Connectivity == NetworkConnectivity.CaptivePortal;
-        var restricted = device is not null && (portal || networking.Connectivity == NetworkConnectivity.LocalAccess);
-        var name = profile?.Name ?? device?.Name;
-        Bar.Show(
-            this,
-            Glyphs.Network(device?.Type ?? DeviceType.None, profile?.SignalStrength ?? 0, restricted),
-            ToolTip(name, portal, restricted),
-            restricted);
-    }
-
-    private static string ToolTip(string? name, bool portal, bool restricted)
-    {
-        if (name is null)
-            return "Disconnected";
-        if (portal)
-            return name + ": sign in to the network";
-        if (restricted)
-            return name + ": no internet";
-        return name;
+        var networking = context.Shell.Networking;
+        this.Watch(() =>
+        {
+            var device = networking.Devices.Where(item => item.Connected)
+                .OrderBy(item => item.Type == DeviceType.Wired ? 0 : 1)
+                .FirstOrDefault();
+            var profile = device is null ? null : networking.Profiles.FirstOrDefault(item => item.AdapterId == device.Id);
+            var portal = networking.Connectivity == NetworkConnectivity.CaptivePortal;
+            var restricted = device is not null && (portal || networking.Connectivity == NetworkConnectivity.LocalAccess);
+            var name = profile?.Name ?? device?.Name;
+            var tip = name is null ? "Disconnected"
+                : portal ? name + ": sign in to the network"
+                : restricted ? name + ": no internet"
+                : name;
+            Content = Glyphs.Network(device?.Type ?? DeviceType.None, profile?.SignalStrength ?? 0, restricted);
+            ToolTipService.SetToolTip(this, tip);
+            AutomationProperties.SetName(this, tip);
+            // TokyoNight.xaml's button has an Alert state, in the style's alert color.
+            VisualStateManager.GoToState(this, restricted ? "Alert" : "Calm", false);
+        });
+        Click += (_, _) => SettingsPage.Open("ms-settings:network-status");
     }
 }

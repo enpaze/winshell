@@ -1,26 +1,34 @@
-using System.Globalization;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
 using Winshell;
 using Winshell.Power;
 
 namespace OmarchyStyle;
 
 /// <summary>The battery, when the PC has one.</summary>
-public sealed class BatteryWidget(WidgetContext context) : StatusWidget(context, "ms-settings:powersleep")
+public sealed class BatteryWidget : Button
 {
-    protected override void Show()
+    public BatteryWidget(WidgetContext context)
     {
-        var power = Read(Shell.Power);
-        var battery = Read(power.DisplayDevice);
-        Visibility = battery.IsPresent ? Visibility.Visible : Visibility.Collapsed;
-        if (!battery.IsPresent)
-            return;
-
-        var state = power.OnBattery ? "On battery"
-            : battery.State == PowerDeviceState.FullyCharged ? "Fully charged"
-            : battery.State == PowerDeviceState.NotCharging ? "Not charging"
-            : "Charging";
-        var percent = Math.Round(battery.Percentage * 100).ToString(CultureInfo.CurrentCulture);
-        Bar.Show(this, Glyphs.Power(battery, power.OnBattery), percent + "% · " + state);
+        var power = context.Shell.Power;
+        this.Watch(() =>
+        {
+            var battery = power.DisplayDevice;
+            Visibility = battery.IsPresent ? Visibility.Visible : Visibility.Collapsed;
+            if (!battery.IsPresent)
+                return;
+            var state = power.OnBattery ? "On battery" : battery.State switch
+            {
+                PowerDeviceState.FullyCharged => "Fully charged",
+                PowerDeviceState.NotCharging => "Not charging",
+                _ => "Charging"
+            };
+            var tip = $"{Math.Round(battery.Percentage * 100)}% · {state}";
+            Content = Glyphs.Power(battery, power.OnBattery);
+            ToolTipService.SetToolTip(this, tip);
+            AutomationProperties.SetName(this, tip);
+        });
+        Click += (_, _) => SettingsPage.Open("ms-settings:powersleep");
     }
 }

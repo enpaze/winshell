@@ -1,24 +1,27 @@
-using System.Globalization;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
 using Winshell;
 
 namespace OmarchyStyle;
 
 /// <summary>The default playback device: headphones, or a speaker by volume.</summary>
-public sealed class AudioWidget(WidgetContext context) : StatusWidget(context, "ms-settings:sound")
+public sealed class AudioWidget : Button
 {
-    protected override void Show()
+    public AudioWidget(WidgetContext context)
     {
-        var device = Read(Shell.Audio).DefaultPlaybackDevice;
-        if (device is null)
+        var audio = context.Shell.Audio;
+        this.Watch(() =>
         {
-            Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        Read(device);
-        Visibility = Visibility.Visible;
-        var level = device.Muted ? "muted" : Math.Round(device.Volume * 100).ToString(CultureInfo.CurrentCulture) + "%";
-        Bar.Show(this, Glyphs.Audio(device), device.Description + ": " + level);
+            var device = audio.DefaultPlaybackDevice;
+            Visibility = device is null ? Visibility.Collapsed : Visibility.Visible;
+            if (device is null)
+                return;
+            var tip = device.Description + ": " + (device.Muted ? "muted" : $"{Math.Round(device.Volume * 100)}%");
+            Content = Glyphs.Audio(device);
+            ToolTipService.SetToolTip(this, tip);
+            AutomationProperties.SetName(this, tip);
+        });
+        Click += (_, _) => SettingsPage.Open("ms-settings:sound");
     }
 }
