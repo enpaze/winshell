@@ -1,5 +1,17 @@
 # Contributing
 
+## Where the standards live
+
+A change is held to these, by people and by the `code-review` skill:
+
+- [The architecture](docs/architecture.md): the layers, their boundaries and the sealed interop.
+- [Formatting and style](docs/development.md#formatting-and-style).
+- The test rules: [Where a test belongs](#where-a-test-belongs), [Write tests that don't flake](#write-tests-that-dont-flake), and the installed `test-audit` skill.
+- [The glossary](GLOSSARY.md): the words to name things with.
+- [The ADRs](docs/adr/): the decisions already made.
+
+## Run the checks
+
 The [development runbook](docs/development.md) covers the prerequisites, the first checkout, and every command. Before every push, run the [checks for the change](docs/development.md#checks-by-change): prose-only changes need lint; compiled documentation needs its targeted tests; other changes need the full check.
 
 ## Where a test belongs
