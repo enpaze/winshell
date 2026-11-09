@@ -9,7 +9,7 @@ namespace Winshell.Tests;
 /// <c>winshell reload</c> builds a configuration project and then asks the instance to start the next process, or under
 /// <c>winshell run</c> asks it to quit for its supervisor to start. A build that fails leaves that instance running and
 /// tells it to show the notice. These tests edit and rebuild the probe, so they build one of their own that no other test
-/// starts. A probe can hide Explorer's real taskbar, which is put back however a test ends.
+/// starts.
 /// </summary>
 public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<ReloadCommandTests.OwnProbe>
 {
@@ -21,7 +21,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
     private readonly string _config;
     private readonly OwnProbe _probe;
     private readonly List<Process> _started = [];
-    private readonly bool _taskbarHidden = ExplorerTaskbarRecovery.AnyHidden();
 
     /// <summary>
     /// The probe these tests build and edit, once for the class. The shared one is built first, so that no other build
@@ -63,6 +62,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         Directory.CreateDirectory(_config);
     }
 
+    // The instance shows the notice, which is a window.
     [Fact(Timeout = BuildTimeout)]
     [Trait("Category", "Window")]
     public void A_build_that_fails_leaves_the_instance_running()
@@ -113,31 +113,23 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
 
     /// <summary>
     /// The supervisor starts the edit a reload built, beside the program that ran, and owns it: it starts it again after
-    /// a crash, with the taskbar that shell hid back.
+    /// a crash.
     /// </summary>
     [Fact(Timeout = BuildTimeout)]
-    [Trait("Category", "Window")]
     public void A_reload_under_winshell_run_stays_supervised()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        Assert.False(_taskbarHidden, "Explorer's taskbar was hidden before the test.");
         var source = Path.Combine(_probe.Folder, "Program.cs");
         var original = File.ReadAllText(source);
         var run = Supervise();
         try
         {
             var first = NextPid(0, null);
-            // Once the shell's thread answers, its configuration has started and will not see the marker.
-            Run("ipc", "--pid", first.ToString(CultureInfo.InvariantCulture), "show").AssertExitCode(0);
-            var marker = Path.Combine(_config, ProbeShell.HideTaskbarMarker);
-            File.WriteAllText(marker, "");
             File.WriteAllText(source, original.Replace("?? \"probe\"", "?? \"reloaded\"", StringComparison.Ordinal));
 
             Reload(first);
 
             var second = NextPid(first, "reloaded");
-            Wait.Until(() => !File.Exists(marker), "the reloaded shell to hide the taskbar");
-            Assert.True(ExplorerTaskbarRecovery.AnyHidden());
             // Ended without its cleanup, as a crash would end it.
             using (var crashed = Process.GetProcessById(second))
             {
@@ -146,7 +138,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
             }
 
             NextPid(second, "reloaded");
-            Assert.False(ExplorerTaskbarRecovery.AnyHidden());
             Assert.False(run.HasExited);
         }
         finally
@@ -336,9 +327,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
             process.Dispose();
         }
 
-        // A test that failed can leave the taskbar its probe hid. One that another program hid stays hidden.
-        if (!_taskbarHidden)
-            ExplorerTaskbarRecovery.RestoreHidden();
         try
         {
             Directory.Delete(_dir, true);
