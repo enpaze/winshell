@@ -120,7 +120,7 @@ A [ScreenWindows](reference/winshell.md#screenwindows) keeps one window on each 
         });
 ```
 
-It makes a window for each screen when it is made, makes one for a screen that is connected, and disposes the window of a screen that is removed. The other screens' windows stay as they are, and so do their widgets. `Dispose` removes every window. The function can return anything disposable that holds the window, such as an object that also disposes the window's widget areas.
+It makes a window for each screen when it is made, makes one for a screen that is connected, and disposes the window of a screen that is removed. The other screens' windows stay as they are, and so do their widgets. A screen whose resolution or scale changes keeps its window. `Dispose` removes every window. The function can return anything disposable that holds the window, such as an object that also disposes the window's widget areas. A function that throws is logged under the component's name, and that screen has no window until it or its row changes.
 
 A screen that differs from the rest has a row in the component's section of the [preferences file](#preferences), and the function is given that row, or null:
 
@@ -132,7 +132,7 @@ serial = "ABC123"
 edge = "top"
 ```
 
-A row matches a screen when its `manufacturer`, `model` and `serial` all equal the screen's, an empty one included, and the first match wins. The rest of the row is the component's: the function reads it as the table, a dictionary of TOML values. The name Windows numbers, such as `DISPLAY1`, is never matched, because Windows renumbers it. `winshell log` prints a line per screen under the component's name, `manufacturer / model / serial`, which is the identity to copy. A row for a screen that is not connected stays in the file. When a screen's row changes, only that screen's window is disposed and made again.
+A row matches a screen when its `manufacturer`, `model` and `serial` are strings that all equal the screen's, and the first match wins. A key the row leaves out matches nothing, so an empty serial is written `serial = ""`. The function is given the whole row, the three keys included, as a dictionary of TOML values, and the rest of it is the component's. The name Windows numbers, such as `DISPLAY1`, is never matched, because Windows renumbers it. `winshell log` prints a line per screen under the component's name, `manufacturer / model / serial`, which is the identity to copy. A row for a screen that is not connected stays in the file. When a screen's row changes, only that screen's window is disposed and made again, once the whole save is read.
 
 It is a shortcut: a configuration can still make any window on any screen itself. `shell.Screens` lists the screens, the primary first, and changes as monitors are connected and removed.
 

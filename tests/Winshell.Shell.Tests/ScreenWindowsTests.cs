@@ -3,49 +3,50 @@ using Windows.Foundation;
 namespace Winshell.ShellTests;
 
 /// <summary>
-/// One window on each screen for a component: made as a screen appears, disposed as it goes, and made again when the
-/// screen's row in the component's section changes. The screens are the shell's own list, with screens added and
-/// removed as the platform does when a monitor is connected or removed.
+/// One window on each screen for a component: made as a screen appears, kept while it changes size, disposed as it goes,
+/// and made again when another monitor takes its id or its row in the component's section changes. The screens are the
+/// shell's own list, changed as the platform changes it when monitors are connected, removed or set up again.
 /// </summary>
 public sealed class ScreenWindowsTests
 {
     [Fact]
-    public async Task A_screen_that_appears_gets_a_window_and_one_that_goes_takes_only_its_own()
+    public async Task A_screen_has_a_window_from_when_it_appears_until_it_goes_or_another_monitor_takes_its_id()
     {
-        await ShellFixture.On(async shell =>
+        await ShellFixture.On(shell =>
         {
+            var screens = shell.Platform.Screens;
             var first = Screen("TST", "First", "1");
             var second = Screen("TST", "Second", "2");
             var made = new List<Window>();
-            shell.Platform.Screens.Add(first);
+            screens.Add(first);
+            // Nothing here waits, so the platform's next refresh, which drops made-up screens, comes after the test.
             try
             {
-                var windows = new ScreenWindows("windows" + Guid.NewGuid().ToString("N"), (screen, row) =>
-                {
-                    var window = new Window(screen, row);
-                    made.Add(window);
-                    return window;
-                });
+                using var windows = new ScreenWindows("windows" + Guid.NewGuid().ToString("N"), Record(made));
                 var firstWindow = Assert.Single(made, window => window.Screen == first);
 
-                shell.Platform.Screens.Add(second);
-                await NextTurn(shell);
+                screens.Add(second);
                 var secondWindow = Assert.Single(made, window => window.Screen == second);
-                Assert.Single(made, window => window.Screen == first);
 
-                shell.Platform.Screens.Remove(second);
-                await NextTurn(shell);
+                var resized = first with { Geometry = new Rect(0, 0, 2560, 1440), DevicePixelRatio = 1.5 };
+                screens[screens.IndexOf(first)] = resized;
+                screens.Remove(second);
                 Assert.True(secondWindow.Disposed);
                 Assert.False(firstWindow.Disposed);
-                Assert.Single(made, window => window.Screen == first);
+                Assert.Equal([firstWindow, secondWindow], made.Where(window => window.Screen.Id == first.Id || window.Screen.Id == second.Id));
+
+                var other = resized with { Model = "Other", SerialNumber = "3" };
+                screens[screens.IndexOf(resized)] = other;
+                Assert.True(firstWindow.Disposed);
+                Assert.Single(made, window => window.Screen == other);
 
                 windows.Dispose();
                 Assert.All(made, window => Assert.True(window.Disposed));
             }
             finally
             {
-                shell.Platform.Screens.Remove(first);
-                shell.Platform.Screens.Remove(second);
+                foreach (var screen in screens.Where(screen => screen.Id == first.Id || screen.Id == second.Id).ToArray())
+                    screens.Remove(screen);
             }
 
             return true;
@@ -69,12 +70,7 @@ public sealed class ScreenWindowsTests
                 shell.Platform.Screens.Add(screen);
             try
             {
-                using var windows = new ScreenWindows(name, (screen, row) =>
-                {
-                    var window = new Window(screen, row);
-                    made.Add(window);
-                    return window;
-                });
+                using var windows = new ScreenWindows(name, Record(made));
                 var wideWindow = Assert.Single(made, window => window.Screen == wide);
                 var otherWideWindow = Assert.Single(made, window => window.Screen == otherWide);
                 var tallWindow = Assert.Single(made, window => window.Screen == tall);
@@ -83,6 +79,9 @@ public sealed class ScreenWindowsTests
                 Assert.Equal("right", tallWindow.Row?["edge"]);
 
                 File.WriteAllText(path, Rows(name, "bottom"));
+                // Making a section reads the file as it is now, without waiting for the file watch: the platform's
+                // next refresh drops made-up screens, so they are kept in the list as briefly as possible.
+                new Section(name).Dispose();
                 await Wait.UntilAsync(() => made.Count(window => window.Screen == wide) == 2,
                     "the changed row to replace its screen's window");
                 Assert.True(wideWindow.Disposed);
@@ -101,6 +100,17 @@ public sealed class ScreenWindowsTests
 
             return true;
         });
+    }
+
+    /// <summary>A window function that keeps what it makes in <paramref name="made"/>.</summary>
+    private static Func<ScreenInfo, IReadOnlyDictionary<string, object?>?, IDisposable> Record(List<Window> made)
+    {
+        return (screen, row) =>
+        {
+            var window = new Window(screen, row);
+            made.Add(window);
+            return window;
+        };
     }
 
     /// <summary>A section with a row for the wide screen with serial 1, on <paramref name="edge"/>, and one for the tall screen.</summary>
@@ -132,13 +142,8 @@ public sealed class ScreenWindowsTests
             new Rect(0, 0, 1920, 1040), 1, 0, 0, 60, false);
     }
 
-    /// <summary>Completes after the work the shell's thread has queued so far, which holds the windows' next follow.</summary>
-    private static Task NextTurn(Shell shell)
-    {
-        var turn = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        shell.Loop.Post(turn.SetResult);
-        return turn.Task.WaitAsync(TestContext.Current.CancellationToken);
-    }
+    /// <summary>A section with no keys, made to read the file.</summary>
+    private sealed partial class Section(string name) : Preferences(name);
 
     /// <summary>What a configuration's function made for one screen, and whether it has been disposed.</summary>
     private sealed class Window(ScreenInfo screen, IReadOnlyDictionary<string, object?>? row) : IDisposable
