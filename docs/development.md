@@ -502,7 +502,7 @@ The startup tests, such as `StartupRegistryTests`, use a fake, or a key of their
 
 ### Hotkeys
 
-Tests may register an unused chord such as Ctrl+Alt+Shift+F24 and may install a keyboard hook while a Windows-key hotkey is enabled or a key sequence is in progress. Each test removes the registration and the hook before it ends. Tests do not inject keystrokes of their own or change keyboard settings. A test may run `winshell inspect`'s real input commands, which keep to the rules under [See what you changed](#see-what-you-changed). See [hotkeys](reference/winshell-input.md).
+Tests may register an unused chord such as Ctrl+Alt+Shift+F24 and may install a keyboard hook while a Windows-key hotkey is enabled or a key sequence is in progress. Each test removes the registration and the hook before it ends. Tests do not inject keystrokes of their own or change keyboard settings. The one exception is `FocusTakeoverTests`, a [windowed test](#a-windowed-test): it sends one key tap, and sets the session's foreground lock timeout and puts it back. A test may run `winshell inspect`'s real input commands, which keep to the rules under [See what you changed](#see-what-you-changed). See [hotkeys](reference/winshell-input.md).
 
 ### Checks only a live session can do
 
