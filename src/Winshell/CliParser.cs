@@ -188,6 +188,15 @@ internal static class CliParser
                                            Lists each installed widget's name, source, ref and commit.
                                          remove <name>
                                            Removes a widget, or a source, and every widget from that repository.
+                                         update [<name>] [--yes]
+                                           Fetches the recorded ref of every installed source, or of the one <name> selects.
+                                           <name> is a widget name or the source. A ref that still names the recorded
+                                           commit is up to date. Otherwise the command shows the old and new commit,
+                                           the commits between them, and the widget names that would be added or dropped,
+                                           and asks. --yes updates without asking.
+                                           Building runs this repository's code and MSBuild targets in a program that starts at sign-in.
+                                           Declining leaves that source as it is. A failed build keeps the previous commit,
+                                           and older commits stay in the cache. Needs git and the .NET SDK.
                                          --project <path>    the project in the repository that lists the widgets
                                          -c and -p choose the configuration, as they do for winshell run.
                                        """;
@@ -232,6 +241,8 @@ internal static class CliParser
                                                                               install widgets from a GitHub repository
                                           winshell widget list                list the widgets a configuration has
                                           winshell widget remove <name>       remove an installed widget
+                                          winshell widget update [<name>] [--yes]
+                                                                              move installed widgets to the ref's new commit
                                           winshell help [command]             print this summary, or that command's help
 
                                    Config selection:
@@ -308,7 +319,8 @@ internal static class CliParser
         [
             new Subcommand("install", 1, "a source", AtMost: 1),
             new Subcommand("list", AtMost: 0),
-            new Subcommand("remove", 1, "a name", AtMost: 1)
+            new Subcommand("remove", 1, "a name", AtMost: 1),
+            new Subcommand("update", AtMost: 1)
         ]),
         Entry("help", Summary, WordRule.Topic, [])
     ];
@@ -463,14 +475,22 @@ internal static class CliParser
             throw Unexpected(positional[most + 1]);
     }
 
-    /// <summary><c>--project</c> and <c>--yes</c> belong to <c>widget install</c>.</summary>
+    /// <summary><c>--project</c> belongs to <c>widget install</c>. <c>--yes</c> belongs to <c>install</c> and <c>update</c>.</summary>
     private static void CheckWidget(Line line, List<string> positional)
     {
-        if (positional[0] == "install")
+        var command = positional[0];
+        if (command == "install")
             return;
+        if (command == "update")
+        {
+            if (line.Uses.FirstOrDefault(use => use.Option == ProjectOption) is { Option: not null } project)
+                throw new ArgumentException($"winshell widget update does not take \"{project.Token}\".");
+            return;
+        }
+
         if (line.Uses.FirstOrDefault(use => use.Option == ProjectOption || use.Option == YesOption) is
             { Option: not null } stray)
-            throw new ArgumentException($"winshell widget {positional[0]} does not take \"{stray.Token}\".");
+            throw new ArgumentException($"winshell widget {command} does not take \"{stray.Token}\".");
     }
 
     /// <summary>

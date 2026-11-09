@@ -43,7 +43,7 @@ internal sealed record CliOptions
     /// <summary><c>widget install --project</c>: which project in the repository lists the widgets.</summary>
     public string? Project { get; init; }
 
-    /// <summary><c>widget install --yes</c>: install without asking. Building still runs the repository's code.</summary>
+    /// <summary><c>widget install</c> and <c>widget update</c> <c>--yes</c>: do the work without asking. Building still runs the repository's code.</summary>
     public bool Yes { get; init; }
 
     public int? Tail { get; init; }
