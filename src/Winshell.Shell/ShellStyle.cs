@@ -30,7 +30,7 @@ public sealed partial class Shell
         {
             var style = LoadStyle(value);
             field = value;
-            ShowToolTipStyle(style);
+            StyleToolTips(style);
             StyleChanged?.Invoke();
         }
     }
@@ -42,11 +42,11 @@ public sealed partial class Shell
     private void StartToolTipStyle()
     {
         Application.Current.Resources.MergedDictionaries.Add(_toolTipStyle);
-        ShowToolTipStyle(LoadStyle(null));
+        StyleToolTips(LoadStyle(null));
     }
 
     /// <summary>Gives tooltips a style's <c>ToolTip</c> entry, or WinUI's look when it has none.</summary>
-    private void ShowToolTipStyle(ResourceDictionary style)
+    private void StyleToolTips(ResourceDictionary style)
     {
         _toolTipStyle.Clear();
         if (style.TryGetValue(typeof(ToolTip), out var toolTip))

@@ -391,14 +391,14 @@ public sealed partial class InspectorTests : IDisposable
             var page = new Page();
             page.Children.Add(anchor);
             using var panel = Panel(page);
-            await ShellFixture.LaidOut(anchor);
+            await ShellFixture.LaidOut(anchor).WaitAsync(TestContext.Current.CancellationToken);
             var fill = new Border { Width = 40, Height = 20, Background = new SolidColorBrush(Colors.Red) };
             var tip = new ToolTip { Content = fill };
             ToolTipService.SetToolTip(anchor, tip);
             tip.IsOpen = true;
             try
             {
-                await ShellFixture.LaidOut(fill);
+                await ShellFixture.LaidOut(fill).WaitAsync(TestContext.Current.CancellationToken);
                 await Inspector.Run(shell, "screenshot", [file, nameof(ToolTip)]);
                 var scale = tip.XamlRoot.RasterizationScale;
                 return ((int)Math.Round(tip.ActualWidth * scale), (int)Math.Round(tip.ActualHeight * scale));

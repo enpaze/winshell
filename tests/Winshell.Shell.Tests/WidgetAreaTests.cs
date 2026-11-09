@@ -543,21 +543,33 @@ public sealed class WidgetAreaTests
             using var window = new PanelWindow { Width = 100, Height = 40, Content = area, Visible = true };
             await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
 
+            TaskCompletionSource? toggled = null;
+            tip.Opened += (_, _) => toggled?.TrySetResult();
+            tip.Closed += (_, _) => toggled?.TrySetResult();
+            async Task Toggle(bool open)
+            {
+                toggled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                tip.IsOpen = open;
+                await toggled.Task.WaitAsync(TestContext.Current.CancellationToken);
+            }
+
             async Task<(global::Windows.UI.Color Background, global::Windows.UI.Color Foreground, string Font)> Open()
             {
-                tip.IsOpen = true;
-                await Wait.UntilAsync(() => tip.ActualWidth > 0, "the tooltip to open");
+                await Toggle(true);
                 var look = (ColorOf(tip.Background), ColorOf(tip.Foreground), tip.FontFamily.Source);
-                tip.IsOpen = false;
-                await Wait.UntilAsync(() => tip.ActualWidth == 0, "the tooltip to close");
+                await Toggle(false);
                 return look;
             }
 
             try
             {
-                var theme = shell.IsDark ? "Default" : "Light";
-                Assert.Equal((WindowsColor(theme, "SolidBackgroundFillColorBase"),
-                    WindowsColor(theme, "TextFillColorPrimary"), "Segoe UI Variable Text,Segoe UI"), await Open());
+                (string, ElementTheme)[] themes = [("Light", ElementTheme.Light), ("Default", ElementTheme.Dark)];
+                foreach (var (theme, requested) in themes)
+                {
+                    tip.RequestedTheme = requested;
+                    Assert.Equal((WindowsColor(theme, "SolidBackgroundFillColorBase"),
+                        WindowsColor(theme, "TextFillColorPrimary"), "Segoe UI Variable Text,Segoe UI"), await Open());
+                }
 
                 shell.Style = other;
                 Assert.Equal((global::Windows.UI.Color.FromArgb(0xff, 0x1a, 0x1b, 0x26), Microsoft.UI.Colors.Crimson,
