@@ -70,6 +70,19 @@ public static class GuideSamples
         return (area, panel);
     }
 
+    public static (Bar Top, Bar Side) Bars()
+    {
+        var bar = new Bar
+        {
+            Edge = Edges.Top,
+            Start = ["workspaces"],
+            Center = ["clock"],
+            End = ["tray", new("message", new Dictionary<string, object> { ["text"] = "Hello" })]
+        };
+        var side = new Bar { Name = "side", Edge = Edges.Left, Reserve = false, Start = ["clock"] };
+        return (bar, side);
+    }
+
     public static void AStyle(Shell shell)
     {
         shell.Style = new Uri("ms-appx:///TokyoNight.xaml");

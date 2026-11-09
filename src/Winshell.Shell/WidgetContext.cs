@@ -6,7 +6,11 @@ namespace Winshell;
 /// <summary>One entry in a widget area. Several placements may name the same widget.</summary>
 /// <param name="Widget">The case-sensitive name registered with <see cref="Widgets.Register"/>.</param>
 /// <param name="Settings">This placement's settings, or null for no settings. Widgets should treat nested values as read-only too.</param>
-public sealed record Placement(string Widget, IReadOnlyDictionary<string, object>? Settings = null);
+public sealed record Placement(string Widget, IReadOnlyDictionary<string, object>? Settings = null)
+{
+    /// <summary>A placement of a widget with no settings, so a list of placements can name widgets as plain strings.</summary>
+    public static implicit operator Placement(string widget) => new(widget);
+}
 
 /// <summary>The placement's inputs and popup styling, passed to its widget factory on the shell's thread.</summary>
 public sealed class WidgetContext

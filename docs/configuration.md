@@ -233,6 +233,47 @@ The list replaces the area's **whole** default list, in order. `widget` names th
 
 Saving applies changes live. Each changed area disposes its old widgets and creates the new list, and other areas keep their widgets. A syntax error or a list without string `widget` names keeps the last valid list and logs the file location under `preferences`. Winshell does not migrate or merge user lists into new defaults. The old placement file, `widgets\<shell id>.toml`, is not read.
 
+### A bar on every screen
+
+A [Bar](reference/winshell.md#bar) is a panel along one edge of every screen, with three widget areas: start, center and end. Each list names widgets by the names they are registered under. A plain string is a placement with no settings:
+
+```csharp
+        var bar = new Bar
+        {
+            Edge = Edges.Top,
+            Start = ["workspaces"],
+            Center = ["clock"],
+            End = ["tray", new("message", new Dictionary<string, object> { ["text"] = "Hello" })]
+        };
+```
+
+It shows on the next turn of the loop, once its properties are set, on every screen, and follows screens as they are connected and removed, as [ScreenWindows](#one-panel-per-screen) does. `Dispose` removes it. A bar reserves its edge, so maximized windows stop short of it, and `Reserve = false` lays it over them instead. It leaves Explorer's taskbar alone: `shell.ExplorerTaskbar.Hidden = true` hides that. A bar is as thick as the [style's](#style) `ShellSlotSize`: the height of a top or bottom bar, and the width of a left or right one, whose areas run from top to bottom. `Thickness` sets another size. A bar's own `Style` wins over the shell's, as an area's does.
+
+A shell can have several bars. Each has a `Name`, `"bar"` unless given, which names its section of the [preferences file](#preferences):
+
+```csharp
+        var side = new Bar { Name = "side", Edge = Edges.Left, Reserve = false, Start = ["clock"] };
+```
+
+The section holds `edge` and the three lists, each a list of tables like a [named area's](#let-the-user-change-an-area) `widgets`. A key the file has replaces the property of the same name, and a missing file is written with the bar's own values commented out. A `[[bar.screen]]` row, matched as `ScreenWindows` matches it, may change any of the four keys for one screen:
+
+```toml
+[bar]
+edge = "top"
+end = [{ widget = "tray" }, { widget = "message", text = "Hello" }]
+
+[[bar.screen]]
+manufacturer = "DEL"
+model = "DELL U2720Q"
+serial = "ABC123"
+edge = "left"
+end = []
+```
+
+Saving applies it live. A changed row replaces that screen's bar, and the other screens keep theirs. A changed section replaces the bar on every screen, which starts its widgets again. A value in the section that can't be used is logged under `preferences` with its line, and the bar keeps the one it had. One in a row is logged under the bar's name, and that screen uses the section's.
+
+`Bar` uses only the public API a configuration has, and a test holds it to that, so [its source](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/Compositions/Bar.cs) is a start for a dock, a sidebar or a bar of your own.
+
 ### Style
 
 The style is how every widget area and styled popup looks: its colors, font and slot size. With none set, the built-in style follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` once to a `ResourceDictionary` file to give the whole shell another look:
