@@ -12,7 +12,7 @@ When the documentation and existing code conflict, follow the code's conventions
 
 1. Run `git fetch origin main` and `git rev-list --left-right --count HEAD...origin/main`. A second count above 0 means this checkout, and this file, are behind `main`: update the base as [Start a task](docs/development.md#start-a-task) describes before you edit or rely on them.
 2. Install the agent skills with `pwsh scripts/install-skills.ps1`, and use the installed copies.
-3. One task is one issue, one worktree, one branch and one small PR. If the task has no issue, file one with the Agent task form in `.github/ISSUE_TEMPLATE/agent_task.yml` and its `area:*` labels.
+3. One task is one thread, one issue, one worktree, one branch and one small PR. If the task has no issue, file one with the Agent task form in `.github/ISSUE_TEMPLATE/agent_task.yml` and its `area:*` labels.
 4. Many agents work here at once: check `gh pr list --json number,headRefName,files`, and keep your files apart from other open PRs outside your own stack.
 
 ## Stack
