@@ -21,7 +21,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     private readonly long _nameChanged;
     private ShellStyle? _style;
     private ResourceDictionary? _styleResources;
-    private readonly List<WidgetContext> _contexts = [];
+    private readonly List<ShownWidget> _shown = [];
     private bool _disposed;
 
     internal event Action? StyleChanged;
@@ -36,7 +36,10 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         _nameChanged = RegisterPropertyChangedCallback(NameProperty, (_, _) => FollowName());
     }
 
-    /// <summary>The layout direction. Changing it disposes and recreates the placements with the new orientation.</summary>
+    /// <summary>
+    /// The layout direction. Changing it gives each placement the new orientation. A plain control is disposed and made
+    /// again. A component renders again with the new props.
+    /// </summary>
     public Orientation Orientation
     {
         get => _panel.Orientation;
@@ -51,9 +54,10 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     }
 
     /// <summary>
-    /// The author's ordered placements. Assigning a list snapshots it, disposes the previous widgets, and creates the
-    /// new ones immediately unless the preferences file has a list for this area's Name. To apply edits, assign the
-    /// list again. Settings are passed through without copying.
+    /// The author's ordered placements. Assigning a list snapshots it. A plain control is disposed and made again, and
+    /// a component whose name stays is rendered again with the new props. A different list of names disposes the
+    /// previous widgets and creates the new ones. This happens immediately unless the preferences file has a list for
+    /// this area's Name. To apply edits, assign the list again. Settings are passed through without copying.
     /// </summary>
     public IReadOnlyList<Placement> Defaults
     {
@@ -133,41 +137,98 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         Rebuild();
     }
 
-    /// <summary>Disposes the widgets and makes them again from the placements. A disposed area makes none.</summary>
+    /// <summary>
+    /// Shows the placements. A component whose name stays is rendered again with the new props. A plain control is
+    /// disposed and made again. A disposed area makes none.
+    /// </summary>
     internal void Rebuild()
     {
         if (_disposed)
             return;
-        ClearWidgets();
-        foreach (var placement in _override ?? _defaults)
+        var placements = (_override ?? _defaults).ToArray();
+        if (_shown.Count == placements.Length &&
+            _shown.Zip(placements).All(pair => pair.First.Name == pair.Second.Widget))
         {
-            var context = new WidgetContext(Shell.Current, this,
-                placement.Settings ?? ReadOnlyDictionary<string, object>.Empty);
-            UIElement widget;
-            try
-            {
-                widget = Widgets.Create(placement.Widget, context);
-                _contexts.Add(context);
-            }
-            catch (Exception e) when (e is not OutOfMemoryException)
-            {
-                context.StopStyling();
-                Shell.Current.Log.Error("widgets", $"Could not create {placement.Widget} in area '{Name}': {e}");
-                widget = new TextBlock { Text = $"{placement.Widget}: {e.Message}" };
-            }
+            for (var i = 0; i < placements.Length; i++)
+                UpdateShown(i, placements[i]);
+            return;
+        }
 
-            _panel.Children.Add(widget);
+        ClearWidgets();
+        foreach (var placement in placements)
+        {
+            var shown = Make(placement);
+            _panel.Children.Add(shown.Control);
+            _shown.Add(shown);
         }
     }
 
+    /// <summary>Renders a component again, or replaces a plain control, at one index.</summary>
+    private void UpdateShown(int index, Placement placement)
+    {
+        var shown = _shown[index];
+        if (shown.TryShowAgain(SettingsOf(placement), Orientation, Name))
+            return;
+
+        shown.Context.StopStyling();
+        _panel.Children.RemoveAt(index);
+        if (shown.Control is IDisposable disposable)
+            Shell.DisposeEach([disposable]);
+        var created = Make(placement);
+        _panel.Children.Insert(index, created.Control);
+        _shown[index] = created;
+    }
+
+    private ShownWidget Make(Placement placement)
+    {
+        var context = new WidgetContext(Shell.Current, this, SettingsOf(placement));
+        UIElement widget;
+        try
+        {
+            widget = Widgets.Create(placement.Widget, context, Name);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            context.StopStyling();
+            Shell.Current.Log.Error("widgets", $"Could not create {placement.Widget} in area '{Name}': {e}");
+            widget = new TextBlock { Text = $"{placement.Widget}: {e.Message}" };
+        }
+
+        return new ShownWidget(placement.Widget, context, widget);
+    }
+
+    private static IReadOnlyDictionary<string, object> SettingsOf(Placement placement) =>
+        placement.Settings ?? ReadOnlyDictionary<string, object>.Empty;
+
     private void ClearWidgets()
     {
-        foreach (var context in _contexts)
-            context.StopStyling();
-        _contexts.Clear();
+        foreach (var shown in _shown)
+            shown.Context.StopStyling();
+        _shown.Clear();
         var widgets = _panel.Children.OfType<IDisposable>().ToArray();
         _panel.Children.Clear();
         Shell.DisposeEach(widgets);
+    }
+
+    /// <summary>One placement currently on screen. A component renders again; a plain control is made again.</summary>
+    private sealed class ShownWidget(string name, WidgetContext context, UIElement control)
+    {
+        public string Name { get; } = name;
+
+        public WidgetContext Context { get; private set; } = context;
+
+        public UIElement Control { get; } = control;
+
+        /// <summary>Renders a component again. Returns false when the area must make a new plain control.</summary>
+        public bool TryShowAgain(IReadOnlyDictionary<string, object> settings, Orientation orientation, string area)
+        {
+            if (Control is not ComponentWidgetHost host)
+                return false;
+            var next = Context.Next(settings, orientation);
+            Context = next;
+            host.Show(next, area);
+            return true;
+        }
     }
 
     /// <summary>Detaches and disposes every disposable widget, once. All are attempted even if one disposal throws.</summary>
