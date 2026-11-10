@@ -11,27 +11,29 @@ public sealed class ScreenWidget : Component<WidgetContext>
 {
     public override Element Render()
     {
-        var observe = UseRef(new Observe());
-        _ = UseObservable(observe.Current);
-        var screens = UseObservable(Props.Shell.Screens);
         var (window, setWindow) = UseState<ShellWindow?>(null);
         if (window is null)
             return LoadedWindow.Placeholder(setWindow);
+        return Component<Glyph, GlyphProps>(new(window, Props));
+    }
 
-        var screen = window.Screen;
-        var observers = new Element[]
+    private sealed record GlyphProps(ShellWindow Window, WidgetContext Context);
+
+    /// <summary>The glyph, once the bar's window is known. The window says which screen this bar is on.</summary>
+    private sealed class Glyph : Component<GlyphProps>
+    {
+        public override Element Render()
         {
-            Observe.Of(window, observe.Current, "window", () =>
-            {
-                var shown = window.Screen;
-                return shown is null ? "" : shown.Id + "\n" + shown.Model + "\n" + shown.Name;
-            })
-        };
-        var tip = screen is null ? "" : screen.Model.Length > 0 ? screen.Model : screen.Name;
-        var button = Button(screens.Count > 1 ? Glyphs.Screens : Glyphs.Screen, () => Props.Shell.Open("ms-settings:display"))
-            .ToolTip(tip)
-            .AutomationName(tip)
-            .IsVisible(screen is not null);
-        return Observe.Show(button, HorizontalAlignment.Left, observers);
+            var window = UseObservable(Props.Window);
+            var screens = UseObservable(Props.Context.Shell.Screens);
+            var screen = window.Screen;
+            var tip = screen is null ? "" : screen.Model.Length > 0 ? screen.Model : screen.Name;
+            return Button(screens.Count > 1 ? Glyphs.Screens : Glyphs.Screen,
+                    () => Props.Context.Shell.Open("ms-settings:display"))
+                .ToolTip(tip)
+                .AutomationName(tip)
+                .IsVisible(screen is not null)
+                .HAlign(HorizontalAlignment.Left);
+        }
     }
 }
