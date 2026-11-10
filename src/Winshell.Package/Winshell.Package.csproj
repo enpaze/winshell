@@ -9,6 +9,8 @@
     <RepositoryType>git</RepositoryType>
     <Copyright>Copyright (c) 2026 Dante Sparrås</Copyright>
     <!-- The project's own assembly is a marker. The package carries the libraries referenced below. -->
+    <!-- Reactor ships only previews, and ADR 0005 pins one. A stable Winshell may depend on it. -->
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
   </PropertyGroup>
 
   <!-- What a configuration's project restores. WinUI is these two packages, self-contained in that project. -->
