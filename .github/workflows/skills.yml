@@ -38,10 +38,15 @@ jobs:
           BRANCH: build/update-skills
           TITLE: "build(skills): take the newer skill versions"
         run: |
+          if [[ ! -f "$RUNNER_TEMP/body.md" ]]; then
+            echo "No skill has a newer version."
+            exit 0
+          fi
           # skills update also links each skill into .claude/skills, which stays out of the commit.
           git add -- .agents/skills skills-lock.json
-          if git diff --cached --quiet; then
-            echo "No skill has a newer version."
+          if git rev-parse --quiet --verify "origin/$BRANCH" > /dev/null &&
+            git diff --cached --quiet "origin/$BRANCH" -- .agents/skills skills-lock.json; then
+            echo "$BRANCH already holds these versions."
             exit 0
           fi
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \

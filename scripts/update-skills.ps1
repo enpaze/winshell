@@ -5,10 +5,7 @@
 #   pwsh scripts/update-skills.ps1 -BodyPath <file>
 #
 # It writes no body when no skill changed. Needs gh signed in, npx, and the history of skills-lock.json.
-param(
-    [Parameter(Mandatory)][string] $BodyPath,
-    [int] $CooldownDays = 7
-)
+param([Parameter(Mandatory)][string] $BodyPath)
 
 $ErrorActionPreference = 'Stop'
 $BodyPath = [IO.Path]::GetFullPath($BodyPath)
@@ -16,14 +13,14 @@ Set-Location (Join-Path $PSScriptRoot '..')
 
 # The committed lock, so a second run compares with the same versions as the first.
 $lock = (git show HEAD:skills-lock.json | ConvertFrom-Json -AsHashtable).skills
-$cutoff = [DateTimeOffset]::UtcNow.AddDays(-$CooldownDays)
+$cutoff = [DateTimeOffset]::UtcNow.AddDays(-7)
 
 # Wait a week, as dependabot.yml does, so a compromised commit is usually caught first.
 $names = foreach ($source in $lock.Values.source | Sort-Object -Unique) {
     $newest = [DateTimeOffset] (gh api "repos/$source/commits?per_page=1" --jq '.[0].commit.committer.date')
     if ($LASTEXITCODE) { throw "gh could not read the commits of $source." }
     if ($newest -gt $cutoff) {
-        Write-Host "Leaving $source alone: its newest commit, from $($newest.ToString('u')), is younger than $CooldownDays days."
+        Write-Host "Leaving $source alone: its newest commit, from $($newest.ToString('u')), is younger than 7 days."
         continue
     }
     $lock.Keys | Where-Object { $lock[$_].source -eq $source } | Sort-Object
@@ -33,8 +30,8 @@ if (-not $names) { return }
 npx -y skills@1.7.6 update @names -p -y | Out-Host
 if ($LASTEXITCODE) { throw "skills update failed with exit code $LASTEXITCODE." }
 
-$changed = git status --porcelain --untracked-files=all -- .agents/skills |
-    ForEach-Object { ($_.Substring(3) -split '/')[2] } | Sort-Object -Unique
+$updated = (Get-Content -Raw -LiteralPath skills-lock.json | ConvertFrom-Json -AsHashtable).skills
+$changed = $lock.Keys | Where-Object { $updated[$_].computedHash -ne $lock[$_].computedHash } | Sort-Object
 if (-not $changed) { return }
 
 $body = @(
@@ -54,9 +51,8 @@ $body = @(
         ''
         foreach ($commit in $commits) {
             $sha, $subject = $commit -split ' ', 2
-            # Point issue numbers at the source, and keep mentions from notifying anyone.
-            $subject = $subject -replace '(?<![\w/])#(\d+)', "$($skill.source)#`$1" -replace '(?<![\w`])@([\w-]+)', '`@$1`'
-            "- $($skill.source)@$sha $subject"
+            # A code span links no issue and notifies no one it mentions, here or in the source.
+            "- $($skill.source)@$sha ``$($subject -replace '`', "'")``"
         }
     }
 )
