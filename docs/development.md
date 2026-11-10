@@ -66,7 +66,7 @@ The repo's skills are committed in `.agents/skills`, one folder each, so a clone
 claude --plugin-dir .agents
 ```
 
-It lists each one as `.agents:<name>`, and it answers to its bare name, `/<name>` and the Skill tool both.
+It lists each one as `.agents:<name>`, and it answers to its bare name, `/<name>` and the Skill tool both. `--plugin-dir` takes every argument after it that is not an option, so put a prompt before it: `claude -p "<prompt>" --plugin-dir .agents`.
 
 The committed files are the pin: a skill changes only when a PR changes it. To check for a newer version, and to take one:
 
@@ -76,7 +76,7 @@ npx -y skills@1.7.4 update -p
 
 It writes each newer version into `.agents/skills` and its hash into the lock, and links the skills into `.claude/skills`, which Git ignores. Read `git diff`, keep the skills you take for a PR, and `git restore` the rest.
 
-An earlier install left copies Git now tracks or no longer needs. To delete them, `.claude/skills` and any skill folder the lock no longer records, list them, then delete them:
+A checkout that ran the old install script keeps what it wrote that the repo does not track: `.claude/skills`, and any skill folder in `.agents/skills` the lock no longer records. To list them, then delete them:
 
 ```sh
 git clean -ndx -- .agents/skills .claude/skills
