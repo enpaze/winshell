@@ -357,7 +357,7 @@ The `changes` job selects checks for PRs and pushes to `main`:
 - `quality` always checks the links of every Markdown file. Prose-only changes stop there.
 - Compiled documentation changes run only `DocsTests`.
 - Other changes run file-only formatting and PowerShell suites alongside five .NET suite shards, which build their own projects.
-- Non-Markdown files under `docs/samples/` count as code. Documentation-only changes skip the shards.
+- Non-Markdown files under `docs/samples/` count as code. Prose-only changes skip the shards.
 - A newer push cancels the superseded CI run on the same branch, including `main` and manual runs.
 - `gh workflow run ci.yml --ref <branch>` runs every check by hand.
 
@@ -368,7 +368,7 @@ The `changes` job selects checks for PRs and pushes to `main`:
 | Job | When it runs | How to run it locally |
 | --- | --- | --- |
 | `installer` | PRs and pushes to `main` that change `scripts/`, `tests/Scripts/` or workflows/actions. | Windows PowerShell 5.1 runs `tests/Scripts/Install.Tests.ps1` with Pester 5.6.1 against temporary profiles and releases served on loopback. PowerShell 7 tooling suites run once in `quality`. |
-| `tests (1/5)` through `tests (5/5)` | Non-draft PRs and pushes to `main` that change more than docs or Markdown, in `ci.yml`. Results feed the one required `ci` check. | `pwsh scripts/check.ps1` for the tests that open no windows, and [A windowed test](#a-windowed-test) for the rest. See [Test shards](#test-shards). |
+| `tests (1/5)` through `tests (5/5)` | Non-draft PRs and pushes to `main` that change more than prose, in `ci.yml`. Results feed the one required `ci` check. | `pwsh scripts/check.ps1` for the tests that open no windows, and [A windowed test](#a-windowed-test) for the rest. See [Test shards](#test-shards). |
 | `close-fixed-issues` | Every merged pull request, in `close-fixed-issues.yml`. Not required. | Nothing to run. Once the merge commit is on `main`, it closes each issue the pull request fixes that GitHub left open, with a comment naming the pull request. |
 | `pr-size` | Every pull request, from `pr-size.yml` on the base branch. Not required. | Nothing to run. It labels the pull request `size:XS` to `size:XL`, as "PR description" in `CONTRIBUTING.md` says. |
 | `trim-caches` | Every push to `main`, after `ci`, in `ci.yml` | Nothing to run. It deletes all but the two newest CodeQL databases of each language from the Actions cache, which would otherwise pass the 10 GB GitHub keeps. |
