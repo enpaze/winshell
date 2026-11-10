@@ -30,7 +30,7 @@ Every new or changed test passes the authoring gate of the `test-audit` skill, w
 
 - **A windowed test** shows a window on the desktop, takes the foreground, sends real input, or hides Explorer's taskbar. It carries `[Trait("Category", "Window")]`, so the full check leaves it out. See [A windowed test](docs/development.md#a-windowed-test).
 - **A regression test goes red before the fix** for the intended reason, and green after it. Say so in the PR, or say why you couldn't show it.
-- **A changed test keeps every assertion it had**, or the PR names the cheaper test that proves what was dropped, and the reviewer opens that test.
+- **A changed or moved test keeps every assertion it had, and a change that keeps behavior keeps its tests**, or the PR names the cheaper test that proves what was dropped, and the reviewer opens that test.
 - **One bug gets one test**, at its owner, however many layers it crossed.
 - **No seams for tests alone.** A test needs no `internal` member, constructor overload, flag or hook that production code doesn't use.
 - **Keep these tests even when they are static or slow:** the public API of the `Winshell` package, the control pipe protocol, CLI output and exit codes, TOML and other files on disk, security guards, platform behavior, defaults, generated templates, the package, the release scripts, and observable ordering.
