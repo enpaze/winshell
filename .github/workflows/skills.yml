@@ -42,10 +42,10 @@ jobs:
             echo "No skill has a newer version."
             exit 0
           fi
-          # skills update also links each skill into .claude/skills, which stays out of the commit.
-          git add -- .agents/skills skills-lock.json
+          # The lock marks each skill installMode copy, so skills update writes the same files into both folders.
+          git add -- .agents/skills .claude/skills skills-lock.json
           if git rev-parse --quiet --verify "origin/$BRANCH" > /dev/null &&
-            git diff --cached --quiet "origin/$BRANCH" -- .agents/skills skills-lock.json; then
+            git diff --cached --quiet "origin/$BRANCH" -- .agents/skills .claude/skills skills-lock.json; then
             echo "$BRANCH already holds these versions."
             exit 0
           fi

@@ -15,10 +15,21 @@ Describe 'The workflows' {
         $package | Should -Not -Match '--token'
     }
 
-    It 'commit only the skills and their lock in a skills update, and never merge it' {
+    It 'commit only the two skills folders and their lock in a skills update, and never merge it' {
         $skills = Get-Content -Raw -LiteralPath ($script:Workflows | Where-Object Name -EQ 'skills.yml').FullName
-        $skills | Should -Match ([regex]::Escape('git add -- .agents/skills skills-lock.json'))
-        $skills | Should -Not -Match '(?m)git add (?!-- \.agents/skills skills-lock\.json$)'
+        $skills | Should -Match ([regex]::Escape('git add -- .agents/skills .claude/skills skills-lock.json'))
+        $skills | Should -Not -Match '(?m)git add (?!-- \.agents/skills \.claude/skills skills-lock\.json$)'
+        $skills | Should -Match ([regex]::Escape('git diff --cached --quiet "origin/$BRANCH" -- .agents/skills .claude/skills skills-lock.json'))
         $skills | Should -Not -Match 'gh pr merge|--auto|commit -a'
+    }
+
+    It 'fail the required ci check when .claude/skills is not a copy of .agents/skills' {
+        $ci = Get-Content -Raw -LiteralPath ($script:Workflows | Where-Object Name -EQ 'ci.yml').FullName
+        $ci | Should -Match ([regex]::Escape('git diff --no-index --exit-code .agents/skills .claude/skills'))
+    }
+
+    It 'have skills update write every skill into both folders as files, not links' {
+        $lock = (Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../skills-lock.json') | ConvertFrom-Json -AsHashtable).skills
+        $lock.Keys | Where-Object { $lock[$_].installMode -ne 'copy' } | Should -BeNullOrEmpty
     }
 }
