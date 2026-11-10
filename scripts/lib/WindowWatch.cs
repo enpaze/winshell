@@ -1,4 +1,5 @@
-// Loaded by Tests.ps1. Names each visible top-level window that a process descended from Root shows while it watches.
+// Loaded by Tests.ps1. Names each visible top-level window that a process descended from rootProcessId shows, or
+// uncloaks, while it watches. A window that closes before its event is handled, within milliseconds, escapes it.
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,38 +10,47 @@ using System.Threading;
 public sealed class WinshellWindowWatch
 {
     const uint EventObjectShow = 0x8002;
+    const uint EventObjectUncloaked = 0x8018;
     const uint OutOfContextSkipOwnProcess = 0x0002;
     const uint WmQuit = 0x0012;
     const uint GaParent = 1;
     const int DwmwaCloaked = 14;
+    const uint Th32csSnapProcess = 2;
+    // Far deeper than dotnet test, its test host and a process a test starts; stops a loop of reused process ids.
+    const int MaxDepth = 64;
 
     delegate void WinEventProc(IntPtr hook, uint evt, IntPtr hwnd, int idObject, int idChild, uint thread, uint time);
 
-    readonly int root;
+    readonly int rootProcessId;
     readonly List<string> windows = new List<string>();
     readonly HashSet<IntPtr> seen = new HashSet<IntPtr>();
     readonly WinEventProc proc;
     readonly Thread thread;
     readonly ManualResetEventSlim hooked = new ManualResetEventSlim();
     uint threadId;
+    bool failed;
 
-    public WinshellWindowWatch(int root)
+    public WinshellWindowWatch(int rootProcessId)
     {
-        this.root = root;
+        this.rootProcessId = rootProcessId;
         proc = OnShow;
         // An out-of-context hook calls back on the thread that set it, from that thread's message loop.
         thread = new Thread(() =>
         {
             threadId = GetCurrentThreadId();
-            IntPtr hook = SetWinEventHook(EventObjectShow, EventObjectShow, IntPtr.Zero, proc, 0, 0, OutOfContextSkipOwnProcess);
+            IntPtr show = SetWinEventHook(EventObjectShow, EventObjectShow, IntPtr.Zero, proc, 0, 0, OutOfContextSkipOwnProcess);
+            IntPtr uncloak = SetWinEventHook(EventObjectUncloaked, EventObjectUncloaked, IntPtr.Zero, proc, 0, 0, OutOfContextSkipOwnProcess);
+            failed = show == IntPtr.Zero || uncloak == IntPtr.Zero;
             hooked.Set();
             MSG msg;
-            while (GetMessage(out msg, IntPtr.Zero, 0, 0) > 0) { }
-            UnhookWinEvent(hook);
+            while (!failed && GetMessage(out msg, IntPtr.Zero, 0, 0) > 0) { }
+            UnhookWinEvent(show);
+            UnhookWinEvent(uncloak);
         });
         thread.IsBackground = true;
         thread.Start();
         hooked.Wait();
+        if (failed) { thread.Join(); throw new InvalidOperationException("Could not watch for windows: SetWinEventHook failed."); }
     }
 
     public string[] Stop()
@@ -68,11 +78,11 @@ public sealed class WinshellWindowWatch
         windows.Add(string.Format("\"{0}\" (class {1}, process {2} {3})", title, className, name, pid));
     }
 
-    // Walks the window's process up through its parents to Root. A process whose parent has exited ends the walk.
+    // Walks the window's process up through its parents to rootProcessId. A process whose parent has exited ends the walk.
     bool Descends(int pid)
     {
         var parents = new Dictionary<int, int>();
-        IntPtr snapshot = CreateToolhelp32Snapshot(2, 0);
+        IntPtr snapshot = CreateToolhelp32Snapshot(Th32csSnapProcess, 0);
         try
         {
             var entry = new PROCESSENTRY32W { dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32W)) };
@@ -82,9 +92,9 @@ public sealed class WinshellWindowWatch
             }
         }
         finally { CloseHandle(snapshot); }
-        for (int depth = 0; depth < 64 && pid != 0; depth++)
+        for (int depth = 0; depth < MaxDepth && pid != 0; depth++)
         {
-            if (pid == root) return true;
+            if (pid == rootProcessId) return true;
             if (!parents.TryGetValue(pid, out pid)) return false;
         }
         return false;

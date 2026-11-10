@@ -215,83 +215,104 @@ Describe 'Running the suite' {
         Should -Invoke Write-Host -ParameterFilter { $Object -match '-- xUnit\.Seed=7' }
         Should -Invoke Write-Host -Times 0 -ParameterFilter { $Object -match 'check\.ps1' }
     }
-}
 
-Describe 'Watching for windows' {
-    BeforeAll {
-        # A program that shows a window, or makes a hidden, a message-only and a cloaked one, then waits. Each is a 1x1
-        # tool window off screen that never takes the foreground, so a run of this suite shows nothing on the desktop.
-        $script:Program = Join-Path $TestDrive 'window.ps1'
-        Set-Content -LiteralPath $script:Program -Value @'
-param([ValidateSet('Shown', 'Unseen')][string] $Kind)
+    Context 'watching for windows' {
+        BeforeAll {
+            # A program that shows a window, makes a hidden, a message-only and a cloaked one, or shows one cloaked and
+            # then uncloaks it. Each is a 1x1 tool window off screen that never takes the foreground, so a run of this
+            # suite shows nothing on the desktop. It writes the Signal file once done, and waits to be stopped.
+            $script:Program = Join-Path $TestDrive 'window.ps1'
+            Set-Content -LiteralPath $script:Program -Value @'
+param([ValidateSet('Shown', 'Unseen', 'Uncloaked')][string] $Kind, [string] $Signal)
 Add-Type -Namespace Probe -Name Native -MemberDefinition @"
 [DllImport("user32.dll", CharSet = CharSet.Unicode)]
 public static extern IntPtr CreateWindowExW(int exStyle, string className, string title, int style, int x, int y, int width, int height, IntPtr parent, IntPtr menu, IntPtr instance, IntPtr param);
 [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hwnd, int command);
 [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 "@
-function New-Window([string] $Title, [IntPtr] $Parent = [IntPtr]::Zero) {
-    # WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, WS_POPUP
-    [Probe.Native]::CreateWindowExW(0x08000080, 'STATIC', $Title, [int]::MinValue, -32000, -32000, 1, 1, $Parent, 0, 0, 0)
-}
+$toolNoActivate = 0x08000080
+$popup = [int]::MinValue
+$messageParent = [IntPtr] -3
 $showNoActivate = 4
-if ($Kind -eq 'Shown') {
-    [Probe.Native]::ShowWindow((New-Window 'Probe window'), $showNoActivate) | Out-Null
+$dwmCloak = 13
+function New-Window([string] $Title, [IntPtr] $Parent = [IntPtr]::Zero) {
+    [Probe.Native]::CreateWindowExW($toolNoActivate, 'STATIC', $Title, $popup, -32000, -32000, 1, 1, $Parent, 0, 0, 0)
 }
-else {
-    New-Window 'Hidden probe' | Out-Null
-    [Probe.Native]::ShowWindow((New-Window 'Message-only probe' ([IntPtr] -3)), $showNoActivate) | Out-Null
-    $cloaked = New-Window 'Cloaked probe'
-    $cloak = 1
-    [Probe.Native]::DwmSetWindowAttribute($cloaked, 13, [ref] $cloak, 4) | Out-Null
-    [Probe.Native]::ShowWindow($cloaked, $showNoActivate) | Out-Null
+function Set-Cloak([IntPtr] $Window, [int] $On) { [Probe.Native]::DwmSetWindowAttribute($Window, $dwmCloak, [ref] $On, 4) | Out-Null }
+switch ($Kind) {
+    'Shown' { [Probe.Native]::ShowWindow((New-Window 'Probe window'), $showNoActivate) | Out-Null }
+    'Unseen' {
+        New-Window 'Hidden probe' | Out-Null
+        [Probe.Native]::ShowWindow((New-Window 'Message-only probe' $messageParent), $showNoActivate) | Out-Null
+        $cloaked = New-Window 'Cloaked probe'
+        Set-Cloak $cloaked 1
+        [Probe.Native]::ShowWindow($cloaked, $showNoActivate) | Out-Null
+    }
+    'Uncloaked' {
+        $window = New-Window 'Probe window'
+        Set-Cloak $window 1
+        [Probe.Native]::ShowWindow($window, $showNoActivate) | Out-Null
+        Set-Cloak $window 0
+    }
 }
-Start-Sleep -Milliseconds 500
+New-Item -ItemType File -Path $Signal | Out-Null
+Start-Sleep -Seconds 120
 '@
-        # A solution of one test project, whose run writes one passing result.
-        function Set-OneProject([string] $Root) {
-            Set-Content -LiteralPath (Join-Path $Root 'winshell.slnx') -Value '<Solution><Project Path="tests/T1.Tests/T1.Tests.csproj" /></Solution>'
+            # Starts the program and returns once it has made its windows. The test stops it.
+            function Start-Program([string] $Kind) {
+                $signal = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+                $script:Started += @(Start-Process pwsh -NoNewWindow -PassThru -ArgumentList '-NoProfile', '-File', $script:Program, '-Kind', $Kind, '-Signal', $signal)
+                Wait-File $signal
+            }
+            function Wait-File([string] $Path) {
+                $deadline = [DateTime]::UtcNow.AddSeconds(60)
+                while (-not (Test-Path -LiteralPath $Path)) {
+                    if ([DateTime]::UtcNow -gt $deadline) { throw "$Path never appeared." }
+                    Start-Sleep -Milliseconds 50
+                }
+            }
         }
-        $script:RealRoot = $script:Root
-        $script:Root = $TestDrive
-        Set-OneProject $TestDrive
-    }
 
-    AfterAll { $script:Root = $script:RealRoot }
-
-    BeforeEach {
-        Mock Write-Host { }
-        Mock Invoke-DotnetTest {
-            pwsh -NoProfile -File $script:Program -Kind $script:Kind
-            Write-Trx -Directory $ResultsDirectory -Rows @('Ns.Class.Good=Passed')
-            0
+        BeforeEach {
+            Mock Write-Host { }
+            $script:Started = @()
+            Mock Invoke-DotnetTest {
+                Start-Program $script:Kind
+                Write-Trx -Directory $ResultsDirectory -Rows @('Ns.Class.Good=Passed')
+                0
+            }
         }
-    }
 
-    It 'fails a local run whose test showed a window, naming the test project and the window' {
-        $script:Kind = 'Shown'
-        Invoke-TestRun | Should -Be 1
-        Should -Invoke Write-Host -ParameterFilter { $Object -match '^T1\.Tests showed a window: "Probe window" .*Category.*Window' }
-    }
+        AfterEach { $script:Started | Stop-Process -Force -ErrorAction SilentlyContinue }
 
-    It 'passes a local run whose test made only hidden, message-only and cloaked windows' {
-        $script:Kind = 'Unseen'
-        Invoke-TestRun | Should -Be 0
-        Should -Invoke Write-Host -Times 0 -ParameterFilter { $Object -match 'showed a window' }
-    }
+        It 'fails a local run whose test <Did> a window, naming the test project and the window' -ForEach @(
+            @{ Did = 'showed'; Kind = 'Shown' }
+            @{ Did = 'uncloaked'; Kind = 'Uncloaked' }
+        ) {
+            $script:Kind = $Kind
+            Invoke-TestRun | Should -Be 1
+            Should -Invoke Write-Host -ParameterFilter { $Object -match '^T1\.Tests showed a window: "Probe window" .*Category.*Window' }
+        }
 
-    # CI's shards run the windowed tests.
-    It 'passes a shard whose test showed a window' {
-        $script:Kind = 'Shown'
-        Invoke-TestRun -Shard 4 | Should -Be 0
-    }
+        It 'passes a local run whose test made only hidden, message-only and cloaked windows' {
+            $script:Kind = 'Unseen'
+            Invoke-TestRun | Should -Be 0
+            Should -Invoke Write-Host -Times 0 -ParameterFilter { $Object -match 'showed a window' }
+        }
 
-    It 'passes a local run while a program it did not start shows a window' {
-        $signals = Join-Path $TestDrive 'signals'
-        New-Item -ItemType Directory -Path $signals | Out-Null
-        # The run is a process of its own, so this test's process is no part of it.
-        $job = Join-Path $TestDrive 'run.ps1'
-        Set-Content -LiteralPath $job -Value @'
+        # CI's shards run the windowed tests.
+        It 'passes a shard whose test showed a window' {
+            $script:Kind = 'Shown'
+            Invoke-TestRun -Shard 4 | Should -Be 0
+        }
+
+        It 'passes a local run while a program it did not start shows a window' {
+            $signals = Join-Path $TestDrive 'signals'
+            New-Item -ItemType Directory -Path $signals | Out-Null
+            Write-Trx -Directory $signals -Rows @('Ns.Class.Good=Passed')
+            # The run is a process of its own, so this test's process, and the program it starts, are no part of it.
+            $job = Join-Path $TestDrive 'run.ps1'
+            Set-Content -LiteralPath $job -Value @'
 param($tests, $folder, $signals)
 . $tests
 $script:Root = $folder
@@ -305,16 +326,15 @@ function Invoke-DotnetTest([string] $Project, [string] $Filter, [string] $Result
 }
 Invoke-TestRun 6>$null
 '@
-        $run = Start-Job -FilePath $job -ArgumentList (Resolve-Path (Join-Path $PSScriptRoot '../../scripts/lib/Tests.ps1')).Path, $TestDrive, $signals
-        try {
-            Write-Trx -Directory $signals -Rows @('Ns.Class.Good=Passed')
-            $deadline = [DateTime]::UtcNow.AddSeconds(60)
-            while (-not (Test-Path (Join-Path $signals 'watching')) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 50 }
-            pwsh -NoProfile -File $script:Program -Kind Shown
-            New-Item -ItemType File -Path (Join-Path $signals 'shown') | Out-Null
-            $run | Wait-Job -Timeout 60 | Receive-Job | Select-Object -Last 1 | Should -Be 0
+            $run = Start-Job -FilePath $job -ArgumentList (Resolve-Path (Join-Path $PSScriptRoot '../../scripts/lib/Tests.ps1')).Path, $TestDrive, $signals
+            try {
+                Wait-File (Join-Path $signals 'watching')
+                Start-Program 'Shown'
+                New-Item -ItemType File -Path (Join-Path $signals 'shown') | Out-Null
+                $run | Wait-Job -Timeout 60 | Receive-Job | Select-Object -Last 1 | Should -Be 0
+            }
+            finally { $run | Remove-Job -Force }
         }
-        finally { $run | Remove-Job -Force }
     }
 }
 

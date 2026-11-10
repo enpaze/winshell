@@ -117,7 +117,7 @@ After the merge, confirm each layer's issue is closed with `gh issue view <issue
 
 `scripts/format.ps1` runs `dotnet format whitespace --folder`: folder mode, without loading projects, restoring packages or building. It requires Git, .NET and PowerShell 7.
 
-- Git supplies the existing tracked and untracked C# files under `src/`, `tests/`, `examples/`, `templates/` and `docs/samples/`, plus `scripts/generate-reference.cs`. Ignored build outputs are excluded.
+- Git supplies the existing tracked and untracked C# files under `src/`, `tests/`, `examples/`, `templates/` and `docs/samples/`, plus `scripts/generate-reference.cs` and the C# under `scripts/lib/`. Ignored build outputs are excluded.
 - Other standalone C# scripts are not formatted.
 - Verification leaves source files, project references and the Git index unchanged. It fails on formatting drift or tool errors.
 
@@ -266,7 +266,7 @@ It opens no windows, so any number of agents can run it at once, one per worktre
 
 - Missing Pester 5.6.1 fails with an installation command; it is never silently skipped or downloaded.
 - A run fails when a test fails, no test ran, or a test project wrote no results.
-- A run fails when a process it started shows a visible top-level window, and names the test project and the window. Give the test that shows it the category `Window`. A hidden, cloaked or message-only window doesn't count, and neither does a window of a program the check didn't start. `-Tier Docs` and `-Tier Package` don't watch.
+- A run fails when a process its .NET tests started shows a visible top-level window, and names the test project and the window. Give the test that shows it the category `Window`. A hidden, cloaked or message-only window doesn't count, and neither does a window of a program the check didn't start. A window that closes within milliseconds can escape it. `-Tier Docs` and `-Tier Package` don't watch.
 - It ends by naming each skipped test with its reason, including after a failure.
 
 ### Lint

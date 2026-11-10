@@ -120,14 +120,12 @@ function Invoke-TestRun {
         $windows = @()
         foreach ($project in $run.Projects) {
             $watcher = if ($watch) { [WinshellWindowWatch]::new($PID) }
-            try { $code = Invoke-DotnetTest -Project $project -Filter $run.Filter -ResultsDirectory $results -Seed $Seed }
-            finally {
-                if ($watcher) {
-                    $name = [IO.Path]::GetFileNameWithoutExtension($project)
-                    $windows += @($watcher.Stop() | ForEach-Object { "$name showed a window: $_. Give the test that shows it the category Window: [Trait(`"Category`", `"Window`")]." })
-                }
-            }
+            $code = Invoke-DotnetTest -Project $project -Filter $run.Filter -ResultsDirectory $results -Seed $Seed
             if ($code -ne 0) { $exit = $code }
+            if ($watcher) {
+                $name = [IO.Path]::GetFileNameWithoutExtension($project)
+                $windows += @($watcher.Stop() | ForEach-Object { "$name showed a window: $_. Give the test that shows it the category Window: [Trait(`"Category`", `"Window`")]." })
+            }
         }
         # A crashed run can leave a results file that doesn't read; its exit code still decides.
         $outcome = try { Read-TestResult -Directory $results -ProjectCount $run.ProjectCount } catch { if ($exit -eq 0) { throw } }
