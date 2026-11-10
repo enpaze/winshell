@@ -263,8 +263,8 @@ public sealed partial class DevCommandTests : IDisposable
     }
 
     /// <summary>
-    /// Waits for the build nodes of this <c>winshell dev</c> to exit. Without reuse they exit after the build. A node kept for reuse stays
-    /// idle for about 15 minutes, so it still fails the wait.
+    /// Waits for the build nodes of this <c>winshell dev</c> to exit. Without reuse they exit after the build. A node
+    /// kept for reuse stays idle for about 15 minutes, so it still fails the wait.
     /// </summary>
     private async Task NodesExit()
     {
