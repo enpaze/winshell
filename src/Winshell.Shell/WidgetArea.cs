@@ -19,7 +19,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     private readonly Shell _shell;
     private AreaPreferences? _preferences;
     private readonly long _nameChanged;
-    private Uri? _style;
+    private ShellStyle? _style;
     private ResourceDictionary? _styleResources;
     private readonly List<WidgetContext> _contexts = [];
     private bool _disposed;
@@ -69,12 +69,11 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     }
 
     /// <summary>
-    /// The source URI of this area's own style, which wins over the shell's, or null for <see cref="Shell.Style"/>.
-    /// Tooltips follow the shell's style, not the area's. Changing it replaces only the dictionary the style loaded,
-    /// leaving the area's other resources intact, and a file that does not load throws and changes nothing. It hides the
-    /// inherited WinUI <c>Style</c>, which a widget area does not use.
+    /// This area's own style, which wins over the shell's, or null for <see cref="Shell.Style"/>. Tooltips follow the
+    /// shell's style, not the area's. Changing it replaces only the dictionary the style loaded, leaving the area's
+    /// other resources intact. It hides the inherited WinUI <c>Style</c>, which a widget area does not use.
     /// </summary>
-    public new Uri? Style
+    public new ShellStyle? Style
     {
         get => _style;
         set
@@ -84,8 +83,8 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         }
     }
 
-    /// <summary>The style the area shows: its own, the shell's, or the built-in style for null.</summary>
-    internal Uri? ActiveStyle => _style ?? _shell.Style;
+    /// <summary>The style the area shows: its own, the shell's, or null for the built-in style.</summary>
+    internal ShellStyle? ActiveStyle => _style ?? _shell.Style;
 
     private void FollowShellStyle()
     {
@@ -93,8 +92,8 @@ public sealed partial class WidgetArea : UserControl, IDisposable
             LoadStyle(null);
     }
 
-    /// <summary>Shows a style, the area's own or null for the shell's. One that does not load changes nothing.</summary>
-    private void LoadStyle(Uri? own)
+    /// <summary>Shows a style, the area's own or null for the shell's.</summary>
+    private void LoadStyle(ShellStyle? own)
     {
         var next = Shell.LoadStyle(own ?? _shell.Style);
         _style = own;

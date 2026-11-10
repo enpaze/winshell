@@ -10,11 +10,6 @@
     <InternalsVisibleTo Include="Winshell.Shell.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Loaded from the assembly, so a shell gets it however it references Winshell. -->
-    <Page Remove="BuiltInStyle.xaml" />
-    <EmbeddedResource Include="BuiltInStyle.xaml" LogicalName="Winshell.BuiltInStyle.xaml" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Winshell.Services\Winshell.Services.csproj" />
   </ItemGroup>
 </Project>

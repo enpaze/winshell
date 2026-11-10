@@ -399,77 +399,48 @@ Saving applies changes live. Each changed area disposes its old widgets and crea
 
 ## Style
 
-The style is how every widget area, surface and styled popup looks: its colors, font and slot size. With none set, the built-in style follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` once to a `ResourceDictionary` file to give the whole shell another look:
+The style is how every widget area, surface and styled popup looks: its colors, font and slot size. It is a [ShellStyle](reference/winshell.md#shellstyle). With none set, the built-in style follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` to give the whole shell another look. `Background`, `Foreground` and `Alert` are `Windows.UI.Color` values:
 
 ```csharp
-        shell.Style = new Uri("ms-appx:///TokyoNight.xaml");
+        shell.Style = new ShellStyle
+        {
+            Background = Color.FromArgb(255, 0x1a, 0x1b, 0x26),
+            Foreground = Color.FromArgb(255, 0xa9, 0xb1, 0xd6),
+            Alert = Color.FromArgb(255, 0xf7, 0x76, 0x8e),
+            FontFamily = new FontFamily("ms-appx:///Fonts/JetBrainsMonoNerdFont-Regular.ttf#JetBrainsMono NF"),
+            FontSize = 12,
+            SlotSize = 26,
+            Padding = 8
+        };
 ```
 
-A new value reaches what is already on screen, and `null` returns to the built-in style. A file that does not load throws and changes nothing. An area's or a surface's own `Style` wins over the shell's, except for tooltips, and `null` there follows the shell. The file is a XAML page of your project, as `ms-appx:///` names it.
+A new value reaches what is already on screen, and `null` returns to the built-in style. A bar's, an area's or a surface's own `Style` wins over the shell's, except for tooltips, and `null` there follows the shell. A style's colors are the same in light and in dark. A contrast theme wins over them: the background, foreground and alert color become Windows' window, window text and highlight colors.
 
-A style defines these keys, which a bar, a widget and its popups read with `{ThemeResource}`:
+Winshell writes these resources from the style. A bar and a popup read them with `{ThemeResource}`:
 
-| Key | Type | What it is | Built-in |
+| Key | Style value | What it is | Built-in |
 | --- | --- | --- | --- |
-| `ShellBackgroundBrush` | `Brush` | Behind a surface, such as a bar's, and a popup | Windows' solid background |
-| `ShellForegroundBrush` | `Brush` | Text and glyphs | Windows' primary text color |
-| `ShellAlertBrush` | `Brush` | Something that needs attention, such as a low battery | Windows' critical color |
+| `ShellBackgroundBrush` | `Background` | Behind a surface, such as a bar's, and a popup | Windows' solid background |
+| `ShellForegroundBrush` | `Foreground` | Text and glyphs | Windows' primary text color |
+| `ShellAlertBrush` | `Alert` | Something that needs attention, such as a network with no internet | Windows' critical color |
 | `ShellFontFamily` | `FontFamily` | Text | Segoe UI Variable Text, then Segoe UI |
-| `ShellFontSize` | `Double` | Text | 14 |
-| `ShellSlotSize` | `Double` | One button, and the thickness of a bar | 32 |
-| `ShellPadding` | `Double` | The space at each end of a bar. Optional: a style without it gives bars none. | 4 |
+| `ShellFontSize` | `FontSize` | Text | 14 |
+| `ShellSlotSize` | `SlotSize` | One button, and the thickness of a bar | 32 |
+| `ShellPadding` | `Padding` | The space at each end of a bar. `null` gives bars none. | 4 |
 
-It also defines implicit styles, with no `x:Key`, for the plain controls a widget is made of. They apply inside a widget area, in a surface and in a popup styled with `context.StylePopup`, so a widget that is a `Button` holding a `FontIcon` looks right with no lookup:
+It also builds the implicit styles, with no `x:Key`, for the plain controls a widget is made of. They apply inside a widget area, in a surface and in a popup styled with `context.StylePopup`, so a widget that is a `Button` holding a `FontIcon` looks right with no lookup:
 
 - `Button`: flat, at least one slot wide and high, its content centered, in the style's foreground, font and font size.
 - `TextBlock`: the style's foreground, font and font size, centered vertically. A text block keeps that foreground inside a pressed or disabled button, so give a button its text as a string to take the button's colors.
-- `FontIcon`: the style's icon font. Its color comes from what holds it, so a button's pressed and disabled colors reach the glyph.
+- `FontIcon`: Segoe Fluent Icons at 16. Its color comes from what holds it, so a button's pressed and disabled colors reach the glyph.
 - `ToolTip`: the style's background, foreground and font. A tooltip opens in a popup of its own, outside the area, and WinUI looks up its style only in the app's resources, so Winshell puts the `ToolTip` entry of `shell.Style` there. It styles every tooltip in the shell, in your own windows too, and an area's own `Style` does not change it. A `ToolTip` style you put in `Application.Current.Resources` yourself wins over it.
 
-A style that leaves out a key fails where something reads it. [BuiltInStyle.xaml](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/BuiltInStyle.xaml) is the built-in style, and a start for your own:
+A widget reads the alert color from the style. With none set, `context.Style` is null and `ShellAlertBrush` follows Windows:
 
-```xml
-<ResourceDictionary
-  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <SolidColorBrush x:Key="ShellBackgroundBrush" Color="#1a1b26" />
-  <SolidColorBrush x:Key="ShellForegroundBrush" Color="#a9b1d6" />
-  <SolidColorBrush x:Key="ShellAlertBrush" Color="#f7768e" />
-  <FontFamily x:Key="ShellFontFamily">Consolas</FontFamily>
-  <x:Double x:Key="ShellFontSize">12</x:Double>
-  <x:Double x:Key="ShellSlotSize">26</x:Double>
-  <x:Double x:Key="ShellPadding">8</x:Double>
-
-  <Style TargetType="Button">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="Padding" Value="0" />
-    <Setter Property="MinWidth" Value="{StaticResource ShellSlotSize}" />
-    <Setter Property="MinHeight" Value="{StaticResource ShellSlotSize}" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Foreground" Value="{StaticResource ShellForegroundBrush}" />
-    <Setter Property="FontFamily" Value="{StaticResource ShellFontFamily}" />
-    <Setter Property="FontSize" Value="{StaticResource ShellFontSize}" />
-  </Style>
-  <Style TargetType="TextBlock">
-    <Setter Property="Foreground" Value="{StaticResource ShellForegroundBrush}" />
-    <Setter Property="FontFamily" Value="{StaticResource ShellFontFamily}" />
-    <Setter Property="FontSize" Value="{StaticResource ShellFontSize}" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
-  <Style TargetType="FontIcon">
-    <Setter Property="FontFamily" Value="Segoe Fluent Icons,Segoe MDL2 Assets" />
-    <Setter Property="FontSize" Value="14" />
-  </Style>
-  <Style TargetType="ToolTip">
-    <Setter Property="Background" Value="{StaticResource ShellBackgroundBrush}" />
-    <Setter Property="Foreground" Value="{StaticResource ShellForegroundBrush}" />
-    <Setter Property="FontFamily" Value="{StaticResource ShellFontFamily}" />
-  </Style>
-</ResourceDictionary>
+```csharp
+        if (context.Style is { } style)
+            label.Foreground = new SolidColorBrush(style.Alert);
 ```
-
-A style with one look whatever the theme uses plain keys, as this one does. A style that changes with the theme puts its brushes in `ResourceDictionary.ThemeDictionaries`, under `Default` for dark, `Light` and `HighContrast`, as the built-in style does.
 
 ## Write a widget
 

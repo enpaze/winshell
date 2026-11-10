@@ -9,7 +9,12 @@ public sealed class WindowsWidget : UserControl
 {
     public WindowsWidget(WidgetContext context)
     {
-        // As wide as a button in TokyoNight.xaml, so it lines up with the slots after it.
-        Content = new TextBlock { Text = Glyphs.Windows, Width = 27, TextAlignment = TextAlignment.Center };
+        // As wide as a button, one slot, so it lines up with the slots after it. 32 is the built-in slot.
+        Content = new TextBlock
+        {
+            Text = Glyphs.Windows,
+            Width = context.Style?.SlotSize ?? 32,
+            TextAlignment = TextAlignment.Center
+        };
     }
 }

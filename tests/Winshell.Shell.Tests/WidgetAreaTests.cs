@@ -25,7 +25,7 @@ public sealed class WidgetAreaTests
             });
             using var area = new WidgetArea
             {
-                Style = new Uri("ms-appx:///WidgetTheme.xaml"),
+                Style = TestStyles.Marked(),
                 RequestedTheme = ElementTheme.Light,
                 FontFamily = new FontFamily("Consolas"),
                 FontSize = 23,
@@ -49,20 +49,24 @@ public sealed class WidgetAreaTests
             using var another = new PopupWindow { Rect = new Rect(410, 100, 200, 90), Content = second, Visible = true };
             await ShellFixture.LaidOut(text).WaitAsync(TestContext.Current.CancellationToken);
 
-            Assert.Equal("widget theme", root.Resources["WidgetThemeMessage"]);
-            Assert.Equal("widget theme", second.Resources["WidgetThemeMessage"]);
+            Assert.Equal(36d, root.Resources["ShellSlotSize"]);
+            Assert.Equal(36d, second.Resources["ShellSlotSize"]);
             Assert.Equal("keep", text.Resources["widget-owned"]);
             Assert.Equal(ElementTheme.Light, root.RequestedTheme);
-            Assert.Equal(Microsoft.UI.Colors.DarkRed, Assert.IsType<SolidColorBrush>(content.Background).Color);
-            Assert.Equal("Consolas", text.FontFamily.Source);
-            Assert.Equal(23, text.FontSize);
-            Assert.Equal(Microsoft.UI.Colors.Crimson, Assert.IsType<SolidColorBrush>(text.Foreground).Color);
+            Assert.Equal(WindowsBrush("Light", "CardBackgroundFillColorDefaultBrush"),
+                Assert.IsType<SolidColorBrush>(content.Background).Color);
+            // The style sets a text block's font, so the area's font, size and foreground show on the wrapper.
+            var wrapper = Assert.IsAssignableFrom<Control>(root);
+            Assert.Equal("Consolas", wrapper.FontFamily.Source);
+            Assert.Equal(23, wrapper.FontSize);
+            Assert.Equal(Microsoft.UI.Colors.Crimson, Assert.IsType<SolidColorBrush>(wrapper.Foreground).Color);
 
             area.RequestedTheme = ElementTheme.Dark;
             await Wait.UntilAsync(() => root.ActualTheme == ElementTheme.Dark && second.ActualTheme == ElementTheme.Dark,
                 "both popup windows to follow the area's dark theme");
             Assert.Equal(ElementTheme.Dark, root.RequestedTheme);
-            Assert.Equal(Microsoft.UI.Colors.LightGreen, Assert.IsType<SolidColorBrush>(content.Background).Color);
+            Assert.Equal(WindowsBrush("Default", "CardBackgroundFillColorDefaultBrush"),
+                Assert.IsType<SolidColorBrush>(content.Background).Color);
             area.RequestedTheme = ElementTheme.Default;
             await Wait.UntilAsync(() => root.ActualTheme == ElementTheme.Light,
                 "the popup to follow the area's inherited light theme");
@@ -72,13 +76,13 @@ public sealed class WidgetAreaTests
             area.FontFamily = new FontFamily("Georgia");
             area.FontSize = 27;
             area.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
-            Assert.Equal("Georgia", text.FontFamily.Source);
-            Assert.Equal(27, text.FontSize);
-            Assert.Equal(Microsoft.UI.Colors.LimeGreen, Assert.IsType<SolidColorBrush>(text.Foreground).Color);
+            Assert.Equal("Georgia", wrapper.FontFamily.Source);
+            Assert.Equal(27, wrapper.FontSize);
+            Assert.Equal(Microsoft.UI.Colors.LimeGreen, Assert.IsType<SolidColorBrush>(wrapper.Foreground).Color);
             area.Style = null;
-            Assert.False(root.Resources.ContainsKey("WidgetThemeMessage"));
-            area.Style = new Uri("ms-appx:///WidgetTheme.xaml");
-            Assert.Equal("widget theme", root.Resources["WidgetThemeMessage"]);
+            Assert.Equal(32d, root.Resources["ShellSlotSize"]);
+            area.Style = TestStyles.Marked();
+            Assert.Equal(36d, root.Resources["ShellSlotSize"]);
 
             if (disposeArea)
                 area.Dispose();
@@ -92,10 +96,10 @@ public sealed class WidgetAreaTests
                 area.Style = null;
             await Wait.UntilAsync(() => area.ActualTheme == ElementTheme.Light, "the area to return to light");
             Assert.Equal(ElementTheme.Dark, root.RequestedTheme);
-            Assert.Equal("Georgia", text.FontFamily.Source);
-            Assert.Equal(27, text.FontSize);
-            Assert.Equal(Microsoft.UI.Colors.LimeGreen, Assert.IsType<SolidColorBrush>(text.Foreground).Color);
-            Assert.Equal("widget theme", root.Resources["WidgetThemeMessage"]);
+            Assert.Equal("Georgia", wrapper.FontFamily.Source);
+            Assert.Equal(27, wrapper.FontSize);
+            Assert.Equal(Microsoft.UI.Colors.LimeGreen, Assert.IsType<SolidColorBrush>(wrapper.Foreground).Color);
+            Assert.Equal(36d, root.Resources["ShellSlotSize"]);
             Assert.Throws<ObjectDisposedException>(() => input.StylePopup(new TextBlock()));
             return true;
         });
@@ -397,28 +401,67 @@ public sealed class WidgetAreaTests
     }
 
     [Fact]
-    public async Task The_style_loads_from_its_uri_keeps_the_last_on_a_failed_load_and_leaves_the_area_its_own_resources()
+    public async Task A_style_replaces_its_dictionary_and_leaves_the_area_its_own_resources()
     {
         await ShellFixture.On(shell =>
         {
             using var area = new WidgetArea();
-            var style = new Uri("ms-appx:///WidgetTheme.xaml");
+            var marked = TestStyles.Marked();
+            var other = TestStyles.Other();
             area.Resources["author"] = "keep";
             var authors = new ResourceDictionary { ["ShellSlotSize"] = 50.0 };
             area.Resources.MergedDictionaries.Add(authors);
-            area.Style = style;
-            Assert.Equal(style, area.Style);
-            Assert.Equal("widget theme", area.Resources["WidgetThemeMessage"]);
-            var missing = new Uri("ms-appx:///Missing.xaml");
-            Assert.ThrowsAny<Exception>(() => area.Style = missing);
-            Assert.Equal(style, area.Style);
-            Assert.Equal("widget theme", area.Resources["WidgetThemeMessage"]);
-            Assert.ThrowsAny<Exception>(() => shell.Style = missing);
-            Assert.Null(shell.Style);
+            try
+            {
+                area.Style = marked;
+                Assert.Equal(marked, area.Style);
+                Assert.Equal("Georgia", Font(area));
+                // The author's dictionary was merged after the style, so it wins for a key they both have.
+                Assert.Equal(50.0, area.Resources["ShellSlotSize"]);
+
+                shell.Style = other;
+                Assert.Equal("Georgia", Font(area));
+                area.Style = null;
+                Assert.Equal("Consolas", Font(area));
+                Assert.Equal(other, shell.Style);
+                shell.Style = null;
+                Assert.Equal("Segoe UI Variable Text,Segoe UI", Font(area));
+                Assert.Equal("keep", area.Resources["author"]);
+                Assert.Equal(50.0, area.Resources["ShellSlotSize"]);
+            }
+            finally
+            {
+                shell.Style = null;
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task A_contrast_theme_has_its_own_colors_and_the_style_keeps_its_own_otherwise()
+    {
+        await ShellFixture.On(_ =>
+        {
+            var other = TestStyles.Other();
+            using var area = new WidgetArea { Style = other };
+            var dictionary = area.Resources.MergedDictionaries[0];
+            var dark = (ResourceDictionary)dictionary.ThemeDictionaries["Default"];
+            var light = (ResourceDictionary)dictionary.ThemeDictionaries["Light"];
+            Assert.Equal(other.Alert, ColorOf((Brush)dark["ShellAlertBrush"]));
+            Assert.Equal(other.Background, ColorOf((Brush)light["ShellBackgroundBrush"]));
+            Assert.Equal(other.Foreground, ColorOf((Brush)light["ShellForegroundBrush"]));
+
+            var contrast = (ResourceDictionary)dictionary.ThemeDictionaries["HighContrast"];
+            Assert.NotEqual(other.Background, ColorOf((Brush)contrast["ShellBackgroundBrush"]));
+            Assert.NotEqual(other.Foreground, ColorOf((Brush)contrast["ShellForegroundBrush"]));
+            Assert.NotEqual(other.Alert, ColorOf((Brush)contrast["ShellAlertBrush"]));
+
             area.Style = null;
-            Assert.False(area.Resources.ContainsKey("WidgetThemeMessage"));
-            Assert.Equal("keep", area.Resources["author"]);
-            Assert.Equal(50.0, area.Resources["ShellSlotSize"]);
+            var builtIn = (ResourceDictionary)area.Resources.MergedDictionaries[0].ThemeDictionaries["HighContrast"];
+            Assert.True(builtIn.ContainsKey("ShellBackgroundBrush"));
+            Assert.True(builtIn.ContainsKey("ShellForegroundBrush"));
+            Assert.True(builtIn.ContainsKey("ShellAlertBrush"));
             return true;
         });
     }
@@ -461,7 +504,7 @@ public sealed class WidgetAreaTests
     {
         await ShellFixture.On(async shell =>
         {
-            var other = new Uri("ms-appx:///OtherStyle.xaml");
+            var other = TestStyles.Other();
             WidgetContext? context = null;
             var controls = new PlainControls();
             var popupWidget = Guid.NewGuid().ToString();
@@ -476,7 +519,7 @@ public sealed class WidgetAreaTests
             };
             using var own = new WidgetArea
             {
-                Style = new Uri("ms-appx:///WidgetTheme.xaml"),
+                Style = TestStyles.Marked(),
                 Defaults = [new(controls.Text)]
             };
             var (glyphButton, glyph) = Assert.Single(controls.Buttons);
@@ -508,9 +551,10 @@ public sealed class WidgetAreaTests
                 Assert.Equal(("Consolas", 18.0), (text.FontFamily.Source, text.FontSize));
                 Assert.Equal(Microsoft.UI.Colors.Crimson, ColorOf(text.Foreground));
                 Assert.Equal(Microsoft.UI.Colors.Crimson, ColorOf(glyphButton.Foreground));
-                Assert.Equal(20, glyph.FontSize);
+                Assert.Equal("Segoe Fluent Icons,Segoe MDL2 Assets", glyph.FontFamily.Source);
+                Assert.Equal(16, glyph.FontSize);
                 Assert.Equal(("Consolas", 18.0), (popupText.FontFamily.Source, popupText.FontSize));
-                Assert.Equal("widget theme", own.Resources["WidgetThemeMessage"]);
+                Assert.Equal("Georgia", Font(own));
                 Assert.NotEqual("Consolas", ownText.FontFamily.Source);
                 Assert.Equal(ownFont, ownText.FontFamily.Source);
 
@@ -518,7 +562,7 @@ public sealed class WidgetAreaTests
                 await Wait.UntilAsync(() => glyphButton.ActualWidth == 32, "the area to return to the built-in style");
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", text.FontFamily.Source);
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", popupText.FontFamily.Source);
-                Assert.Equal("widget theme", own.Resources["WidgetThemeMessage"]);
+                Assert.Equal("Georgia", Font(own));
             }
             finally
             {
@@ -542,7 +586,7 @@ public sealed class WidgetAreaTests
                 ToolTipService.SetToolTip(button, tip);
                 return button;
             });
-            var other = new Uri("ms-appx:///OtherStyle.xaml");
+            var other = TestStyles.Other();
             using var area = new WidgetArea { Style = other, Defaults = [new(widget)] };
             using var window = new PanelWindow { Width = 100, Height = 40, Content = area, Visible = true };
             await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
@@ -594,7 +638,35 @@ public sealed class WidgetAreaTests
         });
     }
 
+    [Fact]
+    [Trait("Category", "Window")]
+    public async Task A_widget_reads_the_alert_color_from_the_style()
+    {
+        await ShellFixture.On(async _ =>
+        {
+            var name = Guid.NewGuid().ToString();
+            TextBlock? alert = null;
+            Widgets.Register(name, context =>
+            {
+                alert = new TextBlock
+                {
+                    Text = "alert",
+                    Foreground = new SolidColorBrush(context.Style!.Alert)
+                };
+                return alert;
+            });
+            using var area = new WidgetArea { Style = TestStyles.Other(), Defaults = [new(name)] };
+            using var window = new PanelWindow { Width = 120, Height = 40, Content = area, Visible = true };
+            await ShellFixture.LaidOut(alert!).WaitAsync(TestContext.Current.CancellationToken);
+
+            Assert.Equal(Microsoft.UI.Colors.Orange, ColorOf(alert!.Foreground));
+            return true;
+        });
+    }
+
     private static global::Windows.UI.Color ColorOf(Brush brush) => Assert.IsType<SolidColorBrush>(brush).Color;
+
+    private static string Font(FrameworkElement element) => ((FontFamily)element.Resources["ShellFontFamily"]).Source;
 
     /// <summary>The text color Windows gives a theme: "Light", or "Default" for dark.</summary>
     private static global::Windows.UI.Color WindowsText(string theme) => WindowsColor(theme, "TextFillColorPrimary");
@@ -602,8 +674,18 @@ public sealed class WidgetAreaTests
     /// <summary>A color Windows gives a theme: "Light", or "Default" for dark.</summary>
     internal static global::Windows.UI.Color WindowsColor(string theme, string key)
     {
+        var value = WindowsResource(theme, key);
+        return value is SolidColorBrush brush ? brush.Color : (global::Windows.UI.Color)value;
+    }
+
+    /// <summary>A brush Windows gives a theme, read as its color.</summary>
+    private static global::Windows.UI.Color WindowsBrush(string theme, string key) =>
+        Assert.IsType<SolidColorBrush>(WindowsResource(theme, key)).Color;
+
+    private static object WindowsResource(string theme, string key)
+    {
         var controls = Application.Current.Resources.MergedDictionaries.OfType<XamlControlsResources>().Single();
-        return (global::Windows.UI.Color)((ResourceDictionary)controls.ThemeDictionaries[theme])[key];
+        return ((ResourceDictionary)controls.ThemeDictionaries[theme])[key];
     }
 
     private static IEnumerable<string> TextIn(DependencyObject root)

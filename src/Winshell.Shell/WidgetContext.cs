@@ -41,6 +41,12 @@ public sealed class WidgetContext
     public IReadOnlyDictionary<string, object> Settings { get; }
 
     /// <summary>
+    /// The style this placement shows: the area's own, or the shell's, or null for the built-in style. A widget reads
+    /// <see cref="ShellStyle.Alert"/> from it when something needs attention.
+    /// </summary>
+    public ShellStyle? Style => _area.ActiveStyle;
+
+    /// <summary>
     /// Wraps content for a PopupWindow in the area's styling. Assign the result to the popup's Content on the shell's
     /// thread. Each call loads a fresh dictionary of the area's style, preserving the content's own resources, so the
     /// popup's plain controls look like the area's. The wrapper follows the area's resolved theme, style, FontFamily,
