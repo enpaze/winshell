@@ -319,7 +319,10 @@ $script:Root = $folder
 function Invoke-DotnetTest([string] $Project, [string] $Filter, [string] $ResultsDirectory, [int] $Seed) {
     New-Item -ItemType File -Path (Join-Path $signals 'watching') | Out-Null
     $deadline = [DateTime]::UtcNow.AddSeconds(60)
-    while (-not (Test-Path (Join-Path $signals 'shown')) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 50 }
+    while (-not (Test-Path (Join-Path $signals 'shown'))) {
+        if ([DateTime]::UtcNow -gt $deadline) { throw 'The window was never shown.' }
+        Start-Sleep -Milliseconds 50
+    }
     New-Item -ItemType Directory -Force -Path $ResultsDirectory | Out-Null
     Copy-Item -Path (Join-Path $signals '*.trx') -Destination $ResultsDirectory
     0

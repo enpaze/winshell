@@ -78,7 +78,8 @@ public sealed class WinshellWindowWatch
         windows.Add(string.Format("\"{0}\" (class {1}, process {2} {3})", title, className, name, pid));
     }
 
-    // Walks the window's process up through its parents to rootProcessId. A process whose parent has exited ends the walk.
+    // Walks the window's process up through its parents to rootProcessId. A process whose parent has exited ends the walk,
+    // and so does a parent that started after its child: another process took the exited parent's id.
     bool Descends(int pid)
     {
         var parents = new Dictionary<int, int>();
@@ -92,12 +93,23 @@ public sealed class WinshellWindowWatch
             }
         }
         finally { CloseHandle(snapshot); }
+        DateTime? started = StartTime(pid);
         for (int depth = 0; depth < MaxDepth && pid != 0; depth++)
         {
             if (pid == rootProcessId) return true;
-            if (!parents.TryGetValue(pid, out pid)) return false;
+            int parent;
+            if (!parents.TryGetValue(pid, out parent)) return false;
+            DateTime? parentStarted = StartTime(parent);
+            if (started == null || parentStarted == null || parentStarted > started) return false;
+            pid = parent;
+            started = parentStarted;
         }
         return false;
+    }
+
+    static DateTime? StartTime(int pid)
+    {
+        try { return Process.GetProcessById(pid).StartTime; } catch (Exception) { return null; }
     }
 
     [StructLayout(LayoutKind.Sequential)]
