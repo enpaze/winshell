@@ -62,7 +62,7 @@ dotnet run --project src/Winshell -- kill -i <id>
 
 The repo's skills are committed in `.agents/skills`, one folder each, so a clone or worktree has them with nothing to run. `skills-lock.json` records the source each one came from, and the licence of each source is beside them, in `LICENSE-<owner>-skills`. Codex reads the folder as it is.
 
-Claude Code reads `.claude/skills`, so the repo commits a copy there too: the same files, byte for byte. Claude Code lists each skill by its bare name, `/<name>` and the Skill tool both, and the repo's `code-review` overrides Claude Code's built-in skill of that name. `pwsh scripts/copy-skills.ps1` makes `.claude/skills` a copy of `.agents/skills`, and the `ci` check fails a pull request that leaves the two folders different.
+Claude Code reads `.claude/skills`, so the repo commits a copy there too: the same files, byte for byte. Claude Code lists each skill by its bare name, `/<name>` and the Skill tool both, and the repo's `code-review` overrides Claude Code's built-in skill of that name. The lock marks each skill `"installMode": "copy"`, so the skills tool writes the same files into both folders, and the `ci` check fails a pull request that leaves the two folders different.
 
 The committed files are the pin: a skill changes only when a PR changes it. To list the skills that have a newer version, changing nothing:
 
@@ -73,11 +73,11 @@ npx -y skills@1.7.6 check
 To take one of them, or all, into both folders:
 
 ```sh
-npx -y skills@1.7.6 update <name> -p && pwsh scripts/copy-skills.ps1
-npx -y skills@1.7.6 update -p && pwsh scripts/copy-skills.ps1
+npx -y skills@1.7.6 update <name> -p
+npx -y skills@1.7.6 update -p
 ```
 
-The skills tool writes each newer version into `.agents/skills` and its hash into the lock, and links the skill into `.claude/skills`; the script then replaces the links with a copy. Read `git diff` before you open the PR. Use this version of the tool or a later one: in 1.7.4, `check` takes every update where this one only lists them.
+It writes each newer version into `.agents/skills` and `.claude/skills`, and its hash into the lock. It also writes a folder for each other agent it finds on your machine, such as `.grok/skills`: delete those. Read `git diff` before you open the PR. Use this version of the tool or a later one: in 1.7.4, `check` takes every update where this one only lists them.
 
 The [`skills` job](#jobs) does this every Monday with `scripts/update-skills.ps1`, and opens or updates one pull request, `build/update-skills`, holding the diff. It leaves a source alone while the source's newest commit is younger than seven days, as Dependabot here waits a week for a release, and it pushes nothing when the branch already holds the same versions, so closing its pull request declines those versions until a source has newer ones, for as long as the branch is kept. It never merges: an agent follows a skill with full permissions, so read every skills pull request before you merge it, or close it.
 
@@ -228,7 +228,7 @@ Choose checks from the complete change against the PR's base, including renamed 
 
 | Change | Before pushing |
 | --- | --- |
-| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/` outside `docs/samples/`, Markdown such as the PR template, the skills in `.agents/skills/` and `.claude/skills/`, `skills-lock.json`, `LICENSE` and `.gitignore`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`, and `pwsh scripts/copy-skills.ps1 -VerifyNoChanges` for a change to the skills. No application build, formatting or test suite is needed. |
+| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/` outside `docs/samples/`, Markdown such as the PR template, the skills in `.agents/skills/` and `.claude/skills/`, `skills-lock.json`, `LICENSE` and `.gitignore`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`, and `git diff --no-index --stat .agents/skills .claude/skills` for a change to the skills, which prints nothing when the folders are the same. No application build, formatting or test suite is needed. |
 | A page in `docs/` (outside `docs/agents/`) or `README.md` containing or removing a C# example fence, or a generated `docs/reference/winshell*.md` page | Lint, then `pwsh scripts/check.ps1 -Tier Docs`. This builds the samples and checks the generated reference, without unrelated tests or windows. |
 | Only tooling: `scripts/` and `tests/Scripts/`, except the files that [count as code](#how-checks-are-selected) | `Invoke-Pester -Path tests/Scripts`. A change to `scripts/uninstall.ps1` or `tests/Scripts/Install.Tests.ps1` also runs `Install.Tests.ps1` on Windows PowerShell 5.1, as the `installer` job in the [Jobs](#jobs) table does. |
 | Only workflows: `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | Lint, then `Invoke-Pester -Path tests/Scripts`. |
@@ -268,8 +268,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | `pwsh scripts/pr-screenshot.ps1 <png>` | Publishes a `winshell inspect` screenshot on the `pr-screenshots` branch, which never merges, and prints the Markdown to paste into a PR. |
 | `pwsh scripts/ci-changes.ps1 -Files <json> [-MaxFiles <limit>]` | Classifies GitHub changed-file JSON from the checkout root and prints the flags `ci.yml` and `package.yml` use. PR file lists have a 3000-file limit; push comparisons have a 300-file limit. CI fetches this input; local contributors normally choose the checks above directly. |
 | `npx -y skills@1.7.6 check` | Lists the skills in `.agents/skills` that have a newer version, changing nothing. See [Agent skills](#agent-skills). |
-| `npx -y skills@1.7.6 update [<name>] -p` | Writes the newer version of that skill, or of every skill, into `.agents/skills`, for review in `git diff`. Follow it with `pwsh scripts/copy-skills.ps1`. |
-| `pwsh scripts/copy-skills.ps1 [-VerifyNoChanges]` | Makes `.claude/skills`, which Claude Code reads, a copy of `.agents/skills`. With `-VerifyNoChanges` it changes nothing, lists each file the two folders do not share, and exits 1 if there is one; the `quality` job runs it on every pull request that is not a draft. |
+| `npx -y skills@1.7.6 update [<name>] -p` | Writes the newer version of that skill, or of every skill, into `.agents/skills` and `.claude/skills`, for review in `git diff`. |
 | `pwsh scripts/update-skills.ps1 -BodyPath <file>` | What the `skills` job runs: takes the newer skills from each source whose newest commit is at least seven days old, and writes the pull request body, naming each skill that changed and the commits its source gained. Requires an authenticated `gh` and the history of `skills-lock.json`. On Windows the skills tool crashes as it exits, after it has updated the skills, so the script stops there and writes no body; the job runs it on Linux. |
 
 ### The full check
@@ -367,7 +366,7 @@ The single required test check, `ci`, collects suite, installer compatibility an
 
 - `ci` fails if quality, installer compatibility or any shard fails or is cancelled; intentionally skipped jobs are allowed.
 - `ci` runs lychee offline over the repo's Markdown, so a link to a file or a heading that isn't there fails the required check even when no build is needed.
-- `ci` runs `scripts/copy-skills.ps1 -VerifyNoChanges`, so a pull request that changes a file in `.agents/skills` or `.claude/skills` and not in the other fails the required check, whatever else it changes.
+- `ci` compares `.agents/skills` with `.claude/skills`, so a pull request that changes a file in `.agents/skills` or `.claude/skills` and not in the other fails the required check, whatever else it changes.
 - `pr-title` checks the pull request title.
 - `pr-rules` checks that each type of change carries its proof, as "PR description" in `CONTRIBUTING.md` lists.
 - The Package workflow runs the `-Tier Package` deployment validation on PRs that `scripts/ci-changes.ps1` flags `package`; it is not required. Leave `scripts/package.ps1` and arm64 to CI.
@@ -403,7 +402,7 @@ The `changes` job selects checks for PRs and pushes to `main`. Each kind of chan
 | `close-fixed-issues` | Every merged pull request, in `close-fixed-issues.yml`. Not required. | Nothing to run. Once the merge commit is on `main`, it closes each issue the pull request fixes that GitHub left open, with a comment naming the pull request. |
 | `pr-size` | Every pull request, from `pr-size.yml` on the base branch. Not required. | Nothing to run. It labels the pull request `size:XS` to `size:XL`, as "PR description" in `CONTRIBUTING.md` says. |
 | `trim-caches` | Every push to `main`, after `ci`, in `ci.yml` | Nothing to run. It deletes all but the two newest CodeQL databases of each language from the Actions cache, which would otherwise pass the 10 GB GitHub keeps. |
-| `skills` | Every Monday, and by hand, in `skills.yml`. Not required. | `pwsh scripts/update-skills.ps1 -BodyPath <file>`. The job then makes `.claude/skills` a copy of `.agents/skills`, commits only those two folders and `skills-lock.json`, and opens or updates the `build/update-skills` pull request with the `RELEASE_PLEASE_TOKEN` secret, so its checks run. See [Agent skills](#agent-skills). |
+| `skills` | Every Monday, and by hand, in `skills.yml`. Not required. | `pwsh scripts/update-skills.ps1 -BodyPath <file>`. The job then commits only `.agents/skills`, `.claude/skills` and `skills-lock.json`, and opens or updates the `build/update-skills` pull request with the `RELEASE_PLEASE_TOKEN` secret, so its checks run. See [Agent skills](#agent-skills). |
 | `links` | Pushes to `main` that change docs or Markdown, and every Monday, in `links.yml` | lychee 0.24.2 over `docs/**/*.md`, `README.md`, `CONTRIBUTING.md`, `GLOSSARY.md` and `.github/*.md`, excluding `docs/agents`. |
 | `actionlint` | PRs and pushes to `main` that change workflows, actions or `.github/dependabot.yml`, in `ci.yml` | actionlint on `.github/workflows`, then zizmor on `.github`. |
 | `package` | PRs and pushes to `main` that `scripts/ci-changes.ps1` flags `package`, pushes to `main` that change code, and releases, in `package.yml`. Not required. | `pwsh scripts/package.ps1`. It publishes both architectures and needs the Windows SDK for the MSIX check. The workflow's `publish` job builds each architecture on its own runner, `windows-2025` and `windows-11-arm`, and `package` packs both. The `arm64` job then runs that zip's `winshell.exe --version` on `windows-11-arm`. |
