@@ -27,6 +27,7 @@ Scripts are PowerShell 7; `scripts/install.ps1` and `scripts/uninstall.ps1` also
 - Run the [checks for the change](docs/development.md#checks-by-change). The full check runs only the tests that open no windows, so it runs alongside other agents; CI runs the windowed ones, and [A windowed test](docs/development.md#a-windowed-test) says how to run one on purpose.
 - Before opening the PR, review the diff with `code-review`, from `origin/main` or the branch below yours in a stack. Fix what it finds and run it again, until it finds nothing.
 - Open the PR as [Open a PR](CONTRIBUTING.md#open-a-pr) describes, and own it until `gh pr view <number> --json state --jq .state` prints `MERGED`. A delegate hands it to its lead instead.
+- A delegate ends its turn only when every command and every subagent it started has finished: each turn it ends wakes its lead. Run them in the foreground, the full check included, which takes about five minutes, or wait for a background one with `t3_background_wait`.
 
 ## When you
 
