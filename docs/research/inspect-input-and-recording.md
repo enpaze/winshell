@@ -76,7 +76,7 @@ The facts come from Microsoft Learn, Raymond Chen's Microsoft blog, the Windows 
   - The `winshell` template has no `app.manifest`, and Winshell never calls `SetProcessDpiAwarenessContext`, though code such as `WindowBackend.MoveToMonitor` already assumes per-monitor awareness.
   - The CLI's `winshell doctor` checks its own process. Only `Doctor.ForThisProcess`, run inside a shell, reports the shell's awareness.
   - #1720 must confirm a configuration built from the template is per-monitor v2 aware.
-- **Interop.** No new package and no exemption from `BannedSymbols.Interop.txt` is needed.
+- **Interop.** No new package is needed, and no interop outside `Winshell.Native`.
   - `SendInput`, `SetCursorPos`, `PostMessageW`, `WindowFromPoint`, `ClientToScreen`, `GetCursorPos`, `GetAncestor` and `EnumChildWindows` are already in `Winshell.Native`.
   - `MapVirtualKey`, for a key's scan code, is the one new declaration.
   - `InputInjector` is a WinRT projection and needs no declaration at all.
@@ -143,9 +143,9 @@ The facts come from Microsoft Learn, Raymond Chen's Microsoft blog, the Windows 
 - **The cursor.** `CaptureSession.IncludeCursor` exists and is off by default. For I7's "point, then look" recipe, a recording would usually want it on. Cursor movement then adds frames. The system's capture border stays: the backend never asks for borderless capture.
 - **Capping to `--fps`** means dropping by timestamp: keep a frame when its `SystemRelativeTime` reaches the next slot, then advance the slot by `1/N`. `MinUpdateInterval` would need a 26100 target framework, a runtime check, and semantics no page states.
 - **Constant-rate MP4.** Output frame *k* gets time `k × 10⁷/fps` and duration `10⁷/fps`. It shows the newest kept frame at or before that slot. A slot with no new frame repeats the last one. Extra frames in a slot are dropped from the MP4 but stay in `--frames`.
-- **Interop and banned symbols.**
-  - The Media Foundation declarations go in `Winshell.Native` through CsWin32, like the capture interop. Nothing touches `BannedSymbols.Interop.txt` or `System.Runtime.InteropServices.ComTypes`.
-  - The clock ban (`Stopwatch`, `DateTime.Now`) is no obstacle. Frame times come from `SystemRelativeTime`. `--for` and any other timing use `TimeProvider`. Its default `GetTimestamp` *"returns Stopwatch.GetTimestamp()"* ([TimeProvider.GetTimestamp](https://learn.microsoft.com/en-us/dotnet/api/system.timeprovider.gettimestamp)), the clock the probe found aligned with `SystemRelativeTime`.
+- **Interop and the clock.**
+  - The Media Foundation declarations go in `Winshell.Native` through CsWin32, like the capture interop. Nothing declares interop outside Native or uses `System.Runtime.InteropServices.ComTypes`.
+  - The clock rule (no `Stopwatch` or `DateTime.Now`) is no obstacle. Frame times come from `SystemRelativeTime`. `--for` and any other timing use `TimeProvider`. Its default `GetTimestamp` *"returns Stopwatch.GetTimestamp()"* ([TimeProvider.GetTimestamp](https://learn.microsoft.com/en-us/dotnet/api/system.timeprovider.gettimestamp)), the clock the probe found aligned with `SystemRelativeTime`.
 
 ### Recommendation
 

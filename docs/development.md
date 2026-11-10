@@ -611,7 +611,6 @@ To submit a release:
 ├── scripts/                         # Check, test, pack, package, install and release scripts; docs/development.md lists them
 ├── templates/                       # dotnet new winshell
 ├── src/
-│   ├── BannedSymbols.txt            # Clock calls that don't build; time comes through a TimeProvider
 │   ├── Winshell/                    # winshell.exe: the CLI, which builds and supervises a configuration
 │   ├── Winshell.Native/             # Win32/COM declarations, unsafe interop and the safe operations over them
 │   ├── Winshell.Core/               # The event loop contract, the log, ObservableObject, TOML files, crash reports, and the file helpers they use
@@ -629,8 +628,7 @@ To submit a release:
 │   ├── TestSupport/                 # Source files every test project links instead of copying
 │   └── Directory.Build.props        # What every test project shares
 ├── winshell.slnx                    # The solution the check builds
-├── Directory.Build.targets          # Seals interop into Winshell.Native: bans interop attributes elsewhere, and unsafe code outside WinUI projects
-├── BannedSymbols.Interop.txt        # The interop APIs no project but Winshell.Native may use
+├── Directory.Build.targets          # Turns unsafe code off outside Winshell.Native and WinUI projects
 ├── CONTRIBUTING.md                  # Test rules, branch names, PR titles and descriptions
 └── GLOSSARY.md                      # The words this repo uses
 ```

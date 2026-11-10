@@ -40,7 +40,7 @@ $checks = [ordered]@{
         '^(packaging|templates|src/Winshell\.Package|tests/(Winshell\.Package\.Tests|TestSupport)|scripts/lib|\.github/actions)/',
         '^src/[^/]+/[^/]+\.csproj$',
         '^((src|tests)/)?Directory\.',
-        '^(global\.json|nuget\.config|BannedSymbols\.Interop\.txt|release-please-config\.json|\.release-please-manifest\.json)$',
+        '^(global\.json|nuget\.config|release-please-config\.json|\.release-please-manifest\.json)$',
         '^scripts/(check|pack|package|publish-release)\.ps1$',
         '^\.github/workflows/(package|release-please)\.yml$' -join '|')
 }

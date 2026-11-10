@@ -6,14 +6,13 @@ namespace Winshell.TestSupport;
 // CsWinRT1028 requires partial. The WinUI test projects generate the other part.
 /// <summary>
 /// A new folder under <c>%TEMP%\winshell-tests</c>, deleted on dispose. Every test program prunes folders a crashed
-/// run left there once at startup; a folder from today stays. A test gets every temp path here: the ban list rejects
-/// <c>Path.GetTempPath</c> anywhere else.
+/// run left there once at startup; a folder from today stays. A test gets every temp path here, and
+/// calls <c>Path.GetTempPath</c> nowhere else.
 /// </summary>
 internal sealed partial class TempFolder : IDisposable
 {
-#pragma warning disable RS0030 // The one root every test folder lives under.
+    // The one root every test folder lives under.
     internal static readonly string Root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "winshell-tests");
-#pragma warning restore RS0030
 
     public TempFolder()
     {
