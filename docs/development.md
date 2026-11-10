@@ -117,7 +117,7 @@ After the merge, confirm each layer's issue is closed with `gh issue view <issue
 
 `scripts/format.ps1` runs `dotnet format whitespace --folder`: folder mode, without loading projects, restoring packages or building. It requires Git, .NET and PowerShell 7.
 
-- Git supplies the existing tracked and untracked C# files under `src/`, `tests/`, `examples/`, `templates/` and `docs/samples/`, plus `scripts/generate-reference.cs`. Ignored build outputs are excluded.
+- Git supplies the existing tracked and untracked C# files under `src/`, `tests/`, `examples/`, `templates/` and `docs/samples/`, plus `scripts/generate-reference.cs` and the C# under `scripts/lib/`. Ignored build outputs are excluded.
 - Other standalone C# scripts are not formatted.
 - Verification leaves source files, project references and the Git index unchanged. It fails on formatting drift or tool errors.
 
@@ -254,7 +254,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 
 `pwsh scripts/check.ps1` builds with warnings as errors, verifies formatting, compiles the template against source libraries, builds `scripts/generate-reference.cs` as the program it runs as, and runs every PowerShell 7 suite in `tests/Scripts/` and the .NET tests that open no windows: every test project, one after another, leaving out the category `Window`.
 
-It opens no windows, so any number of agents can run it at once. CI runs the [windowed tests](#a-windowed-test) on every PR.
+It opens no windows, so any number of agents can run it at once, one per worktree: two in the same worktree both write the template build's `obj` folder and fail before any test runs. CI runs the [windowed tests](#a-windowed-test) on every PR.
 
 | Option | What it does |
 | --- | --- |
@@ -266,6 +266,7 @@ It opens no windows, so any number of agents can run it at once. CI runs the [wi
 
 - Missing Pester 5.6.1 fails with an installation command; it is never silently skipped or downloaded.
 - A run fails when a test fails, no test ran, or a test project wrote no results.
+- A run fails when a process its .NET tests started shows a visible top-level window, and names the test project and the window. Give the test that shows it the category `Window`. A hidden, cloaked or message-only window doesn't count, and neither does a window of a program the check didn't start. Two kinds of window escape it: one that closes within milliseconds, and one whose process was started by a program that has since exited, such as a shell started detached. `-Tier Docs` and `-Tier Package` don't watch.
 - It ends by naming each skipped test with its reason, including after a failure.
 
 ### Lint
@@ -380,7 +381,7 @@ The `changes` job selects checks for PRs and pushes to `main`:
 
 CI calls `Get-TestRun -Shard <1..5>` and `Invoke-TestRun -Shard <1..5>` from `scripts/lib/Tests.ps1`:
 
-- Together they run every test project, the category `Window` included.
+- Together they run every test project, the category `Window` included, so they don't watch for windows as the full check does.
 - CLI, Shell and Services use the first three workers. Other test projects share the fourth, and CLI widget tests use the fifth.
 - New projects join the fourth, and new CLI classes join the first.
 - Shard 2 also compiles the template against source libraries, the solution's projects under `examples/` and `docs/samples/`, and the reference generator as a program, sharing the Shell libraries it already builds.

@@ -113,16 +113,27 @@ function Invoke-TestRun {
     $results = Join-Path $parent ('winshell-test-results-' + [guid]::NewGuid().ToString('N'))
     try {
         $run = Get-TestRun -Tier $Tier -Shard $Shard
+        # The local check opens no windows, so it fails when a process it started shows one. CI's shards run windowed tests.
+        $watch = $Tier -eq 'Tests' -and $Shard -eq 0
+        if ($watch -and -not ('WinshellWindowWatch' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'WindowWatch.cs') }
         $exit = 0
+        $windows = @()
         foreach ($project in $run.Projects) {
+            $watcher = if ($watch) { [WinshellWindowWatch]::new($PID) }
             $code = Invoke-DotnetTest -Project $project -Filter $run.Filter -ResultsDirectory $results -Seed $Seed
             if ($code -ne 0) { $exit = $code }
+            if ($watcher) {
+                $name = [IO.Path]::GetFileNameWithoutExtension($project)
+                $windows += @($watcher.Stop() | ForEach-Object { "$name showed a window: $_. Give the test that shows it the category Window: [Trait(`"Category`", `"Window`")]." })
+            }
         }
         # A crashed run can leave a results file that doesn't read; its exit code still decides.
         $outcome = try { Read-TestResult -Directory $results -ProjectCount $run.ProjectCount } catch { if ($exit -eq 0) { throw } }
         if ($outcome) { foreach ($skip in $outcome.Skipped) { Write-Host "Skipped $skip" } }
         if ($outcome) { foreach ($test in $outcome.Slowest) { Write-Host "Slow test $($test.Duration): $($test.Name)" } }
+        foreach ($window in $windows) { Write-Host $window }
         if ($exit -ne 0) { return $exit }
+        if ($windows) { return 1 }
         if ($outcome.Passed -gt 0 -and $outcome.Failed -eq 0 -and $outcome.Complete) { return 0 }
         Write-Host 'A test failed, no test ran, or a test project wrote no results.'
         return 1
