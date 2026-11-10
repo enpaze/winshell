@@ -1,7 +1,10 @@
+using System.Text.Json;
+using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 
 namespace Winshell.ShellTests;
 
@@ -249,12 +252,12 @@ public sealed partial class ShellNoticeTests : IDisposable
             var notice = Build();
             using var window = new NoticeWindow(shell, notice, () => { }, () => { }, shell.Loop);
             var panel = (PanelWindow)shell.Platform.Windows.Single().Client;
-            await ShellFixture.LaidOut((FrameworkElement)panel.Content!);
+            var root = await Shown(panel);
             return (
                 panel.Width,
                 panel.Height,
-                Name: AutomationProperties.GetName(panel.Content!),
-                Live: AutomationProperties.GetLiveSetting(panel.Content!));
+                Name: AutomationProperties.GetName(root),
+                Live: AutomationProperties.GetLiveSetting(root));
         });
 
         Assert.Equal(364, read.Width);
@@ -271,8 +274,9 @@ public sealed partial class ShellNoticeTests : IDisposable
         var fits = await ShellFixture.On(async shell =>
         {
             using var window = new NoticeWindow(shell, Build(), () => { }, () => { }, shell.Loop);
-            var root = (Grid)((PanelWindow)shell.Platform.Windows.Single().Client).Content!;
-            var action = ((StackPanel)root.Children[0]).Children.OfType<Button>().Last();
+            var panel = (PanelWindow)shell.Platform.Windows.Single().Client;
+            var root = await Shown(panel);
+            var action = ActionButton(root);
             await ShellFixture.LaidOut(action);
             await Wait.UntilAsync(
                 () => action.TransformToVisual(root).TransformPoint(default).Y + action.ActualHeight +
@@ -303,5 +307,71 @@ public sealed partial class ShellNoticeTests : IDisposable
         });
 
         Assert.Equal((1, 0), dismissed);
+    }
+
+    [Fact]
+    [Trait("Category", "Window")]
+    public async Task A_build_failure_notice_is_drawn_by_a_component()
+    {
+        var type = await ShellFixture.On(async shell =>
+        {
+            using var window = new NoticeWindow(shell, Build(), () => { }, () => { }, shell.Loop);
+            var panel = (PanelWindow)shell.Platform.Windows.Single().Client;
+            await Shown(panel);
+            var tree = await Inspector.Run(shell, "tree", []);
+            return JsonDocument.Parse(tree).RootElement.EnumerateArray().Single()
+                .GetProperty("content").GetProperty("type").GetString();
+        });
+
+        Assert.Equal("NoticeComponent", type);
+    }
+
+    /// <summary>The notice, once it has measured itself and shown.</summary>
+    private static async Task<Grid> Shown(PanelWindow panel)
+    {
+        var host = (ReactorHostControl)panel.Content!;
+        await ShellFixture.LaidOut(host);
+        await Wait.UntilAsync(() => panel.Opacity == 1, "the notice to show");
+        await host.WaitForIdleAsync();
+        return NoticeRoot(host);
+    }
+
+    /// <summary>
+    /// The padded notice. Found from its dismiss button, so the name and live-region assertions can still fail. The
+    /// outermost padded grid is the notice, so a padded grid inside it is not.
+    /// </summary>
+    private static Grid NoticeRoot(DependencyObject node)
+    {
+        Grid? root = null;
+        for (DependencyObject? current = DismissButton(node); current is not null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is Grid { Padding.Left: > 0 } grid)
+                root = grid;
+        }
+
+        return root ?? throw new InvalidOperationException("The notice is not showing.");
+    }
+
+    private static Button DismissButton(DependencyObject node) =>
+        FindButton(node, name => name == "Dismiss")
+        ?? throw new InvalidOperationException("The notice has no dismiss button.");
+
+    /// <summary>The button that opens the file. The dismiss button is the other one.</summary>
+    private static Button ActionButton(DependencyObject node) =>
+        FindButton(node, name => name != "Dismiss")
+        ?? throw new InvalidOperationException("The notice has no action button.");
+
+    private static Button? FindButton(DependencyObject current, Func<string, bool> match)
+    {
+        if (current is Button button)
+            return match(AutomationProperties.GetName(button)) ? button : null;
+        var count = VisualTreeHelper.GetChildrenCount(current);
+        for (var i = 0; i < count; i++)
+        {
+            if (FindButton(VisualTreeHelper.GetChild(current, i), match) is { } found)
+                return found;
+        }
+
+        return null;
     }
 }
