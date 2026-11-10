@@ -1,8 +1,11 @@
 using System.Globalization;
+using Microsoft.UI.Reactor;
+using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Winshell;
+using Winshell.Winland;
+using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
@@ -10,47 +13,63 @@ namespace OmarchyStyle;
 /// Winland's workspaces on this widget's own screen: 1 to 5 always, and any other that exists. An empty one is dimmed,
 /// the shown one is the tiling glyph, and a click shows one. A side bar stacks them.
 /// </summary>
-public sealed class WorkspacesWidget : UserControl
+public sealed class WorkspacesWidget : Component<WidgetContext>
 {
-    public WorkspacesWidget(WidgetContext context)
+    public override Element Render()
     {
-        var winland = context.Shell.Winland;
-        var vertical = context.Orientation == Orientation.Vertical;
-        var buttons = new StackPanel
+        var observe = UseRef(new Observe());
+        _ = UseObservable(observe.Current);
+        var winland = UseObservable(Props.Shell.Winland);
+        _ = UseObservable(winland.Workspaces);
+        // MonitorFor reads this list. A screen's monitor can arrive without the workspace list changing.
+        _ = UseObservable(winland.Monitors);
+        var (window, setWindow) = UseState<ShellWindow?>(null);
+        if (window is null)
+            return LoadedWindow.Placeholder(setWindow);
+
+        var vertical = Props.Orientation == Orientation.Vertical;
+        var monitor = winland.ProcessId > 0 ? winland.MonitorFor(window.Screen) : null;
+        var observers = new List<Element>
         {
-            Orientation = context.Orientation,
-            Spacing = 1,
-            Margin = vertical ? new Thickness(0) : new Thickness(0, 0, 1.5, 0)
+            Observe.Of(window, observe.Current, "window", () => window.Screen?.Id ?? "")
         };
-        Content = buttons;
-        if (vertical)
-            HorizontalAlignment = HorizontalAlignment.Center;
-
-        this.Watch(() =>
+        if (monitor is not null)
         {
-            buttons.Children.Clear();
-            // None before the widget is in its bar's window, while Winland isn't running, or once it reports no monitor
-            // for this screen.
-            var monitor = winland.ProcessId > 0 ? winland.MonitorFor(ShellWindow.Of(this)?.Screen) : null;
-            Visibility = monitor is null ? Visibility.Collapsed : Visibility.Visible;
-            if (monitor is null)
-                return;
+            observers.Add(Observe.Of(monitor, observe.Current, BarLayout.Key(monitor), () =>
+                monitor.ActiveWorkspace?.Id.ToString(CultureInfo.InvariantCulture) ?? ""));
+            foreach (var workspace in winland.Workspaces)
+            {
+                var key = BarLayout.Key(workspace);
+                observers.Add(Observe.Of(workspace, observe.Current, "ws-" + key, () =>
+                    string.Create(CultureInfo.InvariantCulture, $"{workspace.Id}\n{workspace.Monitor?.Name}")));
+                observers.Add(Observe.Of(workspace.Windows, observe.Current, "windows-" + key,
+                    () => workspace.Windows.Count.ToString(CultureInfo.InvariantCulture)));
+            }
+        }
 
-            var own = winland.Workspaces.Where(workspace => workspace.Monitor == monitor && workspace.Id > 0).ToList();
-            foreach (var id in own.Select(workspace => workspace.Id).Concat(Enumerable.Range(1, 5)).Distinct().Order())
+        var buttons = monitor is null
+            ? TextBlock("").IsVisible(false)
+            : Buttons(monitor, winland, vertical);
+        return Observe.Show(buttons, vertical ? HorizontalAlignment.Center : HorizontalAlignment.Left, [.. observers]);
+    }
+
+    private static Element Buttons(WinlandMonitor monitor, WinlandService winland, bool vertical)
+    {
+        var own = winland.Workspaces.Where(workspace => workspace.Monitor == monitor && workspace.Id > 0).ToList();
+        var buttons = own.Select(workspace => workspace.Id).Concat(Enumerable.Range(1, 5)).Distinct().Order()
+            .Select(id =>
             {
                 var shown = monitor.ActiveWorkspace?.Id == id;
                 var occupied = own.Find(workspace => workspace.Id == id)?.Windows.Count > 0;
-                var button = new Button
-                {
-                    MinWidth = 20,
-                    Content = shown ? Glyphs.Tiling : id.ToString(CultureInfo.CurrentCulture),
-                    Opacity = shown || occupied ? 1 : 0.5
-                };
-                AutomationProperties.SetName(button, "Workspace " + id.ToString(CultureInfo.CurrentCulture));
-                button.Click += (_, _) => monitor.ActivateWorkspace(id);
-                buttons.Children.Add(button);
-            }
-        });
+                var label = id.ToString(CultureInfo.CurrentCulture);
+                return Button(shown ? Glyphs.Tiling : label, () => monitor.ActivateWorkspace(id))
+                    .MinWidth(20)
+                    .Opacity(shown || occupied ? 1 : 0.5)
+                    .AutomationName("Workspace " + label);
+            })
+            .Cast<Element?>()
+            .ToArray();
+        var row = BarLayout.Along(vertical ? Orientation.Vertical : Orientation.Horizontal, 1, buttons);
+        return vertical ? row.HAlign(HorizontalAlignment.Center) : row.Margin(0, 0, 1.5, 0);
     }
 }

@@ -1,6 +1,10 @@
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Reactor;
+using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Winshell;
+using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
@@ -8,40 +12,57 @@ namespace OmarchyStyle;
 /// The day and time, such as <c>Saturday 20:25</c>, in the Windows regional format. An optional <c>timezone</c> setting
 /// names another zone, such as <c>UTC</c>. A side bar shows the hours above the minutes. The tooltip is the date.
 /// </summary>
-public sealed class ClockWidget : UserControl
+public sealed class ClockWidget : Component<WidgetContext>
 {
-    public ClockWidget(WidgetContext context)
+    public override Element Render()
     {
-        var zone = Zone(context);
-        var vertical = context.Orientation == Orientation.Vertical;
-        var text = new TextBlock
+        // The time is not a service. A timer renders again when the shown minute changes, so an open tooltip stays open.
+        var (tick, setTick) = UseState(0);
+        var seen = UseRef("");
+        var generation = UseRef(0);
+        var face = UseRef<Func<string>?>(null);
+        UseEffect(() =>
         {
-            Padding = vertical ? new Thickness(0) : new Thickness(8.5, 0, 8.5, 0),
-            TextAlignment = TextAlignment.Center
+            var timer = DispatcherQueue.GetForCurrentThread().CreateTimer();
+            timer.Interval = TimeSpan.FromSeconds(1);
+            void Show()
+            {
+                var text = face.Current?.Invoke();
+                if (text is null || text == seen.Current)
+                    return;
+                seen.Current = text;
+                setTick(++generation.Current);
+            }
+
+            timer.Tick += (_, _) => Show();
+            timer.Start();
+            Show();
+            return () => timer.Stop();
+        }, false);
+
+        var zone = Zone(Props);
+        var vertical = Props.Orientation == Orientation.Vertical;
+        var now = zone is null ? DateTime.Now : TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone);
+        var text = Face(now, vertical);
+        var tip = zone is null ? $"{now:D}" : $"{now:D} · {zone.Id}";
+        face.Current = () =>
+        {
+            var currentZone = Zone(Props);
+            var time = currentZone is null ? DateTime.Now : TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, currentZone);
+            return Face(time, Props.Orientation == Orientation.Vertical);
         };
-        Content = text;
-        if (vertical)
-            HorizontalAlignment = HorizontalAlignment.Center;
-
-        void Show()
-        {
-            var now = zone is null ? DateTime.Now : TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone);
-            var time = vertical ? $"{now:HH}\n{now:mm}" : $"{now:dddd HH:mm}";
-            // Only on a new minute: a new tooltip closes the one showing.
-            if (time == text.Text)
-                return;
-            text.Text = time;
-            ToolTipService.SetToolTip(text, zone is null ? $"{now:D}" : $"{now:D} · {zone.Id}");
-        }
-
-        // Watch follows the shell's services, not the time, so a timer shows the time each second while it's loaded.
-        var timer = DispatcherQueue.CreateTimer();
-        timer.Interval = TimeSpan.FromSeconds(1);
-        timer.Tick += (_, _) => Show();
-        Loaded += (_, _) => timer.Start();
-        Unloaded += (_, _) => timer.Stop();
-        Show();
+        seen.Current = text;
+        _ = tick;
+        var block = TextBlock(text)
+            .ToolTip(tip)
+            .Set(label => label.TextAlignment = TextAlignment.Center);
+        return vertical
+            ? block.Padding(0).HAlign(HorizontalAlignment.Center)
+            : block.Padding(8.5, 0, 8.5, 0);
     }
+
+    private static string Face(DateTime time, bool vertical) =>
+        vertical ? $"{time:HH}\n{time:mm}" : $"{time:dddd HH:mm}";
 
     private static TimeZoneInfo? Zone(WidgetContext context)
     {
