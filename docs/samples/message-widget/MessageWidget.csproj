@@ -12,7 +12,4 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Winshell.Shell\Winshell.Shell.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <WinshellWidget Include="message" Type="MessageWidget.Message" />
-  </ItemGroup>
 </Project>

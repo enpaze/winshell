@@ -17,7 +17,7 @@ public sealed class DocsTests
     {
         var files = Directory.GetFiles(Path.Combine(Repo, "templates", "winshell"), "*.cs")
             .Append(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs"))
-            .Append(Path.Combine(Repo, "docs", "samples", "message-widget", "Message.xaml.cs"));
+            .Append(Path.Combine(Repo, "docs", "samples", "message-widget", "Message.cs"));
         var source = string.Join('\n', files.Select(File.ReadAllText)).Replace("\r\n", "\n", StringComparison.Ordinal);
         var examples = Examples().ToList();
         Assert.NotEmpty(examples);
@@ -28,6 +28,39 @@ public sealed class DocsTests
             else if (!source.Contains(code, StringComparison.Ordinal))
                 problems.Add($"{Path.GetRelativePath(Repo, file)}:{line}: csharp fence is not in a file the solution builds");
         Assert.True(problems.Count == 0, "C# examples that are not compiled:\n" + string.Join("\n", problems));
+    }
+
+    /// <summary>
+    /// The starter, the configuration guide and the samples teach components. A <c>Watch</c> call or a XAML file in
+    /// the message sample would put the old widget shape back in front of an author.
+    /// </summary>
+    [Fact]
+    public void The_starter_the_guide_and_the_samples_call_no_Watch_and_the_message_sample_has_no_xaml()
+    {
+        var files = SourceFiles(Path.Combine(Repo, "templates", "winshell"))
+            .Append(Path.Combine(Repo, "docs", "configuration.md"))
+            .Append(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs"))
+            .Concat(SourceFiles(Path.Combine(Repo, "docs", "samples")));
+        var watched = files
+            .Where(file => File.ReadAllText(file).Contains(".Watch(", StringComparison.Ordinal))
+            .Select(file => Path.GetRelativePath(Repo, file))
+            .ToList();
+        var xaml = SourceFiles(Path.Combine(Repo, "docs", "samples", "message-widget"))
+            .Where(file => file.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))
+            .Select(file => Path.GetRelativePath(Repo, file))
+            .ToList();
+        Assert.True(watched.Count == 0 && xaml.Count == 0,
+            "Watch calls:\n" + string.Join("\n", watched) + "\nXAML:\n" + string.Join("\n", xaml));
+    }
+
+    /// <summary>Source under <paramref name="root"/>, leaving out build output a compiled sample leaves behind.</summary>
+    private static IEnumerable<string> SourceFiles(string root)
+    {
+        var bin = $"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}";
+        var obj = $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}";
+        return Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+            .Where(file => !file.Contains(bin, StringComparison.OrdinalIgnoreCase)
+                && !file.Contains(obj, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

@@ -1,7 +1,0 @@
-<UserControl
-  x:Class="MessageWidget.Message"
-  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <!-- ThemeResource follows the area, including a theme change. StaticResource would resolve before the area owns this. -->
-  <TextBlock x:Name="Label" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Padding="8,0" />
-</UserControl>

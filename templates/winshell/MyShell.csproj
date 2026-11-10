@@ -11,9 +11,4 @@
   <ItemGroup>
     <PackageReference Include="Winshell" Version="__WINSHELL_VERSION__" />
   </ItemGroup>
-  <!-- Each widget: the name a bar or widget area places it by, and its class. -->
-  <ItemGroup>
-    <WinshellWidget Include="clock" Type="MyShell.Clock" />
-    <WinshellWidget Include="battery" Type="MyShell.Battery" />
-  </ItemGroup>
 </Project>

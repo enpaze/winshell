@@ -4,7 +4,7 @@ A configuration is a .NET project that references the Winshell package and build
 
 - The [reference](reference/index.md) lists every type and member.
 - The [Omarchy-style example](https://github.com/enpaze/winshell/tree/main/examples/omarchy-style) is a whole panel to copy from.
-- The C# on this page is copied from files that build: the starter, [GuideSamples.cs](https://github.com/enpaze/winshell/blob/main/tests/Winshell.Shell.Tests/GuideSamples.cs) and the [message widget](samples/message-widget/Message.xaml.cs). Nothing in GuideSamples runs.
+- The C# on this page is copied from files that build: the starter, [GuideSamples.cs](https://github.com/enpaze/winshell/blob/main/tests/Winshell.Shell.Tests/GuideSamples.cs) and the [message widget](samples/message-widget/Message.cs). Nothing in GuideSamples runs.
 
 ## Your first bar
 
@@ -26,7 +26,9 @@ public sealed class AppShell : ShellConfiguration
 {
     public override void Start(Shell shell)
     {
-        // "clock" and "battery" are the names MyShell.csproj registers the widgets under.
+        // "clock" and "battery" are the names these components are registered under.
+        Widgets.Register<Clock>("clock");
+        Widgets.Register<Battery>("battery");
         _ = new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] };
     }
 }
@@ -36,58 +38,54 @@ The bar keeps itself on screen, so nothing needs to hold it. `Edges.Bottom` puts
 
 ### A clock
 
-A widget is a plain WinUI control whose constructor takes a [WidgetContext](reference/winshell.md#widgetcontext), or a Reactor component registered by name, as [Widgets](#widgets) describes. A plain control needs no base class of Winshell's and no XAML. The clock is a `UserControl` that holds one `TextBlock`:
+A widget is a Reactor component registered by name, as [Widgets](#widgets) describes. `Render` reads `Props` and returns the controls it shows. The clock renders one text block. The time is not a service, so a timer asks it to render again each second:
 
 ```csharp
-public sealed class Clock : UserControl
+public sealed class Clock : Component<WidgetContext>
 {
-    public Clock(WidgetContext context)
+    public override Element Render()
     {
-        var text = new TextBlock { Text = $"{DateTime.Now:t}" };
-        Content = text;
-        // Watch follows the shell's services, not the time, so a timer sets the text each second while it shows.
-        var timer = DispatcherQueue.CreateTimer();
-        timer.Interval = TimeSpan.FromSeconds(1);
-        timer.Tick += (_, _) => text.Text = $"{DateTime.Now:t}";
-        Loaded += (_, _) => timer.Start();
-        Unloaded += (_, _) => timer.Stop();
+        var (time, setTime) = UseState(DateTime.Now);
+        // UseObservable follows a service. The time is not one, so a timer renders the clock again each second.
+        UseEffect(() =>
+        {
+            var timer = DispatcherQueue.GetForCurrentThread().CreateTimer();
+            timer.Interval = TimeSpan.FromSeconds(1);
+            timer.Tick += (_, _) => setTime(DateTime.Now);
+            timer.Start();
+            return () => timer.Stop();
+        }, false);
+        // The name is how inspect and Narrator tell this text from any other. The text itself is only the time.
+        return TextBlock($"{time:t}").AutomationName("Clock");
     }
 }
 ```
 
-`{DateTime.Now:t}` is the time as Windows is set to write it, such as `14:05` or `2:05 PM`. `DispatcherQueue.CreateTimer()` makes a timer that ticks on the shell's thread, the one thread that may change a control. `Loaded` and `Unloaded` run as the clock comes on screen and leaves it, so the timer runs only while there is a clock to show.
+`{time:t}` is the time as Windows is set to write it, such as `14:05` or `2:05 PM`. The effect runs on the shell's thread, the one thread that may change a control, and its cleanup stops the timer when the clock leaves the tree. `DispatcherQueue.GetForCurrentThread()` is that thread's queue. `AutomationName` is the name `winshell inspect` and Narrator use.
 
 ### A battery
 
-The battery reads the shell's `Power` service, which holds what Windows reports:
+The battery observes the shell's `Power` service, which holds what Windows reports:
 
 ```csharp
-public sealed class Battery : UserControl
+public sealed class Battery : Component<WidgetContext>
 {
-    public Battery(WidgetContext context)
+    public override Element Render()
     {
-        var text = new TextBlock { Margin = new Thickness(8, 0, 8, 0) };
-        Content = text;
-        var battery = context.Shell.Power.DisplayDevice;
-        // Each Watch runs its block now, and again whenever what the block read changes.
-        this.Watch(() => text.Text = $"{battery.Percentage:P0}");
-        this.Watch(() => Visibility = battery.IsPresent ? Visibility.Visible : Visibility.Collapsed);
+        var battery = UseObservable(Props.Shell.Power.DisplayDevice);
+        return TextBlock($"{battery.Percentage:P0}")
+            .Margin(8, 0, 8, 0)
+            .IsVisible(battery.IsPresent)
+            .AutomationName("Battery");
     }
 }
 ```
 
-`context.Shell` is the running shell. [Watch](#keep-a-control-current) keeps the text at the charge with no event to subscribe to and nothing to dispose. A PC with no battery has `IsPresent` false, so the widget hides itself. The margin keeps the text off the screen's edge.
+`Props.Shell` is the running shell. [UseObservable](#keep-a-component-current) renders the component again when that device changes. A PC with no battery has `IsPresent` false, so the text collapses. The margin keeps it off the screen's edge. A plain text block takes the [style](#style), so the battery names no brush of its own.
 
 ### Register the widgets
 
-`MyShell.csproj` names each widget and its class, and the bar places a widget by that name:
-
-```xml
-<ItemGroup>
-  <WinshellWidget Include="clock" Type="MyShell.Clock" />
-  <WinshellWidget Include="battery" Type="MyShell.Battery" />
-</ItemGroup>
-```
+`Start` registers each component under the name the bar places. A plain control is still a `WinshellWidget` item, as [Widgets](#widgets) describes.
 
 `Program.cs` starts the shell, and you won't need to change it.
 
@@ -100,9 +98,9 @@ winshell kill
 winshell dev -c starter
 ```
 
-Change both `{DateTime.Now:t}` in `Clock.cs` to `{DateTime.Now:T}` and save it, and the clock shows the seconds. The bar stays where it is, and so does the battery.
+Change `{time:t}` in `Clock.cs` to `{time:T}` and save it, and the clock shows the seconds. The bar stays where it is, and so does the battery.
 
-`Start = ["battery"]` in place of `End` moves the battery to the left. Or write a widget of your own: a control like these, and a `WinshellWidget` item for it. [Widgets](#widgets) has the rest, and [A service](#a-service) lists what else the shell can read. Whoever uses the shell can rearrange the bar without a build, in the `[bar]` section of its [preferences file](#preferences), which applies as it is saved.
+`Start = ["battery"]` in place of `End` moves the battery to the left. Or write a widget of your own: a component like these, and a `Widgets.Register` line for it. [Widgets](#widgets) has the rest, and [A service](#a-service) lists what else the shell can read. Whoever uses the shell can rearrange the bar without a build, in the `[bar]` section of its [preferences file](#preferences), which applies as it is saved.
 
 ## Create one
 
@@ -352,19 +350,7 @@ public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetCont
 }
 ```
 
-The build writes registration code only for an executable, an `OutputType` of `Exe` or `WinExe`. A [widget library](#write-a-widget) can list `WinshellWidget` items so `dotnet msbuild -getItem:WinshellWidget` can read them, and that library does not register the widgets. The configuration that references the library does. Registering one name from both fails when the shell starts.
-
-For example, define this widget in your project's `MyShell` namespace:
-
-```csharp
-public sealed partial class MessageWidget : UserControl
-{
-    public MessageWidget(WidgetContext context)
-    {
-        Content = new TextBlock { Text = (string)context.Settings["text"] };
-    }
-}
-```
+The build writes registration code only for an executable, an `OutputType` of `Exe` or `WinExe`. A [widget library](#write-a-widget) of plain controls can list `WinshellWidget` items so `dotnet msbuild -getItem:WinshellWidget` can read them, and that library does not register the widgets. The configuration that references the library does. Registering one name from both fails when the shell starts.
 
 ### Place widgets in an area
 
@@ -388,7 +374,7 @@ Each placement passes the running `Shell`, that placement's settings and the are
 - **Replacing widgets.** Assigning `Defaults` snapshots the list unless the [preferences file](#preferences) has a list for the area. A plain control is disposed and made again, and so is a component whose name is no longer in that place. A component that stays is rendered again with the new props, and changing `Orientation` does the same. A plain control that implements `IDisposable` is disposed when it is replaced.
 - **Disposing an area.** The example treats a user closing the panel as permanent: `Closed` normally only hides a window. When your code tears the panel down with `panel.Dispose()`, explicitly call `area.Dispose()` too. Removing or reparenting the area does not dispose widgets.
 - **Settings.** Treat placement settings, including nested tables, as read-only.
-- **Styling.** The [shell style](#style) styles the plain controls in an area. Use `{ThemeResource}` for area-sensitive widget resources: `{StaticResource}` resolves at construction, before the area owns the widget.
+- **Styling.** The [shell style](#style) styles the plain controls in an area, including the ones a component renders, so a component names no brush of its own. A widget that still has XAML uses `{ThemeResource}` for area-sensitive resources: `{StaticResource}` resolves at construction, before the area owns the widget.
 - **Popups.** Assign `context.StylePopup(content)` to a `PopupWindow.Content`, or to a flyout's content, to load a fresh dictionary of the area's style and follow its resolved theme, style, font, font size and foreground until the area removes the widget or is disposed. `content` may be a plain element or a `ReactorHostControl` showing a component. The widget still owns its popup windows.
 - **A widget that fails.** An unknown widget, a factory that throws, or a component that throws while rendering shows a placeholder with its name and reason while the other placements keep running. The exception and its stack trace are logged under `widgets` in the shell's log (`winshell log`). Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Other exceptions after creation follow the shell's normal crash supervision.
 
@@ -458,9 +444,9 @@ A widget reads the alert color from the style. With none set, `context.Style` is
 
 ## Write a widget
 
-A widget other people install is a WinUI class library. [samples/message-widget](samples/message-widget) is one, and the solution builds it: a line of text, with one `text` setting. It is a sample for this guide, not a widget Winshell ships.
+A widget other people use can be a class library. [samples/message-widget](samples/message-widget) is one, and the solution builds it: a component that shows one line of text, with one `text` setting. It is a sample for this guide, not a widget Winshell ships. A configuration references the library and registers the component the way [Widgets](#widgets) does, with the type `MessageWidget.Message`.
 
-The project lists each widget. `Include` is the placement name and `Type` is the C# type, as in a configuration. [`winshell widget install`](#installed-widgets) reads those items with `dotnet msbuild -getItem:WinshellWidget`. The library does not register them. Registration is generated only for an executable, so the configuration that references the library is the one that constructs the widget.
+The project is a WinUI library. In this repository it builds against Winshell's source. A plain control library lists a `WinshellWidget` item so [`winshell widget install`](#installed-widgets) can construct it. A component has no constructor for that item to call, so this sample lists none.
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -477,9 +463,6 @@ The project lists each widget. `Include` is the placement name and `Type` is the
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Winshell.Shell\Winshell.Shell.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <WinshellWidget Include="message" Type="MessageWidget.Message" />
-  </ItemGroup>
 </Project>
 ```
 
@@ -493,37 +476,29 @@ That import and the project reference are how this repository builds the sample,
 
 `0.7.0` stands in for the release you built the widget against. A shell on an older release refuses the install, and the message names both versions. The package is not on nuget.org. A release keeps it in a `packages` folder beside `winshell.exe`, and `winshell new` writes a `nuget.config` that adds that folder. Installing a widget restores the library with the configuration's package sources, so the library needs no `nuget.config` of its own.
 
-[Message.xaml](samples/message-widget/Message.xaml) draws the line. Its foreground is `{ThemeResource TextFillColorPrimaryBrush}`, so it follows the area's theme, including a change of theme. `{StaticResource}` resolves at construction, before the area owns the widget, and does not follow a later change.
-
-The constructor takes a [WidgetContext](reference/winshell.md#widgetcontext):
+The component takes the shell's [style](#style), because a plain text block does. There is no XAML file. `Render` reads the placement as `Props`:
 
 ```csharp
-public sealed partial class Message : IDisposable
+public sealed class Message : Component<WidgetContext>
 {
-    private readonly WidgetContext _context;
-    private PopupWindow? _popup;
-    private bool _disposed;
-
-    public Message(WidgetContext context)
+    public override Element Render()
     {
-        var text = TextOf(context);
-        if (context.Orientation == Orientation.Vertical)
+        var popup = UseRef<PopupWindow?>(null);
+        UseEffect(() => () =>
+        {
+            popup.Current?.Dispose();
+            popup.Current = null;
+        }, false);
+
+        var text = TextOf(Props);
+        if (Props.Orientation == Orientation.Vertical)
             throw new UnsupportedWidgetException("The message widget runs in a horizontal area.");
 
-        InitializeComponent();
-        _context = context;
-        Label.Text = text + " ·";
-        Label.PointerPressed += (_, _) => ShowPopup();
-        Loaded += (_, _) => ShowScreen();
-    }
-
-    public void Dispose()
-    {
-        if (_disposed)
-            return;
-        _disposed = true;
-        _popup?.Dispose();
-        _popup = null;
+        var line = text + " ·";
+        return TextBlock(line)
+            .Padding(8, 0)
+            .OnPointerPressed((_, _) => ShowPopup(popup, line))
+            .OnMount(ShowScreen);
     }
 
     private static string TextOf(WidgetContext context)
@@ -533,30 +508,34 @@ public sealed partial class Message : IDisposable
         throw new UnsupportedWidgetException("text must be a string.");
     }
 
-    private void ShowPopup()
+    private void ShowPopup(Ref<PopupWindow?> popup, string line)
     {
-        if (_disposed)
-            return;
-        _popup?.Dispose();
-        var body = new TextBlock { Text = Label.Text, Margin = new Thickness(12) };
-        _popup = new PopupWindow { Content = _context.StylePopup(body), Visible = true };
+        popup.Current?.Dispose();
+        var body = new TextBlock { Text = line, Margin = new Thickness(12) };
+        popup.Current = new PopupWindow { Content = Props.StylePopup(body), Visible = true };
     }
 
-    private void ShowScreen()
+    private static void ShowScreen(FrameworkElement label)
     {
-        if (_disposed)
-            return;
-        var screen = ShellWindow.Of(this)?.Screen;
-        ToolTipService.SetToolTip(Label, screen is null ? "primary screen" : screen.Name);
+        void SetTooltip()
+        {
+            var screen = ShellWindow.Of(label)?.Screen;
+            ToolTipService.SetToolTip(label, screen is null ? "primary screen" : screen.Name);
+        }
+
+        if (label.IsLoaded)
+            SetTooltip();
+        else
+            label.Loaded += (_, _) => SetTooltip();
     }
 }
 ```
 
 `text` is the placement's setting. The line is that string followed by a middle dot. A value that is not a string throws [UnsupportedWidgetException](reference/winshell.md#unsupportedwidgetexception), and so does a vertical area. The area shows the widget's name and that reason, and the other placements keep running.
 
-[StylePopup](reference/winshell.md#widgetcontext) wraps content for a [PopupWindow](reference/winshell.md#popupwindow). Assign the result to the popup's `Content`. The wrapper loads the area's style and follows its theme, font, font size and foreground. The widget still owns the popup: this one disposes the previous popup, and disposes it again with the widget.
+[StylePopup](reference/winshell.md#widgetcontext) wraps content for a [PopupWindow](reference/winshell.md#popupwindow). Assign the result to the popup's `Content`. The wrapper loads the area's style and follows its theme, font, font size and foreground. The effect disposes the popup when the component goes, and a press disposes the previous one first.
 
-[ShellWindow.Of](reference/winshell.md#shellwindow) is null in the constructor. The widget is created before its area is in a window, so the screen is read from `Loaded`. Null is the primary screen.
+[ShellWindow.Of](reference/winshell.md#shellwindow) is null until the text is in a window. `OnMount` reads the screen then, or from `Loaded` when the text is not in a window yet. Null is the primary screen.
 
 ## Installed widgets
 
@@ -645,22 +624,23 @@ It opens off the shell's thread, so a slow app does not hold up the shell. What 
 
 `shell.Log` writes to the instance log, which `winshell log` prints.
 
-### Keep a control current
+### Keep a component current
 
-`Watch` keeps a control showing what the services hold. Winshell runs the block, records each service property, list and method answer it reads, and runs it again when one of them changes:
+`UseObservable` names the service object or list a component renders again for. It takes an `INotifyPropertyChanged` source, which a service object and an [ObservableList](reference/winshell.md#observablelist) are, and returns that source:
 
 ```csharp
-        var label = new TextBlock();
-        label.Watch(() =>
-        {
-            var battery = shell.Power.DisplayDevice;
-            label.Text = battery.IsPresent ? $"{battery.Percentage:P0}" : "";
-        });
+public sealed class BatteryLabel : Microsoft.UI.Reactor.Core.Component<WidgetContext>
+{
+    public override Microsoft.UI.Reactor.Core.Element Render()
+    {
+        var battery = UseObservable(Props.Shell.Power.DisplayDevice);
+        var charge = battery.IsPresent ? $"{battery.Percentage:P0}" : "";
+        return Microsoft.UI.Reactor.Factories.TextBlock(charge);
+    }
+}
 ```
 
-Several changes in one turn run the block once, on the control's thread, and a change the block makes itself does not run it again. The watch pauses while the control is unloaded, as the content of a hidden popup is, and runs again when it loads. It stops when the control's window is disposed, so there is nothing to dispose. A block that throws is logged under `watch`, and the next change to what it read before the throw runs it again.
-
-A service list, such as `shell.Power.Devices`, is an [ObservableList](reference/winshell.md#observablelist): going through it, counting it or indexing it is a read. Only its service changes it. A class of your own that derives from `ObservableObject` reports a read from each getter, as in `get => Read(field);`.
+A change raises `PropertyChanged` on the shell's thread, and the component renders again. A component that observes nothing renders once. A service list, such as `shell.Power.Devices`, is an `ObservableList`: `UseObservable` on the list renders again when the list changes. Only its service changes the list. A class of your own that derives from `ObservableObject` raises `PropertyChanged` from each setter, as in `set => Set(ref field, value);`.
 
 ## Preferences
 
@@ -709,12 +689,25 @@ public sealed class DockPreferences(string name) : Preferences(name, Check)
 }
 ```
 
-Make one on the shell's thread, and dispose it when its component goes. It reads its section when it is made, and its getters report their reads, so a [watch](#keep-a-control-current) follows the file:
+Make one on the shell's thread, and dispose it when its component goes. It reads its section when it is made. [UseObservable](#keep-a-component-current) renders again when a key changes:
 
 ```csharp
-        var preferences = new ShellPreferences();
-        var clock = new TextBlock();
-        clock.Watch(() => clock.Text = preferences.Clock24 ? "13:00" : "1:00 PM");
+public sealed class ClockLabel : Microsoft.UI.Reactor.Core.Component
+{
+    private readonly ShellPreferences _preferences = new();
+
+    public override Microsoft.UI.Reactor.Core.Element Render()
+    {
+        var preferences = UseObservable(_preferences);
+        UseEffect(() => () => _preferences.Dispose(), false);
+        return Microsoft.UI.Reactor.Factories.TextBlock(preferences.Clock24 ? "13:00" : "1:00 PM");
+    }
+}
+```
+
+A named section is made with its name:
+
+```csharp
         var dock = new DockPreferences("dock");
 ```
 

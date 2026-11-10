@@ -28,7 +28,8 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         Run(templates.SmallProject, (pid, environment) =>
         {
-            // The types, not the text: the time changes, and a PC with no battery hides the battery.
+            // The automation names, not the text: the time changes, and a PC with no battery collapses the battery.
+            // A component renders a text block, so the name is what inspect shows.
             ChildProcess? tree = null;
             Wait.Until(() =>
             {
