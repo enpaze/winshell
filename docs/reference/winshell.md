@@ -448,14 +448,14 @@ A WinUI UserControl. The members here are the ones Winshell adds.
 | Member | Type | Description |
 | --- | --- | --- |
 | `WidgetArea()` | constructor | Creates an empty, horizontal area in the shell's style. |
-| `Defaults` | IReadOnlyList of [Placement](#placement) | The author's ordered placements. Assigning a list snapshots it, disposes the previous widgets, and creates the new ones immediately unless the preferences file has a list for this area's Name. To apply edits, assign the list again. Settings are passed through without copying. |
-| `Orientation` | Orientation | The layout direction. Changing it disposes and recreates the placements with the new orientation. |
+| `Defaults` | IReadOnlyList of [Placement](#placement) | The author's ordered placements. Assigning a list snapshots it. A plain control is disposed and made again, and a component whose name stays is rendered again with the new props. A different list of names disposes the previous widgets and creates the new ones. This happens immediately unless the preferences file has a list for this area's Name. To apply edits, assign the list again. Settings are passed through without copying. |
+| `Orientation` | Orientation | The layout direction. Changing it gives each placement the new orientation. A plain control is disposed and made again. A component renders again with the new props. |
 | `Style` | [ShellStyle](#shellstyle)? | This area's own style, which wins over the shell's, or null for Shell.Style. Tooltips follow the shell's style, not the area's. Changing it replaces only the dictionary the style loaded, leaving the area's other resources intact. It hides the inherited WinUI `Style`, which a widget area does not use. |
 | `Dispose()` | void | Detaches and disposes every disposable widget, once. All are attempted even if one disposal throws. |
 
 ## WidgetContext
 
-The placement's inputs and popup styling, passed to its widget factory on the shell's thread.
+The props of one placement: the shell, the placement's settings and the area's orientation, plus the styling of a popup the widget opens. A component widget reads them as `Props`. A changed placement is a new value of this record, and the component renders again. A plain control receives the same value from its factory.
 
 | Member | Type | Description |
 | --- | --- | --- |
@@ -463,7 +463,7 @@ The placement's inputs and popup styling, passed to its widget factory on the sh
 | `Settings` | IReadOnlyDictionary of string, object, read-only | This placement's settings. Empty when the placement supplied none. |
 | `Shell` | [Shell](#shell), read-only | The shell that owns the area. |
 | `Style` | [ShellStyle](#shellstyle)?, read-only | The style this placement shows: the area's own, or the shell's, or null for the built-in style. A widget reads ShellStyle.Alert from it when something needs attention. |
-| `StylePopup(UIElement content)` | FrameworkElement | Wraps content for a PopupWindow in the area's styling. Assign the result to the popup's Content on the shell's thread. Each call loads a fresh dictionary of the area's style, preserving the content's own resources, so the popup's plain controls look like the area's. The wrapper follows the area's resolved theme, style, FontFamily, FontSize and Foreground until the area removes the widget or is disposed. The widget still owns and disposes its popup windows. A new wrapper to use as the popup window's content. |
+| `StylePopup(UIElement content)` | FrameworkElement | Wraps content for a PopupWindow or a flyout in the area's styling. Assign the result to the popup's Content on the shell's thread. Each call loads a fresh dictionary of the area's style, preserving the content's own resources, so the popup's plain controls and a component hosted in it look like the area's. The wrapper follows the area's resolved theme, style, FontFamily, FontSize and Foreground until the area removes the widget or is disposed. The widget still owns and disposes its popup windows. A new wrapper to use as the popup window's content. |
 
 ## Widgets
 
@@ -471,6 +471,7 @@ The widget factories available to this configuration, registered before creating
 
 | Member | Type | Description |
 | --- | --- | --- |
+| `Register<TWidget>(string name)` | void, static | Registers a component widget under a case-sensitive name for the life of the program. A duplicate name throws. One instance is made for each placement, on the shell's thread, and a changed placement renders that instance again with the new WidgetContext. A component that throws while rendering shows its error in the area, and the area logs it. |
 | `Register(string name, Func of [WidgetContext](#widgetcontext), UIElement create)` | void, static | Registers a case-sensitive name for the life of the program. A duplicate name throws. The factory runs on the shell's thread and must return a fresh element for each placement. Only failures during creation are contained. |
 
 ## WindowBackdrop

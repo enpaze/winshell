@@ -36,7 +36,7 @@ The bar keeps itself on screen, so nothing needs to hold it. `Edges.Bottom` puts
 
 ### A clock
 
-A widget is a plain WinUI control whose constructor takes a [WidgetContext](reference/winshell.md#widgetcontext). It needs no base class of Winshell's and no XAML. The clock is a `UserControl` that holds one `TextBlock`:
+A widget is a plain WinUI control whose constructor takes a [WidgetContext](reference/winshell.md#widgetcontext), or a Reactor component registered by name, as [Widgets](#widgets) describes. A plain control needs no base class of Winshell's and no XAML. The clock is a `UserControl` that holds one `TextBlock`:
 
 ```csharp
 public sealed class Clock : UserControl
@@ -338,6 +338,20 @@ A [WidgetArea](reference/winshell.md#widgetarea) can go anywhere in a window. Li
 - A missing type, a type that is not a C# type name, and a duplicate name fail the build, and the error names the widget.
 - You can still call `Widgets.Register` directly for factories that need custom construction.
 
+A component widget is registered in code, not by a `WinshellWidget` item. It is a `Component<WidgetContext>`: `Render` reads `Props.Shell`, `Props.Settings` and `Props.Orientation`. Plain controls keep working beside it.
+
+```csharp
+        Widgets.Register<ClockWidget>("clock");
+```
+
+```csharp
+public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
+{
+    public override Microsoft.UI.Reactor.Core.Element Render() =>
+        Microsoft.UI.Reactor.Factories.TextBlock((string)Props.Settings["text"]);
+}
+```
+
 The build writes registration code only for an executable, an `OutputType` of `Exe` or `WinExe`. A [widget library](#write-a-widget) can list `WinshellWidget` items so `dotnet msbuild -getItem:WinshellWidget` can read them, and that library does not register the widgets. The configuration that references the library does. Registering one name from both fails when the shell starts.
 
 For example, define this widget in your project's `MyShell` namespace:
@@ -354,7 +368,7 @@ public sealed partial class MessageWidget : UserControl
 
 ### Place widgets in an area
 
-Each placement creates a fresh WinUI element with its own settings, the area's orientation and the running `Shell` in its `WidgetContext`. Several placements may use one widget:
+Each placement passes the running `Shell`, that placement's settings and the area's orientation in its `WidgetContext`. A plain control is a fresh element. A component is one instance for that placement, rendered again with a new `WidgetContext` when the settings or the orientation change. Several placements may use one widget:
 
 ```csharp
         var area = new WidgetArea
@@ -371,12 +385,12 @@ Each placement creates a fresh WinUI element with its own settings, the area's o
         panel.Closed += area.Dispose;
 ```
 
-- **Replacing widgets.** Assigning `Defaults` snapshots the list and replaces its widgets unless the [preferences file](#preferences) has a list for the area. Changing `Orientation` also recreates them. Both dispose every widget implementing `IDisposable`.
+- **Replacing widgets.** Assigning `Defaults` snapshots the list unless the [preferences file](#preferences) has a list for the area. A plain control is disposed and made again, and so is a component whose name is no longer in that place. A component that stays is rendered again with the new props, and changing `Orientation` does the same. A plain control that implements `IDisposable` is disposed when it is replaced.
 - **Disposing an area.** The example treats a user closing the panel as permanent: `Closed` normally only hides a window. When your code tears the panel down with `panel.Dispose()`, explicitly call `area.Dispose()` too. Removing or reparenting the area does not dispose widgets.
 - **Settings.** Treat placement settings, including nested tables, as read-only.
 - **Styling.** The [shell style](#style) styles the plain controls in an area. Use `{ThemeResource}` for area-sensitive widget resources: `{StaticResource}` resolves at construction, before the area owns the widget.
-- **Popups.** Assign `context.StylePopup(content)` to a `PopupWindow.Content` to load a fresh dictionary of the area's style and follow its resolved theme, style, font, font size and foreground until the area removes the widget or is disposed; the widget still owns its popup windows.
-- **A widget that fails.** An unknown widget or a factory that throws shows a placeholder with its name and reason while the other placements keep running. The exception and its stack trace are logged under `widgets` in the shell's log (`winshell log`). Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Exceptions after creation follow the shell's normal crash supervision.
+- **Popups.** Assign `context.StylePopup(content)` to a `PopupWindow.Content`, or to a flyout's content, to load a fresh dictionary of the area's style and follow its resolved theme, style, font, font size and foreground until the area removes the widget or is disposed. `content` may be a plain element or a `ReactorHostControl` showing a component. The widget still owns its popup windows.
+- **A widget that fails.** An unknown widget, a factory that throws, or a component that throws while rendering shows a placeholder with its name and reason while the other placements keep running. The exception and its stack trace are logged under `widgets` in the shell's log (`winshell log`). Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Other exceptions after creation follow the shell's normal crash supervision.
 
 ### Let the user change an area
 
@@ -395,7 +409,7 @@ widgets = [
 - `widgets = []` leaves the area empty.
 - Comment the list out or remove it to return to the author's defaults. An area absent from the file keeps its defaults.
 
-Saving applies changes live. Each changed area disposes its old widgets and creates the new list, and other areas keep their widgets. A syntax error or a list without string `widget` names keeps the last valid list and logs the file location under `preferences`. Winshell does not migrate or merge user lists into new defaults. The old placement file, `widgets\<shell id>.toml`, is not read.
+Saving applies changes live. A plain control in a changed area is disposed and made again, and a component whose name stays is rendered again with the new settings. A different list of names replaces those widgets. Other areas keep theirs. A syntax error or a list without string `widget` names keeps the last valid list and logs the file location under `preferences`. Winshell does not migrate or merge user lists into new defaults. The old placement file, `widgets\<shell id>.toml`, is not read.
 
 ## Style
 

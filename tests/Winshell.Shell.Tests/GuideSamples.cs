@@ -153,11 +153,22 @@ public static class GuideSamples
         return (clock, dock);
     }
 
+    public static void RegisterAComponentWidget()
+    {
+        Widgets.Register<ClockWidget>("clock");
+    }
+
     public static void Reload(Shell shell)
     {
         if (!shell.Reload())
             shell.Log.Warn("shell", "Reload did not start.");
     }
+}
+
+public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
+{
+    public override Microsoft.UI.Reactor.Core.Element Render() =>
+        Microsoft.UI.Reactor.Factories.TextBlock((string)Props.Settings["text"]);
 }
 
 public sealed partial class MessageWidget : UserControl
