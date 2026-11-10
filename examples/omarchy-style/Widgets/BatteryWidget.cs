@@ -1,34 +1,28 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Automation;
-using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Reactor;
+using Microsoft.UI.Reactor.Core;
 using Winshell;
 using Winshell.Power;
+using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
 /// <summary>The battery, when the PC has one.</summary>
-public sealed class BatteryWidget : Button
+public sealed class BatteryWidget : Component<WidgetContext>
 {
-    public BatteryWidget(WidgetContext context)
+    public override Element Render()
     {
-        var power = context.Shell.Power;
-        this.Watch(() =>
+        var power = UseObservable(Props.Shell.Power);
+        var battery = UseObservable(power.DisplayDevice);
+        var state = power.OnBattery ? "On battery" : battery.State switch
         {
-            var battery = power.DisplayDevice;
-            Visibility = battery.IsPresent ? Visibility.Visible : Visibility.Collapsed;
-            if (!battery.IsPresent)
-                return;
-            var state = power.OnBattery ? "On battery" : battery.State switch
-            {
-                PowerDeviceState.FullyCharged => "Fully charged",
-                PowerDeviceState.NotCharging => "Not charging",
-                _ => "Charging"
-            };
-            var tip = $"{Math.Round(battery.Percentage * 100)}% · {state}";
-            Content = Glyphs.Power(battery, power.OnBattery);
-            ToolTipService.SetToolTip(this, tip);
-            AutomationProperties.SetName(this, tip);
-        });
-        Click += (_, _) => context.Shell.Open("ms-settings:powersleep");
+            PowerDeviceState.FullyCharged => "Fully charged",
+            PowerDeviceState.NotCharging => "Not charging",
+            _ => "Charging"
+        };
+        var tip = $"{Math.Round(battery.Percentage * 100)}% · {state}";
+        return Button(Glyphs.Power(battery, power.OnBattery), () => Props.Shell.Open("ms-settings:powersleep"))
+            .ToolTip(tip)
+            .AutomationName(tip)
+            .IsVisible(battery.IsPresent);
     }
 }

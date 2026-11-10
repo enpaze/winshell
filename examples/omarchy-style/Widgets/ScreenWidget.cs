@@ -1,26 +1,39 @@
-using Microsoft.UI.Xaml.Automation;
-using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Reactor;
+using Microsoft.UI.Reactor.Core;
+using Microsoft.UI.Xaml;
 using Winshell;
+using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
 /// <summary>The monitor this bar is on, and whether there are others.</summary>
-public sealed class ScreenWidget : Button
+public sealed class ScreenWidget : Component<WidgetContext>
 {
-    public ScreenWidget(WidgetContext context)
+    public override Element Render()
     {
-        var shell = context.Shell;
-        this.Watch(() =>
+        var (window, setWindow) = UseState<ShellWindow?>(null);
+        if (window is null)
+            return LoadedWindow.Placeholder(setWindow);
+        return Component<Glyph, GlyphProps>(new(window, Props));
+    }
+
+    private sealed record GlyphProps(ShellWindow Window, WidgetContext Context);
+
+    /// <summary>The glyph, once the bar's window is known. The window says which screen this bar is on.</summary>
+    private sealed class Glyph : Component<GlyphProps>
+    {
+        public override Element Render()
         {
-            // Null until the widget is in its bar's window. The watch runs again when it loads.
-            var screen = ShellWindow.Of(this)?.Screen;
-            if (screen is null)
-                return;
-            var tip = screen.Model.Length > 0 ? screen.Model : screen.Name;
-            Content = shell.Screens.Count > 1 ? Glyphs.Screens : Glyphs.Screen;
-            ToolTipService.SetToolTip(this, tip);
-            AutomationProperties.SetName(this, tip);
-        });
-        Click += (_, _) => shell.Open("ms-settings:display");
+            var window = UseObservable(Props.Window);
+            var screens = UseObservable(Props.Context.Shell.Screens);
+            var screen = window.Screen;
+            var tip = screen is null ? "" : screen.Model.Length > 0 ? screen.Model : screen.Name;
+            return Button(screens.Count > 1 ? Glyphs.Screens : Glyphs.Screen,
+                    () => Props.Context.Shell.Open("ms-settings:display"))
+                .ToolTip(tip)
+                .AutomationName(tip)
+                .IsVisible(screen is not null)
+                .HAlign(HorizontalAlignment.Left);
+        }
     }
 }

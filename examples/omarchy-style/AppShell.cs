@@ -10,8 +10,17 @@ public sealed class AppShell : ShellConfiguration
         // Winshell shows Explorer's taskbar again when the shell quits, however it quits.
         shell.ExplorerTaskbar.Hidden = true;
         shell.Style = TokyoNight.Style;
-        // The names are the ones OmarchyStyle.csproj registers. The [bar] section of the preferences file can move the
-        // bar and change these lists, for every screen or, in a [[bar.screen]] row, for one.
+        // A component is registered in code. The [bar] section of the preferences file can move the bar and change
+        // these lists, for every screen or, in a [[bar.screen]] row, for one.
+        Widgets.Register<WindowsWidget>("windows");
+        Widgets.Register<WorkspacesWidget>("workspaces");
+        Widgets.Register<ClockWidget>("clock");
+        Widgets.Register<TrayWidget>("tray");
+        Widgets.Register<BluetoothWidget>("bluetooth");
+        Widgets.Register<NetworkWidget>("network");
+        Widgets.Register<AudioWidget>("audio");
+        Widgets.Register<ScreenWidget>("screen");
+        Widgets.Register<BatteryWidget>("battery");
         _ = new Bar
         {
             Edge = Edges.Top,
