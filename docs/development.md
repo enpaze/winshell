@@ -83,7 +83,7 @@ npx -y skills@1.7.6 update -p
 
 It writes each newer version into `.agents/skills` and its hash into the lock, and links the skill into `.claude/skills`, which Git ignores. Read `git diff` before you open the PR. Use this version of the tool or a later one: in 1.7.4, `check` takes every update where this one only lists them.
 
-The [`skills` job](#jobs) does this every Monday with `scripts/update-skills.ps1`, and opens or updates one pull request, `build/update-skills`, holding the diff. It leaves a source alone while the source's newest commit is younger than seven days, as Dependabot here waits a week for a release, and it pushes nothing when the branch already holds the same versions, so closing its pull request declines those versions until a source has newer ones. It never merges: an agent follows a skill with full permissions, so read every skills pull request before you merge it, or close it.
+The [`skills` job](#jobs) does this every Monday with `scripts/update-skills.ps1`, and opens or updates one pull request, `build/update-skills`, holding the diff. It leaves a source alone while the source's newest commit is younger than seven days, as Dependabot here waits a week for a release, and it pushes nothing when the branch already holds the same versions, so closing its pull request declines those versions until a source has newer ones, for as long as the branch is kept. It never merges: an agent follows a skill with full permissions, so read every skills pull request before you merge it, or close it.
 
 A checkout that ran the old install script keeps what it wrote that the repo does not track: `.claude/skills`, and any skill folder in `.agents/skills` the lock no longer records. To list them, then delete them:
 
@@ -273,7 +273,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | `pwsh scripts/ci-changes.ps1 -Files <json> [-MaxFiles <limit>]` | Classifies GitHub changed-file JSON from the checkout root and prints the flags `ci.yml` and `package.yml` use. PR file lists have a 3000-file limit; push comparisons have a 300-file limit. CI fetches this input; local contributors normally choose the checks above directly. |
 | `npx -y skills@1.7.6 check` | Lists the skills in `.agents/skills` that have a newer version, changing nothing. See [Agent skills](#agent-skills). |
 | `npx -y skills@1.7.6 update [<name>] -p` | Writes the newer version of that skill, or of every skill, into `.agents/skills`, for review in `git diff`. |
-| `pwsh scripts/update-skills.ps1 -BodyPath <file>` | What the `skills` job runs: takes the newer skills from each source whose newest commit is at least seven days old, and writes the pull request body, naming each skill that changed and the commits its source gained. Requires an authenticated `gh` and the history of `skills-lock.json`. |
+| `pwsh scripts/update-skills.ps1 -BodyPath <file>` | What the `skills` job runs: takes the newer skills from each source whose newest commit is at least seven days old, and writes the pull request body, naming each skill that changed and the commits its source gained. Requires an authenticated `gh` and the history of `skills-lock.json`. On Windows the skills tool crashes as it exits, after it has updated the skills, so the script stops there and writes no body; the job runs it on Linux. |
 
 ### The full check
 
