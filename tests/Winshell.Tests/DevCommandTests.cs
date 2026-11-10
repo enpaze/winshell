@@ -245,7 +245,7 @@ public sealed partial class DevCommandTests : IDisposable
     /// Windows can't give its id to another process. A node's parent is the build, so a scan sees a node only while the
     /// build runs.
     /// </summary>
-    private void NoteWatchNodes()
+    private void NoteDevNodes()
     {
         if (_dev is null)
             return;
@@ -254,14 +254,16 @@ public sealed partial class DevCommandTests : IDisposable
         foreach (var row in rows)
             byId[row.Pid] = row;
         foreach (var row in rows)
-            if (row.Command.Contains("nodemode", StringComparison.OrdinalIgnoreCase) && !_nodes.ContainsKey(row.Pid)
-                                                                                     && Reaches(row, byId, _dev.Id)
-                                                                                     && Open(row) is { } node)
+        {
+            if (!row.Command.Contains("nodemode", StringComparison.OrdinalIgnoreCase) || _nodes.ContainsKey(row.Pid))
+                continue;
+            if (Reaches(row, byId, _dev.Id) && Open(row) is { } node)
                 _nodes[row.Pid] = node;
+        }
     }
 
     /// <summary>
-    /// Waits for this watch's build nodes to exit. Without reuse they exit after the build. A node kept for reuse stays
+    /// Waits for the build nodes of this <c>winshell dev</c> to exit. Without reuse they exit after the build. A node kept for reuse stays
     /// idle for about 15 minutes, so it still fails the wait.
     /// </summary>
     private async Task NodesExit()
@@ -297,7 +299,7 @@ public sealed partial class DevCommandTests : IDisposable
         return true;
     }
 
-    /// <summary>The process a scan found, held open, or null if it has exited since.</summary>
+    /// <summary>The process a scan found, held open, or null if it has exited since or can't be opened.</summary>
     private static Process? Open(ProcessRow row)
     {
         Process? process = null;
@@ -311,7 +313,7 @@ public sealed partial class DevCommandTests : IDisposable
         }
         catch (Exception e) when (e is ArgumentException or InvalidOperationException or Win32Exception)
         {
-            // It has exited.
+            // It has exited, or can't be opened.
         }
 
         process?.Dispose();
@@ -388,7 +390,7 @@ public sealed partial class DevCommandTests : IDisposable
         StartDev(true);
         await Wait.UntilAsync(async () =>
         {
-            NoteWatchNodes();
+            NoteDevNodes();
             return await Value() == (0, "one");
         }, "the first build", BuildPatience);
         Assert.True(Printed("dotnet watch : "), "winshell dev printed nothing of dotnet watch's.");
@@ -434,7 +436,7 @@ public sealed partial class DevCommandTests : IDisposable
             "the build the XAML needs");
         await Wait.UntilAsync(async () =>
         {
-            NoteWatchNodes();
+            NoteDevNodes();
             return await Shown() == "three";
         }, "the shell to start again", BuildPatience);
         Assert.NotEqual(shell, ShellProcess());
