@@ -245,6 +245,22 @@ public sealed class WinlandServiceTests
     }
 
     [Fact]
+    public void A_window_arriving_reaches_its_workspace_and_the_workspace_list()
+    {
+        using var service = Connected();
+        var workspace = service.FocusedWorkspace!;
+        var workspaceChanges = new List<string?>();
+        var listChanges = new List<string?>();
+        workspace.PropertyChanged += (_, e) => workspaceChanges.Add(e.PropertyName);
+        service.Workspaces.PropertyChanged += (_, e) => listChanges.Add(e.PropertyName);
+
+        Raise(@"openwindow>>30,1,\\.\DISPLAY1,App,Notes");
+
+        Assert.Contains(nameof(WinlandWorkspace.Windows), workspaceChanges);
+        Assert.Contains("Item[]", listChanges);
+    }
+
+    [Fact]
     public void An_urgent_window_marks_its_workspace_until_it_is_focused()
     {
         using var service = Connected();

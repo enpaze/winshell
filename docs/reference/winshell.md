@@ -131,21 +131,21 @@ How serious a log message is, from least to most.
 
 ## ObservableList
 
-A list a service keeps current. A configuration reads it, and only its service changes it. Enumerating, counting or indexing it is a read a watch follows. A change is raised on the thread that made it, which for a service is its event loop, so XAML bindings can show it.
+A list a service keeps current. A configuration reads it, and only its service changes it. Enumerating, counting or indexing it is a read a watch follows. A change is raised on the thread that made it, which for a service is its event loop, so XAML bindings can show it. An item that raises INotifyPropertyChanged.PropertyChanged raises this list too, until the item is removed, replaced or cleared.
 
 | Member | Type | Description |
 | --- | --- | --- |
 | `Count` | int, read-only | How many items there are. |
 | `Item` | T?, read-only | The item at index. |
 | `CollectionChanged` | NotifyCollectionChangedEventHandler | Raised when an item is added, removed, moved or replaced. |
-| `PropertyChanged` | PropertyChangedEventHandler | Raised when ObservableList.Count or the items change, for XAML bindings. |
+| `PropertyChanged` | PropertyChangedEventHandler | Raised when ObservableList.Count or the items change, and when an item raises INotifyPropertyChanged.PropertyChanged, for XAML bindings and Reactor. |
 | `Contains(T? item)` | bool | Whether item is in the list. |
 | `GetEnumerator()` | IEnumerator of T | Goes through the items in order. |
 | `IndexOf(T? item)` | int | Where item is, or -1 when it is not in the list. |
 
 ## ObservableObject
 
-The base of what a service exposes. A change is raised on the thread that made it, which for a service is its event loop, so XAML bindings and Reactor can read it. Each public getter, and each public method that answers from its state, reports its read with Read, so a watch that reads it runs again when it changes.
+The base of what a service exposes. A change is raised on the thread that made it, which for a service is its event loop, so XAML bindings and Reactor can read it. Each public getter, and each public method that answers from its state, reports its read with Read, so a watch that reads it runs again when it changes. A list property, once read, raises this object when that list changes, so a change inside the list reaches the object.
 
 | Member | Type | Description |
 | --- | --- | --- |

@@ -206,7 +206,7 @@ On any window:
 - **`Corners`** rounds the window.
 - **A flyout** is a WinUI `Flyout` in the window's content. Winshell closes an open flyout on a window that does not activate.
 
-The Winshell package carries Reactor, so a configuration adds no Reactor reference. Set `new ReactorHostControl(component)` as a panel or popup window's content. The component renders again when a service object it observes with `UseObservable` changes.
+The Winshell package carries Reactor, so a configuration adds no Reactor reference. Set `new ReactorHostControl(component)` as a panel or popup window's content. The component renders again when a service object it observes with `UseObservable` changes. `UseObservableTree` follows a whole service, as [Keep a component current](#keep-a-component-current) describes.
 
 ### One panel per screen
 
@@ -626,7 +626,7 @@ It opens off the shell's thread, so a slow app does not hold up the shell. What 
 
 ### Keep a component current
 
-`UseObservable` names the service object or list a component renders again for. It takes an `INotifyPropertyChanged` source, which a service object and an [ObservableList](reference/winshell.md#observablelist) are, and returns that source:
+`UseObservableTree` follows a service: a component renders again when anything that service holds changes, including an item in one of its lists. `UseObservable` follows one service object or one list. Both take an `INotifyPropertyChanged` source, which a service object and an [ObservableList](reference/winshell.md#observablelist) are, and return that source:
 
 ```csharp
 public sealed class BatteryLabel : Microsoft.UI.Reactor.Core.Component<WidgetContext>
@@ -640,7 +640,7 @@ public sealed class BatteryLabel : Microsoft.UI.Reactor.Core.Component<WidgetCon
 }
 ```
 
-A change raises `PropertyChanged` on the shell's thread, and the component renders again. A component that observes nothing renders once. A service list, such as `shell.Power.Devices`, is an `ObservableList`: `UseObservable` on the list renders again when the list changes. Only its service changes the list. A class of your own that derives from `ObservableObject` raises `PropertyChanged` from each setter, as in `set => Set(ref field, value);`.
+A change raises `PropertyChanged` on the shell's thread, and the component renders again. A component that observes nothing renders once. A service list, such as `shell.Power.Devices`, is an `ObservableList`. An item's change raises that list, so `UseObservable` on the list renders again when an item changes in place, and `UseObservableTree` on the service does too, because it follows the list. Only its service changes the list. A class of your own that derives from `ObservableObject` raises `PropertyChanged` from each setter, as in `set => Set(ref field, value);`.
 
 ## Preferences
 
