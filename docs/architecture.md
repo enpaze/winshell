@@ -59,7 +59,7 @@ Services remains one assembly. Each feature folder owns its `I*Backend` seam and
 - **Only a feature may consume its own backend contracts and implementations.** Another feature uses the service's managed contract, events or shared Core infrastructure. It must not construct, resolve, reference or call a neighboring feature's backend.
 - **Composition belongs with the feature that owns the backend.**
 
-Test service policy against fake backends on the test event loop in `tests/TestSupport` (`ManualEventLoop`, or `EventQueue` when the test pumps posted work itself). Fakes supply platform results and signals; the real service supplies the behavior under test. Keep tests that own distinct platform, transport or lifecycle contracts. Preserve assertion strength when moving tests to their new owner.
+Test service policy against fake backends on the test event loop in `tests/TestSupport` (`ManualEventLoop`, or `EventQueue` when the test pumps posted work itself). Fakes supply platform results and signals; the real service supplies the behavior under test. Keep tests that own distinct platform, transport or lifecycle contracts.
 
 Media keeps one type per job, the split from #1102. `ISmtcLink` (#1306) stays the seam `SmtcSession` uses to reach Windows' session.
 
@@ -121,4 +121,4 @@ How the tests work:
 - **Two guards read sources.** A WinUI project's assembly can't tell CsWinRT's generated unsafe code from ours, so that guard reads the sources. The composition guard reads them too, because only the compiler can say what a file may see.
 - **Prove a new or changed guard.** Show that it rejects a representative forbidden dependency or declaration, then remove that violation. Do not add production hooks solely to exercise the guards.
 
-Tests follow the installed `test-audit` skill's gate, [where a test belongs](../CONTRIBUTING.md#where-a-test-belongs) and the [test rules](../CONTRIBUTING.md#write-tests-that-dont-flake). Never weaken a test, skip a failure or add flaky retries. Use fake clocks and real completion signals. A refactor that retains behavior retains its existing proof.
+Tests follow the installed `test-audit` skill's gate, [where a test belongs](../CONTRIBUTING.md#where-a-test-belongs), which says what a changed test keeps, and the [test rules](../CONTRIBUTING.md#write-tests-that-dont-flake). Use fake clocks and real completion signals.

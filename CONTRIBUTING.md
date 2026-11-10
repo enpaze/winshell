@@ -30,6 +30,7 @@ Every new or changed test passes the authoring gate of the `test-audit` skill, w
 
 - **A windowed test** shows a window on the desktop, takes the foreground, sends real input, or hides Explorer's taskbar. It carries `[Trait("Category", "Window")]`, so the full check leaves it out. See [A windowed test](docs/development.md#a-windowed-test).
 - **A regression test goes red before the fix** for the intended reason, and green after it. Say so in the PR, or say why you couldn't show it.
+- **A changed or moved test keeps every assertion it had, and a change that keeps behavior keeps its tests**, or the PR names the cheaper test that proves what was dropped, and the reviewer opens that test.
 - **One bug gets one test**, at its owner, however many layers it crossed.
 - **No seams for tests alone.** A test needs no `internal` member, constructor overload, flag or hook that production code doesn't use.
 - **Keep these tests even when they are static or slow:** the public API of the `Winshell` package, the control pipe protocol, CLI output and exit codes, TOML and other files on disk, security guards, platform behavior, defaults, generated templates, the package, the release scripts, and observable ordering.
@@ -130,5 +131,7 @@ You own the PR until it merges:
 - Fix every failing check, and re-run a cancelled one with `gh run rerun <run-id>`.
 - For a standalone PR, enable auto-merge with `gh pr merge <number> --squash --auto`. A delegated one goes to its lead, as [the lead page](docs/agents/lead.md) describes.
 - Confirm `gh pr view <number> --json state --jq .state` prints `MERGED`.
-- Whoever sees it to `MERGED` then removes the ticket's worktree and local branch.
+- Whoever sees it to `MERGED` then cleans up the ticket's worktree:
+  1. A worktree you made with `git worktree add` is yours: remove it with `git worktree remove <folder>`. A folder a tool still holds open is that tool's to remove, and git keeps its branch until it does.
+  2. Run `git worktree prune`, then delete the local branch with `git branch -D <branch>`.
 - Keep `release-please--branches--main`: it is the release bot's branch, and deleting it closes the open release PR.
