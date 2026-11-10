@@ -16,7 +16,7 @@ BeforeAll {
 
     function Invoke-Check {
         param([string] $Root)
-        $output = pwsh -NoProfile -File (Join-Path $Root 'scripts/copy-skills.ps1') -Check 2>&1
+        $output = pwsh -NoProfile -File (Join-Path $Root 'scripts/copy-skills.ps1') -VerifyNoChanges 2>&1
         [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $output -join "`n" }
     }
 }

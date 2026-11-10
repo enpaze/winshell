@@ -4,16 +4,16 @@
 #
 #   pwsh scripts/copy-skills.ps1
 #
-# With -Check it changes nothing: it prints each file the two folders do not share byte for byte, and exits 1 if there is
-# one. CI runs the check on every pull request.
-param([switch] $Check)
+# With -VerifyNoChanges it changes nothing: it prints each file the two folders do not share byte for byte, and exits 1
+# if there is one. CI runs the check on every pull request that is not a draft.
+param([switch] $VerifyNoChanges)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $source = Join-Path $root '.agents/skills'
 $copy = Join-Path $root '.claude/skills'
 
-if (-not $Check) {
+if (-not $VerifyNoChanges) {
     if (Test-Path -LiteralPath $copy) {
         # The skills tool links each skill it updates into .claude/skills. Remove the links first, without following
         # them into .agents/skills: a recursive delete can't remove a junction on Windows.
@@ -21,7 +21,7 @@ if (-not $Check) {
         Remove-Item -LiteralPath $copy -Recurse -Force
     }
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $copy) | Out-Null
-    Copy-Item -LiteralPath $source -Destination $copy -Recurse
+    Copy-Item -LiteralPath $source -Destination $copy -Recurse -Force
     return
 }
 

@@ -25,6 +25,6 @@ Describe 'The workflows' {
 
     It 'fail the required ci check when .claude/skills is not a copy of .agents/skills' {
         $ci = Get-Content -Raw -LiteralPath ($script:Workflows | Where-Object Name -EQ 'ci.yml').FullName
-        $ci | Should -Match ([regex]::Escape('./scripts/copy-skills.ps1 -Check'))
+        $ci | Should -Match ([regex]::Escape('./scripts/copy-skills.ps1 -VerifyNoChanges'))
     }
 }

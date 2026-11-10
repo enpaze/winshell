@@ -62,7 +62,7 @@ dotnet run --project src/Winshell -- kill -i <id>
 
 The repo's skills are committed in `.agents/skills`, one folder each, so a clone or worktree has them with nothing to run. `skills-lock.json` records the source each one came from, and the licence of each source is beside them, in `LICENSE-<owner>-skills`. Codex reads the folder as it is.
 
-Claude Code reads `.claude/skills`, so the repo commits a copy there too: the same files, byte for byte. Claude Code lists each skill by its bare name, `/<name>` and the Skill tool both, and the repo's `code-review` takes that name from Claude Code's built-in one. `pwsh scripts/copy-skills.ps1` makes `.claude/skills` a copy of `.agents/skills`, and the `ci` check fails a pull request that leaves the two folders different.
+Claude Code reads `.claude/skills`, so the repo commits a copy there too: the same files, byte for byte. Claude Code lists each skill by its bare name, `/<name>` and the Skill tool both, and the repo's `code-review` overrides Claude Code's built-in skill of that name. `pwsh scripts/copy-skills.ps1` makes `.claude/skills` a copy of `.agents/skills`, and the `ci` check fails a pull request that leaves the two folders different.
 
 The committed files are the pin: a skill changes only when a PR changes it. To list the skills that have a newer version, changing nothing:
 
@@ -228,7 +228,7 @@ Choose checks from the complete change against the PR's base, including renamed 
 
 | Change | Before pushing |
 | --- | --- |
-| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/` outside `docs/samples/`, Markdown such as the PR template, the skills in `.agents/skills/` and `.claude/skills/`, `skills-lock.json`, `LICENSE` and `.gitignore`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`. No application build, formatting or test suite is needed. |
+| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/` outside `docs/samples/`, Markdown such as the PR template, the skills in `.agents/skills/` and `.claude/skills/`, `skills-lock.json`, `LICENSE` and `.gitignore`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`, and `pwsh scripts/copy-skills.ps1 -VerifyNoChanges` for a change to the skills. No application build, formatting or test suite is needed. |
 | A page in `docs/` (outside `docs/agents/`) or `README.md` containing or removing a C# example fence, or a generated `docs/reference/winshell*.md` page | Lint, then `pwsh scripts/check.ps1 -Tier Docs`. This builds the samples and checks the generated reference, without unrelated tests or windows. |
 | Only tooling: `scripts/` and `tests/Scripts/`, except the files that [count as code](#how-checks-are-selected) | `Invoke-Pester -Path tests/Scripts`. A change to `scripts/uninstall.ps1` or `tests/Scripts/Install.Tests.ps1` also runs `Install.Tests.ps1` on Windows PowerShell 5.1, as the `installer` job in the [Jobs](#jobs) table does. |
 | Only workflows: `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | Lint, then `Invoke-Pester -Path tests/Scripts`. |
@@ -269,7 +269,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | `pwsh scripts/ci-changes.ps1 -Files <json> [-MaxFiles <limit>]` | Classifies GitHub changed-file JSON from the checkout root and prints the flags `ci.yml` and `package.yml` use. PR file lists have a 3000-file limit; push comparisons have a 300-file limit. CI fetches this input; local contributors normally choose the checks above directly. |
 | `npx -y skills@1.7.6 check` | Lists the skills in `.agents/skills` that have a newer version, changing nothing. See [Agent skills](#agent-skills). |
 | `npx -y skills@1.7.6 update [<name>] -p` | Writes the newer version of that skill, or of every skill, into `.agents/skills`, for review in `git diff`. Follow it with `pwsh scripts/copy-skills.ps1`. |
-| `pwsh scripts/copy-skills.ps1 [-Check]` | Makes `.claude/skills`, which Claude Code reads, a copy of `.agents/skills`. With `-Check` it changes nothing, lists each file the two folders do not share, and exits 1 if there is one; the `quality` job runs it on every pull request. |
+| `pwsh scripts/copy-skills.ps1 [-VerifyNoChanges]` | Makes `.claude/skills`, which Claude Code reads, a copy of `.agents/skills`. With `-VerifyNoChanges` it changes nothing, lists each file the two folders do not share, and exits 1 if there is one; the `quality` job runs it on every pull request that is not a draft. |
 | `pwsh scripts/update-skills.ps1 -BodyPath <file>` | What the `skills` job runs: takes the newer skills from each source whose newest commit is at least seven days old, and writes the pull request body, naming each skill that changed and the commits its source gained. Requires an authenticated `gh` and the history of `skills-lock.json`. On Windows the skills tool crashes as it exits, after it has updated the skills, so the script stops there and writes no body; the job runs it on Linux. |
 
 ### The full check
@@ -367,7 +367,7 @@ The single required test check, `ci`, collects suite, installer compatibility an
 
 - `ci` fails if quality, installer compatibility or any shard fails or is cancelled; intentionally skipped jobs are allowed.
 - `ci` runs lychee offline over the repo's Markdown, so a link to a file or a heading that isn't there fails the required check even when no build is needed.
-- `ci` runs `scripts/copy-skills.ps1 -Check`, so a pull request that changes a file in `.agents/skills` or `.claude/skills` and not in the other fails the required check, whatever else it changes.
+- `ci` runs `scripts/copy-skills.ps1 -VerifyNoChanges`, so a pull request that changes a file in `.agents/skills` or `.claude/skills` and not in the other fails the required check, whatever else it changes.
 - `pr-title` checks the pull request title.
 - `pr-rules` checks that each type of change carries its proof, as "PR description" in `CONTRIBUTING.md` lists.
 - The Package workflow runs the `-Tier Package` deployment validation on PRs that `scripts/ci-changes.ps1` flags `package`; it is not required. Leave `scripts/package.ps1` and arm64 to CI.
