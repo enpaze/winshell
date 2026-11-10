@@ -10,6 +10,7 @@ Describe 'Selecting CI checks from GitHub changed files' {
         @{ Name = 'keeps documentation sample prose to link checks'; Path = 'docs/samples/message-widget/README.md'; Text = '# Sample'; Patch = '+A sentence'; Code = $false; Docs = $false },
         @{ Name = 'keeps script documentation out of installer checks'; Path = 'scripts/README.md'; Text = '# Scripts'; Patch = '+A sentence'; Code = $false; Docs = $false },
         @{ Name = 'keeps action documentation out of tooling checks'; Path = '.github/actions/README.md'; Text = '# Actions'; Patch = '+A sentence'; Code = $false; Docs = $false },
+        @{ Name = 'keeps an issue form to link checks'; Path = '.github/ISSUE_TEMPLATE/agent_task.yml'; Text = 'name: Agent task'; Patch = '+  - type: textarea'; Code = $false; Docs = $false },
         @{ Name = 'keeps a deleted prose page to link checks'; Path = 'docs/privacy.md'; Text = $null; Patch = '-# Privacy'; Code = $false; Docs = $false },
         @{ Name = 'checks a page containing compiled examples'; Path = 'docs/configuration.md'; Text = "``````csharp`nShell.Run();`n``````"; Patch = '+A sentence'; Code = $false; Docs = $true },
         @{ Name = 'checks a new README example'; Path = 'README.md'; Text = "``````csharp`nShell.Run();`n``````"; Patch = '+```csharp'; Code = $false; Docs = $true },
