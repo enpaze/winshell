@@ -38,7 +38,7 @@ Scripts are PowerShell 7; `scripts/install.ps1` and `scripts/uninstall.ps1` also
 
 ## Models and effort
 
-Set a model or an effort for a subagent or a delegate from this table, and only from it. Each job lists its models in order: use the first, and use the next only when the one before it is unavailable or its usage is used up.
+Take the model and effort for a subagent or a delegate from this table. Each job lists its models in order: use the first, and use the next only when the one before it is unavailable or its usage is used up.
 
 | Job | First | Then | Then | Then |
 | --- | --- | --- | --- | --- |
