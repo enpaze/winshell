@@ -2,7 +2,7 @@
 Read CONTRIBUTING.md before opening a PR. Solve one underlying problem.
 Title: a conventional commit in plain language, such as "fix(api): retries no longer duplicate orders".
 Branch: <type>/<short-description>, such as "fix/duplicate-orders", or agent/<tool>/<issue#>-<slug> for an AI agent.
-An AI agent writes this body with the installed pr skill.
+An AI agent writes this body with the pr skill.
 -->
 
 ## Summary

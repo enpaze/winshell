@@ -60,7 +60,7 @@ dotnet run --project src/Winshell -- kill -i <id>
 
 ## Agent skills
 
-The repo's skills are committed in `.agents/skills`, one folder each, so a clone or worktree has them with nothing to run. `skills-lock.json` records the source each one came from, and the licence of each source is beside them. Codex reads the folder as it is. Claude Code lists the skills when started with the folder as a plugin:
+The repo's skills are committed in `.agents/skills`, one folder each, so a clone or worktree has them with nothing to run. `skills-lock.json` records the source each one came from, and the licence of each source is beside them, in `LICENSE-<owner>-skills`. Codex reads the folder as it is. Claude Code lists the skills when started with the folder as a plugin:
 
 ```sh
 claude --plugin-dir .agents
@@ -74,7 +74,7 @@ The committed files are the pin: a skill changes only when a PR changes it. To c
 npx -y skills@1.7.4 update -p
 ```
 
-It writes each newer version into `.agents/skills` and its hash into the lock, and links the skills into `.claude/skills`, which Git ignores. Read `git diff`, keep the skills you take for a PR, and `git restore` the rest.
+It writes each newer version into `.agents/skills` and its hash into the lock, and links the skills into `.claude/skills`, which Git ignores. Read `git diff` and keep the skills you take for a PR. For each one you leave, restore its folder, delete any file the update added to it, and put back its hash in the lock.
 
 A checkout that ran the old install script keeps what it wrote that the repo does not track: `.claude/skills`, and any skill folder in `.agents/skills` the lock no longer records. To list them, then delete them:
 
