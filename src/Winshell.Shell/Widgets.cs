@@ -65,6 +65,6 @@ public static class Widgets
         where TWidget : Component<WidgetContext>, new()
     {
         public override UIElement Create(WidgetContext context, string name, string area) =>
-            new ComponentWidgetView<TWidget>(context, name, area);
+            new ComponentWidgetHost<TWidget>(context, name, area);
     }
 }

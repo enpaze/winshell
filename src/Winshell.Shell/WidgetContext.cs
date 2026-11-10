@@ -58,7 +58,7 @@ public sealed record WidgetContext
     /// <returns>A new wrapper to use as the popup window's content.</returns>
     public FrameworkElement StylePopup(UIElement content)
     {
-        ObjectDisposedException.ThrowIf(_popups.Disposed, this);
+        ObjectDisposedException.ThrowIf(_popups.Stopped, this);
         return _popups.Wrap(content);
     }
 
@@ -77,7 +77,7 @@ public sealed record WidgetContext
         private readonly List<UserControl> _popups = [];
         private readonly List<(DependencyProperty Property, long Token)> _callbacks = [];
 
-        public bool Disposed { get; private set; }
+        public bool Stopped { get; private set; }
 
         public ShellStyle? Style => area.ActiveStyle;
 
@@ -101,9 +101,9 @@ public sealed record WidgetContext
 
         public void Stop()
         {
-            if (Disposed)
+            if (Stopped)
                 return;
-            Disposed = true;
+            Stopped = true;
             area.ActualThemeChanged -= ThemeChanged;
             area.StyleChanged -= ReloadStyles;
             foreach (var (property, token) in _callbacks)

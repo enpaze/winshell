@@ -158,7 +158,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         foreach (var placement in placements)
         {
             var shown = Make(placement);
-            _panel.Children.Add(shown.View);
+            _panel.Children.Add(shown.Control);
             _shown.Add(shown);
         }
     }
@@ -167,20 +167,15 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     private void UpdateShown(int index, Placement placement)
     {
         var shown = _shown[index];
-        if (shown.View is ComponentWidgetView component)
-        {
-            var next = shown.Context.Next(SettingsOf(placement), Orientation);
-            shown.Context = next;
-            component.Show(next, Name);
+        if (shown.ShowAgain(SettingsOf(placement), Orientation, Name))
             return;
-        }
 
         shown.Context.StopStyling();
         _panel.Children.RemoveAt(index);
-        if (shown.View is IDisposable disposable)
+        if (shown.Control is IDisposable disposable)
             Shell.DisposeEach([disposable]);
         var created = Make(placement);
-        _panel.Children.Insert(index, created.View);
+        _panel.Children.Insert(index, created.Control);
         _shown[index] = created;
     }
 
@@ -199,7 +194,9 @@ public sealed partial class WidgetArea : UserControl, IDisposable
             widget = new TextBlock { Text = $"{placement.Widget}: {e.Message}" };
         }
 
-        return new ShownWidget(placement.Widget, context, widget);
+        return widget is ComponentWidgetHost host
+            ? new ShownComponent(placement.Widget, context, host)
+            : new ShownControl(placement.Widget, context, widget);
     }
 
     private static IReadOnlyDictionary<string, object> SettingsOf(Placement placement) =>
@@ -216,13 +213,42 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     }
 
     /// <summary>One placement currently on screen.</summary>
-    private sealed class ShownWidget(string name, WidgetContext context, UIElement view)
+    private abstract class ShownWidget(string name, WidgetContext context, UIElement control)
     {
         public string Name { get; } = name;
 
-        public WidgetContext Context { get; set; } = context;
+        public WidgetContext Context { get; private set; } = context;
 
-        public UIElement View { get; } = view;
+        public UIElement Control { get; } = control;
+
+        /// <summary>
+        /// Renders this placement again when its kind keeps the same control. Returns false when the area must make
+        /// a new one.
+        /// </summary>
+        public abstract bool ShowAgain(IReadOnlyDictionary<string, object> settings, Orientation orientation, string area);
+
+        protected void Use(WidgetContext next) => Context = next;
+    }
+
+    /// <summary>A plain control. A changed placement disposes it and makes another.</summary>
+    private sealed class ShownControl(string name, WidgetContext context, UIElement control)
+        : ShownWidget(name, context, control)
+    {
+        public override bool ShowAgain(IReadOnlyDictionary<string, object> settings, Orientation orientation, string area) =>
+            false;
+    }
+
+    /// <summary>A component. A changed placement renders this same instance again.</summary>
+    private sealed class ShownComponent(string name, WidgetContext context, ComponentWidgetHost host)
+        : ShownWidget(name, context, host)
+    {
+        public override bool ShowAgain(IReadOnlyDictionary<string, object> settings, Orientation orientation, string area)
+        {
+            var next = Context.Next(settings, orientation);
+            Use(next);
+            host.Show(next, area);
+            return true;
+        }
     }
 
     /// <summary>Detaches and disposes every disposable widget, once. All are attempted even if one disposal throws.</summary>

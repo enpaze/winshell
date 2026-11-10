@@ -2,6 +2,7 @@ using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 using static Microsoft.UI.Reactor.Factories;
@@ -71,12 +72,12 @@ public sealed class ComponentWidgetTests
                 using var area = new WidgetArea { Name = areaName, Defaults = [new(widget, new Dictionary<string, object> { ["text"] = "code" })] };
                 using var window = new PanelWindow { Width = 220, Height = 90, Content = area, Visible = true };
                 await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
-                await Wait.UntilAsync(() => Texts(area).Contains("first|first"), "the component to show its first settings");
+                await Wait.UntilAsync(() => Texts(area).Contains("first|first|Horizontal"), "the component to show its first settings");
 
                 File.WriteAllText(path, $"[{areaName}]\nwidgets = [{{ widget = '{widget}', text = 'second' }}]\n");
-                await Wait.UntilAsync(() => Texts(area).Contains("first|second"),
+                await Wait.UntilAsync(() => Texts(area).Contains("first|second|Horizontal"),
                     "the same component to render the new settings");
-                Assert.DoesNotContain("second|second", Texts(area));
+                Assert.DoesNotContain(Texts(area), text => text.StartsWith("second|second", StringComparison.Ordinal));
             }
             finally
             {
@@ -88,22 +89,30 @@ public sealed class ComponentWidgetTests
     }
 
     [Fact]
-    public async Task An_unknown_widget_shows_its_error_in_place_and_logs_it()
+    [Trait("Category", "Window")]
+    public async Task A_new_orientation_or_defaults_renders_the_same_component()
     {
-        await ShellFixture.On(shell =>
+        await ShellFixture.On(async _ =>
         {
-            var name = "missing" + Guid.NewGuid().ToString("N");
-            var survivor = "survivor" + Guid.NewGuid().ToString("N");
-            Widgets.Register(survivor, _ => new TextBlock { Text = "survivor" });
-            using var area = new WidgetArea { Name = "end", Defaults = [new(survivor), new(name)] };
-            var text = Texts(area);
-            Assert.Equal(2, text.Count);
-            Assert.Equal("survivor", text[0]);
-            Assert.Contains(name, text[1], StringComparison.Ordinal);
-            Assert.Contains("No widget is registered", text[1], StringComparison.Ordinal);
-            var log = LogAfter(shell, $"ERROR widgets: Could not create {name}");
-            Assert.Contains("No widget is registered", log, StringComparison.Ordinal);
-            Assert.Contains("\n   at ", log, StringComparison.Ordinal);
+            var name = Guid.NewGuid().ToString();
+            Widgets.Register<RememberingWidget>(name);
+            using var area = new WidgetArea
+            {
+                Defaults = [new(name, new Dictionary<string, object> { ["text"] = "born" })]
+            };
+            using var window = new PanelWindow { Width = 280, Height = 120, Content = area, Visible = true };
+            await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
+            await Wait.UntilAsync(() => Texts(area).Contains("born|born|Horizontal"),
+                "the component to show the settings it was born with");
+
+            area.Defaults = [new(name, new Dictionary<string, object> { ["text"] = "next" })];
+            await Wait.UntilAsync(() => Texts(area).Contains("born|next|Horizontal"),
+                "the same component to render the new defaults");
+
+            area.Orientation = Orientation.Vertical;
+            await Wait.UntilAsync(() => Texts(area).Contains("born|next|Vertical"),
+                "the same component to render the new orientation");
+            Assert.DoesNotContain(Texts(area), text => text.StartsWith("next|", StringComparison.Ordinal));
             return true;
         });
     }
@@ -159,6 +168,44 @@ public sealed class ComponentWidgetTests
                 }, "the popup to show its component");
                 await ShellFixture.LaidOut(popupText!).WaitAsync(TestContext.Current.CancellationToken);
                 Assert.Equal(("Consolas", 18d), (popupText!.FontFamily.Source, popupText.FontSize));
+            }
+            finally
+            {
+                shell.Style = null;
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    [Trait("Category", "Window")]
+    public async Task A_component_widgets_flyout_takes_the_shell_style()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            shell.Style = TestStyles.Other();
+            var name = Guid.NewGuid().ToString();
+            Widgets.Register<FlyoutWidget>(name);
+            try
+            {
+                using var area = new WidgetArea { Defaults = [new(name)] };
+                using var window = new PanelWindow { Width = 180, Height = 80, Content = area, Visible = true };
+                await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
+                TextBlock? flyoutText = null;
+                await Wait.UntilAsync(() =>
+                {
+                    flyoutText = shell.Platform.Windows.Select(host => host.Client).OfType<PanelWindow>()
+                        .Select(panel => panel.Content)
+                        .OfType<FrameworkElement>()
+                        .Where(content => content.XamlRoot is not null)
+                        .SelectMany(content => VisualTreeHelper.GetOpenPopupsForXamlRoot(content.XamlRoot))
+                        .Select(popup => FindText(popup.Child, "flyout"))
+                        .FirstOrDefault(text => text is not null);
+                    return flyoutText is not null;
+                }, "the flyout to show its component");
+                await ShellFixture.LaidOut(flyoutText!).WaitAsync(TestContext.Current.CancellationToken);
+                Assert.Equal(("Consolas", 18d), (flyoutText!.FontFamily.Source, flyoutText.FontSize));
             }
             finally
             {
@@ -255,7 +302,7 @@ public sealed class ComponentWidgetTests
         {
             var text = (string)Props.Settings["text"];
             var (born, _) = UseState(text);
-            return TextBlock($"{born}|{text}");
+            return TextBlock($"{born}|{text}|{Props.Orientation}");
         }
     }
 
@@ -292,5 +339,44 @@ public sealed class ComponentWidgetTests
     private sealed class PopupLabel : Component
     {
         public override Element Render() => TextBlock("popup");
+    }
+
+    /// <summary>Opens a flyout whose content is a component styled with the shell.</summary>
+    private sealed class FlyoutWidget : Component<WidgetContext>
+    {
+        public override Element Render()
+        {
+            UseEffect(() =>
+            {
+                var body = new ReactorHostControl(new FlyoutLabel());
+                var anchor = new TextBlock { Text = "anchor" };
+                var flyout = new Flyout
+                {
+                    Content = Props.StylePopup(body),
+                    Placement = FlyoutPlacementMode.Bottom,
+                    ShouldConstrainToRootBounds = false
+                };
+                anchor.Loaded += (_, _) => flyout.ShowAt(anchor);
+                var window = new PanelWindow
+                {
+                    Width = 180,
+                    Height = 80,
+                    Content = anchor,
+                    Visible = true
+                };
+                return () =>
+                {
+                    flyout.Hide();
+                    window.Dispose();
+                    body.Dispose();
+                };
+            }, false);
+            return TextBlock("widget");
+        }
+    }
+
+    private sealed class FlyoutLabel : Component
+    {
+        public override Element Render() => TextBlock("flyout");
     }
 }

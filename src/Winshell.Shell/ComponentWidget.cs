@@ -6,22 +6,22 @@ using static Microsoft.UI.Reactor.Factories;
 namespace Winshell;
 
 /// <summary>One placed component widget. A new placement renders this instance again instead of making another.</summary>
-internal abstract class ComponentWidgetView : UserControl
+internal abstract class ComponentWidgetHost : UserControl
 {
     internal abstract void Show(WidgetContext context, string area);
 }
 
-internal sealed class ComponentWidgetView<TWidget> : ComponentWidgetView, IDisposable
+internal sealed class ComponentWidgetHost<TWidget> : ComponentWidgetHost, IDisposable
     where TWidget : Component<WidgetContext>, new()
 {
     private readonly ReactorHostControl _host = new();
     private readonly WidgetHost _root;
     private readonly string _widget;
     private string _area;
-    private string? _logged;
+    private string? _lastLoggedError;
     private bool _disposed;
 
-    public ComponentWidgetView(WidgetContext context, string widget, string area)
+    public ComponentWidgetHost(WidgetContext context, string widget, string area)
     {
         _widget = widget;
         _area = area;
@@ -35,7 +35,7 @@ internal sealed class ComponentWidgetView<TWidget> : ComponentWidgetView, IDispo
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         _area = area;
-        _logged = null;
+        _lastLoggedError = null;
         _root.Show(context);
     }
 
@@ -52,9 +52,9 @@ internal sealed class ComponentWidgetView<TWidget> : ComponentWidgetView, IDispo
         if (error.Source == RenderErrorSource.Cleanup)
             return null;
         var text = error.Exception.ToString();
-        if (_logged != text)
+        if (_lastLoggedError != text)
         {
-            _logged = text;
+            _lastLoggedError = text;
             Shell.Current.Log.Error("widgets", $"Could not render {_widget} in area '{_area}': {error.Exception}");
         }
 
