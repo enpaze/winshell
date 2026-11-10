@@ -26,4 +26,4 @@ Work that needs more than one PR goes through all of it. Work that fits one PR n
 - **A ticket ends at a merged PR.** `implement` ends at a commit; here the ticket closes when its PR merges, opened as [Open a PR](../../CONTRIBUTING.md#open-a-pr) describes.
 - **`tdd` takes its seams from the spec and CONTRIBUTING.md when no user is there to confirm them.** The owner agreed the seams in the spec's Testing Decisions, and [Where a test belongs](../../CONTRIBUTING.md#where-a-test-belongs) names the owner of each contract.
 - **`/retro` runs when a spec's last ticket merges, and after a one-off ticket only when something went wrong. Each finding the owner accepts becomes a ticket.** A finding left in a thread is forgotten.
-- **The repo's pinned skills are the copies in use**: the ones `pwsh scripts/install-skills.ps1` installs from `skills-lock.json`. Another version of a skill names its files differently, so the documents here would point at files it lacks.
+- **The repo's skills are the copies in use**: the ones committed in `.agents/skills`. Another version of a skill names its files differently, so the documents here would point at files it lacks.

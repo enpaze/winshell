@@ -8,7 +8,7 @@ How to build, check and release Winshell. [CONTRIBUTING.md](../CONTRIBUTING.md) 
 - PowerShell 7
 - Pester 5.6.1, for the PowerShell tooling tests
 - .NET 10 SDK
-- Node.js, for `npx` when installing or updating agent skills
+- Node.js, for `npx` when updating agent skills
 - Claude Code 2.1.281 or later, only for an agent on Claude Code: an older one may not read `AGENTS.md`, and then starts without the repo's instructions and nothing says they are missing
 - The Windows SDK, for `makeappx.exe`, only to run `scripts/package.ps1`
 - GitHub CLI (`gh`), only when publishing a draft release outside GitHub Actions
@@ -60,17 +60,35 @@ dotnet run --project src/Winshell -- kill -i <id>
 
 ## Agent skills
 
-Install every skill `skills-lock.json` records, for Codex and Claude Code. Agents do this first in every session:
+The repo's skills are committed in `.agents/skills`, one folder each, so a clone or worktree has them with nothing to run. `skills-lock.json` records the source each one came from, and the licence of each source is beside them, in `LICENSE-<owner>-skills`. Codex reads the folder as it is. Claude Code lists the skills when started with the folder as a plugin:
 
 ```sh
-pwsh scripts/install-skills.ps1
+claude --plugin-dir .agents
 ```
 
-It installs each source at the ref the lock pins, as copies. The CLI's `experimental_install` links instead, and on Windows that leaves the external skills linked to no agent.
+It lists each one as `.agents:<name>`, and it answers to its bare name, `/<name>` and the Skill tool both. `--plugin-dir` takes every argument after it that is not an option, so put a prompt before it: `claude -p "<prompt>" --plugin-dir .agents`.
 
-Installed copies in `.agents/skills/` and `.claude/skills/` are ignored by Git; keep `skills-lock.json` tracked. Every skill installs from the source repository the lock records. Skills become available in a new agent session.
+The committed files are the pin: a skill changes only when a PR changes it. To list the skills that have a newer version, changing nothing:
 
-The install adds skills and never removes one. To drop a skill the lock no longer records, such as `test-audit`, delete its folder from both places in your checkout: `Remove-Item -Recurse -Force .agents/skills/test-audit, .claude/skills/test-audit`.
+```sh
+npx -y skills@1.7.6 check
+```
+
+To take one of them, or all:
+
+```sh
+npx -y skills@1.7.6 update <name> -p
+npx -y skills@1.7.6 update -p
+```
+
+It writes each newer version into `.agents/skills` and its hash into the lock, and links the skill into `.claude/skills`, which Git ignores. Read `git diff` before you open the PR. Use this version of the tool or a later one: in 1.7.4, `check` takes every update where this one only lists them.
+
+A checkout that ran the old install script keeps what it wrote that the repo does not track: `.claude/skills`, and any skill folder in `.agents/skills` the lock no longer records. To list them, then delete them:
+
+```sh
+git clean -ndx -- .agents/skills .claude/skills
+git clean -fdx -- .agents/skills .claude/skills
+```
 
 ## Start a task
 
@@ -212,7 +230,7 @@ Choose checks from the complete change against the PR's base, including renamed 
 
 | Change | Before pushing |
 | --- | --- |
-| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/` outside `docs/samples/`, Markdown such as the PR template, `skills-lock.json`, `LICENSE` and `.gitignore`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`. No application build, formatting or test suite is needed. |
+| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/` outside `docs/samples/`, Markdown such as the PR template, the skills in `.agents/skills/`, `skills-lock.json`, `LICENSE` and `.gitignore`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`. No application build, formatting or test suite is needed. |
 | A page in `docs/` (outside `docs/agents/`) or `README.md` containing or removing a C# example fence, or a generated `docs/reference/winshell*.md` page | Lint, then `pwsh scripts/check.ps1 -Tier Docs`. This builds the samples and checks the generated reference, without unrelated tests or windows. |
 | Only tooling: `scripts/` and `tests/Scripts/`, except the files that [count as code](#how-checks-are-selected) | `Invoke-Pester -Path tests/Scripts`. A change to `scripts/uninstall.ps1` or `tests/Scripts/Install.Tests.ps1` also runs `Install.Tests.ps1` on Windows PowerShell 5.1, as the `installer` job in the [Jobs](#jobs) table does. |
 | Only workflows: `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | Lint, then `Invoke-Pester -Path tests/Scripts`. |
@@ -251,8 +269,8 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | `pwsh scripts/pr-rules.ps1 -Title <title> -Body <body> -Path <file>` | What the `pr-rules` job runs, given a file of changed paths. It prints each problem and exits 1. |
 | `pwsh scripts/pr-screenshot.ps1 <png>` | Publishes a `winshell inspect` screenshot on the `pr-screenshots` branch, which never merges, and prints the Markdown to paste into a PR. |
 | `pwsh scripts/ci-changes.ps1 -Files <json> [-MaxFiles <limit>]` | Classifies GitHub changed-file JSON from the checkout root and prints the flags `ci.yml` and `package.yml` use. PR file lists have a 3000-file limit; push comparisons have a 300-file limit. CI fetches this input; local contributors normally choose the checks above directly. |
-| `pwsh scripts/install-skills.ps1` | Installs every skill in `skills-lock.json` for Codex and Claude Code, each at its pinned ref, as copies. See [Agent skills](#agent-skills). |
-| `npx -y skills@1.7.4 update -p` | Update the unpinned agent skills. Pinned ones (with a `ref` in `skills-lock.json`) change only when re-added with a newer `#<sha>`. |
+| `npx -y skills@1.7.6 check` | Lists the skills in `.agents/skills` that have a newer version, changing nothing. See [Agent skills](#agent-skills). |
+| `npx -y skills@1.7.6 update [<name>] -p` | Writes the newer version of that skill, or of every skill, into `.agents/skills`, for review in `git diff`. |
 
 ### The full check
 
@@ -360,7 +378,7 @@ The `changes` job selects checks for PRs and pushes to `main`. Each kind of chan
 
 | Kind | Paths | What runs |
 | --- | --- | --- |
-| Prose | Markdown, `docs/` outside `docs/samples/`, `.github/ISSUE_TEMPLATE/`, `skills-lock.json`, `LICENSE` and `.gitignore` | The link check in `quality`, and `DocsTests` when a page has C# examples or is generated reference |
+| Prose | Markdown, `docs/` outside `docs/samples/`, `.github/ISSUE_TEMPLATE/`, `.agents/skills/`, `skills-lock.json`, `LICENSE` and `.gitignore` | The link check in `quality`, and `DocsTests` when a page has C# examples or is generated reference |
 | Tooling | `scripts/` and `tests/Scripts/`, except the files that count as code | The formatting check and the PowerShell suites in `quality`, and `installer` |
 | Workflows | `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | `actionlint`, and the formatting check and the PowerShell suites in `quality` |
 | Packaging | `packaging/`, except the files that count as code | The Package workflow |
@@ -601,6 +619,7 @@ To submit a release:
 
 ```text
 .
+├── .agents/skills/                  # The agent skills; see Agent skills
 ├── .github/                         # CI, issue and PR templates, Dependabot
 ├── docs/
 │   ├── adr/                         # Architecture decision records

@@ -76,6 +76,8 @@ Describe 'Selecting CI checks from GitHub changed files' {
     # workflow.
     It '<Path> selects <Flags>' -ForEach @(
         @{ Path = 'skills-lock.json'; Flags = 'none' },
+        @{ Path = '.agents/skills/wizard/template.sh'; Flags = 'none' },
+        @{ Path = '.agents/skills/tdd/agents/openai.yaml'; Flags = 'none' },
         @{ Path = 'LICENSE'; Flags = 'none' },
         @{ Path = '.gitignore'; Flags = 'none' },
         @{ Path = 'scripts/uninstall.ps1'; Flags = 'powershell scripts' },
