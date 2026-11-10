@@ -36,6 +36,22 @@ Scripts are PowerShell 7; `scripts/install.ps1` and `scripts/uninstall.ps1` also
 - Lead a spec's tickets, or work as a delegate: [the lead page](docs/agents/lead.md).
 - Change something visible: [See what you changed](docs/development.md#see-what-you-changed).
 
+## Models and effort
+
+Take the model and effort for a subagent or a delegate from this table. Each job lists its models in order: use the first, and use the next only when the one before it is unavailable or its usage is used up.
+
+| Job | First | Then | Then | Then |
+| --- | --- | --- | --- | --- |
+| Most work: leading a spec, building a ticket, the `code-review` subagents | Claude Opus 5.5 (medium) | GPT 6.1 Sol (medium) | Grok 4.7 Fast (high) | |
+| A well-scoped everyday ticket: a bug fix, a docs change, a feature built against a clear spec | Claude Sonnet 5.5 (high) | GPT 6.1 Terra (high) | Grok 4.7 Fast (high) | |
+| A side task for a larger model: a search, a lookup, classifying or extracting | Claude Haiku 5.5 (high) | GPT 6.1 Terra (medium) | Grok 4.7 Fast (high) | |
+| A hard ticket: a migration, a performance fix, a change across several layers | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) | |
+| The hardest work, or a long unattended run | Claude Fable 5.2 (high) | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) |
+
+- A clear spec alone does not make a ticket a Sonnet ticket: a migration can be fully specified and still need Opus.
+- The lead picks the row when it delegates. A ticket carries no model label.
+- An agent that moves past the first model says in its report which model ran, and why the ones before it did not.
+
 ## Agent skills
 
 Issues live in GitHub Issues for enpaze/winshell, used through `gh`: see the [issue tracker](docs/agents/issue-tracker.md) and [triage labels](docs/agents/triage-labels.md). Name things with the words of `GLOSSARY.md`: see [domain docs](docs/agents/domain.md).
