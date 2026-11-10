@@ -41,6 +41,5 @@ out/
 # Release builds from scripts/package.ps1
 artifacts/
 
-# Installed agent skills (sources are recorded in skills-lock.json)
-.agents/skills/
+# What the skills CLI or an earlier install wrote for Claude Code. The repo's skills are in .agents/skills.
 .claude/skills/
