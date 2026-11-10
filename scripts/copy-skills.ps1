@@ -14,8 +14,12 @@ $source = Join-Path $root '.agents/skills'
 $copy = Join-Path $root '.claude/skills'
 
 if (-not $Check) {
-    # Directory.Delete removes a link the skills tool wrote without following it into .agents/skills.
-    if (Test-Path -LiteralPath $copy) { [IO.Directory]::Delete($copy, $true) }
+    if (Test-Path -LiteralPath $copy) {
+        # The skills tool links each skill it updates into .claude/skills. Remove the links first, without following
+        # them into .agents/skills: a recursive delete can't remove a junction on Windows.
+        Get-ChildItem -LiteralPath $copy -Directory -Force | Where-Object LinkType | ForEach-Object { $_.Delete() }
+        Remove-Item -LiteralPath $copy -Recurse -Force
+    }
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $copy) | Out-Null
     Copy-Item -LiteralPath $source -Destination $copy -Recurse
     return

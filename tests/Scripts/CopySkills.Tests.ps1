@@ -59,4 +59,19 @@ Describe 'scripts/copy-skills.ps1' {
         Join-Path $root '.claude/skills/tdd/old.md' | Should -Not -Exist
         (Invoke-Check $root).ExitCode | Should -Be 0
     }
+
+    # The skills tool links each skill it updates into .claude/skills.
+    It 'fails the check on a skill linked into .claude/skills, and replaces the link with a copy' {
+        $root = New-Checkout
+        Remove-Item -LiteralPath (Join-Path $root '.claude/skills/tdd') -Recurse
+        New-Item -ItemType ($IsWindows ? 'Junction' : 'SymbolicLink') -Path (Join-Path $root '.claude/skills/tdd') -Target (Join-Path $root '.agents/skills/tdd') | Out-Null
+        (Invoke-Check $root).ExitCode | Should -Be 1
+
+        pwsh -NoProfile -File (Join-Path $root 'scripts/copy-skills.ps1')
+        $LASTEXITCODE | Should -Be 0
+
+        (Get-Item -LiteralPath (Join-Path $root '.claude/skills/tdd') -Force).LinkType | Should -BeNullOrEmpty
+        Get-Content -Raw -LiteralPath (Join-Path $root '.agents/skills/tdd/SKILL.md') | Should -Be '# TDD'
+        (Invoke-Check $root).ExitCode | Should -Be 0
+    }
 }
