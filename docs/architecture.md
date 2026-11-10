@@ -34,22 +34,20 @@ Only `Winshell.Native` may contain `LibraryImport`, `DllImport`, `ComImport` or 
 - **Declarations.** CsWin32 generates the Win32 declarations from an explicit API list, `NativeMethods.txt`. Add a Win32 API to that list, and remove the handwritten declarations a generated one replaces. Native may own declarations CsWin32 cannot supply, such as undocumented interfaces. Do not maintain duplicate Win32 declarations alongside generated ones.
 - **Ownership.** Keep allocation and release together: handles, COM objects, buffers and callbacks have an explicit owner and lifetime. Callback exceptions must not escape into native code.
 - **The boundary.** Put safe operations at this boundary. Do not expose the generated declaration set as a public service API or move feature policy into Native.
+- **No `System.Runtime.InteropServices.ComTypes` in `src/`.** A release trims the framework, and a trimmed COM interface calls the wrong method. Declare the interface in Native instead.
 
-### How the build enforces it
+### What the build enforces
 
-The root `Directory.Build.targets` enforces it for every project except Native:
+Nothing in the build stops an interop attribute, `NativeLibrary` or `Marshal.GetDelegateForFunctionPointer` outside Native: a review holds a change to that rule. The build stops unsafe code:
 
-- It adds `BannedSymbols.Interop.txt`, so `DllImport`, `LibraryImport`, `ComImport`, `GeneratedComInterface` and `GeneratedComClass` fail with RS0030. So do `NativeLibrary` and `Marshal.GetDelegateForFunctionPointer`, which together would call native code with neither an attribute nor unsafe code.
-- Outside WinUI projects it forces `AllowUnsafeBlocks` off, so unsafe code fails with CS0227. It runs after each project file, so setting `AllowUnsafeBlocks` there has no effect.
+- Outside Native and WinUI projects, the root `Directory.Build.targets` forces `AllowUnsafeBlocks` off, so unsafe code fails with CS0227. It runs after each project file, so setting `AllowUnsafeBlocks` there has no effect.
 - A new project under `src/` or `tests/` is covered without edits.
 
-Native keeps the clock ban the other `src/` projects have. Do not exempt a consumer, suppress the diagnostics or exclude generated consumer code to bypass the boundary.
+Do not exempt a consumer, suppress the diagnostic or exclude generated consumer code to bypass the boundary.
 
 ### WinUI projects
 
-A project with `UseWinUI` keeps unsafe compilation, because CsWinRT generates its trim-safe vtables and generic instantiations only when unsafe code is allowed. Hand-written unsafe code there is still forbidden; the [architecture tests](#architecture-proof) check for it. The interop ban applies to WinUI projects too.
-
-The one exception is the Windows App SDK's `UndockedRegFreeWinRT-AutoInitializer.cs`, which its package adds to each self-contained WinUI executable. It is package startup code we don't own, not our interop, so only that file, matched by its path in the NuGet package folder, drops the ban. Any `[DllImport]` of ours in the same project still fails.
+A project with `UseWinUI` keeps unsafe compilation, because CsWinRT generates its trim-safe vtables and generic instantiations only when unsafe code is allowed. Hand-written unsafe code there is still forbidden; the [architecture tests](#architecture-proof) check for it. The interop rule applies to WinUI projects too.
 
 ## Services and feature ownership
 
@@ -105,9 +103,8 @@ The supervisor owns Explorer taskbar recovery independently of the child. Recove
 
 ## Architecture proof
 
-`Winshell.Architecture.Tests` runs in the unified suite. Each boundary has one guard:
+`Winshell.Architecture.Tests` runs in the unified suite. Each of these boundaries has one guard:
 
-- **Interop outside Native** (interop attributes, `NativeLibrary` and `Marshal.GetDelegateForFunctionPointer`): the build. RS0030 from `BannedSymbols.Interop.txt`, added by `Directory.Build.targets`.
 - **Unsafe code outside Native, in a project without WinUI:** the build. CS0227, since `Directory.Build.targets` turns `AllowUnsafeBlocks` off.
 - **Hand-written unsafe code in a WinUI project:** `WinUISourceTests`. It parses the C# files of each `UseWinUI` project in `winshell.slnx`, outside `bin` and `obj`, and the files it links, for `unsafe`, `fixed` and pointer types.
 - **Layer order:** `LayerTests`. Each layer's project references and its compiled assembly's Winshell references name only layers below it. Restore already fails on an upward project reference that closes a cycle (MSB4006); the test catches the rest, such as a reference to a project outside the layers or to a built DLL.
