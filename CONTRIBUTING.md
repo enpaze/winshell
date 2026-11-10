@@ -131,5 +131,7 @@ You own the PR until it merges:
 - Fix every failing check, and re-run a cancelled one with `gh run rerun <run-id>`.
 - For a standalone PR, enable auto-merge with `gh pr merge <number> --squash --auto`. A delegated one goes to its lead, as [the lead page](docs/agents/lead.md) describes.
 - Confirm `gh pr view <number> --json state --jq .state` prints `MERGED`.
-- Whoever sees it to `MERGED` then runs `git worktree prune` and deletes the ticket's local branch with `git branch -D <branch>`. A worktree you made with `git worktree add` is yours to remove first, with `git worktree remove <folder>`. A folder a tool still holds open is that tool's to remove, and git keeps its branch until it does.
+- Whoever sees it to `MERGED` then cleans up the ticket's worktree:
+  1. A worktree you made with `git worktree add` is yours: remove it with `git worktree remove <folder>`. A folder a tool still holds open is that tool's to remove, and git keeps its branch until it does.
+  2. Run `git worktree prune`, then delete the local branch with `git branch -D <branch>`.
 - Keep `release-please--branches--main`: it is the release bot's branch, and deleting it closes the open release PR.

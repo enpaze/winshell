@@ -17,7 +17,7 @@ Work that needs more than one PR goes through all of it. Work that fits one PR n
 ## Who runs each step
 
 - `/grill-with-docs`, `/to-spec`, `/to-tickets` and `/retro` run in a thread the owner is in. They need the owner's answers.
-- A delegate follows `implement` and `code-review` for one ticket, then opens its PR and hands it to its lead. It ends its turn only when every command it started has finished, because each turn it ends wakes its lead to review. It runs the full check in the foreground: it takes about five minutes. A ticket that is unclear or wrong stops it: it reports what it found instead of planning the work again.
+- A delegate follows `implement` and `code-review` for one ticket, then opens its PR and hands it to its lead. It ends its turn only when every command it started has finished, because each turn it ends wakes its lead to review. When it runs the full check, it runs it in the foreground: it takes about five minutes. A ticket that is unclear or wrong stops it: it reports what it found instead of planning the work again.
 - The lead reviews and merges the PR, as [the lead page](lead.md) describes. A thread with no lead sees its own PR to `MERGED`, as [Until it merges](../../CONTRIBUTING.md#until-it-merges) describes.
 
 ## Where this repo overrides a skill
