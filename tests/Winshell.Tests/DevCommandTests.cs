@@ -276,8 +276,10 @@ public sealed partial class DevCommandTests : IDisposable
         }
         catch (TimeoutException)
         {
-            Assert.Fail("Timed out: winshell dev's MSBuild nodes to exit: " +
-                        string.Join(", ", _nodes.Values.Where(node => !node.HasExited).Select(node => node.Id)));
+            // A command line with /nodeReuse:true is a node winshell dev left for reuse.
+            var alive = _nodes.Values.Where(node => !node.HasExited).Select(node => node.Id).ToHashSet();
+            Assert.Fail("Timed out: winshell dev's MSBuild nodes to exit: " + string.Join("; ",
+                Processes().Where(row => alive.Contains(row.Pid)).Select(row => $"{row.Pid} {row.Command}")));
         }
     }
 
