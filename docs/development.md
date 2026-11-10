@@ -212,9 +212,11 @@ Choose checks from the complete change against the PR's base, including renamed 
 
 | Change | Before pushing |
 | --- | --- |
-| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/` outside `docs/samples/`, and Markdown such as the PR template, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`. No application build, formatting or test suite is needed. |
+| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/` outside `docs/samples/`, Markdown such as the PR template, `skills-lock.json`, `LICENSE` and `.gitignore`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`. No application build, formatting or test suite is needed. |
 | A page in `docs/` (outside `docs/agents/`) or `README.md` containing or removing a C# example fence, or a generated `docs/reference/winshell*.md` page | Lint, then `pwsh scripts/check.ps1 -Tier Docs`. This builds the samples and checks the generated reference, without unrelated tests or windows. |
-| Other changes, including source, scripts, workflows and build configuration | `pwsh scripts/check.ps1`, followed by the focused checks the [Jobs](#jobs) table lists for that change. |
+| Only tooling: `scripts/` and `tests/Scripts/`, except the files that [count as code](#how-checks-are-selected) | `Invoke-Pester -Path tests/Scripts`. A change to `scripts/uninstall.ps1` or `tests/Scripts/Install.Tests.ps1` also runs `Install.Tests.ps1` on Windows PowerShell 5.1, as the `installer` job in the [Jobs](#jobs) table does. |
+| Only workflows: `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | Lint, then `Invoke-Pester -Path tests/Scripts`. |
+| Other changes, including source, the files that count as code, and build configuration | `pwsh scripts/check.ps1`, followed by the focused checks the [Jobs](#jobs) table lists for that change. |
 
 Some changes need more than checks:
 
@@ -354,13 +356,20 @@ The single required test check, `ci`, collects suite, installer compatibility an
 
 ### How checks are selected
 
-The `changes` job selects checks for PRs and pushes to `main`:
+The `changes` job selects checks for PRs and pushes to `main`. Each kind of changed file runs the checks that read it, and a change of several kinds runs the checks of each. The Package workflow also runs for any file its jobs read, whatever its kind, such as `package.yml`:
 
+| Kind | Paths | What runs |
+| --- | --- | --- |
+| Prose | Markdown, `docs/` outside `docs/samples/`, `.github/ISSUE_TEMPLATE/`, `skills-lock.json`, `LICENSE` and `.gitignore` | The link check in `quality`, and `DocsTests` when a page has C# examples or is generated reference |
+| Tooling | `scripts/` and `tests/Scripts/`, except the files that count as code | The formatting check and the PowerShell suites in `quality`, and `installer` |
+| Workflows | `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | `actionlint`, and the formatting check and the PowerShell suites in `quality` |
+| Packaging | `packaging/`, except the files that count as code | The Package workflow |
+| Code | Everything else | The five .NET suite shards, which build their own projects, the formatting check and the PowerShell suites, and the jobs that read the file |
+
+- A path no row names is code, and so is every path of an empty or cut-off file list.
+- The suite's own machinery is code, because a change to it could break the shards: `scripts/lib/`, `scripts/build-template.ps1`, `scripts/generate-reference.cs`, `.github/workflows/ci.yml` and `.github/actions/`.
+- So are the files the suite reads: `scripts/install.ps1`, `packaging/winshell.ico` and `packaging/msix/Assets/`.
 - A draft skips quality checks and suite shards; marking it ready runs them.
-- `quality` always checks the links of every Markdown file. Prose-only changes stop there.
-- Compiled documentation changes run only `DocsTests`.
-- Other changes run file-only formatting and PowerShell suites alongside five .NET suite shards, which build their own projects.
-- Non-Markdown files under `docs/samples/` count as code. Prose-only changes skip the shards.
 - A newer push cancels the superseded CI run on the same branch, including `main` and manual runs.
 - `gh workflow run ci.yml --ref <branch>` runs every check by hand.
 
@@ -370,14 +379,14 @@ The `changes` job selects checks for PRs and pushes to `main`:
 
 | Job | When it runs | How to run it locally |
 | --- | --- | --- |
-| `installer` | PRs and pushes to `main` that change `scripts/`, `tests/Scripts/` or workflows/actions. | Windows PowerShell 5.1 runs `tests/Scripts/Install.Tests.ps1` with Pester 5.6.1 against temporary profiles and releases served on loopback. PowerShell 7 tooling suites run once in `quality`. |
-| `tests (1/5)` through `tests (5/5)` | Non-draft PRs and pushes to `main` that change more than prose, in `ci.yml`. Results feed the one required `ci` check. | `pwsh scripts/check.ps1` for the tests that open no windows, and [A windowed test](#a-windowed-test) for the rest. See [Test shards](#test-shards). |
+| `installer` | PRs and pushes to `main` that change `scripts/`, `tests/Scripts/`, `ci.yml` or `.github/actions/`. | Windows PowerShell 5.1 runs `tests/Scripts/Install.Tests.ps1` with Pester 5.6.1 against temporary profiles and releases served on loopback. PowerShell 7 tooling suites run once in `quality`. |
+| `tests (1/5)` through `tests (5/5)` | Non-draft PRs and pushes to `main` that change code, as [How checks are selected](#how-checks-are-selected) says, in `ci.yml`. Results feed the one required `ci` check. | `pwsh scripts/check.ps1` for the tests that open no windows, and [A windowed test](#a-windowed-test) for the rest. See [Test shards](#test-shards). |
 | `close-fixed-issues` | Every merged pull request, in `close-fixed-issues.yml`. Not required. | Nothing to run. Once the merge commit is on `main`, it closes each issue the pull request fixes that GitHub left open, with a comment naming the pull request. |
 | `pr-size` | Every pull request, from `pr-size.yml` on the base branch. Not required. | Nothing to run. It labels the pull request `size:XS` to `size:XL`, as "PR description" in `CONTRIBUTING.md` says. |
 | `trim-caches` | Every push to `main`, after `ci`, in `ci.yml` | Nothing to run. It deletes all but the two newest CodeQL databases of each language from the Actions cache, which would otherwise pass the 10 GB GitHub keeps. |
 | `links` | Pushes to `main` that change docs or Markdown, and every Monday, in `links.yml` | lychee 0.24.2 over `docs/**/*.md`, `README.md`, `CONTRIBUTING.md`, `GLOSSARY.md` and `.github/*.md`, excluding `docs/agents`. |
-| `actionlint` | PRs and pushes to `main` that change workflows or actions, in `ci.yml` | actionlint on `.github/workflows`, then zizmor on `.github`. |
-| `package` | PRs that `scripts/ci-changes.ps1` flags `package`, pushes to `main` that change more than prose, and releases, in `package.yml`. Not required. | `pwsh scripts/package.ps1`. It publishes both architectures and needs the Windows SDK for the MSIX check. The workflow's `publish` job builds each architecture on its own runner, `windows-2025` and `windows-11-arm`, and `package` packs both. The `arm64` job then runs that zip's `winshell.exe --version` on `windows-11-arm`. |
+| `actionlint` | PRs and pushes to `main` that change workflows, actions or `.github/dependabot.yml`, in `ci.yml` | actionlint on `.github/workflows`, then zizmor on `.github`. |
+| `package` | PRs and pushes to `main` that `scripts/ci-changes.ps1` flags `package`, pushes to `main` that change code, and releases, in `package.yml`. Not required. | `pwsh scripts/package.ps1`. It publishes both architectures and needs the Windows SDK for the MSIX check. The workflow's `publish` job builds each architecture on its own runner, `windows-2025` and `windows-11-arm`, and `package` packs both. The `arm64` job then runs that zip's `winshell.exe --version` on `windows-11-arm`. |
 
 ### Test shards
 

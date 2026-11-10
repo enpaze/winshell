@@ -31,6 +31,7 @@ jobs:
     outputs:
       code: ${{ steps.changes.outputs.code }}
       docs: ${{ steps.changes.outputs.docs }}
+      powershell: ${{ steps.changes.outputs.powershell }}
       scripts: ${{ steps.changes.outputs.scripts }}
       workflows: ${{ steps.changes.outputs.workflows }}
     steps:
@@ -73,11 +74,11 @@ jobs:
           exit $LASTEXITCODE
       # The pinned actionlint cannot parse self-repository syntax; local actions use this checkout.
       - uses: ./.github/actions/prepare # zizmor: ignore[self-repository]
-        if: needs.changes.outputs.code != 'false' || needs.changes.outputs.docs == 'true'
+        if: needs.changes.outputs.powershell != 'false' || needs.changes.outputs.docs == 'true'
       - uses: ./.github/actions/powershell # zizmor: ignore[self-repository]
-        if: needs.changes.outputs.code != 'false'
+        if: needs.changes.outputs.powershell != 'false'
       - name: Check
-        if: needs.changes.outputs.code != 'false'
+        if: needs.changes.outputs.powershell != 'false'
         timeout-minutes: 15
         shell: pwsh
         run: |
