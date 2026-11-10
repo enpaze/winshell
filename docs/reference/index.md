@@ -32,4 +32,4 @@ See also the [command line](command-line.md).
 - **Type** is the C# type. `read-only` has no public setter. `init` is set when the object is created. `static` is on the type.
 - A service raises `PropertyChanged` when Windows reports a change. The members of [ObservableObject](winshell.md#observableobject) are listed once.
 - Sizes and positions on a window are logical pixels unless a member says otherwise. A screen's `DevicePixelRatio` turns them into physical pixels.
-- A window's content is any `UIElement`. Winshell does not reference Reactor. A configuration that wants it sets `new ReactorHostControl(component)` as the content.
+- A window's content is any `UIElement`. The package carries Reactor, so a configuration sets `new ReactorHostControl(component)` as the content without another package reference.

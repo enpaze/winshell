@@ -1,6 +1,9 @@
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json;
 using Microsoft.UI;
+using Microsoft.UI.Reactor;
+using Microsoft.UI.Reactor.Core;
+using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -9,6 +12,7 @@ using Microsoft.UI.Xaml.Media;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
 using Xunit.Sdk;
+using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
@@ -475,5 +479,53 @@ public sealed partial class InspectorTests : IDisposable
         });
 
         Assert.Contains("No open window shows NoSuchView", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Window")]
+    public async Task A_window_is_named_by_its_component_and_a_click_reaches_the_button_it_rendered()
+    {
+        var (tree, clicks) = await ShellFixture.On(async shell =>
+        {
+            var pressable = new Pressable();
+            var host = new ReactorHostControl(pressable);
+            using var panel = Panel(host);
+            await ShellFixture.LaidOut(host);
+            await host.WaitForIdleAsync();
+
+            var tree = await Inspector.Run(shell, "tree", []);
+            await Inspector.Run(shell, "click", ["Go", nameof(Pressable)]);
+            return (tree, pressable.Clicks);
+        });
+
+        var window = OpenWindow(tree, nameof(Pressable));
+        var button = Labeled(window.GetProperty("content"), "Go");
+        Assert.Equal("Button", button.GetProperty("type").GetString());
+        Assert.Equal(1, clicks);
+    }
+
+    private static JsonElement Labeled(JsonElement node, string label)
+    {
+        if (node.TryGetProperty("label", out var own) && own.GetString() == label)
+            return node;
+        if (node.TryGetProperty("children", out var children))
+            foreach (var child in children.EnumerateArray())
+            {
+                var found = Labeled(child, label);
+                if (found.ValueKind != JsonValueKind.Undefined)
+                    return found;
+            }
+
+        return default;
+    }
+
+    private sealed class Pressable : Component
+    {
+        public int Clicks { get; private set; }
+
+        public override Element Render()
+        {
+            return Button("Go", () => Clicks++).AutomationName("Go");
+        }
     }
 }

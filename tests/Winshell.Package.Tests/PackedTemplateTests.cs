@@ -630,13 +630,28 @@ public sealed class PackedTemplates : IDisposable
         var pinned = XDocument.Load(Path.Combine(Repo.Root, "Directory.Packages.props")).Descendants("PackageVersion")
             .ToDictionary(element => element.Attribute("Include")!.Value,
                 element => element.Attribute("Version")!.Value);
+        Assert.Equal(pinned["Microsoft.UI.Reactor"], dependencies["Microsoft.UI.Reactor"]);
+        Assert.Equal(pinned["Microsoft.WindowsAppSDK.Runtime"], dependencies["Microsoft.WindowsAppSDK.Runtime"]);
         var declared = packageProject.Descendants("PackageReference")
+            .Where(reference => !IsPrivate(reference))
             .Select(reference => reference.Attribute("Include")!.Value)
             .Order(StringComparer.OrdinalIgnoreCase)
             .ToList();
         Assert.Equal(declared, dependencies.Keys.Order(StringComparer.OrdinalIgnoreCase));
         foreach (var id in declared)
             Assert.Equal(pinned[id], dependencies[id]);
+    }
+
+    /// <summary>A reference with <c>PrivateAssets</c> of <c>all</c> stays out of the packed package.</summary>
+    private static bool IsPrivate(XElement reference)
+    {
+        var value = reference.Attribute("PrivateAssets")?.Value
+                    ?? reference.Elements().FirstOrDefault(element => element.Name.LocalName == "PrivateAssets")?.Value;
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        return value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Contains("all", StringComparer.OrdinalIgnoreCase);
     }
 
     private static void AssertProps(ZipArchive zip, string packageDir)

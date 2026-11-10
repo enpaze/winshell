@@ -15,6 +15,13 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" />
     <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" />
+    <PackageReference Include="Microsoft.UI.Reactor" />
+    <!-- Reactor brings System.Drawing.Common, and the central SystemEvents pin would otherwise be packed as a
+         dependency. A configuration gets SystemEvents through System.Drawing.Common. The CLI references it itself. -->
+    <PackageReference Include="Microsoft.Win32.SystemEvents">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="System.Management" />
     <PackageReference Include="Tomlyn" />
     <PackageReference Include="Vortice.Direct3D11" />

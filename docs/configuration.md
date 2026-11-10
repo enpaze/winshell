@@ -208,7 +208,7 @@ On any window:
 - **`Corners`** rounds the window.
 - **A flyout** is a WinUI `Flyout` in the window's content. Winshell closes an open flyout on a window that does not activate.
 
-Reactor is the configuration's choice. Add `Microsoft.UI.Reactor` in the project and set `new ReactorHostControl(component)` as a window's content. Winshell never references it.
+The Winshell package carries Reactor, so a configuration adds no Reactor reference. Set `new ReactorHostControl(component)` as a panel or popup window's content. The component renders again when a service object it observes with `UseObservable` changes.
 
 ### One panel per screen
 
