@@ -20,7 +20,7 @@ Its section of the preferences file, named after Name, holds `edge`, `start`, `c
 | `Padding` | double?, init | The space between the areas and each end of the bar, along its length, in logical pixels: at the left and right of a top or bottom bar, and at the top and bottom of a side bar. Null takes the style's `ShellPadding`, or none when the style has no such key. |
 | `Reserve` | bool, init | Whether the bar reserves its edge, so maximized windows stop short of it. False lays it over them. |
 | `Start` | IReadOnlyList of [Placement](#placement), init | The widgets at the start: the left, or the top on a side bar. A plain string names a widget with no settings. |
-| `Style` | Uri?, init | The source URI of the bar's own style, which wins over Shell.Style, or null for the shell's. |
+| `Style` | [ShellStyle](#shellstyle)?, init | The bar's own style, which wins over Shell.Style, or null for the shell's. |
 | `Thickness` | double?, init | The height of a top or bottom bar, or the width of a side bar, in logical pixels. Null takes the style's `ShellSlotSize`. |
 | `Dispose()` | void | Removes the bar from every screen, and stops following the screens, the file and the style. |
 
@@ -291,7 +291,7 @@ The running shell: its screens and services. There is one in a process. Each ser
 | `ShellId` | string, read-only | The name that identifies this configuration across runs. |
 | `Startup` | [StartupService](winshell-session.md#startupservice), read-only | Whether this shell runs when the user signs in. |
 | `StateDir` | string, read-only | This shell's state folder, which exists once read. |
-| `Style` | Uri? | The source URI of a `ResourceDictionary` that styles every widget area, Surface, styled popup and tooltip, or null for the built-in style, which follows Windows' colors, Segoe UI and Segoe Fluent Icons. Set it on the shell's thread. A new value reaches what is already on screen, and the next tooltip that opens. An area's or a surface's own style wins over it, except for tooltips. A file that does not load throws, and the shell keeps its style. |
+| `Style` | [ShellStyle](#shellstyle)? | The style of every widget area, Surface, styled popup and tooltip, or null for the built-in style, which follows Windows' colors, Segoe UI and Segoe Fluent Icons. Set it on the shell's thread. A new value reaches what is already on screen, and the next tooltip that opens. A bar's, an area's or a surface's own style wins over it, except for tooltips. |
 | `SystemAccent` | string, read-only | The accent Windows is using, as `#RRGGBB`. |
 | `SystemTray` | [SystemTray](winshell-tray.md#systemtray), read-only | The notification area. Only one running instance in the Windows session owns it. |
 | `Version` | string, static, read-only | The Winshell release this program is built on. |
@@ -350,6 +350,21 @@ What a configuration sets before its shell starts.
 | `ShellId` | string?, init | The name that identifies this configuration across runs. It names its data, state and cache folders. Without it, a program in the config folder is named after its folder, and one anywhere else after its path. |
 | `StateDir` | string?, init | Another folder for Shell.StateDir, read as DataDir is. |
 
+## ShellStyle
+
+The look of a shell, a bar or a widget area: background, foreground, alert color, font, slot size and padding. Winshell writes it into the resources plain controls read. Null, on the shell, is the built-in style, which follows Windows' colors in light, in dark and in a contrast theme.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `ShellStyle()` | constructor |  |
+| `Alert` | Color, init | Something that needs attention, such as a network with no internet. A widget reads it from WidgetContext.Style. |
+| `Background` | Color, init | Behind a surface, such as a bar, and a popup. |
+| `FontFamily` | FontFamily, init | Text. The built-in style uses Segoe UI Variable, then Segoe UI. |
+| `FontSize` | double, init | Text, in logical pixels. The built-in style uses 14. |
+| `Foreground` | Color, init | Text, and a glyph that takes its color from the control that holds it. |
+| `Padding` | double?, init | The space at each end of a bar, in logical pixels. Null gives a bar none. The built-in style uses 4. |
+| `SlotSize` | double, init | One button, and the thickness of a bar, in logical pixels. The built-in style uses 32. |
+
 ## ShellWindow
 
 A top-level surface of the shell. Set Content to any UIElement: XAML, or a `ReactorHostControl`. Its background stays transparent, so Backdrop shows through.
@@ -392,7 +407,7 @@ A WinUI ContentControl. The members here are the ones Winshell adds.
 | Member | Type | Description |
 | --- | --- | --- |
 | `Surface()` | constructor | An empty surface in the shell's style. |
-| `Style` | Uri? | The source URI of the surface's own style, which wins over the shell's, or null for Shell.Style. A file that does not load throws and changes nothing. It hides the inherited WinUI `Style`, which a surface does not use. |
+| `Style` | [ShellStyle](#shellstyle)? | The surface's own style, which wins over the shell's, or null for Shell.Style. It hides the inherited WinUI `Style`, which a surface does not use. |
 | `Dispose()` | void | Stops following the shell's style. The content is the owner's to dispose. |
 
 ## TomlCommentAttribute
@@ -435,7 +450,7 @@ A WinUI UserControl. The members here are the ones Winshell adds.
 | `WidgetArea()` | constructor | Creates an empty, horizontal area in the shell's style. |
 | `Defaults` | IReadOnlyList of [Placement](#placement) | The author's ordered placements. Assigning a list snapshots it, disposes the previous widgets, and creates the new ones immediately unless the preferences file has a list for this area's Name. To apply edits, assign the list again. Settings are passed through without copying. |
 | `Orientation` | Orientation | The layout direction. Changing it disposes and recreates the placements with the new orientation. |
-| `Style` | Uri? | The source URI of this area's own style, which wins over the shell's, or null for Shell.Style. Tooltips follow the shell's style, not the area's. Changing it replaces only the dictionary the style loaded, leaving the area's other resources intact, and a file that does not load throws and changes nothing. It hides the inherited WinUI `Style`, which a widget area does not use. |
+| `Style` | [ShellStyle](#shellstyle)? | This area's own style, which wins over the shell's, or null for Shell.Style. Tooltips follow the shell's style, not the area's. Changing it replaces only the dictionary the style loaded, leaving the area's other resources intact. It hides the inherited WinUI `Style`, which a widget area does not use. |
 | `Dispose()` | void | Detaches and disposes every disposable widget, once. All are attempted even if one disposal throws. |
 
 ## WidgetContext
@@ -447,6 +462,7 @@ The placement's inputs and popup styling, passed to its widget factory on the sh
 | `Orientation` | Orientation, read-only | The direction in which the area arranges its placements. |
 | `Settings` | IReadOnlyDictionary of string, object, read-only | This placement's settings. Empty when the placement supplied none. |
 | `Shell` | [Shell](#shell), read-only | The shell that owns the area. |
+| `Style` | [ShellStyle](#shellstyle)?, read-only | The style this placement shows: the area's own, or the shell's, or null for the built-in style. A widget reads ShellStyle.Alert from it when something needs attention. |
 | `StylePopup(UIElement content)` | FrameworkElement | Wraps content for a PopupWindow in the area's styling. Assign the result to the popup's Content on the shell's thread. Each call loads a fresh dictionary of the area's style, preserving the content's own resources, so the popup's plain controls look like the area's. The wrapper follows the area's resolved theme, style, FontFamily, FontSize and Foreground until the area removes the widget or is disposed. The widget still owns and disposes its popup windows. A new wrapper to use as the popup window's content. |
 
 ## Widgets

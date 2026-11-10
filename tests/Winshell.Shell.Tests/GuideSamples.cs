@@ -1,5 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Color = global::Windows.UI.Color;
 
 namespace Winshell.ShellTests;
 
@@ -99,7 +101,22 @@ public static class GuideSamples
 
     public static void AStyle(Shell shell)
     {
-        shell.Style = new Uri("ms-appx:///TokyoNight.xaml");
+        shell.Style = new ShellStyle
+        {
+            Background = Color.FromArgb(255, 0x1a, 0x1b, 0x26),
+            Foreground = Color.FromArgb(255, 0xa9, 0xb1, 0xd6),
+            Alert = Color.FromArgb(255, 0xf7, 0x76, 0x8e),
+            FontFamily = new FontFamily("ms-appx:///Fonts/JetBrainsMonoNerdFont-Regular.ttf#JetBrainsMono NF"),
+            FontSize = 12,
+            SlotSize = 26,
+            Padding = 8
+        };
+    }
+
+    public static void AnAlert(WidgetContext context, TextBlock label)
+    {
+        if (context.Style is { } style)
+            label.Foreground = new SolidColorBrush(style.Alert);
     }
 
     public static void AHotkey(Shell shell)

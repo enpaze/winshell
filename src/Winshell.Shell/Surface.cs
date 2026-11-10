@@ -1,4 +1,3 @@
-using System.Security;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Markup;
@@ -50,7 +49,7 @@ public sealed partial class Surface : ContentControl, IDisposable
         """;
 
     private readonly Shell _shell = Shell.Current;
-    private Uri? _style;
+    private ShellStyle? _style;
     private ResourceDictionary? _styleResources;
     private ContentControl? _background;
     private bool _disposed;
@@ -67,11 +66,10 @@ public sealed partial class Surface : ContentControl, IDisposable
     }
 
     /// <summary>
-    /// The source URI of the surface's own style, which wins over the shell's, or null for <see cref="Shell.Style"/>.
-    /// A file that does not load throws and changes nothing. It hides the inherited WinUI <c>Style</c>, which a surface
-    /// does not use.
+    /// The surface's own style, which wins over the shell's, or null for <see cref="Shell.Style"/>. It hides the
+    /// inherited WinUI <c>Style</c>, which a surface does not use.
     /// </summary>
-    public new Uri? Style
+    public new ShellStyle? Style
     {
         get => _style;
         set
@@ -95,14 +93,11 @@ public sealed partial class Surface : ContentControl, IDisposable
             LoadStyle(null);
     }
 
-    /// <summary>Shows the surface's own style, or the shell's for null. One that doesn't load changes nothing.</summary>
-    private void LoadStyle(Uri? own)
+    /// <summary>Shows the surface's own style, or the shell's for null.</summary>
+    private void LoadStyle(ShellStyle? own)
     {
-        var source = own ?? _shell.Style;
-        var style = source is null
-            ? Shell.BuiltInStyle
-            : $"<ResourceDictionary Source=\"{SecurityElement.Escape(source.AbsoluteUri)}\" />";
-        var next = (ResourceDictionary)XamlReader.Load(Styled.Replace("{0}", style, StringComparison.Ordinal));
+        var next = (ResourceDictionary)XamlReader.Load(
+            Styled.Replace("{0}", Shell.DictionaryXaml(own ?? _shell.Style), StringComparison.Ordinal));
         _style = own;
         if (_styleResources is not null)
             Resources.MergedDictionaries.Remove(_styleResources);

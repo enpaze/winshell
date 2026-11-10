@@ -12,7 +12,7 @@ public sealed class SurfaceTests
     {
         await ShellFixture.On(async shell =>
         {
-            var other = new Uri("ms-appx:///OtherStyle.xaml");
+            var other = TestStyles.Other();
             var tokyo = global::Windows.UI.Color.FromArgb(0xff, 0x1a, 0x1b, 0x26);
             var held = new TextBlock { Text = "held" };
             var unloaded = 0;
@@ -42,8 +42,6 @@ public sealed class SurfaceTests
                 await Wait.UntilAsync(() => BarTests.BackgroundOf(follows) == light && BarTests.BackgroundOf(own) == light,
                     "both surfaces to follow the shell back to the built-in style");
 
-                Assert.ThrowsAny<Exception>(() => own.Style = new Uri("ms-appx:///Missing.xaml"));
-                Assert.Null(own.Style);
                 Assert.Equal(light, BarTests.BackgroundOf(own));
             }
             finally

@@ -89,10 +89,8 @@ public sealed class Bar : IDisposable
     /// </summary>
     public double? Padding { get; init; }
 
-    /// <summary>
-    /// The source URI of the bar's own style, which wins over <see cref="Shell.Style"/>, or null for the shell's.
-    /// </summary>
-    public Uri? Style { get; init; }
+    /// <summary>The bar's own style, which wins over <see cref="Shell.Style"/>, or null for the shell's.</summary>
+    public ShellStyle? Style { get; init; }
 
     private void FollowShellStyle()
     {

@@ -46,7 +46,7 @@ The project references Winshell's source, so the repo's own check builds it.
 | --- | --- |
 | [Program.cs](Program.cs) | Starts the shell with this configuration's identity. |
 | [AppShell.cs](AppShell.cs) | Hides Explorer's taskbar, sets the style, and shows one [Bar](../../docs/configuration.md#a-bar-on-every-screen) with the default lists of widgets. |
-| [TokyoNight.xaml](TokyoNight.xaml) | The shell's [style](../../docs/configuration.md#style): Tokyo Night's colors, the font and the slot size, and the look of a button, text, an icon and a tooltip. |
+| [TokyoNight.cs](TokyoNight.cs) | The shell's [style](../../docs/configuration.md#style): Tokyo Night's colors, the font, the slot size and the padding. |
 | [Widgets/](Widgets) | One class per widget, each a plain control that keeps itself current with `this.Watch(...)`. |
 | [Glyphs.cs](Glyphs.cs) | Names each glyph with its Nerd Fonts name and chooses status glyphs. |
 | [OmarchyStyle.csproj](OmarchyStyle.csproj) | References Winshell, registers each widget with a `WinshellWidget` item, and copies the font files beside the program. |
@@ -54,7 +54,7 @@ The project references Winshell's source, so the repo's own check builds it.
 
 ## Change it
 
-- **Colors, font and size:** edit [TokyoNight.xaml](TokyoNight.xaml). The widgets look nothing up: the style's `Button`, `TextBlock`, `FontIcon` and `ToolTip` entries style them. `ShellSlotSize` is how thick the bar is, and `ShellPadding` the space at its ends. A status glyph is a button, a pixel wider than the bar is high, as Omarchy's are. Its `Alert` state shows the glyph in `ShellAlertBrush`, which the network widget uses.
+- **Colors, font and size:** edit [TokyoNight.cs](TokyoNight.cs). The widgets look nothing up: Winshell builds the `Button`, `TextBlock`, `FontIcon` and `ToolTip` styles from it. `SlotSize` is how thick the bar is, and how wide a button is, and `Padding` the space at its ends. The network widget paints its glyph in `Alert` when the connection can't reach the internet.
 - **Move the bar or change its widgets:** edit the preferences file, `%APPDATA%\winshell\preferences\<shell id>.toml`, or `<WINSHELL_CONFIG_DIR>\preferences\<shell id>.toml` when that variable is set. Its `[bar]` section holds `edge` and the `start`, `center` and `end` lists, which replace the ones in [AppShell.cs](AppShell.cs) while the file has them. Saving applies it live. This moves the bar to the bottom, puts a UTC clock beside the local one and reverses the end:
 
   ```toml

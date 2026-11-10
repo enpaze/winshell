@@ -1,14 +1,161 @@
+using System.Globalization;
+using System.Security;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Markup;
+using Microsoft.UI.Xaml.Media;
+using Windows.UI;
 
 namespace Winshell;
+
+/// <summary>
+/// The look of a shell, a bar or a widget area: background, foreground, alert color, font, slot size and padding.
+/// Winshell writes it into the resources plain controls read. Null, on the shell, is the built-in style, which follows
+/// Windows' colors in light, in dark and in a contrast theme.
+/// </summary>
+public sealed record ShellStyle
+{
+    /// <summary>Behind a surface, such as a bar, and a popup.</summary>
+    public required Color Background { get; init; }
+
+    /// <summary>Text, and a glyph that takes its color from the control that holds it.</summary>
+    public required Color Foreground { get; init; }
+
+    /// <summary>
+    /// Something that needs attention, such as a network with no internet. A widget reads it from
+    /// <see cref="WidgetContext.Style"/>.
+    /// </summary>
+    public required Color Alert { get; init; }
+
+    /// <summary>Text. The built-in style uses Segoe UI Variable, then Segoe UI.</summary>
+    public FontFamily FontFamily { get; init; } = new("Segoe UI Variable Text,Segoe UI");
+
+    /// <summary>Text, in logical pixels. The built-in style uses 14.</summary>
+    public double FontSize { get; init; } = 14;
+
+    /// <summary>One button, and the thickness of a bar, in logical pixels. The built-in style uses 32.</summary>
+    public double SlotSize { get; init; } = 32;
+
+    /// <summary>The space at each end of a bar, in logical pixels. Null gives a bar none. The built-in style uses 4.</summary>
+    public double? Padding { get; init; } = 4;
+
+    /// <summary>The resource dictionary a widget area, surface and styled popup merge.</summary>
+    internal string ToXaml()
+    {
+        var colors = string.Create(CultureInfo.InvariantCulture,
+            $"""
+                   <SolidColorBrush x:Key="ShellBackgroundBrush" Color="{Hex(Background)}" />
+                   <SolidColorBrush x:Key="ShellForegroundBrush" Color="{Hex(Foreground)}" />
+                   <SolidColorBrush x:Key="ShellAlertBrush" Color="{Hex(Alert)}" />
+             """);
+        var padding = Padding is { } space
+            ? string.Create(CultureInfo.InvariantCulture, $"""<x:Double x:Key="ShellPadding">{Number(space)}</x:Double>""")
+            : "";
+        return Page(Themes(colors), string.Create(CultureInfo.InvariantCulture,
+            $"""
+                   <FontFamily x:Key="ShellFontFamily">{SecurityElement.Escape(FontFamily.Source)}</FontFamily>
+                   <x:Double x:Key="ShellFontSize">{Number(FontSize)}</x:Double>
+                   <x:Double x:Key="ShellSlotSize">{Number(SlotSize)}</x:Double>
+                   {padding}
+             """));
+    }
+
+    private static string Hex(Color color) => string.Create(CultureInfo.InvariantCulture,
+        $"#{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}");
+
+    private static string Number(double value) => value.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>The built-in style: Windows' colors, Segoe UI and Segoe Fluent Icons.</summary>
+    internal static string BuiltInXaml { get; } = Page(BuiltInBrushes + Contrast, BuiltInMetrics);
+
+    // The colors a contrast theme uses, in place of the style's own, so the shell stays readable.
+    private const string Contrast = """
+            <ResourceDictionary x:Key="HighContrast">
+              <SolidColorBrush x:Key="ShellBackgroundBrush" Color="{ThemeResource SystemColorWindowColor}" />
+              <SolidColorBrush x:Key="ShellForegroundBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+              <SolidColorBrush x:Key="ShellAlertBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            </ResourceDictionary>
+        """;
+
+    // The same implicit styles for every style, so a button, a line, an icon and a tooltip match the shell.
+    private const string Controls = """
+          <Style TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinWidth" Value="{ThemeResource ShellSlotSize}" />
+            <Setter Property="MinHeight" Value="{ThemeResource ShellSlotSize}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{ThemeResource ShellForegroundBrush}" />
+            <Setter Property="FontFamily" Value="{ThemeResource ShellFontFamily}" />
+            <Setter Property="FontSize" Value="{ThemeResource ShellFontSize}" />
+          </Style>
+          <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{ThemeResource ShellForegroundBrush}" />
+            <Setter Property="FontFamily" Value="{ThemeResource ShellFontFamily}" />
+            <Setter Property="FontSize" Value="{ThemeResource ShellFontSize}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+          </Style>
+          <Style TargetType="FontIcon">
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons,Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="16" />
+          </Style>
+          <Style TargetType="ToolTip">
+            <Setter Property="Background" Value="{ThemeResource ShellBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource ShellForegroundBrush}" />
+            <Setter Property="FontFamily" Value="{ThemeResource ShellFontFamily}" />
+          </Style>
+        """;
+
+    private const string BuiltInBrushes = """
+            <ResourceDictionary x:Key="Default">
+              <SolidColorBrush x:Key="ShellBackgroundBrush" Color="{ThemeResource SolidBackgroundFillColorBase}" />
+              <SolidColorBrush x:Key="ShellForegroundBrush" Color="{ThemeResource TextFillColorPrimary}" />
+              <SolidColorBrush x:Key="ShellAlertBrush" Color="{ThemeResource SystemFillColorCritical}" />
+            </ResourceDictionary>
+            <ResourceDictionary x:Key="Light">
+              <SolidColorBrush x:Key="ShellBackgroundBrush" Color="{ThemeResource SolidBackgroundFillColorBase}" />
+              <SolidColorBrush x:Key="ShellForegroundBrush" Color="{ThemeResource TextFillColorPrimary}" />
+              <SolidColorBrush x:Key="ShellAlertBrush" Color="{ThemeResource SystemFillColorCritical}" />
+            </ResourceDictionary>
+        """;
+
+    private const string BuiltInMetrics = """
+          <FontFamily x:Key="ShellFontFamily">Segoe UI Variable Text,Segoe UI</FontFamily>
+          <x:Double x:Key="ShellFontSize">14</x:Double>
+          <x:Double x:Key="ShellSlotSize">32</x:Double>
+          <x:Double x:Key="ShellPadding">4</x:Double>
+        """;
+
+    private static string Themes(string colors) =>
+        $"""
+            <ResourceDictionary x:Key="Default">
+            {colors}
+            </ResourceDictionary>
+            <ResourceDictionary x:Key="Light">
+            {colors}
+            </ResourceDictionary>
+        """ + Contrast;
+
+    private static string Page(string themes, string metrics) =>
+        $"""
+        <ResourceDictionary
+          xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+          <ResourceDictionary.ThemeDictionaries>
+        {themes}
+          </ResourceDictionary.ThemeDictionaries>
+        {metrics}
+        {Controls}
+        </ResourceDictionary>
+        """;
+}
 
 // The shell's style. Shell's summary is in Shell.cs.
 public sealed partial class Shell
 {
-    private static string? _builtInStyle;
-
     /// <summary>
     /// The style's <c>ToolTip</c> entry, merged into the app's resources: WinUI opens a tooltip in a popup of its own
     /// and looks for its implicit style only there. Merged, so a tooltip style the configuration puts in the app's
@@ -17,13 +164,12 @@ public sealed partial class Shell
     private readonly ResourceDictionary _toolTipStyle = [];
 
     /// <summary>
-    /// The source URI of a <c>ResourceDictionary</c> that styles every widget area, <see cref="Surface"/>, styled popup
-    /// and tooltip, or null for the built-in style, which follows Windows' colors, Segoe UI and Segoe Fluent Icons. Set it
-    /// on the shell's thread. A new value reaches what is already on screen, and the next tooltip that opens. An area's or
-    /// a surface's own style wins over it, except for tooltips. A file that does not load throws, and the shell keeps its
-    /// style.
+    /// The style of every widget area, <see cref="Surface"/>, styled popup and tooltip, or null for the built-in
+    /// style, which follows Windows' colors, Segoe UI and Segoe Fluent Icons. Set it on the shell's thread. A new
+    /// value reaches what is already on screen, and the next tooltip that opens. A bar's, an area's or a surface's own
+    /// style wins over it, except for tooltips.
     /// </summary>
-    public Uri? Style
+    public ShellStyle? Style
     {
         get;
         set
@@ -56,27 +202,10 @@ public sealed partial class Shell
             _toolTipStyle[typeof(ToolTip)] = toolTip;
     }
 
-    /// <summary>A fresh dictionary of a style: the one at a URI, or the built-in style for null.</summary>
-    internal static ResourceDictionary LoadStyle(Uri? source)
-    {
-        return source is not null
-            ? new ResourceDictionary { Source = source }
-            : (ResourceDictionary)XamlReader.Load(BuiltInStyle);
-    }
+    /// <summary>A fresh dictionary of a style, or of the built-in style for null.</summary>
+    internal static ResourceDictionary LoadStyle(ShellStyle? style) =>
+        (ResourceDictionary)XamlReader.Load(DictionaryXaml(style));
 
-    /// <summary>The XAML of the built-in style.</summary>
-    internal static string BuiltInStyle
-    {
-        get
-        {
-            if (_builtInStyle is null)
-            {
-                using var stream = typeof(Shell).Assembly.GetManifestResourceStream("Winshell.BuiltInStyle.xaml")!;
-                using var reader = new StreamReader(stream);
-                _builtInStyle = reader.ReadToEnd();
-            }
-
-            return _builtInStyle;
-        }
-    }
+    /// <summary>The XAML of a style, or of the built-in style for null. A surface parses it with its background.</summary>
+    internal static string DictionaryXaml(ShellStyle? style) => style is null ? ShellStyle.BuiltInXaml : style.ToXaml();
 }

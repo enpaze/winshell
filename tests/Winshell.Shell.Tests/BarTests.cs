@@ -194,7 +194,7 @@ public sealed class BarTests
     {
         await ShellFixture.On(async shell =>
         {
-            var other = new Uri("ms-appx:///OtherStyle.xaml");
+            var other = TestStyles.Other();
             var screen = ScreenWindowsTests.Screen("TST", "Only", "1");
             shell.Platform.Screens.Add(screen);
             try
@@ -303,7 +303,7 @@ public sealed class BarTests
                     Name = "bottom" + Guid.NewGuid().ToString("N"),
                     Edge = Edges.Bottom,
                     Reserve = false,
-                    Style = new Uri("ms-appx:///OtherStyle.xaml"),
+                    Style = TestStyles.Other(),
                     Start = [widget],
                     End = [widget]
                 };

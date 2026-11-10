@@ -9,7 +9,7 @@ public sealed class AppShell : ShellConfiguration
     {
         // Winshell shows Explorer's taskbar again when the shell quits, however it quits.
         shell.ExplorerTaskbar.Hidden = true;
-        shell.Style = new Uri("ms-appx:///TokyoNight.xaml");
+        shell.Style = TokyoNight.Style;
         // The names are the ones OmarchyStyle.csproj registers. The [bar] section of the preferences file can move the
         // bar and change these lists, for every screen or, in a [[bar.screen]] row, for one.
         _ = new Bar

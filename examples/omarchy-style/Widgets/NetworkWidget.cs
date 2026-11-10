@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Winshell;
 using Winshell.Network;
 
@@ -28,8 +29,11 @@ public sealed class NetworkWidget : Button
             Content = Glyphs.Network(device?.Type ?? DeviceType.None, profile?.SignalStrength ?? 0, restricted);
             ToolTipService.SetToolTip(this, tip);
             AutomationProperties.SetName(this, tip);
-            // TokyoNight.xaml's button has an Alert state, in the style's alert color.
-            VisualStateManager.GoToState(this, restricted ? "Alert" : "Calm", false);
+            // The style's alert color. Clearing it returns the glyph to the style's foreground.
+            if (restricted && context.Style is { } style)
+                Foreground = new SolidColorBrush(style.Alert);
+            else
+                ClearValue(ForegroundProperty);
         });
         Click += (_, _) => context.Shell.Open("ms-settings:network-status");
     }
