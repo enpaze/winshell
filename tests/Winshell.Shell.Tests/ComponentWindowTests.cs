@@ -45,6 +45,25 @@ public sealed class ComponentWindowTests
         Assert.Equal("full", text);
     }
 
+    [Fact]
+    public async Task A_component_renders_again_when_an_item_in_a_service_list_changes()
+    {
+        var text = await ShellFixture.On(async _ =>
+        {
+            var service = new Listed();
+            var host = new ReactorHostControl(new ListedLabel(service));
+            using var panel = Panel(host);
+            await ShellFixture.LaidOut(host);
+            await host.WaitForIdleAsync();
+
+            service.Items[0].Label = "after";
+            await host.WaitForIdleAsync();
+            return ShownText(host);
+        });
+
+        Assert.Equal("after", text);
+    }
+
     private static PanelWindow Panel(FrameworkElement content)
     {
         return new PanelWindow
@@ -104,6 +123,46 @@ public sealed class ComponentWindowTests
         {
             var level = UseObservable(_level);
             return TextBlock(level.Text);
+        }
+    }
+
+    /// <summary>
+    /// A service object whose only observable property is the list. The getter does not report a read, so the
+    /// component renders again only when the list itself raises for an item.
+    /// </summary>
+    private sealed class Listed : ObservableObject
+    {
+        public Listed()
+        {
+            Items.Add(new Entry());
+        }
+
+        public ObservableList<Entry> Items { get; } = new();
+    }
+
+    /// <summary>One item of <see cref="Listed"/>.</summary>
+    private sealed class Entry : ObservableObject
+    {
+        public string Label
+        {
+            get => field;
+            set => Set(ref field, value);
+        } = "before";
+    }
+
+    private sealed class ListedLabel : Component
+    {
+        private readonly Listed _service;
+
+        public ListedLabel(Listed service)
+        {
+            _service = service;
+        }
+
+        public override Element Render()
+        {
+            var service = UseObservableTree(_service);
+            return TextBlock(service.Items[0].Label);
         }
     }
 }

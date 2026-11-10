@@ -14,7 +14,7 @@ public sealed class Battery : Component<WidgetContext>
 ```
 
 - **A widget is a `Component<WidgetContext>`.** `WidgetContext` is a record of props: the shell, the placement's settings and the area's orientation. A changed placement renders the widget again with new props. Winshell has no widget base class, and a plain control is no longer a widget: a control Reactor has no element for is embedded through Reactor's XAML interop.
-- **A component names what it reacts to** with Reactor's `UseObservable`, on a service object or an `ObservableList<T>`. Winshell adds no read tracking of its own.
+- **A component names what it reacts to** with Reactor's `UseObservable` or `UseObservableTree`, on a service object or an `ObservableList<T>`. Winshell adds no read tracking of its own. An `ObservableList<T>` raises `PropertyChanged` when an item does, and an object raises when a list property it has read changes, so those hooks see a change inside a service. That is the object's own change, not a tracked read.
 - **A style is a C# value**, including the alert color, which Winshell writes into the window's resources along with the implicit control styles it builds from it, so a plain `Button` in a widget still matches the shell. No `.xaml` file is left, and `winshell dev` reloads through `dotnet watch` and Reactor's hot reload.
 - **Widget areas still create widgets by name** from the placements in the preferences file, so a user can rearrange a shell without code.
 - **Reactor is a preview.** Winshell pins one exact version and carries it in the `Winshell` package. A Reactor update that breaks a configuration is released as a Winshell breaking change.
