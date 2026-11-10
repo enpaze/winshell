@@ -22,7 +22,7 @@ Work that needs more than one PR goes through all of it. Work that fits one PR n
 
 ## Where this repo overrides a skill
 
-- **One PR per ticket, stacked when tickets depend on each other, and no `implement-spec`.** `implement-spec` lands a whole spec on one integration branch; here every ticket is reviewed and merged on its own.
+- **One PR per ticket, stacked when tickets depend on each other.** Every ticket is reviewed and merged on its own, not landed with the rest of its spec on one integration branch.
 - **A ticket ends at a merged PR.** `implement` ends at a commit; here the ticket closes when its PR merges, opened as [Open a PR](../../CONTRIBUTING.md#open-a-pr) describes.
 - **`tdd` takes its seams from the spec and CONTRIBUTING.md when no user is there to confirm them.** The owner agreed the seams in the spec's Testing Decisions, and [Where a test belongs](../../CONTRIBUTING.md#where-a-test-belongs) names the owner of each contract.
 - **`/retro` runs when a spec's last ticket merges, and after a one-off ticket only when something went wrong. Each finding the owner accepts becomes a ticket.** A finding left in a thread is forgotten.
