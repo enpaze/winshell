@@ -9,7 +9,7 @@ param(
 # Prose is what no build, test or package reads.
 function Test-Prose {
     param([string] $Path)
-    $Path -match '^docs/(?!samples/)|^\.github/ISSUE_TEMPLATE/|\.md$'
+    $Path -match '^docs/(?!samples/)|^\.github/ISSUE_TEMPLATE/|\.md$|^(skills-lock\.json|LICENSE|\.gitignore)$'
 }
 
 if ($MyInvocation.InvocationName -eq '.') { return }
@@ -29,11 +29,18 @@ function Test-Changed {
     param([string] $Pattern)
     $unknown -or @($nonProse -match $Pattern).Count -gt 0
 }
+# What no test shard reads: the tooling scripts and their suites, the workflows other than ci.yml, and the release files.
+# Still code: the suite's own machinery (scripts/lib/, build-template.ps1, generate-reference.cs), and the files the
+# suite reads (install.ps1, the icon the build embeds, the MSIX logos).
+$noShard = '^scripts/(?!lib/|build-template\.ps1$|generate-reference\.cs$|install\.ps1$)|^tests/Scripts/',
+    '^\.github/workflows/(?!ci\.yml$)|^\.github/dependabot\.yml$',
+    '^packaging/(?!winshell\.ico$|msix/Assets/)' -join '|'
 $checks = [ordered]@{
-    code = $unknown -or $nonProse.Count -gt 0
+    code = $unknown -or @($nonProse -notmatch $noShard).Count -gt 0
     docs = $unknown
-    scripts = Test-Changed '^scripts/|^tests/Scripts/|^\.github/(workflows|actions)/'
-    workflows = Test-Changed '^\.github/(workflows|actions)/'
+    tooling = $false
+    scripts = Test-Changed '^scripts/|^tests/Scripts/|^\.github/(workflows/ci\.yml$|actions/)'
+    workflows = Test-Changed '^\.github/(workflows|actions)/|^\.github/dependabot\.yml$'
     # What package.yml's jobs read: the release files, the template, the library's project and build files, the package
     # tests and the support they compile, and the scripts and actions that pack, package and test them.
     package = Test-Changed (
@@ -44,6 +51,8 @@ $checks = [ordered]@{
         '^scripts/(check|pack|package|publish-release)\.ps1$',
         '^\.github/workflows/(package|release-please)\.yml$' -join '|')
 }
+# quality's formatting check and PowerShell suites.
+$checks.tooling = $checks.code -or $checks.scripts -or $checks.workflows
 
 if (-not $checks.code) {
     foreach ($file in $filesChanged) {

@@ -6,6 +6,8 @@ outputs:
     value: ${{ steps.files.outputs.code }}
   docs:
     value: ${{ steps.files.outputs.docs }}
+  tooling:
+    value: ${{ steps.files.outputs.tooling }}
   scripts:
     value: ${{ steps.files.outputs.scripts }}
   workflows:

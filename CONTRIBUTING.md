@@ -13,7 +13,7 @@ A change is held to these, by people and by the `code-review` skill:
 
 ## Run the checks
 
-The [development runbook](docs/development.md) covers the prerequisites, the first checkout, and every command. Before every push, run the [checks for the change](docs/development.md#checks-by-change): prose-only changes need lint; compiled documentation needs its targeted tests; other changes need the full check. The full check opens no windows: it leaves out every test in the category `Window`, which CI runs on every PR.
+The [development runbook](docs/development.md) covers the prerequisites, the first checkout, and every command. Before every push, run the [checks for the change](docs/development.md#checks-by-change): prose-only changes need lint; compiled documentation needs its targeted tests; tooling and workflow changes need the PowerShell suites; other changes need the full check. The full check opens no windows: it leaves out every test in the category `Window`, which CI runs on every PR.
 
 ## Where a test belongs
 

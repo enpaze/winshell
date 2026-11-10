@@ -4,8 +4,8 @@ name: Package
 # and it can be run by hand to resume a draft; both publish only after its assets are verified. The upload also includes
 # scripts/install.ps1 and scripts/uninstall.ps1, copied from the tagged commit.
 #
-# Every pull request and push to main starts it. Its changes job builds a pull request that scripts/ci-changes.ps1 flags
-# package, and a push to main that is more than prose. Those runs also run the packed template tests (Category=Package),
+# Every pull request and push to main starts it. Its changes job builds a change that scripts/ci-changes.ps1 flags package,
+# and also a push to main that it flags code. Those runs also run the packed template tests (Category=Package),
 # so a new project that cannot restore shows before a release.
 on:
   pull_request:
@@ -53,7 +53,7 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
-      build: ${{ inputs.tag != '' || (github.event_name == 'push' && steps.changes.outputs.code || steps.changes.outputs.package) == 'true' }}
+      build: ${{ inputs.tag != '' || steps.changes.outputs.package == 'true' || (github.event_name == 'push' && steps.changes.outputs.code == 'true') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: ${{ inputs.tag == '' }}
