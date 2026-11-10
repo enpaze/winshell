@@ -32,12 +32,3 @@ internal static class LoadedWindow
             element.Loaded += (_, _) => Apply();
     }
 }
-
-internal static class BarLayout
-{
-    public static StackElement Along(Orientation orientation, double spacing, params Element?[] children) =>
-        orientation == Orientation.Vertical ? VStack(spacing, children) : HStack(spacing, children);
-
-    public static string Key(object value) =>
-        RuntimeHelpers.GetHashCode(value).ToString(CultureInfo.InvariantCulture);
-}
