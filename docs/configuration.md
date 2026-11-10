@@ -338,7 +338,7 @@ A [WidgetArea](reference/winshell.md#widgetarea) can go anywhere in a window. Li
 - A missing type, a type that is not a C# type name, and a duplicate name fail the build, and the error names the widget.
 - You can still call `Widgets.Register` directly for factories that need custom construction.
 
-A component widget is registered in code, not by a `WinshellWidget` item. It is a `Component<WidgetContext>`: `Render` reads `Props.Shell`, `Props.Settings` and `Props.Orientation`. Plain controls keep working beside it.
+A component widget is registered in code, not by a `WinshellWidget` item. It is a `Component<WidgetContext>`: `Render` reads `Props.Shell`, `Props.Settings` and `Props.Orientation`. Plain controls keep working beside it until a component is the only widget.
 
 ```csharp
         Widgets.Register<ClockWidget>("clock");

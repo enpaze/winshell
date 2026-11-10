@@ -167,7 +167,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     private void UpdateShown(int index, Placement placement)
     {
         var shown = _shown[index];
-        if (shown.ShowAgain(SettingsOf(placement), Orientation, Name))
+        if (shown.TryShowAgain(SettingsOf(placement), Orientation, Name))
             return;
 
         shown.Context.StopStyling();
@@ -194,9 +194,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
             widget = new TextBlock { Text = $"{placement.Widget}: {e.Message}" };
         }
 
-        return widget is ComponentWidgetHost host
-            ? new ShownComponent(placement.Widget, context, host)
-            : new ShownControl(placement.Widget, context, widget);
+        return new ShownWidget(placement.Widget, context, widget);
     }
 
     private static IReadOnlyDictionary<string, object> SettingsOf(Placement placement) =>
@@ -212,8 +210,8 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         Shell.DisposeEach(widgets);
     }
 
-    /// <summary>One placement currently on screen.</summary>
-    private abstract class ShownWidget(string name, WidgetContext context, UIElement control)
+    /// <summary>One placement currently on screen. A component renders again; a plain control is made again.</summary>
+    private sealed class ShownWidget(string name, WidgetContext context, UIElement control)
     {
         public string Name { get; } = name;
 
@@ -221,31 +219,13 @@ public sealed partial class WidgetArea : UserControl, IDisposable
 
         public UIElement Control { get; } = control;
 
-        /// <summary>
-        /// Renders this placement again when its kind keeps the same control. Returns false when the area must make
-        /// a new one.
-        /// </summary>
-        public abstract bool ShowAgain(IReadOnlyDictionary<string, object> settings, Orientation orientation, string area);
-
-        protected void Use(WidgetContext next) => Context = next;
-    }
-
-    /// <summary>A plain control. A changed placement disposes it and makes another.</summary>
-    private sealed class ShownControl(string name, WidgetContext context, UIElement control)
-        : ShownWidget(name, context, control)
-    {
-        public override bool ShowAgain(IReadOnlyDictionary<string, object> settings, Orientation orientation, string area) =>
-            false;
-    }
-
-    /// <summary>A component. A changed placement renders this same instance again.</summary>
-    private sealed class ShownComponent(string name, WidgetContext context, ComponentWidgetHost host)
-        : ShownWidget(name, context, host)
-    {
-        public override bool ShowAgain(IReadOnlyDictionary<string, object> settings, Orientation orientation, string area)
+        /// <summary>Renders a component again. Returns false when the area must make a new plain control.</summary>
+        public bool TryShowAgain(IReadOnlyDictionary<string, object> settings, Orientation orientation, string area)
         {
+            if (Control is not ComponentWidgetHost host)
+                return false;
             var next = Context.Next(settings, orientation);
-            Use(next);
+            Context = next;
             host.Show(next, area);
             return true;
         }
