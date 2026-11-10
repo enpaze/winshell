@@ -6,7 +6,7 @@ Describe 'Selecting CI checks from GitHub changed files' {
     It '<Name>' -ForEach @(
         @{ Name = 'keeps agent prose to link checks'; Path = 'AGENTS.md'; Text = '# Instructions'; Patch = '+A sentence'; Code = $false; Docs = $false },
         @{ Name = 'keeps guide prose to link checks'; Path = 'docs/development.md'; Text = '# Development'; Patch = '+A sentence'; Code = $false; Docs = $false },
-        @{ Name = 'runs code checks for a compiled documentation sample'; Path = 'docs/samples/message-widget/Message.xaml.cs'; Text = ''; Patch = '+code'; Code = $true; Docs = $false },
+        @{ Name = 'runs code checks for a compiled documentation sample'; Path = 'docs/samples/message-widget/Message.cs'; Text = ''; Patch = '+code'; Code = $true; Docs = $false },
         @{ Name = 'keeps documentation sample prose to link checks'; Path = 'docs/samples/message-widget/README.md'; Text = '# Sample'; Patch = '+A sentence'; Code = $false; Docs = $false },
         @{ Name = 'keeps script documentation out of installer checks'; Path = 'scripts/README.md'; Text = '# Scripts'; Patch = '+A sentence'; Code = $false; Docs = $false },
         @{ Name = 'keeps action documentation out of tooling checks'; Path = '.github/actions/README.md'; Text = '# Actions'; Patch = '+A sentence'; Code = $false; Docs = $false },
@@ -104,7 +104,7 @@ Describe 'Selecting CI checks from GitHub changed files' {
         @{ Path = 'src/Winshell.Shell/BuiltInStyle.xaml'; Flags = 'code powershell' },
         @{ Path = 'tests/Winshell.Tests/AppIconTests.cs'; Flags = 'code powershell' },
         @{ Path = 'examples/omarchy-style/TokyoNight.xaml'; Flags = 'code powershell' },
-        @{ Path = 'docs/samples/message-widget/Message.xaml.cs'; Flags = 'code powershell' },
+        @{ Path = 'docs/samples/message-widget/Message.cs'; Flags = 'code powershell' },
         @{ Path = 'templates/winshell/Program.cs'; Flags = 'code powershell package' },
         @{ Path = 'src/Winshell.Shell/Winshell.Shell.csproj'; Flags = 'code powershell package' },
         @{ Path = 'Directory.Build.props'; Flags = 'code powershell package' },

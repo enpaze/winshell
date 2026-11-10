@@ -133,24 +133,10 @@ public static class GuideSamples
         return sound;
     }
 
-    public static TextBlock ABatteryLabel(Shell shell)
+    public static DockPreferences ADock()
     {
-        var label = new TextBlock();
-        label.Watch(() =>
-        {
-            var battery = shell.Power.DisplayDevice;
-            label.Text = battery.IsPresent ? $"{battery.Percentage:P0}" : "";
-        });
-        return label;
-    }
-
-    public static (TextBlock Clock, DockPreferences Dock) AClock()
-    {
-        var preferences = new ShellPreferences();
-        var clock = new TextBlock();
-        clock.Watch(() => clock.Text = preferences.Clock24 ? "13:00" : "1:00 PM");
         var dock = new DockPreferences("dock");
-        return (clock, dock);
+        return dock;
     }
 
     public static void RegisterAComponentWidget()
@@ -171,11 +157,25 @@ public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetCont
         Microsoft.UI.Reactor.Factories.TextBlock((string)Props.Settings["text"]);
 }
 
-public sealed partial class MessageWidget : UserControl
+public sealed class BatteryLabel : Microsoft.UI.Reactor.Core.Component<WidgetContext>
 {
-    public MessageWidget(WidgetContext context)
+    public override Microsoft.UI.Reactor.Core.Element Render()
     {
-        Content = new TextBlock { Text = (string)context.Settings["text"] };
+        var battery = UseObservable(Props.Shell.Power.DisplayDevice);
+        var charge = battery.IsPresent ? $"{battery.Percentage:P0}" : "";
+        return Microsoft.UI.Reactor.Factories.TextBlock(charge);
+    }
+}
+
+public sealed class ClockLabel : Microsoft.UI.Reactor.Core.Component
+{
+    private readonly ShellPreferences _preferences = new();
+
+    public override Microsoft.UI.Reactor.Core.Element Render()
+    {
+        var preferences = UseObservable(_preferences);
+        UseEffect(() => () => _preferences.Dispose(), false);
+        return Microsoft.UI.Reactor.Factories.TextBlock(preferences.Clock24 ? "13:00" : "1:00 PM");
     }
 }
 

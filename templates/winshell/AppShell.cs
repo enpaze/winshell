@@ -7,7 +7,9 @@ public sealed class AppShell : ShellConfiguration
 {
     public override void Start(Shell shell)
     {
-        // "clock" and "battery" are the names MyShell.csproj registers the widgets under.
+        // "clock" and "battery" are the names these components are registered under.
+        Widgets.Register<Clock>("clock");
+        Widgets.Register<Battery>("battery");
         _ = new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] };
     }
 }
