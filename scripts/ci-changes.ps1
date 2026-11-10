@@ -6,7 +6,7 @@ param(
     [ValidateRange(1, 3000)][int] $MaxFiles = 3000
 )
 
-# Prose is what no build, test or package reads.
+# Prose is what no build, test or package in CI reads.
 function Test-Prose {
     param([string] $Path)
     $Path -match '^docs/(?!samples/)|^\.github/ISSUE_TEMPLATE/|\.md$|^(skills-lock\.json|LICENSE|\.gitignore)$'
@@ -38,7 +38,6 @@ $noShard = '^scripts/(?!lib/|build-template\.ps1$|generate-reference\.cs$|instal
 $checks = [ordered]@{
     code = $unknown -or @($nonProse -notmatch $noShard).Count -gt 0
     docs = $unknown
-    tooling = $false
     scripts = Test-Changed '^scripts/|^tests/Scripts/|^\.github/(workflows/ci\.yml$|actions/)'
     workflows = Test-Changed '^\.github/(workflows|actions)/|^\.github/dependabot\.yml$'
     # What package.yml's jobs read: the release files, the template, the library's project and build files, the package
@@ -52,7 +51,7 @@ $checks = [ordered]@{
         '^\.github/workflows/(package|release-please)\.yml$' -join '|')
 }
 # quality's formatting check and PowerShell suites.
-$checks.tooling = $checks.code -or $checks.scripts -or $checks.workflows
+$checks.powershell = $checks.code -or $checks.scripts -or $checks.workflows
 
 if (-not $checks.code) {
     foreach ($file in $filesChanged) {

@@ -356,7 +356,7 @@ The single required test check, `ci`, collects suite, installer compatibility an
 
 ### How checks are selected
 
-The `changes` job selects checks for PRs and pushes to `main`. Each kind of changed file runs the checks that read it, and a change of several kinds runs the checks of each:
+The `changes` job selects checks for PRs and pushes to `main`. Each kind of changed file runs the checks that read it, and a change of several kinds runs the checks of each. The Package workflow also runs for any file its jobs read, whatever its kind, such as `package.yml`:
 
 | Kind | Paths | What runs |
 | --- | --- | --- |

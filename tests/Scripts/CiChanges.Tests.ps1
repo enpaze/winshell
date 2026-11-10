@@ -35,7 +35,7 @@ Describe 'Selecting CI checks from GitHub changed files' {
         finally { Pop-Location }
         $output | Should -Contain "code=$($Code.ToString().ToLowerInvariant())"
         $output | Should -Contain "docs=$($Docs.ToString().ToLowerInvariant())"
-        $output | Should -Contain "tooling=$($Code.ToString().ToLowerInvariant())"
+        $output | Should -Contain "powershell=$($Code.ToString().ToLowerInvariant())"
         $output | Should -Contain 'scripts=false'
         $output | Should -Contain 'workflows=false'
         $output | Should -Contain 'package=false'
@@ -71,40 +71,45 @@ Describe 'Selecting CI checks from GitHub changed files' {
         $output | Should -Contain 'docs=true'
     }
 
-    # Each flag, in the order of the columns: code runs the test shards, tooling the formatting check and the PowerShell
-    # suites in quality, scripts the installer job, workflows actionlint, and package the Package workflow.
+    # Flags lists the flags a path sets, and every other flag is false: code runs the test shards, powershell the formatting
+    # check and the PowerShell suites in quality, scripts the installer job, workflows actionlint, and package the Package
+    # workflow.
     It '<Path> selects <Flags>' -ForEach @(
         @{ Path = 'skills-lock.json'; Flags = 'none' },
         @{ Path = 'LICENSE'; Flags = 'none' },
         @{ Path = '.gitignore'; Flags = 'none' },
-        @{ Path = 'scripts/uninstall.ps1'; Flags = 'tooling scripts' },
-        @{ Path = 'scripts/pr-rules.ps1'; Flags = 'tooling scripts' },
-        @{ Path = 'tests/Scripts/Install.Tests.ps1'; Flags = 'tooling scripts' },
-        @{ Path = '.github/workflows/pr-title.yml'; Flags = 'tooling workflows' },
-        @{ Path = '.github/dependabot.yml'; Flags = 'tooling workflows' },
-        @{ Path = '.github/workflows/package.yml'; Flags = 'tooling workflows package' },
+        @{ Path = 'scripts/uninstall.ps1'; Flags = 'powershell scripts' },
+        @{ Path = 'scripts/pr-rules.ps1'; Flags = 'powershell scripts' },
+        @{ Path = 'tests/Scripts/Install.Tests.ps1'; Flags = 'powershell scripts' },
+        @{ Path = '.github/workflows/pr-title.yml'; Flags = 'powershell workflows' },
+        @{ Path = '.github/dependabot.yml'; Flags = 'powershell workflows' },
+        @{ Path = '.github/workflows/package.yml'; Flags = 'powershell workflows package' },
         @{ Path = 'packaging/msix/AppxManifest.xml'; Flags = 'package' },
         @{ Path = 'packaging/signpath/artifact-configuration.xml'; Flags = 'package' },
         # The suite reads these, so they are code although their folders are not.
-        @{ Path = 'scripts/install.ps1'; Flags = 'code tooling scripts' },
-        @{ Path = 'packaging/winshell.ico'; Flags = 'code tooling package' },
-        @{ Path = 'packaging/msix/Assets/StoreLogo.png'; Flags = 'code tooling package' },
+        @{ Path = 'scripts/install.ps1'; Flags = 'code powershell scripts' },
+        @{ Path = 'packaging/winshell.ico'; Flags = 'code powershell package' },
+        @{ Path = 'packaging/msix/Assets/StoreLogo.png'; Flags = 'code powershell package' },
         # The suite's own machinery.
-        @{ Path = 'scripts/lib/Tests.ps1'; Flags = 'code tooling scripts package' },
-        @{ Path = 'scripts/build-template.ps1'; Flags = 'code tooling scripts' },
-        @{ Path = 'scripts/generate-reference.cs'; Flags = 'code tooling scripts' },
-        @{ Path = '.github/workflows/ci.yml'; Flags = 'code tooling scripts workflows' },
-        @{ Path = '.github/actions/prepare/action.yml'; Flags = 'code tooling scripts workflows package' },
+        @{ Path = 'scripts/lib/Tests.ps1'; Flags = 'code powershell scripts package' },
+        @{ Path = 'scripts/build-template.ps1'; Flags = 'code powershell scripts' },
+        @{ Path = 'scripts/generate-reference.cs'; Flags = 'code powershell scripts' },
+        @{ Path = '.github/workflows/ci.yml'; Flags = 'code powershell scripts workflows' },
+        @{ Path = '.github/actions/prepare/action.yml'; Flags = 'code powershell scripts workflows package' },
         # Everything else.
-        @{ Path = 'src/Winshell.Shell/BuiltInStyle.xaml'; Flags = 'code tooling' },
-        @{ Path = 'tests/Winshell.Tests/AppIconTests.cs'; Flags = 'code tooling' },
-        @{ Path = 'examples/omarchy-style/TokyoNight.xaml'; Flags = 'code tooling' },
-        @{ Path = 'NOTICE'; Flags = 'code tooling' }
+        @{ Path = 'src/Winshell.Shell/BuiltInStyle.xaml'; Flags = 'code powershell' },
+        @{ Path = 'tests/Winshell.Tests/AppIconTests.cs'; Flags = 'code powershell' },
+        @{ Path = 'examples/omarchy-style/TokyoNight.xaml'; Flags = 'code powershell' },
+        @{ Path = 'docs/samples/message-widget/Message.xaml.cs'; Flags = 'code powershell' },
+        @{ Path = 'templates/winshell/Program.cs'; Flags = 'code powershell package' },
+        @{ Path = 'src/Winshell.Shell/Winshell.Shell.csproj'; Flags = 'code powershell package' },
+        @{ Path = 'Directory.Build.props'; Flags = 'code powershell package' },
+        @{ Path = 'NOTICE'; Flags = 'code powershell' }
     ) {
         $json = Join-Path $TestDrive 'kind.json'
         ConvertTo-Json -InputObject @(@{ filename = $Path; patch = '' }) | Set-Content -LiteralPath $json
         $output = & $script:Classifier -Files $json
-        foreach ($flag in 'code', 'tooling', 'scripts', 'workflows', 'package') {
+        foreach ($flag in 'code', 'powershell', 'scripts', 'workflows', 'package') {
             $output | Should -Contain "$flag=$(($Flags -split ' ' -contains $flag).ToString().ToLowerInvariant())"
         }
     }
@@ -118,7 +123,7 @@ Describe 'Selecting CI checks from GitHub changed files' {
         ) | Set-Content -LiteralPath $json
         $output = & $script:Classifier -Files $json
         $output | Should -Contain 'code=false'
-        $output | Should -Contain 'tooling=true'
+        $output | Should -Contain 'powershell=true'
         $output | Should -Contain 'scripts=true'
         $output | Should -Contain 'workflows=true'
         $output | Should -Contain 'package=true'
@@ -148,7 +153,7 @@ Describe 'Selecting CI checks from GitHub changed files' {
         ConvertTo-Json -InputObject $files | Set-Content -LiteralPath $json
         $output = & $script:Classifier -Files $json -MaxFiles 300
         $output | Should -Contain 'code=true'
-        $output | Should -Contain 'tooling=true'
+        $output | Should -Contain 'powershell=true'
         $output | Should -Contain 'scripts=true'
         $output | Should -Contain 'workflows=true'
         $output | Should -Contain 'package=true'
