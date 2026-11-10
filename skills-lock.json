@@ -1,13 +1,6 @@
 {
   "version": 1,
   "skills": {
-    "ask-matt": {
-      "source": "mattpocock/skills",
-      "ref": "59db609eb1e18aaf59b63284d0e52255aff0c63c",
-      "sourceType": "github",
-      "skillPath": "skills/engineering/ask-matt/SKILL.md",
-      "computedHash": "9eead017d1708983aea08e98edc915defe7bf23719ac053ca98ab53dc518bd52"
-    },
     "code-review": {
       "source": "mattpocock/skills",
       "ref": "59db609eb1e18aaf59b63284d0e52255aff0c63c",
@@ -71,25 +64,12 @@
       "skillPath": "skills/engineering/implement/SKILL.md",
       "computedHash": "141e77647388ad7d716a8f992b604872df0cbf6cdfbc8fa2a02cbc9fe67160fc"
     },
-    "implement-spec": {
-      "source": "mattpocock/skills",
-      "ref": "59db609eb1e18aaf59b63284d0e52255aff0c63c",
-      "sourceType": "github",
-      "skillPath": "skills/engineering/implement-spec/SKILL.md",
-      "computedHash": "4b91b5634b1a89a8b2ad44f8e7a320f778d05f6bd978d93076b6e89d7adfe9d8"
-    },
     "improve-codebase-architecture": {
       "source": "mattpocock/skills",
       "ref": "59db609eb1e18aaf59b63284d0e52255aff0c63c",
       "sourceType": "github",
       "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
       "computedHash": "f74b0bf1be26220dd615523fc1c0562567f9c463d9e9b255d4031345ffb37cd3"
-    },
-    "moa": {
-      "source": "dante-sparras/dstack",
-      "sourceType": "github",
-      "skillPath": "skills/moa/SKILL.md",
-      "computedHash": "432af50f4160d32c44011737b6d57851ce26c86239218dd33f5423f2582158a6"
     },
     "pr": {
       "source": "mattpocock/skills",
