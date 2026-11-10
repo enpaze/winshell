@@ -121,4 +121,4 @@ How the tests work:
 - **Two guards read sources.** A WinUI project's assembly can't tell CsWinRT's generated unsafe code from ours, so that guard reads the sources. The composition guard reads them too, because only the compiler can say what a file may see.
 - **Prove a new or changed guard.** Show that it rejects a representative forbidden dependency or declaration, then remove that violation. Do not add production hooks solely to exercise the guards.
 
-Tests follow the installed `test-audit` skill's gate, [where a test belongs](../CONTRIBUTING.md#where-a-test-belongs), which says what a changed test keeps, and the [test rules](../CONTRIBUTING.md#write-tests-that-dont-flake). Use fake clocks and real completion signals.
+Tests follow [where a test belongs](../CONTRIBUTING.md#where-a-test-belongs), which says what a changed test keeps, and the [test rules](../CONTRIBUTING.md#write-tests-that-dont-flake). Use fake clocks and real completion signals.
