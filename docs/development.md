@@ -266,7 +266,7 @@ It opens no windows, so any number of agents can run it at once, one per worktre
 
 - Missing Pester 5.6.1 fails with an installation command; it is never silently skipped or downloaded.
 - A run fails when a test fails, no test ran, or a test project wrote no results.
-- A run fails when a process its .NET tests started shows a visible top-level window, and names the test project and the window. Give the test that shows it the category `Window`. A hidden, cloaked or message-only window doesn't count, and neither does a window of a program the check didn't start. A window that closes within milliseconds can escape it. `-Tier Docs` and `-Tier Package` don't watch.
+- A run fails when a process its .NET tests started shows a visible top-level window, and names the test project and the window. Give the test that shows it the category `Window`. A hidden, cloaked or message-only window doesn't count, and neither does a window of a program the check didn't start. Two kinds of window escape it: one that closes within milliseconds, and one whose process was started by a program that has since exited, such as a shell started detached. `-Tier Docs` and `-Tier Package` don't watch.
 - It ends by naming each skipped test with its reason, including after a failure.
 
 ### Lint
