@@ -210,7 +210,7 @@ Choose checks from the complete change against the PR's base, including renamed 
 
 | Change | Before pushing |
 | --- | --- |
-| Only prose: Markdown, including the PR template, the issue forms in `.github/ISSUE_TEMPLATE/`, and files under `docs/` outside `docs/samples/`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`. No application build, formatting or test suite is needed. |
+| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/` outside `docs/samples/`, and Markdown such as the PR template, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`. No application build, formatting or test suite is needed. |
 | A page in `docs/` (outside `docs/agents/`) or `README.md` containing or removing a C# example fence, or a generated `docs/reference/winshell*.md` page | Lint, then `pwsh scripts/check.ps1 -Tier Docs`. This builds the samples and checks the generated reference, without unrelated tests or windows. |
 | Other changes, including source, scripts, workflows and build configuration | `pwsh scripts/check.ps1`, followed by the focused checks the [Jobs](#jobs) table lists for that change. |
 
