@@ -8,6 +8,8 @@ Channel both "measure twice, cut once" and "yagni". Fight scope creep. Try to ho
 
 When the documentation and existing code conflict, follow the code's conventions, and in your final reply, list all the inconsistencies you found.
 
+Always build code cleanly, modularly, and with proper architecture and separation of concerns. Never simply bolt on a feature because I asked for it. If you can't find an easy way to build it naturally, and you'd recommend a refactor to make the whole thing cleanly, stop your work ahead of time and say so.
+
 ## Start a ticket
 
 Work starts from a ticket: one issue that one PR closes. [The main flow](docs/agents/flow.md) says where tickets come from and who runs each step.
@@ -46,7 +48,7 @@ Take the model and effort for a subagent or a delegate from this table. Each job
 | A well-scoped everyday ticket: a bug fix, a docs change, a feature built against a clear spec | Claude Sonnet 5.5 (high) | GPT 6.1 Terra (high) | Grok 4.7 Fast (high) | |
 | A side task for a larger model: a search, a lookup, classifying or extracting | Claude Haiku 5.5 (high) | GPT 6.1 Terra (medium) | Grok 4.7 Fast (high) | |
 | A hard ticket: a migration, a performance fix, a change across several layers | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) | |
-| The hardest work, or a long unattended run | Claude Fable 5.2 (high) | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) |
+| The hardest work, or a long unattended run | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) | |
 
 - A clear spec alone does not make a ticket a Sonnet ticket: a migration can be fully specified and still need Opus.
 - The lead picks the row when it delegates. A ticket carries no model label.
