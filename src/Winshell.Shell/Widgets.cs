@@ -6,7 +6,7 @@ namespace Winshell;
 /// <summary>The widget factories available to this configuration, registered before creating its areas.</summary>
 public static class Widgets
 {
-    private static readonly Dictionary<string, Factory> Registered = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, Func<WidgetContext, string, string, UIElement>> Registered = new(StringComparer.Ordinal);
     private static readonly object Gate = new();
 
     /// <summary>
@@ -17,7 +17,8 @@ public static class Widgets
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(create);
-        Add(name, new ControlFactory(create));
+        Add(name, (context, _, _) =>
+            create(context) ?? throw new InvalidOperationException("The widget factory returned null."));
     }
 
     /// <summary>
@@ -31,40 +32,22 @@ public static class Widgets
         where TWidget : Component<WidgetContext>, new()
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        Add(name, new ComponentFactory<TWidget>());
+        Add(name, (context, widget, area) => new ComponentWidgetHost<TWidget>(context, widget, area));
     }
 
-    private static void Add(string name, Factory factory)
+    private static void Add(string name, Func<WidgetContext, string, string, UIElement> create)
     {
         lock (Gate)
-            Registered.Add(name, factory);
+            Registered.Add(name, create);
     }
 
     internal static UIElement Create(string name, WidgetContext context, string area)
     {
-        Factory factory;
+        Func<WidgetContext, string, string, UIElement> create;
         lock (Gate)
-            factory = Registered.TryGetValue(name, out var found)
+            create = Registered.TryGetValue(name, out var found)
                 ? found
                 : throw new KeyNotFoundException("No widget is registered with this name.");
-        return factory.Create(context, name, area);
-    }
-
-    private abstract class Factory
-    {
-        public abstract UIElement Create(WidgetContext context, string name, string area);
-    }
-
-    private sealed class ControlFactory(Func<WidgetContext, UIElement> create) : Factory
-    {
-        public override UIElement Create(WidgetContext context, string name, string area) =>
-            create(context) ?? throw new InvalidOperationException("The widget factory returned null.");
-    }
-
-    private sealed class ComponentFactory<TWidget> : Factory
-        where TWidget : Component<WidgetContext>, new()
-    {
-        public override UIElement Create(WidgetContext context, string name, string area) =>
-            new ComponentWidgetHost<TWidget>(context, name, area);
+        return create(context, name, area);
     }
 }
