@@ -68,7 +68,9 @@ pwsh scripts/install-skills.ps1
 
 It installs each source at the ref the lock pins, as copies. The CLI's `experimental_install` links instead, and on Windows that leaves the external skills linked to no agent.
 
-Installed copies in `.agents/skills/` and `.claude/skills/` are ignored by Git; keep `skills-lock.json` tracked. Every skill installs from the source repository the lock records, `test-audit` included, which comes from OpenClaw. Skills become available in a new agent session.
+Installed copies in `.agents/skills/` and `.claude/skills/` are ignored by Git; keep `skills-lock.json` tracked. Every skill installs from the source repository the lock records. Skills become available in a new agent session.
+
+The install adds skills and never removes one. To drop a skill the lock no longer records, such as `test-audit`, delete its folder from both places in your checkout: `Remove-Item -Recurse -Force .agents/skills/test-audit, .claude/skills/test-audit`.
 
 ## Start a task
 

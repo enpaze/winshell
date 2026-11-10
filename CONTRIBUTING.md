@@ -7,7 +7,7 @@ A change is held to these, by people and by the `code-review` skill:
 - [How we build](AGENTS.md#how-we-build): the owner's notes on simple systems and scope.
 - [The architecture](docs/architecture.md): the layers, their boundaries and the sealed interop.
 - [Formatting and style](docs/development.md#formatting-and-style): C# whitespace, code style, names and XAML.
-- The test rules: [Where a test belongs](#where-a-test-belongs), [Write tests that don't flake](#write-tests-that-dont-flake), and the installed `test-audit` skill.
+- The test rules: [Where a test belongs](#where-a-test-belongs) and [Write tests that don't flake](#write-tests-that-dont-flake).
 - [The glossary](GLOSSARY.md): the words to name things with.
 - [The ADRs](docs/adr/): the decisions already made.
 
@@ -17,7 +17,7 @@ The [development runbook](docs/development.md) covers the prerequisites, the fir
 
 ## Where a test belongs
 
-Every new or changed test passes the authoring gate of the `test-audit` skill, which `pwsh scripts/install-skills.ps1` installs (see [Agent skills](docs/development.md#agent-skills)). In this repo, each contract has one owner, at the cheapest boundary that can show it:
+Every new or changed test is held to this section and the next. Each contract has one owner, at the cheapest boundary that can show it:
 
 | Project | Owns |
 | --- | --- |
