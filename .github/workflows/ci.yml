@@ -54,7 +54,7 @@ jobs:
           persist-credentials: false
       # Claude Code reads .claude/skills and the other agents .agents/skills, so a pull request changes both or neither.
       - name: Check .claude/skills is a copy of .agents/skills
-        run: diff --recursive .agents/skills .claude/skills
+        run: git diff --no-index --exit-code .agents/skills .claude/skills
       # Offline, so only links to files in the repo and their headings: links.yml checks other sites. The lychee release
       # archive is checked against its SHA-256 before it runs. Dependabot doesn't update this: bump the version and the
       # digest together, here and in links.yml.

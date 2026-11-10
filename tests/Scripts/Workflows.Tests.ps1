@@ -25,7 +25,7 @@ Describe 'The workflows' {
 
     It 'fail the required ci check when .claude/skills is not a copy of .agents/skills' {
         $ci = Get-Content -Raw -LiteralPath ($script:Workflows | Where-Object Name -EQ 'ci.yml').FullName
-        $ci | Should -Match ([regex]::Escape('diff --recursive .agents/skills .claude/skills'))
+        $ci | Should -Match ([regex]::Escape('git diff --no-index --exit-code .agents/skills .claude/skills'))
     }
 
     It 'have skills update write every skill into both folders as files, not links' {
