@@ -14,4 +14,11 @@ Describe 'The workflows' {
         $package | Should -Match ([regex]::Escape('WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}'))
         $package | Should -Not -Match '--token'
     }
+
+    It 'commit only the skills and their lock in a skills update, and never merge it' {
+        $skills = Get-Content -Raw -LiteralPath ($script:Workflows | Where-Object Name -EQ 'skills.yml').FullName
+        $skills | Should -Match ([regex]::Escape('git add -- .agents/skills skills-lock.json'))
+        $skills | Should -Not -Match '(?m)git add (?!-- \.agents/skills skills-lock\.json$)'
+        $skills | Should -Not -Match 'gh pr merge|--auto|commit -a'
+    }
 }
