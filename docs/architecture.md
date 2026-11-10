@@ -27,7 +27,7 @@ Keep the existing public Shell API. Moving an implementation does not justify co
 
 ## Sealed interop
 
-Only `Winshell.Native` may contain `LibraryImport`, `DllImport`, `ComImport` or unsafe interop. This restriction applies to every other project, including tests. Other assemblies consume managed contracts that do not require pointers, unmanaged function pointers or unsafe callers.
+Only `Winshell.Native` may contain `LibraryImport`, `DllImport`, `ComImport`, `GeneratedComInterface`, `GeneratedComClass` or unsafe interop, or call native code through `NativeLibrary` or `Marshal.GetDelegateForFunctionPointer`. This restriction applies to every other project, including tests. Other assemblies consume managed contracts that do not require pointers, unmanaged function pointers or unsafe callers.
 
 ### Inside Native
 
@@ -38,7 +38,7 @@ Only `Winshell.Native` may contain `LibraryImport`, `DllImport`, `ComImport` or 
 
 ### What the build enforces
 
-Nothing in the build stops an interop attribute, `NativeLibrary` or `Marshal.GetDelegateForFunctionPointer` outside Native: a review holds a change to that rule. The build stops unsafe code:
+Nothing in the build stops interop that needs no unsafe code outside Native: a review holds a change to that rule. The build stops unsafe code:
 
 - Outside Native and WinUI projects, the root `Directory.Build.targets` forces `AllowUnsafeBlocks` off, so unsafe code fails with CS0227. It runs after each project file, so setting `AllowUnsafeBlocks` there has no effect.
 - A new project under `src/` or `tests/` is covered without edits.

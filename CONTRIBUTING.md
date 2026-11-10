@@ -39,7 +39,7 @@ Every new or changed test is held to this section and the next. Each contract ha
 
 A test waits on a real signal: an event, a task's completion, or a fake clock.
 
-- **No sleeps or fixed timeouts as a way to wait.** A timeout can stop a test that hung, but a passing test must never depend on how long something took. A test calls no `Thread.Sleep`, `Task.Delay` or `SpinWait.SpinUntil`, and times nothing with a `Stopwatch`. When nothing gives a signal, such as a file or another process, use `Wait.Until` from `tests/TestSupport/Wait.cs`.
+- **No sleeps or fixed timeouts as a way to wait.** A timeout can stop a test that hung, but a passing test must never depend on how long something took. A test calls no `Thread.Sleep`, `Task.Delay` or `SpinWait.SpinUntil`, and times nothing with a `Stopwatch` or `Environment.TickCount`. When nothing gives a signal, such as a file or another process, use `Wait.Until` from `tests/TestSupport/Wait.cs`.
 - **Only `Wait.ForNothingToHappen` waits for a set time.** Use it when a check is that something did not happen. A slow machine can then miss a bug, but it can't fail a test that should pass.
 - **Pass `TestContext.Current.CancellationToken` to anything that waits.** It is cancelled when a test has run for two minutes, so the test fails alone and the run goes on.
 - **Time comes through a `TimeProvider`.** Code in `src/` reads no `DateTime.Now`, `Stopwatch`, `Environment.TickCount` or their relatives. A test passes a `FakeTimeProvider`, given a UTC time. `TimeProvider.System` is for what only real time can drive: a file's write time, a Windows object, the CLI's own process.
@@ -50,7 +50,7 @@ A test waits on a real signal: an event, a task's completion, or a fake clock.
 
 Nothing retries a test and nothing sets one aside. A test that fails sometimes is a bug in the test or in Winshell, so find the cause and fix it, on `main` as much as in a PR. Tests are built so that they can't flake:
 
-- **Each test owns what it uses.** It has its own temp folder, a `TempFolder` from `tests/TestSupport`, and leaves no global state behind. No test calls `Path.GetTempPath`, `Path.GetTempFileName` or `Directory.CreateTempSubdirectory` itself: the startup prune covers only that root. A test that needs something one at a time, such as the keyboard hook, joins an xUnit collection with the others that do.
+- **Each test owns what it uses.** It has its own temp folder, a `TempFolder` from `tests/TestSupport`, and leaves no global state behind. No test calls `Path.GetTempPath`, `Path.GetTempFileName` or `Directory.CreateTempSubdirectory` itself: the startup prune covers only the root `TempFolder` keeps its folders under. A test that needs something one at a time, such as the keyboard hook, joins an xUnit collection with the others that do.
 - **Order and timing are shaken on every run.** Classes run in parallel on twice as many threads as cores, and the order changes each time. Test assemblies run in sequence locally; CI spreads the suite across five separate Windows workers. The run prints its seed, and `pwsh scripts/check.ps1 -Seed <seed>` plays each assembly's order back; for a windowed test, end its `dotnet test` command with `-- xUnit.Seed=<seed>`.
 - **A time limit only catches a hang.** A test claims nothing about how fast something is on this machine today, so set a limit far above what the work takes under load: only the defect it guards can miss it.
 
