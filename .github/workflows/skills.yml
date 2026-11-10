@@ -1,0 +1,60 @@
+name: Skills
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: skills
+  cancel-in-progress: false
+
+jobs:
+  skills:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # pushes the update branch
+      pull-requests: write # opens and updates the pull request
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The lock's history says when the repo took each version.
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Take each skill that has a newer version
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/update-skills.ps1 -BodyPath "$env:RUNNER_TEMP/body.md"
+      # A skill is instructions agents follow with full permissions, so a person reads each pull request and takes it or
+      # closes it. PRs opened with GITHUB_TOKEN do not trigger CI; RELEASE_PLEASE_TOKEN makes the required checks run.
+      - name: Open or update the pull request
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: build/update-skills
+          TITLE: "build(skills): take the newer skill versions"
+        run: |
+          if [[ ! -f "$RUNNER_TEMP/body.md" ]]; then
+            echo "No skill has a newer version."
+            exit 0
+          fi
+          # skills update also links each skill into .claude/skills, which stays out of the commit.
+          git add -- .agents/skills skills-lock.json
+          if git rev-parse --quiet --verify "origin/$BRANCH" > /dev/null &&
+            git diff --cached --quiet "origin/$BRANCH" -- .agents/skills skills-lock.json; then
+            echo "$BRANCH already holds these versions."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit --quiet --message "$TITLE"
+          git push --force "https://x-access-token:$GH_TOKEN@github.com/$REPO.git" "HEAD:refs/heads/$BRANCH"
+          pr=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [[ -n "$pr" ]]; then
+            gh pr edit "$pr" --repo "$REPO" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "$TITLE" --body-file "$RUNNER_TEMP/body.md"
+          fi
