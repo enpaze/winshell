@@ -68,13 +68,20 @@ claude --plugin-dir .agents
 
 It lists each one as `.agents:<name>`, and it answers to its bare name, `/<name>` and the Skill tool both. `--plugin-dir` takes every argument after it that is not an option, so put a prompt before it: `claude -p "<prompt>" --plugin-dir .agents`.
 
-The committed files are the pin: a skill changes only when a PR changes it. To check for a newer version, and to take one:
+The committed files are the pin: a skill changes only when a PR changes it. To list the skills that have a newer version, changing nothing:
 
 ```sh
-npx -y skills@1.7.4 update -p
+npx -y skills@1.7.6 check
 ```
 
-It writes each newer version into `.agents/skills` and its hash into the lock, and links the skills into `.claude/skills`, which Git ignores. Read `git diff` and keep the skills you take for a PR. For each one you leave, restore its folder, delete any file the update added to it, and put back its hash in the lock.
+To take one of them, or all:
+
+```sh
+npx -y skills@1.7.6 update <name> -p
+npx -y skills@1.7.6 update -p
+```
+
+It writes each newer version into `.agents/skills` and its hash into the lock, and links the skill into `.claude/skills`, which Git ignores. Read `git diff` before you open the PR. Use this version of the tool or a later one: in 1.7.4, `check` takes every update where this one only lists them.
 
 A checkout that ran the old install script keeps what it wrote that the repo does not track: `.claude/skills`, and any skill folder in `.agents/skills` the lock no longer records. To list them, then delete them:
 
@@ -262,7 +269,8 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | `pwsh scripts/pr-rules.ps1 -Title <title> -Body <body> -Path <file>` | What the `pr-rules` job runs, given a file of changed paths. It prints each problem and exits 1. |
 | `pwsh scripts/pr-screenshot.ps1 <png>` | Publishes a `winshell inspect` screenshot on the `pr-screenshots` branch, which never merges, and prints the Markdown to paste into a PR. |
 | `pwsh scripts/ci-changes.ps1 -Files <json> [-MaxFiles <limit>]` | Classifies GitHub changed-file JSON from the checkout root and prints the flags `ci.yml` and `package.yml` use. PR file lists have a 3000-file limit; push comparisons have a 300-file limit. CI fetches this input; local contributors normally choose the checks above directly. |
-| `npx -y skills@1.7.4 update -p` | Writes the newer version of each skill in `.agents/skills`, for review in `git diff`. See [Agent skills](#agent-skills). |
+| `npx -y skills@1.7.6 check` | Lists the skills in `.agents/skills` that have a newer version, changing nothing. See [Agent skills](#agent-skills). |
+| `npx -y skills@1.7.6 update [<name>] -p` | Writes the newer version of that skill, or of every skill, into `.agents/skills`, for review in `git diff`. |
 
 ### The full check
 
