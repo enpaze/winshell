@@ -40,6 +40,3 @@ out/
 
 # Release builds from scripts/package.ps1
 artifacts/
-
-# What the skills CLI or an earlier install wrote for Claude Code. The repo's skills are in .agents/skills.
-.claude/skills/

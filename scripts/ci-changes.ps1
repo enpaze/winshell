@@ -9,7 +9,7 @@ param(
 # Prose is what no build, test or package in CI reads.
 function Test-Prose {
     param([string] $Path)
-    $Path -match '^docs/(?!samples/)|^\.github/ISSUE_TEMPLATE/|^\.agents/skills/|\.md$|^(skills-lock\.json|LICENSE|\.gitignore)$'
+    $Path -match '^docs/(?!samples/)|^\.github/ISSUE_TEMPLATE/|^\.(agents|claude)/skills/|\.md$|^(skills-lock\.json|LICENSE|\.gitignore)$'
 }
 
 if ($MyInvocation.InvocationName -eq '.') { return }
