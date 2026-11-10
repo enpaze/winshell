@@ -1,6 +1,6 @@
 # Architecture
 
-Winshell is a modular monolith: one program, with assembly boundaries for shared infrastructure and folder boundaries for service features. The build enforces the [sealed interop](#sealed-interop) boundary, and the [architecture tests](#architecture-proof) enforce the layers and feature backends.
+Winshell is a modular monolith: one program, with assembly boundaries for shared infrastructure and folder boundaries for service features. The build keeps unsafe code inside the [sealed interop](#sealed-interop) boundary, and the [architecture tests](#architecture-proof) enforce the layers and feature backends.
 
 ## Dependency direction
 
