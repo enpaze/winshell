@@ -18,7 +18,7 @@ public sealed partial class DevCommandTests : IDisposable
 
     private readonly string _dir = TempFolder.NewPath();
     private readonly StringBuilder _printed = new();
-    private readonly HashSet<(int Pid, DateTime Created)> _watch = [];
+    private readonly Dictionary<int, Process> _nodes = [];
     private Process? _dev;
     private string? _probeLink;
 
@@ -126,6 +126,8 @@ public sealed partial class DevCommandTests : IDisposable
             }
         }
 
+        foreach (var node in _nodes.Values)
+            node.Dispose();
         Wait.Until(Removed, "the test folder to be free");
     }
 
@@ -239,70 +241,102 @@ public sealed partial class DevCommandTests : IDisposable
     }
 
     /// <summary>
-    /// The processes under this <c>winshell dev</c>, kept by id and start time, including a build that has since exited.
-    /// The scans run while a build is alive, so its nodes are kept then. Windows reuses an id, so a later process that
-    /// gets one, such as another test's build, does not count.
+    /// Opens each MSBuild node under this <c>winshell dev</c> and keeps it open, so the test can wait for it to exit and
+    /// Windows can't give its id to another process. A node's parent is the build, so a scan sees a node only while the
+    /// build runs.
     /// </summary>
-    private void NoteWatchProcesses()
+    private void NoteDevNodes()
     {
         if (_dev is null)
             return;
         var rows = Processes();
-        var parent = new Dictionary<int, int>(rows.Count);
+        var byId = new Dictionary<int, ProcessRow>(rows.Count);
         foreach (var row in rows)
-            parent[row.Pid] = row.Parent;
+            byId[row.Pid] = row;
         foreach (var row in rows)
-            if (Reaches(row.Pid, parent, _dev.Id))
-                _watch.Add((row.Pid, row.Created));
-    }
-
-    /// <summary>Idle MSBuild nodes this watch's build started and has not exited.</summary>
-    private List<int> IdleNodes()
-    {
-        return Processes()
-            .Where(row => row.Command.Contains("nodemode", StringComparison.OrdinalIgnoreCase)
-                          && _watch.Contains((row.Pid, row.Created)))
-            .Select(row => row.Pid)
-            .ToList();
+        {
+            if (!row.Command.Contains("nodemode", StringComparison.OrdinalIgnoreCase) || _nodes.ContainsKey(row.Pid))
+                continue;
+            if (Reaches(row, byId, _dev.Id) && Open(row) is { } node)
+                _nodes[row.Pid] = node;
+        }
     }
 
     /// <summary>
-    /// Waits for this watch's build nodes to exit. Without reuse they exit after the build, and on a busy PC that can take
-    /// as long as a build. A node kept for reuse stays idle for about 15 minutes, so it still fails the wait.
+    /// Waits for the build nodes of this <c>winshell dev</c> to exit. Without reuse they exit after the build. A node
+    /// kept for reuse stays idle for about 15 minutes, so it still fails the wait.
     /// </summary>
-    private void NodesExit()
+    private async Task NodesExit()
     {
-        Wait.Until(() => IdleNodes().Count == 0, "winshell dev's MSBuild nodes to exit", BuildPatience);
+        var token = TestContext.Current.CancellationToken;
+        try
+        {
+            await Task.WhenAll(_nodes.Values.Select(node => node.WaitForExitAsync(token)))
+                .WaitAsync(BuildPatience, TimeProvider.System, token);
+        }
+        catch (TimeoutException)
+        {
+            // A command line with /nodeReuse:true is a node winshell dev left for reuse.
+            var alive = _nodes.Values.Where(node => !node.HasExited).Select(node => node.Id).ToList();
+            var commands = Processes().ToDictionary(row => row.Pid, row => row.Command);
+            Assert.Fail("Timed out: winshell dev's MSBuild nodes to exit: " + string.Join("; ",
+                alive.Select(pid => $"{pid} {commands.GetValueOrDefault(pid, "(has exited since)")}")));
+        }
     }
 
-    private static bool Reaches(int pid, Dictionary<int, int> parent, int root)
+    /// <summary>
+    /// Whether <paramref name="row"/> descends from <paramref name="root"/>. A process keeps its parent's id after the
+    /// parent exits, and Windows gives that id to later processes. A parent that started after its child is one of
+    /// those, so the walk stops there.
+    /// </summary>
+    private static bool Reaches(ProcessRow row, Dictionary<int, ProcessRow> byId, int root)
     {
         var seen = new HashSet<int>();
-        while (pid != 0 && seen.Add(pid))
+        while (row.Pid != root)
         {
-            if (pid == root)
-                return true;
-            if (!parent.TryGetValue(pid, out pid))
+            if (!seen.Add(row.Pid) || !byId.TryGetValue(row.Parent, out var parent) || parent.Created > row.Created)
                 return false;
+            row = parent;
         }
 
-        return false;
+        return true;
     }
 
-    private static List<(int Pid, DateTime Created, int Parent, string Command)> Processes()
+    /// <summary>The process a scan found, held open, or null if it has exited since or can't be opened.</summary>
+    private static Process? Open(ProcessRow row)
+    {
+        Process? process = null;
+        try
+        {
+            process = Process.GetProcessById(row.Pid);
+            // Holds the process, so its id is not reused, and then checks it is the one the scan found.
+            _ = process.Handle;
+            if ((process.StartTime - row.Created).Duration() < TimeSpan.FromMilliseconds(1))
+                return process;
+        }
+        catch (Exception e) when (e is ArgumentException or InvalidOperationException or Win32Exception)
+        {
+            // It has exited, or can't be opened.
+        }
+
+        process?.Dispose();
+        return null;
+    }
+
+    private readonly record struct ProcessRow(int Pid, DateTime Created, int Parent, string Command);
+
+    private static List<ProcessRow> Processes()
     {
         using var search =
             new ManagementObjectSearcher(
                 "SELECT ProcessId, CreationDate, ParentProcessId, CommandLine FROM Win32_Process");
         using var found = search.Get();
         return found.Cast<ManagementObject>()
-            .Select(p => (
-                Pid: Number(p["ProcessId"]),
-                Created: p["CreationDate"] is string created
-                    ? ManagementDateTimeConverter.ToDateTime(created)
-                    : default,
-                Parent: Number(p["ParentProcessId"]),
-                Command: p["CommandLine"] as string ?? ""))
+            .Select(p => new ProcessRow(
+                Number(p["ProcessId"]),
+                p["CreationDate"] is string created ? ManagementDateTimeConverter.ToDateTime(created) : default,
+                Number(p["ParentProcessId"]),
+                p["CommandLine"] as string ?? ""))
             .ToList();
     }
 
@@ -359,7 +393,7 @@ public sealed partial class DevCommandTests : IDisposable
         StartDev(true);
         await Wait.UntilAsync(async () =>
         {
-            NoteWatchProcesses();
+            NoteDevNodes();
             return await Value() == (0, "one");
         }, "the first build", BuildPatience);
         Assert.True(Printed("dotnet watch : "), "winshell dev printed nothing of dotnet watch's.");
@@ -368,7 +402,7 @@ public sealed partial class DevCommandTests : IDisposable
         var reuse = await ReadValue("reuse");
         Assert.Equal(0, reuse.Code);
         Assert.Equal("", reuse.Text);
-        NodesExit();
+        await NodesExit();
         var shell = ShellProcess();
         var id = InstanceId();
         // Start opens this shortcut. The app has to outlive the rebuild and the end of winshell dev.
@@ -405,11 +439,11 @@ public sealed partial class DevCommandTests : IDisposable
             "the build the XAML needs");
         await Wait.UntilAsync(async () =>
         {
-            NoteWatchProcesses();
+            NoteDevNodes();
             return await Shown() == "three";
         }, "the shell to start again", BuildPatience);
         Assert.NotEqual(shell, ShellProcess());
-        NodesExit();
+        await NodesExit();
         reuse = await ReadValue("reuse");
         Assert.Equal(0, reuse.Code);
         Assert.Equal("", reuse.Text);
