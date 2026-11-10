@@ -12,6 +12,10 @@
     <LangVersion>latest</LangVersion>
     <!-- .editorconfig's code style rules fail the build, as the analyzers do. -->
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Reactor's Debug default generates one source-map type into every project that references it. A project and
+         the project that references it then both define that type. A configuration keeps the default. -->
+    <ReactorDiagnostics>false</ReactorDiagnostics>
+    <ReactorSourceMap>false</ReactorSourceMap>
     <!-- Paths in a release's binaries and symbols are not this runner's. -->
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>

@@ -1,5 +1,7 @@
 # Widgets are plain controls, styled by the shell style
 
+Superseded by [UI is built with Reactor](0005-ui-is-built-with-reactor.md).
+
 A widget is any WinUI control whose class takes a `WidgetContext`. Winshell has no widget base class. A widget stays current with `this.Watch(...)` (#1706), which runs its block again when anything the block read changes and stops with the control. It looks right without looking anything up, because the shell style holds implicit styles for plain controls. One shape covers a status icon, a clock, workspaces and the tray alike, and the only Winshell-specific things to learn are `Watch`, the style and `WidgetContext`. A sketch of the API this decides, not code the solution compiles:
 
 ```text

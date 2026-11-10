@@ -9,12 +9,21 @@
     <RepositoryType>git</RepositoryType>
     <Copyright>Copyright (c) 2026 Dante Sparrås</Copyright>
     <!-- The project's own assembly is a marker. The package carries the libraries referenced below. -->
+    <!-- Reactor ships only previews, and ADR 0005 pins one. A stable Winshell may depend on it. -->
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
   </PropertyGroup>
 
   <!-- What a configuration's project restores. WinUI is these two packages, self-contained in that project. -->
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" />
     <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" />
+    <PackageReference Include="Microsoft.UI.Reactor" />
+    <!-- Reactor brings System.Drawing.Common, and the central SystemEvents pin would otherwise be packed as a
+         dependency. A configuration gets SystemEvents through System.Drawing.Common. The CLI references it itself. -->
+    <PackageReference Include="Microsoft.Win32.SystemEvents">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="System.Management" />
     <PackageReference Include="Tomlyn" />
     <PackageReference Include="Vortice.Direct3D11" />

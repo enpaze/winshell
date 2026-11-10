@@ -9,6 +9,30 @@ namespace Winshell.Package.Tests;
 public class PackageDependencyTests
 {
     [Fact]
+    public void Reactor_is_pinned_to_one_exact_version()
+    {
+        var version = Pinned("Microsoft.UI.Reactor");
+
+        Assert.DoesNotContain('[', version);
+        Assert.DoesNotContain('(', version);
+        Assert.DoesNotContain('*', version);
+        Assert.DoesNotContain(',', version);
+    }
+
+    [Fact]
+    public void The_Windows_App_SDK_packages_share_one_pin()
+    {
+        var versions = new[]
+        {
+            Pinned("Microsoft.WindowsAppSDK.WinUI"),
+            Pinned("Microsoft.WindowsAppSDK.Foundation"),
+            Pinned("Microsoft.WindowsAppSDK.Runtime")
+        };
+
+        Assert.Single(versions.Distinct());
+    }
+
+    [Fact]
     public void The_package_declares_the_libraries_public_package_dependencies()
     {
         var packageFile = Path.Combine(Repo.Root, "src", "Winshell.Package", "Winshell.Package.csproj");
@@ -21,6 +45,14 @@ public class PackageDependencyTests
             .Distinct(StringComparer.OrdinalIgnoreCase);
 
         Assert.Equal(needed.Order(StringComparer.OrdinalIgnoreCase), declared.Order(StringComparer.OrdinalIgnoreCase));
+    }
+
+    private static string Pinned(string id)
+    {
+        var props = XDocument.Load(Path.Combine(Repo.Root, "Directory.Packages.props"));
+        return props.Descendants("PackageVersion")
+            .Single(element => element.Attribute("Include")!.Value == id)
+            .Attribute("Version")!.Value;
     }
 
     /// <summary>Package ids that flow to a consumer. <c>PrivateAssets</c> of <c>all</c> does not.</summary>

@@ -6,6 +6,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" />
     <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" />
+    <PackageReference Include="Microsoft.UI.Reactor" />
     <InternalsVisibleTo Include="Winshell" />
     <InternalsVisibleTo Include="Winshell.Shell.Tests" />
   </ItemGroup>

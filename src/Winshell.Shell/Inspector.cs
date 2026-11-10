@@ -10,6 +10,8 @@ using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Reactor.Core.Diagnostics;
+using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Foundation;
@@ -20,8 +22,8 @@ namespace Winshell;
 /// <c>winshell inspect</c>: what is on screen, seen from inside the shell. It reads the live XAML tree. <c>click</c> and
 /// <c>hover</c> act through the same automation peers Narrator uses, so they reach no input queue; <c>focus</c>,
 /// <c>point</c>, <c>leave</c>, <c>press</c>, <c>scroll</c> and <c>key</c> send real input through
-/// <see cref="RealInput"/>. A window is named by its content's type, or its place in <see cref="Tree"/>'s list. For a
-/// recording it only names what to capture.
+/// <see cref="RealInput"/>. A window is named by the component it shows, or by its content's type, or its place in
+/// <see cref="Tree"/>'s list. For a recording it only names what to capture.
 /// </summary>
 internal static class Inspector
 {
@@ -117,7 +119,7 @@ internal static class Inspector
     private static void Write(Utf8JsonWriter json, DependencyObject element, UIElement root, object? focused)
     {
         json.WriteStartObject();
-        json.WriteString("type", element.GetType().Name);
+        json.WriteString("type", element is UIElement visual ? ContentName(visual) : element.GetType().Name);
         if (element is FrameworkElement framed)
         {
             if (framed.Name.Length > 0)
@@ -189,7 +191,7 @@ internal static class Inspector
             return windows[0];
         if (int.TryParse(name, out var index) && index >= 0 && index < windows.Count)
             return windows[index];
-        return windows.FirstOrDefault(window => window.Content?.GetType().Name == name)
+        return windows.FirstOrDefault(window => window.Content is { } content && ContentName(content) == name)
                ?? throw new IpcException($"No open window shows {name}.");
     }
 
@@ -226,9 +228,42 @@ internal static class Inspector
         return string.Join('\n', [
             $"{name} names {found.Count} elements:",
             .. found.Select(match =>
-                $"  window {match.Window} ({windows[match.Window].Content?.GetType().Name}): {Described(match.Element)}"),
+                $"  window {match.Window} ({ShownName(windows[match.Window])}): {Described(match.Element)}"),
             hint
         ]);
+    }
+
+    /// <summary>
+    /// What a window is called. A Reactor host would otherwise be <c>ReactorHostControl</c> for every component, so
+    /// the name is the component's class. Reactor reports that class namespace-qualified, nested types joined by a
+    /// dot or a plus, with generic arguments in angle brackets.
+    /// </summary>
+    private static string ContentName(UIElement content)
+    {
+        if (content is ReactorHostControl host)
+        {
+            var component = ReactorDiagnostics.GetHosts()
+                .FirstOrDefault(info => ReferenceEquals(info.HostControl, host))
+                ?.RootComponentName;
+            if (component is not null)
+                return ClassName(component);
+        }
+
+        return content.GetType().Name;
+    }
+
+    private static string ShownName(ShellWindow window)
+    {
+        return window.Content is { } content ? ContentName(content) : "";
+    }
+
+    private static string ClassName(string qualified)
+    {
+        var open = qualified.IndexOf('<');
+        var bare = open < 0 ? qualified : qualified[..open];
+        var cut = Math.Max(bare.LastIndexOf('.'), bare.LastIndexOf('+'));
+        var name = cut < 0 ? bare : bare[(cut + 1)..];
+        return open < 0 ? name : name + qualified[open..];
     }
 
     private static string Described(FrameworkElement element)

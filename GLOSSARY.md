@@ -71,16 +71,16 @@ The live image of an app window the taskbar shows over its button.
 _Avoid_: thumbnail (that is the DWM API it uses), peek
 
 **Preferences**:
-The choices a user makes for one shell: its configuration's own, and each component's.
+The choices a user makes for one shell: its configuration's own, and each section's.
 _Avoid_: settings (that is Windows Settings)
 
 **Preferences file**:
-The user's one TOML file for a shell, with a section for each component. It survives shell updates.
+The user's one TOML file for a shell, with its sections. It survives shell updates.
 _Avoid_: placement file, layout file, widget config
 
-**Component**:
-A named part of a shell with its own section in the preferences file, such as a bar or a widget area.
-_Avoid_: module, plugin
+**Section**:
+The part of the preferences file that one named bar, widget area or other part of the shell owns.
+_Avoid_: component (that is a piece of UI), table, module
 
 **Screen**:
 One monitor on the desktop.
@@ -102,9 +102,9 @@ _Avoid_: blur, wallpaper, effect
 A WinUI control.
 _Avoid_: widget (that is placed in a widget area), item
 
-**Watch**:
-A block of a control's code that runs again whenever a service property or list it read changes, while the control is loaded.
-_Avoid_: binding, subscription, observer
+**Component**:
+A piece of UI described in C#, which renders controls and renders again when its state or what it observes changes. A widget is one.
+_Avoid_: view, element
 
 **Widget**:
 A piece of UI a widget area creates by name from a placement's settings. It can come from the configuration, an example, or a separate project; it is not the Windows 11 Widgets board.

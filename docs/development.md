@@ -308,7 +308,7 @@ Install these versions, matching `.github/workflows/ci.yml`, and put their execu
 
 `pwsh scripts/pack.ps1` packs the `Winshell` library a configuration references, and the `Winshell.Templates` package, into `artifacts/packages/`.
 
-- **The library** carries `Winshell.Native`, `Winshell.Core`, `Winshell.Services` and `Winshell.Shell`, and depends on `Microsoft.WindowsAppSDK.WinUI` and `Microsoft.WindowsAppSDK.Foundation` at the versions in `Directory.Packages.props`. CsWin32 generates Native's declarations at build time and is not a package consumer dependency.
+- **The library** carries `Winshell.Native`, `Winshell.Core`, `Winshell.Services` and `Winshell.Shell`, and depends on `Microsoft.WindowsAppSDK.WinUI`, `Microsoft.WindowsAppSDK.Foundation`, `Microsoft.WindowsAppSDK.Runtime` and `Microsoft.UI.Reactor` at the versions in `Directory.Packages.props`. Runtime is pinned to the same Windows App SDK version as WinUI: Reactor's minimum is older, and that older package rejects a newer WinUI. CsWin32 generates Native's declarations at build time and is not a package consumer dependency.
 - **The template package** is `dotnet new winshell`, the starter: a bar with a clock and a battery. The template references only `Winshell` and gets WindowsAppSDK through it.
 - **Neither package is published to a feed.** `scripts/package.ps1` puts the library in each release.
 - The Package workflow runs the `Category=Package` tests, which call `scripts/pack.ps1`.

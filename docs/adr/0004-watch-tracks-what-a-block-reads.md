@@ -1,5 +1,7 @@
 # Watch tracks what a block reads
 
+Superseded by [UI is built with Reactor](0005-ui-is-built-with-reactor.md).
+
 A control stays current with `this.Watch(() => …)`: Winshell runs the block, records every service property and list it read, and runs it again when any of them changes. There are no subscriptions to write, no reads to declare and nothing to dispose. Every public getter of a service reports its read to `ObservableObject`, and every public list of a service is a Winshell `ObservableList<T>` that reports a read when it is enumerated, counted or indexed. One test reads every public property of every service type while tracking and fails on any that does not report, so a new property cannot go untracked.
 
 A sketch of the API this decides, not code the solution compiles:
