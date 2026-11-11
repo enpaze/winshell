@@ -76,14 +76,17 @@ public partial class FeatureBackendTests
                         yield return field.DeclaringType!;
                         yield return field.FieldType;
                         break;
-                    // A call names what it calls, its type arguments and what it gets back. Its parameters are no use:
-                    // a backend passed in was named where it was made or found. Shell builds a service with its
-                    // optional backend parameter left out, so the service builds its own.
+                    // A call names what it calls, its type arguments, what it returns and the types it accepts.
+                    // A helper whose own signature is wider still uses a backend when the method it calls accepts one.
+                    // A constructor's parameters are not a use: Shell builds a service with the optional backend
+                    // argument left at the default, so the service builds its own.
                     case MethodInfo called:
                         yield return called.DeclaringType!;
                         yield return called.ReturnType;
                         foreach (var argument in called.GetGenericArguments())
                             yield return argument;
+                        foreach (var parameter in called.GetParameters())
+                            yield return parameter.ParameterType;
                         break;
                     case MethodBase constructed:
                         yield return constructed.DeclaringType!;

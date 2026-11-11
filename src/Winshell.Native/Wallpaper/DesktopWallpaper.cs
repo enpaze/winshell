@@ -9,7 +9,6 @@ namespace Winshell.Native;
 /// <param name="Id">The screen id, such as <c>\\.\DISPLAY1</c>, or the monitor id when it could not be matched.</param>
 /// <param name="MonitorId">The id <c>IDesktopWallpaper</c> uses for this screen.</param>
 /// <param name="Image">The image path, or empty when the screen shows only the background color.</param>
-/// <param name="IsPrimary">Whether this is the primary screen.</param>
 internal readonly record struct DesktopMonitor(string Id, string MonitorId, string Image, bool IsPrimary);
 
 /// <summary>A reading of the desktop wallpaper. <paramref name="Position"/> is -1 when Windows did not say.</summary>

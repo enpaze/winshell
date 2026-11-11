@@ -27,7 +27,6 @@ internal sealed unsafe class WinEventHook : IDisposable
     }
 
     /// <summary>Hooks <paramref name="eventType"/>, or returns null when Windows would not.</summary>
-    /// <param name="eventType">The event type to hook.</param>
     /// <param name="onEvent">Gets the event type, the window, the object id and the child id.</param>
     /// <param name="failed">
     /// Gets each exception <paramref name="onEvent"/> throws. Omit it when <paramref name="onEvent"/> cannot throw,
