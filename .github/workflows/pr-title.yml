@@ -41,8 +41,11 @@ jobs:
           fi
           echo "::error::Branch \"$BRANCH\" must be named <type>/<short-description> in lowercase, such as fix/duplicate-orders. Allowed types: ${types//|/, }. Rename the branch and open a new PR; see the Branch name section of CONTRIBUTING.md."
           exit 1
-      # Reads only the PR title.
-      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+      # Reads only the PR title. Dependabot titles PRs "chore: Bump …" and has no way to
+      # lowercase that subject. Skipping this step keeps the required job green; the
+      # branch-name step above already accepts dependabot/* branches.
+      - if: ${{ !startsWith(github.head_ref, 'dependabot/') }}
+        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
