@@ -4,9 +4,9 @@ namespace Winshell;
 
 /// <summary>
 /// Watches one folder on a thread of its own. FileSystemWatcher delivers on thread pool workers, so a busy pool
-/// holds a change back. The first read starts before <see cref="Start"/> returns, so a change made after that is
-/// not missed. That thread makes every read, because Windows cancels a read when the thread that made it ends.
-/// Callbacks run on the watch thread and must not block.
+/// holds a change back. The first read is queued before <see cref="Start"/> returns, and <see cref="Existing"/>
+/// names what was already there, so a file made in that gap is not missed. That thread makes every read, because
+/// Windows cancels a read when the thread that made it ends. Callbacks run on the watch thread and must not block.
 /// </summary>
 internal sealed class DirectoryWatch : IDisposable
 {
@@ -17,7 +17,10 @@ internal sealed class DirectoryWatch : IDisposable
     /// <summary>A file or folder was created, deleted or renamed.</summary>
     public const DirectoryChange NameChanges = DirectoryChange.FileName | DirectoryChange.FolderName;
 
+    private readonly string _path;
     private readonly DirectoryChanges _changes;
+    private readonly DirectoryChange _filter;
+    private readonly bool _subtree;
     private readonly Action<string> _changed;
     private readonly Action _lost;
     private readonly ManualResetEventSlim _started = new(false);
@@ -26,9 +29,19 @@ internal sealed class DirectoryWatch : IDisposable
     private volatile bool _stopped;
     private int _disposed;
 
-    private DirectoryWatch(DirectoryChanges changes, Action<string> changed, Action lost)
+    /// <summary>
+    /// Names, relative to the folder, already there when the watch was queued. A name made after that arrives
+    /// through the callback.
+    /// </summary>
+    internal IReadOnlyList<string> Existing { get; private set; } = [];
+
+    private DirectoryWatch(string path, DirectoryChanges changes, DirectoryChange filter, bool subtree,
+        Action<string> changed, Action lost)
     {
+        _path = path;
         _changes = changes;
+        _filter = filter;
+        _subtree = subtree;
         _changed = changed;
         _lost = lost;
         _thread = new Thread(Run) { IsBackground = true, Name = "Directory watch" };
@@ -45,9 +58,9 @@ internal sealed class DirectoryWatch : IDisposable
     {
         if (DirectoryChanges.Open(path, filter, subtree) is not { } changes)
             return null;
-        var watch = new DirectoryWatch(changes, changed, lost);
+        var watch = new DirectoryWatch(path, changes, filter, subtree, changed, lost);
         watch._thread.Start();
-        // A handoff, not a stall: the new thread only makes the first read, which returns at once.
+        // The thread queues the read and records what is already there before this returns.
         watch._started.Wait();
         if (!watch._reading)
         {
@@ -61,17 +74,22 @@ internal sealed class DirectoryWatch : IDisposable
     private void Run()
     {
         _reading = _changes.Read();
+        if (_reading)
+            Existing = NamesThere(_path, _filter, _subtree);
         _started.Set();
         if (!_reading)
             return;
         var names = new List<string>();
         while (true)
         {
+            // Dispose cancelled once. A read queued after that has to be cancelled here, or this wait never returns.
+            if (_stopped)
+                _changes.Cancel();
             names.Clear();
             var ok = _changes.Wait(names);
             if (_stopped)
                 return;
-            // A failed read is a folder that went away. An empty one is a buffer that overflowed.
+            // No names means the folder went away or the buffer dropped changes. Cancel is the branch above.
             if (!ok)
             {
                 _lost();
@@ -80,12 +98,37 @@ internal sealed class DirectoryWatch : IDisposable
 
             foreach (var name in names)
                 _changed(name);
+            if (_stopped)
+                return;
             if (!_changes.Read())
             {
-                _lost();
+                if (!_stopped)
+                    _lost();
                 return;
             }
         }
+    }
+
+    /// <summary>What <paramref name="filter"/> would already see under <paramref name="path"/>.</summary>
+    private static string[] NamesThere(string path, DirectoryChange filter, bool subtree)
+    {
+        var option = subtree ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+        var names = new List<string>();
+        try
+        {
+            if ((filter & (DirectoryChange.FileName | DirectoryChange.Size | DirectoryChange.LastWrite)) != 0)
+                foreach (var file in Directory.EnumerateFiles(path, "*", option))
+                    names.Add(Path.GetRelativePath(path, file));
+            if ((filter & DirectoryChange.FolderName) != 0)
+                foreach (var folder in Directory.EnumerateDirectories(path, "*", option))
+                    names.Add(Path.GetRelativePath(path, folder));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // Listing can stop early when the folder goes away. The queued read still reports a change, or ends the watch.
+        }
+
+        return names.ToArray();
     }
 
     public void Dispose()
@@ -94,11 +137,10 @@ internal sealed class DirectoryWatch : IDisposable
             return;
         _stopped = true;
         if (_thread.ThreadState != ThreadState.Unstarted)
-            // Cancel until the thread ends. It may be between reads, where one cancel would miss it.
-            do
-            {
-                _changes.Cancel();
-            } while (!_thread.Join(1));
+        {
+            _changes.Cancel();
+            _thread.Join();
+        }
 
         _changes.Dispose();
         _started.Dispose();

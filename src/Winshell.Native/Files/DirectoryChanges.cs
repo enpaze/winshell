@@ -84,8 +84,7 @@ internal sealed unsafe class DirectoryChanges : IDisposable
 
     /// <summary>
     /// Waits for the read to finish and adds the name of each thing that changed, relative to the folder, to
-    /// <paramref name="names"/>. False when the read failed, as for a folder that went away, or reported nothing,
-    /// as for a buffer that overflowed and dropped changes.
+    /// <paramref name="names"/>. False when that read produced no names. <see cref="Cancel"/> makes it return.
     /// </summary>
     internal bool Wait(List<string> names)
     {

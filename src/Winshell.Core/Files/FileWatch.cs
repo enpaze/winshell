@@ -25,10 +25,10 @@ internal sealed class FileWatch : IDisposable
         _path = path;
         _loop = loop;
         _changed = changed;
-        Watch();
+        Watch(reportExistingFile: false);
     }
 
-    private void Watch()
+    private void Watch(bool reportExistingFile)
     {
         var full = AtomicFile.FollowLink(_path);
         var dir = Path.GetDirectoryName(full);
@@ -52,9 +52,17 @@ internal sealed class FileWatch : IDisposable
                 if (changedName.Equals(name, StringComparison.OrdinalIgnoreCase))
                     _loop.Post(arrived);
             }, () => _loop.Post(() => Rewatch(generation)));
-        // A folder made after the check above and before the watch started will not be reported.
-        if (_watch is not null && parent && Directory.Exists(Path.Combine(dir, name)))
+        // The watch was queued before Existing was taken, so a name already there was not missed.
+        if (_watch is not null && Listed(_watch.Existing, name) && (parent || reportExistingFile))
             _loop.Post(arrived);
+    }
+
+    private static bool Listed(IReadOnlyList<string> names, string name)
+    {
+        foreach (var candidate in names)
+            if (candidate.Equals(name, StringComparison.OrdinalIgnoreCase))
+                return true;
+        return false;
     }
 
     /// <summary>Watches again after a watched folder appeared or the watch ended.</summary>
@@ -64,9 +72,7 @@ internal sealed class FileWatch : IDisposable
             return;
         _watch?.Dispose();
         _watch = null;
-        Watch();
-        // The file may have been written before this reached the loop, so the new watch would not see it.
-        _changed();
+        Watch(reportExistingFile: true);
     }
 
     private void Report()
