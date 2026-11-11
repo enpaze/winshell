@@ -1,4 +1,3 @@
-using Microsoft.Win32;
 using Winshell.Native;
 
 namespace Winshell.Wallpaper;
@@ -51,26 +50,13 @@ internal sealed class WallpaperBackend : IWallpaperBackend
     ];
 
     private readonly Log _log;
-    private readonly List<RegistryKey> _keys = [];
-    private readonly AutoResetEvent _event = new(false);
-    private readonly Lock _gate = new();
-    private RegisteredWaitHandle? _wait;
-    private bool _disposed;
+    private readonly RegistryWatch _watch;
     private int _loggedUnavailable;
 
     internal WallpaperBackend(Log log)
     {
         _log = log;
-        foreach (var path in Keys)
-        {
-            var key = Registry.CurrentUser.OpenSubKey(path);
-            if (key is not null)
-                _keys.Add(key);
-        }
-
-        if (_keys.Count == 0 || !Arm())
-            return;
-        _wait = ThreadPool.RegisterWaitForSingleObject(_event, (_, _) => OnSignaled(), null, Timeout.Infinite, false);
+        _watch = new RegistryWatch(Keys, () => Changed?.Invoke());
     }
 
     public event Action? Changed;
@@ -114,19 +100,7 @@ internal sealed class WallpaperBackend : IWallpaperBackend
 
     public void Dispose()
     {
-        lock (_gate)
-        {
-            if (_disposed)
-                return;
-            _disposed = true;
-        }
-
-        _wait?.Unregister(null);
-        _wait = null;
-        foreach (var key in _keys)
-            key.Dispose();
-        _keys.Clear();
-        _event.Dispose();
+        _watch.Dispose();
     }
 
     /// <summary>
@@ -151,25 +125,5 @@ internal sealed class WallpaperBackend : IWallpaperBackend
             return true;
         _log.Warn("wallpaper", $"Windows did not set the wallpaper (0x{hr:X8}).");
         return false;
-    }
-
-    private bool Arm()
-    {
-        var armed = false;
-        foreach (var key in _keys)
-            armed |= RegistryChange.Notify(key.Handle, _event.SafeWaitHandle);
-        return armed;
-    }
-
-    private void OnSignaled()
-    {
-        lock (_gate)
-        {
-            if (_disposed)
-                return;
-            Arm();
-        }
-
-        Changed?.Invoke();
     }
 }

@@ -71,12 +71,10 @@ internal sealed class PrivacyBackend : IPrivacyBackend
     ];
 
     private readonly Log _log;
-    private readonly List<RegistryKey> _keys = [];
     private readonly Dictionary<string, string> _packageNames = new(StringComparer.OrdinalIgnoreCase);
-    private readonly AutoResetEvent _event = new(false);
     private readonly Lock _gate = new();
     private readonly MicrophoneWatch _microphones;
-    private RegisteredWaitHandle? _wait;
+    private RegistryWatch? _watch;
     private bool _watching;
     private bool _disposed;
     private int _loggedStore;
@@ -97,16 +95,10 @@ internal sealed class PrivacyBackend : IPrivacyBackend
             if (_disposed || _watching)
                 return;
             _watching = true;
-            foreach (var (name, _) in Capabilities)
-            {
-                var key = Registry.CurrentUser.OpenSubKey($@"{Store}\{name}");
-                if (key is not null)
-                    _keys.Add(key);
-            }
-
-            if (_keys.Count > 0 && Arm())
-                _wait = ThreadPool.RegisterWaitForSingleObject(
-                    _event, (_, _) => OnStore(), null, Timeout.Infinite, false);
+            var paths = new string[Capabilities.Length];
+            for (var i = 0; i < paths.Length; i++)
+                paths[i] = $@"{Store}\{Capabilities[i].Name}";
+            _watch = new RegistryWatch(paths, OnStore);
         }
 
         _microphones.Start();
@@ -114,22 +106,17 @@ internal sealed class PrivacyBackend : IPrivacyBackend
 
     public void Stop()
     {
-        List<RegistryKey> keys;
-        RegisteredWaitHandle? wait;
+        RegistryWatch? watch;
         lock (_gate)
         {
             if (!_watching)
                 return;
             _watching = false;
-            wait = _wait;
-            _wait = null;
-            keys = [.. _keys];
-            _keys.Clear();
+            watch = _watch;
+            _watch = null;
         }
 
-        wait?.Unregister(null);
-        foreach (var key in keys)
-            key.Dispose();
+        watch?.Dispose();
         _microphones.Stop();
     }
 
@@ -150,7 +137,6 @@ internal sealed class PrivacyBackend : IPrivacyBackend
 
         Stop();
         _microphones.Dispose();
-        _event.Dispose();
     }
 
     private List<ConsentRecord> ReadStore()
@@ -251,21 +237,12 @@ internal sealed class PrivacyBackend : IPrivacyBackend
         };
     }
 
-    private bool Arm()
-    {
-        var armed = false;
-        foreach (var key in _keys)
-            armed |= RegistryChange.Notify(key.Handle, _event.SafeWaitHandle);
-        return armed;
-    }
-
     private void OnStore()
     {
         lock (_gate)
         {
             if (_disposed || !_watching)
                 return;
-            Arm();
         }
 
         Signal();
