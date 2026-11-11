@@ -24,6 +24,7 @@ namespace Winshell;
 /// </summary>
 internal sealed partial class HostPresentation(HostWindow host, ShellPlatform platform) : IDisposable
 {
+    private readonly WindowKindDescription _kind = WindowKindDescription.Of(host.Kind);
     private readonly Grid _root = new() { Background = null };
     private DesktopWindowXamlSource? _xaml;
     private SystemBackdropConfiguration? _backdropConfig;
@@ -62,7 +63,7 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
             cyBottomHeight = -1
         };
         PInvoke.DwmExtendFrameIntoClientArea((HWND)Handle, margins);
-        if (host.Kind != WindowKind.Floating)
+        if (_kind.ReplacesSystemFrame)
         {
             // Panels and popups appear without the Windows fade, as layer surfaces do.
             SetDwm(DWMWINDOWATTRIBUTE.DWMWA_TRANSITIONS_FORCEDISABLED, 1);
@@ -170,19 +171,12 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
     private void SetCornersAndBorder(WindowBackdrop backdrop, WindowCorners corners)
     {
         // A bar along an edge stays square; a popup with a material is a rounded flyout.
-        _corners = corners != WindowCorners.Default
-            ? corners
-            : host.Kind switch
-            {
-                WindowKind.Floating => WindowCorners.Default,
-                WindowKind.Popup when backdrop != WindowBackdrop.None => WindowCorners.Round,
-                _ => WindowCorners.Square
-            };
+        _corners = corners != WindowCorners.Default ? corners : _kind.OwnCorners(backdrop);
         ApplyCorners();
-        if (host.Kind != WindowKind.Floating)
+        if (_kind.ReplacesSystemFrame)
         {
-            // A material window gets Windows' hairline border; a plain one gets none.
-            SetDwm(DWMWINDOWATTRIBUTE.DWMWA_BORDER_COLOR, host.Kind == WindowKind.Popup && backdrop != WindowBackdrop.None
+            // A popup window with a material gets Windows' hairline border; a plain panel or popup window gets none.
+            SetDwm(DWMWINDOWATTRIBUTE.DWMWA_BORDER_COLOR, _kind.HairlineBorder(backdrop)
                 ? PInvoke.DWMWA_COLOR_DEFAULT
                 : PInvoke.DWMWA_COLOR_NONE);
         }

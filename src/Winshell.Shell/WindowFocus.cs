@@ -22,68 +22,64 @@ internal interface IFocusEffects
 }
 
 /// <summary>
-/// Whether a window takes the keyboard, and with it activation from the app in front, and the order the window does
-/// what follows from it. A floating window always takes it, a panel only while it is focusable, and a popup window only
-/// while it grabs focus. The kind decides the styles a window starts with, how it shows, whether a click or
-/// <see cref="TakeKeyboard"/> activates it, whether Esc dismisses it, and when a click outside it does.
+/// Whether a window takes the keyboard, and the order it does what follows. <see cref="WindowKindDescription"/> says
+/// whether it takes focus, whether Esc dismisses it, and when a click outside it does. A panel is armed while it is
+/// focusable, and a popup window while it grabs focus.
 /// </summary>
 internal sealed class WindowFocus(WindowKind kind, IFocusEffects effects)
 {
-    private bool _focusable;
-    private bool _grabFocus;
+    private readonly WindowKindDescription _kind = WindowKindDescription.Of(kind);
+
+    /// <summary>A panel's focusable setting, or a popup window's grab. The kind says what this changes.</summary>
+    private bool _armed;
+
     private bool _shown;
 
-    /// <summary>The extended style a native window starts with: a panel and a popup window start out refusing activation.</summary>
+    /// <summary>The extended style a native window starts with, from the kind's description.</summary>
     internal static uint StartingExStyle(WindowKind kind)
     {
-        return kind == WindowKind.Floating ? 0 : (uint)WINDOW_EX_STYLE.WS_EX_NOACTIVATE;
+        return WindowKindDescription.Of(kind).StartsWithoutFocus ? (uint)WINDOW_EX_STYLE.WS_EX_NOACTIVATE : 0;
     }
 
     /// <summary>Whether a click on the window activates it, and with it the keyboard.</summary>
     internal bool ActivatesOnClick => Takes;
 
     /// <summary>Whether Esc dismisses the window.</summary>
-    internal bool DismissesOnEscape => kind == WindowKind.Popup && _grabFocus;
+    internal bool DismissesOnEscape => _kind.EscapeDismissesWhileArmed && _armed;
 
-    private bool Takes => kind switch
-    {
-        WindowKind.Floating => true,
-        WindowKind.Panel => _focusable,
-        _ => _grabFocus
-    };
+    private bool Takes => _kind.AlwaysTakesFocus || (_kind.TakesFocusWhileArmed && _armed);
 
     /// <summary>A panel's focusable setting changed.</summary>
-    internal void SetPanel(bool focusable)
-    {
-        _focusable = focusable;
-        effects.AllowActivation(Takes);
-    }
+    internal void SetPanel(bool focusable) => Arm(focusable);
 
     /// <summary>A popup window's grab setting changed.</summary>
-    internal void SetPopup(bool grabFocus)
+    internal void SetPopup(bool grabFocus) => Arm(grabFocus);
+
+    private void Arm(bool armed)
     {
-        _grabFocus = grabFocus;
+        _armed = armed;
         effects.AllowActivation(Takes);
-        effects.GrabOutsideClicks(_shown && grabFocus);
+        if (_kind.GrabsOutsideClicksWhileArmed)
+            effects.GrabOutsideClicks(_shown && armed);
     }
 
     /// <summary>Shows the window. A popup window that grabs focus then takes the foreground and starts grabbing clicks.</summary>
     internal void Show()
     {
         _shown = true;
-        var grabbing = kind == WindowKind.Popup && _grabFocus;
-        effects.Show(kind == WindowKind.Floating || grabbing);
-        if (grabbing)
+        var armedShow = _kind.TakesFocusOnShowWhileArmed && _armed;
+        effects.Show(_kind.TakesFocusOnShow || armedShow);
+        if (armedShow)
             effects.TakeForeground();
-        if (kind == WindowKind.Popup)
-            effects.GrabOutsideClicks(grabbing);
+        if (_kind.GrabsOutsideClicksWhileArmed)
+            effects.GrabOutsideClicks(_armed);
     }
 
     /// <summary>The window is hidden, or going away: a popup window stops grabbing clicks.</summary>
     internal void Release()
     {
         _shown = false;
-        if (kind == WindowKind.Popup)
+        if (_kind.GrabsOutsideClicksWhileArmed)
             effects.GrabOutsideClicks(false);
     }
 
