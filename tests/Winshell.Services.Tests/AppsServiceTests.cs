@@ -228,7 +228,7 @@ public sealed class AppsServiceTests : IDisposable
     {
         _backend.Failure = new InvalidCastException("read broke");
         using var apps = Start([App("Alpha")]);
-        Assert.Equal(["apps: read broke"], _warnings);
+        Assert.Equal(["apps: InvalidCastException: read broke"], _warnings);
         Assert.Empty(apps.Apps);
 
         _backend.Failure = null;

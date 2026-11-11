@@ -46,10 +46,13 @@ public sealed class WifiDevice : NetworkDevice
         {
             if (Removed)
                 return;
-            Changed(nameof(Scanning));
             Set(ref _error, error, nameof(Error));
             if (error.Length > 0)
                 OperationFailed?.Invoke(error);
+        }, () =>
+        {
+            if (!Removed)
+                Changed(nameof(Scanning));
         });
     }
 

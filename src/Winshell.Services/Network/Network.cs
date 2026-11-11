@@ -128,10 +128,13 @@ public class Network : ObservableObject
         {
             if (Removed)
                 return;
-            Changed(nameof(Busy));
             Set(ref _error, error, nameof(Error));
             if (error.Length > 0)
                 OperationFailed?.Invoke(error);
+        }, () =>
+        {
+            if (!Removed)
+                Changed(nameof(Busy));
         });
     }
 

@@ -122,10 +122,13 @@ public sealed class NetworkingService : ObservableObject, IDisposable
             if (_disposed)
                 return;
             _radioError = "";
-            Changed(nameof(RequestingAccess));
             Set(ref _error, error, nameof(Error));
             if (error.Length > 0)
                 OperationFailed?.Invoke(error);
+        }, () =>
+        {
+            if (!_disposed)
+                Changed(nameof(RequestingAccess));
         });
     }
 

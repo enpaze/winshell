@@ -47,16 +47,16 @@ internal sealed class FrameStream : IDisposable
         _frame = frame;
         _ended = ended;
         if (!GraphicsCaptureSession.IsSupported())
-            throw new NotSupportedException("Windows Graphics Capture is unavailable in this session.");
+            throw new WindowsRefusal("Windows Graphics Capture is unavailable in this session.");
         try
         {
             var monitor = target.Window == 0 ? WindowsCaptureBackend.MonitorHandle(target.MonitorId) : 0;
             if (target.Window == 0 && monitor == 0)
-                throw new ArgumentException("The screen is no longer connected.", nameof(target));
-            _item = target.Window == 0 ? CaptureInterop.CreateItem(0, monitor) : WindowItem(target.Window);
+                throw new WindowsRefusal("The screen is no longer connected. (Parameter 'target')");
+            _item = target.Window == 0 ? WindowsCaptureBackend.CaptureItem(0, monitor) : WindowItem(target.Window);
             _poolSize = _item.Size;
             if (_poolSize.Width <= 0 || _poolSize.Height <= 0)
-                throw new InvalidOperationException("The window or screen has nothing to capture.");
+                throw new WindowsRefusal("The window or screen has nothing to capture.");
             (_device, _context) = WindowsCaptureBackend.CreateDevice();
             _winrtDevice = CaptureInterop.CreateDevice(_device);
             _item.Closed += OnClosed;
@@ -85,10 +85,10 @@ internal sealed class FrameStream : IDisposable
     {
         try
         {
-            return CaptureInterop.CreateItem(window, 0);
+            return WindowsCaptureBackend.CaptureItem(window, 0);
         }
-        catch (ArgumentException) when (Screens.Of(window) is { } screen &&
-                                        TopLevelWindows.TryFrameBounds(window, out var frame))
+        catch (WindowsRefusal) when (Screens.Of(window) is { } screen &&
+                                     TopLevelWindows.TryFrameBounds(window, out var frame))
         {
             var bounds = screen.Bounds;
             var crop = new RECT(Math.Max(frame.Left, bounds.Left) - bounds.Left,
@@ -96,11 +96,11 @@ internal sealed class FrameStream : IDisposable
                 Math.Min(frame.Right, bounds.Right) - bounds.Left,
                 Math.Min(frame.Bottom, bounds.Bottom) - bounds.Top);
             if (crop.Width <= 0 || crop.Height <= 0)
-                throw new InvalidOperationException(
+                throw new WindowsRefusal(
                     "Windows refused to capture the window by itself, and it is on no screen to capture instead.");
             // Written once before StartCapture, so no frame callback can read the crop during this store.
             _crop = crop;
-            return CaptureInterop.CreateItem(0, screen.Handle);
+            return WindowsCaptureBackend.CaptureItem(0, screen.Handle);
         }
     }
 
@@ -236,7 +236,7 @@ internal sealed class FrameStream : IDisposable
             {
                 resource?.Dispose();
             }
-            catch (Exception e) when (CaptureFailure.IsExpected(e))
+            catch (Exception e) when (WindowsFailure.IsExpected(e))
             {
                 _log.Warn("capture", $"Recording teardown: {e.Message}");
             }

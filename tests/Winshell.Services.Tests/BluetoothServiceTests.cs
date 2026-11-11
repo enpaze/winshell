@@ -386,6 +386,39 @@ public sealed class BluetoothServiceTests
     }
 
     [Fact]
+    public async Task A_bug_in_a_radio_write_faults_and_does_not_report_success()
+    {
+        var bug = new InvalidOperationException("A bug");
+        var radio = new FakeRadio(RadioKind.Bluetooth, RadioState.Off)
+        {
+            Result = RadioAccessStatus.DeniedBySystem
+        };
+        using var session =
+            await Session.OpenAsync(new BluetoothSnapshot(true, Adapter(radio: radio), []), new FakeAccess());
+        var service = session.Service;
+        var adapter = service.DefaultAdapter!;
+        var failed = Failures(h => adapter.OperationFailed += h);
+        var refusal = RadioSwitch.AccessError(RadioAccessStatus.DeniedBySystem);
+
+        await service.SetAdapterEnabledAsync(adapter, true);
+        session.Loop.Process();
+        Assert.Equal(refusal, adapter.Error);
+
+        radio.Failure = bug;
+        Assert.Same(bug,
+            await Assert.ThrowsAsync<InvalidOperationException>(() => service.SetAdapterEnabledAsync(adapter, true)));
+        session.Loop.Process();
+        Assert.Equal([refusal], failed);
+        Assert.Equal(refusal, adapter.Error);
+
+        radio.Failure = null;
+        await service.SetAdapterEnabledAsync(adapter, true);
+        session.Loop.Process();
+        Assert.Equal(refusal, adapter.Error);
+        Assert.Equal([refusal, refusal], failed);
+    }
+
+    [Fact]
     public async Task An_adapter_without_a_radio_reports_it_and_asks_nothing()
     {
         var access = new FakeAccess();
@@ -578,11 +611,32 @@ public sealed class BluetoothServiceTests
         var log = new Log { Sink = (_, category, message) => messages.Enqueue($"{category}: {message}") };
         using var service = Monitored(backend, loop, log);
 
-        Assert.Contains("bluetooth: radio broke", messages);
+        Assert.Contains("bluetooth: InvalidCastException: radio broke", messages);
         Assert.False(service.Ready);
         backend.RaiseChanged();
         loop.Process();
         Assert.True(service.Ready);
+    }
+
+    [Fact]
+    public async Task A_bug_in_a_read_is_warned_and_the_next_read_still_applies()
+    {
+        var backend = new FakeBackend { ReadFailure = new InvalidOperationException("radio broke") };
+        var loop = new ManualEventLoop();
+        var messages = new ConcurrentQueue<string>();
+        var log = new Log { Sink = (_, category, message) => messages.Enqueue($"{category}: {message}") };
+        using var service = new BluetoothService(loop, log, backend);
+
+        await service.RefreshAsync();
+        loop.Process();
+
+        Assert.Equal("", service.Error);
+        Assert.Contains("bluetooth: InvalidOperationException: radio broke", messages);
+        backend.ReadFailure = null;
+        backend.Current = Snapshot(DeviceInfo());
+        await service.RefreshAsync();
+        loop.Process();
+        Assert.Equal("Headphones", Assert.Single(service.Devices).Name);
     }
 
     [Fact]
