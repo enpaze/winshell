@@ -255,7 +255,6 @@ public sealed class NotificationTests
         var backend = new FakeBackend
         {
             Current = Snapshot(Toast(1)),
-            YieldBeforeList = true,
             ToastRead = () => seen.TrySetResult((Thread.CurrentThread.IsThreadPoolThread,
                 Environment.CurrentManagedThreadId))
         };
@@ -443,9 +442,6 @@ public sealed class NotificationTests
         /// <summary>The id of the toast that cannot be dismissed.</summary>
         public uint Refuse { get; init; }
 
-        /// <summary>Yields before the list returns, as Windows does, so the content read is not still on the starter.</summary>
-        public bool YieldBeforeList { get; init; }
-
         /// <summary>Runs as a toast's content is read, on the thread that reads it.</summary>
         public Action? ToastRead { get; init; }
 
@@ -485,8 +481,6 @@ public sealed class NotificationTests
 
         public async Task<IReadOnlyList<ListedToast>> ListToastsAsync(CancellationToken cancellation)
         {
-            if (YieldBeforeList)
-                await Task.Yield();
             var snapshot = Next is null ? Current : await Next.Task;
             return
             [
