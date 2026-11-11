@@ -421,8 +421,7 @@ public sealed class WidgetAreaTests
             area.Set(area.Props with { Defaults = [new(name)] });
             await Wait.UntilAsync(() => MountedWidget.Mounted == 1, "the removed placement to unmount");
             // The placement that stays is the same component. A_new_orientation_or_defaults_renders_the_same_component
-            // proves it renders the new orientation. A widget whose disposal throws still lets the rest dispose:
-            // ServiceTeardownTests proves Shell.DisposeEach does that, which is what the area calls.
+            // proves it renders the new orientation. The host unmounts the components; the area does not dispose them.
             area.Set(area.Props with { Orientation = Orientation.Vertical });
             Assert.Equal(1, MountedWidget.Mounted);
             area.Dispose();

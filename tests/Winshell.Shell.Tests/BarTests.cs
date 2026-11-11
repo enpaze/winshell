@@ -390,9 +390,18 @@ public sealed class BarTests
     {
         var host = Assert.IsType<ReactorHostControl>(bar.Content);
         await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
-        var areas = AreaSessions.Panels(host);
+        var areas = new List<StackPanel>();
+        Walk(host);
         Assert.Equal(3, areas.Count);
         return areas;
+
+        void Walk(DependencyObject node)
+        {
+            if (node is StackPanel panel && AreaSessions.TryGet(panel, out _))
+                areas.Add(panel);
+            for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
+                Walk(VisualTreeHelper.GetChild(node, i));
+        }
     }
 
     /// <summary>

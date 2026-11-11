@@ -4,7 +4,6 @@ using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
@@ -362,21 +361,5 @@ internal static class AreaSessions
             return true;
         remake = null!;
         return false;
-    }
-
-    /// <summary>The area stacks under <paramref name="root"/>, in tree order.</summary>
-    public static List<StackPanel> Panels(DependencyObject root)
-    {
-        var found = new List<StackPanel>();
-        Walk(root);
-        return found;
-
-        void Walk(DependencyObject node)
-        {
-            if (node is StackPanel panel && Areas.TryGetValue(panel, out _))
-                found.Add(panel);
-            for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
-                Walk(VisualTreeHelper.GetChild(node, i));
-        }
     }
 }
