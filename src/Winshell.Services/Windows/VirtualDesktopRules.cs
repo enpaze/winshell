@@ -1,3 +1,5 @@
+using Winshell.Native;
+
 namespace Winshell.Windows;
 
 /// <summary>One virtual desktop, as a read of the shell reported it, before a display name is chosen.</summary>
@@ -5,22 +7,22 @@ internal readonly record struct DesktopRecord(Guid Id, string Name);
 
 /// <summary>
 /// Whether a Windows build uses the virtual desktop method table Winshell calls. Windows 11 23H2 shares some of
-/// the same interface ids and a different table, so the build number is the guard, not the interface id.
+/// the same interface ids and a different table, so the build number is the guard, not the interface id. The
+/// builds are <see cref="VirtualDesktopBuilds"/>.
 /// </summary>
 internal readonly record struct DesktopContract(bool Supported, string Reason)
 {
-    /// <summary>Windows 11 24H2, the first build whose table has <c>SwitchDesktopAndMoveForegroundView</c>.</summary>
-    public const uint OldestBuild = 26100;
-
-    /// <summary>The newest build treated as that same table: 24H2, 25H2 and 26H2.</summary>
-    public const uint NewestBuild = 26399;
+    /// <summary>The shell's report that <paramref name="windows"/> is outside <see cref="VirtualDesktopBuilds"/>.</summary>
+    public static string Unsupported(string windows)
+    {
+        return $"{windows} is outside the virtual desktop method table Winshell knows ({VirtualDesktopBuilds.OldestBuild} through {VirtualDesktopBuilds.NewestBuild}).";
+    }
 
     public static DesktopContract ForBuild(uint build)
     {
-        if (build is >= OldestBuild and <= NewestBuild)
+        if (VirtualDesktopBuilds.Known(build))
             return new DesktopContract(true, "");
-        return new DesktopContract(false,
-            $"Windows build {build} is outside the virtual desktop method table Winshell knows ({OldestBuild} through {NewestBuild}).");
+        return new DesktopContract(false, Unsupported($"Windows build {build}"));
     }
 }
 

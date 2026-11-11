@@ -74,10 +74,11 @@ internal readonly record struct WindowsVersion(uint Build, uint Update)
 
 /// <summary>
 /// The virtual desktops through Explorer's internal manager, on a known build. The internal table gained
-/// <c>SwitchDesktopAndMoveForegroundView</c> in Windows 11 24H2 (build 26100); 23H2 uses the same interface id and
-/// different slots, so <see cref="DesktopContract"/> refuses every other build. A failed read never calls create,
-/// switch or remove. Which desktop a window is on is <see cref="WindowDesktop"/>'s. The switch hook stays for the
-/// process, the same way the window list's hooks do.
+/// <c>SwitchDesktopAndMoveForegroundView</c> in Windows 11 24H2; 23H2 uses the same interface id and different
+/// slots. <see cref="VirtualDesktopBuilds"/> refuses every other build before a slot is called, and
+/// <see cref="DesktopContract"/> reports that to the shell. A failed read never calls create, switch or remove.
+/// Which desktop a window is on is <see cref="WindowDesktop"/>'s. The switch hook stays for the process, the same
+/// way the window list's hooks do.
 /// </summary>
 internal sealed class VirtualDesktopBackend : IVirtualDesktopBackend
 {
@@ -103,8 +104,7 @@ internal sealed class VirtualDesktopBackend : IVirtualDesktopBackend
             var contract = DesktopContract.ForBuild(version.Build);
             if (contract.Supported)
                 return contract;
-            return new DesktopContract(false,
-                $"Windows {version} is outside the virtual desktop method table Winshell knows ({DesktopContract.OldestBuild} through {DesktopContract.NewestBuild}).");
+            return new DesktopContract(false, DesktopContract.Unsupported($"Windows {version}"));
         }
     }
 
