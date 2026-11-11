@@ -73,7 +73,7 @@ public sealed class MediaServiceTests
         });
     }
 
-    private sealed class FakeSessions(Func<string, SmtcSession> create) : IMediaSessions
+    private sealed class FakeSessions(Func<string, SmtcSession> create) : IMediaBackend
     {
         private readonly List<SmtcSession> _sessions = [];
 
