@@ -29,9 +29,9 @@ public sealed class QuietPollingTests
         Assert.Equal(new double[] { 3, 6, 12, 24, 30, 30 }, waits);
     }
 
-    /// <summary>A dropped stream is tried again at once, and the next search starts from 3 s rather than the wait it had reached.</summary>
+    /// <summary>A dropped stream is tried again after 250 ms, and the next search starts from 3 s rather than the wait it had reached.</summary>
     [Fact]
-    public async Task A_lost_stream_is_tried_again_at_once_and_the_search_starts_from_3_seconds()
+    public async Task A_lost_stream_waits_250_ms_and_the_search_starts_from_3_seconds()
     {
         var clock = new Clock();
         var backend = new WinlandBackend(clock);
