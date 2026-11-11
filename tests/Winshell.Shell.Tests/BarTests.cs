@@ -178,10 +178,12 @@ public sealed class BarTests
                 File.Delete(path);
             try
             {
-                // A section the configuration makes first, in the same turn, posts the check that writes the file.
+                // The bar makes its section on the next turn. A section made now can write the file first.
                 using var first = new Reader();
                 using var bar = new Bar { Name = name, Edge = Edges.Left, Reserve = false, End = [widget] };
-                await Wait.UntilAsync(() => File.Exists(path), "the missing file to be written");
+                await Wait.UntilAsync(
+                    () => File.Exists(path) && File.ReadAllText(path).Contains($"[{name}]", StringComparison.Ordinal),
+                    "the missing file to be written with the bar's section");
 
                 var text = File.ReadAllText(path);
                 Assert.Contains($"[{name}]", text, StringComparison.Ordinal);

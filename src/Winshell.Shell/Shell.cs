@@ -99,10 +99,38 @@ public sealed partial class Shell : IDisposable
     internal ShellPlatform Platform { get; }
 
     private PreferencesFile? _preferencesFile;
+    private bool _configurationStarted;
 
     /// <summary>The user's preferences for this shell, <c>preferences\&lt;shell id&gt;.toml</c> in <see cref="ConfigRoot"/>.</summary>
-    internal PreferencesFile PreferencesFile => _preferencesFile ??=
-        new PreferencesFile(Path.Combine(ConfigRoot, "preferences", ShellId + ".toml"), Loop, Log);
+    internal PreferencesFile PreferencesFile => OpenPreferences();
+
+    /// <summary>
+    /// Opens the preferences file on first use. Once <see cref="ShellConfiguration.Start"/> has returned, it is written
+    /// on the next turn.
+    /// </summary>
+    private PreferencesFile OpenPreferences()
+    {
+        if (_preferencesFile is null)
+        {
+            _preferencesFile = new PreferencesFile(Path.Combine(ConfigRoot, "preferences", ShellId + ".toml"), Loop, Log);
+            if (_configurationStarted)
+                _preferencesFile.StartReturned();
+        }
+
+        return _preferencesFile;
+    }
+
+    /// <summary>
+    /// <see cref="ShellConfiguration.Start"/> has returned. The preferences file, if one is open, is written on the
+    /// next turn, after a section Start already posted. One opened later is written the same way.
+    /// </summary>
+    private void ConfigurationStarted()
+    {
+        if (_configurationStarted)
+            return;
+        _configurationStarted = true;
+        _preferencesFile?.StartReturned();
+    }
 
     /// <summary>The real input of <c>winshell inspect</c>, made by its first command. It gives a held cursor back on dispose.</summary>
     internal RealInput Input => _input ??= new RealInput(Loop);
@@ -274,6 +302,7 @@ public sealed partial class Shell : IDisposable
                         loop.Post(shell.Quit);
                     };
                     configuration.Start(shell);
+                    shell.ConfigurationStarted();
                     ShellInstance.Quietly(() => shell.Notices.ShowPrevious(ShellInstance.ExitState));
                 }
                 catch (Exception e) when (e is not OutOfMemoryException)
