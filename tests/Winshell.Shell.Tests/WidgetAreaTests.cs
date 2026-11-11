@@ -374,42 +374,60 @@ public sealed class WidgetAreaTests
     }
 
     [Fact]
+    [Trait("Category", "Window")]
     public async Task A_style_replaces_its_dictionary_and_leaves_the_area_its_own_resources()
     {
         await ShellFixture.On(async shell =>
         {
-            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps());
+            var controls = new PlainControls();
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
+            {
+                Defaults = [new(controls.Button), new(controls.Text)]
+            });
             var marked = TestStyles.Marked();
             var other = TestStyles.Other();
-            await area.Host.WaitForIdleAsync();
-            var styled = Styled(area.Host);
-            styled.Resources["author"] = "keep";
-            var authors = new ResourceDictionary { ["ShellSlotSize"] = 50.0 };
-            styled.Resources.MergedDictionaries.Add(authors);
+            using var window = new PanelWindow { Width = 220, Height = 80, Content = area.Host, Visible = true };
+            await Wait.UntilAsync(() => controls.Buttons.Count == 1 && controls.Lines.Count == 1, "the controls to render");
+            var (button, _) = Assert.Single(controls.Buttons);
+            var text = Assert.Single(controls.Lines);
+            await ShellFixture.LaidOut(text).WaitAsync(TestContext.Current.CancellationToken);
+            var shown = AreaShowing(text);
+            shown.Resources["author"] = "keep";
+            // Merged after the style, so this slot size wins for the controls in the area.
+            shown.Resources.MergedDictionaries.Add(new ResourceDictionary { ["ShellSlotSize"] = 50.0 });
             try
             {
                 area.Set(area.Props with { Style = marked });
-                await area.Host.WaitForIdleAsync();
-                styled = Styled(area.Host);
+                await Wait.UntilAsync(
+                    () => text.FontFamily.Source == "Georgia" && button.ActualWidth == 50,
+                    "the text to take Georgia and the button the author's slot");
                 Assert.Equal(marked, area.Props.Style);
-                Assert.Equal("Georgia", Font(styled));
-                // The author's dictionary was merged after the style, so it wins for a key they both have.
-                Assert.Equal(50.0, styled.Resources["ShellSlotSize"]);
+                Assert.Equal(Microsoft.UI.Colors.White, ColorOf(text.Foreground));
+                Assert.Equal(50, button.ActualHeight, 0.5);
+                shown = AreaShowing(text);
+                Assert.Equal("keep", shown.Resources["author"]);
+                Assert.Equal(50.0, shown.Resources["ShellSlotSize"]);
 
                 shell.Style = other;
                 await area.Host.WaitForIdleAsync();
-                Assert.Equal("Georgia", Font(styled));
+                Assert.Equal("Georgia", text.FontFamily.Source);
+                Assert.Equal(Microsoft.UI.Colors.White, ColorOf(text.Foreground));
+                Assert.Equal(50, button.ActualWidth, 0.5);
+
                 area.Set(area.Props with { Style = null });
-                await area.Host.WaitForIdleAsync();
-                styled = Styled(area.Host);
-                Assert.Equal("Consolas", Font(styled));
+                await Wait.UntilAsync(() => text.FontFamily.Source == "Consolas", "the area to follow the shell style");
+                Assert.Equal(Microsoft.UI.Colors.Crimson, ColorOf(text.Foreground));
                 Assert.Equal(other, shell.Style);
+                Assert.Equal(50, button.ActualWidth, 0.5);
+
                 shell.Style = null;
-                await area.Host.WaitForIdleAsync();
-                styled = Styled(area.Host);
-                Assert.Equal("Segoe UI Variable Text,Segoe UI", Font(styled));
-                Assert.Equal("keep", styled.Resources["author"]);
-                Assert.Equal(50.0, styled.Resources["ShellSlotSize"]);
+                await Wait.UntilAsync(
+                    () => text.FontFamily.Source == "Segoe UI Variable Text,Segoe UI",
+                    "the area to return to the built-in style");
+                shown = AreaShowing(text);
+                Assert.Equal("keep", shown.Resources["author"]);
+                Assert.Equal(50.0, shown.Resources["ShellSlotSize"]);
+                Assert.Equal(50, button.ActualWidth, 0.5);
             }
             finally
             {
@@ -421,31 +439,48 @@ public sealed class WidgetAreaTests
     }
 
     [Fact]
-    public async Task A_contrast_theme_has_its_own_colors_and_the_style_keeps_its_own_otherwise()
+    [Trait("Category", "Window")]
+    public async Task A_custom_style_keeps_its_colors_font_and_slot_in_light_and_dark()
     {
         await ShellFixture.On(async _ =>
         {
-            var other = TestStyles.Other();
-            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Style = other });
-            await area.Host.WaitForIdleAsync();
-            var dictionary = Styled(area.Host).Resources.MergedDictionaries[0];
-            var dark = (ResourceDictionary)dictionary.ThemeDictionaries["Default"];
-            var light = (ResourceDictionary)dictionary.ThemeDictionaries["Light"];
-            Assert.Equal(other.Alert, ColorOf((Brush)dark["ShellAlertBrush"]));
-            Assert.Equal(other.Background, ColorOf((Brush)light["ShellBackgroundBrush"]));
-            Assert.Equal(other.Foreground, ColorOf((Brush)light["ShellForegroundBrush"]));
+            var controls = new PlainControls();
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
+            {
+                Style = TestStyles.Other(),
+                Defaults = [new(controls.Button), new(controls.Text)]
+            });
+            var host = area.Host;
+            using var window = new PanelWindow { Width = 220, Height = 80, Content = host, Visible = true };
+            await Wait.UntilAsync(() => controls.Buttons.Count == 1 && controls.Lines.Count == 1, "the controls to render");
+            var (button, _) = Assert.Single(controls.Buttons);
+            var text = Assert.Single(controls.Lines);
+            await ShellFixture.LaidOut(text).WaitAsync(TestContext.Current.CancellationToken);
 
-            var contrast = (ResourceDictionary)dictionary.ThemeDictionaries["HighContrast"];
-            Assert.NotEqual(other.Background, ColorOf((Brush)contrast["ShellBackgroundBrush"]));
-            Assert.NotEqual(other.Foreground, ColorOf((Brush)contrast["ShellForegroundBrush"]));
-            Assert.NotEqual(other.Alert, ColorOf((Brush)contrast["ShellAlertBrush"]));
+            foreach (var theme in new[] { ElementTheme.Light, ElementTheme.Dark })
+            {
+                host.RequestedTheme = theme;
+                await Wait.UntilAsync(() => ColorOf(text.Foreground) == Microsoft.UI.Colors.Crimson,
+                    "the text to keep the style color");
+                Assert.Equal(Microsoft.UI.Colors.Crimson, ColorOf(button.Foreground));
+                Assert.Equal(("Consolas", 18.0), (text.FontFamily.Source, text.FontSize));
+                Assert.Equal(40, button.ActualWidth, 0.5);
+                Assert.Equal(40, button.ActualHeight, 0.5);
+            }
 
             area.Set(area.Props with { Style = null });
-            await area.Host.WaitForIdleAsync();
-            var builtIn = (ResourceDictionary)Styled(area.Host).Resources.MergedDictionaries[0].ThemeDictionaries["HighContrast"];
-            Assert.True(builtIn.ContainsKey("ShellBackgroundBrush"));
-            Assert.True(builtIn.ContainsKey("ShellForegroundBrush"));
-            Assert.True(builtIn.ContainsKey("ShellAlertBrush"));
+            host.RequestedTheme = ElementTheme.Light;
+            await Wait.UntilAsync(() =>
+                ColorOf(text.Foreground) == WindowsText("Light") && button.ActualWidth == 32,
+                "the built-in light text color and slot");
+            Assert.Equal(WindowsText("Light"), ColorOf(button.Foreground));
+            Assert.Equal(("Segoe UI Variable Text,Segoe UI", 14.0), (text.FontFamily.Source, text.FontSize));
+
+            host.RequestedTheme = ElementTheme.Dark;
+            await Wait.UntilAsync(() => ColorOf(text.Foreground) == WindowsText("Default"),
+                "the built-in dark text color");
+            Assert.Equal(WindowsText("Default"), ColorOf(button.Foreground));
+            Assert.Equal(32, button.ActualWidth, 0.5);
             return true;
         });
     }
@@ -538,15 +573,14 @@ public sealed class WidgetAreaTests
                 Assert.Equal("Segoe Fluent Icons,Segoe MDL2 Assets", glyph.FontFamily.Source);
                 Assert.Equal(16, glyph.FontSize);
                 Assert.Equal(("Consolas", 18.0), (popupText.FontFamily.Source, popupText.FontSize));
-                Assert.Equal("Georgia", Font(Styled(own.Host)));
-                Assert.NotEqual("Consolas", ownText.FontFamily.Source);
+                Assert.Equal("Georgia", ownText.FontFamily.Source);
                 Assert.Equal(ownFont, ownText.FontFamily.Source);
 
                 shell.Style = null;
                 await Wait.UntilAsync(() => glyphButton.ActualWidth == 32, "the area to return to the built-in style");
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", text.FontFamily.Source);
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", popupText.FontFamily.Source);
-                Assert.Equal("Georgia", Font(Styled(own.Host)));
+                Assert.Equal("Georgia", ownText.FontFamily.Source);
             }
             finally
             {
@@ -640,30 +674,15 @@ public sealed class WidgetAreaTests
 
     private static global::Windows.UI.Color ColorOf(Brush brush) => Assert.IsType<SolidColorBrush>(brush).Color;
 
-    private static string Font(FrameworkElement element) => ((FontFamily)element.Resources["ShellFontFamily"]).Source;
-
-    /// <summary>The area panel whose merged dictionaries hold the style. The host does not.</summary>
-    private static FrameworkElement Styled(DependencyObject root)
+    /// <summary>The area that shows <paramref name="control"/>: the outermost stack that lays its placements out.</summary>
+    private static StackPanel AreaShowing(FrameworkElement control)
     {
-        return Find(root) ?? Assert.IsAssignableFrom<FrameworkElement>(root);
-
-        static FrameworkElement? Find(DependencyObject node)
-        {
-            if (node is FrameworkElement element && element.Resources.MergedDictionaries.Count > 0 && node is not ReactorHostControl)
-                return element;
-            if (node is Panel panel)
-            {
-                foreach (var child in panel.Children)
-                    if (child is DependencyObject next && Find(next) is { } found)
-                        return found;
-            }
-
-            if (node is ContentControl control && control.Content is DependencyObject content && Find(content) is { } inner)
-                return inner;
-            if (node is Border border && border.Child is DependencyObject held)
-                return Find(held);
-            return null;
-        }
+        StackPanel? area = null;
+        for (DependencyObject? node = control; node is not null; node = VisualTreeHelper.GetParent(node))
+            if (node is StackPanel panel)
+                area = panel;
+        Assert.NotNull(area);
+        return area;
     }
 
     /// <summary>The text color Windows gives a theme: "Light", or "Default" for dark.</summary>

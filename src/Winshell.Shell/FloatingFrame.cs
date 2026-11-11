@@ -158,7 +158,6 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
     private void ApplyFrame(FloatingPlacement placement)
     {
         var first = !_placed;
-        // The size was stored from the last placement, so only an exact change asks for a new frame.
         var widthChanged = placement.Width != _lastWidth;
         var heightChanged = placement.Height != _lastHeight;
         if (first || widthChanged || heightChanged)

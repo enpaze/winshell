@@ -444,21 +444,40 @@ public sealed class BarTests
         return [.. shell.Platform.Windows.Select(host => host.Client).OfType<PanelWindow>().Where(window => window.Screen == screen)];
     }
 
+    /// <summary>The start, center and end areas, in that order: the stacks that lay out what each one shows.</summary>
     private static async Task<List<StackPanel>> AreasOf(PanelWindow bar)
     {
         var host = Assert.IsType<ReactorHostControl>(bar.Content);
         await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
-        var areas = new List<StackPanel>();
+        var stacks = new List<StackPanel>();
         Walk(host);
+        var areas = stacks.Where(stack => !InsideAnother(stack, stacks)).ToList();
         Assert.Equal(3, areas.Count);
+        var vertical = bar.Anchors.HasFlag(Edges.Top) && bar.Anchors.HasFlag(Edges.Bottom);
+        areas.Sort((left, right) =>
+        {
+            var a = left.TransformToVisual(host).TransformPoint(default);
+            var b = right.TransformToVisual(host).TransformPoint(default);
+            return vertical ? a.Y.CompareTo(b.Y) : a.X.CompareTo(b.X);
+        });
         return areas;
 
         void Walk(DependencyObject node)
         {
-            if (node is StackPanel panel && AreaSessions.TryGet(panel, out _))
-                areas.Add(panel);
+            if (node is StackPanel panel)
+                stacks.Add(panel);
             for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
                 Walk(VisualTreeHelper.GetChild(node, i));
+        }
+
+        static bool InsideAnother(StackPanel stack, List<StackPanel> all)
+        {
+            for (var parent = VisualTreeHelper.GetParent(stack); parent is not null; parent = VisualTreeHelper.GetParent(parent))
+            {
+                if (parent is StackPanel outer && all.Contains(outer))
+                    return true;
+            }
+            return false;
         }
     }
 
