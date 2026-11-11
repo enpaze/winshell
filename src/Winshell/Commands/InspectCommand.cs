@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 using Winshell.Capture;
 using Winshell.Input;
 
@@ -9,6 +8,14 @@ internal static class InspectCommand
 {
     /// <summary>The most wheel notches one <c>inspect scroll</c> turns.</summary>
     private const int MaxSteps = 100;
+
+    private static readonly CommandEntry Screenshot = new()
+    {
+        Name = "screenshot",
+        MinWords = 1,
+        Missing = "a file",
+        Run = ScreenshotAsync
+    };
 
     private static readonly CommandEntry Record = new()
     {
@@ -71,7 +78,7 @@ internal static class InspectCommand
         Subcommands =
         [
             new CommandEntry { Name = "tree" },
-            new CommandEntry { Name = "screenshot", MinWords = 1, Missing = "a file" },
+            Screenshot,
             Record,
             new CommandEntry { Name = "click", MinWords = 1, Missing = "a name" },
             new CommandEntry { Name = "hover", MinWords = 1, Missing = "a name" },
@@ -97,10 +104,16 @@ internal static class InspectCommand
         if (!TrySelect(parsed, out var info, out var code))
             return code;
         var args = parsed.Positional;
-        // The shell writes the file, so a relative path must mean what it means here.
-        var rest = args.Skip(1).Select((arg, i) => args[0] == "screenshot" && i == 0 ? Path.GetFullPath(arg) : arg)
-            .ToList();
-        return await InstanceCall.PrintAsync(info, IpcRequest.ForInspect(args[0], rest));
+        return await InstanceCall.PrintAsync(info, IpcRequest.ForInspect(args[0], args.Skip(1).ToList()));
+    }
+
+    /// <summary>The shell writes the file, so a relative path must mean what it means here.</summary>
+    private static async Task<int> ScreenshotAsync(Invocation parsed)
+    {
+        if (!TrySelect(parsed, out var info, out var code))
+            return code;
+        var rest = parsed.Positional.Skip(1).Select((arg, i) => i == 0 ? Path.GetFullPath(arg) : arg).ToList();
+        return await InstanceCall.PrintAsync(info, IpcRequest.ForInspect("screenshot", rest));
     }
 
     private static async Task<int> PressAsync(Invocation parsed)
@@ -172,10 +185,10 @@ internal static class InspectCommand
             return 1;
         }
 
-        using var json = JsonDocument.Parse(value);
-        var window = (nint)json.RootElement.GetProperty("window").GetInt64();
-        var target = new CaptureTarget(window, window == 0 ? json.RootElement.GetProperty("screen").GetString()! : "");
-        var rate = parsed.Number(CliFlags.Fps) ?? json.RootElement.GetProperty("refreshRate").GetInt32();
+        var recordTarget = InspectRecordTarget.Read(value);
+        var window = (nint)recordTarget.Window;
+        var target = new CaptureTarget(window, window == 0 ? recordTarget.Screen : "");
+        var rate = parsed.Number(CliFlags.Fps) ?? recordTarget.RefreshRate;
         var video = Path.GetFullPath(parsed.Positional[1]);
         var frames = parsed.Text(CliFlags.Frames) is { } folder ? Path.GetFullPath(folder) : null;
         try

@@ -361,9 +361,9 @@ internal static class Inspector
     }
 
     /// <summary>
-    /// What <c>winshell inspect record</c> captures, as JSON: a window's handle, or 0 and a screen's id, and the refresh
-    /// rate of the screen it shows on. A window is named as for a screenshot; <c>--screen n</c> names a screen by its
-    /// place in <see cref="Shell.Screens"/>. The command line records it, so encoding never slows the shell it watches.
+    /// What <c>winshell inspect record</c> captures: a window's handle, or 0 and a screen's id, and the refresh rate of
+    /// the screen it shows on. A window is named as for a screenshot; <c>--screen n</c> names a screen by its place in
+    /// <see cref="Shell.Screens"/>. The command line records it, so encoding never slows the shell it watches.
     /// </summary>
     private static string RecordTarget(Shell shell, IReadOnlyList<string> args)
     {
@@ -388,17 +388,7 @@ internal static class Inspector
             screen = screens.FirstOrDefault(candidate => candidate.Id == on) ?? screens[0];
         }
 
-        using var stream = new MemoryStream();
-        using (var json = new Utf8JsonWriter(stream))
-        {
-            json.WriteStartObject();
-            json.WriteNumber("window", handle);
-            json.WriteString("screen", screen.Id);
-            json.WriteNumber("refreshRate", screen.RefreshRate);
-            json.WriteEndObject();
-        }
-
-        return Encoding.UTF8.GetString(stream.ToArray());
+        return new InspectRecordTarget((long)handle, screen.Id, screen.RefreshRate).Write();
     }
 
     /// <summary>
