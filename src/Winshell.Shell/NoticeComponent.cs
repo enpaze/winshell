@@ -11,7 +11,6 @@ namespace Winshell;
 /// <summary>What the notice shows, and the two things a person can do with it.</summary>
 internal sealed record NoticeProps(Notice Notice, Action Act, Action Dismiss);
 
-/// <summary>The words, the dismiss button and the button that opens a file.</summary>
 internal sealed class NoticeComponent : Component<NoticeProps>
 {
     /// <summary>How wide the notice is, as a Windows 11 notification is.</summary>
