@@ -483,6 +483,24 @@ public sealed class MediaServiceTests
     }
 
     [Fact]
+    public void A_length_that_matches_the_position_already_shown_is_not_a_length_change()
+    {
+        var session = Session();
+        _native.ApplyPlayback(new SmtcPlayback(Paused));
+        Timeline(10, 0);
+        Assert.False(session.LengthSupported);
+        Assert.Equal(10, session.Length);
+        var changes = Watch(session);
+
+        Timeline(10, 10);
+
+        Assert.True(session.LengthSupported);
+        Assert.Equal(10, session.Length);
+        Assert.Contains(nameof(MediaSession.LengthSupported), changes);
+        Assert.DoesNotContain(nameof(MediaSession.Length), changes);
+    }
+
+    [Fact]
     public void A_track_with_no_length_reports_its_position_as_the_length()
     {
         var session = Session();

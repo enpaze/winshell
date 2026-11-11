@@ -30,6 +30,27 @@ internal sealed record SmtcPlayback(GlobalSystemMediaTransportControlsSessionPla
 
     public MediaLoopState LoopState { get; init; }
 
+    /// <summary>What Windows reports about playback, including the controls the app allows.</summary>
+    public static SmtcPlayback From(GlobalSystemMediaTransportControlsSessionPlaybackInfo info)
+    {
+        var controls = info.Controls;
+        return new(info.PlaybackStatus)
+        {
+            Rate = info.PlaybackRate ?? 1,
+            CanPlay = controls.IsPlayEnabled,
+            CanPause = controls.IsPauseEnabled,
+            CanStop = controls.IsStopEnabled,
+            CanGoNext = controls.IsNextEnabled,
+            CanGoPrevious = controls.IsPreviousEnabled,
+            CanSeek = controls.IsPlaybackPositionEnabled,
+            ShuffleSupported = controls.IsShuffleEnabled,
+            LoopSupported = controls.IsRepeatEnabled,
+            RateSupported = controls.IsPlaybackRateEnabled,
+            Shuffle = info.IsShuffleActive ?? false,
+            LoopState = LoopOf(info.AutoRepeatMode)
+        };
+    }
+
     /// <summary>Windows' repeat mode as a <see cref="MediaLoopState"/>. No mode, or one Windows adds later, repeats nothing.</summary>
     public static MediaLoopState LoopOf(MediaPlaybackAutoRepeatMode? mode)
     {
