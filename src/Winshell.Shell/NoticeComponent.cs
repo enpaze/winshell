@@ -1,24 +1,15 @@
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
-using Microsoft.UI.Reactor.Hooks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
-using Windows.Foundation;
 using Windows.System;
 using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
-/// <summary>What the notice component shows, and how it answers the pointer, the keyboard and its own height.</summary>
-internal sealed record NoticeProps(
-    Notice Notice,
-    Action Act,
-    Action Dismiss,
-    Action<bool> PointerInside,
-    Action<bool> KeyboardInside,
-    Action TakeKeyboard,
-    Action<double> ReportHeight);
+/// <summary>What the notice shows, and the two things a person can do with it.</summary>
+internal sealed record NoticeProps(Notice Notice, Action Act, Action Dismiss);
 
 /// <summary>The words, the dismiss button and the button that opens a file.</summary>
 internal sealed class NoticeComponent : Component<NoticeProps>
@@ -28,7 +19,6 @@ internal sealed class NoticeComponent : Component<NoticeProps>
 
     public override Element Render()
     {
-        var close = this.UseElementRef<Button>();
         var notice = Props.Notice;
         var announcement = string.Join(". ",
             new[] { notice.Title, notice.Detail, notice.Body, notice.Note }.Where(text => text.Length > 0));
@@ -44,7 +34,6 @@ internal sealed class NoticeComponent : Component<NoticeProps>
                     .Padding(0)
                     .HAlign(HorizontalAlignment.Right)
                     .AutomationName("Dismiss")
-                    .Ref(close)
                     .Grid(0, 0))
             .Margin(0, 0, 0, 8),
             TitleLine(notice.Title)
@@ -62,20 +51,8 @@ internal sealed class NoticeComponent : Component<NoticeProps>
                 [GridSize.Auto],
                 VStack(4, lines.ToArray()).Grid(0, 0))
             .Padding(16)
-#pragma warning disable REACTOR_THEME_001 // A click on the text has to hit the notice, and a theme token is not transparent.
-            .Background("Transparent")
-#pragma warning restore REACTOR_THEME_001
             .AutomationName(announcement)
             .LiveRegion(AutomationLiveSetting.Assertive)
-            .OnPointerPressed((_, _) =>
-            {
-                Props.TakeKeyboard();
-                close.Current?.Focus(FocusState.Programmatic);
-            })
-            .OnPointerEntered((_, _) => Props.PointerInside(true))
-            .OnPointerExited((_, _) => Props.PointerInside(false))
-            .OnGotFocus((_, _) => Props.KeyboardInside(true))
-            .OnLostFocus((_, _) => Props.KeyboardInside(false))
             .OnKeyDown((_, e) =>
             {
                 if (e.Key != VirtualKey.Escape)
@@ -85,20 +62,15 @@ internal sealed class NoticeComponent : Component<NoticeProps>
             })
             .OnMount(element =>
             {
-                // A button has no template until the notice is in the tree, so measure then, not before.
-                void Ready()
-                {
-                    element.Measure(new Size(Width, double.PositiveInfinity));
-                    Props.ReportHeight(Math.Ceiling(element.DesiredSize.Height));
-                    FrameworkElementAutomationPeer.CreatePeerForElement(element)?.RaiseNotificationEvent(
-                        AutomationNotificationKind.Other, AutomationNotificationProcessing.ImportantAll, announcement,
-                        "WinshellNotice");
-                }
+                // The peer can announce once the notice is in the tree.
+                void Announce() => FrameworkElementAutomationPeer.CreatePeerForElement(element)?.RaiseNotificationEvent(
+                    AutomationNotificationKind.Other, AutomationNotificationProcessing.ImportantAll, announcement,
+                    "WinshellNotice");
 
                 if (element.IsLoaded)
-                    Ready();
+                    Announce();
                 else
-                    element.Loaded += (_, _) => Ready();
+                    element.Loaded += (_, _) => Announce();
             });
     }
 
