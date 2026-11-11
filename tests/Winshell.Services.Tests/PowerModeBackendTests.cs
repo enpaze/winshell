@@ -21,7 +21,21 @@ public sealed class PowerModeBackendTests
 
         Assert.Equal(0, (int)EffectivePowerMode.EnergySaver);
         Assert.Equal(2, (int)EffectivePowerMode.Balanced);
+        Assert.Equal(3, (int)PowerModeLevel.Unknown);
+        Assert.Equal(-1, (int)EffectivePowerMode.Unknown);
         using var monitor = new IdleMonitor(new ManualEventLoop(), new Log(), () => false);
         Assert.True(monitor.RespectKeepAwake);
+    }
+
+    [Fact]
+    public void An_unanswered_power_mode_reads_as_unknown_and_a_reported_balanced_mode_stays_balanced()
+    {
+        // 127 is ERROR_PROC_NOT_FOUND, the error a Windows without the power mode returns.
+        Assert.Equal(PowerModeLevel.Unknown, PowerModeBackend.LevelFrom(127, Guid.Empty));
+        Assert.Equal(PowerModeLevel.Balanced, PowerModeBackend.LevelFrom(0, Guid.Empty));
+        // 7 is the V2 energy-saver value this enum does not name. It stays Balanced.
+        Assert.Equal(EffectivePowerMode.Balanced, PowerModeBackend.EffectiveFrom(7));
+        Assert.Equal(EffectivePowerMode.Unknown, PowerModeBackend.EffectiveFrom((int)EffectivePowerMode.Unknown));
+        Assert.Equal(EffectivePowerMode.Balanced, PowerModeBackend.EffectiveFrom((int)EffectivePowerMode.Balanced));
     }
 }

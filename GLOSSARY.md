@@ -165,7 +165,7 @@ A program playing media that Windows lets the shell see and control.
 _Avoid_: player, MPRIS player
 
 **Power mode**:
-The slider Windows offers for Best power efficiency, Balanced, or Best performance.
+The position Windows offers on its power slider (Best power efficiency, Balanced, or Best performance), or unknown when Windows did not report one.
 _Avoid_: power profile, overlay scheme, power plan
 
 **Monitor brightness**:

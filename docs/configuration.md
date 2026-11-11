@@ -83,6 +83,10 @@ public sealed class Battery : Component<WidgetContext>
 
 `Props.Shell` is the running shell. [UseObservable](#keep-a-component-current) renders the component again when that device changes. A PC with no battery has `IsPresent` false, so the text collapses. The margin keeps it off the screen's edge. A plain text block takes the [style](#style), so the battery names no brush of its own.
 
+`HealthSupported` is true when Windows reported the capacities behind `HealthPercentage`, including when that percentage is 0. A shell that shows health reads the flag first.
+
+`shell.PowerMode.Mode` and `Effective` are `Unknown` when Windows did not report a power mode. Setting `Mode` to `Unknown` does nothing: that is not a position of the slider.
+
 ### Register the widgets
 
 `Start` registers each component under the name the bar places. A `WinshellWidget` item does the same for a component from a library, as [Widgets](#widgets) describes.

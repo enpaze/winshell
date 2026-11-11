@@ -49,8 +49,11 @@ public sealed class PowerDevice : ObservableObject
     /// <summary>Full charge capacity over design capacity, from 0 to 100.</summary>
     public double HealthPercentage => Read(_info).HealthPercentage;
 
-    /// <summary>Whether Windows reports the capacities <see cref="HealthPercentage"/> needs.</summary>
-    public bool HealthSupported => Read(_info).HealthPercentage != 0;
+    /// <summary>
+    /// Whether Windows reports the capacities <see cref="HealthPercentage"/> needs. True at a health of 0 when those
+    /// capacities were reported.
+    /// </summary>
+    public bool HealthSupported => Read(_info).HealthSupported;
 
     /// <summary>Whether the device is a battery that powers the PC.</summary>
     public bool IsSystemBattery => Read(_info) is { Type: PowerDeviceType.Battery, PowersTheSystem: true };
@@ -88,7 +91,7 @@ public sealed class PowerDevice : ObservableObject
         Changed(old.State != info.State, nameof(State));
         // HealthPercentage is the stored reading its property returns, so the difference is exact.
         Changed(old.HealthPercentage != info.HealthPercentage, nameof(HealthPercentage));
-        Changed(old.HealthPercentage != 0 != HealthSupported, nameof(HealthSupported));
+        Changed(old.HealthSupported != HealthSupported, nameof(HealthSupported));
         Changed(old is { Type: PowerDeviceType.Battery, PowersTheSystem: true } != IsSystemBattery,
             nameof(IsSystemBattery));
         Changed(old.DeviceId != info.DeviceId, nameof(DeviceId));
@@ -150,8 +153,8 @@ public sealed class PowerModeService : ObservableObject, IDisposable
     private readonly IPowerModeBackend _backend;
     private readonly StateReader<PowerModeSnapshot> _reader;
     private readonly Log _log;
-    private PowerModeLevel _mode = PowerModeLevel.Balanced;
-    private EffectivePowerMode _effective = EffectivePowerMode.Balanced;
+    private PowerModeLevel _mode = PowerModeLevel.Unknown;
+    private EffectivePowerMode _effective = EffectivePowerMode.Unknown;
     private bool _available;
     private bool _ready;
 
@@ -167,16 +170,18 @@ public sealed class PowerModeService : ObservableObject, IDisposable
 
     /// <summary>
     /// The position of the power mode slider for the supply in use, battery or plugged in. Setting it moves that
-    /// slider; a value Windows refuses is logged.
+    /// slider; a value Windows refuses is logged. <see cref="PowerModeLevel.Unknown"/> is not a slider position, and
+    /// setting it does nothing.
     /// </summary>
     public PowerModeLevel Mode
     {
         get => Read(_mode);
         set
         {
-            if (!Enum.IsDefined(value))
+            if (value is not (PowerModeLevel.BestEfficiency or PowerModeLevel.Balanced
+                or PowerModeLevel.BestPerformance))
             {
-                _log.Warn("power", $"Cannot set the power mode to {(int)value}, which is not a PowerModeLevel.");
+                _log.Warn("power", $"Cannot set the power mode to {(int)value}, which is not a slider position.");
                 return;
             }
 
@@ -188,11 +193,14 @@ public sealed class PowerModeService : ObservableObject, IDisposable
 
     /// <summary>
     /// The power mode Windows is applying now, which can differ from <see cref="Mode"/> while energy saver or game
-    /// mode is on.
+    /// mode is on. <see cref="EffectivePowerMode.Unknown"/> when Windows did not report one.
     /// </summary>
     public EffectivePowerMode Effective => Read(_effective);
 
-    /// <summary>The public power-mode API answered. When this is false, <see cref="Mode"/> stays Balanced.</summary>
+    /// <summary>
+    /// The public power-mode API answered. When this is false, <see cref="Mode"/> is
+    /// <see cref="PowerModeLevel.Unknown"/>.
+    /// </summary>
     public bool Available => Read(_available);
 
     /// <summary>Whether the first read of the power mode has finished.</summary>

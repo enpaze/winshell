@@ -22,11 +22,12 @@ internal sealed record PowerDeviceInfo(
     double ChargeRate,
     double TimeToEmpty,
     double TimeToFull,
-    double HealthPercentage)
+    double HealthPercentage,
+    bool HealthSupported)
 {
     /// <summary>What a PC with no battery reports.</summary>
     public static readonly PowerDeviceInfo NoBattery = new("", "", PowerDeviceType.Unknown, false, false,
-        PowerDeviceState.Unknown, 0, 0, 0, 0, 0, 0, 0);
+        PowerDeviceState.Unknown, 0, 0, 0, 0, 0, 0, 0, false);
 }
 
 internal sealed record PowerSnapshot(
@@ -218,7 +219,7 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
                     ? status.BatteryLifeTime
                     : 0;
                 device = new PowerDeviceInfo("", "", PowerDeviceType.Battery, true, true, state, percentage, 0, 0, 0,
-                    timeToEmpty, 0, 0);
+                    timeToEmpty, 0, 0, false);
             }
         }
         else
@@ -284,7 +285,6 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
             };
         var remaining = report.RemainingCapacityInMilliwattHours / 1000.0;
         var full = report.FullChargeCapacityInMilliwattHours / 1000.0;
-        var design = report.DesignCapacityInMilliwattHours / 1000.0;
         var rate = (report.ChargeRateInMilliwatts ?? 0) / 1000.0;
         var percentage = remaining is { } r && full is > 0 ? Math.Clamp(r / full.Value, 0, 1) : 0;
         if (remaining is null || full is not > 0)
@@ -311,9 +311,23 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
                          max > now
             ? (max - now) / rate * 3600
             : 0;
-        var health = full is > 0 && design is > 0 ? Math.Min(100, full.Value / design.Value * 100) : 0;
+        var (health, healthSupported) = Health(report.FullChargeCapacityInMilliwattHours,
+            report.DesignCapacityInMilliwattHours);
         return new PowerDeviceInfo(nativePath, model, PowerDeviceType.Battery, true, true, state, percentage,
             remaining ?? 0, full ?? 0, rate,
-            Math.Round(timeToEmpty), Math.Round(timeToFull), health);
+            Math.Round(timeToEmpty), Math.Round(timeToFull), health, healthSupported);
+    }
+
+    /// <summary>
+    /// Full charge over design capacity, from 0 to 100, and whether Windows reported both. A full charge of zero is
+    /// supported and reads as 0. A missing or negative capacity, or a design capacity of zero, is not supported.
+    /// </summary>
+    internal static (double Percentage, bool Supported) Health(int? fullChargeMilliwattHours,
+        int? designCapacityMilliwattHours)
+    {
+        if (fullChargeMilliwattHours is not int full || full < 0
+            || designCapacityMilliwattHours is not int design || design <= 0)
+            return (0, false);
+        return (Math.Min(100, full / (double)design * 100), true);
     }
 }

@@ -10,7 +10,7 @@ public sealed class PowerServiceTests
     private static PowerDeviceInfo Battery(string id, double percentage = 0.5)
     {
         return new PowerDeviceInfo(id, "Model", PowerDeviceType.Battery, true, true,
-            PowerDeviceState.Discharging, percentage, 10, 20, -5, 3600, 0, 90);
+            PowerDeviceState.Discharging, percentage, 10, 20, -5, 3600, 0, 90, true);
     }
 
     private static PowerSnapshot Snapshot(params PowerDeviceInfo[] devices)
@@ -78,6 +78,51 @@ public sealed class PowerServiceTests
 
         Assert.Empty(power.Devices);
         Assert.True(source.Disposed);
+    }
+
+    [Fact]
+    public void A_battery_at_zero_health_with_support_reads_as_supported()
+    {
+        Assert.Equal((0d, true), PowerBackend.Health(0, 1000));
+        Assert.Equal((50d, true), PowerBackend.Health(500, 1000));
+        Assert.Equal((100d, true), PowerBackend.Health(2000, 1000));
+        Assert.Equal((0d, false), PowerBackend.Health(null, 1000));
+        Assert.Equal((0d, false), PowerBackend.Health(500, null));
+        Assert.Equal((0d, false), PowerBackend.Health(500, 0));
+        Assert.Equal((0d, false), PowerBackend.Health(-1, 1000));
+
+        var loop = new ManualEventLoop();
+        var dead = Battery("a") with { HealthPercentage = 0, HealthSupported = true };
+        var source = new FakePowerBackend(Snapshot(dead));
+        using var power = new PowerService(loop, Log.Default, source);
+        loop.Process();
+
+        Assert.Equal(0, power.DisplayDevice.HealthPercentage);
+        Assert.True(power.DisplayDevice.HealthSupported);
+    }
+
+    [Fact]
+    public void An_unanswered_power_mode_reads_as_unknown()
+    {
+        var loop = new ManualEventLoop();
+        var asked = 0;
+        using var mode = new PowerModeService(loop, Log.Default, new FakePowerModeBackend(_ =>
+        {
+            asked++;
+            return 0;
+        }));
+
+        Assert.Equal(PowerModeLevel.Unknown, mode.Mode);
+        Assert.Equal(EffectivePowerMode.Unknown, mode.Effective);
+
+        loop.Process();
+
+        Assert.Equal(PowerModeLevel.Unknown, mode.Mode);
+        Assert.Equal(EffectivePowerMode.Unknown, mode.Effective);
+        Assert.False(mode.Available);
+
+        mode.Mode = PowerModeLevel.Unknown;
+        Assert.Equal(0, asked);
     }
 
     [Fact]
