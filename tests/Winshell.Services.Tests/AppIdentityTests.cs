@@ -70,6 +70,11 @@ public sealed class AppIdentityTests
             Assert.Equal(packagedId, packagedWindow.AppId);
             Assert.Equal(@"shell:AppsFolder\" + packagedId, packaged.Icon);
             Assert.Equal(@"shell:AppsFolder\" + packagedId, packagedWindow.Icon);
+            // A Start shortcut can carry a packaged id and no program. The icon still comes from that id.
+            var carried = Publish(new AppRecord(
+                "Calculator", "Calculator", "", notesLink, "", "", "", packagedId, "", false, false));
+            Assert.Equal(packagedId, carried.AppId);
+            Assert.Equal(@"shell:AppsFolder\" + packagedId, carried.Icon);
 
             Assert.Equal("", document.AppId);
             Assert.True(document.Hidden);

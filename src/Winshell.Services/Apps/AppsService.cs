@@ -177,8 +177,8 @@ public sealed class AppEntry : ObservableObject
     public string Description => Read(_entry).Description;
 
     /// <summary>
-    /// A path an icon is read from: <c>shell:AppsFolder\&lt;id&gt;</c> for a packaged app, or the program's file.
-    /// A shortcut with no program keeps its own file.
+    /// A path an icon is read from: <c>shell:AppsFolder\&lt;id&gt;</c> when the id is packaged, or the program's file.
+    /// A shortcut with no program and no packaged id keeps its own file.
     /// </summary>
     public string Icon => IconOf(Read(_entry));
 
@@ -284,7 +284,7 @@ public sealed class AppEntry : ObservableObject
 
     private static string IconOf(AppRecord entry)
     {
-        return entry.AppId.Length > 0 && (entry.Packaged || entry.Target.Length > 0)
+        return AppIdentity.IsPackaged(entry.AppId) || (entry.AppId.Length > 0 && entry.Target.Length > 0)
             ? AppIdentity.IconPath(entry.AppId, entry.Target)
             : entry.Path;
     }

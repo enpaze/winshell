@@ -18,7 +18,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Description` | string, read-only | The shortcut's comment, or the packaged app's description. May be empty. |
 | `Folders` | IReadOnlyList of string, read-only | The Start menu folders the shortcut is in. Empty for a packaged app. |
 | `Hidden` | bool, read-only | True for an uninstaller or a document shortcut. Hidden apps stay out of `Apps`, `Search`, `Recent` and `Frequent`. |
-| `Icon` | string, read-only | A path an icon is read from: `shell:AppsFolder\<id>` for a packaged app, or the program's file. A shortcut with no program keeps its own file. |
+| `Icon` | string, read-only | A path an icon is read from: `shell:AppsFolder\<id>` when the id is packaged, or the program's file. A shortcut with no program and no packaged id keeps its own file. |
 | `Id` | string, read-only | A shortcut's path under Programs, such as `Accessories/Notepad`, or a packaged app's AppUserModelID. |
 | `LastUsed` | long, read-only | When the app was last used, in Unix milliseconds, or 0 when Windows has no record. |
 | `Name` | string, read-only | The name Start shows: the shortcut's file name without `.lnk`, or the packaged app's display name. |
