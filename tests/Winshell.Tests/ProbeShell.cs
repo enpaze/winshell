@@ -254,11 +254,24 @@ internal static class ProbeShell
                           var report = Path.Combine(config, "preferences-report.txt");
                           // The test reads the report from another process, so it appears once and whole: written
                           // beside it, then moved to a name that does not exist yet, which no reader can hold open.
+                          // Antivirus can lock a file just written, so a refused move is tried again shortly.
+                          var written = report + ".tmp";
+                          void Publish()
+                          {
+                              try
+                              {
+                                  File.Move(written, report);
+                              }
+                              catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+                              {
+                                  shell.Loop.Schedule(TimeSpan.FromMilliseconds(25), Publish);
+                              }
+                          }
+
                           void Report()
                           {
-                              var written = report + ".tmp";
                               File.WriteAllText(written, PreferencesReport(path));
-                              File.Move(written, report);
+                              Publish();
                           }
 
                           if (File.Exists(path))

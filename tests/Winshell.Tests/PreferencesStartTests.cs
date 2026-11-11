@@ -21,9 +21,24 @@ public sealed class PreferencesStartTests : IDisposable, IClassFixture<ProbeBuil
         _started = ProbeShell.Start(config, Path.Combine(_dir, "local"), shellId);
 
         var report = Path.Combine(config, "preferences-report.txt");
-        // The probe moves the report into place once it is whole, so it is read only after it exists.
-        Wait.Until(() => File.Exists(report), "the probe to report the preferences file written when Start returns");
-        Assert.Equal("both", File.ReadAllText(report).Trim());
+        // The probe moves the report into place once it is whole. Antivirus can still hold it a moment, so a read
+        // that is refused is not done yet.
+        string? said = null;
+        Wait.Until(() => (said = Read(report)) is not null,
+            "the probe to report the preferences file written when Start returns");
+        Assert.Equal("both", said);
+    }
+
+    private static string? Read(string path)
+    {
+        try
+        {
+            return File.Exists(path) ? File.ReadAllText(path).Trim() : null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     public void Dispose()
