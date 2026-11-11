@@ -1,6 +1,6 @@
 # UI is built with Reactor
 
-Every piece of UI Winshell or a configuration shows is a Microsoft.UI.Reactor component: widgets, bars, widget areas and the Notice. One C# way to describe UI is easier to learn than plain controls, `Watch` and XAML styles together, and it lets Winshell delete the machinery those needed. Winshell keeps its windows: a panel, a popup window or a floating window places and reserves itself as before and shows a mounted component as its content, because Reactor's own windows cannot anchor to an edge, reserve the work area or open next to another window.
+Every piece of UI a window shows is a Microsoft.UI.Reactor component: widgets, widget areas, surfaces and the Notice. A bar is the composition that opens those windows, and each window's content is one tree, a surface of three widget areas. One C# way to describe UI is easier to learn than plain controls, `Watch` and XAML styles together, and it lets Winshell delete the machinery those needed. Winshell keeps its windows: a panel, a popup window or a floating window places and reserves itself as before and shows one mounted component as its content, because Reactor's own windows cannot anchor to an edge, reserve the work area or open next to another window.
 
 ```text
 public sealed class Battery : Component<WidgetContext>

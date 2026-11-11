@@ -21,18 +21,19 @@ public sealed class WidgetAreaTests
             var name = Guid.NewGuid().ToString();
             PopupCapture.Context = null;
             Widgets.Register<PopupCapture>(name);
-            using var area = new WidgetArea
+            using var area = new WidgetAreaProps
             {
                 Style = TestStyles.Marked(),
-                RequestedTheme = ElementTheme.Light,
-                FontFamily = new FontFamily("Consolas"),
-                FontSize = 23,
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.Crimson),
                 Defaults = [new(name)]
             };
-            var parent = new Grid { RequestedTheme = ElementTheme.Light, Children = { area } };
+            var host = area.Show();
+            host.RequestedTheme = ElementTheme.Light;
+            host.FontFamily = new FontFamily("Consolas");
+            host.FontSize = 23;
+            host.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Crimson);
+            var parent = new Grid { RequestedTheme = ElementTheme.Light, Children = { host } };
             using var window = new PanelWindow { Width = 180, Height = 90, Content = parent, Visible = true };
-            await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
+            await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
             var input = PopupCapture.Context!;
             var content = (StackPanel)Microsoft.UI.Xaml.Markup.XamlReader.Load("""
                 <StackPanel xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -60,21 +61,21 @@ public sealed class WidgetAreaTests
             Assert.Equal(23, wrapper.FontSize);
             Assert.Equal(Microsoft.UI.Colors.Crimson, Assert.IsType<SolidColorBrush>(wrapper.Foreground).Color);
 
-            area.RequestedTheme = ElementTheme.Dark;
+            host.RequestedTheme = ElementTheme.Dark;
             await Wait.UntilAsync(() => root.ActualTheme == ElementTheme.Dark && second.ActualTheme == ElementTheme.Dark,
                 "both popup windows to follow the area's dark theme");
             Assert.Equal(ElementTheme.Dark, root.RequestedTheme);
             Assert.Equal(WindowsBrush("Default", "CardBackgroundFillColorDefaultBrush"),
                 Assert.IsType<SolidColorBrush>(content.Background).Color);
-            area.RequestedTheme = ElementTheme.Default;
+            host.RequestedTheme = ElementTheme.Default;
             await Wait.UntilAsync(() => root.ActualTheme == ElementTheme.Light,
                 "the popup to follow the area's inherited light theme");
             Assert.Equal(ElementTheme.Light, root.RequestedTheme);
-            area.RequestedTheme = ElementTheme.Dark;
+            host.RequestedTheme = ElementTheme.Dark;
             await Wait.UntilAsync(() => root.ActualTheme == ElementTheme.Dark, "the popup to return to dark");
-            area.FontFamily = new FontFamily("Georgia");
-            area.FontSize = 27;
-            area.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
+            host.FontFamily = new FontFamily("Georgia");
+            host.FontSize = 27;
+            host.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
             Assert.Equal("Georgia", wrapper.FontFamily.Source);
             Assert.Equal(27, wrapper.FontSize);
             Assert.Equal(Microsoft.UI.Colors.LimeGreen, Assert.IsType<SolidColorBrush>(wrapper.Foreground).Color);
@@ -86,14 +87,17 @@ public sealed class WidgetAreaTests
             if (disposeArea)
                 area.Dispose();
             else
+            {
                 area.Defaults = [];
-            area.RequestedTheme = ElementTheme.Light;
-            area.FontFamily = new FontFamily("Arial");
-            area.FontSize = 12;
-            area.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Blue);
+                await host.WaitForIdleAsync();
+            }
+            host.RequestedTheme = ElementTheme.Light;
+            host.FontFamily = new FontFamily("Arial");
+            host.FontSize = 12;
+            host.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Blue);
             if (!disposeArea)
                 area.Style = null;
-            await Wait.UntilAsync(() => area.ActualTheme == ElementTheme.Light, "the area to return to light");
+            await Wait.UntilAsync(() => host.ActualTheme == ElementTheme.Light, "the area to return to light");
             Assert.Equal(ElementTheme.Dark, root.RequestedTheme);
             Assert.Equal("Georgia", wrapper.FontFamily.Source);
             Assert.Equal(27, wrapper.FontSize);
@@ -118,13 +122,13 @@ public sealed class WidgetAreaTests
             Widgets.Register<OrderedWidget>(name);
             var first = new Dictionary<string, object> { ["text"] = "first" };
             var second = new Dictionary<string, object> { ["text"] = "second" };
-            using var area = new WidgetArea();
+            using var area = new WidgetAreaProps();
             Assert.Equal(Orientation.Horizontal, area.Orientation);
             area.Orientation = orientation;
             area.Defaults = [new(name, first), new(name, second)];
-            using var window = new PanelWindow { Width = 180, Height = 90, Content = area, Visible = true };
-            await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
-
+            var host = area.Show();
+            using var window = new PanelWindow { Width = 180, Height = 90, Content = host, Visible = true };
+            await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
             var views = OrderedWidget.Views;
             var inputs = OrderedWidget.Inputs;
             Assert.Equal(["first", "second"], views.Select(view => view.Text));
@@ -135,8 +139,8 @@ public sealed class WidgetAreaTests
             });
             Assert.Same(first, inputs[0].Settings);
             Assert.Same(second, inputs[1].Settings);
-            var start = views[0].TransformToVisual(area).TransformPoint(new Point());
-            var next = views[1].TransformToVisual(area).TransformPoint(new Point());
+            var start = views[0].TransformToVisual(host).TransformPoint(new Point());
+            var next = views[1].TransformToVisual(host).TransformPoint(new Point());
             Assert.Equal(orientation == Orientation.Horizontal ? new Point(60, 0) : new Point(0, 30),
                 new Point(next.X - start.X, next.Y - start.Y));
             return true;
@@ -159,12 +163,12 @@ public sealed class WidgetAreaTests
             BadWidget.Failure = failure;
             if (failure != "unknown")
                 Widgets.Register<BadWidget>(bad);
-            using var area = new WidgetArea { Defaults = [new(good), new(bad), new(good)] };
-            using var window = new PanelWindow { Width = 280, Height = 60, Content = area, Visible = true };
+            using var area = new WidgetAreaProps { Defaults = [new(good), new(bad), new(good)] };
+            using var window = new PanelWindow { Width = 280, Height = 60, Content = area.Show(), Visible = true };
             string[] text = [];
             await Wait.UntilAsync(() =>
             {
-                text = [.. TextIn(area)];
+                text = [.. TextIn(area.Show())];
                 return text.Length >= 3;
             }, "the area to show the failure between the survivors");
 
@@ -201,13 +205,13 @@ public sealed class WidgetAreaTests
                                     $"[{unknown}]\nwidgets = [{{ widget = 'not-installed' }}]\n");
             try
             {
-                using var area = new WidgetArea { Name = name, Defaults = [new(widget)] };
-                using var other = new WidgetArea { Name = name + "other", Defaults = [new(widget)] };
+                using var area = new WidgetAreaProps { Name = name, Defaults = [new(widget)] };
+                using var other = new WidgetAreaProps { Name = name + "other", Defaults = [new(widget)] };
                 using var window = new PanelWindow
                 {
                     Width = 240,
                     Height = 80,
-                    Content = new StackPanel { Children = { area, other } },
+                    Content = new StackPanel { Children = { area.Show(), other.Show() } },
                     Visible = true
                 };
                 await Wait.UntilAsync(() => TrackedWidget.Mounts.Count >= 3, "the placements to mount");
@@ -245,7 +249,7 @@ public sealed class WidgetAreaTests
 
                 File.WriteAllText(path, $"[{name}]\nwidgets = []\n");
                 await Wait.UntilAsync(() => updated.Unmounts == 1, "the empty list to remove the widget");
-                Assert.Empty(TextIn(area));
+                Assert.Empty(TextIn(area.Show()));
                 Assert.Equal(0, unchanged.Unmounts);
 
                 before = created.Count;
@@ -276,15 +280,15 @@ public sealed class WidgetAreaTests
             File.WriteAllText(path, $"[{name}side]\nwidgets = [{{ widget = '{widget}', text = 'side' }}]\n");
             try
             {
-                using var area = new WidgetArea { Name = name, Defaults = [new(widget)] };
-                using var window = new PanelWindow { Width = 160, Height = 40, Content = area, Visible = true };
-                await Wait.UntilAsync(() => TextIn(area).SequenceEqual(["default"]), "the author's default");
+                using var area = new WidgetAreaProps { Name = name, Defaults = [new(widget)] };
+                using var window = new PanelWindow { Width = 160, Height = 40, Content = area.Show(), Visible = true };
+                await Wait.UntilAsync(() => TextIn(area.Show()).SequenceEqual(["default"]), "the author's default");
 
                 area.Name = name + "side";
-                await Wait.UntilAsync(() => TextIn(area).SequenceEqual(["side"]), "the section of the new name");
+                await Wait.UntilAsync(() => TextIn(area.Show()).SequenceEqual(["side"]), "the section of the new name");
 
                 area.Name = "";
-                await Wait.UntilAsync(() => TextIn(area).SequenceEqual(["default"]), "an unnamed area to use its defaults");
+                await Wait.UntilAsync(() => TextIn(area.Show()).SequenceEqual(["default"]), "an unnamed area to use its defaults");
             }
             finally
             {
@@ -314,8 +318,8 @@ public sealed class WidgetAreaTests
             File.WriteAllText(path, $"[{name}]\nwidgets = [{{ widget = '{widget}' }}]\n");
             try
             {
-                using var area = new WidgetArea { Name = name };
-                using var window = new PanelWindow { Width = 160, Height = 40, Content = area, Visible = true };
+                using var area = new WidgetAreaProps { Name = name };
+                using var window = new PanelWindow { Width = 160, Height = 40, Content = area.Show(), Visible = true };
                 await Wait.UntilAsync(() => TrackedWidget.Mounts.Count == 1, "the placement to mount");
                 var views = TrackedWidget.Mounts;
                 Assert.Single(views);
@@ -325,11 +329,11 @@ public sealed class WidgetAreaTests
                     "the broken edit to be diagnosed with its location");
                 Assert.Equal(broken, File.ReadAllText(path));
                 Assert.Equal(0, Assert.Single(views).Unmounts);
-                await Wait.UntilAsync(() => TextIn(area).Count() == 1, "the widget to stay on screen");
+                await Wait.UntilAsync(() => TextIn(area.Show()).Count() == 1, "the widget to stay on screen");
 
                 File.WriteAllText(path, $"[{name}]\nwidgets = []\n");
                 await Wait.UntilAsync(() => views[0].Unmounts == 1, "a valid edit after the broken one to apply");
-                Assert.Empty(TextIn(area));
+                Assert.Empty(TextIn(area.Show()));
             }
             finally
             {
@@ -348,16 +352,17 @@ public sealed class WidgetAreaTests
             var name = Guid.NewGuid().ToString();
             MountedWidget.Mounted = 0;
             Widgets.Register<MountedWidget>(name);
-            using var area = new WidgetArea { Defaults = [new(name), new(name)] };
-            using var window = new PanelWindow { Width = 180, Height = 90, Content = area, Visible = true };
-            await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
+            using var area = new WidgetAreaProps { Defaults = [new(name), new(name)] };
+            var host = area.Show();
+            using var window = new PanelWindow { Width = 180, Height = 90, Content = host, Visible = true };
+            await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
             await Wait.UntilAsync(() => MountedWidget.Mounted == 2, "both placements to mount");
             var unloaded = new TaskCompletionSource();
-            area.Unloaded += (_, _) => unloaded.TrySetResult();
+            host.Unloaded += (_, _) => unloaded.TrySetResult();
             window.Content = new Grid();
             await unloaded.Task.WaitAsync(TestContext.Current.CancellationToken);
             Assert.Equal(2, MountedWidget.Mounted);
-            window.Content = area;
+            window.Content = host;
 
             area.Defaults = [new(name)];
             await Wait.UntilAsync(() => MountedWidget.Mounted == 1, "the removed placement to unmount");
@@ -369,7 +374,7 @@ public sealed class WidgetAreaTests
             area.Dispose();
             area.Dispose();
             Assert.Equal(0, MountedWidget.Mounted);
-            Assert.Empty(TextIn(area));
+            Assert.Empty(TextIn(host));
             Assert.Throws<ObjectDisposedException>(() => area.Defaults = [new(name)]);
             return true;
         });
@@ -380,29 +385,29 @@ public sealed class WidgetAreaTests
     {
         await ShellFixture.On(shell =>
         {
-            using var area = new WidgetArea();
+            using var area = new WidgetAreaProps();
             var marked = TestStyles.Marked();
             var other = TestStyles.Other();
-            area.Resources["author"] = "keep";
+            area.Show().Resources["author"] = "keep";
             var authors = new ResourceDictionary { ["ShellSlotSize"] = 50.0 };
-            area.Resources.MergedDictionaries.Add(authors);
+            area.Show().Resources.MergedDictionaries.Add(authors);
             try
             {
                 area.Style = marked;
                 Assert.Equal(marked, area.Style);
-                Assert.Equal("Georgia", Font(area));
+                Assert.Equal("Georgia", Font(area.Show()));
                 // The author's dictionary was merged after the style, so it wins for a key they both have.
-                Assert.Equal(50.0, area.Resources["ShellSlotSize"]);
+                Assert.Equal(50.0, area.Show().Resources["ShellSlotSize"]);
 
                 shell.Style = other;
-                Assert.Equal("Georgia", Font(area));
+                Assert.Equal("Georgia", Font(area.Show()));
                 area.Style = null;
-                Assert.Equal("Consolas", Font(area));
+                Assert.Equal("Consolas", Font(area.Show()));
                 Assert.Equal(other, shell.Style);
                 shell.Style = null;
-                Assert.Equal("Segoe UI Variable Text,Segoe UI", Font(area));
-                Assert.Equal("keep", area.Resources["author"]);
-                Assert.Equal(50.0, area.Resources["ShellSlotSize"]);
+                Assert.Equal("Segoe UI Variable Text,Segoe UI", Font(area.Show()));
+                Assert.Equal("keep", area.Show().Resources["author"]);
+                Assert.Equal(50.0, area.Show().Resources["ShellSlotSize"]);
             }
             finally
             {
@@ -419,8 +424,8 @@ public sealed class WidgetAreaTests
         await ShellFixture.On(_ =>
         {
             var other = TestStyles.Other();
-            using var area = new WidgetArea { Style = other };
-            var dictionary = area.Resources.MergedDictionaries[0];
+            using var area = new WidgetAreaProps { Style = other };
+            var dictionary = area.Show().Resources.MergedDictionaries[0];
             var dark = (ResourceDictionary)dictionary.ThemeDictionaries["Default"];
             var light = (ResourceDictionary)dictionary.ThemeDictionaries["Light"];
             Assert.Equal(other.Alert, ColorOf((Brush)dark["ShellAlertBrush"]));
@@ -433,7 +438,7 @@ public sealed class WidgetAreaTests
             Assert.NotEqual(other.Alert, ColorOf((Brush)contrast["ShellAlertBrush"]));
 
             area.Style = null;
-            var builtIn = (ResourceDictionary)area.Resources.MergedDictionaries[0].ThemeDictionaries["HighContrast"];
+            var builtIn = (ResourceDictionary)area.Show().Resources.MergedDictionaries[0].ThemeDictionaries["HighContrast"];
             Assert.True(builtIn.ContainsKey("ShellBackgroundBrush"));
             Assert.True(builtIn.ContainsKey("ShellForegroundBrush"));
             Assert.True(builtIn.ContainsKey("ShellAlertBrush"));
@@ -448,13 +453,14 @@ public sealed class WidgetAreaTests
         await ShellFixture.On(async _ =>
         {
             var controls = new PlainControls();
-            using var area = new WidgetArea
+            using var area = new WidgetAreaProps
             {
-                RequestedTheme = ElementTheme.Light,
                 Defaults = [new(controls.Button), new(controls.Text)]
             };
-            using var window = new PanelWindow { Width = 200, Height = 60, Content = area, Visible = true };
-            await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
+            var host = area.Show();
+            host.RequestedTheme = ElementTheme.Light;
+            using var window = new PanelWindow { Width = 200, Height = 60, Content = host, Visible = true };
+            await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
 
             var (glyphButton, glyph) = Assert.Single(controls.Buttons);
             var text = Assert.Single(controls.Lines);
@@ -465,7 +471,7 @@ public sealed class WidgetAreaTests
             Assert.Equal(WindowsText("Light"), ColorOf(text.Foreground));
             Assert.Equal(WindowsText("Light"), ColorOf(glyphButton.Foreground));
 
-            area.RequestedTheme = ElementTheme.Dark;
+            host.RequestedTheme = ElementTheme.Dark;
             await Wait.UntilAsync(() => ColorOf(text.Foreground) == WindowsText("Default"),
                 "the text to take Windows' dark text color");
             Assert.Equal(WindowsText("Default"), ColorOf(glyphButton.Foreground));
@@ -484,11 +490,11 @@ public sealed class WidgetAreaTests
             var popupWidget = Guid.NewGuid().ToString();
             PopupCapture.Context = null;
             Widgets.Register<PopupCapture>(popupWidget);
-            using var follows = new WidgetArea
+            using var follows = new WidgetAreaProps
             {
                 Defaults = [new(controls.Button), new(controls.Text), new(popupWidget)]
             };
-            using var own = new WidgetArea
+            using var own = new WidgetAreaProps
             {
                 Style = TestStyles.Marked(),
                 Defaults = [new(controls.Text)]
@@ -497,7 +503,7 @@ public sealed class WidgetAreaTests
             {
                 Width = 400,
                 Height = 60,
-                Content = new StackPanel { Orientation = Orientation.Horizontal, Children = { follows, own } },
+                Content = new StackPanel { Orientation = Orientation.Horizontal, Children = { follows.Show(), own.Show() } },
                 Visible = true
             };
             await Wait.UntilAsync(
@@ -528,7 +534,7 @@ public sealed class WidgetAreaTests
                 Assert.Equal("Segoe Fluent Icons,Segoe MDL2 Assets", glyph.FontFamily.Source);
                 Assert.Equal(16, glyph.FontSize);
                 Assert.Equal(("Consolas", 18.0), (popupText.FontFamily.Source, popupText.FontSize));
-                Assert.Equal("Georgia", Font(own));
+                Assert.Equal("Georgia", Font(own.Show()));
                 Assert.NotEqual("Consolas", ownText.FontFamily.Source);
                 Assert.Equal(ownFont, ownText.FontFamily.Source);
 
@@ -536,7 +542,7 @@ public sealed class WidgetAreaTests
                 await Wait.UntilAsync(() => glyphButton.ActualWidth == 32, "the area to return to the built-in style");
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", text.FontFamily.Source);
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", popupText.FontFamily.Source);
-                Assert.Equal("Georgia", Font(own));
+                Assert.Equal("Georgia", Font(own.Show()));
             }
             finally
             {
@@ -557,9 +563,9 @@ public sealed class WidgetAreaTests
             TipWidget.Tip = tip;
             Widgets.Register<TipWidget>(widget);
             var other = TestStyles.Other();
-            using var area = new WidgetArea { Style = other, Defaults = [new(widget)] };
-            using var window = new PanelWindow { Width = 100, Height = 40, Content = area, Visible = true };
-            await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
+            using var area = new WidgetAreaProps { Style = other, Defaults = [new(widget)] };
+            using var window = new PanelWindow { Width = 100, Height = 40, Content = area.Show(), Visible = true };
+            await ShellFixture.LaidOut(area.Show()).WaitAsync(TestContext.Current.CancellationToken);
 
             TaskCompletionSource? toggled = null;
             tip.Opened += (_, _) => toggled?.TrySetResult();
@@ -617,8 +623,8 @@ public sealed class WidgetAreaTests
             var name = Guid.NewGuid().ToString();
             AlertWidget.Alert = null;
             Widgets.Register<AlertWidget>(name);
-            using var area = new WidgetArea { Style = TestStyles.Other(), Defaults = [new(name)] };
-            using var window = new PanelWindow { Width = 120, Height = 40, Content = area, Visible = true };
+            using var area = new WidgetAreaProps { Style = TestStyles.Other(), Defaults = [new(name)] };
+            using var window = new PanelWindow { Width = 120, Height = 40, Content = area.Show(), Visible = true };
             await Wait.UntilAsync(() => AlertWidget.Alert is not null, "the alert text to render");
             var alert = AlertWidget.Alert!;
             await ShellFixture.LaidOut(alert).WaitAsync(TestContext.Current.CancellationToken);

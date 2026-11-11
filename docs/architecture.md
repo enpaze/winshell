@@ -20,10 +20,10 @@ Winshell.Shell -> Winshell.Services -> Winshell.Core -> Winshell.Native
 | `Winshell.Native` | Native declarations, COM contracts, unsafe interop, marshaling, native resource ownership and safe managed operations. |
 | `Winshell.Core` | `IEventLoop`, `Log`, `ObservableObject` and `ObservableList`, which raise property and collection changes, TOML and Crashes, with the file and version helpers they use. Shared infrastructure has no dependency on a service feature or WinUI. |
 | `Winshell.Services` | One assembly of feature folders. Services apply policy and publish state on the event loop; feature backends perform platform work. |
-| `Winshell.Shell` | WinUI hosting, the production event loop, window lifecycle and composition through the existing public Shell API. |
+| `Winshell.Shell` | WinUI hosting, the production event loop, window lifecycle, and a window whose content is one component tree. |
 | CLI (`src/Winshell`) | Commands, configuration builds and shell process supervision. |
 
-Keep the existing public Shell API. Moving an implementation does not justify compatibility shims, forwarding assemblies or duplicate implementations. Keep shared infrastructure in Core and feature policy in its owning Services folder.
+A removed public API gets no compatibility shim. Moving an implementation does not justify forwarding assemblies or duplicate implementations. Keep shared infrastructure in Core and feature policy in its owning Services folder.
 
 ## Sealed interop
 
@@ -63,9 +63,9 @@ Media keeps one type per job, the split from #1102. `ISmtcLink` (#1306) stays th
 
 ## Shell
 
-Keep `HostWindow` split by responsibility, with explicit owners for window lifetime, placement, native message handling and presentation. Keep `Shell.cs` and `ShellServices.cs` thin: they compose focused types instead of collecting feature behavior. Preserve disposal order, event-loop affinity, cancellation and the existing public Shell API.
+Keep `HostWindow` split by responsibility, with explicit owners for window lifetime, placement, native message handling and presentation. Keep `Shell.cs` and `ShellServices.cs` thin: they compose focused types instead of collecting feature behavior. Preserve disposal order, event-loop affinity and cancellation.
 
-A shell author builds from primitives, building blocks and compositions such as `Bar`, and a composition uses only public API: see [shells are built from public building blocks](adr/0001-shells-are-built-from-public-building-blocks.md). A widget is a component: see [UI is built with Reactor](adr/0005-ui-is-built-with-reactor.md).
+A window's content is one Reactor host. A bar's host shows a surface, and that surface shows three widget areas, and each area shows its widgets: one tree, not a control per placement. A shell author builds from primitives, building blocks and compositions such as `Bar`, and a composition uses only public API: see [shells are built from public building blocks](adr/0001-shells-are-built-from-public-building-blocks.md). Widgets, widget areas and surfaces are components: see [UI is built with Reactor](adr/0005-ui-is-built-with-reactor.md).
 
 ## Crash supervision
 

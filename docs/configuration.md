@@ -305,12 +305,16 @@ Saving applies it live:
 
 ### A surface of your own
 
-A bar's areas sit on a [Surface](reference/winshell.md#surface), which paints the [style's](#style) `ShellBackgroundBrush` behind them in the window's light or dark theme, and follows a switch while the shell runs. A brush your code reads from the style comes back in the theme the app started in, so give a window of your own a surface too:
+A bar's areas sit in one [Surface](reference/winshell.md#surface) component, which paints the [style's](#style) `ShellBackgroundBrush` behind them in the window's light or dark theme, and follows a switch while the shell runs. `Show` puts that tree in one host, which is the window's content. A brush your code reads from the style comes back in the theme the app started in, so give a window of your own a surface too:
 
 ```csharp
-        var area = new WidgetArea { Defaults = ["start", "tasks"] };
-        var surface = new Surface { Padding = new Thickness(4), Content = area };
-        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = surface, Visible = true };
+        var area = new WidgetAreaProps { Defaults = ["start", "tasks"] };
+        var surface = new SurfaceProps
+        {
+            Padding = new Thickness(4),
+            Content = Component<WidgetArea, WidgetAreaProps>(area)
+        };
+        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = surface.Show(), Visible = true };
         dock.Closed += () =>
         {
             area.Dispose();
@@ -318,11 +322,11 @@ A bar's areas sit on a [Surface](reference/winshell.md#surface), which paints th
         };
 ```
 
-What a surface holds is in its style too, and stays loaded when the style changes. Its own `Style` wins over the shell's, as an area's does, and `Dispose` stops it following the shell's.
+What a surface holds is in its style too, and stays loaded when the style changes. Its own `Style` wins over the shell's, as an area's does, and disposing the props stops it following the shell's. The area inside the tree is a component, not a second host.
 
 ## Widgets
 
-A [WidgetArea](reference/winshell.md#widgetarea) can go anywhere in a window. List widgets in your configuration's project, next to their project or package references:
+A [widget area](reference/winshell.md#widgetareaprops) is a component. `Show` mounts it as a window's content, and the same component can sit inside a surface. List widgets in your configuration's project, next to their project or package references:
 
 ```xml
 <ItemGroup>
@@ -384,7 +388,7 @@ Nothing reads the XAML file. A control Reactor has no element for is embedded wi
 Each placement passes the running `Shell`, the shell window the area is drawn in, that placement's settings and the area's orientation in its `WidgetContext`. `Props.Window` is null until the area is in a window, and the widget renders again once it is, so a widget reads the screen from `Props.Window.Screen`. One instance serves a placement, rendered again with a new `WidgetContext` when the settings, the orientation or the window change. Several placements may use one widget:
 
 ```csharp
-        var area = new WidgetArea
+        var area = new WidgetAreaProps
         {
             Name = "end",
             Orientation = Orientation.Horizontal,
@@ -394,7 +398,7 @@ Each placement passes the running `Shell`, the shell window the area is drawn in
                 new("message", new Dictionary<string, object> { ["text"] = "World" })
             ]
         };
-        var panel = new PanelWindow { Height = 48, Content = area, Visible = true };
+        var panel = new PanelWindow { Height = 48, Content = area.Show(), Visible = true };
         panel.Closed += area.Dispose;
 ```
 
@@ -407,7 +411,7 @@ Each placement passes the running `Shell`, the shell window the area is drawn in
 
 ### Let the user change an area
 
-Set an area's inherited WinUI `Name` to let the user replace its placements. The area then has a section of the [preferences file](#preferences), which holds one `widgets` list. Names are case-sensitive, and areas with the same name use the same section. An area with no name always uses its defaults. A missing file is written with each named area's defaults commented out. Uncomment the list and edit it:
+Set an area's `Name` to let the user replace its placements. The section is created when the name is set, before the area is shown. It holds one `widgets` list. Names are case-sensitive, and areas with the same name use the same section. An area with no name always uses its defaults. A missing file is written with each named area's defaults commented out. Uncomment the list and edit it:
 
 ```toml
 [end]

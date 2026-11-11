@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using static Microsoft.UI.Reactor.Factories;
 using Color = global::Windows.UI.Color;
 
 namespace Winshell.ShellTests;
@@ -56,9 +57,9 @@ public static class GuideSamples
         _ = _registration;
     }
 
-    public static (WidgetArea Area, PanelWindow Panel) AWidgetArea()
+    public static (WidgetAreaProps Area, PanelWindow Panel) AWidgetArea()
     {
-        var area = new WidgetArea
+        var area = new WidgetAreaProps
         {
             Name = "end",
             Orientation = Orientation.Horizontal,
@@ -68,7 +69,7 @@ public static class GuideSamples
                 new("message", new Dictionary<string, object> { ["text"] = "World" })
             ]
         };
-        var panel = new PanelWindow { Height = 48, Content = area, Visible = true };
+        var panel = new PanelWindow { Height = 48, Content = area.Show(), Visible = true };
         panel.Closed += area.Dispose;
         return (area, panel);
     }
@@ -88,9 +89,13 @@ public static class GuideSamples
 
     public static PanelWindow ASurface()
     {
-        var area = new WidgetArea { Defaults = ["start", "tasks"] };
-        var surface = new Surface { Padding = new Thickness(4), Content = area };
-        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = surface, Visible = true };
+        var area = new WidgetAreaProps { Defaults = ["start", "tasks"] };
+        var surface = new SurfaceProps
+        {
+            Padding = new Thickness(4),
+            Content = Component<WidgetArea, WidgetAreaProps>(area)
+        };
+        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = surface.Show(), Visible = true };
         dock.Closed += () =>
         {
             area.Dispose();

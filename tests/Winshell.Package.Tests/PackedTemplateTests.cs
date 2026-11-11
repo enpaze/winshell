@@ -79,7 +79,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             {
                 public override void Start(Shell shell)
                 {
-                    var area = new WidgetArea
+                    var area = new WidgetAreaProps
                     {
                         Defaults =
                         [
@@ -88,7 +88,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
                             new("quote\"slash\\semi;line\nend", new Dictionary<string, object> { ["value"] = "two" })
                         ]
                     };
-                    var window = new PanelWindow { Width = 250, Height = 80, Content = area, Visible = true };
+                    var window = new PanelWindow { Width = 250, Height = 80, Content = area.Show(), Visible = true };
                     window.Closed += area.Dispose;
                 }
             }
@@ -282,11 +282,11 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             {
                 public override void Start(Shell shell)
                 {
-                    var area = new WidgetArea
+                    var area = new WidgetAreaProps
                     {
                         Defaults = [new("installed-clock", new Dictionary<string, object> { ["value"] = "one" })]
                     };
-                    var window = new PanelWindow { Width = 250, Height = 80, Content = area, Visible = true };
+                    var window = new PanelWindow { Width = 250, Height = 80, Content = area.Show(), Visible = true };
                     window.Closed += area.Dispose;
                 }
             }

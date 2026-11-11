@@ -1,120 +1,169 @@
+using System.Globalization;
+using Microsoft.UI.Reactor;
+using Microsoft.UI.Reactor.Core;
+using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Markup;
+using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
 /// <summary>
-/// A control that paints the style's <c>ShellBackgroundBrush</c> behind its content in the window's theme, as plain
-/// controls take theirs, so a switch between light and dark while the shell runs reaches it. What it holds is in its
-/// style too. Make it the root of a bar, a dock or any composition, use it on the shell's thread, and dispose it when
-/// its owner closes. The style gives its background, so its own <c>Background</c>, border and corners don't show.
+/// What a <see cref="Surface"/> shows. Parent <see cref="Show"/>'s host, and dispose these props when the owner closes.
+/// The content is the owner's to dispose: disposing the surface does not dispose it.
 /// <code>
-/// var surface = new Surface { Content = new WidgetArea { Defaults = ["clock"] } };
+/// var area = new WidgetAreaProps { Defaults = ["clock"] };
+/// var surface = new SurfaceProps { Content = Component&lt;WidgetArea, WidgetAreaProps&gt;(area) };
+/// window.Content = surface.Show();
 /// </code>
 /// </summary>
-public sealed partial class Surface : ContentControl, IDisposable
+public sealed class SurfaceProps : ObservableObject, IDisposable
 {
-    // The background is a layer of its own under the content, so a new style replaces only the layer, and what the
-    // surface holds stays loaded.
-    private const string Layers = """
-        <ControlTemplate
-          xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-          TargetType="ContentControl">
-          <Grid>
-            <ContentControl x:Name="BackgroundLayer" IsTabStop="False" />
-            <ContentPresenter
-              Margin="{TemplateBinding Padding}"
-              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
-          </Grid>
-        </ControlTemplate>
-        """;
-
-    // WinUI reads a brush from code in the app's theme, not the window's, and looks a {ThemeResource} up in the
-    // dictionaries in scope where the XAML is read, not in the control's resources. So the layer's template is read in
-    // a dictionary that merges the style, and a style needs only its ShellBackgroundBrush.
-    private const string Styled = """
-        <ResourceDictionary
-          xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-          <ResourceDictionary.MergedDictionaries>
-            {0}
-          </ResourceDictionary.MergedDictionaries>
-          <ControlTemplate x:Key="SurfaceBackground" TargetType="ContentControl">
-            <Border Background="{ThemeResource ShellBackgroundBrush}" />
-          </ControlTemplate>
-        </ResourceDictionary>
-        """;
-
     private readonly Shell _shell = Shell.Current;
+    private ReactorHostControl? _host;
+    private Element? _content;
     private ShellStyle? _style;
-    private ResourceDictionary? _styleResources;
-    private ContentControl? _background;
+    private Thickness _padding;
     private bool _disposed;
 
-    /// <summary>An empty surface in the shell's style.</summary>
-    public Surface()
+    /// <summary>An empty surface in the shell's style. Make it on the shell's thread.</summary>
+    public SurfaceProps()
     {
-        IsTabStop = false;
-        HorizontalContentAlignment = HorizontalAlignment.Stretch;
-        VerticalContentAlignment = VerticalAlignment.Stretch;
-        Template = (ControlTemplate)XamlReader.Load(Layers);
-        LoadStyle(null);
         _shell.StyleChanged += FollowShellStyle;
     }
 
+    /// <summary>The host <see cref="Show"/> returned, or null before that.</summary>
+    public ReactorHostControl? Host => _host;
+
     /// <summary>
-    /// The surface's own style, which wins over the shell's, or null for <see cref="Shell.Style"/>. It hides the
-    /// inherited WinUI <c>Style</c>, which a surface does not use.
+    /// What the surface holds, in its style. The same element stays loaded when the style changes. Null shows nothing.
     /// </summary>
-    public new ShellStyle? Style
+    public Element? Content
+    {
+        get => _content;
+        set
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _content = value;
+            Changed();
+        }
+    }
+
+    /// <summary>The space around <see cref="Content"/>, in logical pixels. It does not unload the content.</summary>
+    public Thickness Padding
+    {
+        get => _padding;
+        set
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_padding == value)
+                return;
+            _padding = value;
+            Changed();
+        }
+    }
+
+    /// <summary>
+    /// The surface's own style, which wins over the shell's, or null for <see cref="Shell.Style"/>. Changing it
+    /// replaces the dictionary the background and the content read, and the content stays loaded.
+    /// </summary>
+    public ShellStyle? Style
     {
         get => _style;
         set
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            LoadStyle(value);
+            _style = value;
+            Restyle();
         }
     }
 
-    /// <summary>Gives the background layer the style's template once the surface's own is applied.</summary>
-    protected override void OnApplyTemplate()
+    /// <summary>Bumps when the dictionary is replaced, so the background reads the new brush. The content is not keyed on it.</summary>
+    internal int StyleStamp { get; private set; }
+
+    /// <summary>Mounts this surface. The dictionary is on the host before its tree is, so what it holds inherits the style.</summary>
+    public ReactorHostControl Show()
     {
-        base.OnApplyTemplate();
-        _background = (ContentControl)GetTemplateChild("BackgroundLayer");
-        _background.Template = (ControlTemplate)_styleResources!["SurfaceBackground"];
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_host is not null)
+            return _host;
+        _host = StyleHost.Create<Surface, SurfaceProps>(this);
+        StyleHost.Apply(_host, _style);
+        return _host;
     }
 
-    private void FollowShellStyle()
-    {
-        if (_style is null)
-            LoadStyle(null);
-    }
-
-    /// <summary>Shows the surface's own style, or the shell's for null.</summary>
-    private void LoadStyle(ShellStyle? own)
-    {
-        var next = (ResourceDictionary)XamlReader.Load(
-            Styled.Replace("{0}", Shell.DictionaryXaml(own ?? _shell.Style), StringComparison.Ordinal));
-        _style = own;
-        if (_styleResources is not null)
-            Resources.MergedDictionaries.Remove(_styleResources);
-        _styleResources = next;
-        // First, so a dictionary the author merged into the surface wins over the style for what the surface holds.
-        // The background is always the style's.
-        Resources.MergedDictionaries.Insert(0, next);
-        // A new template reads the background again, from the new style.
-        _background?.Template = (ControlTemplate)next["SurfaceBackground"];
-    }
-
-    /// <summary>Stops following the shell's style. The content is the owner's to dispose.</summary>
+    /// <summary>Stops following the shell's style and disposes the host. The content is left as it is.</summary>
     public void Dispose()
     {
         if (_disposed)
             return;
         _disposed = true;
         _shell.StyleChanged -= FollowShellStyle;
+        _host?.Dispose();
+    }
+
+    private void FollowShellStyle()
+    {
+        if (_style is null)
+            Restyle();
+    }
+
+    private void Restyle()
+    {
+        if (_host is not null)
+            StyleHost.Apply(_host, _style);
+        StyleStamp++;
+        Changed(nameof(Style));
+    }
+}
+
+/// <summary>
+/// Paints the style's <c>ShellBackgroundBrush</c> behind its content in the window's theme, as plain controls take
+/// theirs, so a switch between light and dark while the shell runs reaches it. A bar's window shows one of these as
+/// its tree, with the bar's areas inside it.
+/// </summary>
+public sealed class Surface : Component<SurfaceProps>
+{
+    /// <summary>The background under the content. The content is not keyed, so a new style leaves it loaded.</summary>
+    public override Element Render()
+    {
+        var props = UseObservable(Props);
+        var content = (props.Content ?? Empty()).Padding(props.Padding);
+        // The brush is a {ThemeResource} read where this XAML is parsed, so the style dictionary has to be in that
+        // dictionary. A new style parses it again. The content is not keyed, so it stays loaded.
+        return Grid(
+            [GridSize.Star()],
+            [GridSize.Star()],
+            XamlHost(() => BackgroundLayer(props.Style ?? Shell.Current.Style))
+                .WithKey(string.Create(CultureInfo.InvariantCulture, $"background{props.StyleStamp}"))
+                .Grid(0, 0),
+            content.Grid(0, 0));
+    }
+
+    /// <summary>
+    /// A layer whose template paints <c>ShellBackgroundBrush</c>. Parsed with the style merged in, so the theme
+    /// resource resolves, and a theme switch reaches it without a new layer.
+    /// </summary>
+    private static ContentControl BackgroundLayer(ShellStyle? style)
+    {
+        var xaml = "<ResourceDictionary xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" " +
+                   "xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\">" +
+                   "<ResourceDictionary.MergedDictionaries>" + Shell.DictionaryXaml(style) +
+                   "</ResourceDictionary.MergedDictionaries>" +
+                   "<ControlTemplate x:Key=\"SurfaceBackground\" TargetType=\"ContentControl\">" +
+                   "<Border Background=\"{ThemeResource ShellBackgroundBrush}\" />" +
+                   "</ControlTemplate></ResourceDictionary>";
+        var dictionary = (ResourceDictionary)XamlReader.Load(xaml);
+        return new ContentControl
+        {
+            IsTabStop = false,
+            IsHitTestVisible = false,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            VerticalContentAlignment = VerticalAlignment.Stretch,
+            Template = (ControlTemplate)dictionary["SurfaceBackground"]
+        };
     }
 }

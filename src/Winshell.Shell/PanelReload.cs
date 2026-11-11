@@ -36,7 +36,7 @@ internal static class PanelReload
             if (window.Content is not { } content)
                 continue;
             List<UIElement> controls = [];
-            List<WidgetArea> areas = [];
+            List<WidgetAreaProps> areas = [];
             Find(content, edited, own, controls, areas);
             foreach (var control in controls)
                 MakeAgain(shell, window, control);
@@ -60,9 +60,9 @@ internal static class PanelReload
     /// <paramref name="controls"/>.
     /// </summary>
     private static void Find(DependencyObject element, HashSet<Type> edited, HashSet<Assembly> own,
-        List<UIElement> controls, List<WidgetArea> areas)
+        List<UIElement> controls, List<WidgetAreaProps> areas)
     {
-        if (element is WidgetArea)
+        if (AreaSessions.TryGet(element, out _))
         {
             Shows(element, edited, areas);
             return;
@@ -70,7 +70,7 @@ internal static class PanelReload
 
         if (element is UIElement control && own.Contains(element.GetType().Assembly))
         {
-            List<WidgetArea> inside = [];
+            List<WidgetAreaProps> inside = [];
             if (Shows(control, edited, inside))
                 controls.Add(control);
             else
@@ -86,15 +86,15 @@ internal static class PanelReload
     /// Whether <paramref name="element"/> shows an edited type outside a widget area. Each outermost area that shows one
     /// goes in <paramref name="areas"/> instead, since an area can make its widgets again.
     /// </summary>
-    private static bool Shows(DependencyObject element, HashSet<Type> edited, List<WidgetArea> areas)
+    private static bool Shows(DependencyObject element, HashSet<Type> edited, List<WidgetAreaProps> areas)
     {
         if (edited.Contains(element.GetType()))
             return true;
-        List<WidgetArea> inside = element is WidgetArea ? [] : areas;
+        List<WidgetAreaProps> inside = AreaSessions.TryGet(element, out _) ? [] : areas;
         var shows = false;
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(element); i++)
             shows |= Shows(VisualTreeHelper.GetChild(element, i), edited, inside);
-        if (element is not WidgetArea area)
+        if (!AreaSessions.TryGet(element, out var area))
             return shows;
         if (shows || inside.Count > 0)
             areas.Add(area);

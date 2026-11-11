@@ -1,4 +1,5 @@
 using Microsoft.UI.Reactor.Core;
+using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -34,7 +35,7 @@ public sealed class BarTests
                 var firstBar = Assert.Single(BarsOn(shell, first));
                 Assert.Equal(Edges.Left | Edges.Right | Edges.Top, firstBar.Anchors);
                 Assert.Equal(32, firstBar.Height);
-                Assert.All(AreasOf(firstBar), area => Assert.Equal(Orientation.Horizontal, area.Orientation));
+                Assert.All(await AreasOf(firstBar), area => Assert.Equal(Orientation.Horizontal, area.Orientation));
                 await Wait.UntilAsync(() => TextsOn(made, firstBar).SequenceEqual([""]), "the center widget to render");
 
                 screens.Add(second);
@@ -87,7 +88,7 @@ public sealed class BarTests
                 var tallBar = Assert.Single(BarsOn(shell, tall));
                 Assert.Equal(Edges.Left | Edges.Top | Edges.Bottom, tallBar.Anchors);
                 Assert.Equal(32, tallBar.Width);
-                Assert.All(AreasOf(tallBar), area => Assert.Equal(Orientation.Vertical, area.Orientation));
+                Assert.All(await AreasOf(tallBar), area => Assert.Equal(Orientation.Vertical, area.Orientation));
 
                 await Save(shell, path, Section(name, widget, "top", "right", "from the file"));
                 tallBar = await Replaced(shell, tall, tallBar);
@@ -104,7 +105,7 @@ public sealed class BarTests
                 wideBar = await Replaced(shell, wide, wideBar);
                 tallBar = await Replaced(shell, tall, tallBar);
                 Assert.Equal(Edges.Left | Edges.Right | Edges.Bottom, wideBar.Anchors);
-                Assert.All(AreasOf(wideBar), area => Assert.Equal(Orientation.Horizontal, area.Orientation));
+                Assert.All(await AreasOf(wideBar), area => Assert.Equal(Orientation.Horizontal, area.Orientation));
                 Assert.Equal(Edges.Right | Edges.Top | Edges.Bottom, tallBar.Anchors);
                 await Wait.UntilAsync(
                     () => TextsOn(made, wideBar).SequenceEqual(["saved"]) && TextsOn(made, tallBar).SequenceEqual(["saved"]),
@@ -227,7 +228,7 @@ public sealed class BarTests
                 Assert.Equal(32, followsBar.Height);
                 var ownBar = Assert.Single(bars, window => window.Anchors.HasFlag(Edges.Bottom) && window.Anchors.HasFlag(Edges.Right));
                 Assert.Equal(40, ownBar.Height);
-                await ShellFixture.LaidOut(Assert.IsType<Surface>(ownBar.Content)).WaitAsync(TestContext.Current.CancellationToken);
+                await ShellFixture.LaidOut(Assert.IsType<ReactorHostControl>(ownBar.Content)).WaitAsync(TestContext.Current.CancellationToken);
                 Assert.Equal(global::Windows.UI.Color.FromArgb(0xff, 0x1a, 0x1b, 0x26), BackgroundOf(ownBar.Content!));
                 Assert.Equal(20, Assert.Single(bars, window => !window.Anchors.HasFlag(Edges.Right)).Width);
 
@@ -385,9 +386,13 @@ public sealed class BarTests
         return [.. shell.Platform.Windows.Select(host => host.Client).OfType<PanelWindow>().Where(window => window.Screen == screen)];
     }
 
-    private static IEnumerable<WidgetArea> AreasOf(PanelWindow bar)
+    private static async Task<List<StackPanel>> AreasOf(PanelWindow bar)
     {
-        return Assert.IsType<Grid>(Assert.IsType<Surface>(bar.Content).Content).Children.Cast<WidgetArea>();
+        var host = Assert.IsType<ReactorHostControl>(bar.Content);
+        await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
+        var areas = AreaSessions.Panels(host);
+        Assert.Equal(3, areas.Count);
+        return areas;
     }
 
     /// <summary>
@@ -396,12 +401,11 @@ public sealed class BarTests
     /// </summary>
     private static async Task<(Point Start, Point End)> Ends(PanelWindow bar)
     {
-        var surface = Assert.IsType<Surface>(bar.Content);
-        await ShellFixture.LaidOut(surface).WaitAsync(TestContext.Current.CancellationToken);
-        var areas = AreasOf(bar).ToList();
-        var start = areas[0].TransformToVisual(surface).TransformPoint(default);
-        var last = areas[2].TransformToVisual(surface).TransformPoint(new Point(areas[2].ActualWidth, areas[2].ActualHeight));
-        return (start, new Point(surface.ActualWidth - last.X, surface.ActualHeight - last.Y));
+        var host = Assert.IsType<ReactorHostControl>(bar.Content);
+        var areas = await AreasOf(bar);
+        var start = areas[0].TransformToVisual(host).TransformPoint(default);
+        var last = areas[2].TransformToVisual(host).TransformPoint(new Point(areas[2].ActualWidth, areas[2].ActualHeight));
+        return (start, new Point(host.ActualWidth - last.X, host.ActualHeight - last.Y));
     }
 
     /// <summary>The color behind what <paramref name="root"/> holds: the first background in its tree.</summary>

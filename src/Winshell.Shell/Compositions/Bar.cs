@@ -1,5 +1,8 @@
+using Microsoft.UI.Reactor;
+using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
@@ -11,6 +14,7 @@ namespace Winshell;
 /// </code>
 /// It shows on the next turn of the loop, once its properties are set, and <see cref="Dispose"/> removes it. A bar
 /// reserves its edge and leaves Explorer's taskbar as it is. A left or right edge runs the areas from top to bottom.
+/// One window's content is one tree: a <see cref="Surface"/> with three <see cref="WidgetArea"/> components.
 /// <para>
 /// Its section of the preferences file, named after <see cref="Name"/>, holds <c>edge</c>, <c>start</c>,
 /// <c>center</c> and <c>end</c>, which replace the properties of the same names while the file has them. A
@@ -77,15 +81,15 @@ public sealed class Bar : IDisposable
     public bool Reserve { get; init; } = true;
 
     /// <summary>
-    /// The height of a top or bottom bar, or the width of a side bar, in logical pixels. Null takes the style's
-    /// <c>ShellSlotSize</c>.
+    /// The height of a top or bottom bar, or the width of a side bar, in logical pixels. Null takes the style's slot
+    /// size, 32 for the built-in style.
     /// </summary>
     public double? Thickness { get; init; }
 
     /// <summary>
     /// The space between the areas and each end of the bar, along its length, in logical pixels: at the left and
-    /// right of a top or bottom bar, and at the top and bottom of a side bar. Null takes the style's
-    /// <c>ShellPadding</c>, or none when the style has no such key.
+    /// right of a top or bottom bar, and at the top and bottom of a side bar. Null takes the style's padding, 4 for
+    /// the built-in style, or none when the style sets no padding.
     /// </summary>
     public double? Padding { get; init; }
 
@@ -138,51 +142,63 @@ public sealed class Bar : IDisposable
         var section = _preferences!;
         var edge = EdgeNames[(string)Pick("edge", section.Edge)];
         var vertical = edge is Edges.Left or Edges.Right;
-        var start = Area("start", section.Start, HorizontalAlignment.Left, VerticalAlignment.Top);
-        var center = Area("center", section.Center, HorizontalAlignment.Center, VerticalAlignment.Center);
-        var end = Area("end", section.End, HorizontalAlignment.Right, VerticalAlignment.Bottom);
-        var shown = new Shown([start, center, end]);
+        var start = Area("start", section.Start);
+        var center = Area("center", section.Center);
+        var end = Area("end", section.End);
+        var areas = new[] { start, center, end };
+        SurfaceProps? surface = null;
         try
         {
-            // The surface paints the style's background behind the areas, in the window's theme.
-            var areas = new Grid { Children = { start, center, end } };
-            var surface = shown.Surface = new Surface { Style = Style, Content = areas };
-            var thickness = Thickness ?? (double)surface.Resources["ShellSlotSize"];
-            // A style may leave ShellPadding out, and then the bar has none.
-            var padding = Padding ?? (surface.Resources.TryGetValue("ShellPadding", out var space) ? (double)space : 0);
-            areas.Padding = vertical ? new Thickness(0, padding, 0, padding) : new Thickness(padding, 0, padding, 0);
-            var window = shown.Window = new PanelWindow
+            var look = Style ?? _shell.Style;
+            var thickness = Thickness ?? look?.SlotSize ?? 32;
+            // A style may leave padding unset, and then the bar has none. The built-in style uses 4.
+            var padding = Padding ?? (look is null ? 4 : look.Padding ?? 0);
+            var gap = vertical ? new Thickness(0, padding, 0, padding) : new Thickness(padding, 0, padding, 0);
+            // One cell, so the areas overlap and each alignment pins one of them. The surface paints the background.
+            var content = Grid(
+                [GridSize.Star()],
+                [GridSize.Star()],
+                Placed(start, HorizontalAlignment.Left, VerticalAlignment.Top),
+                Placed(center, HorizontalAlignment.Center, VerticalAlignment.Center),
+                Placed(end, HorizontalAlignment.Right, VerticalAlignment.Bottom));
+            surface = new SurfaceProps { Style = Style, Content = content, Padding = gap };
+            var host = surface.Show();
+            var window = new PanelWindow
             {
                 Screen = screen,
                 Anchors = edge | (vertical ? Edges.Top | Edges.Bottom : Edges.Left | Edges.Right),
                 ReservedSize = Reserve ? thickness : 0,
-                Content = surface
+                Content = host
             };
             if (vertical)
                 window.Width = thickness;
             else
                 window.Height = thickness;
             window.Visible = true;
-            return shown;
+            return new Shown(areas, surface, window);
         }
         catch
         {
-            // A style without a key the bar reads, say. The areas' widgets go with the bar that couldn't be shown.
-            shown.Dispose();
+            // A failure while the window is being made. The areas' widgets go with the bar that couldn't be shown.
+            surface?.Dispose();
+            foreach (var area in areas)
+                area.Dispose();
             throw;
         }
 
-        WidgetArea Area(string key, object placements, HorizontalAlignment across, VerticalAlignment down)
+        WidgetAreaProps Area(string key, object placements) => new()
         {
-            return new WidgetArea
-            {
-                Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal,
-                Style = Style,
-                HorizontalAlignment = vertical ? HorizontalAlignment.Stretch : across,
-                VerticalAlignment = vertical ? down : VerticalAlignment.Stretch,
-                Defaults = Placements(Pick(key, placements))
-            };
-        }
+            Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal,
+            Style = Style,
+            Defaults = Placements(Pick(key, placements))
+        };
+
+        Element Placed(WidgetAreaProps props, HorizontalAlignment across, VerticalAlignment down) =>
+            Component<WidgetArea, WidgetAreaProps>(props)
+                .HAlign(vertical ? HorizontalAlignment.Stretch : across)
+                .VAlign(vertical ? down : VerticalAlignment.Stretch)
+                .WithKey($"{across}:{down}")
+                .Grid(0, 0);
 
         // The row's value for a key, when it has one that can be used, or the section's.
         object Pick(string key, object fromSection)
@@ -280,19 +296,15 @@ public sealed class Bar : IDisposable
         }
     }
 
-    /// <summary>One screen's bar: its areas and their widgets, and its surface and panel once it has them.</summary>
-    private sealed class Shown(WidgetArea[] areas) : IDisposable
+    /// <summary>One screen's bar: its areas, the surface that hosts them, and its panel.</summary>
+    private sealed class Shown(WidgetAreaProps[] areas, SurfaceProps surface, PanelWindow window) : IDisposable
     {
-        public Surface? Surface { get; set; }
-
-        public PanelWindow? Window { get; set; }
-
         public void Dispose()
         {
+            surface.Dispose();
             foreach (var area in areas)
                 area.Dispose();
-            Surface?.Dispose();
-            Window?.Dispose();
+            window.Dispose();
         }
     }
 }

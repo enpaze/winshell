@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Winshell.ShellTests;
@@ -142,14 +143,25 @@ internal static class ShellFixture
         }
     }
 
-    /// <summary>Completes once the element has a size, which comes after it loads.</summary>
-    public static Task LaidOut(FrameworkElement element)
+    /// <summary>
+    /// Completes once the element has a size, which comes after it loads. A host renders its component on the
+    /// dispatcher after that, so this also waits until that render has finished.
+    /// </summary>
+    public static async Task LaidOut(FrameworkElement element)
     {
-        if (element.ActualWidth > 0)
-            return Task.CompletedTask;
-        var sized = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        element.SizeChanged += (_, _) => sized.TrySetResult();
-        return sized.Task;
+        if (element.ActualWidth <= 0)
+        {
+            var sized = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            element.SizeChanged += (_, _) => sized.TrySetResult();
+            await sized.Task;
+        }
+
+        if (element is ReactorHostControl host)
+        {
+            await host.WaitForIdleAsync();
+            // The component is mounted after the host's first layout, so the children get a pass of their own.
+            host.UpdateLayout();
+        }
     }
 
     /// <summary>What the shell has logged so far.</summary>
