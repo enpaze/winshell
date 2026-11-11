@@ -277,7 +277,8 @@ public sealed class WifiProfileTests
     [InlineData(0x1u, 0x1u)]
     [InlineData(0x3u, 0x3u)]
     [InlineData(0x0u, 0x0u)]
-    public void Writes_keep_the_profile_flag_and_drop_a_plaintext_bit(uint reported, uint written)
+    public void Profile_write_flags_keep_the_user_and_group_bits_and_drop_a_plaintext_bit(uint reported,
+        uint written)
     {
         Assert.Equal(written, Wlan.ProfileWriteFlags(reported));
     }

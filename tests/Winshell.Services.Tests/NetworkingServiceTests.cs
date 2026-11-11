@@ -647,9 +647,10 @@ public sealed class NetworkingServiceTests
         Assert.Equal(ConnectionState.Connected, ethernet.State);
         Assert.Equal(wiredId.ToString(), ethernet.Device.Id);
         Assert.Empty(ethernet.SavedProfiles);
-        Assert.Empty(Commands(ethernet));
+        Assert.Empty(WifiCommands(ethernet.GetType()));
+        Assert.Empty(WifiCommands(typeof(Winshell.Network.Network)));
         Assert.Equal(["Connect", "ConnectWithPassword", "ConnectWithProfile", "Disconnect", "Forget"],
-            Commands(wireless).Order(StringComparer.Ordinal).ToArray());
+            WifiCommands(wireless.GetType()).Order(StringComparer.Ordinal).ToArray());
         Assert.Empty(session.Backend.Calls);
     }
 
@@ -658,11 +659,15 @@ public sealed class NetworkingServiceTests
         return property.PropertyType == typeof(ObservableList<Winshell.Network.Network>);
     }
 
-    private static IEnumerable<string> Commands(object network)
+    // Inherited methods too, so a command on Network still counts as a command of a wired network.
+    private static IEnumerable<string> WifiCommands(Type type)
     {
-        return network.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
+        return type.GetMethods(BindingFlags.Instance | BindingFlags.Public)
             .Where(method => !method.IsSpecialName)
-            .Select(method => method.Name);
+            .Select(method => method.Name)
+            .Where(name => name is "Connect" or "ConnectWithPassword" or "ConnectWithProfile"
+                or "Disconnect" or "Forget")
+            .Distinct();
     }
 
     private sealed class Session : IDisposable
