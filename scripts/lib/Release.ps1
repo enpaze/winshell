@@ -102,6 +102,8 @@ function Assert-WinshellDoctor([string] $Exe, [string] $Directory) {
     $config = Join-Path $Directory 'config'
     $local = Join-Path $Directory 'local'
     New-Item -ItemType Directory -Force -Path $config, $local | Out-Null
+    $savedConfig = $env:WINSHELL_CONFIG_DIR
+    $savedLocal = $env:WINSHELL_LOCAL_DIR
     $env:WINSHELL_CONFIG_DIR = $config
     $env:WINSHELL_LOCAL_DIR = $local
     try {
@@ -113,7 +115,10 @@ function Assert-WinshellDoctor([string] $Exe, [string] $Directory) {
         $broken = @($checks | Where-Object { Test-DoctorCouldNotCheck $_.message })
         if ($broken.Count -gt 0) { throw "winshell doctor could not run its $($broken[0].id) check: $($broken[0].message)" }
     } finally {
-        Remove-Item -LiteralPath Env:WINSHELL_CONFIG_DIR, Env:WINSHELL_LOCAL_DIR
+        if ($null -eq $savedConfig) { Remove-Item Env:WINSHELL_CONFIG_DIR -ErrorAction SilentlyContinue }
+        else { $env:WINSHELL_CONFIG_DIR = $savedConfig }
+        if ($null -eq $savedLocal) { Remove-Item Env:WINSHELL_LOCAL_DIR -ErrorAction SilentlyContinue }
+        else { $env:WINSHELL_LOCAL_DIR = $savedLocal }
     }
 }
 

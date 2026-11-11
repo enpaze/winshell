@@ -273,6 +273,24 @@ exit /b $DoctorExit
         Assert-WinshellRuns $script:Exe '1.2.3' (Join-Path $TestDrive 'doctor') | Should -Be 'winshell 1.2.3'
     }
 
+    It 'restores the doctor folders it replaced' {
+        $savedConfig = $env:WINSHELL_CONFIG_DIR
+        $savedLocal = $env:WINSHELL_LOCAL_DIR
+        $env:WINSHELL_CONFIG_DIR = 'kept-config'
+        $env:WINSHELL_LOCAL_DIR = 'kept-local'
+        try {
+            Set-WinshellStub '{"checks":[{"id":"dpi","message":"No screens"}]}' 1
+            Assert-WinshellRuns $script:Exe '1.2.3' (Join-Path $TestDrive 'doctor') | Should -Be 'winshell 1.2.3'
+            $env:WINSHELL_CONFIG_DIR | Should -Be 'kept-config'
+            $env:WINSHELL_LOCAL_DIR | Should -Be 'kept-local'
+        } finally {
+            if ($null -eq $savedConfig) { Remove-Item Env:WINSHELL_CONFIG_DIR -ErrorAction SilentlyContinue }
+            else { $env:WINSHELL_CONFIG_DIR = $savedConfig }
+            if ($null -eq $savedLocal) { Remove-Item Env:WINSHELL_LOCAL_DIR -ErrorAction SilentlyContinue }
+            else { $env:WINSHELL_LOCAL_DIR = $savedLocal }
+        }
+    }
+
     It 'stops when doctor <Case>' -ForEach @(
         @{ Case = 'exits 2'; Json = '{"checks":[{"id":"dpi","message":"ok"}]}'; Exit = 2; Expected = '*exited with 2*' }
         @{ Case = 'prints no checks'; Json = '{"checks":[]}'; Exit = 0; Expected = '*printed no checks*' }
