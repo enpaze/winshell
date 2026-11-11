@@ -399,11 +399,11 @@ public sealed class WidgetAreaTests
             {
                 area.Set(area.Props with { Style = marked });
                 await Wait.UntilAsync(
-                    () => text.FontFamily.Source == "Georgia" && button.ActualWidth == 50,
+                    () => text.FontFamily.Source == "Georgia" && button.ActualWidth == 50 && button.ActualHeight == 50,
                     "the text to take Georgia and the button the author's slot");
                 Assert.Equal(marked, area.Props.Style);
                 Assert.Equal(Microsoft.UI.Colors.White, ColorOf(text.Foreground));
-                Assert.Equal(50, button.ActualHeight, 0.5);
+                Assert.Equal((50d, 50d), (button.ActualWidth, button.ActualHeight));
                 shown = AreaShowing(text);
                 Assert.Equal("keep", shown.Resources["author"]);
                 Assert.Equal(50.0, shown.Resources["ShellSlotSize"]);
@@ -412,13 +412,13 @@ public sealed class WidgetAreaTests
                 await area.Host.WaitForIdleAsync();
                 Assert.Equal("Georgia", text.FontFamily.Source);
                 Assert.Equal(Microsoft.UI.Colors.White, ColorOf(text.Foreground));
-                Assert.Equal(50, button.ActualWidth, 0.5);
+                Assert.Equal((50d, 50d), (button.ActualWidth, button.ActualHeight));
 
                 area.Set(area.Props with { Style = null });
                 await Wait.UntilAsync(() => text.FontFamily.Source == "Consolas", "the area to follow the shell style");
                 Assert.Equal(Microsoft.UI.Colors.Crimson, ColorOf(text.Foreground));
                 Assert.Equal(other, shell.Style);
-                Assert.Equal(50, button.ActualWidth, 0.5);
+                Assert.Equal((50d, 50d), (button.ActualWidth, button.ActualHeight));
 
                 shell.Style = null;
                 await Wait.UntilAsync(
@@ -427,7 +427,7 @@ public sealed class WidgetAreaTests
                 shown = AreaShowing(text);
                 Assert.Equal("keep", shown.Resources["author"]);
                 Assert.Equal(50.0, shown.Resources["ShellSlotSize"]);
-                Assert.Equal(50, button.ActualWidth, 0.5);
+                Assert.Equal((50d, 50d), (button.ActualWidth, button.ActualHeight));
             }
             finally
             {
@@ -460,12 +460,13 @@ public sealed class WidgetAreaTests
             foreach (var theme in new[] { ElementTheme.Light, ElementTheme.Dark })
             {
                 host.RequestedTheme = theme;
-                await Wait.UntilAsync(() => ColorOf(text.Foreground) == Microsoft.UI.Colors.Crimson,
+                await Wait.UntilAsync(
+                    () => ColorOf(text.Foreground) == Microsoft.UI.Colors.Crimson
+                        && button.ActualWidth == 40 && button.ActualHeight == 40,
                     "the text to keep the style color");
                 Assert.Equal(Microsoft.UI.Colors.Crimson, ColorOf(button.Foreground));
                 Assert.Equal(("Consolas", 18.0), (text.FontFamily.Source, text.FontSize));
-                Assert.Equal(40, button.ActualWidth, 0.5);
-                Assert.Equal(40, button.ActualHeight, 0.5);
+                Assert.Equal((40d, 40d), (button.ActualWidth, button.ActualHeight));
             }
 
             area.Set(area.Props with { Style = null });
@@ -477,10 +478,11 @@ public sealed class WidgetAreaTests
             Assert.Equal(("Segoe UI Variable Text,Segoe UI", 14.0), (text.FontFamily.Source, text.FontSize));
 
             host.RequestedTheme = ElementTheme.Dark;
-            await Wait.UntilAsync(() => ColorOf(text.Foreground) == WindowsText("Default"),
+            await Wait.UntilAsync(
+                () => ColorOf(text.Foreground) == WindowsText("Default") && button.ActualWidth == 32 && button.ActualHeight == 32,
                 "the built-in dark text color");
             Assert.Equal(WindowsText("Default"), ColorOf(button.Foreground));
-            Assert.Equal(32, button.ActualWidth, 0.5);
+            Assert.Equal((32d, 32d), (button.ActualWidth, button.ActualHeight));
             return true;
         });
     }

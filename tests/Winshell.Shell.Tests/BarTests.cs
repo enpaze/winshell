@@ -456,9 +456,9 @@ public sealed class BarTests
         var vertical = bar.Anchors.HasFlag(Edges.Top) && bar.Anchors.HasFlag(Edges.Bottom);
         areas.Sort((left, right) =>
         {
-            var a = left.TransformToVisual(host).TransformPoint(default);
-            var b = right.TransformToVisual(host).TransformPoint(default);
-            return vertical ? a.Y.CompareTo(b.Y) : a.X.CompareTo(b.X);
+            var leftAt = left.TransformToVisual(host).TransformPoint(default);
+            var rightAt = right.TransformToVisual(host).TransformPoint(default);
+            return vertical ? leftAt.Y.CompareTo(rightAt.Y) : leftAt.X.CompareTo(rightAt.X);
         });
         return areas;
 
