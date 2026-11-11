@@ -10,9 +10,7 @@ public sealed class StartupService : ObservableObject
 {
     private readonly Log _log;
     private readonly IStartupRegistry? _registry;
-    private bool _runs;
-    private bool _elsewhere;
-    private bool _turnedOff;
+    private SignInVerdict _answer;
 
     internal StartupService(Log log, IStartupRegistry? registry)
     {
@@ -28,7 +26,7 @@ public sealed class StartupService : ObservableObject
     /// </summary>
     internal static StartupService ForThisProcess(Log log)
     {
-        return new StartupService(log, RegistryForThisProcess());
+        return new StartupService(log, SignInProcess.Registry(log));
     }
 
     /// <summary>
@@ -44,18 +42,6 @@ public sealed class StartupService : ObservableObject
         return CommandLine.ForSignIn(supervisor, [CommandWords.Run, CommandWords.Path.Short!, project]);
     }
 
-    private static IStartupRegistry? RegistryForThisProcess()
-    {
-        if (Packaging.IsPackaged)
-            return WindowsStartupTasks.Open() is { } task ? new StartupTaskRegistry(task) : null;
-        if (Environment.ProcessPath is not { } exe)
-            return null;
-        var command = ConfigurationProject.FolderOf(exe) is null
-            ? CommandLine.ForSignIn(exe, Environment.GetCommandLineArgs().Skip(1))
-            : SignInCommand(exe, WinshellHost.Supervising());
-        return command is null ? null : new WindowsStartupRegistry(command, ShellLocations.Current.ConfigRoot);
-    }
-
     /// <summary>
     /// Whether this shell can register itself to run at sign-in. False when a packaged shell has no startup task, and
     /// false when this process is a configuration program that no <c>winshell.exe</c> is supervising.
@@ -69,7 +55,7 @@ public sealed class StartupService : ObservableObject
     /// </summary>
     public bool RunAtSignIn
     {
-        get => Read(_runs);
+        get => Read(_answer.RunAtSignIn);
         set
         {
             if (_registry is null)
@@ -79,7 +65,7 @@ public sealed class StartupService : ObservableObject
                 return;
             }
 
-            if (value == _runs)
+            if (value == _answer.RunAtSignIn)
                 return;
             if (!(value ? _registry.Register() : _registry.Unregister()))
                 _log.Warn("startup",
@@ -93,23 +79,25 @@ public sealed class StartupService : ObservableObject
     /// <summary>
     /// True when the entry is there but Windows' Startup apps page turned it off. Only that page can turn it back on.
     /// </summary>
-    public bool TurnedOffInWindows => Read(_turnedOff);
+    public bool TurnedOffInWindows => Read(_answer.TurnedOffInWindows);
 
     /// <summary>
     /// True when the entry is there but starts another install or another configuration: a <c>winshell.exe</c> in
     /// another folder, as after an update unzipped somewhere new, or a different configuration.
     /// <see cref="RunAtSignIn"/> is false until it is set.
     /// </summary>
-    public bool RegisteredElsewhere => Read(_elsewhere);
+    public bool RegisteredElsewhere => Read(_answer.RegisteredElsewhere);
 
     /// <summary>Reads the entry again, after the user may have changed it in Windows.</summary>
     public void Refresh()
     {
-        var registered = _registry?.IsRegistered() ?? false;
-        var elsewhere = registered && (_registry?.PointsElsewhere() ?? false);
-        var turnedOff = registered && (_registry?.TurnedOffInWindows() ?? false);
-        Set(ref _runs, registered && !elsewhere, nameof(RunAtSignIn));
-        Set(ref _elsewhere, elsewhere, nameof(RegisteredElsewhere));
-        Set(ref _turnedOff, turnedOff, nameof(TurnedOffInWindows));
+        var answer = _registry?.Read() ?? default;
+        var runs = _answer.RunAtSignIn;
+        var elsewhere = _answer.RegisteredElsewhere;
+        var turnedOff = _answer.TurnedOffInWindows;
+        _answer = answer;
+        Changed(runs != answer.RunAtSignIn, nameof(RunAtSignIn));
+        Changed(elsewhere != answer.RegisteredElsewhere, nameof(RegisteredElsewhere));
+        Changed(turnedOff != answer.TurnedOffInWindows, nameof(TurnedOffInWindows));
     }
 }
