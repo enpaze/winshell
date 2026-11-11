@@ -1,31 +1,22 @@
-using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.Mathematics;
 using Windows.Graphics;
 using Windows.Graphics.Capture;
-using Windows.Graphics.DirectX;
-using Windows.Graphics.DirectX.Direct3D11;
 using Winshell.Native;
 
 namespace Winshell.Capture;
 
 /// <summary>
-/// A two-buffer WGC pool on a private D3D device. The session samples the latest frame, so slow consumers never
-/// queue frames or UI callbacks. Only a consumed frame leaves the GPU.
+/// Samples the latest frame of a <see cref="CaptureLifetime"/>, so slow consumers never queue frames or UI callbacks.
+/// Only a consumed frame leaves the GPU.
 /// </summary>
 /// <param name="log">Where a teardown that fails is reported.</param>
 internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
 {
-    private ID3D11Device? _device;
-    private ID3D11DeviceContext? _context;
-    private IDirect3DDevice? _winrtDevice;
-    private GraphicsCaptureItem? _item;
-    private Direct3D11CaptureFramePool? _pool;
-    private GraphicsCaptureSession? _session;
+    private CaptureLifetime? _life;
     private ID3D11Texture2D? _staging;
     private SizeInt32 _size;
     private bool _readbackPending;
-    private int _poolGeneration;
     private Action? _closed;
 
     public void Start(CaptureTarget target, bool includeCursor, Action closed)
@@ -33,60 +24,16 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
         if (!GraphicsCaptureSession.IsSupported())
             throw new WindowsRefusal("Windows Graphics Capture is unavailable in this session.");
         _closed = closed;
-        var monitor = target.Window == 0 ? MonitorHandle(target.MonitorId) : 0;
+        var monitor = target.Window == 0 ? CaptureLifetime.MonitorHandle(target.MonitorId) : 0;
         if (target.Window == 0 && monitor == 0)
             throw new WindowsRefusal("The selected monitor is no longer connected. (Parameter 'target')");
-        _item = CaptureItem(target.Window, monitor);
-        _size = _item.Size;
+        var item = CaptureLifetime.CaptureItem(target.Window, monitor);
+        _size = item.Size;
         if (_size.Width <= 0 || _size.Height <= 0)
             throw new WindowsRefusal("The selected source has no capture surface.");
 
-        (_device, _context) = CreateDevice();
-        _winrtDevice = CaptureInterop.CreateDevice(_device!);
-        _pool = Direct3D11CaptureFramePool.CreateFreeThreaded(_winrtDevice, DirectXPixelFormat.B8G8R8A8UIntNormalized,
-            2, _size);
-        _session = _pool.CreateCaptureSession(_item);
-        // Leave the system's capture border enabled. No borderless capability or consent bypass.
-        _session.IsCursorCaptureEnabled = includeCursor;
-        _item.Closed += OnClosed;
-        _session.StartCapture();
-    }
-
-    /// <summary>
-    /// A capture item. <see cref="ArgumentException"/> here is WinRT's <c>E_INVALIDARG</c>, Windows refusing the
-    /// window or monitor, so it stays a refusal.
-    /// </summary>
-    internal static GraphicsCaptureItem CaptureItem(nint window, nint monitor)
-    {
-        try
-        {
-            return CaptureInterop.CreateItem(window, monitor);
-        }
-        catch (ArgumentException e)
-        {
-            throw new WindowsRefusal(e.Message);
-        }
-    }
-
-    /// <summary>A private Direct3D device for capture: the hardware one, or WARP when there is none.</summary>
-    internal static (ID3D11Device Device, ID3D11DeviceContext Context) CreateDevice()
-    {
-        FeatureLevel[] levels = [FeatureLevel.Level_11_1, FeatureLevel.Level_11_0];
-        var result = D3D11.D3D11CreateDevice(null, DriverType.Hardware,
-            DeviceCreationFlags.BgraSupport, levels, out var device, out ID3D11DeviceContext context);
-        if (result.Failure)
-            D3D11.D3D11CreateDevice(null, DriverType.Warp,
-                DeviceCreationFlags.BgraSupport, levels, out device, out context).CheckError();
-        return (device, context);
-    }
-
-    /// <summary>The handle of the connected monitor with this device name, or 0 once it is gone.</summary>
-    internal static nint MonitorHandle(string device)
-    {
-        foreach (var handle in Monitors.List())
-            if (Monitors.TryRead(handle, out var monitor) && monitor.Device == device)
-                return handle;
-        return 0;
+        _life = CaptureLifetime.Create(item, includeCursor, log, null, OnClosed);
+        _life.Start();
     }
 
     private void OnClosed(GraphicsCaptureItem sender, object args)
@@ -96,19 +43,20 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
 
     public PixelImage? ReadLatest()
     {
-        if (_pool is null)
+        var life = _life;
+        if (life?.Pool is null)
             return null;
-        var generation = Volatile.Read(ref _poolGeneration);
-        var ready = _readbackPending ? Readback() : null;
+        var generation = life.Generation;
+        var ready = _readbackPending ? Readback(life) : null;
         if (_readbackPending)
             return null; // GPU work is still in flight; never stall the shell's scene thread.
         Direct3D11CaptureFrame? latest = null;
         try
         {
-            // At most the pool's two buffers. Never wait for a producer or drain an unbounded queue.
-            for (var i = 0; i < 2 && generation == Volatile.Read(ref _poolGeneration); i++)
+            // At most the pool's buffers. Never wait for a producer or drain an unbounded queue.
+            for (var i = 0; i < CaptureLifetime.Buffers && generation == life.Generation; i++)
             {
-                var pool = _pool;
+                var pool = life.Pool;
                 if (pool is null)
                     break;
                 var frame = pool.TryGetNextFrame();
@@ -118,7 +66,7 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
                 latest = frame;
             }
 
-            if (generation != Volatile.Read(ref _poolGeneration))
+            if (generation != life.Generation)
             {
                 latest?.Dispose();
                 latest = null;
@@ -138,10 +86,9 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
                 _size = size;
                 _staging?.Dispose();
                 _staging = null;
-                // A static source may not invalidate after Recreate. Stop the old session and
+                // A static source may not invalidate after the pool is recreated. Stop the old session and
                 // release its frames before the pool goes away, then start a new pair.
-                var cursor = _session!.IsCursorCaptureEnabled;
-                RecreatePool(size, cursor);
+                life.Restart(size);
                 return ready;
             }
 
@@ -159,14 +106,14 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
                 desc.MiscFlags = ResourceOptionFlags.None;
                 desc.ArraySize = 1;
                 desc.MipLevels = 1;
-                _staging = _device!.CreateTexture2D(desc);
+                _staging = life.Device!.CreateTexture2D(desc);
             }
 
-            _context!.CopySubresourceRegion(_staging, 0, 0, 0, 0, texture, 0,
+            life.Context!.CopySubresourceRegion(_staging, 0, 0, 0, 0, texture, 0,
                 new Box(0, 0, 0, size.Width, size.Height, 1));
             _readbackPending = true;
-            _context.Flush();
-            return ready ?? Readback();
+            life.Context.Flush();
+            return ready ?? Readback(life);
         }
         finally
         {
@@ -174,103 +121,26 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
         }
     }
 
-    private PixelImage? Readback()
+    private PixelImage? Readback(CaptureLifetime life)
     {
-        if (CaptureInterop.Read(_context!, _staging!, _size.Width, _size.Height) is not { } pixels)
+        if (CaptureInterop.Read(life.Context!, _staging!, _size.Width, _size.Height) is not { } pixels)
             return null;
         _readbackPending = false;
         return new PixelImage(_size.Width, _size.Height, pixels, true);
     }
 
-    private void RecreatePool(SizeInt32 size, bool cursor)
-    {
-        var session = _session;
-        var pool = _pool;
-        _session = null;
-        _pool = null;
-        Interlocked.Increment(ref _poolGeneration);
-        ReleaseSessionAndPool(session, pool);
-        _pool = Direct3D11CaptureFramePool.CreateFreeThreaded(_winrtDevice!, DirectXPixelFormat.B8G8R8A8UIntNormalized,
-            2, size);
-        _session = _pool.CreateCaptureSession(_item!);
-        _session.IsCursorCaptureEnabled = cursor;
-        _session.StartCapture();
-    }
-
-    /// <summary>
-    /// Stops capture, releases frames the pool still holds, then disposes the pool.
-    /// A free-threaded pool can still be producing a buffer after the UI thread decides to drop it.
-    /// </summary>
-    private void ReleaseSessionAndPool(GraphicsCaptureSession? session, Direct3D11CaptureFramePool? pool)
-    {
-        try
-        {
-            try
-            {
-                session?.Dispose();
-            }
-            catch (Exception e) when (WindowsFailure.IsExpected(e))
-            {
-                log.Warn("capture", $"Capture teardown: {e.Message}");
-            }
-
-            try
-            {
-                for (var i = 0; i < 2 && pool?.TryGetNextFrame() is { } frame; i++)
-                    frame.Dispose();
-            }
-            catch (Exception e) when (WindowsFailure.IsExpected(e))
-            {
-                log.Warn("capture", $"Capture teardown: {e.Message}");
-            }
-        }
-        finally
-        {
-            try
-            {
-                pool?.Dispose();
-            }
-            catch (Exception e) when (WindowsFailure.IsExpected(e))
-            {
-                log.Warn("capture", $"Capture teardown: {e.Message}");
-            }
-        }
-    }
-
     public void Dispose()
     {
+        // An in-flight closed event then no-ops, instead of stopping a session that is already going away.
         Interlocked.Exchange(ref _closed, null);
-        Interlocked.Increment(ref _poolGeneration);
-        var item = _item;
-        var session = _session;
-        var pool = _pool;
-        IDisposable?[] resources = [_staging, _winrtDevice, _context, _device];
-        _session = null;
-        _pool = null;
+        var life = _life;
+        var staging = _staging;
+        _life = null;
         _staging = null;
         _readbackPending = false;
-        _winrtDevice = null;
-        _context = null;
-        _device = null;
-        _item = null;
-        try
-        {
-            if (item is not null)
-                item.Closed -= OnClosed;
-        }
-        finally
-        {
-            // A lost device must not prevent the rest of the session's resources from being released.
-            ReleaseSessionAndPool(session, pool);
-            foreach (var resource in resources)
-                try
-                {
-                    resource?.Dispose();
-                }
-                catch (Exception e) when (WindowsFailure.IsExpected(e))
-                {
-                    log.Warn("capture", $"Capture teardown: {e.Message}");
-                }
-        }
+        if (life is null)
+            CaptureLifetime.DisposeQuiet(staging, log);
+        else
+            life.Detach(staging).Dispose();
     }
 }
