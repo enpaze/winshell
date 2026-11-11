@@ -13,8 +13,28 @@ internal interface IServiceProvider
 }
 
 /// <summary>
-/// The internal desktop manager on builds 26100 through 26399. Slots Windows inserted in 24H2 stay, including
-/// <c>MoveDesktop</c>, which is not called: removing it would move <c>RemoveDesktop</c> onto the wrong slot.
+/// The Windows builds whose <see cref="IVirtualDesktopManagerInternal"/> table Winshell calls. Windows 11 23H2
+/// shares that interface id and uses different slots.
+/// </summary>
+internal static class VirtualDesktopManagerInternal
+{
+    /// <summary>Windows 11 24H2, the first build whose table has <c>SwitchDesktopAndMoveForegroundView</c>.</summary>
+    internal const uint OldestBuild = 26100;
+
+    /// <summary>The newest build treated as that same table: 24H2, 25H2 and 26H2.</summary>
+    internal const uint NewestBuild = 26399;
+
+    /// <summary>Whether <paramref name="build"/> is that table. A build Windows did not report is not.</summary>
+    internal static bool Known(uint? build)
+    {
+        return build is >= OldestBuild and <= NewestBuild;
+    }
+}
+
+/// <summary>
+/// The internal desktop manager for <see cref="VirtualDesktopManagerInternal"/>. Slots Windows inserted in 24H2
+/// stay, including <c>MoveDesktop</c>, which is not called: removing it would move <c>RemoveDesktop</c> onto the
+/// wrong slot.
 /// </summary>
 // COM vtable. An unused method stays so the calls below it keep their slots.
 [ComImport]

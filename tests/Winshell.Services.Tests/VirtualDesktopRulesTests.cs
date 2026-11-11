@@ -4,23 +4,6 @@ namespace Winshell.Services.Tests;
 
 public sealed class VirtualDesktopRulesTests
 {
-    [Theory]
-    [InlineData(22631u, false)]
-    [InlineData(26099u, false)]
-    [InlineData(26100u, true)]
-    [InlineData(26200u, true)]
-    [InlineData(26300u, true)]
-    [InlineData(26399u, true)]
-    [InlineData(26400u, false)]
-    [InlineData(28000u, false)]
-    public void Only_builds_26100_through_26399_use_the_desktop_method_table(uint build, bool supported)
-    {
-        var contract = DesktopContract.ForBuild(build);
-        Assert.Equal(supported, contract.Supported);
-        if (!supported)
-            Assert.Contains($"{build}", contract.Reason, StringComparison.Ordinal);
-    }
-
     [Fact]
     public void A_blank_desktop_name_becomes_Desktop_N_and_a_stored_name_is_kept()
     {

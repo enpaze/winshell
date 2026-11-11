@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.System.Com;
@@ -11,8 +12,9 @@ internal readonly record struct VirtualDesktopEntry(Guid Id, string Name);
 
 /// <summary>
 /// The virtual desktops through Explorer's internal manager, reached through the immersive shell. Its method table
-/// changes between Windows builds, so the caller checks the build first. Each call takes the manager fresh and
-/// releases every object before it returns. A failed step goes no further and says what failed.
+/// changes between Windows builds, so <see cref="VirtualDesktopManagerInternal"/> refuses a build it does not know
+/// before any slot is called. Each call takes the manager fresh and releases every object before it returns. A
+/// failed step goes no further and says what failed.
 /// </summary>
 internal static class ImmersiveDesktops
 {
@@ -226,6 +228,14 @@ internal static class ImmersiveDesktops
         out string error)
     {
         manager = null;
+        var build = OsVersion.Build();
+        if (!VirtualDesktopManagerInternal.Known(build))
+        {
+            var shown = build?.ToString(CultureInfo.InvariantCulture) ?? "unknown";
+            error = $"unavailable: Windows build {shown} is outside the virtual desktop method table Winshell knows ({VirtualDesktopManagerInternal.OldestBuild} through {VirtualDesktopManagerInternal.NewestBuild}).";
+            return false;
+        }
+
         var shell = Com.Create<IServiceProvider>(ImmersiveShellClass, CLSCTX.CLSCTX_LOCAL_SERVER, out var hr);
         if (shell is null)
         {
