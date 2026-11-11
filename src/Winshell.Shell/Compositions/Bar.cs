@@ -1,5 +1,6 @@
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
+using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using static Microsoft.UI.Reactor.Factories;
@@ -142,11 +143,7 @@ public sealed class Bar : IDisposable
         var section = _preferences!;
         var edge = EdgeNames[(string)Pick("edge", section.Edge)];
         var vertical = edge is Edges.Left or Edges.Right;
-        var start = Area("start", section.Start);
-        var center = Area("center", section.Center);
-        var end = Area("end", section.End);
-        var areas = new[] { start, center, end };
-        SurfaceProps? surface = null;
+        ReactorHostControl? host = null;
         try
         {
             var look = Style ?? _shell.Style;
@@ -158,11 +155,19 @@ public sealed class Bar : IDisposable
             var content = Grid(
                 [GridSize.Star()],
                 [GridSize.Star()],
-                Placed(start, HorizontalAlignment.Left, VerticalAlignment.Top),
-                Placed(center, HorizontalAlignment.Center, VerticalAlignment.Center),
-                Placed(end, HorizontalAlignment.Right, VerticalAlignment.Bottom));
-            surface = new SurfaceProps { Style = Style, Content = content, Padding = gap };
-            var host = surface.Show();
+                Placed("start", section.Start, HorizontalAlignment.Left, VerticalAlignment.Top),
+                Placed("center", section.Center, HorizontalAlignment.Center, VerticalAlignment.Center),
+                Placed("end", section.End, HorizontalAlignment.Right, VerticalAlignment.Bottom));
+            host = new ReactorHostControl
+            {
+                ComponentFactory = () => new Surface(),
+                Props = new SurfaceProps(content, gap, Style),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                VerticalContentAlignment = VerticalAlignment.Stretch,
+                IsTabStop = false
+            };
             var window = new PanelWindow
             {
                 Screen = screen,
@@ -175,26 +180,18 @@ public sealed class Bar : IDisposable
             else
                 window.Height = thickness;
             window.Visible = true;
-            return new Shown(areas, surface, window);
+            return new Shown(host, window);
         }
         catch
         {
-            // A failure while the window is being made. The areas' widgets go with the bar that couldn't be shown.
-            surface?.Dispose();
-            foreach (var area in areas)
-                area.Dispose();
+            // A failure while the window is being made. Disposing the host unmounts the tree.
+            host?.Dispose();
             throw;
         }
 
-        WidgetAreaProps Area(string key, object placements) => new()
-        {
-            Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal,
-            Style = Style,
-            Defaults = Placements(Pick(key, placements))
-        };
-
-        Element Placed(WidgetAreaProps props, HorizontalAlignment across, VerticalAlignment down) =>
-            Component<WidgetArea, WidgetAreaProps>(props)
+        Element Placed(string key, object placements, HorizontalAlignment across, VerticalAlignment down) =>
+            Elements.WidgetArea(defaults: Placements(Pick(key, placements)),
+                    orientation: vertical ? Orientation.Vertical : Orientation.Horizontal, style: Style)
                 .HAlign(vertical ? HorizontalAlignment.Stretch : across)
                 .VAlign(vertical ? down : VerticalAlignment.Stretch)
                 .WithKey($"{across}:{down}")
@@ -296,14 +293,12 @@ public sealed class Bar : IDisposable
         }
     }
 
-    /// <summary>One screen's bar: its areas, the surface that hosts them, and its panel.</summary>
-    private sealed class Shown(WidgetAreaProps[] areas, SurfaceProps surface, PanelWindow window) : IDisposable
+    /// <summary>One screen's bar: the host that mounts its tree, and its panel.</summary>
+    private sealed class Shown(ReactorHostControl host, PanelWindow window) : IDisposable
     {
         public void Dispose()
         {
-            surface.Dispose();
-            foreach (var area in areas)
-                area.Dispose();
+            host.Dispose();
             window.Dispose();
         }
     }

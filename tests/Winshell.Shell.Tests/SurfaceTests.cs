@@ -18,10 +18,10 @@ public sealed class SurfaceTests
             var held = new TextBlock { Text = "held" };
             var unloaded = 0;
             held.Unloaded += (_, _) => unloaded++;
-            using var follows = new SurfaceProps { Content = XamlHost(() => held) };
-            using var own = new SurfaceProps { Style = other };
-            var followsHost = follows.Show();
-            var ownHost = own.Show();
+            using var follows = new Mounted<Surface, SurfaceProps>(new SurfaceProps { Content = XamlHost(() => held) });
+            using var own = new Mounted<Surface, SurfaceProps>(new SurfaceProps { Style = other });
+            var followsHost = follows.Host;
+            var ownHost = own.Host;
             using var window = new PanelWindow
             {
                 Width = 100,
@@ -40,7 +40,7 @@ public sealed class SurfaceTests
                 await Wait.UntilAsync(() => BarTests.BackgroundOf(followsHost) == tokyo, "the surface to take the new style");
                 Assert.Equal(0, unloaded);
 
-                own.Style = null;
+                own.Set(own.Props with { Style = null });
                 shell.Style = null;
                 await Wait.UntilAsync(() => BarTests.BackgroundOf(followsHost) == light && BarTests.BackgroundOf(ownHost) == light,
                     "both surfaces to follow the shell back to the built-in style");

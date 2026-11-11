@@ -36,12 +36,12 @@ internal static class PanelReload
             if (window.Content is not { } content)
                 continue;
             List<UIElement> controls = [];
-            List<WidgetAreaProps> areas = [];
+            List<Action> areas = [];
             Find(content, edited, own, controls, areas);
             foreach (var control in controls)
                 MakeAgain(shell, window, control);
-            foreach (var area in areas)
-                area.Remake();
+            foreach (var remake in areas)
+                remake();
         }
     }
 
@@ -60,7 +60,7 @@ internal static class PanelReload
     /// <paramref name="controls"/>.
     /// </summary>
     private static void Find(DependencyObject element, HashSet<Type> edited, HashSet<Assembly> own,
-        List<UIElement> controls, List<WidgetAreaProps> areas)
+        List<UIElement> controls, List<Action> areas)
     {
         if (AreaSessions.TryGet(element, out _))
         {
@@ -70,7 +70,7 @@ internal static class PanelReload
 
         if (element is UIElement control && own.Contains(element.GetType().Assembly))
         {
-            List<WidgetAreaProps> inside = [];
+            List<Action> inside = [];
             if (Shows(control, edited, inside))
                 controls.Add(control);
             else
@@ -86,11 +86,11 @@ internal static class PanelReload
     /// Whether <paramref name="element"/> shows an edited type outside a widget area. Each outermost area that shows one
     /// goes in <paramref name="areas"/> instead, since an area can make its widgets again.
     /// </summary>
-    private static bool Shows(DependencyObject element, HashSet<Type> edited, List<WidgetAreaProps> areas)
+    private static bool Shows(DependencyObject element, HashSet<Type> edited, List<Action> areas)
     {
         if (edited.Contains(element.GetType()))
             return true;
-        List<WidgetAreaProps> inside = AreaSessions.TryGet(element, out _) ? [] : areas;
+        List<Action> inside = AreaSessions.TryGet(element, out _) ? [] : areas;
         var shows = false;
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(element); i++)
             shows |= Shows(VisualTreeHelper.GetChild(element, i), edited, inside);

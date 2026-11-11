@@ -1,8 +1,7 @@
-using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
-using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -11,279 +10,90 @@ using static Microsoft.UI.Reactor.Factories;
 namespace Winshell;
 
 /// <summary>
-/// What a <see cref="WidgetArea"/> shows. Set <see cref="Name"/> to give the area a section of the shell's preferences
-/// file. That section holds one <c>widgets</c> list, which replaces <see cref="Defaults"/> while the file has it. An
-/// empty name uses only Defaults. The section is created when the name is set, before the area is shown.
-/// Parent <see cref="Show"/>'s host, or place <c>Component&lt;WidgetArea, WidgetAreaProps&gt;</c> in a larger tree.
-/// Use it on the shell's thread and dispose it when its owner closes. Unloading or reparenting the host does not
-/// dispose widgets.
+/// What a <see cref="WidgetArea"/> shows. <paramref name="Name"/> selects the area's section of the preferences file.
+/// That section holds one <c>widgets</c> list, which replaces <paramref name="Defaults"/> while the file has it. An
+/// empty name uses only the defaults. The component reads the section when it renders and follows later saves.
 /// </summary>
-public sealed class WidgetAreaProps : ObservableObject, IDisposable
-{
-    private static readonly IReadOnlyDictionary<string, object> EmptySettings = new Dictionary<string, object>();
-
-    private readonly Shell _shell = Shell.Current;
-    private readonly PopupAnchor _anchor = new();
-    private IReadOnlyList<Placement> _defaults = [];
-    private IReadOnlyList<Placement>? _override;
-    private AreaPreferences? _preferences;
-    private ReactorHostControl? _host;
-    private ShellStyle? _style;
-    private bool _disposed;
-
-    /// <summary>An empty, horizontal area in the shell's style. Make it on the shell's thread.</summary>
-    public WidgetAreaProps()
-    {
-        _anchor.Style = () => ActiveStyle;
-        _shell.StyleChanged += FollowShellStyle;
-    }
-
-    /// <summary>The host <see cref="Show"/> returned, or null before that and when the area is only a child of a larger tree.</summary>
-    public ReactorHostControl? Host => _host;
-
-    /// <summary>Popups copy this host's theme and font, and the area's style.</summary>
-    internal PopupAnchor Anchor => _anchor;
-
-    /// <summary>The style the area shows: its own, the shell's, or null for the built-in style.</summary>
-    internal ShellStyle? ActiveStyle => _style ?? _shell.Style;
-
-    /// <summary>True once <see cref="Show"/> put the style dictionary on the host, so the tree does not load a second one.</summary>
-    internal bool HostStyled { get; private set; }
-
-    /// <summary>Asks the mounted area to make its widgets again. An edit to a shown type needs a new instance.</summary>
-    internal event Action? Remade;
-
-    /// <summary>
-    /// The layout direction. Changing it gives each placement the new orientation, and a widget whose name stays
-    /// renders again with the new props.
-    /// </summary>
-    public Orientation Orientation
-    {
-        get;
-        set
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            if (field == value)
-                return;
-            field = value;
-            Changed();
-        }
-    } = Orientation.Horizontal;
-
-    /// <summary>
-    /// The author's ordered placements. Assigning a list snapshots it. A widget whose name stays is rendered again
-    /// with the new props. A different list of names disposes the previous widgets and creates the new ones. This
-    /// happens immediately unless the preferences file has a list for this area's <see cref="Name"/>. To apply edits,
-    /// assign the list again. Settings are passed through without copying.
-    /// </summary>
-    public IReadOnlyList<Placement> Defaults
-    {
-        get => _defaults;
-        set
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            ArgumentNullException.ThrowIfNull(value);
-            _defaults = Array.AsReadOnly(value.ToArray());
-            if (_override is null)
-                Changed();
-        }
-    }
-
-    /// <summary>
-    /// The area's name, which names its section of the preferences file. An empty name uses only
-    /// <see cref="Defaults"/>. Changing it reads the section of the new name.
-    /// </summary>
-    public string Name
-    {
-        get;
-        set
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            if (field == value)
-                return;
-            field = value ?? throw new ArgumentNullException(nameof(value));
-            FollowName();
-            Changed();
-        }
-    } = "";
-
-    /// <summary>
-    /// This area's own style, which wins over the shell's, or null for <see cref="Shell.Style"/>. Tooltips follow the
-    /// shell's style, not the area's. Changing it replaces only the dictionary the style loaded, leaving the host's
-    /// other resources intact.
-    /// </summary>
-    public ShellStyle? Style
-    {
-        get => _style;
-        set
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            _style = value;
-            if (_host is not null)
-                StyleHost.Apply(_host, value);
-            _anchor.RaiseStyleChanged();
-            Changed();
-        }
-    }
-
-    /// <summary>The placements on screen: the file's list while it has one, and <see cref="Defaults"/> otherwise.</summary>
-    internal Placement[] Current => [.. _override ?? _defaults];
-
-    internal static IReadOnlyDictionary<string, object> SettingsOf(Placement placement) =>
-        placement.Settings ?? EmptySettings;
-
-    /// <summary>
-    /// Mounts this area as the window's content. The style dictionary is on the host before the tree is, so the
-    /// widgets inherit it. Parent the host, and dispose these props when the owner closes.
-    /// </summary>
-    public ReactorHostControl Show()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_host is not null)
-            return _host;
-        _host = StyleHost.Create<WidgetArea, WidgetAreaProps>(this);
-        StyleHost.Apply(_host, _style);
-        HostStyled = true;
-        _anchor.Element = _host;
-        return _host;
-    }
-
-    internal void Remake()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        Remade?.Invoke();
-    }
-
-    /// <summary>Stops following the shell and the file, and disposes the host and its widgets, once.</summary>
-    public void Dispose()
-    {
-        if (_disposed)
-            return;
-        _disposed = true;
-        _shell.StyleChanged -= FollowShellStyle;
-        _preferences?.Dispose();
-        _anchor.Stop();
-        _host?.Dispose();
-    }
-
-    private void FollowShellStyle()
-    {
-        if (_disposed || _style is not null)
-            return;
-        if (_host is not null)
-            StyleHost.Apply(_host, null);
-        _anchor.RaiseStyleChanged();
-        Changed(nameof(Style));
-    }
-
-    /// <summary>Reads the section of the area's new name, or none for an empty name.</summary>
-    private void FollowName()
-    {
-        _preferences?.Dispose();
-        _preferences = null;
-        if (Name.Length > 0)
-        {
-            var preferences = new AreaPreferences(this);
-            preferences.PropertyChanged += (_, _) => Apply(preferences.Placements);
-            _preferences = preferences;
-        }
-
-        Apply(_preferences?.Placements);
-    }
-
-    private void Apply(IReadOnlyList<Placement>? placements)
-    {
-        if (_disposed)
-            return;
-        if ((_override is null && placements is null) ||
-            (_override is not null && placements is not null && _override.Count == placements.Count &&
-             _override.Zip(placements).All(pair => pair.First.Widget == pair.Second.Widget &&
-                 TomlDocument.Same(pair.First.Settings, pair.Second.Settings))))
-            return;
-        _override = placements;
-        Changed(nameof(Defaults));
-    }
-
-    /// <summary>A named area's section: the <c>widgets</c> list that replaces its defaults while the file has it.</summary>
-    private sealed class AreaPreferences(WidgetAreaProps area) : Preferences(area.Name, Check)
-    {
-        [TomlComment(
-            "The widgets, in order: each table names one and holds its settings. The list replaces the shell's whole\n" +
-            "default list, and widgets = [] leaves the area empty. Comment it out to use the shell's defaults again.")]
-        public IReadOnlyList<IReadOnlyDictionary<string, object?>>? Widgets
-        {
-            get;
-            set => Set(ref field, value);
-        }
-
-        /// <summary>The list as placements, or null when the file has none.</summary>
-        public IReadOnlyList<Placement>? Placements => Widgets?
-            .Select(row => new Placement((string)row["widget"]!,
-                row.Where(pair => pair.Key != "widget").ToDictionary(pair => pair.Key, pair => pair.Value!)))
-            .ToArray();
-
-        /// <summary>A missing file shows the area's defaults, which are what the list replaces.</summary>
-        internal override object? Commented(TomlKey key)
-        {
-            return area.Defaults.Select(placement =>
-            {
-                var row = new Dictionary<string, object?> { ["widget"] = placement.Widget };
-                foreach (var (name, value) in placement.Settings ?? WidgetAreaProps.EmptySettings)
-                    row.TryAdd(name, value);
-                return row;
-            }).ToArray();
-        }
-
-        private static string Check(string key, object value)
-        {
-            return value is IReadOnlyList<IReadOnlyDictionary<string, object?>> rows && rows.Any(row =>
-                row.GetValueOrDefault("widget") is not string widget || string.IsNullOrWhiteSpace(widget))
-                ? "must name a widget in each of its tables"
-                : "";
-        }
-    }
-}
+/// <param name="Name">The section, or <c>""</c> to use only <paramref name="Defaults"/>.</param>
+/// <param name="Defaults">The author's ordered placements. A missing list is none.</param>
+/// <param name="Orientation">The direction the placements run.</param>
+/// <param name="Style">This area's own style, which wins over the shell's, or null for the shell's.</param>
+public sealed record WidgetAreaProps(
+    string Name = "",
+    IReadOnlyList<Placement>? Defaults = null,
+    Orientation Orientation = Orientation.Horizontal,
+    ShellStyle? Style = null);
 
 /// <summary>
 /// An ordered area of widgets, in one direction. A bar shows three of these in one tree. The shell's
 /// <see cref="Shell.Style"/>, or the area's own, styles the plain controls a widget renders; area-sensitive XAML uses
-/// ThemeResource.
+/// ThemeResource. Unloading the host leaves the widgets mounted; disposing the host unmounts them.
 /// </summary>
 public sealed class WidgetArea : Component<WidgetAreaProps>
 {
+    private static readonly IReadOnlyDictionary<string, object> EmptySettings = new Dictionary<string, object>();
+
     /// <summary>The placements, in order. A widget whose name stays is the same component.</summary>
     public override Element Render()
     {
-        var props = UseObservable(Props);
+        var props = Props;
+        var defaults = props.Defaults ?? [];
+        var (ready, setReady) = UseState(false);
+        var root = UseRef<FrameworkElement?>(null);
+        var target = UseRef<FrameworkElement?>(null);
         var contexts = UseRef(new List<WidgetContext>());
+        var names = UseRef<string[]?>(null);
         var generation = UseRef(0);
         var window = UseRef<ShellWindow?>(null);
-        var styled = UseRef(false);
-        var pulse = UseRef(0);
-        var (_, setPulse) = UseState(0);
-        void Bump()
+        var defaultsRef = UseRef<IReadOnlyList<Placement>>(defaults);
+        var styleRef = UseRef<ShellStyle?>(props.Style);
+        var anchor = UseRef<PopupAnchor?>(null);
+        var slot = UseRef<SectionStore?>(null);
+        defaultsRef.Current = defaults;
+        styleRef.Current = props.Style;
+        if (anchor.Current is null)
         {
-            pulse.Current++;
-            setPulse(pulse.Current);
+            var created = new PopupAnchor { Style = () => styleRef.Current ?? Shell.Current.Style };
+            anchor.Current = created;
         }
 
+        var (_, bumpWindow) = UseReducer(0);
+        var (_, bumpRemake) = UseReducer(0);
+        var (_, bumpFile) = UseReducer(0);
+        UseEffect(() => () => anchor.Current?.Stop(), false);
         UseEffect(() =>
         {
-            void Remake()
+            if (props.Style is not null)
+                return () => { };
+            void Follow() => bumpFile(pulse => pulse + 1);
+            var shell = Shell.Current;
+            shell.StyleChanged += Follow;
+            return () => shell.StyleChanged -= Follow;
+        }, props.Style);
+
+        if (slot.Current is null || slot.Current.Name != props.Name)
+            slot.Current = new SectionStore(props.Name, () => defaultsRef.Current);
+        var store = slot.Current;
+        store.NoteDefaults();
+        UseEffect(() =>
+        {
+            var mine = store;
+            var unsubscribe = mine.Subscribe(() => bumpFile(pulse => pulse + 1));
+            if (mine.Refresh())
+                bumpFile(pulse => pulse + 1);
+            return () =>
             {
-                generation.Current++;
-                Bump();
-            }
+                unsubscribe();
+                mine.Dispose();
+            };
+        }, store);
 
-            props.Remade += Remake;
-            return () => props.Remade -= Remake;
-        }, false);
+        if (root.Current is { } mounted)
+            Restyle(mounted);
 
-        var placements = props.Current;
-        // A different list of names is a new set of widgets, as a rebuild that keeps the same names renders again.
-        var names = UseRef<string[]?>(null);
+        var placements = store.Snapshot;
         var listed = names.Current;
-        if (listed is null || listed.Length != placements.Length ||
+        if (listed is null || listed.Length != placements.Count ||
             !listed.Zip(placements).All(pair => pair.First == pair.Second.Widget))
         {
             names.Current = placements.Select(placement => placement.Widget).ToArray();
@@ -291,65 +101,88 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         }
 
         var shown = contexts.Current;
-        var slots = new Element[placements.Length];
-        for (var i = 0; i < placements.Length; i++)
+        var slots = ready ? new Element[placements.Count] : [];
+        if (ready)
         {
-            var placement = placements[i];
-            var settings = WidgetAreaProps.SettingsOf(placement);
-            WidgetContext context;
-            if (i < shown.Count && shown[i].Widget == placement.Widget)
-                context = shown[i] = shown[i].Next(settings, props.Orientation).In(window.Current);
-            else
+            for (var i = 0; i < placements.Count; i++)
             {
-                context = new WidgetContext(Shell.Current, settings, props.Orientation, window.Current, props.Anchor,
-                    placement.Widget);
-                if (i < shown.Count)
-                    shown[i] = context;
+                var placement = placements[i];
+                var settings = placement.Settings ?? EmptySettings;
+                WidgetContext context;
+                if (i < shown.Count && shown[i].Widget == placement.Widget)
+                    context = shown[i] = shown[i].Next(settings, props.Orientation).In(window.Current);
                 else
-                    shown.Add(context);
+                {
+                    context = new WidgetContext(Shell.Current, settings, props.Orientation, window.Current,
+                        anchor.Current!, placement.Widget);
+                    if (i < shown.Count)
+                        shown[i] = context;
+                    else
+                        shown.Add(context);
+                }
+
+                slots[i] = Component<Slot, SlotProps>(new SlotProps(context, placement.Widget, props.Name))
+                    .WithKey($"{i}:{placement.Widget}:{generation.Current}");
             }
 
-            slots[i] = Component<Slot, SlotProps>(new SlotProps(context, placement.Widget, props.Name))
-                .WithKey($"{i}:{placement.Widget}:{generation.Current}");
+            if (shown.Count > placements.Count)
+                shown.RemoveRange(placements.Count, shown.Count - placements.Count);
         }
 
-        if (shown.Count > placements.Length)
-            shown.RemoveRange(placements.Length, shown.Count - placements.Length);
-
         var stack = props.Orientation == Orientation.Vertical ? VStack(0, slots) : HStack(0, slots);
+        // Widgets wait until the style dictionary is on an ancestor, so their first render inherits it. The stack
+        // stays, and a later style replaces that dictionary without making the widgets again.
         return stack.OnMount(element =>
         {
-            if (element is not FrameworkElement panel)
-                return;
-            AreaSessions.Attach(panel, props);
-            props.Anchor.Element ??= HostOf(panel);
-
-            void Note()
+            if (!ReferenceEquals(root.Current, element))
+                target.Current = null;
+            root.Current = element;
+            if (element is FrameworkElement panel)
             {
-                var found = ShellWindow.Of(panel);
-                if (ReferenceEquals(found, window.Current))
-                    return;
-                window.Current = found;
-                Bump();
+                AreaSessions.Attach(panel, () =>
+                {
+                    generation.Current++;
+                    bumpRemake(pulse => pulse + 1);
+                });
+                void Note()
+                {
+                    var found = ShellWindow.Of(panel);
+                    if (ReferenceEquals(found, window.Current))
+                        return;
+                    window.Current = found;
+                    bumpWindow(pulse => pulse + 1);
+                }
+
+                Note();
+                panel.Loaded += (_, _) =>
+                {
+                    Note();
+                    // Loaded is the first moment the panel's parent is set, so the style can move onto the host.
+                    bumpFile(pulse => pulse + 1);
+                };
             }
 
-            Note();
-            panel.Loaded += (_, _) => Note();
-            if (props.HostStyled || styled.Current || StyleHost.Matches(panel, props.ActiveStyle))
-                return;
-            StyleHost.Apply(panel, props.Style);
-            styled.Current = true;
-            generation.Current++;
-            Bump();
+            Restyle(element);
+            setReady(true);
         });
-    }
 
-    private static Control? HostOf(DependencyObject start)
-    {
-        for (DependencyObject? node = start; node is not null; node = VisualTreeHelper.GetParent(node))
-            if (node is ReactorHostControl host)
-                return host;
-        return start as Control;
+        void Restyle(FrameworkElement element)
+        {
+            var current = target.Current;
+            var changed = StyleHost.Place(element, props.Style, ref current);
+            target.Current = current;
+            if (anchor.Current is { } live)
+            {
+                if (changed)
+                    live.RaiseStyleChanged();
+                // Popups follow the host the area is in. The first placement can run before the element is parented,
+                // and then the host replaces that fallback once the element is in the tree.
+                if (StyleHost.FindHost(element) is Control host)
+                    live.Element = host;
+                else
+                    live.Element ??= element as Control;
+            }
+        }
     }
 
     private sealed record SlotProps(WidgetContext Context, string Widget, string Area);
@@ -394,24 +227,140 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             return TextBlock($"{failure.Name}: {failure.Error.Message}");
         }
     }
+
+    /// <summary>The area's section, read while the component renders and released when the name changes or it unmounts.</summary>
+    private sealed class SectionStore : IDisposable
+    {
+        private readonly Func<IReadOnlyList<Placement>> _defaults;
+        private readonly AreaPreferences? _section;
+        private IReadOnlyList<Placement> _shown;
+        private bool _disposed;
+
+        public SectionStore(string name, Func<IReadOnlyList<Placement>> defaults)
+        {
+            Name = name;
+            _defaults = defaults;
+            if (name.Length > 0)
+                _section = new AreaPreferences(name, defaults);
+            _shown = _section?.Placements ?? defaults();
+        }
+
+        public string Name { get; }
+
+        public IReadOnlyList<Placement> Snapshot => _shown;
+
+        /// <summary>The author's list, when the file has none. A file list keeps the screen as it is.</summary>
+        public void NoteDefaults()
+        {
+            if (_section?.Placements is not null)
+                return;
+            var next = _defaults();
+            if (!Same(_shown, next))
+                _shown = next;
+        }
+
+        /// <summary>Reads the section again. Returns whether the list on screen changed.</summary>
+        public bool Refresh()
+        {
+            var next = _section?.Placements ?? _defaults();
+            if (Same(_shown, next))
+                return false;
+            _shown = next;
+            return true;
+        }
+
+        public Action Subscribe(Action changed)
+        {
+            if (_section is null)
+                return () => { };
+            void Handler(object? sender, PropertyChangedEventArgs args)
+            {
+                if (Refresh())
+                    changed();
+            }
+
+            _section.PropertyChanged += Handler;
+            return () => _section.PropertyChanged -= Handler;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+            _disposed = true;
+            _section?.Dispose();
+        }
+
+        private static bool Same(IReadOnlyList<Placement> left, IReadOnlyList<Placement> right)
+        {
+            if (left.Count != right.Count)
+                return false;
+            for (var i = 0; i < left.Count; i++)
+            {
+                if (left[i].Widget != right[i].Widget || !TomlDocument.Same(left[i].Settings, right[i].Settings))
+                    return false;
+            }
+
+            return true;
+        }
+    }
+
+    /// <summary>A named area's section: the <c>widgets</c> list that replaces its defaults while the file has it.</summary>
+    private sealed class AreaPreferences(string name, Func<IReadOnlyList<Placement>> defaults) : Preferences(name, Check)
+    {
+        [TomlComment(
+            "The widgets, in order: each table names one and holds its settings. The list replaces the shell's whole\n" +
+            "default list, and widgets = [] leaves the area empty. Comment it out to use the shell's defaults again.")]
+        public IReadOnlyList<IReadOnlyDictionary<string, object?>>? Widgets
+        {
+            get;
+            set => Set(ref field, value);
+        }
+
+        /// <summary>The list as placements, or null when the file has none.</summary>
+        public IReadOnlyList<Placement>? Placements => Widgets?
+            .Select(row => new Placement((string)row["widget"]!,
+                row.Where(pair => pair.Key != "widget").ToDictionary(pair => pair.Key, pair => pair.Value!)))
+            .ToArray();
+
+        /// <summary>A missing file shows the area's defaults, which are what the list replaces.</summary>
+        internal override object? Commented(TomlKey key)
+        {
+            return defaults().Select(placement =>
+            {
+                var row = new Dictionary<string, object?> { ["widget"] = placement.Widget };
+                foreach (var (setting, value) in placement.Settings ?? EmptySettings)
+                    row.TryAdd(setting, value);
+                return row;
+            }).ToArray();
+        }
+
+        private static string Check(string key, object value)
+        {
+            return value is IReadOnlyList<IReadOnlyDictionary<string, object?>> rows && rows.Any(row =>
+                row.GetValueOrDefault("widget") is not string widget || string.IsNullOrWhiteSpace(widget))
+                ? "must name a widget in each of its tables"
+                : "";
+        }
+    }
 }
 
 /// <summary>The area panels on screen, so a hot reload can make one area's widgets again without rebuilding the tree.</summary>
 internal static class AreaSessions
 {
-    private static readonly ConditionalWeakTable<FrameworkElement, WidgetAreaProps> Areas = new();
+    private static readonly ConditionalWeakTable<FrameworkElement, Action> Areas = new();
 
-    public static void Attach(FrameworkElement panel, WidgetAreaProps props)
+    public static void Attach(FrameworkElement panel, Action remake)
     {
         if (!Areas.TryGetValue(panel, out _))
-            Areas.Add(panel, props);
+            Areas.Add(panel, remake);
     }
 
-    public static bool TryGet(DependencyObject element, out WidgetAreaProps props)
+    public static bool TryGet(DependencyObject element, out Action remake)
     {
-        if (element is FrameworkElement panel && Areas.TryGetValue(panel, out props!))
+        if (element is FrameworkElement panel && Areas.TryGetValue(panel, out remake!))
             return true;
-        props = null!;
+        remake = null!;
         return false;
     }
 

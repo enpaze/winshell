@@ -20,15 +20,15 @@ public sealed class ComponentWidgetTests
         {
             var name = Guid.NewGuid().ToString();
             Widgets.Register<LabelWidget>(name);
-            using var area = new WidgetAreaProps
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
             {
                 Defaults = [new(name, new Dictionary<string, object> { ["text"] = "area" })]
-            };
-            using var window = new PanelWindow { Width = 220, Height = 90, Content = area.Show(), Visible = true };
-            await ShellFixture.LaidOut(area.Show()).WaitAsync(TestContext.Current.CancellationToken);
-            await Wait.UntilAsync(() => Texts(area.Show()).Contains("area"), "the area to show the component");
-            Assert.Equal("area", Assert.Single(Texts(area.Show()), text => text == "area"));
-            Assert.Single(Buttons(area.Show()));
+            });
+            using var window = new PanelWindow { Width = 220, Height = 90, Content = area.Host, Visible = true };
+            await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
+            await Wait.UntilAsync(() => Texts(area.Host).Contains("area"), "the area to show the component");
+            Assert.Equal("area", Assert.Single(Texts(area.Host), text => text == "area"));
+            Assert.Single(Buttons(area.Host));
 
             var screen = ScreenWindowsTests.Screen("TST", "Component", "1");
             shell.Platform.Screens.Add(screen);
@@ -44,7 +44,7 @@ public sealed class ComponentWidgetTests
                 var content = Assert.IsAssignableFrom<DependencyObject>(shown.Content);
                 await Wait.UntilAsync(() => Texts(content).Contains("bar"), "the bar to show the component");
                 Assert.Single(Buttons(content));
-                Assert.Contains("area", Texts(area.Show()));
+                Assert.Contains("area", Texts(area.Host));
             }
             finally
             {
@@ -69,15 +69,15 @@ public sealed class ComponentWidgetTests
             File.WriteAllText(path, $"[{areaName}]\nwidgets = [{{ widget = '{widget}', text = 'first' }}]\n");
             try
             {
-                using var area = new WidgetAreaProps { Name = areaName, Defaults = [new(widget, new Dictionary<string, object> { ["text"] = "code" })] };
-                using var window = new PanelWindow { Width = 220, Height = 90, Content = area.Show(), Visible = true };
-                await ShellFixture.LaidOut(area.Show()).WaitAsync(TestContext.Current.CancellationToken);
-                await Wait.UntilAsync(() => Texts(area.Show()).Contains("first|first|Horizontal"), "the component to show its first settings");
+                using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = areaName, Defaults = [new(widget, new Dictionary<string, object> { ["text"] = "code" })] });
+                using var window = new PanelWindow { Width = 220, Height = 90, Content = area.Host, Visible = true };
+                await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
+                await Wait.UntilAsync(() => Texts(area.Host).Contains("first|first|Horizontal"), "the component to show its first settings");
 
                 File.WriteAllText(path, $"[{areaName}]\nwidgets = [{{ widget = '{widget}', text = 'second' }}]\n");
-                await Wait.UntilAsync(() => Texts(area.Show()).Contains("first|second|Horizontal"),
+                await Wait.UntilAsync(() => Texts(area.Host).Contains("first|second|Horizontal"),
                     "the same component to render the new settings");
-                Assert.DoesNotContain(Texts(area.Show()), text => text.StartsWith("second|second", StringComparison.Ordinal));
+                Assert.DoesNotContain(Texts(area.Host), text => text.StartsWith("second|second", StringComparison.Ordinal));
             }
             finally
             {
@@ -96,23 +96,23 @@ public sealed class ComponentWidgetTests
         {
             var name = Guid.NewGuid().ToString();
             Widgets.Register<RememberingWidget>(name);
-            using var area = new WidgetAreaProps
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
             {
                 Defaults = [new(name, new Dictionary<string, object> { ["text"] = "born" })]
-            };
-            using var window = new PanelWindow { Width = 280, Height = 120, Content = area.Show(), Visible = true };
-            await ShellFixture.LaidOut(area.Show()).WaitAsync(TestContext.Current.CancellationToken);
-            await Wait.UntilAsync(() => Texts(area.Show()).Contains("born|born|Horizontal"),
+            });
+            using var window = new PanelWindow { Width = 280, Height = 120, Content = area.Host, Visible = true };
+            await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
+            await Wait.UntilAsync(() => Texts(area.Host).Contains("born|born|Horizontal"),
                 "the component to show the settings it was born with");
 
-            area.Defaults = [new(name, new Dictionary<string, object> { ["text"] = "next" })];
-            await Wait.UntilAsync(() => Texts(area.Show()).Contains("born|next|Horizontal"),
+            area.Set(area.Props with { Defaults = [new(name, new Dictionary<string, object> { ["text"] = "next" })] });
+            await Wait.UntilAsync(() => Texts(area.Host).Contains("born|next|Horizontal"),
                 "the same component to render the new defaults");
 
-            area.Orientation = Orientation.Vertical;
-            await Wait.UntilAsync(() => Texts(area.Show()).Contains("born|next|Vertical"),
+            area.Set(area.Props with { Orientation = Orientation.Vertical });
+            await Wait.UntilAsync(() => Texts(area.Host).Contains("born|next|Vertical"),
                 "the same component to render the new orientation");
-            Assert.DoesNotContain(Texts(area.Show()), text => text.StartsWith("next|", StringComparison.Ordinal));
+            Assert.DoesNotContain(Texts(area.Host), text => text.StartsWith("next|", StringComparison.Ordinal));
             return true;
         });
     }
@@ -127,13 +127,13 @@ public sealed class ComponentWidgetTests
             var survivor = "survivor" + name;
             Widgets.Register<SurvivorWidget>(survivor);
             Widgets.Register<ThrowingWidget>(name);
-            using var area = new WidgetAreaProps { Name = "end", Defaults = [new(survivor), new(name)] };
-            using var window = new PanelWindow { Width = 280, Height = 90, Content = area.Show(), Visible = true };
-            await ShellFixture.LaidOut(area.Show()).WaitAsync(TestContext.Current.CancellationToken);
-            await Wait.UntilAsync(() => Texts(area.Show()).Any(text => text.Contains("Render failed", StringComparison.Ordinal)),
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = "end", Defaults = [new(survivor), new(name)] });
+            using var window = new PanelWindow { Width = 280, Height = 90, Content = area.Host, Visible = true };
+            await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
+            await Wait.UntilAsync(() => Texts(area.Host).Any(text => text.Contains("Render failed", StringComparison.Ordinal)),
                 "the throwing component to show its error");
 
-            var text = Texts(area.Show());
+            var text = Texts(area.Host);
             Assert.Equal("survivor", text[0]);
             Assert.Contains(name, text[1], StringComparison.Ordinal);
             Assert.Contains("Render failed", text[1], StringComparison.Ordinal);
@@ -155,9 +155,9 @@ public sealed class ComponentWidgetTests
             Widgets.Register<PopupWidget>(name);
             try
             {
-                using var area = new WidgetAreaProps { Defaults = [new(name)] };
-                using var window = new PanelWindow { Width = 180, Height = 80, Content = area.Show(), Visible = true };
-                await ShellFixture.LaidOut(area.Show()).WaitAsync(TestContext.Current.CancellationToken);
+                using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [new(name)] });
+                using var window = new PanelWindow { Width = 180, Height = 80, Content = area.Host, Visible = true };
+                await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
                 TextBlock? popupText = null;
                 await Wait.UntilAsync(() =>
                 {
@@ -189,9 +189,9 @@ public sealed class ComponentWidgetTests
             Widgets.Register<FlyoutWidget>(name);
             try
             {
-                using var area = new WidgetAreaProps { Defaults = [new(name)] };
-                using var window = new PanelWindow { Width = 180, Height = 80, Content = area.Show(), Visible = true };
-                await ShellFixture.LaidOut(area.Show()).WaitAsync(TestContext.Current.CancellationToken);
+                using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [new(name)] });
+                using var window = new PanelWindow { Width = 180, Height = 80, Content = area.Host, Visible = true };
+                await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
                 TextBlock? flyoutText = null;
                 await Wait.UntilAsync(() =>
                 {
@@ -294,9 +294,9 @@ public sealed class ComponentWidgetTests
             var name = Guid.NewGuid().ToString();
             WindowWidget.Seen = null;
             Widgets.Register<WindowWidget>(name);
-            using var area = new WidgetAreaProps { Defaults = [name] };
-            using var window = new PanelWindow { Width = 160, Height = 48, Content = area.Show(), Visible = true };
-            await ShellFixture.LaidOut(area.Show()).WaitAsync(TestContext.Current.CancellationToken);
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [name] });
+            using var window = new PanelWindow { Width = 160, Height = 48, Content = area.Host, Visible = true };
+            await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
             await Wait.UntilAsync(() => WindowWidget.Seen == window, "the widget to be told its window");
             return true;
         });

@@ -72,24 +72,29 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
                 new XAttribute("Type", "PackedShell.SecondWidget"))));
         document.Save(projectFile);
         File.WriteAllText(Path.Combine(folder.Path, "AppShell.cs"), """
+            using Microsoft.UI.Reactor.Core;
+            using Microsoft.UI.Reactor.Hosting;
             using Microsoft.UI.Xaml.Controls;
             using Winshell;
+            using static Microsoft.UI.Reactor.Factories;
             namespace PackedShell;
+            public sealed class Placements : Component
+            {
+                public override Element Render() =>
+                    Component<WidgetArea, WidgetAreaProps>(new WidgetAreaProps(Defaults:
+                    [
+                        new("first", new Dictionary<string, object> { ["value"] = "one" }),
+                        new("First", new Dictionary<string, object> { ["value"] = "three" }),
+                        new("quote\"slash\\semi;line\nend", new Dictionary<string, object> { ["value"] = "two" })
+                    ]));
+            }
             public sealed class AppShell : ShellConfiguration
             {
                 public override void Start(Shell shell)
                 {
-                    var area = new WidgetAreaProps
-                    {
-                        Defaults =
-                        [
-                            new("first", new Dictionary<string, object> { ["value"] = "one" }),
-                            new("First", new Dictionary<string, object> { ["value"] = "three" }),
-                            new("quote\"slash\\semi;line\nend", new Dictionary<string, object> { ["value"] = "two" })
-                        ]
-                    };
-                    var window = new PanelWindow { Width = 250, Height = 80, Content = area.Show(), Visible = true };
-                    window.Closed += area.Dispose;
+                    var host = new ReactorHostControl { ComponentFactory = () => new Placements() };
+                    var window = new PanelWindow { Width = 250, Height = 80, Content = host, Visible = true };
+                    window.Closed += host.Dispose;
                 }
             }
             public sealed class FirstWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
@@ -273,21 +278,28 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             </Project>
             """);
         File.WriteAllText(Path.Combine(shellDir, "AppShell.cs"), """
+            using Microsoft.UI.Reactor.Core;
+            using Microsoft.UI.Reactor.Hosting;
             using Microsoft.UI.Xaml.Controls;
             using Winshell;
+            using static Microsoft.UI.Reactor.Factories;
 
             namespace PackedShell;
+
+            public sealed class Placements : Component
+            {
+                public override Element Render() =>
+                    Component<WidgetArea, WidgetAreaProps>(new WidgetAreaProps(Defaults:
+                        [new("installed-clock", new Dictionary<string, object> { ["value"] = "one" })]));
+            }
 
             public sealed class AppShell : ShellConfiguration
             {
                 public override void Start(Shell shell)
                 {
-                    var area = new WidgetAreaProps
-                    {
-                        Defaults = [new("installed-clock", new Dictionary<string, object> { ["value"] = "one" })]
-                    };
-                    var window = new PanelWindow { Width = 250, Height = 80, Content = area.Show(), Visible = true };
-                    window.Closed += area.Dispose;
+                    var host = new ReactorHostControl { ComponentFactory = () => new Placements() };
+                    var window = new PanelWindow { Width = 250, Height = 80, Content = host, Visible = true };
+                    window.Closed += host.Dispose;
                 }
             }
             """);

@@ -1,7 +1,6 @@
 using System.Globalization;
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
-using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Markup;
@@ -10,113 +9,13 @@ using static Microsoft.UI.Reactor.Factories;
 namespace Winshell;
 
 /// <summary>
-/// What a <see cref="Surface"/> shows. Parent <see cref="Show"/>'s host, and dispose these props when the owner closes.
-/// The content is the owner's to dispose: disposing the surface does not dispose it.
-/// <code>
-/// var area = new WidgetAreaProps { Defaults = ["clock"] };
-/// var surface = new SurfaceProps { Content = Component&lt;WidgetArea, WidgetAreaProps&gt;(area) };
-/// window.Content = surface.Show();
-/// </code>
+/// What a <see cref="Surface"/> shows. <see cref="Content"/> is one element, often a <see cref="WidgetArea"/>, and it
+/// stays loaded when the style changes. A null <see cref="Style"/> follows <see cref="Shell.Style"/>.
 /// </summary>
-public sealed class SurfaceProps : ObservableObject, IDisposable
-{
-    private readonly Shell _shell = Shell.Current;
-    private ReactorHostControl? _host;
-    private Element? _content;
-    private ShellStyle? _style;
-    private Thickness _padding;
-    private bool _disposed;
-
-    /// <summary>An empty surface in the shell's style. Make it on the shell's thread.</summary>
-    public SurfaceProps()
-    {
-        _shell.StyleChanged += FollowShellStyle;
-    }
-
-    /// <summary>The host <see cref="Show"/> returned, or null before that.</summary>
-    public ReactorHostControl? Host => _host;
-
-    /// <summary>
-    /// What the surface holds, in its style. The same element stays loaded when the style changes. Null shows nothing.
-    /// </summary>
-    public Element? Content
-    {
-        get => _content;
-        set
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            _content = value;
-            Changed();
-        }
-    }
-
-    /// <summary>The space around <see cref="Content"/>, in logical pixels. It does not unload the content.</summary>
-    public Thickness Padding
-    {
-        get => _padding;
-        set
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            if (_padding == value)
-                return;
-            _padding = value;
-            Changed();
-        }
-    }
-
-    /// <summary>
-    /// The surface's own style, which wins over the shell's, or null for <see cref="Shell.Style"/>. Changing it
-    /// replaces the dictionary the background and the content read, and the content stays loaded.
-    /// </summary>
-    public ShellStyle? Style
-    {
-        get => _style;
-        set
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            _style = value;
-            Restyle();
-        }
-    }
-
-    /// <summary>Bumps when the dictionary is replaced, so the background reads the new brush. The content is not keyed on it.</summary>
-    internal int StyleStamp { get; private set; }
-
-    /// <summary>Mounts this surface. The dictionary is on the host before its tree is, so what it holds inherits the style.</summary>
-    public ReactorHostControl Show()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_host is not null)
-            return _host;
-        _host = StyleHost.Create<Surface, SurfaceProps>(this);
-        StyleHost.Apply(_host, _style);
-        return _host;
-    }
-
-    /// <summary>Stops following the shell's style and disposes the host. The content is left as it is.</summary>
-    public void Dispose()
-    {
-        if (_disposed)
-            return;
-        _disposed = true;
-        _shell.StyleChanged -= FollowShellStyle;
-        _host?.Dispose();
-    }
-
-    private void FollowShellStyle()
-    {
-        if (_style is null)
-            Restyle();
-    }
-
-    private void Restyle()
-    {
-        if (_host is not null)
-            StyleHost.Apply(_host, _style);
-        StyleStamp++;
-        Changed(nameof(Style));
-    }
-}
+/// <param name="Content">What the surface holds, or null for nothing.</param>
+/// <param name="Padding">The space around <paramref name="Content"/>, in logical pixels.</param>
+/// <param name="Style">The surface's own style, which wins over the shell's, or null for the shell's.</param>
+public sealed record SurfaceProps(Element? Content = null, Thickness Padding = default, ShellStyle? Style = null);
 
 /// <summary>
 /// Paints the style's <c>ShellBackgroundBrush</c> behind its content in the window's theme, as plain controls take
@@ -128,17 +27,63 @@ public sealed class Surface : Component<SurfaceProps>
     /// <summary>The background under the content. The content is not keyed, so a new style leaves it loaded.</summary>
     public override Element Render()
     {
-        var props = UseObservable(Props);
-        var content = (props.Content ?? Empty()).Padding(props.Padding);
+        var props = Props;
+        var (ready, setReady) = UseState(false);
+        var root = UseRef<FrameworkElement?>(null);
+        var target = UseRef<FrameworkElement?>(null);
+        var seen = UseRef(false);
+        var last = UseRef<ShellStyle?>(null);
+        var stamp = UseRef(0);
+        var (_, bump) = UseReducer(0);
+        UseEffect(() =>
+        {
+            if (props.Style is not null)
+                return () => { };
+            void Follow() => bump(_ => _ + 1);
+            var shell = Shell.Current;
+            shell.StyleChanged += Follow;
+            return () => shell.StyleChanged -= Follow;
+        }, props.Style);
+
+        var resolved = props.Style ?? Shell.Current.Style;
+        if (!seen.Current || !Equals(last.Current, resolved))
+        {
+            if (seen.Current)
+                stamp.Current++;
+            seen.Current = true;
+            last.Current = resolved;
+        }
+
+        if (root.Current is { } mounted)
+            Restyle(mounted);
+
         // The brush is a {ThemeResource} read where this XAML is parsed, so the style dictionary has to be in that
-        // dictionary. A new style parses it again. The content is not keyed, so it stays loaded.
+        // dictionary. A new style parses it again. The content is not keyed, so it stays loaded. It is held back
+        // until the dictionary is on the host, so what it holds inherits the style on its first render.
+        var content = ready ? (props.Content ?? Empty()).Padding(props.Padding) : Empty();
         return Grid(
-            [GridSize.Star()],
-            [GridSize.Star()],
-            XamlHost(() => BackgroundLayer(props.Style ?? Shell.Current.Style))
-                .WithKey(string.Create(CultureInfo.InvariantCulture, $"background{props.StyleStamp}"))
-                .Grid(0, 0),
-            content.Grid(0, 0));
+                [GridSize.Star()],
+                [GridSize.Star()],
+                XamlHost(() => BackgroundLayer(resolved))
+                    .WithKey(string.Create(CultureInfo.InvariantCulture, $"background{stamp.Current}"))
+                    .Grid(0, 0),
+                content.Grid(0, 0))
+            .OnMount(element =>
+            {
+                if (!ReferenceEquals(root.Current, element))
+                    target.Current = null;
+                root.Current = element;
+                Restyle(element);
+                setReady(true);
+                element.Loaded += (_, _) => bump(_ => _ + 1);
+            });
+
+        void Restyle(FrameworkElement element)
+        {
+            var current = target.Current;
+            StyleHost.Place(element, props.Style, ref current);
+            target.Current = current;
+        }
     }
 
     /// <summary>

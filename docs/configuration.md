@@ -305,28 +305,27 @@ Saving applies it live:
 
 ### A surface of your own
 
-A bar's areas sit in one [Surface](reference/winshell.md#surface) component, which paints the [style's](#style) `ShellBackgroundBrush` behind them in the window's light or dark theme, and follows a switch while the shell runs. `Show` puts that tree in one host, which is the window's content. A brush your code reads from the style comes back in the theme the app started in, so give a window of your own a surface too:
+A bar's areas sit in one [Surface](reference/winshell.md#surface) component, which paints the [style's](#style) `ShellBackgroundBrush` behind them in the window's light or dark theme, and follows a switch while the shell runs. A window's content is one `ReactorHostControl`, and that host mounts the component you write. A brush your code reads from the style comes back in the theme the app started in, so give a window of your own a surface too:
 
 ```csharp
-        var area = new WidgetAreaProps { Defaults = ["start", "tasks"] };
-        var surface = new SurfaceProps
-        {
-            Padding = new Thickness(4),
-            Content = Component<WidgetArea, WidgetAreaProps>(area)
-        };
-        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = surface.Show(), Visible = true };
-        dock.Closed += () =>
-        {
-            area.Dispose();
-            surface.Dispose();
-        };
+public sealed class Dock : Component
+{
+    public override Element Render() =>
+        Surface(WidgetArea("dock", ["start", "tasks"]), new Thickness(4));
+}
 ```
 
-What a surface holds is in its style too, and stays loaded when the style changes. Its own `Style` wins over the shell's, as an area's does, and disposing the props stops it following the shell's. The area inside the tree is a component, not a second host.
+```csharp
+        var host = new ReactorHostControl { ComponentFactory = () => new Dock() };
+        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = host, Visible = true };
+        dock.Closed += host.Dispose;
+```
+
+`using static Winshell.Elements` brings `Surface` and `WidgetArea` into scope. The props are immutable: rendering the component again with a new record is how the tree changes, and disposing the host unmounts it. What a surface holds stays loaded when the style changes. Its own style wins over the shell's, as an area's does. The area inside the tree is an element, not a second host.
 
 ## Widgets
 
-A [widget area](reference/winshell.md#widgetareaprops) is a component. `Show` mounts it as a window's content, and the same component can sit inside a surface. List widgets in your configuration's project, next to their project or package references:
+A [widget area](reference/winshell.md#widgetarea) is a component. A window mounts the component that renders it, and the same element can sit inside a surface. List widgets in your configuration's project, next to their project or package references:
 
 ```xml
 <ItemGroup>
@@ -388,30 +387,32 @@ Nothing reads the XAML file. A control Reactor has no element for is embedded wi
 Each placement passes the running `Shell`, the shell window the area is drawn in, that placement's settings and the area's orientation in its `WidgetContext`. `Props.Window` is null until the area is in a window, and the widget renders again once it is, so a widget reads the screen from `Props.Window.Screen`. One instance serves a placement, rendered again with a new `WidgetContext` when the settings, the orientation or the window change. Several placements may use one widget:
 
 ```csharp
-        var area = new WidgetAreaProps
-        {
-            Name = "end",
-            Orientation = Orientation.Horizontal,
-            Defaults =
-            [
-                new("message", new Dictionary<string, object> { ["text"] = "Hello" }),
-                new("message", new Dictionary<string, object> { ["text"] = "World" })
-            ]
-        };
-        var panel = new PanelWindow { Height = 48, Content = area.Show(), Visible = true };
-        panel.Closed += area.Dispose;
+public sealed class EndArea : Component
+{
+    public override Element Render() => WidgetArea("end",
+    [
+        new("message", new Dictionary<string, object> { ["text"] = "Hello" }),
+        new("message", new Dictionary<string, object> { ["text"] = "World" })
+    ]);
+}
 ```
 
-- **Replacing widgets.** Assigning `Defaults` snapshots the list unless the [preferences file](#preferences) has a list for the area. A widget whose name is no longer in that place is disposed and made again. A widget that stays is rendered again with the new props, and changing `Orientation` does the same.
-- **Disposing an area.** The example treats a user closing the panel as permanent: `Closed` normally only hides a window. When your code tears the panel down with `panel.Dispose()`, explicitly call `area.Dispose()` too. Removing or reparenting the area does not dispose widgets.
+```csharp
+        var host = new ReactorHostControl { ComponentFactory = () => new EndArea() };
+        var panel = new PanelWindow { Height = 48, Content = host, Visible = true };
+        panel.Closed += host.Dispose;
+```
+
+- **Replacing widgets.** Render the area again with a new list, unless the [preferences file](#preferences) has a list for it. A widget whose name is no longer in that place is disposed and made again. A widget that stays is rendered again with the new props, and a new orientation does the same.
+- **Disposing an area.** The example treats a user closing the panel as permanent: `Closed` normally only hides a window, and here it disposes the host, which unmounts the widgets. When your code tears the panel down with `panel.Dispose()`, dispose the host too. Removing or reparenting the host does not dispose widgets.
 - **Settings.** Treat placement settings, including nested tables, as read-only.
 - **Styling.** The [shell style](#style) styles the plain controls in an area, including the ones a component renders, so a component names no brush of its own. A widget that still has XAML uses `{ThemeResource}` for area-sensitive resources: `{StaticResource}` resolves at construction, before the area owns the widget.
-- **Popups.** Assign `context.StylePopup(content)` to a `PopupWindow.Content`, or to a flyout's content, to load a fresh dictionary of the area's style and follow its resolved theme, style, font, font size and foreground until the area removes the widget or is disposed. `content` may be a plain element or a `ReactorHostControl` showing a component. The widget still owns its popup windows.
+- **Popups.** Assign `context.StylePopup(content)` to a `PopupWindow.Content`, or to a flyout's content, to load a fresh dictionary of the area's style and follow its resolved theme, style, font, font size and foreground until the area removes the widget or the host is disposed. `content` may be a plain element or a `ReactorHostControl` showing a component. The widget still owns its popup windows.
 - **A widget that fails.** An unknown widget, or a component that throws while it is created or while it renders, shows a placeholder with its name and reason while the other placements keep running. The exception and its stack trace are logged under `widgets` in the shell's log (`winshell log`). Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Other exceptions after creation follow the shell's normal crash supervision.
 
 ### Let the user change an area
 
-Set an area's `Name` to let the user replace its placements. The section is created when the name is set, before the area is shown. It holds one `widgets` list. Names are case-sensitive, and areas with the same name use the same section. An area with no name always uses its defaults. A missing file is written with each named area's defaults commented out. Uncomment the list and edit it:
+Pass an area's name to let the user replace its placements. The section is created when the component renders. It holds one `widgets` list. Names are case-sensitive, and areas with the same name use the same section. An area with no name always uses its defaults. A missing file is written with each named area's defaults commented out. Uncomment the list and edit it:
 
 ```toml
 [end]

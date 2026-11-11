@@ -65,7 +65,7 @@ Media keeps one type per job, the split from #1102. `ISmtcLink` (#1306) stays th
 
 Keep `HostWindow` split by responsibility, with explicit owners for window lifetime, placement, native message handling and presentation. Keep `Shell.cs` and `ShellServices.cs` thin: they compose focused types instead of collecting feature behavior. Preserve disposal order, event-loop affinity and cancellation.
 
-A window's content is one Reactor host. A bar's host shows a surface, and that surface shows three widget areas, and each area shows its widgets: one tree, not a control per placement. A shell author builds from primitives, building blocks and compositions such as `Bar`, and a composition uses only public API: see [shells are built from public building blocks](adr/0001-shells-are-built-from-public-building-blocks.md). Widgets, widget areas and surfaces are components: see [UI is built with Reactor](adr/0005-ui-is-built-with-reactor.md).
+A window's content is one Reactor host. A bar's host shows a surface, and that surface shows three widget areas, and each area shows its widgets: one tree, not a control per placement. A surface and a widget area take immutable props, written as elements in that tree. Mounting the host is the lifecycle. A shell author builds from primitives, building blocks and compositions such as `Bar`, and a composition uses only public API: see [shells are built from public building blocks](adr/0001-shells-are-built-from-public-building-blocks.md). Widgets, widget areas and surfaces are components: see [UI is built with Reactor](adr/0005-ui-is-built-with-reactor.md).
 
 ## Crash supervision
 

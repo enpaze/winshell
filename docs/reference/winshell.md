@@ -58,6 +58,15 @@ The edges of a screen or a window, such as the ones a panel is anchored to. Thes
 | `Right` | 4 | The right edge. |
 | `Bottom` | 8 | The bottom edge. |
 
+## Elements
+
+Surface and WidgetArea as elements, so a component can write them into its tree. A window mounts that component with `new ReactorHostControl { ComponentFactory = () => new Dock() }`.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `Surface(Element? content = null, Thickness padding = default, [ShellStyle](#shellstyle)? style = null)` | Element, static | A surface showing content in style, or the shell's style when that is null. |
+| `WidgetArea(string name = "", IReadOnlyList of [Placement](#placement)? defaults = null, Orientation orientation = Orientation.Horizontal, [ShellStyle](#shellstyle)? style = null)` | Element, static | A widget area. name selects its section of the preferences file, and defaults shows until that section has a list. An empty name uses the defaults only. |
+
 ## FloatingWindow
 
 A normal window with a title bar.
@@ -411,19 +420,14 @@ A WinUI Component`1. The members here are the ones Winshell adds.
 
 ## SurfaceProps
 
-What a Surface shows. Parent Show's host, and dispose these props when the owner closes. The content is the owner's to dispose: disposing the surface does not dispose it.
-
-Has the members of [ObservableObject](#observableobject).
+What a Surface shows. Content is one element, often a WidgetArea, and it stays loaded when the style changes. A null Style follows Shell.Style.
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `SurfaceProps()` | constructor | An empty surface in the shell's style. Make it on the shell's thread. |
-| `Content` | Element? | What the surface holds, in its style. The same element stays loaded when the style changes. Null shows nothing. |
-| `Host` | ReactorHostControl?, read-only | The host Show returned, or null before that. |
-| `Padding` | Thickness | The space around Content, in logical pixels. It does not unload the content. |
-| `Style` | [ShellStyle](#shellstyle)? | The surface's own style, which wins over the shell's, or null for Shell.Style. Changing it replaces the dictionary the background and the content read, and the content stays loaded. |
-| `Dispose()` | void | Stops following the shell's style and disposes the host. The content is left as it is. |
-| `Show()` | ReactorHostControl | Mounts this surface. The dictionary is on the host before its tree is, so what it holds inherits the style. |
+| `SurfaceProps(Element? Content = null, Thickness Padding = default, [ShellStyle](#shellstyle)? Style = null)` | constructor |  |
+| `Content` | Element?, init | What the surface holds, or null for nothing. |
+| `Padding` | Thickness, init | The space around Content, in logical pixels. |
+| `Style` | [ShellStyle](#shellstyle)?, init | The surface's own style, which wins over the shell's, or null for the shell's. |
 
 ## TomlCommentAttribute
 
@@ -448,7 +452,7 @@ An exception.
 
 ## WidgetArea
 
-An ordered area of widgets, in one direction. A bar shows three of these in one tree. The shell's Shell.Style, or the area's own, styles the plain controls a widget renders; area-sensitive XAML uses ThemeResource.
+An ordered area of widgets, in one direction. A bar shows three of these in one tree. The shell's Shell.Style, or the area's own, styles the plain controls a widget renders; area-sensitive XAML uses ThemeResource. Unloading the host leaves the widgets mounted; disposing the host unmounts them.
 
 A WinUI Component`1. The members here are the ones Winshell adds.
 
@@ -459,20 +463,15 @@ A WinUI Component`1. The members here are the ones Winshell adds.
 
 ## WidgetAreaProps
 
-What a WidgetArea shows. Set Name to give the area a section of the shell's preferences file. That section holds one `widgets` list, which replaces Defaults while the file has it. An empty name uses only Defaults. The section is created when the name is set, before the area is shown. Parent Show's host, or place `Component<WidgetArea, WidgetAreaProps>` in a larger tree. Use it on the shell's thread and dispose it when its owner closes. Unloading or reparenting the host does not dispose widgets.
-
-Has the members of [ObservableObject](#observableobject).
+What a WidgetArea shows. Name selects the area's section of the preferences file. That section holds one `widgets` list, which replaces Defaults while the file has it. An empty name uses only the defaults. The component reads the section when it renders and follows later saves.
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `WidgetAreaProps()` | constructor | An empty, horizontal area in the shell's style. Make it on the shell's thread. |
-| `Defaults` | IReadOnlyList of [Placement](#placement) | The author's ordered placements. Assigning a list snapshots it. A widget whose name stays is rendered again with the new props. A different list of names disposes the previous widgets and creates the new ones. This happens immediately unless the preferences file has a list for this area's Name. To apply edits, assign the list again. Settings are passed through without copying. |
-| `Host` | ReactorHostControl?, read-only | The host Show returned, or null before that and when the area is only a child of a larger tree. |
-| `Name` | string | The area's name, which names its section of the preferences file. An empty name uses only Defaults. Changing it reads the section of the new name. |
-| `Orientation` | Orientation | The layout direction. Changing it gives each placement the new orientation, and a widget whose name stays renders again with the new props. |
-| `Style` | [ShellStyle](#shellstyle)? | This area's own style, which wins over the shell's, or null for Shell.Style. Tooltips follow the shell's style, not the area's. Changing it replaces only the dictionary the style loaded, leaving the host's other resources intact. |
-| `Dispose()` | void | Stops following the shell and the file, and disposes the host and its widgets, once. |
-| `Show()` | ReactorHostControl | Mounts this area as the window's content. The style dictionary is on the host before the tree is, so the widgets inherit it. Parent the host, and dispose these props when the owner closes. |
+| `WidgetAreaProps(string Name = "", IReadOnlyList of [Placement](#placement)? Defaults = null, Orientation Orientation = Orientation.Horizontal, [ShellStyle](#shellstyle)? Style = null)` | constructor |  |
+| `Defaults` | IReadOnlyList of [Placement](#placement)?, init | The author's ordered placements. A missing list is none. |
+| `Name` | string, init | The section, or `""` to use only Defaults. |
+| `Orientation` | Orientation, init | The direction the placements run. |
+| `Style` | [ShellStyle](#shellstyle)?, init | This area's own style, which wins over the shell's, or null for the shell's. |
 
 ## WidgetContext
 
