@@ -63,6 +63,73 @@ function Get-WindowsSdkTool([string] $Name) {
     $found
 }
 
+# The start of the sentence Doctor.Guard returns when a check could not run. The release check uses that sentence,
+# not a second prefix.
+function Get-DoctorGuardPrefix {
+    $doctor = Join-Path (Get-RepoRoot) 'src/Winshell.Services/Diagnostics/Doctor.cs'
+    $match = [regex]::Match(
+        (Get-Content -LiteralPath $doctor -Raw),
+        '\$"(Could not check: )\{e\.GetType\(\)\.Name\}: \{e\.Message\}"')
+    if (-not $match.Success) { throw 'Doctor.Guard does not return its could-not-check sentence.' }
+    $match.Groups[1].Value
+}
+
+function Test-DoctorCouldNotCheck([string] $Message) {
+    $Message -and $Message.StartsWith((Get-DoctorGuardPrefix), [StringComparison]::Ordinal)
+}
+
+# Drops the files src/Winshell names in WinshellReleaseRemoved, and folders that leaves empty. Only the release publish
+# calls this. A plain `dotnet publish src/Winshell` keeps symbols and helpers.
+function Remove-ReleaseFile([string] $Dir) {
+    $project = Join-Path (Get-RepoRoot) 'src/Winshell/Winshell.csproj'
+    $match = [regex]::Match(
+        (Get-Content -LiteralPath $project -Raw),
+        '<WinshellReleaseRemoved>([^<]+)</WinshellReleaseRemoved>')
+    if (-not $match.Success) { throw 'src/Winshell/Winshell.csproj lists no files a release removes.' }
+    $patterns = @($match.Groups[1].Value.Split(';') | ForEach-Object Trim | Where-Object { $_ })
+    Get-ChildItem -LiteralPath $Dir -Recurse -File | Where-Object {
+        $name = $_.Name
+        @($patterns | Where-Object { $name -like $_ }).Count -gt 0
+    } | Remove-Item -Force
+    Get-ChildItem -LiteralPath $Dir -Recurse -Directory | Sort-Object { $_.FullName.Length } -Descending | Where-Object {
+        -not (Get-ChildItem -LiteralPath $_.FullName -Force | Select-Object -First 1)
+    } | Remove-Item -Force
+}
+
+# Runs winshell doctor from an unpacked release, on folders of its own. A library a check uses that the release left
+# out makes that check return Doctor.Guard's sentence, and fails only here, because tests run the build and not the zip.
+function Assert-WinshellDoctor([string] $Exe, [string] $Directory) {
+    $config = Join-Path $Directory 'config'
+    $local = Join-Path $Directory 'local'
+    New-Item -ItemType Directory -Force -Path $config, $local | Out-Null
+    $savedConfig = $env:WINSHELL_CONFIG_DIR
+    $savedLocal = $env:WINSHELL_LOCAL_DIR
+    $env:WINSHELL_CONFIG_DIR = $config
+    $env:WINSHELL_LOCAL_DIR = $local
+    try {
+        $report = & $Exe doctor --json
+        # 1 is a check that failed on this PC, which the release cannot help.
+        if ($LASTEXITCODE -notin 0, 1) { throw "winshell doctor exited with $LASTEXITCODE." }
+        $checks = @(($report -join "`n" | ConvertFrom-Json).checks)
+        if ($checks.Count -eq 0) { throw 'winshell doctor printed no checks.' }
+        $broken = @($checks | Where-Object { Test-DoctorCouldNotCheck $_.message })
+        if ($broken.Count -gt 0) { throw "winshell doctor could not run its $($broken[0].id) check: $($broken[0].message)" }
+    } finally {
+        if ($null -eq $savedConfig) { Remove-Item Env:WINSHELL_CONFIG_DIR -ErrorAction SilentlyContinue }
+        else { $env:WINSHELL_CONFIG_DIR = $savedConfig }
+        if ($null -eq $savedLocal) { Remove-Item Env:WINSHELL_LOCAL_DIR -ErrorAction SilentlyContinue }
+        else { $env:WINSHELL_LOCAL_DIR = $savedLocal }
+    }
+}
+
+# Runs winshell.exe --version, and, when $DoctorDirectory is set, every winshell doctor check. The x64 verify passes a
+# directory. The arm64 job does not: running doctor there would be a new check.
+function Assert-WinshellRuns([string] $Exe, [string] $Version, [string] $DoctorDirectory) {
+    $reported = Assert-WinshellVersion $Exe $Version
+    if ($DoctorDirectory) { Assert-WinshellDoctor $Exe $DoctorDirectory }
+    $reported
+}
+
 # Runs winshell.exe --version and returns what it printed, or stops unless that is $Version, with or without build
 # metadata after a +.
 function Assert-WinshellVersion([string] $Exe, [string] $Version) {

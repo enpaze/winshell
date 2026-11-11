@@ -320,4 +320,4 @@ jobs:
           $version = Get-ReleaseVersion
           $dest = Join-Path $env:RUNNER_TEMP 'arm64'
           Expand-Archive -LiteralPath (Join-Path packages (Get-ReleaseZipName $version 'win-arm64')) -DestinationPath $dest
-          Assert-WinshellVersion (Join-Path $dest 'winshell.exe') $version
+          Assert-WinshellRuns (Join-Path $dest 'winshell.exe') $version

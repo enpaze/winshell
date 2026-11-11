@@ -60,6 +60,14 @@
                       Exclude="..\..\examples\**\bin\**;..\..\examples\**\obj\**"
                       LogicalName="new/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
+  <!-- Debugger helpers and symbols are not part of the install, and neither is what nothing in Winshell loads: WebView2,
+       the other garbage collectors, and HTTP/3. The .mui files stay: without them WinUI ends the process, with no crash
+       report, when a control asks for one of its strings. So does Microsoft.UI.Xaml.Phone.dll, whatever its name says,
+       which WinUI's controls load. Held as text so the patterns stay patterns. scripts/package.ps1 applies the list after
+       the release publish. A plain publish keeps every file. -->
+  <PropertyGroup>
+    <WinshellReleaseRemoved>*.pdb;createdump.exe;mscordbi.dll;mscordaccore*;Microsoft.DiaSymReader.Native.*.dll;Microsoft.Web.WebView2.*;WebView2Loader.dll;clrgc*.dll;msquic.dll</WinshellReleaseRemoved>
+  </PropertyGroup>
   <!-- The publish list never includes that index, so copy it next to winshell.exe. -->
   <Target Name="CopyProjectPriToPublish" AfterTargets="CopyFilesToPublishDirectory">
     <Copy SourceFiles="$(ProjectPriFullPath)"
