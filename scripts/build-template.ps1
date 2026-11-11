@@ -22,8 +22,8 @@ try {
         [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination)) | Out-Null
         [IO.File]::Copy($source, $destination)
     }
-    # Apply the repository's style and analyzer policy to template compilation too.
-    foreach ($name in @('.editorconfig', 'global.json', 'Directory.Build.props')) {
+    # Apply the repository's style, analyzer and unsafe-code policy to template compilation too.
+    foreach ($name in @('.editorconfig', 'global.json', 'Directory.Build.props', 'Directory.Build.targets')) {
         Copy-Item -LiteralPath (Join-Path $root $name) -Destination (Join-Path $session $name)
     }
     $projectPath = Join-Path $template 'MyShell.csproj'

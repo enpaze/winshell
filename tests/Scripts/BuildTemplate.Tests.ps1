@@ -8,7 +8,7 @@ Describe 'Compiling template sources against the current libraries' {
         foreach ($folder in @('scripts', 'src/Winshell.Shell', 'templates/winshell')) {
             New-Item -ItemType Directory -Path (Join-Path $script:Fixture $folder) -Force | Out-Null
         }
-        foreach ($path in @('scripts/build-template.ps1', '.editorconfig', 'global.json', 'Directory.Build.props')) {
+        foreach ($path in @('scripts/build-template.ps1', '.editorconfig', 'global.json', 'Directory.Build.props', 'Directory.Build.targets')) {
             Copy-Item -LiteralPath (Join-Path $script:Repository $path) -Destination (Join-Path $script:Fixture $path)
         }
         [IO.File]::WriteAllText((Join-Path $script:Fixture 'src/Winshell.Shell/Winshell.Shell.csproj'), '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')

@@ -20,12 +20,6 @@
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
-  <!-- Core, Services and Shell share Winshell; the shell tests use one namespace identifier. -->
-  <PropertyGroup>
-    <RootNamespace Condition="'$(MSBuildProjectName)' == 'Winshell.Core' or '$(MSBuildProjectName)' == 'Winshell.Shell' or '$(MSBuildProjectName)' == 'Winshell.Services'">Winshell</RootNamespace>
-    <RootNamespace Condition="'$(MSBuildProjectName)' == 'Winshell.Shell.Tests'">Winshell.ShellTests</RootNamespace>
-  </PropertyGroup>
-
   <!-- The product version is the "." property of the release-please manifest. Scripts read that property with
        Get-ReleaseVersion. -p:Version= overrides it. A build that cannot read that property is 0.0.0-dev.
        Projects are not packable unless they opt in. -->

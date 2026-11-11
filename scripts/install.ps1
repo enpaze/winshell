@@ -12,6 +12,7 @@
     PATH and tell you to run winshell. pwsh -File leaves the caller unchanged and tells you to open
     a new terminal.
     If a Microsoft Store copy is also installed, it says so and still finishes.
+    If that query fails, it says the Store check was skipped and still finishes.
 
     iex cannot pass parameters. WINSHELL_VERSION (x.y.z) and WINSHELL_AUTOSTART (1, true, or yes)
     are the same choices as -Version and -AutoStart.
@@ -231,7 +232,10 @@ function Install-Winshell([string] $Version, [switch] $AutoStart, [switch] $Sess
     # A test must not ask this PC which packages it has.
     $store = @()
     if ($env:WINSHELL_INSTALL_TEST -ne '1') {
-        try { $store = @(Get-AppxPackage -Name '*Winshell*') } catch { $store = @() }
+        try { $store = @(Get-AppxPackage -Name '*Winshell*' -ErrorAction Stop) } catch {
+            $store = @()
+            Write-WinshellLine "Could not check for a Microsoft Store copy of Winshell, so that check was skipped. $($_.Exception.Message)"
+        }
     }
     if ($store.Count -gt 0) {
         Write-WinshellLine 'A Microsoft Store copy of Winshell is also installed. Its WindowsApps alias usually comes first on PATH, so winshell may start the Store app instead of this copy.'
