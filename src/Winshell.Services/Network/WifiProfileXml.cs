@@ -217,7 +217,7 @@ internal static class WifiProfileXml
         }
 
         var ssid = !string.IsNullOrEmpty(ssidName) ? ssidName : DecodeHexSsid(ssidHex);
-        return new Fields(xmlName ?? "", ssid, mode ?? "", MapSecurity(authentication, encryption), hasPassword,
+        return new Fields(xmlName ?? "", ssid, mode ?? "", WifiFields.Security(authentication, encryption), hasPassword,
             hidden == true);
     }
 
@@ -250,35 +250,6 @@ internal static class WifiProfileXml
                     out bytes[i]))
                 return "";
         return Encoding.UTF8.GetString(bytes);
-    }
-
-    private static WifiSecurityType MapSecurity(string? authentication, string? encryption)
-    {
-        var auth = authentication ?? "";
-        var cipher = encryption ?? "";
-        if (auth.Equals("open", StringComparison.OrdinalIgnoreCase))
-            return cipher.Equals("WEP", StringComparison.OrdinalIgnoreCase)
-                ? WifiSecurityType.StaticWep
-                : WifiSecurityType.Open;
-        if (auth.Equals("shared", StringComparison.OrdinalIgnoreCase))
-            return WifiSecurityType.StaticWep;
-        if (auth.Equals("WPA", StringComparison.OrdinalIgnoreCase))
-            return WifiSecurityType.WpaEap;
-        if (auth.Equals("WPAPSK", StringComparison.OrdinalIgnoreCase))
-            return WifiSecurityType.WpaPsk;
-        if (auth.Equals("WPA2", StringComparison.OrdinalIgnoreCase) ||
-            auth.Equals("WPA3ENT", StringComparison.OrdinalIgnoreCase))
-            return WifiSecurityType.Wpa2Eap;
-        if (auth.Equals("WPA2PSK", StringComparison.OrdinalIgnoreCase))
-            return WifiSecurityType.Wpa2Psk;
-        if (auth.Equals("WPA3ENT192", StringComparison.OrdinalIgnoreCase))
-            return WifiSecurityType.Wpa3SuiteB192;
-        if (auth.Equals("WPA3SAE", StringComparison.OrdinalIgnoreCase) ||
-            auth.Equals("WPA3", StringComparison.OrdinalIgnoreCase))
-            return WifiSecurityType.Sae;
-        if (auth.Equals("OWE", StringComparison.OrdinalIgnoreCase))
-            return WifiSecurityType.Owe;
-        return WifiSecurityType.Unknown;
     }
 
     private static bool TryReplaceConnectionMode(string xml, string desired, out string updated)

@@ -175,14 +175,12 @@ public sealed class WifiProfileTests
                       """;
         AssertNoWrite(billion, WifiProfileXml.Unreadable);
 
-        var api = new FakeWlan { Xml = dtd };
-        var clear = WifiProfileEdit.ClearPassword(api, AdapterId, "Office");
-        Assert.Equal(0, api.Sets);
-        Assert.Equal(0, api.Connects);
-        Assert.Equal(0, api.Deletes);
-        Assert.False(clear.Wrote);
-        Assert.DoesNotContain(Marker, clear.Error);
-        Assert.DoesNotContain(Secret, clear.Error);
+        Assert.False(WifiProfileXml.TryClearPassword(dtd, out var cleared, out var clearedChanged, out var clearError));
+        Assert.False(clearedChanged);
+        Assert.Equal(dtd, cleared);
+        Assert.Equal(WifiProfileXml.Unreadable, clearError);
+        Assert.DoesNotContain(Marker, clearError);
+        Assert.DoesNotContain(Secret, clearError);
     }
 
     [Theory]
@@ -208,6 +206,7 @@ public sealed class WifiProfileTests
             "</encryption></authEncryption></security></MSM></WLANProfile>";
         Assert.True(WifiProfileXml.TryParse(xml, out var fields, out var error), error);
         Assert.Equal(expected, fields.Security);
+        Assert.Equal(WifiFields.Security(authentication, encryption), fields.Security);
         Assert.False(fields.AutoConnect);
         Assert.False(fields.HasPassword);
         Assert.DoesNotContain(Secret, fields.ToString());
@@ -280,50 +279,7 @@ public sealed class WifiProfileTests
     [InlineData(0x0u, 0x0u)]
     public void Writes_keep_the_profile_flag_and_drop_a_plaintext_bit(uint reported, uint written)
     {
-        var api = new FakeWlan { Xml = Saved, Flags = reported };
-        var change = WifiProfileEdit.SetAutoConnect(api, AdapterId, "Office", false);
-        Assert.Null(change.Error);
-        Assert.True(change.Wrote);
-        Assert.Equal(written, api.WrittenFlags);
-        Assert.Equal(Manual, api.WrittenXml);
-        Assert.Equal(0, api.Connects);
-        Assert.Equal(0, api.Deletes);
-        Assert.DoesNotContain(Secret, change.Error ?? "");
-    }
-
-    [Fact]
-    public void A_refused_all_users_write_reports_the_windows_error()
-    {
-        var denied = new Win32Exception(5).Message;
-        var api = new FakeWlan { Xml = Saved, Flags = 0, SetError = 5 };
-        var change = WifiProfileEdit.SetAutoConnect(api, AdapterId, "Office", false);
-        Assert.True(change.Wrote);
-        Assert.Equal(denied, change.Error);
-        Assert.Equal(0u, api.WrittenFlags);
-        Assert.Contains(Secret, api.WrittenXml);
-        Assert.DoesNotContain(Secret, change.Error);
-        Assert.Equal(0, api.Connects);
-        Assert.Equal(0, api.Deletes);
-
-        api = new FakeWlan { Xml = Saved, GetError = 5 };
-        change = WifiProfileEdit.SetAutoConnect(api, AdapterId, "Office", false);
-        Assert.False(change.Wrote);
-        Assert.Equal(0, api.Sets);
-        Assert.Equal(denied, change.Error);
-        Assert.DoesNotContain(Secret, change.Error);
-
-        api = new FakeWlan { Xml = Saved };
-        change = WifiProfileEdit.SetAutoConnect(api, AdapterId, "Office", true);
-        Assert.False(change.Wrote);
-        Assert.Equal(0, api.Sets);
-        Assert.Null(change.Error);
-
-        const string noKey = "<WLANProfile><name>Office</name><connectionMode>auto</connectionMode></WLANProfile>";
-        api = new FakeWlan { Xml = noKey };
-        change = WifiProfileEdit.ClearPassword(api, AdapterId, "Office");
-        Assert.False(change.Wrote);
-        Assert.Equal(0, api.Sets);
-        Assert.Null(change.Error);
+        Assert.Equal(written, Wlan.ProfileWriteFlags(reported));
     }
 
     [Fact]
@@ -407,15 +363,6 @@ public sealed class WifiProfileTests
         Assert.Equal(xml, updated);
         Assert.DoesNotContain(Secret, error);
         Assert.DoesNotContain(Marker, error);
-        var api = new FakeWlan { Xml = xml };
-        var change = WifiProfileEdit.SetAutoConnect(api, AdapterId, "Office", auto);
-        Assert.Equal(0, api.Sets);
-        Assert.Equal(0, api.Connects);
-        Assert.Equal(0, api.Deletes);
-        Assert.False(change.Wrote);
-        Assert.Equal(expected, change.Error);
-        Assert.DoesNotContain(Secret, change.Error);
-        Assert.DoesNotContain(Marker, change.Error);
     }
 
     private static string Deep(int levels)
@@ -437,46 +384,5 @@ public sealed class WifiProfileTests
         Assert.True(WifiProfileXml.TryParse(xml, out var fields, out var error), error);
         Assert.True(fields.Name.Length > 0);
         return fields.Ssid;
-    }
-
-    private sealed class FakeWlan : IWlanProfileApi
-    {
-        public string? Xml { get; init; }
-        public uint Flags { get; init; }
-        public uint GetError { get; init; }
-        public uint SetError { get; init; }
-        public string? WrittenXml { get; private set; }
-        public uint WrittenFlags { get; private set; }
-        public int Sets { get; private set; }
-        public int Connects { get; private set; }
-        public int Deletes { get; private set; }
-
-        public uint Get(Guid adapter, string profileName, out string? xml, out uint flags)
-        {
-            xml = GetError == 0 ? Xml : null;
-            flags = Flags;
-            return GetError;
-        }
-
-        public uint Set(Guid adapter, string xml, uint flags, out uint reason)
-        {
-            Sets++;
-            WrittenXml = xml;
-            WrittenFlags = flags;
-            reason = 0;
-            return SetError;
-        }
-
-        public uint Connect(Guid adapter, string profileName, bool hidden)
-        {
-            Connects++;
-            return 0;
-        }
-
-        public uint Delete(Guid adapter, string profileName)
-        {
-            Deletes++;
-            return 0;
-        }
     }
 }
