@@ -21,6 +21,14 @@ public class InspectInputOptionTests
     }
 
     [Fact]
+    public void A_negative_number_on_click_is_an_unknown_option()
+    {
+        var error = Assert.Throws<ArgumentException>(() => Parse("inspect", "click", "-3"));
+
+        Assert.Equal("Unknown option \"-3\".", error.Message);
+    }
+
+    [Fact]
     public void Steps_up_are_a_negative_number_and_not_an_option()
     {
         Assert.Equal(["scroll", "List", "-3", "PanelView"],

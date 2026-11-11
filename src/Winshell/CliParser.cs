@@ -23,9 +23,9 @@ internal static class CliParser
         var line = new Line(commandLine.Arguments);
         line.Read();
         if (line.RequestsHelp)
-            return new Invocation(line.CommandName, true, false, false, false, [], [], [], []);
+            return new Invocation(line.CommandName, true, false, false, false, [], [], []);
         if (line.CommandName is not (null or "help") && line.Version)
-            return new Invocation(line.CommandName, false, true, false, false, [], [], [], []);
+            return new Invocation(line.CommandName, false, true, false, false, [], [], []);
         return Finish(line);
     }
 
@@ -163,7 +163,7 @@ internal static class CliParser
                     var topic = positional.FirstOrDefault();
                     if (topic is not null && !ByName.ContainsKey(topic))
                         throw UnknownCommand(topic);
-                    return new Invocation(topic, true, false, false, false, [], [], [], []);
+                    return new Invocation(topic, true, false, false, false, [], [], []);
                 case WordRule.Subcommand:
                     sub = RequireSubcommand(command, positional);
                     RejectSiblingFlags(command, sub, line);
@@ -171,10 +171,6 @@ internal static class CliParser
             }
         }
 
-        var daemonize = values.ContainsKey(CliFlags.Daemonize);
-        var child = daemonize
-            ? RunCommand.ChildArguments(line.Child, line.CommandName, values.ContainsKey(CliFlags.NoBuild))
-            : [];
         var invocation = new Invocation(
             line.CommandName,
             false,
@@ -184,7 +180,6 @@ internal static class CliParser
             [.. line.Args],
             [.. positional],
             [.. line.Rest],
-            child,
             values);
         if (line.CommandName is { } commandName)
         {
@@ -299,9 +294,6 @@ internal static class CliParser
 
         public List<string> Rest { get; } = [];
 
-        /// <summary>Every token except a daemonize flag. A <c>-d</c> that is some other option's value stays.</summary>
-        public List<string> Child { get; } = [];
-
         private bool _raw;
 
         public void Read()
@@ -312,7 +304,6 @@ internal static class CliParser
                 if (_raw)
                 {
                     Positional.Add(token);
-                    Child.Add(token);
                     continue;
                 }
 
@@ -321,7 +312,6 @@ internal static class CliParser
                     if (CommandName is null or CommandWords.Run)
                     {
                         Rest.AddRange(Args.Skip(i));
-                        Child.AddRange(Args.Skip(i));
                         return;
                     }
 
@@ -347,13 +337,6 @@ internal static class CliParser
                     }
 
                     Uses.Add(new Use(token, option, value, missing));
-                    if (option != CliFlags.Daemonize)
-                    {
-                        Child.Add(token);
-                        if (value is not null)
-                            Child.Add(value);
-                    }
-
                     if (option == CliFlags.Help)
                         RequestsHelp = true;
                     else if (option == CliFlags.Version)
@@ -364,7 +347,6 @@ internal static class CliParser
                 if (token.StartsWith('-') && !SignedStep(token))
                 {
                     Uses.Add(new Use(token, null, null, false));
-                    Child.Add(token);
                     continue;
                 }
 
@@ -373,12 +355,10 @@ internal static class CliParser
                     if (!ByName.ContainsKey(token))
                         throw UnknownCommand(token);
                     CommandName = token;
-                    Child.Add(token);
                     continue;
                 }
 
                 Positional.Add(token);
-                Child.Add(token);
                 if (CommandName is { } name && ByName[name].Words == WordRule.Subcommand)
                 {
                     var sub = ByName[name].Subcommands.FirstOrDefault(candidate => candidate.Name == Positional[0]);

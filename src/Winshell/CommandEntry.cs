@@ -61,7 +61,10 @@ internal sealed record CommandEntry
     }
 }
 
-/// <summary>How many positional words a top-level command takes after its name.</summary>
+/// <summary>
+/// How many positional words a top-level command takes after its name. <see cref="Topic"/> is help's rule: one known
+/// command, or the overview. <see cref="Subcommand"/> is a command whose first word names a subcommand.
+/// </summary>
 internal enum WordRule
 {
     None,

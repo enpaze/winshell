@@ -19,7 +19,6 @@ internal sealed class Invocation
         ImmutableArray<string> arguments,
         ImmutableArray<string> positional,
         ImmutableArray<string> rest,
-        ImmutableArray<string> childArguments,
         Dictionary<CommandOption, object?>? values = null)
     {
         Command = command;
@@ -30,7 +29,6 @@ internal sealed class Invocation
         Arguments = arguments;
         Positional = positional;
         Rest = rest;
-        ChildArguments = childArguments;
         _values = values ?? [];
     }
 
@@ -51,12 +49,6 @@ internal sealed class Invocation
 
     /// <summary>The <c>--</c> and everything after it. Those words belong to the configuration's program.</summary>
     public ImmutableArray<string> Rest { get; }
-
-    /// <summary>
-    /// Arguments for the background <c>winshell</c> that <c>run -d</c> leaves behind. Empty unless this line daemonizes.
-    /// The flag itself is gone, and a <c>-d</c> that is the value of <c>-c</c> or <c>-p</c> is still there.
-    /// </summary>
-    public ImmutableArray<string> ChildArguments { get; }
 
     public bool IsSet(CommandOption option)
     {

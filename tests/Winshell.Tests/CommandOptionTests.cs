@@ -111,6 +111,8 @@ public class CommandOptionTests
     public void Every_command_takes_verbose()
     {
         Assert.All(CliParser.Entries, entry => Assert.True(entry.Accepts(CliFlags.Verbose)));
+        // The flag is shared, so one parse shows that reading it sets verbose. ipc's own tests cover where -v counts.
+        Assert.True(CliParser.Parse(["run", "-v"]).Verbose);
     }
 
     private static string Field(Invocation parsed, string field)

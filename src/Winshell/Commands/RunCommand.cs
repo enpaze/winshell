@@ -29,18 +29,40 @@ internal static class RunCommand
     };
 
     /// <summary>
-    /// What a <c>-d</c> child runs. The flag itself is already gone from <paramref name="kept"/>.
-    /// <c>--no-build</c> is added when this process builds, so the child does not build again. A line with no command
-    /// word is named <c>run</c>.
+    /// What a <c>-d</c> child runs. Empty unless <paramref name="parsed"/> daemonizes. The flag itself is gone, and a
+    /// <c>-d</c> that is the value of <c>-c</c> or <c>-p</c> stays. <c>--no-build</c> is added when this process builds,
+    /// so the child does not build again. A line with no command word is named <c>run</c>.
     /// </summary>
-    internal static ImmutableArray<string> ChildArguments(IReadOnlyList<string> kept, string? command, bool noBuild)
+    internal static ImmutableArray<string> ChildArguments(Invocation parsed)
     {
-        var child = kept.ToList();
-        if (command is null)
-            child.Insert(0, CommandWords.Run);
-        if (!noBuild)
-            child.Insert(0, CommandWords.NoBuild.Long);
-        return [.. child];
+        if (!parsed.IsSet(CliFlags.Daemonize))
+            return [];
+
+        var kept = new List<string>();
+        var args = parsed.Arguments;
+        for (var i = 0; i < args.Length; i++)
+        {
+            var token = args[i];
+            if (token == CommandWords.End)
+            {
+                kept.AddRange(args.Skip(i));
+                break;
+            }
+
+            // Only run's own value options take the next word. A shared flag is one token.
+            var option = Entry.Options.FirstOrDefault(candidate => candidate.Word.Is(token));
+            if (option == CliFlags.Daemonize)
+                continue;
+            kept.Add(token);
+            if (option is { TakesValue: true } && i + 1 < args.Length)
+                kept.Add(args[++i]);
+        }
+
+        if (parsed.Command is null)
+            kept.Insert(0, CommandWords.Run);
+        if (!parsed.IsSet(CliFlags.NoBuild))
+            kept.Insert(0, CommandWords.NoBuild.Long);
+        return [.. kept];
     }
 
     internal static int Execute(Invocation parsed)
@@ -69,9 +91,9 @@ internal static class RunCommand
         }
 
         // -d leaves the program to a child that supervises it. The build is done, and its errors were in this console.
-        // The child runs the tokens the parser kept, so a -d that is the value of -c or -p is not dropped.
+        // The child runs run's own argument list, so a -d that is the value of -c or -p is not dropped.
         if (parsed.IsSet(CliFlags.Daemonize))
-            return Detach(parsed.ChildArguments);
+            return Detach(ChildArguments(parsed));
 
         var program = new ProcessStartInfo(project.Program) { UseShellExecute = false };
         foreach (var a in CommandLine.ProgramArguments(parsed.IsSet(CliFlags.NoDuplicate), parsed.Verbose, parsed.Rest))
