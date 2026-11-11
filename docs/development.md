@@ -58,6 +58,8 @@ dotnet run --project src/Winshell -- log -t 20
 dotnet run --project src/Winshell -- kill -i <id>
 ```
 
+`winshell dev` is the edit loop. From source it is `dotnet run --project src/Winshell -- dev -p ..\MyShell`. It runs the configuration under `dotnet watch`, and Reactor's hot reload applies an edit to a component's `Render` in the running shell, without a restart. An edit .NET cannot apply restarts the shell. [Develop a shell](configuration.md#develop-a-shell) is the same path as an author sees it.
+
 ## Agent skills
 
 The repo's skills are committed in `.agents/skills`, one folder each, so a clone or worktree has them with nothing to run. `skills-lock.json` records the source each one came from, and the licence of each source is beside them, in `LICENSE-<owner>-skills`. Codex reads the folder as it is.
@@ -129,7 +131,6 @@ After the merge, confirm each layer's issue is closed with `gh issue view <issue
 - **C# whitespace** follows `.editorconfig` and the SDK formatter. Run `pwsh -NoProfile scripts/format.ps1` to apply formatting, or add `-VerifyNoChanges` to check without editing source files. The full local check and CI run verification; commits have no formatting hook.
 - **Code style and analyzers** are the build's. Builds enforce code-style and Roslyn analyzer warnings through `EnforceCodeStyleInBuild` and warnings as errors.
 - **Names.** Test methods use sentences with underscores for spaces. Windows interop declarations keep the Windows spelling, such as `ABE_BOTTOM`, `POINT` and `SHAppBarMessage`; Winshell's own names use PascalCase.
-- **XAML** keeps its existing formatting.
 
 ### What the formatter covers
 

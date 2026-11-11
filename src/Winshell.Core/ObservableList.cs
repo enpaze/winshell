@@ -6,10 +6,10 @@ using System.ComponentModel;
 namespace Winshell;
 
 /// <summary>
-/// A list a service keeps current. A configuration reads it, and only its service changes it. Enumerating, counting
-/// or indexing it is a read a watch follows. A change is raised on the thread that made it, which for a service is its
-/// event loop, so XAML bindings can show it. An item that raises <see cref="INotifyPropertyChanged.PropertyChanged"/>
-/// raises this list too, until the item is removed, replaced or cleared.
+/// A list a service keeps current. A configuration reads it, and only its service changes it. A change is raised on
+/// the thread that made it, which for a service is its event loop, so Reactor can show it. An item that raises
+/// <see cref="INotifyPropertyChanged.PropertyChanged"/> raises this list too, until the item is removed, replaced or
+/// cleared.
 /// </summary>
 public sealed class ObservableList<T> : IReadOnlyList<T>, IList, INotifyCollectionChanged, INotifyPropertyChanged
 {
@@ -37,49 +37,35 @@ public sealed class ObservableList<T> : IReadOnlyList<T>, IList, INotifyCollecti
 
     /// <summary>
     /// Raised when <see cref="Count"/> or the items change, and when an item raises
-    /// <see cref="INotifyPropertyChanged.PropertyChanged"/>, for XAML bindings and Reactor.
+    /// <see cref="INotifyPropertyChanged.PropertyChanged"/>, for Reactor.
     /// </summary>
     public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>How many items there are.</summary>
-    public int Count
-    {
-        get
-        {
-            Reads.List(this);
-            return _items.Count;
-        }
-    }
+    public int Count => _items.Count;
 
     /// <summary>The item at <paramref name="index"/>.</summary>
     public T this[int index]
     {
-        get
-        {
-            Reads.List(this);
-            return _items[index];
-        }
+        get => _items[index];
         internal set => _items[index] = value;
     }
 
     /// <summary>Where <paramref name="item"/> is, or -1 when it is not in the list.</summary>
     public int IndexOf(T item)
     {
-        Reads.List(this);
         return _items.IndexOf(item);
     }
 
     /// <summary>Whether <paramref name="item"/> is in the list.</summary>
     public bool Contains(T item)
     {
-        Reads.List(this);
         return _items.Contains(item);
     }
 
     /// <summary>Goes through the items in order.</summary>
     public IEnumerator<T> GetEnumerator()
     {
-        Reads.List(this);
         return _items.GetEnumerator();
     }
 
@@ -145,7 +131,6 @@ public sealed class ObservableList<T> : IReadOnlyList<T>, IList, INotifyCollecti
 
     void ICollection.CopyTo(Array array, int index)
     {
-        Reads.List(this);
         ((ICollection)_items).CopyTo(array, index);
     }
 

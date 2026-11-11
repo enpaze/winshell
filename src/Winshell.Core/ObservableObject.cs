@@ -6,9 +6,8 @@ namespace Winshell;
 
 /// <summary>
 /// The base of what a service exposes. A change is raised on the thread that made it, which for a service is its
-/// event loop, so XAML bindings and Reactor can read it. Each public getter, and each public method that answers from
-/// its state, reports its read with <see cref="Read{T}"/>, so a watch that reads it runs again when it changes. A
-/// list property, once read, raises this object when that list changes, so a change inside the list reaches the object.
+/// event loop, so Reactor can read it. A list property, once read through <see cref="Read{T}"/>, raises this object
+/// when that list changes, so a change inside the list reaches the object.
 /// </summary>
 public abstract class ObservableObject : INotifyPropertyChanged
 {
@@ -19,15 +18,14 @@ public abstract class ObservableObject : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>
-    /// Reports a read of <paramref name="property"/>, by default the calling property, and returns
-    /// <paramref name="value"/>. A getter reports before it computes anything, as in <c>Read(_info).Name</c>.
+    /// Follows <paramref name="value"/> when it is a list, under <paramref name="property"/>, and returns it. A list
+    /// property is created with <c>= []</c>, not <see cref="Set{T}"/>, so the getter is the first code that sees it,
+    /// as in <c>get => Read(field)</c>.
     /// </summary>
     protected T Read<T>(T value, [CallerMemberName] string property = "")
     {
-        // Follow starts here because a list property is created with `= []`, not Set, and the getter is the
-        // first code that sees it. The report on the next line is the watch; deleting that report leaves the follow.
         Follow(value, property);
-        return Reads.Property(this, value, property);
+        return value;
     }
 
     /// <summary>Sets a field and reports the change when the value differs.</summary>

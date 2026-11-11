@@ -76,8 +76,7 @@ public sealed partial class Shell : IDisposable
     }
 
     /// <summary>
-    /// The project folder <c>winshell dev</c> runs. A shell started with it follows its <c>.xaml</c> files and shows a
-    /// file that does not read on screen.
+    /// The project folder <c>winshell dev</c> runs. A shell started with it shows a preferences file that does not read.
     /// </summary>
     internal const string DevProjectVariable = "WINSHELL_DEV_PROJECT";
 
@@ -264,11 +263,8 @@ public sealed partial class Shell : IDisposable
                         "Something in Winshell failed. It is still running."));
                     shell = new Shell(loop, options, session);
                     _current = shell;
-                    if (Environment.GetEnvironmentVariable(DevProjectVariable) is { Length: > 0 } project)
-                    {
+                    if (Environment.GetEnvironmentVariable(DevProjectVariable) is { Length: > 0 })
                         shell.Notices.FollowFileErrors();
-                        XamlReload.Watch(shell, project);
-                    }
 
                     session.Serve(loop, new Control(shell));
                     // winshell.exe is a console program: Ctrl+C would end it with no Dispose, so it quits instead.

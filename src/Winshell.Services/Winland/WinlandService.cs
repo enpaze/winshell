@@ -155,7 +155,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
     /// </summary>
     public WinlandMonitor? MonitorFor(ScreenInfo? screen)
     {
-        Reads.List(Monitors);
         if (screen is null)
             return null;
         var monitor = _monitorList.FirstOrDefault(m => m.Name == screen.Id);
