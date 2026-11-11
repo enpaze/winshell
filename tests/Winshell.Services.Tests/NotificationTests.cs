@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.ComponentModel;
+using System.Reflection;
 using Winshell.Notifications;
 
 namespace Winshell.Services.Tests;
@@ -238,16 +239,34 @@ public sealed class NotificationTests
         Assert.False(listener.ClearAll());
     }
 
+    /// <summary>Windows gives a shell no way to activate another app's notification, so the type does not offer it.</summary>
     [Fact]
-    public async Task Invoke_is_not_something_Windows_allows()
+    public void A_notification_has_no_way_to_invoke_it()
     {
-        using var listener = await ListenerAsync(new FakeBackend());
-        listener.Apply(Snapshot(Toast(1)));
-        var notification = listener.Notifications[0];
+        const BindingFlags PublicInstance = BindingFlags.Instance | BindingFlags.Public;
+        Assert.Null(typeof(Notification).GetProperty("CanInvoke", PublicInstance));
+        Assert.Null(typeof(Notification).GetMethod("Invoke", PublicInstance, Type.EmptyTypes));
+    }
 
-        Assert.False(notification.CanInvoke);
-        Assert.False(notification.Invoke());
-        Assert.Contains("Notification Center", listener.Error, StringComparison.Ordinal);
+    [Fact]
+    public async Task A_toast_is_read_on_its_own_thread()
+    {
+        var seen = new TaskCompletionSource<(bool Pool, int Id)>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var backend = new FakeBackend
+        {
+            Current = Snapshot(Toast(1)),
+            YieldBeforeList = true,
+            ToastRead = () => seen.TrySetResult((Thread.CurrentThread.IsThreadPoolThread,
+                Environment.CurrentManagedThreadId))
+        };
+        var caller = Environment.CurrentManagedThreadId;
+        using (new NotificationListener(new ManualEventLoop(), Log.Default, backend))
+        {
+            var (pool, id) = await seen.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+            Assert.False(pool);
+            Assert.NotEqual(caller, id);
+        }
     }
 
     [Fact]
@@ -424,6 +443,12 @@ public sealed class NotificationTests
         /// <summary>The id of the toast that cannot be dismissed.</summary>
         public uint Refuse { get; init; }
 
+        /// <summary>Yields before the list returns, as Windows does, so the content read is not still on the starter.</summary>
+        public bool YieldBeforeList { get; init; }
+
+        /// <summary>Runs as a toast's content is read, on the thread that reads it.</summary>
+        public Action? ToastRead { get; init; }
+
         public List<uint> Dismissed { get; } = [];
 
         public List<(string AppId, string Xml, string Tag, string Group)> Shown { get; } = [];
@@ -460,8 +485,17 @@ public sealed class NotificationTests
 
         public async Task<IReadOnlyList<ListedToast>> ListToastsAsync(CancellationToken cancellation)
         {
+            if (YieldBeforeList)
+                await Task.Yield();
             var snapshot = Next is null ? Current : await Next.Task;
-            return [.. snapshot.Notifications.Select(t => new ListedToast(t.Id, t.CreatedAt, () => t))];
+            return
+            [
+                .. snapshot.Notifications.Select(t => new ListedToast(t.Id, t.CreatedAt, () =>
+                {
+                    ToastRead?.Invoke();
+                    return t;
+                }))
+            ];
         }
 
         public void Dismiss(uint id)

@@ -16,13 +16,11 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `AppId` | string, read-only | The AppUserModelID of the app that sent it. Can be empty. |
 | `AppName` | string, read-only | The display name of the app that sent it. Can be empty. |
 | `Body` | string, read-only | The lines of text after the title, joined by line breaks. Can be empty. |
-| `CanInvoke` | bool, read-only | Always false: Windows gives a shell no way to activate another app's notification. |
 | `CreatedAt` | DateTimeOffset, read-only | When the notification was created. |
 | `ExpiresAt` | DateTimeOffset?, read-only | When it expires, or null when Windows supplied no expiry. |
 | `Id` | uint, read-only | The Windows notification id. |
 | `Title` | string, read-only | The first line of text. Can be empty. |
 | `Dismiss()` | bool | Removes the notification from Windows. Returns true only when Windows accepted the removal. |
-| `Invoke()` | bool | UserNotificationListener exposes no activation arguments or actions for other apps. |
 
 ## NotificationAccessStatus
 
@@ -65,7 +63,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `NotificationMode` | [NotificationMode](#notificationmode), read-only | Windows' current notification restriction. |
 | `Notifications` | ObservableList of [Notification](#notification), read-only | Every readable notification, newest first. Empty without access. |
 | `NotificationAdded` | Action of [Notification](#notification) | Raised after Notifications holds a newly seen notification, including those in the first read. |
-| `OperationFailed` | Action of string | An access request, a dismissal or Notification.Invoke failed. The text is Error. |
+| `OperationFailed` | Action of string | An access request or a dismissal failed. The text is Error. |
 | `ClearAll()` | bool | Dismisses this listener's current snapshot. Returns whether every removal succeeded; failed ones stay. |
 | `Dispose()` | void | Stops watching Notification Center and releases the app logos it read. |
 | `RequestAccess()` | void | Asks Windows for access and returns at once. Call from a button in a foreground window. |
