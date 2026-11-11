@@ -31,6 +31,99 @@ internal static class WinlandProtocol
     }
 
     /// <summary>
+    /// The event <paramref name="name"/> names. Its fields are taken from <paramref name="data"/> in the order Winland
+    /// sends them. Null when this build does not read that event.
+    /// </summary>
+    public static Event? ReadEvent(string name, string data)
+    {
+        switch (name)
+        {
+            case "configreloaded":
+                return new ConfigReloaded();
+            case "monitoraddedv2":
+                {
+                    var args = ParseArgs(data, 3);
+                    return new MonitorAdded(Integer(args[0]) ?? -1, args[1], args[2]);
+                }
+            case "monitorremoved":
+                return new MonitorRemoved(data);
+            case "createworkspacev2":
+                {
+                    var (id, workspace, monitor) = Workspace(data);
+                    return new WorkspaceCreated(id, workspace, monitor);
+                }
+            case "destroyworkspacev2":
+                {
+                    var (id, workspace, monitor) = Workspace(data);
+                    return new WorkspaceDestroyed(id, workspace, monitor);
+                }
+            case "focusedmon":
+                {
+                    var args = ParseArgs(data, 2);
+                    return new MonitorFocused(args[0], args[1] == "?" ? null : args[1]);
+                }
+            case "workspacev2":
+                {
+                    var (id, workspace, monitor) = Workspace(data);
+                    return new WorkspaceShown(id, workspace, monitor);
+                }
+            case "moveworkspacev2":
+                {
+                    var (id, workspace, monitor) = Workspace(data);
+                    return new WorkspaceMoved(id, workspace, monitor);
+                }
+            case "fullscreen":
+                return new FullscreenChanged(data == "1");
+            case "openwindow":
+                {
+                    var args = ParseArgs(data, 5);
+                    return new WindowOpened(ParseAddress(args[0]), args[1], args[2], args[3], args[4]);
+                }
+            case "closewindow":
+                return new WindowClosed(ParseAddress(data));
+            case "movewindowv2":
+                {
+                    var args = ParseArgs(data, 4);
+                    return new WindowMoved(ParseAddress(args[0]), Integer(args[1]) ?? -1, args[2], args[3]);
+                }
+            case "windowtitlev2":
+                {
+                    var args = ParseArgs(data, 2);
+                    return new WindowTitleChanged(ParseAddress(args[0]), args[1]);
+                }
+            case "activewindowv2":
+                return new WindowActivated(ParseAddress(data));
+            case "urgent":
+                return new WindowUrgent(ParseAddress(data));
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>A JSON reply, or null when there is none or it is not JSON.</summary>
+    public static JsonElement? ParseJson(string? reply)
+    {
+        if (string.IsNullOrWhiteSpace(reply))
+            return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(reply);
+            return doc.RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    // id, name, monitor. The same three fields name a Workspace on the events that carry one.
+    private static (int Id, string Name, string Monitor) Workspace(string data)
+    {
+        var args = ParseArgs(data, 3);
+        return (WorkspaceId(args[0], args[1]), args[1], args[2]);
+    }
+
+    /// <summary>
     /// The data of an event split into <paramref name="count"/> arguments: the last one keeps any
     /// commas, and missing ones are empty.
     /// </summary>
@@ -160,6 +253,41 @@ internal static class WinlandProtocol
     {
         return obj.ValueKind == JsonValueKind.Object && obj.TryGetProperty(name, out var v) ? v : default;
     }
+
+    internal abstract record Event;
+
+    internal sealed record ConfigReloaded : Event;
+
+    internal sealed record MonitorAdded(int Id, string Name, string Description) : Event;
+
+    /// <summary>The whole data is the display name. This event is not a comma-separated list.</summary>
+    internal sealed record MonitorRemoved(string Name) : Event;
+
+    internal sealed record WorkspaceCreated(int Id, string Name, string Monitor) : Event;
+
+    internal sealed record WorkspaceDestroyed(int Id, string Name, string Monitor) : Event;
+
+    /// <summary><paramref name="Workspace"/> is null when Winland sends <c>?</c>.</summary>
+    internal sealed record MonitorFocused(string Monitor, string? Workspace) : Event;
+
+    /// <summary>An empty <paramref name="Monitor"/> means the focused Monitor.</summary>
+    internal sealed record WorkspaceShown(int Id, string Name, string Monitor) : Event;
+
+    internal sealed record WorkspaceMoved(int Id, string Name, string Monitor) : Event;
+
+    internal sealed record FullscreenChanged(bool Fullscreen) : Event;
+
+    internal sealed record WindowOpened(ulong Address, string Workspace, string Monitor, string WindowClass, string Title) : Event;
+
+    internal sealed record WindowClosed(ulong Address) : Event;
+
+    internal sealed record WindowMoved(ulong Address, int WorkspaceId, string Workspace, string Monitor) : Event;
+
+    internal sealed record WindowTitleChanged(ulong Address, string Title) : Event;
+
+    internal sealed record WindowActivated(ulong Address) : Event;
+
+    internal sealed record WindowUrgent(ulong Address) : Event;
 }
 
 /// <summary>Reads Winland's lines and framed replies from a stream, with a buffer of its own.</summary>

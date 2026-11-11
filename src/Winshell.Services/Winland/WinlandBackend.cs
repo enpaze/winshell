@@ -20,16 +20,19 @@ internal sealed class WinlandBackend : IWinlandBackend
     private static readonly IReadOnlyList<string> Candidates =
         WinlandProtocol.PipeNames(Environment.GetEnvironmentVariable("WINLAND_PIPE"), SessionId);
 
-    public static readonly WinlandBackend Instance = new();
+    public static readonly WinlandBackend Instance = new(TimeProvider.System);
 
+    private readonly TimeProvider _time;
     private readonly Listeners<Handlers> _listeners = new();
+    private TimeSpan _poll = FirstPoll;
     private int _started;
     private volatile string? _pipeName;
     private volatile int _processId;
     private volatile bool _connected;
 
-    private WinlandBackend()
+    internal WinlandBackend(TimeProvider time)
     {
+        _time = time;
     }
 
     public bool IsConnected => _connected;
@@ -48,7 +51,6 @@ internal sealed class WinlandBackend : IWinlandBackend
 
     private async Task FollowEvents()
     {
-        var poll = FirstPoll;
         while (true)
         {
             var lost = false;
@@ -89,17 +91,24 @@ internal sealed class WinlandBackend : IWinlandBackend
                 break;
             }
 
-            // Winland drops a subscriber that falls behind, so a lost stream is tried again at once, then from 3 s.
-            // The wait is real time: it paces looking for another process, for every shell in this process, so it
-            // belongs to no shell's loop.
-            var wait = lost ? TimeSpan.FromMilliseconds(250) : poll;
-            poll = lost ? FirstPoll : NextPoll(poll);
-            await Task.Delay(wait).ConfigureAwait(false);
+            await WaitBeforeLookingAgain(lost).ConfigureAwait(false);
         }
     }
 
+    /// <summary>
+    /// Winland drops a subscriber that falls behind, so a lost stream is tried again after 250 ms, and the search
+    /// starts again from 3 s. Otherwise the wait is 3 s, then twice as long, up to 30 s. It paces looking for another
+    /// process, for every shell in this process, so it belongs to no shell's loop.
+    /// </summary>
+    internal async Task WaitBeforeLookingAgain(bool lost, CancellationToken cancel = default)
+    {
+        var wait = lost ? TimeSpan.FromMilliseconds(250) : _poll;
+        _poll = lost ? FirstPoll : NextPoll(_poll);
+        await Task.Delay(wait, _time, cancel).ConfigureAwait(false);
+    }
+
     /// <summary>The wait after <paramref name="poll"/> finds no Winland: twice as long, at most 30 s.</summary>
-    internal static TimeSpan NextPoll(TimeSpan poll)
+    private static TimeSpan NextPoll(TimeSpan poll)
     {
         return poll * 2 < LastPoll ? poll * 2 : LastPoll;
     }

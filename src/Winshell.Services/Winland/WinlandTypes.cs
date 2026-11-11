@@ -131,7 +131,6 @@ public sealed class WinlandWorkspace : ObservableObject
     private readonly WinlandService _ipc;
     private int _id = -1;
     private string _name = "";
-    private string _address = "";
     private WinlandMonitor? _monitor;
     private bool _active, _focused, _urgent, _hasFullscreen;
     private JsonElement? _lastIpcObject;
@@ -146,9 +145,6 @@ public sealed class WinlandWorkspace : ObservableObject
 
     /// <summary>The Workspace's name: its number, a name, or <c>special:</c> and a name.</summary>
     public string Name => Read(_name);
-
-    /// <summary>The same as <see cref="Name"/>.</summary>
-    public string Address => Read(_address);
 
     /// <summary>The Monitor the Workspace belongs to, or null when Winland has not said.</summary>
     public WinlandMonitor? Monitor => Read(_monitor);
@@ -189,7 +185,6 @@ public sealed class WinlandWorkspace : ObservableObject
     {
         Set(ref _id, id, nameof(Id));
         Set(ref _name, name, nameof(Name));
-        Set(ref _address, name, nameof(Address));
     }
 
     internal void SetId(int id)

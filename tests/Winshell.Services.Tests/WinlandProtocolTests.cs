@@ -96,6 +96,65 @@ public class WinlandProtocolTests
     }
 
     [Fact]
+    public void An_event_line_is_one_typed_event()
+    {
+        Assert.IsType<WinlandProtocol.ConfigReloaded>(Event("configreloaded>>"));
+
+        var added = Assert.IsType<WinlandProtocol.MonitorAdded>(Event(@"monitoraddedv2>>1,\\.\DISPLAY1,Main, panel"));
+        Assert.Equal((1, @"\\.\DISPLAY1", "Main, panel"), (added.Id, added.Name, added.Description));
+        Assert.Equal(@"\\.\DISPLAY2", Assert.IsType<WinlandProtocol.MonitorRemoved>(Event(@"monitorremoved>>\\.\DISPLAY2")).Name);
+
+        var created = Assert.IsType<WinlandProtocol.WorkspaceCreated>(Event(@"createworkspacev2>>,notes,\\.\DISPLAY1"));
+        Assert.Equal((-1, "notes", @"\\.\DISPLAY1"), (created.Id, created.Name, created.Monitor));
+        var destroyed = Assert.IsType<WinlandProtocol.WorkspaceDestroyed>(Event(@"destroyworkspacev2>>7,7,\\.\DISPLAY1"));
+        Assert.Equal((7, "7", @"\\.\DISPLAY1"), (destroyed.Id, destroyed.Name, destroyed.Monitor));
+
+        var focused = Assert.IsType<WinlandProtocol.MonitorFocused>(Event(@"focusedmon>>\\.\DISPLAY2,3"));
+        Assert.Equal((@"\\.\DISPLAY2", "3"), (focused.Monitor, focused.Workspace));
+        Assert.Null(Assert.IsType<WinlandProtocol.MonitorFocused>(Event(@"focusedmon>>\\.\DISPLAY1,?")).Workspace);
+
+        var shown = Assert.IsType<WinlandProtocol.WorkspaceShown>(Event(@"workspacev2>>3,3,\\.\DISPLAY1"));
+        Assert.Equal((3, "3", @"\\.\DISPLAY1"), (shown.Id, shown.Name, shown.Monitor));
+        var moved = Assert.IsType<WinlandProtocol.WorkspaceMoved>(Event(@"moveworkspacev2>>,special:special,\\.\DISPLAY2"));
+        Assert.Equal((-99, "special:special", @"\\.\DISPLAY2"), (moved.Id, moved.Name, moved.Monitor));
+
+        Assert.True(Assert.IsType<WinlandProtocol.FullscreenChanged>(Event("fullscreen>>1")).Fullscreen);
+        Assert.False(Assert.IsType<WinlandProtocol.FullscreenChanged>(Event("fullscreen>>0")).Fullscreen);
+
+        var opened = Assert.IsType<WinlandProtocol.WindowOpened>(Event(@"openwindow>>30,1,\\.\DISPLAY1,App,Title, with comma"));
+        Assert.Equal((0x30UL, "1", @"\\.\DISPLAY1", "App", "Title, with comma"),
+            (opened.Address, opened.Workspace, opened.Monitor, opened.WindowClass, opened.Title));
+        var relocated = Assert.IsType<WinlandProtocol.WindowMoved>(Event(@"movewindowv2>>20,3,3,\\.\DISPLAY2"));
+        Assert.Equal((0x20UL, 3, "3", @"\\.\DISPLAY2"),
+            (relocated.Address, relocated.WorkspaceId, relocated.Workspace, relocated.Monitor));
+        var titled = Assert.IsType<WinlandProtocol.WindowTitleChanged>(Event("windowtitlev2>>10,New, title"));
+        Assert.Equal((0x10UL, "New, title"), (titled.Address, titled.Title));
+        Assert.Equal(0x30UL, Assert.IsType<WinlandProtocol.WindowClosed>(Event("closewindow>>30")).Address);
+        Assert.Equal(0x30UL, Assert.IsType<WinlandProtocol.WindowActivated>(Event("activewindowv2>>30")).Address);
+        Assert.Equal(0x20UL, Assert.IsType<WinlandProtocol.WindowUrgent>(Event("urgent>>20")).Address);
+
+        Assert.Null(Event("activewindow>>30"));
+        Assert.Null(Event("noarrows"));
+    }
+
+    [Fact]
+    public void A_reply_that_is_not_json_is_none()
+    {
+        Assert.Null(WinlandProtocol.ParseJson(null));
+        Assert.Null(WinlandProtocol.ParseJson("  "));
+        Assert.Null(WinlandProtocol.ParseJson("ok"));
+        var parsed = WinlandProtocol.ParseJson("""{"id":1}""");
+        Assert.True(parsed.HasValue);
+        Assert.Equal(1, parsed.GetValueOrDefault().GetProperty("id").GetInt32());
+    }
+
+    private static WinlandProtocol.Event? Event(string line)
+    {
+        var (name, data) = WinlandProtocol.SplitEvent(line);
+        return WinlandProtocol.ReadEvent(name, data);
+    }
+
+    [Fact]
     public void Json_becomes_maps_and_lists()
     {
         // A monitors entry as Winland 0.3 writes it.
