@@ -157,22 +157,7 @@ internal sealed class SmtcSessionLink(
     {
         if (_released)
             return;
-        var controls = info.Controls;
-        _target?.ApplyPlayback(new SmtcPlayback(info.PlaybackStatus)
-        {
-            Rate = info.PlaybackRate ?? 1,
-            CanPlay = controls.IsPlayEnabled,
-            CanPause = controls.IsPauseEnabled,
-            CanStop = controls.IsStopEnabled,
-            CanGoNext = controls.IsNextEnabled,
-            CanGoPrevious = controls.IsPreviousEnabled,
-            CanSeek = controls.IsPlaybackPositionEnabled,
-            ShuffleSupported = controls.IsShuffleEnabled,
-            LoopSupported = controls.IsRepeatEnabled,
-            RateSupported = controls.IsPlaybackRateEnabled,
-            Shuffle = info.IsShuffleActive ?? false,
-            LoopState = SmtcPlayback.LoopOf(info.AutoRepeatMode)
-        });
+        _target?.ApplyPlayback(SmtcPlayback.From(info));
     }
 
     private void OnTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender,

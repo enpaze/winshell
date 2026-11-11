@@ -11,6 +11,7 @@ internal sealed class SmtcSession
     private readonly ISmtcLink _link;
     private readonly SessionArt _art;
     private readonly TimeProvider _time;
+    private SmtcPlayback _playback = new(GlobalSystemMediaTransportControlsSessionPlaybackStatus.Closed);
     private bool _released;
     private DateTimeOffset _positionTime;
     private double _position;
@@ -74,31 +75,10 @@ internal sealed class SmtcSession
 
     public uint UniqueId { get; private set; }
 
+    /// <summary>The playback and capability fields Windows last reported, after this session applied them.</summary>
+    internal SmtcPlayback Playback => _playback;
+
     public MediaPlaybackState PlaybackState { get; private set; }
-
-    public bool CanPlay { get; private set; }
-
-    public bool CanPause { get; private set; }
-
-    public bool CanStop { get; private set; }
-
-    public bool CanGoNext { get; private set; }
-
-    public bool CanGoPrevious { get; private set; }
-
-    public bool CanSeek { get; private set; }
-
-    public bool ShuffleSupported { get; private set; }
-
-    public bool LoopSupported { get; private set; }
-
-    public bool RateSupported { get; private set; }
-
-    public bool Shuffle { get; private set; }
-
-    public MediaLoopState LoopState { get; private set; }
-
-    public double Rate { get; private set; } = 1;
 
     /// <summary>The track length in seconds, or 0 when the app does not say.</summary>
     public double Length { get; private set; }
@@ -126,7 +106,7 @@ internal sealed class SmtcSession
             return 0;
         var position = _position;
         if (PlaybackState == MediaPlaybackState.Playing)
-            position += (_time.GetUtcNow() - _positionTime).TotalSeconds * Rate;
+            position += (_time.GetUtcNow() - _positionTime).TotalSeconds * _playback.Rate;
         return Length > 0 ? Math.Clamp(position, 0, Length) : Math.Max(0, position);
     }
 
@@ -243,7 +223,7 @@ internal sealed class SmtcSession
         };
         var seeked = false;
         // Exact rate stored from the last report.
-        if (state != PlaybackState || info.Rate != Rate)
+        if (state != PlaybackState || info.Rate != _playback.Rate)
         {
             _position = PositionNow();
             _positionTime = _time.GetUtcNow();
@@ -251,18 +231,12 @@ internal sealed class SmtcSession
         }
 
         PlaybackState = state;
-        CanPlay = info.CanPlay;
-        CanPause = info.CanPause;
-        CanStop = info.CanStop;
-        CanGoNext = info.CanGoNext;
-        CanGoPrevious = info.CanGoPrevious;
-        CanSeek = info.CanSeek;
-        ShuffleSupported = info.ShuffleSupported;
-        LoopSupported = info.LoopSupported;
-        RateSupported = info.RateSupported;
-        Shuffle = info is { ShuffleSupported: true, Shuffle: true };
-        LoopState = info.LoopSupported ? info.LoopState : MediaLoopState.None;
-        Rate = info.Rate;
+        // Shuffle and loop stay off unless the app lets Windows change them.
+        _playback = info with
+        {
+            Shuffle = info.ShuffleSupported && info.Shuffle,
+            LoopState = info.LoopSupported ? info.LoopState : MediaLoopState.None
+        };
         Changed?.Invoke();
         if (seeked)
             Seeked?.Invoke();

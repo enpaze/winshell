@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Reflection;
 using Winshell.Apps;
 using Winshell.Native;
 
@@ -8,39 +9,15 @@ namespace Winshell.Media;
 /// <summary>One app's entry in the Windows media controls.</summary>
 public sealed class MediaSession : ObservableObject
 {
-    // What a binding reads, and how to read it to tell whether it changed. Position, and Length while the app
-    // reports no length, move with the clock; the session's Seeked raises them.
-    private static readonly (string Name, Func<MediaSession, object?> Read)[] Reported =
-    [
-        (nameof(AppName), s => s.AppName),
-        (nameof(UniqueId), s => s.UniqueId),
-        (nameof(TrackTitle), s => s.TrackTitle),
-        (nameof(TrackArtist), s => s.TrackArtist),
-        (nameof(TrackAlbum), s => s.TrackAlbum),
-        (nameof(TrackAlbumArtist), s => s.TrackAlbumArtist),
-        (nameof(TrackArtUrl), s => s.TrackArtUrl),
-        (nameof(Metadata), s => s.Metadata),
-        (nameof(PlaybackState), s => s.PlaybackState),
-        (nameof(IsPlaying), s => s.IsPlaying),
-        (nameof(CanPlay), s => s.CanPlay),
-        (nameof(CanPause), s => s.CanPause),
-        (nameof(CanStop), s => s.CanStop),
-        (nameof(CanGoNext), s => s.CanGoNext),
-        (nameof(CanGoPrevious), s => s.CanGoPrevious),
-        (nameof(CanSeek), s => s.CanSeek),
-        (nameof(CanTogglePlaying), s => s.CanTogglePlaying),
-        (nameof(ShuffleSupported), s => s.ShuffleSupported),
-        (nameof(Shuffle), s => s.Shuffle),
-        (nameof(LoopSupported), s => s.LoopSupported),
-        (nameof(LoopState), s => s.LoopState),
-        (nameof(MinRate), s => s.MinRate),
-        (nameof(MaxRate), s => s.MaxRate),
-        (nameof(Rate), s => s.Rate),
-        (nameof(PositionSupported), s => s.PositionSupported),
-        (nameof(Length), s => s._session.Length),
-        (nameof(LengthSupported), s => s.LengthSupported),
-        (nameof(CanControl), s => s.CanControl)
-    ];
+    // Every public property, read through its getter, so a new one is raised without a second list. Position moves
+    // with the clock between reports, so only Seeked raises it. Length does too while the app reports none, and
+    // that pass records the value it published.
+    private static readonly PropertyInfo[] Reported = typeof(MediaSession)
+        .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+        .Where(static property => property.Name != nameof(Position))
+        .ToArray();
+
+    private static readonly int LengthReport = Array.FindIndex(Reported, static property => property.Name == nameof(Length));
 
     private readonly SmtcSession _session;
     private readonly IEventLoop _loop;
@@ -62,32 +39,32 @@ public sealed class MediaSession : ObservableObject
     internal SmtcSession Native => _session;
 
     /// <summary>Whether the app accepts <see cref="Play"/>.</summary>
-    public bool CanPlay => Read(_session).CanPlay;
+    public bool CanPlay => Read(_session).Playback.CanPlay;
 
     /// <summary>Whether the app accepts <see cref="Pause"/>.</summary>
-    public bool CanPause => Read(_session).CanPause;
+    public bool CanPause => Read(_session).Playback.CanPause;
 
     /// <summary>Whether the app accepts <see cref="Stop"/>.</summary>
-    public bool CanStop => Read(_session).CanStop;
+    public bool CanStop => Read(_session).Playback.CanStop;
 
     /// <summary>
     /// Whether <see cref="TogglePlaying"/> can work: <see cref="CanPause"/> while playing, <see cref="CanPlay"/>
     /// otherwise.
     /// </summary>
-    public bool CanTogglePlaying => Read(_session).PlaybackState == MediaPlaybackState.Playing ? _session.CanPause : _session.CanPlay;
+    public bool CanTogglePlaying => Read(_session).PlaybackState == MediaPlaybackState.Playing ? _session.Playback.CanPause : _session.Playback.CanPlay;
 
     /// <summary>Whether the app accepts a new <see cref="Position"/> and <see cref="Seek"/>.</summary>
-    public bool CanSeek => Read(_session).CanSeek;
+    public bool CanSeek => Read(_session).Playback.CanSeek;
 
     /// <summary>Whether the app accepts <see cref="Next"/>.</summary>
-    public bool CanGoNext => Read(_session).CanGoNext;
+    public bool CanGoNext => Read(_session).Playback.CanGoNext;
 
     /// <summary>Whether the app accepts <see cref="Previous"/>.</summary>
-    public bool CanGoPrevious => Read(_session).CanGoPrevious;
+    public bool CanGoPrevious => Read(_session).Playback.CanGoPrevious;
 
     /// <summary>True when the session accepts at least one playback command.</summary>
-    public bool CanControl => Read(_session).CanPlay || _session.CanPause || _session.CanStop || _session.CanSeek ||
-                              _session.CanGoNext || _session.CanGoPrevious;
+    public bool CanControl => Read(_session).Playback.CanPlay || _session.Playback.CanPause || _session.Playback.CanStop || _session.Playback.CanSeek ||
+                              _session.Playback.CanGoNext || _session.Playback.CanGoPrevious;
 
     /// <summary>
     /// True when <see cref="SwitchTo"/> knows how to find the app: a Store app, or a program whose
@@ -118,7 +95,7 @@ public sealed class MediaSession : ObservableObject
                 return;
             }
 
-            if (!_session.CanSeek)
+            if (!_session.Playback.CanSeek)
             {
                 Warn($"Cannot set the position of {AppName} because CanSeek is false.");
                 return;
@@ -147,15 +124,15 @@ public sealed class MediaSession : ObservableObject
         {
             var metadata = new Dictionary<string, object?>
             {
-                ["title"] = Read(_session).Title,
-                ["artist"] = _session.Artist,
-                ["album"] = _session.Album,
-                ["albumArtist"] = _session.AlbumArtist
+                ["title"] = TrackTitle,
+                ["artist"] = TrackArtist,
+                ["album"] = TrackAlbum,
+                ["albumArtist"] = TrackAlbumArtist
             };
-            if (_session.ArtUrl.Length > 0)
-                metadata["artUrl"] = _session.ArtUrl;
-            if (_session.LengthSupported)
-                metadata["duration"] = _session.Length;
+            if (TrackArtUrl.Length > 0)
+                metadata["artUrl"] = TrackArtUrl;
+            if (LengthSupported)
+                metadata["duration"] = Length;
             if (_session.TrackNumber > 0)
                 metadata["trackNumber"] = _session.TrackNumber;
             if (_session.Genres.Count > 0)
@@ -193,19 +170,19 @@ public sealed class MediaSession : ObservableObject
             switch (value)
             {
                 case MediaPlaybackState.Stopped:
-                    if (_session.CanStop)
+                    if (_session.Playback.CanStop)
                         _session.Stop();
                     else
                         Warn($"Cannot set the playback state of {AppName} to Stopped because CanStop is false.");
                     break;
                 case MediaPlaybackState.Playing:
-                    if (_session.CanPlay)
+                    if (_session.Playback.CanPlay)
                         _session.Play();
                     else
                         Warn($"Cannot set the playback state of {AppName} to Playing because CanPlay is false.");
                     break;
                 case MediaPlaybackState.Paused:
-                    if (_session.CanPause)
+                    if (_session.Playback.CanPause)
                         _session.Pause();
                     else
                         Warn($"Cannot set the playback state of {AppName} to Paused because CanPause is false.");
@@ -234,10 +211,10 @@ public sealed class MediaSession : ObservableObject
     /// </summary>
     public MediaLoopState LoopState
     {
-        get => Read(_session).LoopState;
+        get => Read(_session).Playback.LoopState;
         set
         {
-            if (!_session.LoopSupported)
+            if (!_session.Playback.LoopSupported)
             {
                 Warn($"Cannot set the loop state of {AppName} because loop state is not supported.");
                 return;
@@ -256,16 +233,16 @@ public sealed class MediaSession : ObservableObject
     }
 
     /// <summary>Whether the app accepts a new <see cref="LoopState"/>.</summary>
-    public bool LoopSupported => Read(_session).LoopSupported;
+    public bool LoopSupported => Read(_session).Playback.LoopSupported;
 
     /// <summary>The playback speed; 1 is normal.</summary>
     public double Rate
     {
-        get => Read(_session).Rate;
+        get => Read(_session).Playback.Rate;
         set
         {
             // Exact rate stored for this session. A nearby value is still a new request.
-            if (value == _session.Rate)
+            if (value == _session.Playback.Rate)
                 return;
             if (value < MinRate || value > MaxRate)
             {
@@ -279,10 +256,10 @@ public sealed class MediaSession : ObservableObject
     }
 
     /// <summary>Windows does not say which rates an app accepts; these are the common ones when it takes any.</summary>
-    public double MinRate => Read(_session).RateSupported ? 0.25 : 1;
+    public double MinRate => Read(_session).Playback.RateSupported ? 0.25 : 1;
 
     /// <summary>The fastest <see cref="Rate"/> to set: 4 when the app accepts rate changes, otherwise 1.</summary>
-    public double MaxRate => Read(_session).RateSupported ? 4 : 1;
+    public double MaxRate => Read(_session).Playback.RateSupported ? 4 : 1;
 
     /// <summary>
     /// Whether the app plays in shuffled order. False when <see cref="ShuffleSupported"/> is false, and then setting
@@ -290,10 +267,10 @@ public sealed class MediaSession : ObservableObject
     /// </summary>
     public bool Shuffle
     {
-        get => Read(_session).Shuffle;
+        get => Read(_session).Playback.Shuffle;
         set
         {
-            if (!_session.ShuffleSupported)
+            if (!_session.Playback.ShuffleSupported)
             {
                 Warn($"Cannot set shuffle for {AppName} because shuffle is not supported.");
                 return;
@@ -304,7 +281,7 @@ public sealed class MediaSession : ObservableObject
     }
 
     /// <summary>Whether the app accepts a new <see cref="Shuffle"/>.</summary>
-    public bool ShuffleSupported => Read(_session).ShuffleSupported;
+    public bool ShuffleSupported => Read(_session).Playback.ShuffleSupported;
 
     /// <summary>The track changed. It comes before the track's properties are updated.</summary>
     public event Action? TrackChanged;
@@ -342,7 +319,7 @@ public sealed class MediaSession : ObservableObject
     /// <summary>Asks the app to skip to the next track. Logs a warning when <see cref="CanGoNext"/> is false.</summary>
     public void Next()
     {
-        if (!_session.CanGoNext)
+        if (!_session.Playback.CanGoNext)
         {
             Warn($"Cannot call Next() on {AppName} because CanGoNext is false.");
             return;
@@ -354,7 +331,7 @@ public sealed class MediaSession : ObservableObject
     /// <summary>Asks the app to go back a track. Logs a warning when <see cref="CanGoPrevious"/> is false.</summary>
     public void Previous()
     {
-        if (!_session.CanGoPrevious)
+        if (!_session.Playback.CanGoPrevious)
         {
             Warn($"Cannot call Previous() on {AppName} because CanGoPrevious is false.");
             return;
@@ -366,7 +343,7 @@ public sealed class MediaSession : ObservableObject
     /// <summary>Windows has no relative seek, so this sets the position to the current one plus the offset.</summary>
     public void Seek(double offset)
     {
-        if (!_session.CanSeek)
+        if (!_session.Playback.CanSeek)
         {
             Warn($"Cannot call Seek() on {AppName} because CanSeek is false.");
             return;
@@ -419,7 +396,10 @@ public sealed class MediaSession : ObservableObject
     public void RefreshPosition()
     {
         Changed(nameof(Position));
-        Changed(!_session.LengthSupported, nameof(Length));
+        if (_session.LengthSupported)
+            return;
+        Changed(nameof(Length));
+        _reported[LengthReport] = Length;
     }
 
     internal void Detach()
@@ -465,19 +445,26 @@ public sealed class MediaSession : ObservableObject
 
     private object?[] Snapshot()
     {
-        return Array.ConvertAll(Reported, p => p.Read(this));
+        var values = new object?[Reported.Length];
+        for (var i = 0; i < values.Length; i++)
+            values[i] = Reported[i].GetValue(this);
+        return values;
     }
 
     private void OnChanged()
     {
         var was = _reported;
         _reported = Snapshot();
+        // Length is the moving position while the app reports none. Seeked publishes that and records it.
+        if (!LengthSupported)
+            _reported[LengthReport] = was[LengthReport];
         var newTrack = _track != UniqueId;
         _track = UniqueId;
         if (newTrack)
             TrackChanged?.Invoke();
         for (var i = 0; i < Reported.Length; i++)
             Changed(!Same(was[i], _reported[i]), Reported[i].Name);
+
         if (newTrack)
             PostTrackChanged?.Invoke();
     }
