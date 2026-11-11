@@ -38,17 +38,42 @@ public sealed partial class Shell
     private SystemTray? _systemTray;
     private VirtualDesktopsService? _virtualDesktops;
     private WallpaperService? _wallpaper;
-    private WindowListService? _windows;
-    private WinlandService? _winland;
+
+    // Assigning either one records the edge on the stop list. The public getters stay ordinary.
+    private WindowListService? _windows
+    {
+        get;
+        set
+        {
+            field = value;
+            Connect();
+        }
+    }
+
+    private WinlandService? _winland
+    {
+        get;
+        set
+        {
+            field = value;
+            Connect();
+        }
+    }
+
+    /// <summary>The one edge from Winland to the window list. Null until both have been created.</summary>
+    private IDisposable? _winlandToWindowList;
 
     /// <summary>
-    /// A service goes before the ones it reads: Winland reads the window list, which reads the virtual desktops.
-    /// Explorer's taskbar may go before or after the tray: its restore moves the tray out of the way itself.
+    /// The services this shell created, in the order they stop. A null entry was not created. Winland reads the
+    /// window list, which reads the virtual desktops, so those three stop in that order, and the edge between Winland
+    /// and the window list stops between them. Explorer's taskbar may go before or after the tray: its restore moves
+    /// the tray out of the way itself.
     /// </summary>
     private IDisposable?[] ServicesInStopOrder =>
     [
-        _winland, _windows, _virtualDesktops, _apps, _audio, _bluetooth, _brightness, _cpu, _explorerTaskbar, _media,
-        _networking, _notifications, _power, _powerMode, _privacy, _systemTray, _hotkeys, _keyboardLayouts, _wallpaper
+        _winland, _winlandToWindowList, _windows, _virtualDesktops, _apps, _audio, _bluetooth, _brightness, _cpu,
+        _explorerTaskbar, _media, _networking, _notifications, _power, _powerMode, _privacy, _systemTray, _hotkeys,
+        _keyboardLayouts, _wallpaper
     ];
 
     /// <summary>The apps Start lists.</summary>
@@ -113,13 +138,12 @@ public sealed partial class Shell
     public WallpaperService Wallpaper => _wallpaper ??= new WallpaperService(Loop, Log);
 
     /// <summary>The app windows the taskbar and Alt+Tab list.</summary>
-    public WindowListService WindowList =>
-        _windows ?? Connect(_windows = new WindowListService(Loop, Log, VirtualDesktops));
+    public WindowListService WindowList => _windows ??= new WindowListService(Loop, Log, VirtualDesktops);
 
     /// <summary>
     /// The Winland window manager's Monitors, Workspaces and windows. The lists are empty while it is not running.
     /// </summary>
-    public WinlandService Winland => _winland ?? Connect(_winland = new WinlandService(Loop, Log));
+    public WinlandService Winland => _winland ??= new WinlandService(Loop, Log);
 
     /// <summary>A hotkey that works anywhere in Windows. Set its <see cref="Hotkey.Sequence"/>, and dispose it to give the keys back.</summary>
     public Hotkey NewHotkey()
@@ -134,9 +158,11 @@ public sealed partial class Shell
     }
 
     /// <summary>Winland resolves its windows from the window list once both are in use. Neither is made for the other.</summary>
-    private T Connect<T>(T made)
+    private void Connect()
     {
-        _winland?.Attach(_windows);
-        return made;
+        if (_winland is not { } winland || _windows is not { } windows)
+            return;
+        winland.Attach(windows);
+        _winlandToWindowList ??= new DisposeAction(() => winland.Attach(null));
     }
 }

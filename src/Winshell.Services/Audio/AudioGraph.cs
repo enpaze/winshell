@@ -8,7 +8,7 @@ namespace Winshell.Audio;
 /// The Windows playback and recording devices, and each app's audio session on a device. It lives on the UI thread;
 /// Windows' callbacks are posted to it.
 /// </summary>
-internal sealed class AudioGraph : IAudioGraph
+internal sealed class AudioGraph : IAudioBackend
 {
     private readonly IEventLoop _loop;
     private readonly Log _log;
@@ -48,9 +48,9 @@ internal sealed class AudioGraph : IAudioGraph
 
     private EndpointNode? DefaultRecording { get; set; }
 
-    AudioGraphNode? IAudioGraph.DefaultPlayback => DefaultPlayback;
+    AudioGraphNode? IAudioBackend.DefaultPlayback => DefaultPlayback;
 
-    AudioGraphNode? IAudioGraph.DefaultRecording => DefaultRecording;
+    AudioGraphNode? IAudioBackend.DefaultRecording => DefaultRecording;
 
     public Log Log => _log;
 
@@ -82,7 +82,7 @@ internal sealed class AudioGraph : IAudioGraph
         });
     }
 
-    void IAudioGraph.SetDefault(string endpointId)
+    void IAudioBackend.SetDefault(string endpointId)
     {
         try
         {

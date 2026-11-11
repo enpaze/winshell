@@ -14,7 +14,7 @@ public sealed partial class ShellNoticeTests : IDisposable
     private readonly ManualEventLoop _loop = new();
     private readonly List<string> _logged = [];
     private readonly List<Notice> _shown = [];
-    private readonly List<string> _opened = [];
+    private readonly List<(string Path, string? Verb)> _opened = [];
     private readonly Log _log;
     private readonly CrashReports _crashes;
     private readonly ShellNotices _notices;
@@ -28,7 +28,8 @@ public sealed partial class ShellNoticeTests : IDisposable
     {
         _crashes = new CrashReports(_dir);
         _log = new Log { Sink = (_, category, message) => _logged.Add($"{category}: {message}") };
-        _notices = new ShellNotices(_loop, _log, _crashes, Show, _opened.Add, () => _quiet);
+        _notices = new ShellNotices(_loop, _log, _crashes, Show, (path, verb) => _opened.Add((path, verb)),
+            () => _quiet);
     }
 
     public void Dispose()
@@ -214,9 +215,35 @@ public sealed partial class ShellNoticeTests : IDisposable
         _act();
         _loop.Process();
 
-        Assert.Equal([@"C:\mine\Bar.csproj"], _opened);
+        Assert.Equal([@"C:\mine\Bar.csproj"], _opened.Select(opened => opened.Path));
+        Assert.Equal(["edit"], _opened.Select(opened => opened.Verb));
         Assert.Null(_notices.Current);
         Assert.Equal(1, _closed);
+    }
+
+    [Fact]
+    public void A_crash_report_opens_with_the_default_verb()
+    {
+        Fail();
+        var report = Assert.Single(_shown).Target;
+
+        _act();
+        _loop.Process();
+
+        Assert.Equal([report], _opened.Select(opened => opened.Path));
+        Assert.Equal([null], _opened.Select(opened => opened.Verb));
+    }
+
+    [Fact]
+    public void A_text_log_opens_to_edit()
+    {
+        _notices.ShowConfigError(@"C:\logs\log.txt", "could not read");
+
+        _act();
+        _loop.Process();
+
+        Assert.Equal([@"C:\logs\log.txt"], _opened.Select(opened => opened.Path));
+        Assert.Equal(["edit"], _opened.Select(opened => opened.Verb));
     }
 
     [Fact]
