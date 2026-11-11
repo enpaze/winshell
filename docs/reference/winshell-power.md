@@ -56,16 +56,16 @@ The power mode Windows is applying, including energy saver and game mode.
 
 ## IdleMonitor
 
-Tells when there has been no input for a while.
+Tells when the person has not used the PC for a while. Input this process sent does not count.
 
 Has the members of [ObservableObject](winshell.md#observableobject).
 
 | Member | Type | Description |
 | --- | --- | --- |
 | `Enabled` | bool | Whether the monitor watches for idle. While false, IsIdle is false. True by default. |
-| `IsIdle` | bool, read-only | Whether there has been no input for Timeout seconds. False while Timeout is 0. |
+| `IsIdle` | bool, read-only | Whether the person has not used the PC for Timeout seconds. False while Timeout is 0. |
 | `RespectKeepAwake` | bool | When a KeepAwake is on, this monitor does not report idle. |
-| `Timeout` | double | The seconds without input after which IsIdle turns on. |
+| `Timeout` | double | The seconds without the person's input after which IsIdle turns on. |
 | `Dispose()` | void | Stops checking for idle. |
 
 ## KeepAwake

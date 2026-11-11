@@ -141,7 +141,7 @@ public sealed class PowerServiceTests
         var loop = new ManualEventLoop();
         var idle = new StrongBox<double>(0);
         var held = new StrongBox<bool>(false);
-        using var monitor = new IdleMonitor(loop, Log.Default, () => idle.Value, () => held.Value);
+        using var monitor = new IdleMonitor(loop, Log.Default, () => held.Value, new IdleSeconds(() => idle.Value));
         monitor.Timeout = 10;
         Assert.False(monitor.IsIdle);
 
@@ -159,7 +159,7 @@ public sealed class PowerServiceTests
     public void An_idle_monitor_that_cannot_be_idle_does_not_poll()
     {
         var loop = new ManualEventLoop();
-        using var monitor = new IdleMonitor(loop, Log.Default, () => 0, () => false);
+        using var monitor = new IdleMonitor(loop, Log.Default, () => false, new IdleSeconds(() => 0));
         monitor.Timeout = 10;
 
         monitor.Enabled = false;
@@ -176,5 +176,13 @@ public sealed class PowerServiceTests
     public void An_idle_monitor_looks_again_when_the_timeout_can_pass(bool idle, double remaining, double seconds)
     {
         Assert.Equal(TimeSpan.FromSeconds(seconds), IdleMonitor.NextCheck(idle, remaining));
+    }
+
+    private sealed class IdleSeconds(Func<double> seconds) : IIdleBackend
+    {
+        public double SecondsSinceLastUse()
+        {
+            return seconds();
+        }
     }
 }

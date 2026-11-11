@@ -27,6 +27,6 @@ public sealed class UserActivityTests
     {
         var sent = sends.Chunk(3).Select(send => new Send(send[0], send[1], send[2])).ToList();
 
-        Assert.Equal(active, RealInput.UserActive(now, lastInput, sent));
+        Assert.Equal(active, SentInput.WithinQuiet(now, lastInput, sent));
     }
 }

@@ -1,14 +1,11 @@
-using Windows.Win32.UI.Input.KeyboardAndMouse;
-using Winshell.Native;
-
 namespace Winshell.Power;
 
-/// <summary>Tells when there has been no input for a while.</summary>
+/// <summary>Tells when the person has not used the PC for a while. Input this process sent does not count.</summary>
 public sealed class IdleMonitor : ObservableObject, IDisposable
 {
     private readonly IEventLoop _loop;
-    private readonly Func<double> _idleSeconds;
-    private readonly Func<bool> _heldAwake;
+    private readonly IIdleBackend _idle;
+    private readonly Func<bool> _keepAwakeActive;
     private readonly Log _log;
     private bool _enabled = true;
     private double _timeout;
@@ -17,17 +14,18 @@ public sealed class IdleMonitor : ObservableObject, IDisposable
     private bool _disposed;
     private IDisposable? _timer;
 
-    internal IdleMonitor(IEventLoop loop, Log log)
-        : this(loop, log, IdleSeconds, () => KeepAwake.AnyActive)
-    {
-    }
-
-    internal IdleMonitor(IEventLoop loop, Log log, Func<double> idleSeconds, Func<bool> heldAwake)
+    /// <param name="loop">The loop the idle check is scheduled on.</param>
+    /// <param name="log">Where a failed idle read is reported.</param>
+    /// <param name="keepAwakeActive">
+    /// Whether a <see cref="KeepAwake"/> is holding the PC awake. The shell passes the count that service holds.
+    /// </param>
+    /// <param name="idle">Where the seconds come from. Omitted, this reads Windows.</param>
+    internal IdleMonitor(IEventLoop loop, Log log, Func<bool> keepAwakeActive, IIdleBackend? idle = null)
     {
         _loop = loop;
         _log = log;
-        _idleSeconds = idleSeconds;
-        _heldAwake = heldAwake;
+        _keepAwakeActive = keepAwakeActive;
+        _idle = idle ?? new IdleBackend();
     }
 
     /// <summary>
@@ -43,7 +41,7 @@ public sealed class IdleMonitor : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>The seconds without input after which <see cref="IsIdle"/> turns on.</summary>
+    /// <summary>The seconds without the person's input after which <see cref="IsIdle"/> turns on.</summary>
     public double Timeout
     {
         get => Read(_timeout);
@@ -62,17 +60,9 @@ public sealed class IdleMonitor : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Whether there has been no input for <see cref="Timeout"/> seconds. False while <see cref="Timeout"/> is 0.
+    /// Whether the person has not used the PC for <see cref="Timeout"/> seconds. False while <see cref="Timeout"/> is 0.
     /// </summary>
     public bool IsIdle => Read(_isIdle);
-
-    private static double IdleSeconds()
-    {
-        var info = new LASTINPUTINFO { cbSize = 8 };
-        if (!PInvoke.GetLastInputInfo(ref info))
-            return 0;
-        return unchecked(Win32.GetTickCount() - info.dwTime) / 1000.0;
-    }
 
     private void Check()
     {
@@ -90,8 +80,8 @@ public sealed class IdleMonitor : ObservableObject, IDisposable
         var next = TimeSpan.FromSeconds(1);
         try
         {
-            var seconds = _idleSeconds();
-            var idle = seconds >= _timeout && !(_respectKeepAwake && _heldAwake());
+            var seconds = _idle.SecondsSinceLastUse();
+            var idle = seconds >= _timeout && !(_respectKeepAwake && _keepAwakeActive());
             Set(ref _isIdle, idle, nameof(IsIdle));
             next = NextCheck(idle, _timeout - seconds);
         }

@@ -9,6 +9,12 @@ internal static class KeyInput
     /// <summary>Unassigned virtual key. The same value AutoHotkey uses for its menu mask.</summary>
     private const VIRTUAL_KEY Unassigned = (VIRTUAL_KEY)0xE8;
 
+    /// <summary>
+    /// The hotkey id this process owns for asking whether a chord is free. It sits at the top of the range
+    /// <c>RegisterHotKey</c> gives an application, and the hotkey registrar does not hand it to a real chord.
+    /// </summary>
+    internal const int ProbeId = 0xBFFE;
+
     /// <summary>Tag on <c>dwExtraInfo</c>, so <see cref="LowLevelKeyboard"/> passes the injection by.</summary>
     internal const nuint Marker = 0x57154E4B;
 
@@ -53,10 +59,9 @@ internal static class KeyInput
     /// </summary>
     internal static bool Unclaimed(uint modifiers, int key)
     {
-        const int probe = 0xBFFE;
-        if (!PInvoke.RegisterHotKey(default, probe, (HOT_KEY_MODIFIERS)modifiers, (uint)key))
+        if (!PInvoke.RegisterHotKey(default, ProbeId, (HOT_KEY_MODIFIERS)modifiers, (uint)key))
             return false;
-        PInvoke.UnregisterHotKey(default, probe);
+        PInvoke.UnregisterHotKey(default, ProbeId);
         return true;
     }
 

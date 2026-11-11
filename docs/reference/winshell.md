@@ -314,7 +314,7 @@ The running shell: its screens and services. There is one in a process. Each ser
 | `DataPath(string path)` | string | A path in DataDir. |
 | `Dispose()` | void | Closes Winshell's notices, stops the services, and closes every window. One that throws doesn't stop the rest: its exception is thrown once all have stopped. Quit does this and also ends the shell. |
 | `NewHotkey()` | [Hotkey](winshell-input.md#hotkey) | A hotkey that works anywhere in Windows. Set its Hotkey.Sequence, and dispose it to give the keys back. |
-| `NewIdleMonitor()` | [IdleMonitor](winshell-power.md#idlemonitor) | Tells when there has been no input for a while. |
+| `NewIdleMonitor()` | [IdleMonitor](winshell-power.md#idlemonitor) | Tells when the person has not used the PC for a while. Input this process sent does not count. |
 | `Open(string target)` | void | Opens a Settings page, an app or a URL as Windows would, such as `ms-settings:sound`, `https://example.com` or an app's path: a URI or a path, not a command line. It opens off the loop, so a slow app does not hold up the shell. What Windows can't start, such as a path that is not there, is logged, not thrown. A scheme no app handles shows Windows' own app picker. |
 | `Quit()` | void | Ends the shell. Its windows close and Run returns. Something that fails to stop is logged and reported, and the shell ends anyway. |
 | `Reload()` | bool | Replaces this instance with a new process of the same program, which takes over once this one has gone. False when that process did not start: the shell then keeps running. |
