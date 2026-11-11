@@ -176,8 +176,11 @@ public sealed class AppEntry : ObservableObject
     /// <summary>The shortcut's comment, or the packaged app's description. May be empty.</summary>
     public string Description => Read(_entry).Description;
 
-    /// <summary>A path an icon is read from: the shortcut, or <c>shell:AppsFolder\&lt;id&gt;</c> for a packaged app.</summary>
-    public string Icon => Read(_entry).Path;
+    /// <summary>
+    /// A path an icon is read from: <c>shell:AppsFolder\&lt;id&gt;</c> when the id is packaged, or the program's file.
+    /// A shortcut with no program and no packaged id keeps its own file.
+    /// </summary>
+    public string Icon => IconOf(Read(_entry));
 
     /// <summary>The program the shortcut opens, or <c>shell:AppsFolder\&lt;id&gt;</c> for a packaged app.</summary>
     public string Target => Read(_entry).Target;
@@ -260,7 +263,7 @@ public sealed class AppEntry : ObservableObject
         _usage = usage;
         Changed(old.Name != entry.Name, nameof(Name));
         Changed(old.Description != entry.Description, nameof(Description));
-        Changed(old.Path != entry.Path, nameof(Icon));
+        Changed(IconOf(old) != IconOf(entry), nameof(Icon));
         Changed(old.Target != entry.Target, nameof(Target));
         Changed(old.Arguments != entry.Arguments, nameof(Arguments));
         Changed(old.CommandLine != entry.CommandLine, nameof(CommandLine));
@@ -277,5 +280,12 @@ public sealed class AppEntry : ObservableObject
     public override string ToString()
     {
         return $"AppEntry({Id})";
+    }
+
+    private static string IconOf(AppRecord entry)
+    {
+        return AppIdentity.IsPackaged(entry.AppId) || (entry.AppId.Length > 0 && entry.Target.Length > 0)
+            ? AppIdentity.IconPath(entry.AppId, entry.Target)
+            : entry.Path;
     }
 }

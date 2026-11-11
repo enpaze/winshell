@@ -344,7 +344,7 @@ internal static class AppIndex
         var appId = link.AppUserModelId.Length > 0
             ? link.AppUserModelId
             : hasTarget && extension == ".exe"
-                ? Path.GetFileNameWithoutExtension(link.Target).ToLowerInvariant()
+                ? AppIdentity.DesktopId(link.Target)
                 : "";
         var startIn = link.WorkingDirectory.Length > 0
             ? link.WorkingDirectory

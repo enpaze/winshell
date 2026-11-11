@@ -1,3 +1,4 @@
+using Winshell.Apps;
 using Winshell.Native;
 
 namespace Winshell.Windows;
@@ -236,7 +237,7 @@ public sealed class WindowListService : ObservableObject, IDisposable
         return new WindowIdentity(
             WindowRules.AppId(windowProperty, package, path),
             path,
-            WindowRules.IconPath(source, path),
+            AppIdentity.IconPath(source, path),
             package,
             previous.PackageKnown || packageAppId is not null);
     }

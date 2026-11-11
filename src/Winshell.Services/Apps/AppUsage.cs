@@ -1,5 +1,4 @@
 using Microsoft.Win32;
-using Winshell.Native;
 
 namespace Winshell.Apps;
 
@@ -90,20 +89,6 @@ internal static class AppUsageReader
         return new string(chars);
     }
 
-    /// <summary>UserAssist stores some paths as <c>{known folder guid}\rest</c>. Other strings are returned as given.</summary>
-    public static string ExpandKnownFolder(string path)
-    {
-        if (path.Length < 3 || path[0] != '{')
-            return path;
-        var end = path.IndexOf('}');
-        if (end <= 0 || !Guid.TryParse(path[..(end + 1)], out var id))
-            return path;
-        if (KnownFolder.Find(id) is not { Length: > 0 } folder)
-            return path;
-        var rest = path[(end + 1)..].TrimStart('\\', '/');
-        return rest.Length == 0 ? folder : Path.Combine(folder, rest);
-    }
-
     public static bool TryParse(byte[] data, DateTimeOffset now, out AppUsage usage)
     {
         usage = default;
@@ -147,7 +132,7 @@ internal static class AppUsageReader
     {
         if (string.IsNullOrWhiteSpace(key) || value is { RunCount: <= 0, LastUsedUnixMilliseconds: <= 0 })
             return;
-        var expanded = ExpandKnownFolder(key.Trim());
+        var expanded = AppIdentity.ExpandKnownFolder(key.Trim());
         Put(usage, expanded, value);
         if (!expanded.Equals(key, StringComparison.OrdinalIgnoreCase))
             Put(usage, key.Trim(), value);

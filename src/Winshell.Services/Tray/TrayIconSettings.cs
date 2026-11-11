@@ -31,7 +31,7 @@ internal static class TrayIconSettings
             if (key is null)
                 continue;
             var guid = key.GetValue("IconGuid") is string text && Guid.TryParse(text, out var g) ? g : Guid.Empty;
-            var path = key.GetValue("ExecutablePath") is string p ? AppUsageReader.ExpandKnownFolder(p) : "";
+            var path = key.GetValue("ExecutablePath") is string p ? AppIdentity.ExpandKnownFolder(p) : "";
             uint? id = key.GetValue("UID") is int uid ? unchecked((uint)uid) : null;
             var promoted = key.GetValue("IsPromoted") is int and not 0;
             settings.Add(new TrayIconSetting(guid, path, id, promoted));

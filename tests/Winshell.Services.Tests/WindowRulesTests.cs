@@ -17,17 +17,6 @@ public sealed class WindowRulesTests
         Assert.Equal("", WindowRules.AppId("", ""));
     }
 
-    [Fact]
-    public void A_packaged_app_icon_comes_from_Start_and_every_other_icon_from_the_program()
-    {
-        Assert.Equal(@"shell:AppsFolder\Microsoft.WindowsCalculator_8wekyb3d8bbwe!App",
-            WindowRules.IconPath("Microsoft.WindowsCalculator_8wekyb3d8bbwe!App",
-                @"C:\Windows\System32\ApplicationFrameHost.exe"));
-        Assert.Equal(@"C:\Program Files\Google\Chrome\Application\chrome.exe",
-            WindowRules.IconPath("Chrome", @"C:\Program Files\Google\Chrome\Application\chrome.exe"));
-        Assert.Equal(@"C:\Program Files\App\app.exe", WindowRules.IconPath("", @"C:\Program Files\App\app.exe"));
-    }
-
     [Theory]
     [InlineData((uint)WINDOW_STYLE.WS_POPUP, 0, 0, 1920, 1080, true)]
     [InlineData((uint)(WINDOW_STYLE.WS_POPUP | WINDOW_STYLE.WS_THICKFRAME), -8, -8, 1928, 1088, true)]

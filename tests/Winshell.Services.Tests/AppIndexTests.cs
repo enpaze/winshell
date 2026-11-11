@@ -197,7 +197,7 @@ public sealed class AppIndexTests
         Assert.False(AppUsageReader.TryParse(new byte[72], now, out _));
 
         var path = @"C:\Windows\System32\notepad.exe";
-        var folder = AppUsageReader.ExpandKnownFolder(@" {1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\notepad.exe".Trim());
+        var folder = AppIdentity.ExpandKnownFolder(@" {1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\notepad.exe".Trim());
         Assert.Equal(Path.Combine(Environment.SystemDirectory, "notepad.exe"), folder,
             StringComparer.OrdinalIgnoreCase);
 
@@ -432,7 +432,7 @@ public sealed class AppIndexTests
         return data;
     }
 
-    private static void WriteLink(string path, string target, string arguments, string workingDirectory,
+    internal static void WriteLink(string path, string target, string arguments, string workingDirectory,
         string description)
     {
         object? link = null;
@@ -460,14 +460,14 @@ public sealed class AppIndexTests
         return Path.Combine(Environment.SystemDirectory, "cmd.exe");
     }
 
-    private static string Temp()
+    internal static string Temp()
     {
         var path = TempFolder.NewPath();
         Directory.CreateDirectory(path);
         return path;
     }
 
-    private static void Delete(string path)
+    internal static void Delete(string path)
     {
         Wait.Until(() => Deleted(path), $"{path} to be deleted");
     }

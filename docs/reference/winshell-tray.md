@@ -38,7 +38,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `AppName` | string, read-only | The program's description, as Task Manager shows it, or its file name. |
 | `Executable` | string, read-only | The full path of the program that added the icon. |
 | `Icon` | [PixelImage](winshell.md#pixelimage)?, read-only | The icon as the app set it, at the size it chose. It changes when the app changes the icon. |
-| `Id` | string, read-only | The program's file name without its extension. |
+| `Id` | string, read-only | The program's name in lower case, without its extension, or the icon's key when its program is unknown. |
 | `Overflow` | bool, read-only | Windows shows this icon in the hidden icons flyout, not in the taskbar. Users choose in Settings. |
 | `ProcessId` | int, read-only | The process that added the icon, the owner of the window its clicks go to. |
 | `Tooltip` | string, read-only | The icon's tooltip, which may run over several lines. |
