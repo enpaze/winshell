@@ -139,19 +139,13 @@ internal static class RunCommand
         {
             // The handler has to cancel this source, which is disposed only as this method leaves.
             stop.Cancel();
-            try
-            {
-#pragma warning disable VSTHRD002 // A handler must finish before Windows ends this process. Supervision runs on the pool.
-                // Registered before the task exists, so this wait has to see the assignment below.
-                supervision?.Wait(TimeSpan.FromSeconds(4));
-            }
-            catch (AggregateException)
-            {
-            }
+            // Registered before the task exists, so this wait has to see the assignment below.
+            ConsoleEnding.Wait(supervision);
         }
 
         void Signal(PosixSignalContext context)
         {
+            // Return the shell's exit code. Cancelling the signal keeps Windows from ending this process first.
             context.Cancel = true;
             Stop();
         }
@@ -161,10 +155,9 @@ internal static class RunCommand
             Stop();
         }
 
-        using var interrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, Signal);
-        using var breaks = PosixSignalRegistration.Create(PosixSignal.SIGQUIT, Signal);
-        using var close = PosixSignalRegistration.Create(PosixSignal.SIGHUP, Signal);
+        using var ending = ConsoleEnding.Listen(Signal);
         // A cancelled token would skip the session subscription and throw, which this startup never did.
+#pragma warning disable VSTHRD002 // The session subscription and the supervised run both have to finish on this thread.
         Task.Run(() => SystemEvents.SessionEnded += SessionEnded).GetAwaiter().GetResult();
         try
         {

@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Threading.Channels;
 
 namespace Winshell;
@@ -12,31 +11,21 @@ namespace Winshell;
 /// </summary>
 internal static class DevSession
 {
+    /// <summary>Win32 ERROR_FILE_NOT_FOUND. <c>dotnet</c> is not on PATH.</summary>
+    private const int ErrorFileNotFound = 2;
+
     /// <summary>
     /// Asks this project's shell to quit, as <c>winshell kill</c> does, so its app bar and tray go and its instance is
     /// marked exited. Then ends dotnet watch and what it started.
     /// </summary>
     /// <param name="project">The configuration whose shell is asked to quit.</param>
     /// <param name="watch">The <c>dotnet watch</c> process, and what it started.</param>
-    /// <param name="closing">The console is closing, which leaves about five seconds for all of it.</param>
-    private static void StopShellAndWatch(ConfigurationProject project, Process watch, bool closing)
+    /// <param name="patience">How long the handler may wait for the shell.</param>
+    private static void StopShellAndWatch(ConfigurationProject project, Process watch, ShellExit.Patience patience)
     {
         if (ShellOf(project) is { } shell)
-        {
-            var patience = closing ? ShellExit.Patience.Closing : ShellExit.Patience.Interactive;
-#pragma warning disable VSTHRD002 // A signal handler must finish before Windows ends this process. No thread here runs a continuation it waits for.
-            _ = ShellExit.QuitAsync(shell, ExitIntent.None, patience, ShellExit.Ending.Always).GetAwaiter().GetResult();
-#pragma warning restore VSTHRD002
-        }
-
-        try
-        {
-            watch.Kill(true);
-        }
-        catch (Exception e) when (e is InvalidOperationException or Win32Exception or AggregateException)
-        {
-            // dotnet watch has exited already, or part of what it started could not be ended.
-        }
+            ConsoleEnding.Quit(shell, patience);
+        ConsoleEnding.Kill(watch);
     }
 
     /// <summary>How <c>dotnet watch</c> ended.</summary>
@@ -62,24 +51,19 @@ internal static class DevSession
             start.ArgumentList.Add(argument);
         DevOutput.Prepare(start.Environment);
         start.Environment[Shell.DevProjectVariable] = project.Folder;
-        using var process = Start(start);
+        using var process = Start(start, out var failure);
         if (process is null)
         {
-            await Console.Error.WriteLineAsync(ConfigurationProject.NeedsSdk);
+            await Console.Error.WriteLineAsync(failure);
             return 1;
         }
 
         // dotnet watch has a console of its own, which Ctrl+C, Ctrl+Break and closing this one never reach. Each of
         // those ends this process once its handler returns, so the handler stops the shell and dotnet watch first.
-        void Stop(PosixSignalContext context)
-        {
-            // The handler has to stop this process, which is disposed only as this method leaves.
-            StopShellAndWatch(project, process, context.Signal == PosixSignal.SIGHUP);
-        }
-
-        using var interrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, Stop);
-        using var breaks = PosixSignalRegistration.Create(PosixSignal.SIGQUIT, Stop);
-        using var close = PosixSignalRegistration.Create(PosixSignal.SIGHUP, Stop);
+        // The handler has to stop this process, which is disposed only as this method leaves. It does not cancel the
+        // signal: Windows ends this process when the handler returns.
+        using var ending = ConsoleEnding.Listen(context =>
+            StopShellAndWatch(project, process, ConsoleEnding.PatienceFor(context.Signal)));
         var lines = Channel.CreateUnbounded<string>();
         var pumps = Task.WhenAll(Pump(process.StandardOutput, lines.Writer), Pump(process.StandardError, lines.Writer));
         _ = pumps.ContinueWith(_ => lines.Writer.Complete(), TaskScheduler.Default);
@@ -96,14 +80,24 @@ internal static class DevSession
         return process.ExitCode;
     }
 
-    private static Process? Start(ProcessStartInfo start)
+    /// <summary>
+    /// Starts <c>dotnet</c>, or returns null and the sentence to print. A missing <c>dotnet</c> is
+    /// <see cref="ConfigurationProject.NeedsSdk"/>. Any other failure is the <see cref="Win32Exception"/> itself.
+    /// </summary>
+    private static Process? Start(ProcessStartInfo start, out string failure)
     {
+        failure = ConfigurationProject.NeedsSdk;
         try
         {
             return Process.Start(start);
         }
-        catch (Win32Exception)
+        catch (Win32Exception e) when (e.NativeErrorCode == ErrorFileNotFound)
         {
+            return null;
+        }
+        catch (Win32Exception e)
+        {
+            failure = e.Message;
             return null;
         }
     }
