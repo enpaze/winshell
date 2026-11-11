@@ -34,8 +34,9 @@
     </PropertyGroup>
     <WriteLinesToFile File="$(_StampedProject)" Lines="$(_StampedText)" Overwrite="true" />
     <ItemGroup>
+      <!-- README.md is the heading winshell new lists. It is not part of this package. -->
       <_TemplateContent Include="$(MSBuildThisFileDirectory)winshell\**\*"
-                        Exclude="$(MSBuildThisFileDirectory)winshell\MyShell.csproj;$(MSBuildThisFileDirectory)winshell\**\bin\**\*;$(MSBuildThisFileDirectory)winshell\**\obj\**\*" />
+                        Exclude="$(MSBuildThisFileDirectory)winshell\MyShell.csproj;$(MSBuildThisFileDirectory)winshell\README.md;$(MSBuildThisFileDirectory)winshell\**\bin\**\*;$(MSBuildThisFileDirectory)winshell\**\obj\**\*" />
       <Content Include="@(_TemplateContent)" Pack="true" PackagePath="content\winshell\%(RecursiveDir)%(Filename)%(Extension)" />
       <Content Include="$(_StampedProject)" Pack="true" PackagePath="content\winshell\MyShell.csproj" />
     </ItemGroup>

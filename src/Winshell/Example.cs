@@ -1,6 +1,4 @@
 using System.Collections.Immutable;
-using System.Text;
-using System.Xml;
 using System.Xml.Linq;
 
 namespace Winshell;
@@ -30,13 +28,14 @@ internal sealed class Example
 
     public string Name { get; }
 
-    /// <summary>The title of its README, or for the starter what the starter is.</summary>
+    /// <summary>The title of its README.</summary>
     public string Description { get; }
 
     /// <summary>
-    /// Writes this configuration into <paramref name="folder"/>. Its project references the Winshell package at
-    /// <paramref name="version"/> instead of Winshell's source, and README sections marked <see cref="RepoOnly"/> are
-    /// left out. When <paramref name="packages"/> holds that package, a <c>nuget.config</c> adds it as a source.
+    /// Writes this configuration into <paramref name="folder"/>. The project winshell.exe carries already references
+    /// the Winshell package of this release. README sections marked <see cref="RepoOnly"/> are left out. When
+    /// <paramref name="packages"/> holds that package at <paramref name="version"/>, a <c>nuget.config</c> adds it as
+    /// a source.
     /// </summary>
     /// <returns>Whether that <c>nuget.config</c> was written.</returns>
     public bool CopyTo(string folder, string version, string packages)
@@ -47,11 +46,7 @@ internal sealed class Example
             var target = Path.Combine(folder, path);
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             using var stream = Open(resource);
-            if (path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
-            {
-                File.WriteAllText(target, Project(Read(stream), version));
-            }
-            else if (path.Equals("README.md", StringComparison.OrdinalIgnoreCase))
+            if (path.Equals("README.md", StringComparison.OrdinalIgnoreCase))
             {
                 File.WriteAllText(target, WithoutRepoOnly(Read(stream)));
             }
@@ -90,65 +85,19 @@ internal sealed class Example
 
         return
         [
-            .. byName.Select(pair => new Example(pair.Key, Describe(pair.Key, pair.Value), [.. pair.Value]))
+            .. byName.Select(pair => new Example(pair.Key, Describe(pair.Value), [.. pair.Value]))
                 .OrderBy(example => example.Name != "starter")
         ];
     }
 
-    private static string Describe(string name, List<(string Path, string Resource)> files)
+    private static string Describe(List<(string Path, string Resource)> files)
     {
-        if (name == "starter")
-            return "A bar with a clock and a battery";
         var readme = files.FirstOrDefault(file => file.Path.Equals("README.md", StringComparison.OrdinalIgnoreCase));
         if (readme.Resource is null)
             return "";
         using var stream = Open(readme.Resource);
         var title = Read(stream).Split('\n').FirstOrDefault(line => line.StartsWith("# ", StringComparison.Ordinal));
         return title is not { } heading ? "" : heading[2..].Trim();
-    }
-
-    /// <summary>
-    /// In the repo a project imports <c>Winshell.props</c> and references <c>Winshell.Shell</c>'s source; the starter
-    /// has a version placeholder. A copy references the package instead. A comment right above the import explains
-    /// it, and goes with it.
-    /// </summary>
-    private static string Project(string text, string version)
-    {
-        var root = XDocument.Parse(text).Root!;
-        foreach (var import in root.Elements("Import")
-                     .Where(e => ((string?)e.Attribute("Project"))?.EndsWith("Winshell.props",
-                         StringComparison.OrdinalIgnoreCase) == true)
-                     .ToList())
-        {
-            if (import.PreviousNode is XComment comment)
-                comment.Remove();
-            import.Remove();
-        }
-
-        foreach (var reference in root.Descendants("ProjectReference")
-                     .Where(e => ((string?)e.Attribute("Include"))?.EndsWith("Winshell.Shell.csproj",
-                         StringComparison.OrdinalIgnoreCase) == true)
-                     .ToList())
-            reference.ReplaceWith(new XElement("PackageReference", new XAttribute("Include", "Winshell")));
-
-        foreach (var package in root.Descendants("PackageReference")
-                     .Where(e => (string?)e.Attribute("Include") == "Winshell"))
-            package.SetAttributeValue("Version", version);
-
-        var output = new StringBuilder();
-        var settings = new XmlWriterSettings
-        {
-            OmitXmlDeclaration = true,
-            Indent = true,
-            IndentChars = "  ",
-            NewLineChars = "\n"
-        };
-        using (var writer = XmlWriter.Create(output, settings))
-        {
-            root.Save(writer);
-        }
-
-        return output.Append('\n').ToString();
     }
 
     /// <summary>

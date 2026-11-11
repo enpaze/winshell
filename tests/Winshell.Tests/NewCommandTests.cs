@@ -31,9 +31,24 @@ public sealed partial class NewCommandTests : IDisposable
         var names = result.Output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
             .Select(line => line.Trim().Split(' ')[0]);
         Assert.Equal(["starter", .. examples], names);
-        var omarchy = result.Output.Split(Environment.NewLine)
-            .Single(line => line.StartsWith("  omarchy-style ", StringComparison.Ordinal));
+        var lines = result.Output.Split(Environment.NewLine);
+        var starter = lines.Single(line => line.StartsWith("  starter ", StringComparison.Ordinal));
+        Assert.EndsWith(" A bar with a clock and a battery", starter, StringComparison.Ordinal);
+        var omarchy = lines.Single(line => line.StartsWith("  omarchy-style ", StringComparison.Ordinal));
         Assert.EndsWith(" Omarchy-style panel", omarchy, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_copy_writes_the_project_this_release_embedded_unchanged()
+    {
+        New("omarchy-style");
+        var starter = Path.Combine(_root.Path, "starter");
+        New("starter", "-p", starter);
+
+        Assert.Equal(Embedded("new/omarchy-style/OmarchyStyle.csproj"),
+            Read(Path.Combine(ConfigRoot, "omarchy-style", "OmarchyStyle.csproj")));
+        Assert.Equal(Embedded("new/starter/MyShell.csproj"),
+            Read(Path.Combine(starter, "MyShell.csproj")));
     }
 
     [Fact]
@@ -181,5 +196,20 @@ public sealed partial class NewCommandTests : IDisposable
     private NewCommand.Result New(params string[] words)
     {
         return NewCommand.Make(CliParser.Parse(["new", .. words]), ConfigRoot, Packages);
+    }
+
+    /// <summary>The project text winshell.exe carries for <paramref name="path"/>, with newlines folded to <c>\n</c>.</summary>
+    private static string Embedded(string path)
+    {
+        var resource = typeof(Example).Assembly.GetManifestResourceNames()
+            .Single(name => name.Replace('\\', '/').Equals(path, StringComparison.Ordinal));
+        using var stream = typeof(Example).Assembly.GetManifestResourceStream(resource);
+        using var reader = new StreamReader(stream!);
+        return reader.ReadToEnd().Replace("\r\n", "\n", StringComparison.Ordinal);
+    }
+
+    private static string Read(string path)
+    {
+        return File.ReadAllText(path).Replace("\r\n", "\n", StringComparison.Ordinal);
     }
 }

@@ -51,15 +51,98 @@
     <InternalsVisibleTo Include="Winshell.Tests" />
   </ItemGroup>
   <!-- What winshell new copies: the dotnet new starter, and each folder under examples, by glob, so a new example needs
-       no change here. Example.cs reads them as new/<name>/<path>. -->
+       no change here. Example.cs reads them as new/<name>/<path>. The projects are embedded already referencing the
+       Winshell package of this release. In the repo they keep the references they compile with. -->
   <ItemGroup>
     <EmbeddedResource Include="..\..\templates\winshell\**"
-                      Exclude="..\..\templates\winshell\.template.config\**;..\..\templates\winshell\**\bin\**;..\..\templates\winshell\**\obj\**"
+                      Exclude="..\..\templates\winshell\.template.config\**;..\..\templates\winshell\**\bin\**;..\..\templates\winshell\**\obj\**;..\..\templates\winshell\**\*.csproj"
                       LogicalName="new/starter/%(RecursiveDir)%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\examples\*\**"
-                      Exclude="..\..\examples\**\bin\**;..\..\examples\**\obj\**"
+                      Exclude="..\..\examples\**\bin\**;..\..\examples\**\obj\**;..\..\examples\**\*.csproj"
                       LogicalName="new/%(RecursiveDir)%(Filename)%(Extension)" />
+    <_NewStarterProject Include="..\..\templates\winshell\**\*.csproj"
+                        Exclude="..\..\templates\winshell\**\bin\**;..\..\templates\winshell\**\obj\**" />
+    <_NewExampleProject Include="..\..\examples\**\*.csproj"
+                        Exclude="..\..\examples\**\bin\**;..\..\examples\**\obj\**" />
   </ItemGroup>
+  <UsingTask TaskName="PackageNewProject" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Sources ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <Version ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Text" />
+      <Using Namespace="System.Xml" />
+      <Using Namespace="System.Xml.Linq" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        foreach (var item in Sources)
+        {
+            var dest = item.GetMetadata("Dest");
+            Directory.CreateDirectory(Path.GetDirectoryName(dest));
+            var root = XDocument.Parse(File.ReadAllText(item.ItemSpec)).Root;
+            foreach (var import in root.Elements("Import")
+                         .Where(e => ((string)e.Attribute("Project")) != null &&
+                                     ((string)e.Attribute("Project")).EndsWith("Winshell.props", StringComparison.OrdinalIgnoreCase))
+                         .ToList())
+            {
+                if (import.PreviousNode is XComment comment)
+                    comment.Remove();
+                import.Remove();
+            }
+
+            foreach (var reference in root.Descendants("ProjectReference")
+                         .Where(e => ((string)e.Attribute("Include")) != null &&
+                                     ((string)e.Attribute("Include")).EndsWith("Winshell.Shell.csproj", StringComparison.OrdinalIgnoreCase))
+                         .ToList())
+                reference.ReplaceWith(new XElement("PackageReference", new XAttribute("Include", "Winshell")));
+
+            foreach (var package in root.Descendants("PackageReference").Where(e => (string)e.Attribute("Include") == "Winshell"))
+                package.SetAttributeValue("Version", Version);
+
+            var output = new StringBuilder();
+            var settings = new XmlWriterSettings
+            {
+                OmitXmlDeclaration = true,
+                Indent = true,
+                IndentChars = "  ",
+                NewLineChars = "\n"
+            };
+            using (var writer = XmlWriter.Create(output, settings))
+                root.Save(writer);
+            var next = output.Append('\n').ToString();
+            if (!File.Exists(dest) || File.ReadAllText(dest) != next)
+                File.WriteAllText(dest, next);
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="StagePackagedNewProjects" BeforeTargets="AssignTargetPaths">
+    <PropertyGroup>
+      <_NewStage>$(IntermediateOutputPath)new\</_NewStage>
+      <_PackageVersion>$([System.String]::Copy('$(Version)').Split('+')[0])</_PackageVersion>
+    </PropertyGroup>
+    <ItemGroup>
+      <_NewStarterProject>
+        <Dest>$(_NewStage)starter\%(RecursiveDir)%(Filename)%(Extension)</Dest>
+      </_NewStarterProject>
+      <_NewExampleProject>
+        <Dest>$(_NewStage)%(RecursiveDir)%(Filename)%(Extension)</Dest>
+      </_NewExampleProject>
+    </ItemGroup>
+    <PackageNewProject Sources="@(_NewStarterProject);@(_NewExampleProject)" Version="$(_PackageVersion)" />
+    <ItemGroup>
+      <EmbeddedResource Remove="@(_NewStarterProject);@(_NewExampleProject)" />
+      <EmbeddedResource Include="@(_NewStarterProject->'%(Dest)')">
+        <LogicalName>new/starter/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="@(_NewExampleProject->'%(Dest)')">
+        <LogicalName>new/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+  </Target>
   <!-- The publish list never includes that index, so copy it next to winshell.exe. -->
   <Target Name="CopyProjectPriToPublish" AfterTargets="CopyFilesToPublishDirectory">
     <Copy SourceFiles="$(ProjectPriFullPath)"
