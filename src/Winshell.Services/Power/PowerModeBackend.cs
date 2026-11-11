@@ -55,16 +55,14 @@ internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
         }
 
         var effective = EffectiveFrom(Volatile.Read(ref _effective));
-        var onBattery = PowerBackend.ReadReported().OnBattery;
-        return PowerMode.GetUserConfigured(onBattery, out var guid) == 0
+        return PowerMode.GetUserConfigured(PowerBackend.OnBattery(), out var guid) == 0
             ? new PowerModeSnapshot(true, FromGuid(guid), effective, true)
             : new PowerModeSnapshot(true, PowerModeLevel.Balanced, effective, false);
     }
 
     public uint Set(PowerModeLevel mode)
     {
-        var onBattery = PowerBackend.ReadReported().OnBattery;
-        var result = PowerMode.SetUserConfigured(onBattery, ToGuid(mode));
+        var result = PowerMode.SetUserConfigured(PowerBackend.OnBattery(), ToGuid(mode));
         Changed?.Invoke();
         return result;
     }

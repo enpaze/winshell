@@ -19,9 +19,7 @@ internal static unsafe class PowerMode
     /// <summary><c>GUID_POWER_MODE_BEST_PERFORMANCE</c>.</summary>
     internal static readonly Guid BestPerformance = new("ded574b5-45a0-4f42-8737-46345c09c238");
 
-    /// <summary>
-    /// <c>GUID_POWER_MODE_PERFORMANCE</c>, which Windows documents as deprecated. It is a performance mode.
-    /// </summary>
+    /// <summary><c>GUID_POWER_MODE_PERFORMANCE</c>, which Windows documents as deprecated.</summary>
     internal static readonly Guid DeprecatedPerformance = new("3af9b8d9-7c97-431d-ad78-34a8bfea439f");
 
     private static Action<int>? _effectiveChanged;

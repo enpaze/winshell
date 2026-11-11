@@ -167,7 +167,7 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
     {
         if (_aggregate is null)
             Watch();
-        var reported = ReadReported();
+        var display = ReadDisplay();
 
         List<PowerDeviceInfo> devices;
         lock (_batteriesLock)
@@ -179,19 +179,16 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
             ];
         }
 
-        return new PowerSnapshot(true, reported.Device, devices, reported.OnBattery);
+        return new PowerSnapshot(true, display, devices, OnBattery());
     }
 
     /// <summary>
     /// What Windows reported about the battery: the no-battery flag, the <c>GetSystemPowerStatus</c> fallback when the
-    /// battery API has nothing to say, and the aggregate report. On battery is false when that flag is set; otherwise
-    /// the power supply status decides, and the AC line when that does not answer.
+    /// battery API has nothing to say, and the aggregate report.
     /// </summary>
-    internal static (PowerDeviceInfo Device, bool OnBattery) ReadReported()
+    private static PowerDeviceInfo ReadDisplay()
     {
-        var hasStatus = PInvoke.GetSystemPowerStatus(out var status);
-        // Bit 128 of BatteryFlag: "no system battery".
-        var noSystemBattery = hasStatus && (status.BatteryFlag & 128) != 0;
+        var (hasStatus, status, noSystemBattery) = SystemPower();
 
         WinBatteryReport? report = null;
         try
@@ -242,15 +239,34 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
             device = Describe(report, "", "", remainingTime);
         }
 
+        return device;
+    }
+
+    /// <summary>
+    /// <c>GetSystemPowerStatus</c>. Bit 128 of <c>BatteryFlag</c> means there is no system battery.
+    /// </summary>
+    private static (bool HasStatus, SYSTEM_POWER_STATUS Status, bool NoSystemBattery) SystemPower()
+    {
+        var hasStatus = PInvoke.GetSystemPowerStatus(out var status);
+        return (hasStatus, status, hasStatus && (status.BatteryFlag & 128) != 0);
+    }
+
+    /// <summary>
+    /// Whether the PC runs on its battery: it has one, and no power supply is plugged in. The power supply status
+    /// decides, and the AC line when that does not answer.
+    /// </summary>
+    internal static bool OnBattery()
+    {
+        var (hasStatus, status, noSystemBattery) = SystemPower();
         if (noSystemBattery)
-            return (device, false);
+            return false;
         try
         {
-            return (device, PowerManager.PowerSupplyStatus == PowerSupplyStatus.NotPresent);
+            return PowerManager.PowerSupplyStatus == PowerSupplyStatus.NotPresent;
         }
         catch (COMException)
         {
-            return (device, hasStatus && status.ACLineStatus == 0);
+            return hasStatus && status.ACLineStatus == 0;
         }
     }
 
