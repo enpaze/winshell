@@ -136,7 +136,7 @@ After the merge, confirm each layer's issue is closed with `gh issue view <issue
 
 `scripts/format.ps1` runs `dotnet format whitespace --folder`: folder mode, without loading projects, restoring packages or building. It requires Git, .NET and PowerShell 7.
 
-- Git supplies the existing tracked and untracked C# files under `src/`, `tests/`, `examples/`, `templates/` and `docs/samples/`, plus `scripts/generate-reference.cs` and the C# under `scripts/lib/`. Ignored build outputs are excluded.
+- Git supplies the existing tracked and untracked C# files under `src/`, `tests/`, `examples/`, `templates/` and `docs/samples/`, plus `scripts/generate-reference.cs`, `scripts/reference-pages.cs`, `scripts/render-logo.cs` and the C# under `scripts/lib/`. Ignored build outputs are excluded.
 - Other standalone C# scripts are not formatted.
 - Verification leaves source files, project references and the Git index unchanged. It fails on formatting drift or tool errors.
 
@@ -274,7 +274,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 
 ### The full check
 
-`pwsh scripts/check.ps1` builds with warnings as errors, verifies formatting, compiles the template against source libraries, builds `scripts/generate-reference.cs` as the program it runs as, and runs every PowerShell 7 suite in `tests/Scripts/` and the .NET tests that open no windows: every test project, one after another, leaving out the category `Window`.
+`pwsh scripts/check.ps1` builds with warnings as errors, verifies formatting, compiles the template against source libraries, builds `scripts/generate-reference.cs` and `scripts/render-logo.cs` as the programs they run as, and runs every PowerShell 7 suite in `tests/Scripts/` and the .NET tests that open no windows: every test project, one after another, leaving out the category `Window`.
 
 It opens no windows, so any number of agents can run it at once, one per worktree: two in the same worktree both write the template build's `obj` folder and fail before any test runs. CI runs the [windowed tests](#a-windowed-test) on every PR.
 
@@ -386,7 +386,7 @@ The `changes` job selects checks for PRs and pushes to `main`. Each kind of chan
 | Code | Everything else | The five .NET suite shards, which build their own projects, the formatting check and the PowerShell suites, and the jobs that read the file |
 
 - A path no row names is code, and so is every path of an empty or cut-off file list.
-- The suite's own machinery is code, because a change to it could break the shards: `scripts/lib/`, `scripts/build-template.ps1`, `scripts/generate-reference.cs`, `.github/workflows/ci.yml` and `.github/actions/`.
+- The suite's own machinery is code, because a change to it could break the shards: `scripts/lib/`, `scripts/build-template.ps1`, `scripts/generate-reference.cs`, `scripts/reference-pages.cs`, `scripts/render-logo.cs`, `.github/workflows/ci.yml` and `.github/actions/`.
 - So are the files the suite reads: `scripts/install.ps1`, `packaging/winshell.ico` and `packaging/msix/Assets/`.
 - A draft skips quality checks and suite shards; marking it ready runs them.
 - A newer push cancels the superseded CI run on the same branch, including `main` and manual runs.

@@ -5,14 +5,9 @@
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
   </PropertyGroup>
-  <!-- DocsTests compiles the reference generator as a library: the feature lets its #: lines through, and the
-       constant leaves out its top-level statements. -->
-  <PropertyGroup>
-    <Features>$(Features);FileBasedProgram</Features>
-    <DefineConstants>$(DefineConstants);REFERENCE_PAGES_LIBRARY</DefineConstants>
-  </PropertyGroup>
+  <!-- DocsTests compiles the page writer. That file has no entry point, so this build needs no switch. -->
   <ItemGroup>
-    <Compile Include="..\..\scripts\generate-reference.cs" Link="ReferencePages.cs" />
+    <Compile Include="..\..\scripts\reference-pages.cs" Link="ReferencePages.cs" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Windows.Win32" />

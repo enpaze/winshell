@@ -98,6 +98,8 @@ Describe 'Selecting CI checks from GitHub changed files' {
         @{ Path = 'scripts/lib/Tests.ps1'; Flags = 'code powershell scripts package' },
         @{ Path = 'scripts/build-template.ps1'; Flags = 'code powershell scripts' },
         @{ Path = 'scripts/generate-reference.cs'; Flags = 'code powershell scripts' },
+        @{ Path = 'scripts/reference-pages.cs'; Flags = 'code powershell scripts' },
+        @{ Path = 'scripts/render-logo.cs'; Flags = 'code powershell scripts' },
         @{ Path = '.github/workflows/ci.yml'; Flags = 'code powershell scripts workflows' },
         @{ Path = '.github/actions/prepare/action.yml'; Flags = 'code powershell scripts workflows package' },
         # Everything else.

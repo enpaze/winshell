@@ -122,8 +122,8 @@ jobs:
             dotnet build $project -warnaserror --nologo
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          # This worker already builds Shell and its dependencies. Keep template, sample and generator compilation
-          # required here, while quality verifies files without loading the project graph.
+          # This worker already builds Shell and its dependencies. Keep template, sample, reference and logo
+          # compilation required here, while quality verifies files without loading the project graph.
           if ($env:TEST_SHARD -eq '2') {
             ./scripts/build-template.ps1
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -133,6 +133,8 @@ jobs:
               if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             }
             dotnet build scripts/generate-reference.cs --nologo
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            dotnet build scripts/render-logo.cs --nologo
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
       - name: Run the suite shard

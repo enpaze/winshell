@@ -30,9 +30,9 @@ function Test-Changed {
     $unknown -or @($nonProse -match $Pattern).Count -gt 0
 }
 # What no test shard reads: the tooling scripts and their suites, the workflows other than ci.yml, and the release files.
-# Still code: the suite's own machinery (scripts/lib/, build-template.ps1, generate-reference.cs), and the files the
-# suite reads (install.ps1, the icon the build embeds, the MSIX logos).
-$noShard = '^scripts/(?!lib/|build-template\.ps1$|generate-reference\.cs$|install\.ps1$)|^tests/Scripts/',
+# Still code: the suite's own machinery (scripts/lib/, build-template.ps1, the reference program and its page
+# writer, render-logo.cs), and the files the suite reads (install.ps1, the icon the build embeds, the MSIX logos).
+$noShard = '^scripts/(?!lib/|build-template\.ps1$|generate-reference\.cs$|reference-pages\.cs$|render-logo\.cs$|install\.ps1$)|^tests/Scripts/',
     '^\.github/workflows/(?!ci\.yml$)|^\.github/dependabot\.yml$',
     '^packaging/(?!winshell\.ico$|msix/Assets/)' -join '|'
 $checks = [ordered]@{

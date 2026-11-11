@@ -65,7 +65,8 @@ public sealed class DocsTests
 
     /// <summary>
     /// Each <c>docs/reference/winshell*.md</c> page is what <c>scripts/generate-reference.cs</c> writes from the
-    /// public API and its /// comments: this project compiles that file, so the pages can't drift from the code.
+    /// public API and its /// comments. This project compiles the page writer, <c>scripts/reference-pages.cs</c>, so
+    /// the pages can't drift from the code.
     /// </summary>
     [Fact]
     public void The_reference_is_what_the_generator_writes()
