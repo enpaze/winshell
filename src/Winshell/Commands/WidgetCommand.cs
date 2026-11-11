@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -8,6 +9,21 @@ using System.Xml.Linq;
 
 namespace Winshell.Commands;
 
+/// <summary>What <c>winshell widget</c> was asked to do. The words are the subcommand and what follows it.</summary>
+internal readonly record struct WidgetRequest(
+    string? Path,
+    string? Config,
+    ImmutableArray<string> Words,
+    bool Yes,
+    string? Project)
+{
+    public static WidgetRequest From(Invocation parsed)
+    {
+        return new(parsed.Text(CliFlags.Path), parsed.Text(CliFlags.Config), parsed.Positional,
+            parsed.IsSet(CliFlags.Yes), parsed.Text(CliFlags.Project));
+    }
+}
+
 /// <summary>
 /// <c>winshell widget install</c>, <c>list</c>, <c>remove</c> and <c>update</c>. <c>widgets.props</c> beside the
 /// configuration is the only record: one <c>ProjectReference</c> per repository, with the source, ref and commit,
@@ -17,6 +33,60 @@ namespace Winshell.Commands;
 /// </summary>
 internal static partial class WidgetCommand
 {
+    internal static readonly CommandEntry Entry = new()
+    {
+        Name = "widget",
+        Overview =
+            "       winshell widget install <source>[@ref] [--yes]\n" +
+            "                                           install widgets from a GitHub repository\n" +
+            "       winshell widget list                list the widgets a configuration has\n" +
+            "       winshell widget remove <name>       remove an installed widget\n" +
+            "       winshell widget update [<name>] [--yes]\n" +
+            "                                           move installed widgets to the ref's new commit",
+        Usage = """
+                winshell widget [-c <name> | -p <path>] <command>
+                  install <source>[@ref] [--project <path>] [--yes]
+                    Installs widgets from github.com/owner/repo, an https://github.com URL, a file:// URL or a folder.
+                    @ref is a branch, a tag or a commit. With none, the default branch is used.
+                    The command resolves it to a commit, shows the repository, the commit and the
+                    widget names, and asks. --yes installs without asking.
+                    Building runs this repository's code and MSBuild targets in a program that starts at sign-in.
+                    Declining the question changes nothing. Needs git and the .NET SDK.
+                  list
+                    Lists each installed widget's name, source, ref and commit.
+                  remove <name>
+                    Removes a widget, or a source, and every widget from that repository.
+                  update [<name>] [--yes]
+                    Fetches the recorded ref of every installed source, or of the one <name> selects.
+                    <name> is a widget name or the source. A ref that still names the recorded
+                    commit is up to date. Otherwise the command shows the old and new commit,
+                    the commits between them, and the widget names that would be added or dropped,
+                    and asks. --yes updates without asking.
+                    Building runs this repository's code and MSBuild targets in a program that starts at sign-in.
+                    Declining leaves that source as it is. A failed build keeps the previous commit,
+                    and older commits stay in the cache. Needs git and the .NET SDK.
+                  --project <path>    the project in the repository that lists the widgets
+                  -c and -p choose the configuration, as they do for winshell run.
+                """,
+        Options = [CliFlags.Path, CliFlags.Config],
+        Words = WordRule.Subcommand,
+        Subcommands =
+        [
+            new CommandEntry
+            {
+                Name = "install",
+                Options = [CliFlags.Project, CliFlags.Yes],
+                MinWords = 1,
+                MaxWords = 1,
+                Missing = "a source"
+            },
+            new CommandEntry { Name = "list", MaxWords = 0 },
+            new CommandEntry { Name = "remove", MinWords = 1, MaxWords = 1, Missing = "a name" },
+            new CommandEntry { Name = "update", Options = [CliFlags.Yes], MaxWords = 1 }
+        ],
+        Run = static parsed => Task.FromResult(Execute(parsed))
+    };
+
     internal const string NeedsGit = "Installing a widget needs git, from https://git-scm.com/download/win.";
 
     private const string NeedsGitToUpdate = "Updating a widget needs git, from https://git-scm.com/download/win.";
@@ -42,44 +112,44 @@ internal static partial class WidgetCommand
     };
 
     /// <summary>Runs <c>widget</c> and prints its result. <c>--yes</c> skips the question; anything else is read from the console.</summary>
-    internal static int Run(CliOptions options)
+    internal static int Execute(Invocation parsed)
     {
-        var result = Apply(options, ShellLocations.Current, Console.In, Console.Out, "git", "dotnet");
+        var result = Apply(WidgetRequest.From(parsed), ShellLocations.Current, Console.In, Console.Out, "git", "dotnet");
         if (result.Error is not null)
             Console.Error.WriteLine(result.Error);
         return result.Code;
     }
 
     /// <summary>
-    /// What <see cref="Run"/> does, against <paramref name="locations"/>, reading a yes or no from <paramref name="input"/>.
+    /// What <see cref="Execute"/> does, against <paramref name="locations"/>, reading a yes or no from <paramref name="input"/>.
     /// <paramref name="git"/> and <paramref name="dotnet"/> are the tools it runs. A missing one is reported and nothing
     /// is written.
     /// </summary>
-    internal static Result Apply(CliOptions options, ShellLocations locations, TextReader input, TextWriter output,
+    internal static Result Apply(WidgetRequest request, ShellLocations locations, TextReader input, TextWriter output,
         string git, string dotnet)
     {
-        var project = ConfigurationProject.Find(options.Path, options.Config, locations.ConfigRoot, out var error);
+        var project = ConfigurationProject.Find(request.Path, request.Config, locations.ConfigRoot, out var error);
         if (error is not null)
             return Fail(1, error);
         if (project is null)
             return Fail(1, "winshell widget needs a configuration project. Run winshell new to make one.");
 
-        var command = options.Positional[0];
+        var command = request.Words[0];
         var props = Path.Combine(project.Folder, "widgets.props");
         if (!TryRead(props, out var installed, out error))
             return Fail(1, error!);
         if (command == "list")
             return List(installed, output);
         if (command == "remove")
-            return Remove(options.Positional[1], props, installed, output);
+            return Remove(request.Words[1], props, installed, output);
         if (command == "update")
-            return Update(options, project, props, installed, input, output, git, dotnet, locations);
+            return Update(request, project, props, installed, input, output, git, dotnet, locations);
 
         if (EnsureLocal(locations.LocalRoot) is { } local)
             return local;
         if (RequireTools(git, dotnet, locations.LocalRoot, NeedsGit) is { } tools)
             return tools;
-        if (!TryParse(options.Positional[1], out var source, out error))
+        if (!TryParse(request.Words[1], out var source, out error))
             return Fail(2, error!);
         var prior = installed.FirstOrDefault(item => SameSource(item.Source, source.Canonical));
         if (prior is not null)
@@ -93,7 +163,7 @@ internal static partial class WidgetCommand
         var cache = Cache(locations.LocalRoot, source, pin.Commit);
         if (!TryClone(git, source, pin.Commit, cache, locations.LocalRoot, out error))
             return Fail(1, error!);
-        if (!TrySelectProject(dotnet, cache, options.Project, out var widgetProject, out error))
+        if (!TrySelectProject(dotnet, cache, request.Project, out var widgetProject, out error))
             return Fail(1, error!);
         if (!TryReadWidgets(dotnet, widgetProject, locations.LocalRoot, out var widgets, out error))
             return Fail(1, error!);
@@ -113,7 +183,7 @@ internal static partial class WidgetCommand
         output.WriteLine($"Commit {pin.Commit}");
         output.WriteLine($"Widgets: {string.Join(", ", widgets.Select(widget => $"{widget.Name} ({widget.Type})"))}");
         output.WriteLine(Warning);
-        if (!Agreed(options, input, output, "Install? [y/N] ", "Nothing was installed."))
+        if (!Agreed(request.Yes, input, output, "Install? [y/N] ", "Nothing was installed."))
             return Ok();
 
         var next = installed.Append(new Installed(widgetProject, source.Canonical, pin.Ref, pin.Commit, widgets)).ToList();
@@ -126,13 +196,13 @@ internal static partial class WidgetCommand
     }
 
     /// <summary>
-    /// Resolves each installed source's recorded ref, or the one <paramref name="options"/> names. An unchanged commit
+    /// Resolves each installed source's recorded ref, or the one <paramref name="request"/> names. An unchanged commit
     /// is reported. A moved one is shown, then built with <see cref="Stage"/> and recorded only when that build succeeds.
     /// </summary>
-    private static Result Update(CliOptions options, ConfigurationProject project, string props, List<Installed> installed,
+    private static Result Update(WidgetRequest request, ConfigurationProject project, string props, List<Installed> installed,
         TextReader input, TextWriter output, string git, string dotnet, ShellLocations locations)
     {
-        var name = options.Positional.Length > 1 ? options.Positional[1] : null;
+        var name = request.Words.Length > 1 ? request.Words[1] : null;
         if (Choose(installed, name, out var chosen) is { } choice)
             return choice;
         if (chosen.Count == 0)
@@ -194,7 +264,7 @@ internal static partial class WidgetCommand
             output.WriteLine("Added: " + Names(added));
             output.WriteLine("Dropped: " + Names(dropped));
             output.WriteLine(Warning);
-            if (!Agreed(options, input, output, "Update? [y/N] ", "Nothing was updated."))
+            if (!Agreed(request.Yes, input, output, "Update? [y/N] ", "Nothing was updated."))
                 continue;
 
             var index = next.FindIndex(have => ReferenceEquals(have, item));
@@ -376,9 +446,9 @@ internal static partial class WidgetCommand
     }
 
     /// <summary><c>--yes</c> agrees. Otherwise the answer is read from <paramref name="input"/>, and a no prints <paramref name="declined"/>.</summary>
-    private static bool Agreed(CliOptions options, TextReader input, TextWriter output, string question, string declined)
+    private static bool Agreed(bool yes, TextReader input, TextWriter output, string question, string declined)
     {
-        if (options.Yes)
+        if (yes)
             return true;
         output.Write(question);
         output.Flush();

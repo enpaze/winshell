@@ -1,0 +1,5 @@
+winshell doctor [-c <name> | -p <path>] [-j] [--no-color]
+  Checks this PC's setup for Winshell and changes nothing.
+  -c, --config <name>    a named config in {config-root}
+  -j, --json             print the checks as JSON
+      --no-color         print without color

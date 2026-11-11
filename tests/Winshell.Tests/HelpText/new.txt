@@ -1,0 +1,6 @@
+winshell new [<name>] [-p <folder>]
+  With no name, lists the starter and the examples this release can copy.
+  With a name, copies that one into {config-root}\<name>, ready for
+  winshell run -c <name>. Its project references this release's Winshell package.
+  -p, --path <folder>    copy into this folder instead
+  A folder that exists and isn't empty is refused, and nothing changes.

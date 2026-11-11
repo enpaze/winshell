@@ -1,22 +1,86 @@
-using System.Diagnostics;
-
 namespace Winshell.Commands;
 
 internal static class IpcCommand
 {
-    internal static async Task<int> RunAsync(CliOptions options)
+    internal static readonly CommandEntry Entry = new()
     {
-        var args = options.Positional;
-        var request = args[0] switch
-        {
-            IpcOps.Show => IpcRequest.ForShow(options.Json),
-            IpcOps.Call => IpcRequest.ForCall(args[1], args[2], args.Skip(3).ToList()),
-            IpcOps.Prop => IpcRequest.ForProp(args[2], args[3]),
-            IpcOps.Wait => IpcRequest.ForWait(args[1], args[2]),
-            IpcOps.Listen => IpcRequest.ForListen(args[1], args[2]),
-            _ => throw new UnreachableException($"No ipc command \"{args[0]}\".")
-        };
-        if (InstanceCall.Select(options, InstanceSelection.Question.Running, out var code) is not { } info)
+        Name = "ipc",
+        Overview = """
+                          winshell ipc show [-j]              list IPC targets
+                          winshell ipc call <target> <function> [args...]
+                          winshell ipc prop get <target> <property>
+                          winshell ipc wait <target> <signal>
+                          winshell ipc listen <target> <signal>
+                   """,
+        Usage = """
+                winshell ipc [-i <id> | --pid <pid> | -c <name> | -p <path>] <command>
+                  show [-j]                             list IPC targets. -j prints JSON
+                  call <target> <function> [args...]    call a function and print the result
+                  call notice dismiss                   close Winshell's own notice
+                  prop get <target> <property>          print a property
+                  wait <target> <signal>                wait for one signal
+                  listen <target> <signal>              print each signal until Ctrl+C
+                  Words after the function name are arguments, even when they start with -.
+                  A -- ends options on every command.
+                """,
+        Options = [.. CliFlags.Instance, CliFlags.Json],
+        Words = WordRule.Subcommand,
+        Subcommands =
+        [
+            new CommandEntry { Name = IpcOps.Show, Run = Show },
+            new CommandEntry
+            {
+                Name = IpcOps.Call,
+                MinWords = 2,
+                Missing = "a target and a function",
+                RawAfter = true,
+                Run = Call
+            },
+            new CommandEntry
+            {
+                Name = IpcOps.Prop,
+                MinWords = 3,
+                FirstWord = "get",
+                Missing = "\"get\", a target and a property",
+                Run = Prop
+            },
+            new CommandEntry { Name = IpcOps.Wait, MinWords = 2, Missing = "a target and a signal", Run = Wait },
+            new CommandEntry { Name = IpcOps.Listen, MinWords = 2, Missing = "a target and a signal", Run = Listen }
+        ]
+    };
+
+    private static Task<int> Show(Invocation parsed)
+    {
+        return Send(parsed, IpcRequest.ForShow(parsed.IsSet(CliFlags.Json)));
+    }
+
+    private static Task<int> Call(Invocation parsed)
+    {
+        var args = parsed.Positional;
+        return Send(parsed, IpcRequest.ForCall(args[1], args[2], args.Skip(3).ToList()));
+    }
+
+    private static Task<int> Prop(Invocation parsed)
+    {
+        var args = parsed.Positional;
+        return Send(parsed, IpcRequest.ForProp(args[2], args[3]));
+    }
+
+    private static Task<int> Wait(Invocation parsed)
+    {
+        var args = parsed.Positional;
+        return Send(parsed, IpcRequest.ForWait(args[1], args[2]));
+    }
+
+    private static Task<int> Listen(Invocation parsed)
+    {
+        var args = parsed.Positional;
+        return Send(parsed, IpcRequest.ForListen(args[1], args[2]));
+    }
+
+    private static async Task<int> Send(Invocation parsed, IpcRequest request)
+    {
+        if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Running, out var code) is not { } info)
             return code;
         if (request.Op == IpcOps.Show && request.Json)
             return await PrintShowJson(info, request);

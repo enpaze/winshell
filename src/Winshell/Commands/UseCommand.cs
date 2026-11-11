@@ -6,12 +6,34 @@ namespace Winshell.Commands;
 /// </summary>
 internal static class UseCommand
 {
-    internal static async Task<int> RunAsync(CliOptions options)
+    internal static readonly CommandEntry Entry = new()
+    {
+        Name = "use",
+        Overview = "       winshell use [<name>]               choose the config sign-in starts, and switch to it",
+        Usage = """
+                winshell use [<name>]
+                  With a name, builds that config in {config-root} when it needs a build, and
+                  chooses it: sign-in, the Start tile and winshell run with no -c or -p start it.
+                  A shell that is running stops, and the chosen one starts in its place.
+                  A failed build changes nothing.
+                  With no name, lists the configs, with * before the one winshell run starts.
+                """,
+        Words = WordRule.One,
+        Check = static parsed =>
+        {
+            if (parsed.Positional.Length == 1 && !CommandWords.IsConfigName(parsed.Positional[0]))
+                throw new ArgumentException(
+                    $"winshell use needs the name of a config folder, not \"{parsed.Positional[0]}\".");
+        },
+        Run = Execute
+    };
+
+    internal static async Task<int> Execute(Invocation parsed)
     {
         var locations = ShellLocations.Current;
-        if (options.Positional.IsEmpty)
+        if (parsed.Positional.IsEmpty)
             return List(locations.ConfigRoot);
-        var name = options.Positional[0];
+        var name = parsed.Positional[0];
         if (Choose(name, locations.ConfigRoot, ConfigurationProject.Run, out var error) is not { } project)
         {
             await Console.Error.WriteLineAsync(error);

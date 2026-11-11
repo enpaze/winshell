@@ -1,0 +1,7 @@
+winshell run [-c <name> | -p <path>] [-d] [-n] [--no-build] [-- <args>...]
+  Starts a configuration project's shell, built first when a source is newer than its
+  program. With no project, nothing starts.
+  -d, --daemonize        run in the background
+  -n, --no-duplicate     exit quietly if this config is already running
+      --no-build         run the last build, and do not build again
+  Words after -- go to the configuration's program.

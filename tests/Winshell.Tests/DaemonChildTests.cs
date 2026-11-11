@@ -1,3 +1,5 @@
+using Winshell.Commands;
+
 namespace Winshell.Tests;
 
 /// <summary>
@@ -15,9 +17,9 @@ public class DaemonChildTests
     {
         var parsed = CliParser.Parse(["run", "-d", option, "-d"]);
 
-        Assert.True(parsed.Daemonize);
-        Assert.Equal("-d", option is "-p" or "--path" ? parsed.Path : parsed.Config);
-        Assert.Equal(["--no-build", "run", option, "-d"], parsed.ChildArguments);
+        Assert.True(parsed.IsSet(CliFlags.Daemonize));
+        Assert.Equal("-d", option is "-p" or "--path" ? parsed.Text(CliFlags.Path) : parsed.Text(CliFlags.Config));
+        Assert.Equal(["--no-build", "run", option, "-d"], RunCommand.ChildArguments(parsed));
     }
 
     [Fact]
@@ -25,7 +27,7 @@ public class DaemonChildTests
     {
         var parsed = CliParser.Parse(["run", "-d", "--", "-d"]);
 
-        Assert.Equal(["--no-build", "run", "--", "-d"], parsed.ChildArguments);
+        Assert.Equal(["--no-build", "run", "--", "-d"], RunCommand.ChildArguments(parsed));
         Assert.Equal(["--", "-d"], parsed.Rest);
     }
 
@@ -34,7 +36,7 @@ public class DaemonChildTests
     {
         var parsed = CliParser.Parse(["run", "--daemonize", "--no-build", "-c", "-d"]);
 
-        Assert.Equal(["run", "--no-build", "-c", "-d"], parsed.ChildArguments);
+        Assert.Equal(["run", "--no-build", "-c", "-d"], RunCommand.ChildArguments(parsed));
     }
 
     [Fact]
@@ -44,7 +46,7 @@ public class DaemonChildTests
 
         Assert.Null(parsed.Command);
         Assert.True(parsed.ShellStartAllowed);
-        Assert.Equal("-d", parsed.Path);
-        Assert.Equal(["--no-build", "run", "-p", "-d"], parsed.ChildArguments);
+        Assert.Equal("-d", parsed.Text(CliFlags.Path));
+        Assert.Equal(["--no-build", "run", "-p", "-d"], RunCommand.ChildArguments(parsed));
     }
 }

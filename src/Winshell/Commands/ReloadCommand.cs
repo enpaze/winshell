@@ -2,9 +2,27 @@ namespace Winshell.Commands;
 
 internal static class ReloadCommand
 {
-    internal static async Task<int> RunAsync(CliOptions options)
+    internal static readonly CommandEntry Entry = new()
     {
-        if (InstanceCall.Select(options, InstanceSelection.Question.Running, out var code) is not { } info)
+        Name = "reload",
+        Overview = """
+                          winshell reload [instance options]
+                                                              reload an instance's configuration
+                   """,
+        Usage = """
+                winshell reload [-i <id> | --pid <pid> | -c <name> | -p <path>]
+                  Builds a configuration project and asks its instance to start again.
+                  A build that fails leaves the instance running and asks it to show the error.
+                  With one running instance and no selector, that instance is used.
+                  With several, this exits and lists them.
+                """,
+        Options = CliFlags.Instance,
+        Run = Execute
+    };
+
+    internal static async Task<int> Execute(Invocation parsed)
+    {
+        if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Running, out var code) is not { } info)
             return code;
 
         var project = ConfigurationProject.ForProgram(info.ConfigPath);

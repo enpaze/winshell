@@ -1,0 +1,25 @@
+winshell inspect [-i <id> | --pid <pid> | -c <name> | -p <path>] <command>
+  tree                            print each open window's live layout as JSON
+  screenshot <file> [window]      save a window as a PNG
+  record <file.mp4> --for <time> [window]
+                                  record a window as an MP4 at its screen's refresh
+                                  rate, or 120, 60 or 30 when the encoder takes no more
+      --screen [n]                record screen n instead, from 0, the primary one first
+      --fps <n>                   keep at most n frames a second, and make the MP4 n fps
+      --frames <folder>           also save each kept frame as a PNG named by its
+                                  milliseconds, and contact-sheet.png of them all
+  click <name> [window]           activate an element, as Narrator does
+  hover <name> [window]           put a control in its pointer look
+  Real input, which sends nothing while the PC is in use, no mouse event
+  where another window is on top, and puts the cursor back:
+  focus <name> [window]           press Tab until keyboard focus is on the element
+  point <name> [window]           keep the mouse on the element until leave, the next
+                                  of these commands, 30 seconds, or a move of the mouse
+  leave                           put the cursor back after point
+  press <name> [window] [--right] press and release a mouse button on the element
+  scroll <name> <steps> [window]  turn the mouse wheel; 3 scrolls down, -3 up
+  key <keys> [window]             press keys, such as Tab, Enter or "Ctrl+K, C". Ctrl,
+                                  Alt and Shift need the window to be in front
+  A window is the type of its content, or its number in tree. The first is the default.
+  A name is an x:Name, or an automation id or name.
+  A time is in seconds, such as 5 or 2.5s, or in milliseconds, such as 500ms.

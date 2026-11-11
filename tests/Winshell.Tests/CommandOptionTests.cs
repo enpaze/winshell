@@ -107,48 +107,30 @@ public class CommandOptionTests
         Assert.Equal("4", Field(parsed, "pid"));
     }
 
-    [Theory]
-    [InlineData("run")]
-    [InlineData("list")]
-    [InlineData("kill")]
-    [InlineData("reload")]
-    [InlineData("log")]
-    [InlineData("ipc")]
-    [InlineData("inspect")]
-    [InlineData("dev")]
-    [InlineData("doctor")]
-    public void Every_command_takes_verbose(string command)
+    [Fact]
+    public void Every_command_takes_verbose()
     {
-        Assert.True(CliParser.Parse([command, .. Words(command), "-v"]).Verbose);
+        Assert.All(CliParser.Entries, entry => Assert.True(entry.Accepts(CliFlags.Verbose)));
+        // The flag is shared, so one parse shows that reading it sets verbose. ipc's own tests cover where -v counts.
+        Assert.True(CliParser.Parse(["run", "-v"]).Verbose);
     }
 
-    /// <summary>What ipc and inspect need after them to be a whole command line.</summary>
-    private static string[] Words(string command)
-    {
-        return command switch
-        {
-            "ipc" => ["show"],
-            "inspect" => ["tree"],
-            _ => []
-        };
-    }
-
-    private static string Field(CliOptions options, string field)
+    private static string Field(Invocation parsed, string field)
     {
         return field switch
         {
-            "path" => options.Path ?? "",
-            "config" => options.Config ?? "",
-            "id" => options.Id ?? "",
-            "pid" => options.Pid?.ToString(CultureInfo.InvariantCulture) ?? "",
-            "tail" => options.Tail?.ToString(CultureInfo.InvariantCulture) ?? "",
-            "daemonize" => options.Daemonize ? "" : "no",
-            "no-duplicate" => options.NoDuplicate ? "" : "no",
-            "no-build" => options.NoBuild ? "" : "no",
-            "json" => options.Json ? "" : "no",
-            "force" => options.Force ? "" : "no",
-            "follow" => options.Follow ? "" : "no",
-            "no-color" => options.NoColor ? "" : "no",
+            "path" => parsed.Text(CliFlags.Path) ?? "",
+            "config" => parsed.Text(CliFlags.Config) ?? "",
+            "id" => parsed.Text(CliFlags.Id) ?? "",
+            "pid" => parsed.Number(CliFlags.Pid)?.ToString(CultureInfo.InvariantCulture) ?? "",
+            "tail" => parsed.Number(CliFlags.Tail)?.ToString(CultureInfo.InvariantCulture) ?? "",
+            "daemonize" => parsed.IsSet(CliFlags.Daemonize) ? "" : "no",
+            "no-duplicate" => parsed.IsSet(CliFlags.NoDuplicate) ? "" : "no",
+            "no-build" => parsed.IsSet(CliFlags.NoBuild) ? "" : "no",
+            "json" => parsed.IsSet(CliFlags.Json) ? "" : "no",
+            "force" => parsed.IsSet(CliFlags.Force) ? "" : "no",
+            "follow" => parsed.IsSet(CliFlags.Follow) ? "" : "no",
+            "no-color" => parsed.IsSet(CliFlags.NoColor) ? "" : "no",
             _ => throw new ArgumentException(field)
         };
     }

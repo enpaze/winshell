@@ -1,0 +1,3 @@
+winshell list [-j]
+  Lists running instances. -j, --json prints them as JSON.
+  Stopped instances are not listed.

@@ -1,0 +1,5 @@
+winshell kill [--force] [-i <id> | --pid <pid> | -c <name> | -p <path>]
+  Asks one running instance to exit, then waits until that process has exited.
+  --force ends the process when it does not exit.
+  With one running instance and no selector, that instance is used.
+  With several, this exits and lists them.

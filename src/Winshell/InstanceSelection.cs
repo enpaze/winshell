@@ -1,5 +1,12 @@
 namespace Winshell;
 
+/// <summary>The instance a command asked for: a process id, an id, a project path, or a config name.</summary>
+internal readonly record struct InstanceChoice(int? Pid, string? Id, string? Path, string? Config)
+{
+    /// <summary>The line named an instance. A log with none of these may show the newest stopped instance.</summary>
+    public bool Asked => Pid is not null || Id is not null || Path is not null || Config is not null;
+}
+
 /// <summary>
 /// Which instance a command means. The command says whether a stopped instance can answer, and how "none" is
 /// phrased. The result is that instance, or a finished failure with its sentence and exit code.
@@ -47,30 +54,28 @@ internal static class InstanceSelection
         }
     }
 
-    /// <summary>The instance <paramref name="options"/> select from <paramref name="listed"/>, every instance on disk, newest first.</summary>
-    internal static Result Select(CliOptions options, Question question,
+    /// <summary>The instance <paramref name="choice"/> selects from <paramref name="listed"/>, every instance on disk, newest first.</summary>
+    internal static Result Select(InstanceChoice choice, Question question,
         IReadOnlyList<(InstanceInfo Info, bool Alive)> listed)
     {
         var running = listed.Where(row => row.Alive).Select(row => row.Info).ToList();
-        var choice = From(options, running, question.None);
-        if (!question.StoppedFallback || choice.Info is not null || choice.Code == 2)
-            return choice;
+        var selected = From(choice, running, question.None);
+        if (!question.StoppedFallback || selected.Info is not null || selected.Code == 2)
+            return selected;
 
-        var asked = options.Pid is not null || options.Id is not null || options.Path is not null ||
-                    options.Config is not null;
-        var stopped = asked
-            ? From(options, listed.Select(row => row.Info).ToList(), question.None).Info
+        var stopped = choice.Asked
+            ? From(choice, listed.Select(row => row.Info).ToList(), question.None).Info
             : listed.Count > 0
                 ? listed[0].Info
                 : null;
         return stopped is null
-            ? choice
+            ? selected
             : Result.Found(stopped, $"Showing the log of stopped instance {stopped.Id}.");
     }
 
-    private static Result From(CliOptions options, List<InstanceInfo> instances, string none)
+    private static Result From(InstanceChoice choice, List<InstanceInfo> instances, string none)
     {
-        if (options.Pid is { } pid)
+        if (choice.Pid is { } pid)
         {
             var match = instances.FirstOrDefault(i => i.Pid == pid);
             return match is null
@@ -78,7 +83,7 @@ internal static class InstanceSelection
                 : Result.Found(match);
         }
 
-        if (options.Id is { } id)
+        if (choice.Id is { } id)
         {
             var matches = instances.Where(i => i.Id.StartsWith(id, StringComparison.OrdinalIgnoreCase)).ToList();
             return matches.Count switch
@@ -89,9 +94,9 @@ internal static class InstanceSelection
             };
         }
 
-        if (options.Path is not null || options.Config is not null)
+        if (choice.Path is not null || choice.Config is not null)
         {
-            var project = ConfigurationProject.Find(options.Path, options.Config, ShellLocations.Current.ConfigRoot,
+            var project = ConfigurationProject.Find(choice.Path, choice.Config, ShellLocations.Current.ConfigRoot,
                 out var error);
             if (error is not null)
                 return Result.Miss(error);

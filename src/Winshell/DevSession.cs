@@ -12,11 +12,6 @@ namespace Winshell;
 /// </summary>
 internal static class DevSession
 {
-    public static Task<int> Run(ConfigurationProject project)
-    {
-        return Watch(project);
-    }
-
     /// <summary>
     /// Asks this project's shell to quit, as <c>winshell kill</c> does, so its app bar and tray go and its instance is
     /// marked exited. Then ends dotnet watch and what it started.
@@ -45,7 +40,7 @@ internal static class DevSession
     }
 
     /// <summary>How <c>dotnet watch</c> ended.</summary>
-    private static async Task<int> Watch(ConfigurationProject project)
+    public static async Task<int> Run(ConfigurationProject project)
     {
         var start = new ProcessStartInfo("dotnet")
         {

@@ -6,7 +6,7 @@ namespace Winshell.Tests;
 /// </summary>
 public class InspectRecordOptionTests
 {
-    private static CliOptions Parse(string line)
+    private static Invocation Parse(string line)
     {
         return CliParser.Parse(line.Split(' '));
     }
@@ -18,7 +18,7 @@ public class InspectRecordOptionTests
     [InlineData("500ms", 500)]
     public void A_time_is_seconds_or_milliseconds(string time, int milliseconds)
     {
-        Assert.Equal(TimeSpan.FromMilliseconds(milliseconds), Parse($"inspect record out.mp4 --for {time}").For);
+        Assert.Equal(TimeSpan.FromMilliseconds(milliseconds), Parse($"inspect record out.mp4 --for {time}").Time(CliFlags.For));
     }
 
     [Fact]
@@ -27,9 +27,9 @@ public class InspectRecordOptionTests
         var options = Parse("inspect record out.mp4 --for 3s PanelView --fps 30 --frames shots");
 
         Assert.Equal(["record", "out.mp4", "PanelView"], options.Positional);
-        Assert.Equal(30, options.Fps);
-        Assert.Equal("shots", options.Frames);
-        Assert.Null(options.Screen);
+        Assert.Equal(30, options.Number(CliFlags.Fps));
+        Assert.Equal("shots", options.Text(CliFlags.Frames));
+        Assert.Null(options.Number(CliFlags.Screen));
     }
 
     [Theory]
@@ -40,7 +40,7 @@ public class InspectRecordOptionTests
     {
         var options = Parse(line);
 
-        Assert.Equal(screen, options.Screen);
+        Assert.Equal(screen, options.Number(CliFlags.Screen));
         Assert.Equal(["record", "out.mp4"], options.Positional);
     }
 

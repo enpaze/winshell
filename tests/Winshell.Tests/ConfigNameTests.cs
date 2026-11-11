@@ -23,6 +23,6 @@ public class ConfigNameTests
     [InlineData("v1.2")]
     public void A_folder_name_is_kept(string name)
     {
-        Assert.Equal(name, CliParser.Parse(["run", "-c", name]).Config);
+        Assert.Equal(name, CliParser.Parse(["run", "-c", name]).Text(CliFlags.Config));
     }
 }

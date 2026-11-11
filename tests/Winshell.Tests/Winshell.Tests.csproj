@@ -11,5 +11,7 @@
   <ItemGroup>
     <!-- The tests run winshell.exe itself, as separate processes. -->
     <ProjectReference Include="..\..\src\Winshell\Winshell.csproj" />
+    <!-- Help recorded from the command line before each command owned its own text. -->
+    <Content Include="HelpText\*.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
