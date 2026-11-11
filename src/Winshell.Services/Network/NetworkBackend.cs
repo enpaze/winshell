@@ -66,13 +66,8 @@ internal sealed record NetworkSnapshot(
     public bool WifiEnabled => Wifi.State == RadioState.On;
     public bool WifiHardwareEnabled => Wifi.State is RadioState.On or RadioState.Off;
 
-    public WifiRadioState WifiState => Wifi.State switch
-    {
-        RadioState.On => WifiRadioState.On,
-        RadioState.Off => WifiRadioState.Off,
-        RadioState.Disabled => WifiRadioState.Disabled,
-        _ => WifiRadioState.Unknown
-    };
+    public WifiRadioState WifiState =>
+        Wifi.Map(WifiRadioState.On, WifiRadioState.Off, WifiRadioState.Disabled, WifiRadioState.Unknown);
 }
 
 /// <summary>
@@ -80,7 +75,7 @@ internal sealed record NetworkSnapshot(
 /// networks from WinRT's WiFiAdapter, which needs the location permission for desktop apps; saved
 /// networks and connection states from wlanapi; connectivity from WinRT's NetworkInformation.
 /// </summary>
-/// <param name="log">Where a failed Wi-Fi callback and radios Windows will not list are reported.</param>
+/// <param name="log">Where a failed Wi-Fi callback is reported. A radio Windows will not list is the snapshot's error.</param>
 internal sealed class NetworkBackend(Log log) : INetworkBackend
 {
     private readonly Lock _lock = new();
@@ -88,6 +83,7 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
     private NetworkAccessStatus _access;
     private readonly SemaphoreSlim _accessGate = new(1, 1);
     private readonly List<Radio> _radios = [];
+    private string _radioError = "";
     private IReadOnlySet<Guid>? _wifiIds;
     private readonly ProfileWriteQueue _profileWrites = new();
     private readonly IWlanProfileApi _profiles = WlanProfileApi.Instance;
@@ -153,14 +149,14 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
     {
         // Reading radio state needs no control permission and must never prompt on import.
         List<Radio> radios = [];
+        string? radioError = null;
         try
         {
             radios.AddRange((await Radio.GetRadiosAsync()).Where(r => r.Kind == RadioKind.WiFi));
         }
         catch (UnauthorizedAccessException e)
         {
-            log.Warn("network",
-                "Windows would not list the radios, so the Wi-Fi state is unknown: " + e.Message);
+            radioError = e.Message;
         }
 
         bool allowed;
@@ -173,6 +169,7 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
 
         lock (_lock)
         {
+            _radioError = radioError ?? "";
             foreach (var radio in _radios)
                 radio.StateChanged -= OnRadioStateChanged;
             _radios.Clear();
@@ -346,13 +343,15 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
                             NetworkConnectivityLevel.None);
 
         RadioReading wifi;
+        string radioError;
         lock (_lock)
         {
             wifi = RadioReading.Read([.. _radios.Select(static radio => new WindowsRadio(radio))]);
+            radioError = _radioError;
         }
 
         return new NetworkSnapshot(true, devices, connectivity, wifi, connections.Profiles, _access,
-            ReadAirplaneMode());
+            ReadAirplaneMode(), radioError);
     }
 
     private static NetworkConnectionInfo ReadConnection(ConnectionProfile profile)
@@ -544,25 +543,29 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         });
     }
 
-    public async Task ScanAsync(Guid device)
+    public async Task<string?> ScanAsync(Guid device)
     {
-        var adapter = Adapter(device) ??
-                      throw new UnauthorizedAccessException(
-                          "Call NetworkingService.RequestAccess() before scanning Wi-Fi networks.");
+        const string needsAccess = "Call NetworkingService.RequestAccess() before scanning Wi-Fi networks.";
         try
         {
-            await adapter.ScanAsync();
-        }
-        catch (UnauthorizedAccessException)
-        {
-            lock (_lock)
+            var adapter = Adapter(device);
+            if (adapter is null)
+                return needsAccess;
+            try
             {
-                _wifiAdapters.Clear();
-
-                _access = NetworkAccessStatus.DeniedBySystem;
+                await adapter.ScanAsync();
+                return null;
             }
+            catch (UnauthorizedAccessException e)
+            {
+                lock (_lock)
+                {
+                    _wifiAdapters.Clear();
+                    _access = NetworkAccessStatus.DeniedBySystem;
+                }
 
-            throw;
+                return e.Message;
+            }
         }
         finally
         {

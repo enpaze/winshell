@@ -15,13 +15,8 @@ internal sealed record BluetoothAdapterInfo(
     bool Discoverable = false,
     bool Pairable = false)
 {
-    public BluetoothAdapterState State => Radio.State switch
-    {
-        RadioState.On => BluetoothAdapterState.On,
-        RadioState.Off => BluetoothAdapterState.Off,
-        RadioState.Disabled => BluetoothAdapterState.Disabled,
-        _ => BluetoothAdapterState.Unknown
-    };
+    public BluetoothAdapterState State => Radio.Map(BluetoothAdapterState.On, BluetoothAdapterState.Off,
+        BluetoothAdapterState.Disabled, BluetoothAdapterState.Unknown);
 }
 
 internal sealed record BluetoothEndpointInfo(
@@ -196,14 +191,16 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
             var name = (await DeviceInformation.CreateFromIdAsync(adapter.DeviceId).AsTask(cancellation)
                 .ConfigureAwait(false))?.Name ?? "Bluetooth";
             Radio? radio = null;
+            string? radioError = null;
             try
             {
                 radio = await adapter.GetRadioAsync().AsTask(cancellation).ConfigureAwait(false);
             }
             catch (Exception e) when (WindowsFailure.IsExpected(e))
             {
-                // The state is then Unknown, as BluetoothAdapterState documents. Reads repeat every 30 seconds, so a
-                // log line here would repeat with them.
+                // The state is then Unknown, as BluetoothAdapterState documents. The snapshot carries the failure
+                // once; a throw would drop the adapter, and a log line would repeat with the 30-second read.
+                radioError = e.Message;
             }
 
             WatchRadio(adapter.DeviceId, radio);
@@ -212,7 +209,7 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
                 Discoverable: BluetoothRadios.IsDiscoverable(),
                 Pairable: BluetoothRadios.IsConnectable())).ConfigureAwait(false);
             var adapterInfo = new BluetoothAdapterInfo(adapter.DeviceId, name,
-                MacAddress.Format(adapter.BluetoothAddress),
+                FormatAddress(adapter.BluetoothAddress),
                 RadioReading.Read(radio is null ? [] : [new WindowsRadio(radio)]),
                 visibility.Discoverable, visibility.Pairable);
             if ((_adapterId is not null && _adapterId != adapter.DeviceId) ||
@@ -250,13 +247,22 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
                 result.Add(device with { Battery = battery });
             }
 
-            return new BluetoothSnapshot(true, adapterInfo, result, discovering, discoveryError);
+            return new BluetoothSnapshot(true, adapterInfo, result, discovering, radioError ?? discoveryError);
         }
         catch (Exception e) when (WindowsFailure.IsExpected(e))
         {
             StopDiscovery();
             throw;
         }
+    }
+
+    /// <summary>Windows stores a Bluetooth address as six bytes in a ulong, high byte first.</summary>
+    internal static string FormatAddress(ulong address)
+    {
+        Span<byte> bytes = stackalloc byte[6];
+        for (var i = 0; i < bytes.Length; i++)
+            bytes[i] = (byte)(address >> (8 * (5 - i)));
+        return MacAddress.Format(bytes);
     }
 
     private static string[] PairedSelectors()

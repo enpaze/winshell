@@ -226,19 +226,18 @@ public sealed class SessionServiceTests
 
         public int Writes { get; private set; }
 
-        public bool IsRegistered()
+        public SignInVerdict Read()
         {
-            return Registered;
-        }
-
-        public bool PointsElsewhere()
-        {
-            return Elsewhere;
-        }
-
-        public bool TurnedOffInWindows()
-        {
-            return TurnedOff;
+            return new SignInVerdict
+            {
+                HasEntry = Registered,
+                PointsElsewhere = Elsewhere,
+                OffInWindows = TurnedOff,
+                Kind = !Registered ? SignInKind.None
+                    : Elsewhere ? SignInKind.AnotherInstall
+                    : TurnedOff ? SignInKind.TurnedOffInWindows
+                    : SignInKind.Registered
+            };
         }
 
         public bool Register()

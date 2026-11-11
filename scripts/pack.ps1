@@ -11,9 +11,8 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $root = Split-Path -Parent $PSScriptRoot
-if (-not $Version) {
-    $Version = (Get-Content -LiteralPath (Join-Path $root '.release-please-manifest.json') -Raw | ConvertFrom-Json).'.'
-}
+. (Join-Path $PSScriptRoot 'lib/Release.ps1')
+if (-not $Version) { $Version = Get-ReleaseVersion }
 if ($Version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "Version must be a NuGet version, not '$Version'" }
 $Out = [IO.Path]::GetFullPath($Out, $root)
 New-Item -ItemType Directory -Force -Path $Out | Out-Null

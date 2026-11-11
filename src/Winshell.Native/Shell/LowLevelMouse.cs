@@ -1,5 +1,8 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winshell.Native;
 
@@ -22,7 +25,7 @@ internal static unsafe class LowLevelMouse
     {
         lock (Gate)
         {
-            _thread ??= HookThread.Start(Win32.WH_MOUSE_LL, &Proc, "Winshell mouse hook");
+            _thread ??= HookThread.Start(WINDOWS_HOOK_ID.WH_MOUSE_LL, &Proc, "Winshell mouse hook");
             if (_thread is null)
                 return null;
             var watch = new Watch(onPress, failed);
@@ -44,19 +47,21 @@ internal static unsafe class LowLevelMouse
         }
     }
 
-    [UnmanagedCallersOnly]
-    private static nint Proc(int code, nint wParam, nint lParam)
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
+    private static LRESULT Proc(int code, WPARAM wParam, LPARAM lParam)
     {
-        if (code >= 0 && lParam != 0
-                      && (uint)wParam is PInvoke.WM_LBUTTONDOWN or PInvoke.WM_RBUTTONDOWN or PInvoke.WM_MBUTTONDOWN
-                      or PInvoke.WM_XBUTTONDOWN)
+        if (code >= 0 && lParam.Value != 0
+                      && (uint)wParam.Value is PInvoke.WM_LBUTTONDOWN or PInvoke.WM_RBUTTONDOWN
+                          or PInvoke.WM_MBUTTONDOWN or PInvoke.WM_XBUTTONDOWN)
         {
-            var pt = ((MSLLHOOKSTRUCT*)lParam)->pt;
+            // The generated hook struct carries System.Drawing.Point. Callers of this hook take Winshell's POINT.
+            var at = ((MSLLHOOKSTRUCT*)lParam.Value)->pt;
+            var pt = new POINT { X = at.X, Y = at.Y };
             foreach (var watch in Volatile.Read(ref _watches))
                 Callback.Run(watch.Failed, () => watch.OnPress(pt));
         }
 
-        return Win32.CallNextHookEx(0, code, wParam, lParam);
+        return PInvoke.CallNextHookEx(default, code, wParam, lParam);
     }
 
     private sealed class Watch(Action<POINT> onPress, Action<Exception> failed) : IDisposable

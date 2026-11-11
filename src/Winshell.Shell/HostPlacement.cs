@@ -158,7 +158,7 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
 
     public void StartSystemMove()
     {
-        Win32.ReleaseCapture();
+        PInvoke.ReleaseCapture();
         PInvoke.SendMessage((HWND)Handle, PInvoke.WM_SYSCOMMAND, (WPARAM)(nuint)(PInvoke.SC_MOVE | 2), 0);
     }
 
@@ -176,7 +176,7 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
             Edges.Bottom | Edges.Left => 7,
             _ => 8
         };
-        Win32.ReleaseCapture();
+        PInvoke.ReleaseCapture();
         PInvoke.SendMessage((HWND)Handle, PInvoke.WM_SYSCOMMAND, (WPARAM)(nuint)(PInvoke.SC_SIZE + code), 0);
     }
 

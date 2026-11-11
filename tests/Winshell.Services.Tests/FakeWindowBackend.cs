@@ -73,26 +73,26 @@ internal sealed class FakeWindowBackend : IWindowBackend
     {
         Shown[hwnd] = read;
         Facts[hwnd] = facts ?? Normal;
-        Raise(Win32.EVENT_OBJECT_NAMECHANGE, hwnd);
+        Raise(PInvoke.EVENT_OBJECT_NAMECHANGE, hwnd);
     }
 
     public void Destroy(nint hwnd)
     {
         Shown.Remove(hwnd);
         Facts.Remove(hwnd);
-        Raise(Win32.EVENT_OBJECT_DESTROY, hwnd);
+        Raise(PInvoke.EVENT_OBJECT_DESTROY, hwnd);
     }
 
     public void Focus(nint hwnd)
     {
         Foreground = hwnd;
-        Raise(Win32.EVENT_SYSTEM_FOREGROUND, hwnd);
+        Raise(PInvoke.EVENT_SYSTEM_FOREGROUND, hwnd);
     }
 
     /// <summary>Moves or resizes a window.</summary>
     public void Move(nint hwnd)
     {
-        Raise(Win32.EVENT_OBJECT_LOCATIONCHANGE, hwnd);
+        Raise(PInvoke.EVENT_OBJECT_LOCATIONCHANGE, hwnd);
     }
 
     public void Flash(nint hwnd)
@@ -103,7 +103,7 @@ internal sealed class FakeWindowBackend : IWindowBackend
     private void Raise(uint eventType, nint hwnd)
     {
         _winEvents.Raise((eventType, hwnd),
-            static (handler, e) => handler(e.eventType, e.hwnd, Win32.OBJID_WINDOW, Win32.CHILDID_SELF));
+            static (handler, e) => handler(e.eventType, e.hwnd, (int)OBJECT_IDENTIFIER.OBJID_WINDOW, (int)PInvoke.CHILDID_SELF));
     }
 
     public IReadOnlyList<string> Start()

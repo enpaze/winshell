@@ -1,4 +1,7 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Windows.Win32;
+using Windows.Win32.Foundation;
 using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winshell.Native;
@@ -40,7 +43,8 @@ internal static unsafe class LowLevelKeyboard
         }
 
         // The procedure can run before Start returns. Do not hold the gate while waiting for the thread.
-        var thread = HookThread.Start(Win32.WH_KEYBOARD_LL, &Proc, "Winshell keyboard hook", () => OnLost(slot));
+        var thread = HookThread.Start(WINDOWS_HOOK_ID.WH_KEYBOARD_LL, &Proc, "Winshell keyboard hook",
+            () => OnLost(slot));
         lock (Gate)
         {
             if (!ReferenceEquals(_owner, slot) || thread is null)
@@ -71,19 +75,19 @@ internal static unsafe class LowLevelKeyboard
         lost?.Invoke();
     }
 
-    [UnmanagedCallersOnly]
-    private static nint Proc(int code, nint wParam, nint lParam)
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
+    private static LRESULT Proc(int code, WPARAM wParam, LPARAM lParam)
     {
         // The hook procedure reads the slot without Gate, so a key cannot wait on the lock.
-        if (code >= 0 && lParam != 0 && Volatile.Read(ref _owner) is { } owner)
+        if (code >= 0 && lParam.Value != 0 && Volatile.Read(ref _owner) is { } owner)
         {
-            var info = (KBDLLHOOKSTRUCT*)lParam;
+            var info = (KBDLLHOOKSTRUCT*)lParam.Value;
             var key = new HookedKey((int)info->vkCode, (info->flags & KBDLLHOOKSTRUCT_FLAGS.LLKHF_UP) != 0);
             if (info->dwExtraInfo != KeyInput.Marker && Callback.Run(owner.Failed, () => owner.OnKey(key), false))
-                return 1;
+                return (LRESULT)1;
         }
 
-        return Win32.CallNextHookEx(0, code, wParam, lParam);
+        return PInvoke.CallNextHookEx(default, code, wParam, lParam);
     }
 
     private sealed class Slot(Func<HookedKey, bool> onKey, Action<Exception> failed, Action? lost) : IDisposable

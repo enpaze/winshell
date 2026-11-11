@@ -154,8 +154,10 @@ jobs:
         if: ${{ env.SIGN == 'true' }}
         shell: pwsh
         run: |
+          . ./scripts/lib/Release.ps1
           $version = (Get-Item "$env:RUNNER_TEMP/artifacts/publish/win-x64/winshell.dll").VersionInfo.ProductVersion
           "version=$version" >> $env:GITHUB_OUTPUT
+          "product=$(Get-ProductName)" >> $env:GITHUB_OUTPUT
       - name: Upload the binaries to sign
         id: unsigned
         if: ${{ env.SIGN == 'true' }}
@@ -177,9 +179,10 @@ jobs:
           project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'winshell' }}
           signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
           github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
-          # Every signed binary must carry this product version, as packaging/signpath/artifact-configuration.xml says.
+          # Every signed binary must carry this product name and version, as packaging/signpath/artifact-configuration.xml says.
           parameters: |
             version: ${{ toJSON(steps.product.outputs.version) }}
+            product: ${{ toJSON(steps.product.outputs.product) }}
           wait-for-completion: true
           wait-for-completion-timeout-in-seconds: 6600
           output-artifact-directory: ${{ runner.temp }}/signed
@@ -208,7 +211,7 @@ jobs:
           MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
         run: |
           . ./scripts/lib/Release.ps1
-          $publisher = if ($env:MSIX_PUBLISHER) { $env:MSIX_PUBLISHER } else { 'CN=Winshell Test' }
+          $publisher = if ($env:MSIX_PUBLISHER) { $env:MSIX_PUBLISHER } else { (Get-StoreTestIdentity).Publisher }
           $msix = Get-ChildItem "$env:RUNNER_TEMP/artifacts/msix" -Filter '*-win-x64.msix' | Select-Object -First 1
           $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject $publisher -CertStoreLocation Cert:\CurrentUser\My `
             -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3', '2.5.29.19={text}')

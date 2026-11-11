@@ -44,30 +44,31 @@ public sealed class WindowRulesTests
     [Fact]
     public void Foreground_and_top_level_events_mark_a_window_and_a_child_event_does_not()
     {
-        Assert.True(WindowRules.MarksWindow(Win32.EVENT_SYSTEM_FOREGROUND, 1, 0, 0, false, false));
-        Assert.False(WindowRules.MarksWindow(Win32.EVENT_SYSTEM_FOREGROUND, 0, 0, 0, false, false));
-        Assert.True(WindowRules.MarksForeground(Win32.EVENT_SYSTEM_FOREGROUND));
-        Assert.False(WindowRules.MarksWindow(Win32.EVENT_OBJECT_LOCATIONCHANGE, 1, Win32.OBJID_WINDOW, 1, true, true));
-        Assert.False(WindowRules.MarksWindow(Win32.EVENT_OBJECT_LOCATIONCHANGE, 1, Win32.OBJID_WINDOW,
-            Win32.CHILDID_SELF, true, false));
-        Assert.True(WindowRules.MarksWindow(Win32.EVENT_OBJECT_LOCATIONCHANGE, 1, Win32.OBJID_WINDOW,
-            Win32.CHILDID_SELF, false, true));
-        Assert.False(WindowRules.MarksWindow(Win32.EVENT_OBJECT_DESTROY, 1, Win32.OBJID_WINDOW, Win32.CHILDID_SELF,
-            false, false));
-        Assert.True(WindowRules.MarksWindow(Win32.EVENT_OBJECT_DESTROY, 1, Win32.OBJID_WINDOW, Win32.CHILDID_SELF, true,
-            false));
-        Assert.True(WindowRules.MarksForeground(Win32.EVENT_SYSTEM_MINIMIZESTART));
-        Assert.True(WindowRules.MarksForeground(Win32.EVENT_OBJECT_HIDE));
-        Assert.False(WindowRules.MarksForeground(Win32.EVENT_OBJECT_NAMECHANGE));
+        Assert.True(WindowRules.MarksWindow(PInvoke.EVENT_SYSTEM_FOREGROUND, 1, 0, 0, false, false));
+        Assert.False(WindowRules.MarksWindow(PInvoke.EVENT_SYSTEM_FOREGROUND, 0, 0, 0, false, false));
+        Assert.True(WindowRules.MarksForeground(PInvoke.EVENT_SYSTEM_FOREGROUND));
+        Assert.False(WindowRules.MarksWindow(PInvoke.EVENT_OBJECT_LOCATIONCHANGE, 1,
+            (int)OBJECT_IDENTIFIER.OBJID_WINDOW, 1, true, true));
+        Assert.False(WindowRules.MarksWindow(PInvoke.EVENT_OBJECT_LOCATIONCHANGE, 1,
+            (int)OBJECT_IDENTIFIER.OBJID_WINDOW, (int)PInvoke.CHILDID_SELF, true, false));
+        Assert.True(WindowRules.MarksWindow(PInvoke.EVENT_OBJECT_LOCATIONCHANGE, 1,
+            (int)OBJECT_IDENTIFIER.OBJID_WINDOW, (int)PInvoke.CHILDID_SELF, false, true));
+        Assert.False(WindowRules.MarksWindow(PInvoke.EVENT_OBJECT_DESTROY, 1, (int)OBJECT_IDENTIFIER.OBJID_WINDOW,
+            (int)PInvoke.CHILDID_SELF, false, false));
+        Assert.True(WindowRules.MarksWindow(PInvoke.EVENT_OBJECT_DESTROY, 1, (int)OBJECT_IDENTIFIER.OBJID_WINDOW,
+            (int)PInvoke.CHILDID_SELF, true, false));
+        Assert.True(WindowRules.MarksForeground(PInvoke.EVENT_SYSTEM_MINIMIZESTART));
+        Assert.True(WindowRules.MarksForeground(PInvoke.EVENT_OBJECT_HIDE));
+        Assert.False(WindowRules.MarksForeground(PInvoke.EVENT_OBJECT_NAMECHANGE));
     }
 
     [Fact]
     public void Caret_cursor_and_child_objects_are_not_window_events()
     {
-        Assert.True(WindowRules.IsWindowObject(Win32.OBJID_WINDOW, Win32.CHILDID_SELF));
-        Assert.False(WindowRules.IsWindowObject(-8 /* OBJID_CARET */, Win32.CHILDID_SELF));
-        Assert.False(WindowRules.IsWindowObject(-9 /* OBJID_CURSOR */, Win32.CHILDID_SELF));
-        Assert.False(WindowRules.IsWindowObject(Win32.OBJID_WINDOW, 1));
+        Assert.True(WindowRules.IsWindowObject((int)OBJECT_IDENTIFIER.OBJID_WINDOW, (int)PInvoke.CHILDID_SELF));
+        Assert.False(WindowRules.IsWindowObject(-8 /* OBJID_CARET */, (int)PInvoke.CHILDID_SELF));
+        Assert.False(WindowRules.IsWindowObject(-9 /* OBJID_CURSOR */, (int)PInvoke.CHILDID_SELF));
+        Assert.False(WindowRules.IsWindowObject((int)OBJECT_IDENTIFIER.OBJID_WINDOW, 1));
     }
 
     [Fact]

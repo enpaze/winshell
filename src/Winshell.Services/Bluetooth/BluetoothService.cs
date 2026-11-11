@@ -12,7 +12,6 @@ public sealed class BluetoothService : ObservableObject, IDisposable
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(30);
 
     private readonly IEventLoop _loop;
-    private readonly IRadioAccess _radioAccess;
 
     private readonly MonitorWarning _warning;
 
@@ -29,11 +28,9 @@ public sealed class BluetoothService : ObservableObject, IDisposable
     private string _error = "";
     private volatile bool _disposed;
 
-    internal BluetoothService(IEventLoop loop, Log log, IBluetoothBackend? backend = null,
-        IRadioAccess? radioAccess = null)
+    internal BluetoothService(IEventLoop loop, Log log, IBluetoothBackend? backend = null)
     {
         _loop = loop;
-        _radioAccess = radioAccess ?? WindowsRadioAccess.Instance;
         _warning = new MonitorWarning(log, "bluetooth");
         _radioChange = new DeviceAction(Post);
         _visibilityChange = new DeviceAction(Post);
@@ -217,8 +214,10 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         var radios = _snapshot.Adapter!.Radio.Radios;
         await ChangeAdapterAsync(adapter, _radioChange, async () =>
         {
-            var error = await RadioSwitch.SetEnabledAsync(RadioKind.Bluetooth, radios, enabled, _radioAccess)
-                .ConfigureAwait(false);
+            const string missing = "Windows reports no Bluetooth radio for this adapter.";
+            var error = RadioSwitch.Describe(
+                await RadioSwitch.SetEnabledAsync(RadioKind.Bluetooth, radios, enabled).ConfigureAwait(false),
+                missing);
             return (error, error is null);
         }).ConfigureAwait(false);
     }

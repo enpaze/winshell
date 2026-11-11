@@ -26,8 +26,9 @@
     <RootNamespace Condition="'$(MSBuildProjectName)' == 'Winshell.Shell.Tests'">Winshell.ShellTests</RootNamespace>
   </PropertyGroup>
 
-  <!-- The product version is the release-please manifest. -p:Version= overrides it.
-       A build that cannot read the manifest is 0.0.0-dev. Projects are not packable unless they opt in. -->
+  <!-- The product version is the "." property of the release-please manifest. Scripts read that property with
+       Get-ReleaseVersion. -p:Version= overrides it. A build that cannot read that property is 0.0.0-dev.
+       Projects are not packable unless they opt in. -->
   <PropertyGroup>
     <_WinshellReleaseManifest>$(MSBuildThisFileDirectory).release-please-manifest.json</_WinshellReleaseManifest>
     <IsPackable>false</IsPackable>
@@ -37,7 +38,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Version)' == '' and Exists('$(_WinshellReleaseManifest)')">
     <_WinshellReleaseManifestText>$([System.IO.File]::ReadAllText('$(_WinshellReleaseManifest)'))</_WinshellReleaseManifestText>
-    <_WinshellReleaseVersion>$([System.Text.RegularExpressions.Regex]::Match($(_WinshellReleaseManifestText), '\d+\.\d+\.\d+').Value)</_WinshellReleaseVersion>
+    <_WinshellReleaseVersion>$([System.Text.RegularExpressions.Regex]::Match($(_WinshellReleaseManifestText), '(?&lt;="\."\s*:\s*")[^"]+').Value)</_WinshellReleaseVersion>
   </PropertyGroup>
   <PropertyGroup>
     <Version Condition="'$(Version)' == '' and '$(_WinshellReleaseVersion)' != ''">$(_WinshellReleaseVersion)</Version>

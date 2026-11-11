@@ -13,7 +13,8 @@ internal interface INetworkBackend : IDisposable
 
     Task RequestAccessAsync();
 
-    Task ScanAsync(Guid device);
+    /// <summary>Null when the scan ran. The request-access failure is that string, not a throw.</summary>
+    Task<string?> ScanAsync(Guid device);
     Task<ConnectionFailReason?> ConnectAsync(Guid device, string ssid, string? password);
 
     /// <summary>Disconnects a Wi-Fi adapter. Null when Windows accepted it.</summary>

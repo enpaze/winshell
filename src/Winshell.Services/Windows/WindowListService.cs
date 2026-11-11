@@ -84,9 +84,9 @@ public sealed class WindowListService : ObservableObject, IDisposable
     {
         // Windows reports no move of a window on its own, so maximizing, restoring and moving to another monitor
         // arrive as location changes. The caret and cursor send them too, on every move, so drop those first.
-        if (eventType == Win32.EVENT_OBJECT_LOCATIONCHANGE && !WindowRules.IsWindowObject(idObject, idChild))
+        if (eventType == PInvoke.EVENT_OBJECT_LOCATIONCHANGE && !WindowRules.IsWindowObject(idObject, idChild))
             return;
-        var isRoot = hwnd != 0 && eventType != Win32.EVENT_OBJECT_DESTROY && _backend.RootOf(hwnd) == hwnd;
+        var isRoot = hwnd != 0 && eventType != PInvoke.EVENT_OBJECT_DESTROY && _backend.RootOf(hwnd) == hwnd;
         var marksWindow =
             WindowRules.MarksWindow(eventType, hwnd, idObject, idChild, _byHwnd.ContainsKey(hwnd), isRoot);
         var marksForeground = WindowRules.MarksForeground(eventType);

@@ -49,7 +49,7 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
     {
         get
         {
-            Win32.GetCursorPos(out var p);
+            PInvoke.GetCursorPos(out System.Drawing.Point p);
             return (p.X, p.Y);
         }
     }
@@ -76,7 +76,7 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
         if (_window is null)
             return false;
         _settingsWatch = TrayIconSettings.Watch(loop, () => SettingsChanged?.Invoke());
-        foreach (var eventType in new[] { Win32.EVENT_SYSTEM_FOREGROUND, Win32.EVENT_OBJECT_REORDER })
+        foreach (var eventType in new[] { PInvoke.EVENT_SYSTEM_FOREGROUND, PInvoke.EVENT_OBJECT_REORDER })
             if (WinEventHook.Start(eventType, OnOrderChanged, Failed) is { } hook)
                 _eventHooks.Add(hook);
             else
@@ -184,13 +184,13 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
     // Out-of-context events run on the thread that installed the hook, the loop's.
     private void OnOrderChanged(uint eventType, nint hwnd, int idObject, int idChild)
     {
-        if (idChild != Win32.CHILDID_SELF || Window == 0)
+        if (idChild != (int)PInvoke.CHILDID_SELF || Window == 0)
             return;
         var explorer = Explorer;
         // Top-level z-order changes name the desktop's client object, not a child window's OBJID_WINDOW.
-        var desktopOrder = eventType == Win32.EVENT_OBJECT_REORDER && idObject == Win32.OBJID_CLIENT &&
+        var desktopOrder = eventType == PInvoke.EVENT_OBJECT_REORDER && idObject == (int)OBJECT_IDENTIFIER.OBJID_CLIENT &&
                            hwnd == WindowTree.Desktop;
-        if (explorer == 0 || (!desktopOrder && (hwnd != explorer || idObject != Win32.OBJID_WINDOW)))
+        if (explorer == 0 || (!desktopOrder && (hwnd != explorer || idObject != (int)OBJECT_IDENTIFIER.OBJID_WINDOW)))
             return;
         // A raise causes another reorder event. Only signal when Explorer is actually above this window.
         for (var above = PInvoke.GetWindow((HWND)explorer, GET_WINDOW_CMD.GW_HWNDPREV);

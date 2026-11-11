@@ -54,9 +54,9 @@ internal static class KeyInput
     internal static bool Unclaimed(uint modifiers, int key)
     {
         const int probe = 0xBFFE;
-        if (!Win32.RegisterHotKey(0, probe, modifiers, (uint)key))
+        if (!PInvoke.RegisterHotKey(default, probe, (HOT_KEY_MODIFIERS)modifiers, (uint)key))
             return false;
-        Win32.UnregisterHotKey(0, probe);
+        PInvoke.UnregisterHotKey(default, probe);
         return true;
     }
 

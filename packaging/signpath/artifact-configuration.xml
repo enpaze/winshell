@@ -6,12 +6,13 @@
 -->
 <artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
   <parameters>
-    <!-- The product version the build stamps, such as 1.2.3+<commit>. The Package workflow passes it. -->
+    <!-- The product name and version the build stamps, such as 1.2.3+<commit>. The Package workflow passes them. -->
+    <parameter name="product" required="true" />
     <parameter name="version" required="true" />
   </parameters>
   <zip-file>
     <!-- SignPath Foundation requires every signed binary to name the project and the same version. -->
-    <pe-file-set product-name="Winshell" product-version="${version}">
+    <pe-file-set product-name="${product}" product-version="${version}">
       <include path="win-x64/winshell.exe" />
       <include path="win-x64/winshellw.exe" />
       <include path="win-x64/winshell.dll" />

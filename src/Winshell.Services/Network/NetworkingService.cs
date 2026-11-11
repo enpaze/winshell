@@ -10,7 +10,6 @@ public sealed class NetworkingService : ObservableObject, IDisposable
 {
     private readonly IEventLoop _loop;
     private readonly INetworkBackend _backend;
-    private readonly IRadioAccess _radioAccess;
     private readonly StateReader<NetworkSnapshot> _reader;
     private readonly DeviceAction _access;
     private readonly DeviceAction _wifiSwitch;
@@ -19,12 +18,10 @@ public sealed class NetworkingService : ObservableObject, IDisposable
     private string _radioError = "";
     private bool _disposed;
 
-    internal NetworkingService(IEventLoop loop, Log log, INetworkBackend? backend = null,
-        IRadioAccess? radioAccess = null)
+    internal NetworkingService(IEventLoop loop, Log log, INetworkBackend? backend = null)
     {
         _loop = loop;
         _backend = backend ?? new NetworkBackend(log);
-        _radioAccess = radioAccess ?? WindowsRadioAccess.Instance;
         _access = new DeviceAction(loop.Post);
         _wifiSwitch = new DeviceAction(loop.Post);
         _reader = new StateReader<NetworkSnapshot>(_backend.ReadAsync, Apply, loop,
@@ -140,8 +137,9 @@ public sealed class NetworkingService : ObservableObject, IDisposable
         var radios = _snapshot.Wifi.Radios;
         return _wifiSwitch.RunAsync(static () => { }, async () =>
         {
-            var error = await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, radios, enabled, _radioAccess)
-                .ConfigureAwait(false);
+            const string missing = "Windows reports no Wi-Fi radio.";
+            var error = RadioSwitch.Describe(
+                await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, radios, enabled).ConfigureAwait(false), missing);
             if (error is null)
                 await _reader.ReadAsync().ConfigureAwait(false);
             return error;
@@ -160,11 +158,14 @@ public sealed class NetworkingService : ObservableObject, IDisposable
     {
         if (_disposed)
             return;
-        if (snapshot.Error.Length > 0 || _snapshot.WifiEnabled != snapshot.WifiEnabled)
+        // The switch applies this same snapshot again so its sentence can show. A read failure replaces that
+        // sentence only when a new reading arrives.
+        if (!ReferenceEquals(snapshot, _snapshot) &&
+            (snapshot.Error.Length > 0 || _snapshot.WifiEnabled != snapshot.WifiEnabled))
             _radioError = "";
         var old = _snapshot;
         _snapshot = snapshot;
-        Set(ref _error, snapshot.Error.Length > 0 ? snapshot.Error : _radioError, nameof(Error));
+        Set(ref _error, _radioError.Length > 0 ? _radioError : snapshot.Error, nameof(Error));
         Changed(old.Ready != snapshot.Ready, nameof(Ready));
         Changed(old.WifiEnabled != snapshot.WifiEnabled, nameof(WifiEnabled));
         Changed(old.WifiHardwareEnabled != snapshot.WifiHardwareEnabled, nameof(WifiHardwareEnabled));
