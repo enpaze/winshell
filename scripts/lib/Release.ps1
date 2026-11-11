@@ -1,11 +1,46 @@
-# What a release ships and how its build is checked, for scripts/package.ps1, scripts/publish-release.ps1 and
-# .github/workflows/package.yml. install.ps1 is fetched alone and can't dot-source this; Install.Tests.ps1 serves it a
-# release named by Get-ReleaseZipName.
+# What a release ships and how its build is checked, for scripts/package.ps1, scripts/pack.ps1,
+# scripts/publish-release.ps1 and .github/workflows/package.yml. install.ps1 is a release asset fetched on its own
+# and can't dot-source this; Install.Tests.ps1 serves it a release named by Get-ReleaseZipName, and Release.Tests.ps1
+# ties its shortcut description to Get-ProductName. SignPath gets that same name as its product parameter.
 
-# The release in .release-please-manifest.json.
+function Get-RepoRoot { Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
+
+# The release in .release-please-manifest.json: its "." property, not another number in the file.
 function Get-ReleaseVersion {
-    $manifest = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) '.release-please-manifest.json'
+    $manifest = Join-Path (Get-RepoRoot) '.release-please-manifest.json'
     (Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).'.'
+}
+
+# The product name Directory.Build.props stamps into every binary.
+function Get-ProductName {
+    $props = Join-Path (Get-RepoRoot) 'Directory.Build.props'
+    $match = [regex]::Match((Get-Content -LiteralPath $props -Raw), '<Product>([^<]+)</Product>')
+    if (-not $match.Success) { throw 'Directory.Build.props does not set Product.' }
+    $match.Groups[1].Value
+}
+
+# Fills the $(...) values in the Store manifest.
+function Expand-StoreManifest(
+    [string] $Template,
+    [string] $IdentityName,
+    [string] $Publisher,
+    [string] $PublisherDisplayName,
+    [string] $PackageVersion,
+    [string] $Architecture,
+    [string] $ProductName
+) {
+    $manifest = $Template.Replace('$(IdentityName)', [Security.SecurityElement]::Escape($IdentityName)).
+        Replace('$(Publisher)', [Security.SecurityElement]::Escape($Publisher)).
+        Replace('$(PublisherDisplayName)', [Security.SecurityElement]::Escape($PublisherDisplayName)).
+        Replace('$(PackageVersion)', $PackageVersion).
+        Replace('$(Architecture)', $Architecture).
+        Replace('$(ProductName)', [Security.SecurityElement]::Escape($ProductName))
+    $manifest
+}
+
+# The Store package identity used until the Partner Center variables are set.
+function Get-StoreTestIdentity {
+    @{ Name = 'Winshell.Test'; Publisher = 'CN=Winshell Test' }
 }
 
 function Get-ReleaseZipName([string] $Version, [string] $Runtime) { "winshell-$Version-$Runtime.zip" }
