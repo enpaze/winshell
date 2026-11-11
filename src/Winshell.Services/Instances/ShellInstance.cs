@@ -133,9 +133,10 @@ internal sealed class ShellInstance
     }
 
     /// <summary>
-    /// Writes one fatal report first, since logging can fail as the process ends. Returns false, so it can be an
-    /// exception filter: that runs before the <c>finally</c> blocks that close the log.
+    /// Writes one fatal report, then one fatal line, while the log is still open. The report comes first because
+    /// logging can fail as the process ends. The same exception is recorded once.
     /// </summary>
+    /// <returns>False. The exception is still the caller's, and a second call for the same one does nothing.</returns>
     public bool ReportFatal(Exception error)
     {
         if (ReferenceEquals(_fatal, error))

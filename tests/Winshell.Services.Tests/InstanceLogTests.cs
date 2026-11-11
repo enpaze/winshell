@@ -52,7 +52,7 @@ public sealed class InstanceLogTests : IDisposable
         await using var stream = InstanceLog.OpenToRead(path);
         using var reader = new StreamReader(stream);
         Assert.Equal("first-line", await reader.ReadLineAsync(cancel));
-        await using var lines = InstanceLog.Follow(reader, cancel).GetAsyncEnumerator(cancel);
+        await using var lines = InstanceLog.Follow(reader, cancel: cancel).GetAsyncEnumerator(cancel);
 
         log.Write(LogLevel.Warn, "second-line");
         // Shorter than what the follower has read: between two reads a shell writes far less than the real cap.
@@ -63,6 +63,34 @@ public sealed class InstanceLogTests : IDisposable
         Assert.Equal("second-line", lines.Current);
         Assert.True(await lines.MoveNextAsync());
         Assert.Equal("third", lines.Current);
+    }
+
+    /// <summary>
+    /// Nothing new is in the file yet, so following waits on the clock. One tick short of the wait, the next line is
+    /// still unread. The tick after it arrives.
+    /// </summary>
+    [Fact]
+    public async Task A_follower_waits_on_the_clock_for_the_next_line()
+    {
+        var path = Path.Combine(_dir, "log.txt");
+        var clock = new Clock();
+        var cancel = TestContext.Current.CancellationToken;
+        using var log = new InstanceLog(path, time: clock);
+        log.Write(LogLevel.Warn, "first");
+        await using var stream = InstanceLog.OpenToRead(path);
+        using var reader = new StreamReader(stream);
+        Assert.Equal("first", await reader.ReadLineAsync(cancel));
+        await using var lines = InstanceLog.Follow(reader, clock, cancel).GetAsyncEnumerator(cancel);
+
+        var next = lines.MoveNextAsync();
+        await clock.Waiting();
+        log.Write(LogLevel.Warn, "second");
+        clock.Advance(TimeSpan.FromMilliseconds(200) - TimeSpan.FromTicks(1));
+        Assert.False(next.IsCompleted);
+
+        clock.Advance(TimeSpan.FromTicks(1));
+        Assert.True(await next);
+        Assert.Equal("second", lines.Current);
     }
 
     [Fact]
@@ -122,6 +150,26 @@ public sealed class InstanceLogTests : IDisposable
         }
         catch (IOException)
         {
+        }
+    }
+
+    /// <summary>A fake clock that tells when following waits for another line.</summary>
+    private sealed class Clock() : FakeTimeProvider(new DateTimeOffset(2026, 11, 5, 12, 0, 0, TimeSpan.Zero))
+    {
+        private readonly SemaphoreSlim _waits = new(0);
+
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            var timer = base.CreateTimer(callback, state, dueTime, period);
+            // The log's own flush timer is created idle. Only a wait for the next line counts.
+            if (dueTime != Timeout.InfiniteTimeSpan)
+                _waits.Release();
+            return timer;
+        }
+
+        public Task Waiting()
+        {
+            return _waits.WaitAsync(TestContext.Current.CancellationToken);
         }
     }
 }

@@ -253,6 +253,44 @@ public sealed class InstanceStartTests
         Assert.StartsWith("winshell-", closed.Pipe, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A host that throws is still a crash: the fatal line is in the log, and the log is closed, so a line after the
+    /// start does not land. The exception leaves the start, so a supervisor still treats it as a crash to restart.
+    /// </summary>
+    [Fact]
+    public void A_host_that_throws_records_the_crash_and_then_closes_the_log()
+    {
+        var log = new Log();
+        ShellInstance? instance = null;
+        var error = new InvalidOperationException("SENTINEL host");
+
+        var thrown = Assert.Throws<InvalidOperationException>(() =>
+            Start(new InstanceLaunch(Program, [], ShellId(), null, null, null, log), session =>
+            {
+                instance = session.Instance;
+                throw error;
+            }));
+
+        Assert.Same(error, thrown);
+        var text = File.ReadAllText(instance!.LogPath);
+        Assert.Contains("Winshell crashed", text, StringComparison.Ordinal);
+        Assert.Contains("SENTINEL host", text, StringComparison.Ordinal);
+
+        var stderr = new StringWriter();
+        var previous = Console.Error;
+        Console.SetError(stderr);
+        try
+        {
+            log.Error("shell", "AFTER-CLOSE");
+        }
+        finally
+        {
+            Console.SetError(previous);
+        }
+
+        Assert.DoesNotContain("AFTER-CLOSE", File.ReadAllText(instance.LogPath), StringComparison.Ordinal);
+    }
+
     private static string ComSpec()
     {
         return Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe";

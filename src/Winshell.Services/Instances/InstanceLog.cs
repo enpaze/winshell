@@ -156,9 +156,10 @@ internal sealed class InstanceLog : IDisposable
 
     /// <summary>
     /// Each line written to the log after what <paramref name="reader"/> has read, until <paramref name="cancel"/>.
-    /// A roll empties the file, and reading goes on from its start.
+    /// A roll empties the file, and reading goes on from its start. When nothing new is there yet, the wait is on
+    /// <paramref name="time"/>.
     /// </summary>
-    public static async IAsyncEnumerable<string> Follow(StreamReader reader,
+    public static async IAsyncEnumerable<string> Follow(StreamReader reader, TimeProvider? time = null,
         [EnumeratorCancellation] CancellationToken cancel = default)
     {
         var stream = reader.BaseStream;
@@ -183,7 +184,7 @@ internal sealed class InstanceLog : IDisposable
                 continue;
             }
 
-            await Task.Delay(FollowPoll, cancel);
+            await Task.Delay(FollowPoll, time ?? TimeProvider.System, cancel);
         }
     }
 
