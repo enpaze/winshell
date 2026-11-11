@@ -453,7 +453,7 @@ public sealed class BarTests
 
         void Walk(DependencyObject node)
         {
-            if (node is StackPanel panel && AreaSessions.TryGet(panel, out _))
+            if (node is StackPanel panel && MountedHost.IsArea(panel))
                 areas.Add(panel);
             for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
                 Walk(VisualTreeHelper.GetChild(node, i));

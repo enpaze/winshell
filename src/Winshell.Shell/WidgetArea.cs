@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
@@ -129,7 +128,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             root.Current = element;
             if (element is FrameworkElement panel)
             {
-                AreaSessions.Attach(panel, () =>
+                MountedHost.Attach(panel, () =>
                 {
                     generation.Current++;
                     bumpRemake(pulse => pulse + 1);
@@ -148,6 +147,10 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             }
 
             Restyle(element);
+        }).OnUnmount(element =>
+        {
+            if (element is FrameworkElement panel)
+                MountedHost.Detach(panel);
         });
 
         void Restyle(FrameworkElement element)
@@ -168,16 +171,18 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             var widget = Props.Widget;
             var area = Props.Area;
             UseEffect(() => () => context.StopStyling(), false);
+
+            // The verb stays in the key so a later failure of the other kind mounts this again and logs again.
+            Element Failed(string verb, Exception error) =>
+                Component<FailedPlacement, Failure>(new Failure(verb, widget, area, error)).WithKey(verb);
+
             try
             {
-                return ErrorBoundary(
-                    Widgets.Create(widget, context),
-                    error => Component<FailedPlacement, Failure>(new Failure("render", widget, area, error))
-                        .WithKey("render"));
+                return ErrorBoundary(Widgets.Create(widget, context), error => Failed("render", error));
             }
             catch (Exception error) when (error is not OutOfMemoryException)
             {
-                return Component<FailedPlacement, Failure>(new Failure("create", widget, area, error)).WithKey("create");
+                return Failed("create", error);
             }
         }
     }
@@ -295,25 +300,5 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
 
         /// <summary>A missing file shows the area's defaults, which are what the list replaces.</summary>
         internal override object? Commented(TomlKey key) => Placement.Format(defaults());
-    }
-}
-
-/// <summary>The area panels on screen, so a hot reload can make one area's widgets again without rebuilding the tree.</summary>
-internal static class AreaSessions
-{
-    private static readonly ConditionalWeakTable<FrameworkElement, Action> Areas = new();
-
-    public static void Attach(FrameworkElement panel, Action remake)
-    {
-        if (!Areas.TryGetValue(panel, out _))
-            Areas.Add(panel, remake);
-    }
-
-    public static bool TryGet(DependencyObject element, out Action remake)
-    {
-        if (element is FrameworkElement panel && Areas.TryGetValue(panel, out remake!))
-            return true;
-        remake = null!;
-        return false;
     }
 }

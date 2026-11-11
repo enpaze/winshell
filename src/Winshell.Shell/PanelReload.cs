@@ -1,7 +1,6 @@
 using System.Reflection;
 using System.Reflection.Metadata;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Winshell;
 
@@ -13,9 +12,9 @@ namespace Winshell;
 /// Called by .NET when <c>dotnet watch</c> applies an edit to the running program. An edited method already runs its new
 /// code. What a constructor built does not, so a widget area showing an edited type makes its widgets again, and
 /// anywhere else the outermost of the configuration's own controls around one, a type from an edited assembly, is made
-/// again in its place. Its constructor builds what it shows. A Winshell or WinUI control around it, such as a grid
-/// filled in code, is filled by whoever made it, which its constructor can't repeat, so it stays with
-/// the rest of what it holds.
+/// again in its place. The mounted host says which areas those are, and where a control it shows goes back. A
+/// control's constructor builds what it shows. A Winshell or WinUI control around it, such as a grid filled in code,
+/// is filled by whoever made it, which its constructor can't repeat, so it stays with the rest of what it holds.
 /// </summary>
 internal static class PanelReload
 {
@@ -37,11 +36,20 @@ internal static class PanelReload
                 continue;
             List<UIElement> controls = [];
             List<Action> remakes = [];
-            Find(content, edited, own, controls, remakes);
-            foreach (var control in controls)
-                MakeAgain(shell, window, control);
-            foreach (var remake in remakes)
-                remake();
+            try
+            {
+                Find(content, edited, own, controls, remakes);
+                foreach (var control in controls)
+                    MakeAgain(shell, window, control);
+                foreach (var remake in remakes)
+                    remake();
+            }
+            finally
+            {
+                // A place the host recorded keeps the old control alive. Drop it whether or not the rebuild used it.
+                foreach (var control in controls)
+                    MountedHost.Forget(control);
+            }
         }
     }
 
@@ -62,7 +70,7 @@ internal static class PanelReload
     private static void Find(DependencyObject element, HashSet<Type> edited, HashSet<Assembly> own,
         List<UIElement> controls, List<Action> remakes)
     {
-        if (AreaSessions.TryGet(element, out _))
+        if (MountedHost.TryRemake(element, out _))
         {
             Shows(element, edited, remakes);
             return;
@@ -72,9 +80,15 @@ internal static class PanelReload
         {
             List<Action> inside = [];
             if (Shows(control, edited, inside))
+            {
+                MountedHost.Remember(control);
                 controls.Add(control);
+            }
             else
+            {
                 remakes.AddRange(inside);
+            }
+
             return;
         }
 
@@ -90,11 +104,12 @@ internal static class PanelReload
     {
         if (edited.Contains(element.GetType()))
             return true;
-        List<Action> inside = AreaSessions.TryGet(element, out _) ? [] : remakes;
+        var area = MountedHost.TryRemake(element, out var remake);
+        List<Action> inside = area ? [] : remakes;
         var shows = false;
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(element); i++)
             shows |= Shows(VisualTreeHelper.GetChild(element, i), edited, inside);
-        if (!AreaSessions.TryGet(element, out var remake))
+        if (!area)
             return shows;
         if (shows || inside.Count > 0)
             remakes.Add(remake);
@@ -110,16 +125,11 @@ internal static class PanelReload
             return;
         }
 
+        // The window's content is its own slot. Replacing the grid child under it would leave the window pointing at
+        // the control this just removed.
         Action<UIElement>? place = ReferenceEquals(window.Content, control)
             ? fresh => window.Content = fresh
-            : (control as FrameworkElement)?.Parent switch
-            {
-                Panel panel when panel.Children.IndexOf(control) is var at and >= 0 =>
-                    fresh => panel.Children[at] = fresh,
-                ContentControl holder when ReferenceEquals(holder.Content, control) => fresh => holder.Content = fresh,
-                Border border when ReferenceEquals(border.Child, control) => fresh => border.Child = fresh,
-                _ => null
-            };
+            : MountedHost.TakePlace(control);
         if (place is null)
         {
             shell.Log.Info("dev", $"{type.Name} has no place a new one can go, so it stays. Edited methods still run.");
