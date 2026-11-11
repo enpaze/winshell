@@ -81,7 +81,7 @@ internal static class SignInEntry
     /// Whether <paramref name="program"/> and <paramref name="thisExe"/> are one install, once <paramref name="resolve"/>
     /// has followed links. <c>winshell.exe</c> and <c>winshellw.exe</c> in the same folder are one install.
     /// </summary>
-    internal static bool SameInstall(string program, string thisExe, Func<string, string> resolve)
+    internal static bool SameInstall(string program, string thisExe, Func<string, string> resolve, Log? log = null)
     {
         // A Run value can name a program that is not a path. That is not this install, and it must not throw.
         if (Full(program) is not { } programPath || Full(thisExe) is not { } herePath)
@@ -96,6 +96,7 @@ internal static class SignInEntry
         catch (Exception e) when (e is ArgumentException or NotSupportedException or IOException
                                       or UnauthorizedAccessException)
         {
+            (log ?? Log.Default).Error("startup", e.ToString());
             return false;
         }
 
@@ -125,7 +126,7 @@ internal static class SignInEntry
     /// <c>-p</c> or <c>-c</c>, or with neither, in <paramref name="configRoot"/>. Null when it would start none. A folder
     /// can hold several projects, so its path does not name one.
     /// </summary>
-    internal static string? ProjectOf(SignInLaunch launch, string configRoot)
+    internal static string? ProjectOf(SignInLaunch launch, string configRoot, Log? log = null)
     {
         // The CLI refuses a -c that is not a folder name, so such an entry starts nothing.
         if (launch.Name is { } name && !CommandWords.IsConfigName(name))
@@ -136,14 +137,15 @@ internal static class SignInEntry
         }
         catch (Exception e) when (e is ArgumentException or NotSupportedException)
         {
+            (log ?? Log.Default).Error("startup", e.ToString());
             return null;
         }
     }
 
     /// <summary>Whether <paramref name="launch"/> starts the project <paramref name="projectFile"/>.</summary>
-    internal static bool Starts(SignInLaunch launch, string projectFile, string configRoot)
+    internal static bool Starts(SignInLaunch launch, string projectFile, string configRoot, Log? log = null)
     {
-        return SamePath(ProjectOf(launch, configRoot), projectFile);
+        return SamePath(ProjectOf(launch, configRoot, log), projectFile);
     }
 
     private static bool SamePath(string? left, string? right)

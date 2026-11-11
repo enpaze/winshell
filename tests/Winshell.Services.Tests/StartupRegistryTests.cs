@@ -3,7 +3,7 @@ using System.Text;
 using Microsoft.Win32;
 using Winshell.Diagnostics;
 using Winshell.Session;
-using static Winshell.Diagnostics.DoctorSignIn;
+using static Winshell.Services.Tests.SignInSentences;
 using StartupTaskState = Windows.ApplicationModel.StartupTaskState;
 
 namespace Winshell.Services.Tests;
@@ -54,31 +54,31 @@ public sealed class StartupRegistryTests : IDisposable
         var registry =
             new WindowsStartupRegistry("\"C:\\winshell.exe\" --no-duplicate", _configRoot.Path, run, approved);
 
-        Assert.False(registry.IsRegistered());
+        Assert.False(registry.Read().HasEntry);
         Assert.True(registry.Register());
         using (var key = Registry.CurrentUser.OpenSubKey(run)!)
         {
             Assert.Equal("\"C:\\winshell.exe\" --no-duplicate", key.GetValue(SignInEntry.Name));
         }
 
-        Assert.True(registry.IsRegistered());
-        Assert.False(registry.TurnedOffInWindows());
+        Assert.True(registry.Read().HasEntry);
+        Assert.False(registry.Read().OffInWindows);
 
         using (var key = Registry.CurrentUser.CreateSubKey(approved))
         {
             key.SetValue(SignInEntry.Name, new byte[] { 3, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8 }, RegistryValueKind.Binary);
         }
 
-        Assert.True(registry.TurnedOffInWindows());
+        Assert.True(registry.Read().OffInWindows);
         using (var key = Registry.CurrentUser.CreateSubKey(approved))
         {
             key.SetValue(SignInEntry.Name, new byte[] { 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, RegistryValueKind.Binary);
         }
 
-        Assert.False(registry.TurnedOffInWindows());
+        Assert.False(registry.Read().OffInWindows);
 
         Assert.True(registry.Unregister());
-        Assert.False(registry.IsRegistered());
+        Assert.False(registry.Read().HasEntry);
         Assert.True(registry.Unregister());
     }
 
@@ -88,16 +88,16 @@ public sealed class StartupRegistryTests : IDisposable
         var run = _testKey + @"\Run";
         var registry = new WindowsStartupRegistry("\"C:\\new\\winshell.exe\" --no-duplicate", _configRoot.Path, run,
             _testKey + @"\StartupApproved");
-        Assert.False(registry.PointsElsewhere());
+        Assert.False(registry.Read().PointsElsewhere);
         using (var key = Registry.CurrentUser.CreateSubKey(run))
         {
             key.SetValue(SignInEntry.Name, "\"C:\\old\\winshell.exe\" --no-duplicate", RegistryValueKind.String);
         }
 
-        Assert.True(registry.IsRegistered());
-        Assert.True(registry.PointsElsewhere());
+        Assert.True(registry.Read().HasEntry);
+        Assert.True(registry.Read().PointsElsewhere);
         Assert.True(registry.Register());
-        Assert.False(registry.PointsElsewhere());
+        Assert.False(registry.Read().PointsElsewhere);
     }
 
     [Fact]
@@ -132,8 +132,8 @@ public sealed class StartupRegistryTests : IDisposable
                 RegistryValueKind.String);
         }
 
-        Assert.True(registry.IsRegistered());
-        Assert.False(registry.PointsElsewhere());
+        Assert.True(registry.Read().HasEntry);
+        Assert.False(registry.Read().PointsElsewhere);
 
         using (var key = Registry.CurrentUser.CreateSubKey(run))
         {
@@ -141,7 +141,7 @@ public sealed class StartupRegistryTests : IDisposable
                 RegistryValueKind.String);
         }
 
-        Assert.True(registry.PointsElsewhere());
+        Assert.True(registry.Read().PointsElsewhere);
     }
 
     [Fact]
@@ -468,15 +468,15 @@ public sealed class StartupRegistryTests : IDisposable
     {
         var forced = new FakeStartupTask { State = StartupTaskState.EnabledByPolicy };
         var on = new StartupTaskRegistry(forced);
-        Assert.True(on.IsRegistered());
-        Assert.False(on.TurnedOffInWindows());
+        Assert.True(on.Read().HasEntry);
+        Assert.False(on.Read().OffInWindows);
         Assert.False(on.Unregister());
         Assert.Equal(0, forced.Disables);
 
         var blocked = new FakeStartupTask { State = StartupTaskState.DisabledByPolicy };
         var off = new StartupTaskRegistry(blocked);
-        Assert.True(off.IsRegistered());
-        Assert.True(off.TurnedOffInWindows());
+        Assert.True(off.Read().HasEntry);
+        Assert.True(off.Read().OffInWindows);
         Assert.False(off.Register());
         Assert.Equal(0, blocked.Enables);
     }
@@ -492,6 +492,71 @@ public sealed class StartupRegistryTests : IDisposable
         Assert.Equal(["startup: Windows did not let Winshell register to run at sign-in."], _warnings);
     }
 
+    [Fact]
+    public void A_bug_in_the_startup_task_is_logged_and_not_reported_as_Windows_refusing()
+    {
+        var task = new FakeStartupTask { ReadError = new InvalidOperationException("startup task bug") };
+        var registry = new StartupTaskRegistry(task, _log);
+
+        var error = Assert.Throws<InvalidOperationException>(() => registry.Read());
+
+        Assert.Equal("startup task bug", error.Message);
+        Assert.Contains(_warnings, warning => warning.Contains("startup task bug", StringComparison.Ordinal));
+        Assert.DoesNotContain(_warnings, warning => warning.Contains("did not let", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Windows_refusing_the_startup_task_is_not_a_bug()
+    {
+        var task = new FakeStartupTask { ReadError = new UnauthorizedAccessException("access") };
+        var registry = new StartupTaskRegistry(task, _log);
+
+        Assert.False(registry.Read().HasEntry);
+        Assert.Empty(_warnings);
+    }
+
+    [Fact]
+    public void Windows_refusing_one_sign_in_read_leaves_the_other()
+    {
+        var run = _testKey + @"\Run";
+        var command = "\"C:\\winshell.exe\" --no-duplicate";
+        var refused = new string('a', 256);
+        var registered = new WindowsStartupRegistry(command, _configRoot.Path, run, refused);
+        Assert.True(registered.Register());
+
+        var answer = registered.Read();
+
+        Assert.True(answer.HasEntry);
+        Assert.False(answer.OffInWindows);
+        Assert.False(answer.PointsElsewhere);
+        Assert.Empty(_warnings);
+
+        var approved = _testKey + @"\StartupApproved";
+        using (var key = Registry.CurrentUser.CreateSubKey(approved))
+        {
+            key.SetValue(SignInEntry.Name, new byte[] { 3, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8 },
+                RegistryValueKind.Binary);
+        }
+
+        var unread = new WindowsStartupRegistry(command, _configRoot.Path, refused, approved).Read();
+        Assert.False(unread.HasEntry);
+        Assert.True(unread.OffInWindows);
+        Assert.Empty(_warnings);
+    }
+
+    [Fact]
+    public void A_sign_in_path_that_cannot_be_read_is_not_this_install_and_the_exception_is_logged()
+    {
+        Assert.False(SignInEntry.SameInstall(@"C:\Program Files\Winshell\winshell.exe",
+            @"C:\Old\winshell.exe", _ => throw new IOException("unreadable link"), _log));
+        Assert.Null(SignInEntry.ProjectOf(
+            new SignInEntry.SignInLaunch(@"C:\winshell.exe", "", null), _configRoot.Path, _log));
+
+        Assert.Equal(2, _warnings.Count);
+        Assert.All(_warnings, warning => Assert.StartsWith("startup:", warning, StringComparison.Ordinal));
+        Assert.Contains(_warnings, warning => warning.Contains("unreadable link", StringComparison.Ordinal));
+    }
+
     /// <summary>A configuration named <paramref name="name"/> in <paramref name="folder"/>: a folder with its project.</summary>
     private static string Configuration(string folder, string name)
     {
@@ -504,7 +569,18 @@ public sealed class StartupRegistryTests : IDisposable
     /// <summary>A startup task that records calls. It is not <c>Windows.ApplicationModel.StartupTask</c>.</summary>
     private sealed class FakeStartupTask : IStartupTask
     {
-        public StartupTaskState State { get; set; } = StartupTaskState.Disabled;
+        public Exception? ReadError { get; init; }
+
+        public StartupTaskState State
+        {
+            get
+            {
+                if (ReadError is not null)
+                    throw ReadError;
+                return field;
+            }
+            set;
+        } = StartupTaskState.Disabled;
 
         public StartupTaskState EnableResult { get; init; } = StartupTaskState.Enabled;
 

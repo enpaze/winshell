@@ -7,7 +7,7 @@ using static Winshell.Diagnostics.Doctor;
 using static Winshell.Diagnostics.DoctorCrashes;
 using static Winshell.Diagnostics.DoctorReport;
 using static Winshell.Diagnostics.DoctorScreens;
-using static Winshell.Diagnostics.DoctorSignIn;
+using static Winshell.Services.Tests.SignInSentences;
 using StartupTaskState = Windows.ApplicationModel.StartupTaskState;
 
 namespace Winshell.Services.Tests;

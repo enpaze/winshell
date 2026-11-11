@@ -137,17 +137,11 @@ public static class Doctor
                     monitors.Value)),
             Guard("signIn", "Sign-in", () =>
             {
-                if (Packaging.IsPackaged)
-                    return DoctorSignIn.SignIn(SignInEntry.OpenTask()?.State);
                 // A sign-in command with no -p and no -c starts whichever configuration winshell run would, and that
                 // is a different verdict from a configuration the user, or this process, picked.
                 var project = chosen.SignInProject;
-                var supervisor = ConfigurationProject.FolderOf(process) is null
-                    ? null
-                    : WinshellHost.Supervising();
-                return SignInForProcess(process, supervisor, SignInEntry.RegisteredCommand(),
-                    SignInEntry.TurnedOffInWindows(), context.Locations.ConfigRoot, File.Exists,
-                    SignInEntry.Resolve, project);
+                return DoctorSignIn.Check(SignInProcess.Read(process, context.Locations.ConfigRoot, File.Exists,
+                    SignInEntry.Resolve, project), context.Locations.ConfigRoot, project);
             }),
             Guard("notifications", "Notifications", () => Notifications(NotificationListenerAccess.Read().ToString())),
             Guard("instances", "Running", () => Instances(instances)),
@@ -246,18 +240,6 @@ public static class Doctor
             Message = check.Message.EndsWith('.') ? $"{check.Message} {problem}" : $"{check.Message}. {problem}",
             Fix = "Correct that file and save. Winshell keeps the last values it could read until the file parses."
         };
-    }
-
-    /// <summary>
-    /// The sign-in check for <paramref name="processPath"/>. A configuration program is compared as the
-    /// <paramref name="supervisor"/> that started it, which is the <c>winshell.exe</c> the entry runs.
-    /// </summary>
-    internal static DoctorCheck SignInForProcess(string processPath, string? supervisor, string? command,
-        bool turnedOff, string configRoot, Func<string, bool> exists, Func<string, string>? resolve = null,
-        string? projectFile = null)
-    {
-        return DoctorSignIn.SignIn(command, turnedOff, SignInEntry.InstallExe(processPath, supervisor), configRoot,
-            exists, resolve, projectFile);
     }
 
     /// <summary>
