@@ -96,7 +96,9 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         WinNetworkInformation.NetworkStatusChanged += OnNetworkStatusChanged;
         NetworkChange.NetworkAddressChanged += OnNetworkChanged;
         NetworkChange.NetworkAvailabilityChanged += OnNetworkChanged;
-        Wlan.Listen(Refresh, e => log.Warn("network", e.Message));
+        // False means no listener was stored. Address and status changes above still run.
+        if (!Wlan.Listen(Refresh, e => log.Warn("network", e.Message)))
+            return;
     }
 
     /// <summary>Stops watching Windows and lets go of the radios.</summary>

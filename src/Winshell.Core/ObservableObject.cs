@@ -7,7 +7,8 @@ namespace Winshell;
 /// <summary>
 /// The base of what a service exposes. A change is raised on the thread that made it, which for a service is its
 /// event loop, so Reactor can read it. A list property, once read through <see cref="Read{T}"/>, raises this object
-/// when that list changes, so a change inside the list reaches the object.
+/// when that list changes, so a change inside the list reaches the object. One list followed under two properties
+/// throws, because the second property would not notify.
 /// </summary>
 public abstract class ObservableObject : INotifyPropertyChanged
 {
@@ -20,7 +21,8 @@ public abstract class ObservableObject : INotifyPropertyChanged
     /// <summary>
     /// Follows <paramref name="value"/> when it is a list, under <paramref name="property"/>, and returns it. A list
     /// property is created with <c>= []</c>, not <see cref="Set{T}"/>, so the getter is the first code that sees it,
-    /// as in <c>get => Read(field)</c>.
+    /// as in <c>get => Read(field)</c>. Reading the same list again under the same property does nothing. Reading it
+    /// under a second property throws.
     /// </summary>
     protected T Read<T>(T value, [CallerMemberName] string property = "")
     {
@@ -48,10 +50,15 @@ public abstract class ObservableObject : INotifyPropertyChanged
         lock (_listGate)
         {
             _listProperties ??= new Dictionary<INotifyPropertyChanged, string>(ReferenceEqualityComparer.Instance);
-            // One list returned by two properties raises the first name only. Replacing either property
-            // drops that follow. No service property shares a list with another.
             if (!_listProperties.TryAdd(list, property))
-                return;
+            {
+                // A getter runs on every read, so the property that already follows this list reads it again.
+                if (_listProperties[list] == property)
+                    return;
+                throw new InvalidOperationException(
+                    $"The list is already followed as {_listProperties[list]}, so {property} would not notify.");
+            }
+
             list.PropertyChanged += OnListChanged;
         }
     }

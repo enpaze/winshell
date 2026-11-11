@@ -673,7 +673,7 @@ public sealed class BatteryLabel : Microsoft.UI.Reactor.Core.Component<WidgetCon
 }
 ```
 
-A change raises `PropertyChanged` on the shell's thread, and the component renders again. A component that observes nothing renders once. A service list, such as `shell.Power.Devices`, is an `ObservableList`. An item's change raises that list, so `UseObservable` on the list renders again when an item changes in place, and `UseObservableTree` on the service does too, because it follows the list. Only its service changes the list. A class of your own that derives from `ObservableObject` raises `PropertyChanged` from each setter, as in `set => Set(ref field, value);`.
+A change raises `PropertyChanged` on the shell's thread, and the component renders again. A component that observes nothing renders once. A service list, such as `shell.Power.Devices`, is an `ObservableList`. An item's change raises that list, so `UseObservable` on the list renders again when an item changes in place, and `UseObservableTree` on the service does too, because it follows the list. Only its service changes the list. A class of your own that derives from `ObservableObject` raises `PropertyChanged` from each setter, as in `set => Set(ref field, value);`. Following one list under two properties of that object throws, because the second property would never notify.
 
 ## Preferences
 

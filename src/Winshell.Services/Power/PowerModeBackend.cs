@@ -58,11 +58,12 @@ internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
         {
             _watching = true;
             // Windows calls back once at once with the effective mode, then on each change.
-            PowerMode.ListenEffective(mode =>
-            {
-                Volatile.Write(ref _effective, mode);
-                Changed?.Invoke();
-            }, e => log.Warn("power", e.Message));
+            if (!PowerMode.ListenEffective(mode =>
+                {
+                    Volatile.Write(ref _effective, mode);
+                    Changed?.Invoke();
+                }, e => log.Warn("power", e.Message)))
+                log.Warn("power", "This Windows build has no power mode notifications.");
         }
 
         var effective = EffectiveFrom(Volatile.Read(ref _effective));
