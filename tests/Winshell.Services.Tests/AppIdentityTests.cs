@@ -1,7 +1,4 @@
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
 using Winshell.Apps;
-using Winshell.Native;
 using Winshell.Tray;
 using Winshell.Windows;
 
@@ -13,7 +10,7 @@ public sealed class AppIdentityTests
     [Fact]
     public void A_window_a_tray_icon_and_a_Start_entry_share_one_app_id_and_icon_path()
     {
-        var root = Temp();
+        var root = AppIndexTests.Temp();
         try
         {
             var program = Path.Combine(root, "Demo.EXE");
@@ -23,8 +20,8 @@ public sealed class AppIdentityTests
             var programs = Path.Combine(root, "Programs");
             var demoLink = Path.Combine(programs, "Demo.lnk");
             var notesLink = Path.Combine(programs, "Notes.lnk");
-            WriteLink(demoLink, program, "", root, "Demo");
-            WriteLink(notesLink, notes, "", "", "notes");
+            AppIndexTests.WriteLink(demoLink, program, "", root, "Demo");
+            AppIndexTests.WriteLink(notesLink, notes, "", "", "notes");
 
             var shortcuts = AppIndex.Shortcuts(programs);
             var demo = Publish(Assert.Single(shortcuts, app => app.Name == "Demo"));
@@ -63,8 +60,10 @@ public sealed class AppIdentityTests
             Assert.Equal("demo", demo.AppId);
             Assert.Equal("demo", window.AppId);
             Assert.Equal("demo", icon.Id);
+            Assert.Equal("Demo", icon.AppName);
             Assert.Equal(program, demo.Icon);
             Assert.Equal(program, window.Icon);
+            // A tray icon publishes no icon path. For a desktop program the executable is that path.
             Assert.Equal(program, icon.Executable);
 
             Assert.Equal(packagedId, packaged.AppId);
@@ -78,7 +77,7 @@ public sealed class AppIdentityTests
         }
         finally
         {
-            Delete(root);
+            AppIndexTests.Delete(root);
         }
     }
 
@@ -128,55 +127,6 @@ public sealed class AppIdentityTests
 
         public void Dispose()
         {
-        }
-    }
-
-    private static void WriteLink(string path, string target, string arguments, string workingDirectory,
-        string description)
-    {
-        object? link = null;
-        try
-        {
-            link = Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("00021401-0000-0000-C000-000000000046"))!)!;
-            var shell = (IShellLinkW)link;
-            var file = (IPersistFile)link;
-            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-            shell.SetPath(target);
-            shell.SetArguments(arguments);
-            shell.SetWorkingDirectory(workingDirectory);
-            shell.SetDescription(description);
-            file.Save(Path.GetFullPath(path), true);
-        }
-        finally
-        {
-            if (link is not null)
-                Marshal.ReleaseComObject(link);
-        }
-    }
-
-    private static string Temp()
-    {
-        var path = TempFolder.NewPath();
-        Directory.CreateDirectory(path);
-        return path;
-    }
-
-    private static void Delete(string path)
-    {
-        Wait.Until(() => Deleted(path), $"{path} to be deleted");
-    }
-
-    private static bool Deleted(string path)
-    {
-        try
-        {
-            if (Directory.Exists(path))
-                Directory.Delete(path, true);
-            return true;
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-            return false;
         }
     }
 }

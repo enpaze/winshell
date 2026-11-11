@@ -227,10 +227,11 @@ public sealed class SystemTrayItem : ObservableObject
         _overflow = icon.Overflow;
         Executable = icon.ProgramPath;
         ProcessId = icon.ProcessId;
+        var file = Executable.Length > 0 ? Path.GetFileNameWithoutExtension(Executable) : icon.Key;
         Id = Executable.Length > 0 ? AppIdentity.DesktopId(Executable) : icon.Key;
         AppName = Executable.Length > 0 && AppIdentity.ProgramDescription(Executable) is { } description
             ? description
-            : Id;
+            : file;
     }
 
     /// <summary>Raised once, just after the icon is added to <see cref="SystemTray.Items"/>.</summary>

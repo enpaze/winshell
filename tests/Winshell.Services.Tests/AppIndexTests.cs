@@ -432,7 +432,7 @@ public sealed class AppIndexTests
         return data;
     }
 
-    private static void WriteLink(string path, string target, string arguments, string workingDirectory,
+    internal static void WriteLink(string path, string target, string arguments, string workingDirectory,
         string description)
     {
         object? link = null;
@@ -460,14 +460,14 @@ public sealed class AppIndexTests
         return Path.Combine(Environment.SystemDirectory, "cmd.exe");
     }
 
-    private static string Temp()
+    internal static string Temp()
     {
         var path = TempFolder.NewPath();
         Directory.CreateDirectory(path);
         return path;
     }
 
-    private static void Delete(string path)
+    internal static void Delete(string path)
     {
         Wait.Until(() => Deleted(path), $"{path} to be deleted");
     }
