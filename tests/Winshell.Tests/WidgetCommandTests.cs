@@ -9,6 +9,7 @@ namespace Winshell.Tests;
 /// <summary>
 /// <c>winshell widget</c> against a repository on this machine. The GitHub form is parsed and never contacted.
 /// </summary>
+[Trait("Category", "Widget")]
 public sealed class WidgetCommandTests : IDisposable
 {
     private const string Warning =

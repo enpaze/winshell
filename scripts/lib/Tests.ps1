@@ -3,8 +3,9 @@ $script:Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $script:TrxNamespace = 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'
 
 # What a run builds, the test projects it runs one after another, and a filter. Docs builds the guide samples and checks
-# the generated reference; Package packs the template and runs a shell from it. Each test project writes one results
-# file, so ProjectCount is how many to expect.
+# the generated reference; Package packs the template and runs a shell from it. CompileTemplateSamplesReferenceAndLogo is
+# true on the shard that also compiles the template, the samples, the reference program and the logo. Each test project
+# writes one results file, so ProjectCount is how many to expect.
 function Get-TestRun {
     param([ValidateSet('Tests', 'Docs', 'Package')][string] $Tier = 'Tests', [ValidateRange(0, 5)][int] $Shard = 0)
     $run = switch ($Tier) {
@@ -14,6 +15,7 @@ function Get-TestRun {
     }
     $run.Projects = @($run.Project)
     $run.ProjectCount = 1
+    $run.CompileTemplateSamplesReferenceAndLogo = $false
     if ($run.Project -like '*.slnx') {
         $solution = [xml] (Get-Content -LiteralPath (Join-Path $script:Root $run.Project) -Raw)
         $projects = @($solution.SelectNodes('//Project') | Where-Object { $_.Path -like '*.Tests.csproj' } | ForEach-Object Path)
@@ -31,11 +33,15 @@ function Get-TestRun {
             })
             if ($run.Projects.Count -eq 0) { throw "Test shard $Shard has no projects." }
             $run.ProjectCount = $run.Projects.Count
-            # These are complementary filters: a new CLI class stays in the first worker. Widget tests run many
-            # real git/build processes; keep them off the desktop that dev and reload use to compile their shells.
-            $widgets = 'FullyQualifiedName~Winshell.Tests.WidgetCommandTests.'
-            if ($Shard -eq 1) { $run.Filter += '&' + $widgets.Replace('~', '!~') }
-            if ($Shard -eq 5) { $run.Filter += '&' + $widgets }
+            # A new CLI class stays on the first worker. Tests in the category Widget run real git and builds;
+            # keep them off the desktop that dev and reload use to compile their shells.
+            if ($Shard -eq 1) { $run.Filter += '&Category!=Widget' }
+            if ($Shard -eq 5) { $run.Filter += '&Category=Widget' }
+            # This worker already builds the Shell libraries, so it also compiles the template, the samples,
+            # the reference program and the logo. CI asks this instead of naming the shard.
+            $run.CompileTemplateSamplesReferenceAndLogo = @($run.Projects | Where-Object {
+                [IO.Path]::GetFileNameWithoutExtension($_) -eq 'Winshell.Shell.Tests'
+            }).Count -gt 0
         }
         else {
             # The local check opens no windows, so any number of them can run at once. A test in the category Window
