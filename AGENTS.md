@@ -12,7 +12,7 @@ Always build code cleanly, modularly, and with proper architecture and separatio
 
 ### Roles and model choices
 
-The coordinator delegates to explorers and builders on demand. The reviewer checks the resulting changes independently.
+The coordinator delegates to explorers and builders on demand. The reviewer checks the resulting changes independently. These are agent roles: in the workflow docs, owner means User / Human, lead means Coordinator, and a delegate is a dispatched agent in its assigned role. Both `code-review` subagents use the Reviewer role.
 
 | Role | Responsibilities and limits | Preferred | Fallback 1 | Fallback 2 |
 | --- | --- | --- | --- | --- |
@@ -24,7 +24,7 @@ The coordinator delegates to explorers and builders on demand. The reviewer chec
 
 - Before an agent role is first needed in a thread, the coordinator asks the user to choose its model through T3 Code's structured question tool. Offer all model/effort pairs in that role's row as options, recommend the preferred choice appropriate to the work, and wait for an answer before starting the role's work.
 - Reuse the user's selection for that role throughout the thread. If the selected model is unavailable, its usage is exhausted, or the effort setting is unsupported, explain and ask again with the remaining table choices. Wait for the user's answer; never switch silently.
-- Every subagent or delegate prompt must explicitly name its assigned role and include that role's responsibilities and limits from the table. The coordinator chooses the model with the user before dispatch and sets the selected model and effort explicitly. Children use the supplied assignment.
+- Every subagent or delegate prompt must explicitly name its assigned role and include that role's responsibilities and limits from the table. Before dispatching work that will need further agent roles, the coordinator collects those model choices too and includes them in the brief. Each dispatcher sets the selected model and effort explicitly; children reuse the supplied assignments and role selections.
 
 ## Start a ticket
 

@@ -5,7 +5,7 @@ A lead thread works a spec's tickets through to merged PRs, handing each ticket 
 ## Work the spec
 
 1. Read the spec's progress on GitHub, from its sub-issues: `gh issue view <spec> --json subIssues` lists its tickets with their state, and [the issue tracker page](issue-tracker.md#conventions) gives the command that counts a ticket's open blockers.
-2. Delegate each unblocked ticket with the brief below, within [the limits](#how-many-at-once). Use the role and user-selected model and effort described in [How we build](../../AGENTS.md#how-we-build). A ticket whose one open blocker has an open PR may be delegated too, stacked on that PR's branch.
+2. Delegate each unblocked ticket with the brief below, within [the limits](#how-many-at-once). Use the [roles and model choices in How we build](../../AGENTS.md#roles-and-model-choices). A ticket whose one open blocker has an open PR may be delegated too, stacked on that PR's branch.
 3. A delegate leaves auto-merge off and hands its PR back once it is open. Review the diff and, once the checks pass, merge it by hand with `gh pr merge <number> --squash`, or a ready stack with `gh stack merge <stack-number> --squash`. Watching a PR wakes you when its required checks pass, which can come before its last check finishes, and never when it merges. If a check is still running and you leave the PR to auto-merge, tell the owner you will not hear the merge. Then see it through [Until it merges](../../CONTRIBUTING.md#until-it-merges).
 4. Delegate the tickets each merge unblocks, until every ticket of the spec is closed.
 5. When the last ticket merges, run `/retro` with the owner, as [the main flow](flow.md#where-this-repo-overrides-a-skill) says. Each finding the owner accepts becomes a ticket.
@@ -15,10 +15,11 @@ A lead thread works a spec's tickets through to merged PRs, handing each ticket 
 ```text
 Role: Builder
 Responsibilities and limits: <copy the Builder responsibilities and limits from AGENTS.md>
+Role selections: <the thread's user-selected model/effort pairs for roles this delegate will need>
 Follow the `implement` skill for #<ticket>. Hand the PR back to me.
 ```
 
-The ticket and the repo's documents hold everything else. Add only facts specific to that run, such as the branch a stacked ticket builds on.
+The ticket holds the design; the repo's documents hold the process. Add only other facts specific to that run, such as the branch a stacked ticket builds on.
 
 ## A stale ticket
 
