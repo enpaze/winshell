@@ -54,8 +54,6 @@ internal static class Recorder
     /// <summary>The name of the contact sheet in the frames folder.</summary>
     public const string SheetName = "contact-sheet.png";
 
-    private static readonly int[] FallbackRates = [120, 60, 30];
-
     /// <summary>
     /// Records until <see cref="Recording.Length"/> has passed on <paramref name="time"/>, or the target closes. The
     /// capture runs on Windows' thread and the encoding on the thread pool, so a slow encoder delays only the end.
@@ -185,15 +183,30 @@ internal static class Recorder
     /// </summary>
     private static (Mp4Writer Video, int Rate) OpenVideo(string path, int width, int height, int rate)
     {
-        int[] rates = [rate, .. FallbackRates.Where(lower => lower < rate)];
-        for (var i = 0; ; i++)
-            try
-            {
-                return (new Mp4Writer(path, width, height, rates[i]), rates[i]);
-            }
-            catch (COMException) when (i < rates.Length - 1)
-            {
-            }
+        List<int> rates = [rate];
+        if (rate > 120)
+            rates.Add(120);
+        if (rate > 60)
+            rates.Add(60);
+        if (rate > 30)
+            rates.Add(30);
+        for (var i = 0; i < rates.Count - 1; i++)
+            if (TryOpen(path, width, height, rates[i]) is { } opened)
+                return opened;
+        return (new Mp4Writer(path, width, height, rates[^1]), rates[^1]);
+    }
+
+    /// <summary>A video at <paramref name="rate"/>, or null when the encoder refuses that rate.</summary>
+    private static (Mp4Writer Video, int Rate)? TryOpen(string path, int width, int height, int rate)
+    {
+        try
+        {
+            return (new Mp4Writer(path, width, height, rate), rate);
+        }
+        catch (COMException)
+        {
+            return null;
+        }
     }
 
     /// <summary>A kept frame's name: its milliseconds since the start, six digits or more, so the names sort in order.</summary>

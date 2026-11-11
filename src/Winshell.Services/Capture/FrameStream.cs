@@ -2,8 +2,6 @@ using Vortice.Direct3D11;
 using Vortice.Mathematics;
 using Windows.Graphics;
 using Windows.Graphics.Capture;
-using Windows.Graphics.DirectX;
-using Windows.Graphics.DirectX.Direct3D11;
 using Winshell.Native;
 
 namespace Winshell.Capture;
@@ -12,21 +10,15 @@ namespace Winshell.Capture;
 /// Every frame Windows Graphics Capture delivers for a target, in memory, for a recording. Unlike the sampling
 /// <see cref="WindowsCaptureBackend"/>, it copies each frame out of the pool as it arrives, on the pool's own thread,
 /// and gives it back at once, so held buffers never stall capture. Windows delivers a frame when the target changes.
+/// The capture item, pool, cursor, border and device are one <see cref="CaptureLifetime"/>.
 /// </summary>
 internal sealed class FrameStream : IDisposable
 {
-    private const DirectXPixelFormat Format = DirectXPixelFormat.B8G8R8A8UIntNormalized;
-
     private readonly Lock _gate = new();
     private readonly Log _log;
     private readonly Action<PixelImage, TimeSpan> _frame;
     private readonly Action<Exception?> _ended;
-    private ID3D11Device? _device;
-    private ID3D11DeviceContext? _context;
-    private IDirect3DDevice? _winrtDevice;
-    private GraphicsCaptureItem? _item;
-    private Direct3D11CaptureFramePool? _pool;
-    private GraphicsCaptureSession? _session;
+    private CaptureLifetime? _life;
     private ID3D11Texture2D? _staging;
     private SizeInt32 _poolSize;
 
@@ -50,17 +42,16 @@ internal sealed class FrameStream : IDisposable
             throw new WindowsRefusal("Windows Graphics Capture is unavailable in this session.");
         try
         {
-            var monitor = target.Window == 0 ? WindowsCaptureBackend.MonitorHandle(target.MonitorId) : 0;
+            var monitor = target.Window == 0 ? CaptureLifetime.MonitorHandle(target.MonitorId) : 0;
             if (target.Window == 0 && monitor == 0)
                 throw new WindowsRefusal("The screen is no longer connected. (Parameter 'target')");
-            _item = target.Window == 0 ? WindowsCaptureBackend.CaptureItem(0, monitor) : WindowItem(target.Window);
-            _poolSize = _item.Size;
+            var item = target.Window == 0 ? CaptureLifetime.CaptureItem(0, monitor) : WindowItem(target.Window);
+            _poolSize = item.Size;
             if (_poolSize.Width <= 0 || _poolSize.Height <= 0)
                 throw new WindowsRefusal("The window or screen has nothing to capture.");
-            (_device, _context) = WindowsCaptureBackend.CreateDevice();
-            _winrtDevice = CaptureInterop.CreateDevice(_device);
-            _item.Closed += OnClosed;
-            StartSession();
+            // Stored before capture starts, so a frame delivered on the pool's thread can see the lifetime.
+            _life = CaptureLifetime.Create(item, true, _log, OnFrameArrived, OnClosed);
+            _life.Start();
         }
         catch
         {
@@ -85,7 +76,7 @@ internal sealed class FrameStream : IDisposable
     {
         try
         {
-            return WindowsCaptureBackend.CaptureItem(window, 0);
+            return CaptureLifetime.CaptureItem(window, 0);
         }
         catch (WindowsRefusal) when (Screens.Of(window) is { } screen &&
                                      TopLevelWindows.TryFrameBounds(window, out var frame))
@@ -100,25 +91,13 @@ internal sealed class FrameStream : IDisposable
                     "Windows refused to capture the window by itself, and it is on no screen to capture instead.");
             // Written once before StartCapture, so no frame callback can read the crop during this store.
             _crop = crop;
-            return WindowsCaptureBackend.CaptureItem(0, screen.Handle);
+            return CaptureLifetime.CaptureItem(0, screen.Handle);
         }
-    }
-
-    /// <summary>A new pool of <see cref="_poolSize"/> and a session on it. Called under the gate, or before any frame.</summary>
-    private void StartSession()
-    {
-        // Two buffers: each frame leaves the pool before the next is drawn into it.
-        _pool = Direct3D11CaptureFramePool.CreateFreeThreaded(_winrtDevice, Format, 2, _poolSize);
-        _pool.FrameArrived += OnFrameArrived;
-        _session = _pool.CreateCaptureSession(_item);
-        // Leave the system's capture border on. No borderless capability or consent bypass.
-        _session.IsCursorCaptureEnabled = true;
-        _session.StartCapture();
     }
 
     /// <summary>
     /// Starts again at the target's new size, off the pool's thread. A static source may not draw again after the pool
-    /// alone is recreated, so the session starts again too, as <see cref="WindowsCaptureBackend"/> does.
+    /// alone is recreated, so the session starts again too, as sampling does.
     /// </summary>
     private void Restart()
     {
@@ -126,12 +105,9 @@ internal sealed class FrameStream : IDisposable
         {
             lock (_gate)
             {
-                if (_pool is not { } pool)
+                if (_life is not { Pool: not null } life)
                     return;
-                pool.FrameArrived -= OnFrameArrived;
-                _session?.Dispose();
-                pool.Dispose();
-                StartSession();
+                life.Restart(_poolSize);
             }
         }
         catch (Exception e)
@@ -151,7 +127,7 @@ internal sealed class FrameStream : IDisposable
         {
             lock (_gate)
             {
-                if (!ReferenceEquals(_pool, pool))
+                if (_life is not { } life || !ReferenceEquals(life.Pool, pool))
                     return;
                 using var frame = pool.TryGetNextFrame();
                 if (frame is null)
@@ -165,7 +141,7 @@ internal sealed class FrameStream : IDisposable
                     _ = Task.Run(Restart);
                 }
 
-                if (Copy(frame) is { } image)
+                if (Copy(life, frame) is { } image)
                     _frame(image, frame.SystemRelativeTime);
             }
         }
@@ -180,7 +156,7 @@ internal sealed class FrameStream : IDisposable
     /// The frame's content in memory, or the window's place in it, or null when its buffer, made for an older size, cuts
     /// that off. The next frame comes at the new size.
     /// </summary>
-    private PixelImage? Copy(Direct3D11CaptureFrame frame)
+    private PixelImage? Copy(CaptureLifetime life, Direct3D11CaptureFrame frame)
     {
         using var texture = CaptureInterop.Texture(frame.Surface);
         var desc = texture.Description;
@@ -202,43 +178,31 @@ internal sealed class FrameStream : IDisposable
             desc.MiscFlags = ResourceOptionFlags.None;
             desc.ArraySize = 1;
             desc.MipLevels = 1;
-            staging = _staging = _device!.CreateTexture2D(desc);
+            staging = _staging = life.Device!.CreateTexture2D(desc);
         }
 
-        _context!.CopySubresourceRegion(staging, 0, 0, 0, 0, texture, 0,
+        life.Context!.CopySubresourceRegion(staging, 0, 0, 0, 0, texture, 0,
             new Box(left, top, 0, left + width, top + height, 1));
-        var pixels = CaptureInterop.Read(_context, staging, width, height, true);
+        var pixels = CaptureInterop.Read(life.Context, staging, width, height, true);
         return pixels is null ? null : new PixelImage(width, height, pixels, true);
     }
 
     /// <summary>Stops capture. A frame being copied is delivered first, and none comes after this returns.</summary>
     public void Dispose()
     {
-        IDisposable?[] resources;
+        IDisposable? release;
+        ID3D11Texture2D? staging;
         lock (_gate)
         {
-            if (_item is { } item)
-                item.Closed -= OnClosed;
-            if (_pool is { } pool)
-                pool.FrameArrived -= OnFrameArrived;
-            resources = [_session, _pool, _staging, _winrtDevice, _context, _device];
-            _item = null;
-            _session = null;
-            _pool = null;
+            staging = _staging;
             _staging = null;
-            _winrtDevice = null;
-            _context = null;
-            _device = null;
+            release = _life?.Detach(staging);
+            _life = null;
         }
 
-        foreach (var resource in resources)
-            try
-            {
-                resource?.Dispose();
-            }
-            catch (Exception e) when (WindowsFailure.IsExpected(e))
-            {
-                _log.Warn("capture", $"Recording teardown: {e.Message}");
-            }
+        if (release is not null)
+            release.Dispose();
+        else
+            CaptureLifetime.DisposeQuiet(staging, _log);
     }
 }
