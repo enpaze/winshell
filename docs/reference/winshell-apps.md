@@ -51,8 +51,11 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Frequent` | ObservableList of [AppEntry](#appentry), read-only | Visible apps with a use count, most used first. |
 | `Recent` | ObservableList of [AppEntry](#appentry), read-only | Visible apps Windows has a last-used time for, newest first. |
 | `ById(string id)` | [AppEntry](#appentry)? | An entry by its id: a shortcut's path under Programs, or a packaged app's AppUserModelID. Includes hidden entries. |
+| `DisplayName(string appId)` | string, static | The name Windows shows for the app behind a media session: the name Start shows for its AppUserModelID, or else the running program's ProgramDescription, or else FallbackName. It asks the shell and can scan processes, so call it off the UI thread. |
 | `Dispose()` | void | Stops following changes to the Start menu and the installed apps. |
+| `FallbackName(string appId)` | string, static | The name to show for an app until DisplayName finds a better one: the program's name without `.exe`, or else the id. |
 | `Find(string name)` | [AppEntry](#appentry)? | Finds an app by id, then by the app id a window carries, then by display name. Includes hidden entries. |
+| `ProgramDescription(string path)` | string?, static | The description of the program at path, as Task Manager shows it. Null when the file has none or cannot be read. |
 | `Search(string query)` | IReadOnlyList of [AppEntry](#appentry) | Visible apps the query matches, best first. A blank query matches nothing. |
 
 ## JumpListService

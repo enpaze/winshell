@@ -1,8 +1,8 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
 using Microsoft.Win32;
 using Windows.Management.Deployment;
+using Winshell.Apps;
 using Winshell.Native;
 
 namespace Winshell.Privacy;
@@ -203,12 +203,7 @@ internal sealed class PrivacyBackend : IPrivacyBackend
         try
         {
             if (!packaged)
-            {
-                var path = identity.Replace('#', '\\');
-                return FileVersionInfo.GetVersionInfo(path).FileDescription?.Trim() is { Length: > 0 } description
-                    ? description
-                    : "";
-            }
+                return AppsService.ProgramDescription(identity.Replace('#', '\\')) ?? "";
 
             if (_packageNames.TryGetValue(identity, out var cached))
                 return cached;

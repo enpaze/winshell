@@ -1,9 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using Winshell.Apps;
 using Winshell.Native;
 
-namespace Winshell.Media;
+namespace Winshell.Apps;
 
 /// <summary>The name Windows shows for the app behind a media session, found from its AppUserModelID.</summary>
 internal static class AppDisplayName
@@ -28,7 +27,7 @@ internal static class AppDisplayName
                 try
                 {
                     if (process.MainModule?.FileName is { } path &&
-                        AppIdentity.ProgramDescription(path) is { } description)
+                        AppsService.ProgramDescription(path) is { } description)
                         return description;
                 }
                 catch (Exception e) when (e is Win32Exception or InvalidOperationException)
