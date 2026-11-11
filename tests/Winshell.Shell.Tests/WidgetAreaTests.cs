@@ -114,6 +114,54 @@ public sealed class WidgetAreaTests
         });
     }
 
+    [Fact]
+    [Trait("Category", "Window")]
+    public async Task A_popup_takes_the_area_style_before_the_area_is_in_a_host_and_follows_it_once_shown()
+    {
+        await ShellFixture.On(async _ =>
+        {
+            var name = Guid.NewGuid().ToString();
+            PopupCapture.Context = null;
+            Widgets.Register<PopupCapture>(name);
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
+            {
+                Style = TestStyles.Marked(),
+                Defaults = [new(name)]
+            });
+            await Wait.UntilAsync(() => PopupCapture.Context is not null,
+                "the widget to render before the area is in a host");
+            var content = new TextBlock { Text = "popup" };
+            var root = PopupCapture.Context!.StylePopup(content);
+            Assert.Equal(36d, root.Resources["ShellSlotSize"]);
+
+            var host = area.Host;
+            host.RequestedTheme = ElementTheme.Light;
+            host.FontFamily = new FontFamily("Consolas");
+            host.FontSize = 23;
+            host.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Crimson);
+            using var window = new PanelWindow { Width = 180, Height = 90, Content = host, Visible = true };
+            using var popup = new PopupWindow { Rect = new Rect(200, 100, 200, 90), Content = root, Visible = true };
+            await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
+            var wrapper = Assert.IsAssignableFrom<Control>(root);
+            await Wait.UntilAsync(
+                () => wrapper.FontFamily.Source == "Consolas" && wrapper.FontSize == 23 &&
+                    wrapper.RequestedTheme == ElementTheme.Light &&
+                    ColorOf(wrapper.Foreground) == Microsoft.UI.Colors.Crimson,
+                "the popup to follow the area once it is shown");
+            host.FontFamily = new FontFamily("Georgia");
+            host.FontSize = 27;
+            host.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
+            host.RequestedTheme = ElementTheme.Dark;
+            Assert.Equal("Georgia", wrapper.FontFamily.Source);
+            Assert.Equal(27, wrapper.FontSize);
+            Assert.Equal(Microsoft.UI.Colors.LimeGreen, ColorOf(wrapper.Foreground));
+            await Wait.UntilAsync(() => wrapper.ActualTheme == ElementTheme.Dark,
+                "the popup to follow the area's dark theme");
+            Assert.Equal(ElementTheme.Dark, wrapper.RequestedTheme);
+            return true;
+        });
+    }
+
     [Theory]
     [Trait("Category", "Window")]
     [InlineData(Orientation.Horizontal)]
