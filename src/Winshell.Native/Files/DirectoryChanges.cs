@@ -33,6 +33,7 @@ internal sealed unsafe class DirectoryChanges : IDisposable
 {
     private const int BufferSize = 16 * 1024;
 
+    // NextEntryOffset, Action and FileNameLength come before the name.
     private const int HeaderSize = 3 * sizeof(uint);
 
     private readonly SafeFileHandle _handle;

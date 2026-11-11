@@ -6,8 +6,9 @@ using Windows.Win32.System.Com;
 namespace Winshell.Native;
 
 // The Windows Core Audio COM interfaces the audio service uses, declared for classic COM interop: the service
-// implements the notification interfaces, and CsWin32 generates these only as unmanaged structs. Methods the service
-// never calls keep their place in the vtable with a placeholder signature.
+// implements the notification interfaces, and CsWin32 generates these only as unmanaged structs. Deleting or
+// reordering a method shifts later COM slots, so a method the service never calls, and an unused parameter or
+// HRESULT, keeps its place with a placeholder signature.
 
 /// <summary>Creates, activates and releases the Windows Core Audio objects the audio service uses.</summary>
 internal static class CoreAudio
