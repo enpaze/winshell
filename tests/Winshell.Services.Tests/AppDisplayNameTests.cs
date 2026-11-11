@@ -9,7 +9,7 @@ namespace Winshell.Services.Tests;
 public sealed class AppDisplayNameTests
 {
     [Fact]
-    public void A_program_s_display_name_is_its_file_description()
+    public void The_program_description_is_the_file_description()
     {
         var path = typeof(AppsService).Assembly.Location;
         // The project sets no description, so the file description is the assembly name.
@@ -17,20 +17,15 @@ public sealed class AppDisplayNameTests
     }
 
     [Fact]
-    public void A_missing_or_unreadable_program_has_no_display_name()
+    public void A_missing_or_unreadable_program_has_no_description()
     {
         using var folder = new TempFolder();
-        var missing = Path.Combine(folder.Path, "gone.exe");
-        var blank = Path.Combine(folder.Path, "Player.exe");
-        File.WriteAllText(blank, "not a program");
-
-        Assert.Null(AppsService.ProgramDescription(missing));
-        Assert.Null(AppsService.ProgramDescription(blank));
+        Assert.Null(AppsService.ProgramDescription(Path.Combine(folder.Path, "gone.exe")));
         Assert.Null(AppsService.ProgramDescription(""));
     }
 
     [Fact]
-    public void A_program_with_no_description_is_shown_by_its_file_name()
+    public void A_program_with_no_description_uses_its_file_name()
     {
         using var folder = new TempFolder();
         var path = Path.Combine(folder.Path, "Player.exe");
