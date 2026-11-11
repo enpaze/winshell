@@ -13,8 +13,8 @@ namespace Winshell;
 /// Called by .NET when <c>dotnet watch</c> applies an edit to the running program. An edited method already runs its new
 /// code. What a constructor built does not, so a widget area showing an edited type makes its widgets again, and
 /// anywhere else the outermost of the configuration's own controls around one, a type from an edited assembly, is made
-/// again in its place. Its constructor builds what it shows. A Winshell or WinUI control around it, such as a bar's
-/// surface or a grid filled in code, is filled by whoever made it, which its constructor can't repeat, so it stays with
+/// again in its place. Its constructor builds what it shows. A Winshell or WinUI control around it, such as a grid
+/// filled in code, is filled by whoever made it, which its constructor can't repeat, so it stays with
 /// the rest of what it holds.
 /// </summary>
 internal static class PanelReload
