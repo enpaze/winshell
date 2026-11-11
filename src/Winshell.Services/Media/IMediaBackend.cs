@@ -1,7 +1,7 @@
 namespace Winshell.Media;
 
-/// <summary>The media sessions Windows knows. A test gives <see cref="MediaService"/> its own.</summary>
-internal interface IMediaSessions : IDisposable
+/// <summary>The media sessions Windows knows.</summary>
+internal interface IMediaBackend : IDisposable
 {
     IReadOnlyList<SmtcSession> Sessions { get; }
 

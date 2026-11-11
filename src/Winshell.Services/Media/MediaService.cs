@@ -5,7 +5,7 @@ namespace Winshell.Media;
 /// <summary>The media sessions Windows shows in the media controls, one for each app that plays media.</summary>
 public sealed class MediaService : ObservableObject, IDisposable
 {
-    private readonly IMediaSessions _sessions;
+    private readonly IMediaBackend _sessions;
     private readonly IEventLoop _loop;
     private readonly Log _log;
 
@@ -15,7 +15,7 @@ public sealed class MediaService : ObservableObject, IDisposable
         TempImageStore.Shared.CleanOldOnce(failure => log.Warn("images", failure));
     }
 
-    internal MediaService(IEventLoop loop, Log log, IMediaSessions sessions)
+    internal MediaService(IEventLoop loop, Log log, IMediaBackend sessions)
     {
         _loop = loop;
         _log = log;
