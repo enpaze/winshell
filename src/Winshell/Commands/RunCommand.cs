@@ -36,7 +36,7 @@ internal static class RunCommand
             return Detach(options.ChildArguments);
 
         var program = new ProcessStartInfo(project.Program) { UseShellExecute = false };
-        foreach (var a in ShellArguments.Write(options.NoDuplicate, options.Verbose, options.Rest))
+        foreach (var a in CommandLine.ProgramArguments(options.NoDuplicate, options.Verbose, options.Rest))
             program.ArgumentList.Add(a);
         return Supervise(program, project);
     }

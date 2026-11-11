@@ -24,14 +24,8 @@ internal sealed record AppRecord(
 
     /// <summary>The target and its arguments, or Explorer opening a shortcut whose target is gone.</summary>
     public string CommandLine => Target.Length > 0
-        ? Join(Target, Arguments)
-        : Join("explorer.exe", "\"" + Path + "\"");
-
-    private static string Join(string program, string arguments)
-    {
-        var quoted = program.Contains(' ') || program.Contains('\t') ? "\"" + program + "\"" : program;
-        return arguments.Length == 0 ? quoted : quoted + " " + arguments;
-    }
+        ? Winshell.CommandLine.Join(Target, Arguments)
+        : Winshell.CommandLine.Join("explorer.exe", Winshell.CommandLine.Quote(Path));
 }
 
 /// <summary>How <c>Apps.search</c> scores a query. A higher band always beats a lower one; usage stays inside a band.</summary>

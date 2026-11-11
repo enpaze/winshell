@@ -20,7 +20,7 @@ internal static class DoctorSignIn
         if (command is null)
             return new DoctorCheck("signIn", "Sign-in", CheckStatus.Pass,
                 "Winshell does not start when you sign in. install.ps1 -AutoStart turns that on.");
-        var launch = SignInEntry.Read(command);
+        var launch = CommandLine.ReadSignIn(command);
         var exe = launch.Program;
         if (exe is null || !exists(exe))
             return new DoctorCheck("signIn", "Sign-in", CheckStatus.Fail,

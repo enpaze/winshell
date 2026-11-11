@@ -79,7 +79,7 @@ internal static class InstanceStart
     /// </summary>
     public static int Run(InstanceLaunch launch, Action<InstanceSession> host)
     {
-        var arguments = ShellArguments.Parse(launch.Arguments);
+        var arguments = CommandLine.ReadProgram(launch.Arguments);
         // The parent of -d returns at once. It must not hold the mutex, or the child looks like a duplicate of it.
         // The child keeps --after and waits itself, so a reload's handoff still lets the old process go first.
         if (arguments.Daemonize)
