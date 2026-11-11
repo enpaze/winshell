@@ -206,6 +206,14 @@ internal static class ProbeShell
     /// </summary>
     internal const string WindowMarker = "probe-window";
 
+    /// <summary>
+    /// A file whose presence in the config folder makes the probe make one preferences section during
+    /// <see cref="ShellConfiguration.Start"/> and post another for the next turn. It opens no window. The probe then
+    /// writes <c>preferences-report.txt</c> in that folder: <c>both</c> when the file holds both sections,
+    /// <c>missing</c> when that file is still absent, or <c>partial</c> otherwise. <c>waiting</c> is only the turn before.
+    /// </summary>
+    internal const string PreferencesMarker = "probe-preferences";
+
     private const string Source =
         $$"""
           using Winshell;
@@ -218,6 +226,10 @@ internal static class ProbeShell
 
           public sealed class ProbePopup : StackPanel;
 
+          sealed class EarlySection() : Preferences("early");
+
+          sealed class LateSection() : Preferences("late");
+
           internal sealed class Bare : ShellConfiguration
           {
               public override void Start(Shell shell)
@@ -229,6 +241,25 @@ internal static class ProbeShell
                   {
                       File.Delete(Path.Combine(config, "{{CrashMarker}}"));
                       throw new InvalidOperationException("The probe was asked to crash as it started.");
+                  }
+                  // A test that puts {{PreferencesMarker}} there gets one section during Start and one posted for the
+                  // turn after. preferences-report.txt then says both, missing, or partial. Nothing is shown.
+                  if (config is not null && File.Exists(Path.Combine(config, "{{PreferencesMarker}}")))
+                  {
+                      new EarlySection();
+                      shell.Loop.Post(() => new LateSection());
+                      shell.Loop.Post(() =>
+                      {
+                          var path = Path.Combine(shell.ConfigRoot, "preferences", shell.ShellId + ".toml");
+                          var report = Path.Combine(config, "preferences-report.txt");
+                          if (!File.Exists(path))
+                          {
+                              File.WriteAllText(report, "waiting");
+                              shell.Loop.Post(() => File.WriteAllText(report, PreferencesReport(path)));
+                          }
+                          else
+                              File.WriteAllText(report, PreferencesReport(path));
+                      });
                   }
                   // A test that puts {{WindowMarker}} there gets a panel whose button opens a popup.
                   if (config is not null && File.Exists(Path.Combine(config, "{{WindowMarker}}")))
@@ -261,6 +292,15 @@ internal static class ProbeShell
                   var child = Process.Start(new ProcessStartInfo("ping", "-n 120 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true })!;
                   File.WriteAllText(Path.Combine(config, "child.pid"), child.Id.ToString());
                   AppDomain.CurrentDomain.ProcessExit += (_, _) => Thread.Sleep(Timeout.Infinite);
+              }
+
+              /// <summary>What the turn after Start can already see in the preferences file.</summary>
+              private static string PreferencesReport(string path)
+              {
+                  if (!File.Exists(path))
+                      return "missing";
+                  var text = File.ReadAllText(path);
+                  return text.Contains("[early]") && text.Contains("[late]") ? "both" : "partial";
               }
           }
 

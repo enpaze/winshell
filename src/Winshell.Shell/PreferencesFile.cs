@@ -29,10 +29,13 @@ internal sealed class PreferencesFile : IDisposable
     private string _error = "";
 
     private bool _writePending;
-    private bool _checkPending;
+    private bool _commitPending;
 
-    /// <summary>The turns of the loop the check still waits, counted again from each section made.</summary>
-    private int _checkTurns;
+    /// <summary>True on the turn <see cref="StartReturned"/> posted, and after. A section made before that waits for it.</summary>
+    private bool _afterStart;
+
+    /// <summary>True once <see cref="StartReturned"/> has posted its turn, so a second call does not post another.</summary>
+    private bool _startupPosted;
     private bool _disposed;
 
     /// <param name="path">The file. It and its folder need not exist yet.</param>
@@ -48,6 +51,24 @@ internal sealed class PreferencesFile : IDisposable
         Follow();
     }
 
+    /// <summary>
+    /// Posts the write that follows <see cref="ShellConfiguration.Start"/>. A section made on the turn after Start,
+    /// such as a bar's, is in that write. A section made once that turn has begun posts its own.
+    /// </summary>
+    internal void StartReturned()
+    {
+        if (_disposed || _startupPosted)
+            return;
+        _startupPosted = true;
+        _loop.Post(() =>
+        {
+            if (_disposed)
+                return;
+            _afterStart = true;
+            Commit();
+        });
+    }
+
     public void Add(Preferences section)
     {
         // A save the watch has not delivered yet is read now, so the section starts from the file as it is.
@@ -55,7 +76,7 @@ internal sealed class PreferencesFile : IDisposable
         _sections.Add(section);
         _made.Add(section);
         Load(section, null);
-        PostCheck();
+        PostCommit();
     }
 
     public void Remove(Preferences section)
@@ -63,7 +84,7 @@ internal sealed class PreferencesFile : IDisposable
         if (_disposed)
             return;
         if (section.Assigned.Count > 0)
-            Write();
+            Write(waitForStart: false);
         _sections.Remove(section);
         _made.Remove(section);
     }
@@ -88,32 +109,26 @@ internal sealed class PreferencesFile : IDisposable
 
     /// <summary>
     /// Writes a missing file, adds the sections made since that the file does not have, and names sections no component
-    /// reads, once a whole turn of the loop has passed with no section made: a component such as a bar makes its
-    /// section on the turn after it is made, once its properties are set.
+    /// reads. Until <see cref="StartReturned"/>'s turn, this waits, so a bar can make its section on that turn first.
     /// </summary>
-    private void PostCheck()
+    private void PostCommit()
     {
-        _checkTurns = 2;
-        if (_checkPending || _disposed)
+        if (!_afterStart || _commitPending || _disposed)
             return;
-        _checkPending = true;
-        _loop.Post(Check);
+        _commitPending = true;
+        _loop.Post(Commit);
     }
 
-    private void Check()
+    private void Commit()
     {
         if (_disposed)
             return;
-        if (--_checkTurns > 0)
-        {
-            _loop.Post(Check);
-            return;
-        }
-
-        _checkPending = false;
+        _commitPending = false;
         var load = TomlDocument.Load(_path);
-        if (_sections.Count > 0 &&
-            (load.Kind == TomlRead.Missing || (load.Document is { } document && Unwritten(document).Any())))
+        // An assignment posted during Start leaves its write pending until this turn, so the file is not created early.
+        if (_writePending ||
+            (_sections.Count > 0 &&
+             (load.Kind == TomlRead.Missing || (load.Document is { } document && Unwritten(document).Any()))))
             Write();
         else if (load.Kind == TomlRead.Parsed)
             _made.Clear();
@@ -163,7 +178,7 @@ internal sealed class PreferencesFile : IDisposable
             section.Assigned.Clear();
         }
 
-        PostCheck();
+        PostCommit();
     }
 
     /// <summary>
@@ -231,8 +246,14 @@ internal sealed class PreferencesFile : IDisposable
     /// Puts the assigned values of every section into the file, which a hand save may have changed. A section the file
     /// does not have yet is added first, under its own header with its keys commented out, as a missing file is written.
     /// </summary>
-    private void Write()
+    /// <param name="waitForStart">
+    /// True while an assignment made before <see cref="StartReturned"/>'s turn must wait, leaving the pending flag
+    /// set. False when a section is leaving or the file is closing: that write runs now.
+    /// </param>
+    private void Write(bool waitForStart = true)
     {
+        if (waitForStart && !_afterStart)
+            return;
         _writePending = false;
         var load = TomlDocument.Load(_path);
         var document = load.Document;
@@ -368,7 +389,7 @@ internal sealed class PreferencesFile : IDisposable
             return;
         _watch.Dispose();
         if (_writePending)
-            Write();
+            Write(waitForStart: false);
         _disposed = true;
         _sections.Clear();
         _made.Clear();

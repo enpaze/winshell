@@ -278,7 +278,11 @@ public sealed class PreferencesTests
                     }), new(widget)]
                 });
                 using var empty = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = name + "empty" });
-                await Wait.UntilAsync(() => File.Exists(path), "the missing file to be written");
+                // An area renders on its own turn, so the first write can land before its section. The file then gains it.
+                await Wait.UntilAsync(
+                    () => File.Exists(path) &&
+                          File.ReadAllText(path).Contains($"[{name}empty]", StringComparison.Ordinal),
+                    "the missing file to be written with each section");
 
                 var text = File.ReadAllText(path);
                 Assert.All(text.Split('\n').Where(line => line.Length > 0),
@@ -316,6 +320,41 @@ public sealed class PreferencesTests
             finally
             {
                 File.Delete(path);
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task A_missing_file_is_written_on_the_turn_after_its_section_is_made()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var path = PathOf(shell);
+            if (File.Exists(path))
+                File.Delete(path);
+            var name = "bar" + Guid.NewGuid().ToString("N");
+            BarPreferences? late = null;
+            try
+            {
+                using var own = new Own();
+                shell.Loop.Post(() => late = new BarPreferences(name));
+                Assert.False(File.Exists(path));
+
+                await NextTurn(shell);
+                Assert.True(File.Exists(path), "the missing file was not written on the turn after its section was made");
+                Assert.Contains("# clock24 = false", File.ReadAllText(path), StringComparison.Ordinal);
+
+                // The section posted for that same next turn is written on the turn after it is made.
+                await NextTurn(shell);
+                Assert.Contains($"[{name}]", File.ReadAllText(path), StringComparison.Ordinal);
+            }
+            finally
+            {
+                late?.Dispose();
+                if (File.Exists(path))
+                    File.Delete(path);
             }
 
             return true;
