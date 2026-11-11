@@ -110,7 +110,7 @@ internal sealed class VirtualDesktopBackend : IVirtualDesktopBackend
 
     public bool StartWatching()
     {
-        _hook ??= WinEventHook.Start(PInvoke.EVENT_SYSTEM_DESKTOPSWITCH, OnEvent, Listeners.RaiseNeverFails);
+        _hook ??= WinEventHook.Start(PInvoke.EVENT_SYSTEM_DESKTOPSWITCH, OnEvent);
         return _hook is not null;
     }
 

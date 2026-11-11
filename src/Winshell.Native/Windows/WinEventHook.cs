@@ -16,10 +16,10 @@ internal sealed unsafe class WinEventHook : IDisposable
     private static readonly ConcurrentDictionary<nint, WinEventHook> Hooks = new();
 
     private readonly Action<uint, nint, int, int> _onEvent;
-    private readonly Action<Exception> _failed;
+    private readonly Action<Exception>? _failed;
     private nint _hook;
 
-    private WinEventHook(nint hook, Action<uint, nint, int, int> onEvent, Action<Exception> failed)
+    private WinEventHook(nint hook, Action<uint, nint, int, int> onEvent, Action<Exception>? failed)
     {
         _hook = hook;
         _onEvent = onEvent;
@@ -29,9 +29,12 @@ internal sealed unsafe class WinEventHook : IDisposable
     /// <summary>Hooks <paramref name="eventType"/>, or returns null when Windows would not.</summary>
     /// <param name="eventType">The event type to hook.</param>
     /// <param name="onEvent">Gets the event type, the window, the object id and the child id.</param>
-    /// <param name="failed">Gets each exception <paramref name="onEvent"/> throws.</param>
+    /// <param name="failed">
+    /// Gets each exception <paramref name="onEvent"/> throws. Omit it when <paramref name="onEvent"/> cannot throw,
+    /// because a handler's failure was already reported before this callback returns.
+    /// </param>
     internal static WinEventHook? Start(uint eventType, Action<uint, nint, int, int> onEvent,
-        Action<Exception> failed)
+        Action<Exception>? failed = null)
     {
         return Start(eventType, eventType, onEvent, failed);
     }
@@ -40,9 +43,12 @@ internal sealed unsafe class WinEventHook : IDisposable
     /// <param name="min">The first event type in the range.</param>
     /// <param name="max">The last event type in the range.</param>
     /// <param name="onEvent">Gets the event type, the window, the object id and the child id.</param>
-    /// <param name="failed">Gets each exception <paramref name="onEvent"/> throws.</param>
+    /// <param name="failed">
+    /// Gets each exception <paramref name="onEvent"/> throws. Omit it when <paramref name="onEvent"/> cannot throw,
+    /// because a handler's failure was already reported before this callback returns.
+    /// </param>
     internal static WinEventHook? Start(uint min, uint max, Action<uint, nint, int, int> onEvent,
-        Action<Exception> failed)
+        Action<Exception>? failed = null)
     {
         var handle = PInvoke.SetWinEventHook(min, max, default, &OnEvent, 0, 0, PInvoke.WINEVENT_OUTOFCONTEXT);
         if (handle.IsNull)

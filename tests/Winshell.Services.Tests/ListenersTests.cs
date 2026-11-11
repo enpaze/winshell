@@ -25,6 +25,19 @@ public class ListenersTests
     }
 
     [Fact]
+    public void A_throwing_reporter_leaves_the_raise()
+    {
+        var listeners = new Listeners<Action>();
+        var reporter = new InvalidOperationException("reporter failed");
+        using var added = listeners.Add(static () => throw new IOException("handler failed"), _ => throw reporter);
+
+        var escaped = Assert.Throws<InvalidOperationException>(() =>
+            listeners.Raise(0, static (handler, _) => handler()));
+
+        Assert.Same(reporter, escaped);
+    }
+
+    [Fact]
     public void A_removed_handler_is_not_called()
     {
         var listeners = new Listeners<Action>();
