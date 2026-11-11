@@ -59,4 +59,17 @@ public sealed class FileWatchTests
         File.WriteAllText(path, "second");
         Wait.Until(() => read == "second", "the file in the folder made again", loop.Process);
     }
+
+    [Fact]
+    public void A_file_named_like_a_missing_folder_does_not_rewatch()
+    {
+        using var dir = new TempFolder();
+        var loop = new EventQueue();
+        File.WriteAllText(Path.Combine(dir.Path, "config"), "not a folder");
+        var reads = 0;
+        using var watch = new FileWatch(Path.Combine(dir.Path, "config", "settings.toml"), loop, () => reads++);
+
+        Assert.False(loop.RunDue());
+        Assert.Equal(0, reads);
+    }
 }

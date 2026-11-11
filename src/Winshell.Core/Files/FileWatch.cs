@@ -25,10 +25,10 @@ internal sealed class FileWatch : IDisposable
         _path = path;
         _loop = loop;
         _changed = changed;
-        Watch();
+        Watch(reportExistingFile: false);
     }
 
-    private void Watch()
+    private void Watch(bool reportExistingFile)
     {
         var full = AtomicFile.FollowLink(_path);
         var dir = Path.GetDirectoryName(full);
@@ -51,22 +51,31 @@ internal sealed class FileWatch : IDisposable
             {
                 if (changedName.Equals(name, StringComparison.OrdinalIgnoreCase))
                     _loop.Post(arrived);
-            }, () => _loop.Post(() => Rewatch(generation)));
-        // A folder made after the check above and before the watch started will not be reported.
-        if (_watch is not null && parent && Directory.Exists(Path.Combine(dir, name)))
+            }, () => _loop.Post(() => Lost(generation)));
+        // The list was taken after the watch was queued. A parent step moves down only when that name is a
+        // folder: the list also has files, and a file with the folder's name would rewatch on every pass.
+        if (_watch is not null && Listed(_watch, name) &&
+            (parent ? Directory.Exists(Path.Combine(dir, name)) : reportExistingFile))
             _loop.Post(arrived);
     }
 
+    private static bool Listed(DirectoryWatch watch, string name) =>
+        watch.ExistingNames.Any(candidate => candidate.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>The folder went away or changes were dropped. Watch again, then read the file.</summary>
+    private void Lost(int generation) => Rewatch(generation, readFile: true);
+
     /// <summary>Watches again after a watched folder appeared or the watch ended.</summary>
-    private void Rewatch(int generation)
+    private void Rewatch(int generation, bool readFile = false)
     {
         if (_disposed || generation != _generation)
             return;
         _watch?.Dispose();
         _watch = null;
-        Watch();
-        // The file may have been written before this reached the loop, so the new watch would not see it.
-        _changed();
+        Watch(reportExistingFile: true);
+        // After the new watch is queued, so a delete in this gap is in that watch or in this read.
+        if (readFile && !_disposed)
+            _changed();
     }
 
     private void Report()
