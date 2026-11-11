@@ -49,7 +49,6 @@ public sealed class NotificationListener : ObservableObject, IDisposable
         _backend = backend;
         _changes = new ToastChanges(backend.ToastStamp, loop.Time);
         _icons = new NotificationAppIcons(loop, log, _stop.Token);
-        // Each toast calls Windows synchronously, so the read takes a thread of its own instead of a pool thread.
         _reader = new StateReader<NotificationSnapshot>(c => OwnThread.Run(() => Read(c)), Apply, loop,
             new MonitorWarning(log, "notifications"));
         _poll = SchedulePoll();

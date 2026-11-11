@@ -289,8 +289,14 @@ public sealed class AppIndexTests
             return [];
         }, () => new Dictionary<string, AppUsage>(StringComparer.OrdinalIgnoreCase));
         var apps = new AppsService(new ManualEventLoop(), new Log(), catalog);
-        Assert.True(reading.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken),
-            "The read did not start.");
+        try
+        {
+            reading.Wait(TestContext.Current.CancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            Assert.Fail("The read did not start.");
+        }
 
         apps.Dispose();
 

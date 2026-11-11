@@ -92,7 +92,6 @@ internal sealed class EndpointNode : AudioGraphNode
         if (volumes.Count == 0 || Released)
             return;
         var context = Guid.Empty;
-        // Equal channels are the same value being set, so one master volume applies.
         if (volumes.All(v => v == volumes[0]))
             _volume.SetMasterVolumeLevelScalar(Math.Clamp(volumes[0], 0, 1), ref context);
         else

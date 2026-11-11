@@ -437,4 +437,50 @@ public sealed class AudioServiceTests
         Assert.Null(monitor.Node);
         Assert.Null(_loop.NextDue);
     }
+
+    [Fact]
+    public void A_device_that_leaves_stops_metering_once()
+    {
+        var (audio, node, meter) = Metered(0.25f, 0.5f);
+        using var _ = audio;
+        using var monitor = new AudioPeakMonitor(_loop);
+        var device = audio.Nodes[0];
+        monitor.Node = device;
+        Assert.Equal(0.5, monitor.Peak);
+
+        _graph.Remove(node);
+        var reads = meter.Reads;
+        _graph.Remove(node);
+        _loop.Advance(TimeSpan.FromMilliseconds(40));
+
+        Assert.DoesNotContain(audio.Nodes, item => item.Id == device.Id);
+        Assert.Equal(0, monitor.Peak);
+        Assert.Equal(0, node.Running);
+        Assert.Equal(reads, meter.Reads);
+        Assert.Null(_loop.NextDue);
+        device.Muted = true;
+        Assert.Empty(_warnings);
+    }
+
+    [Fact]
+    public void A_device_the_service_holds_still_meters_after_another_read()
+    {
+        var meter = new FakeMeter(0.25f, 0.5f);
+        var speaker = _graph.Add(new FakeAudioNode(AudioNodeType.PlaybackDevice, "Speakers") { FakeMeter = meter });
+        _graph.SetDefaults(speaker, null);
+        using var audio = Service();
+        using var monitor = new AudioPeakMonitor(_loop);
+        var device = audio.DefaultPlaybackDevice;
+        Assert.NotNull(device);
+        monitor.Node = device;
+        Assert.Equal(0.5, monitor.Peak);
+
+        _graph.SetDefaults(speaker, null);
+        _loop.Advance(TimeSpan.FromMilliseconds(40));
+
+        Assert.Same(device, audio.DefaultPlaybackDevice);
+        Assert.Contains(audio.Nodes, item => ReferenceEquals(item, device));
+        Assert.Equal(0.5, monitor.Peak);
+        Assert.True(meter.Reads > 1);
+    }
 }

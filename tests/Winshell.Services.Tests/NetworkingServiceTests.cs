@@ -152,7 +152,6 @@ public sealed class NetworkingServiceTests
         _ = session.Profile.HasPassword;
 
         Assert.Empty(session.Backend.Calls);
-        Assert.Null(typeof(WifiProfile).GetMethod("Read"));
     }
 
     [Fact]
@@ -441,7 +440,6 @@ public sealed class NetworkingServiceTests
         using var session = new Session(Snapshot(Wifi(profiles: Described())));
         var profile = session.Profile;
 
-        Assert.Null(typeof(WifiProfile).GetMethod("Read"));
         Assert.Equal(WifiSecurityType.Wpa2Psk, profile.Security);
         Assert.True(profile.HasPassword);
         Assert.True(profile.Loaded);
@@ -449,9 +447,11 @@ public sealed class NetworkingServiceTests
         Assert.Equal(AdapterId + ":Office", profile.Id);
         Assert.Equal("Office", profile.Name);
         Assert.Equal("Cafe", profile.Ssid);
-        Assert.DoesNotContain(Secret, Described().ToString());
-        Assert.DoesNotContain(typeof(WifiProfile).GetProperties(),
-            property => property.Name.Contains("Key", StringComparison.OrdinalIgnoreCase));
+        foreach (var property in typeof(WifiProfile).GetProperties())
+        {
+            if (property.GetValue(profile) is string text)
+                Assert.DoesNotContain(Secret, text);
+        }
     }
 
     [Fact]

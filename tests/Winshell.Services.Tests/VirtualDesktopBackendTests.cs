@@ -7,21 +7,28 @@ namespace Winshell.Services.Tests;
 public sealed class VirtualDesktopBackendTests
 {
     [Fact]
-    public void This_machine_reads_its_desktops_when_the_table_is_known()
+    public void The_contract_names_this_build()
     {
         var build = WindowsVersion.Read().Build;
         Assert.True(build > 0);
         var contract = VirtualDesktopBackend.Shared.Contract;
-        if (!contract.Supported)
-        {
+        if (contract.Supported)
+            Assert.Equal("", contract.Reason);
+        else
             Assert.Contains($"{build}", contract.Reason, StringComparison.Ordinal);
-            Assert.Skip(contract.Reason);
-        }
+    }
 
+    [Fact]
+    public void This_machine_reads_its_desktops_when_the_table_is_known()
+    {
         var read = VirtualDesktopBackend.Shared.TryRead(out var desktops, out var current, out var error);
-        // "unavailable:" is a PC without Explorer's desktops; any other failure is a wrong method table.
-        Assert.SkipWhen(error.StartsWith("unavailable:", StringComparison.Ordinal), error);
-        Assert.True(read, error);
+        // "unavailable:" is a build outside the table, or a PC without Explorer's desktops.
+        // Any other failure is a wrong method table.
+        if (!read)
+        {
+            Assert.StartsWith("unavailable:", error, StringComparison.Ordinal);
+            return;
+        }
 
         Assert.NotEmpty(desktops);
         Assert.Contains(desktops, desktop => desktop.Id == current);

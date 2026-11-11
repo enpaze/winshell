@@ -289,7 +289,6 @@ internal sealed class BrightnessWriter(Func<string, int, string?> write, Log log
                 return;
         }
 
-        // A thread of its own: a write blocks for hundreds of milliseconds, and it must not wait behind a busy pool.
         _ = OwnThread.Run(() => Drain(deviceName));
     }
 
