@@ -75,27 +75,6 @@ function Assert-Inside([string] $path, [string] $parent) {
     $full
 }
 
-# Runs winshell doctor from an unpacked zip, on folders of its own. A library a check uses that the release left out or
-# cut makes that check say it could not check, and fails only here, because tests run the build and not the zip.
-function Test-Doctor([string] $exe, [string] $work) {
-    $config = Join-Path $work 'config'
-    $local = Join-Path $work 'local'
-    New-Item -ItemType Directory -Force -Path $config, $local | Out-Null
-    $env:WINSHELL_CONFIG_DIR = $config
-    $env:WINSHELL_LOCAL_DIR = $local
-    try {
-        $report = & $exe doctor --json
-        # 1 is a check that failed on this PC, which the release cannot help.
-        if ($LASTEXITCODE -notin 0, 1) { throw "winshell doctor exited with $LASTEXITCODE." }
-        $checks = @(($report -join "`n" | ConvertFrom-Json).checks)
-        if ($checks.Count -eq 0) { throw 'winshell doctor printed no checks.' }
-        $broken = @($checks | Where-Object { $_.message -like 'Could not check*' })
-        if ($broken.Count -gt 0) { throw "winshell doctor could not run its $($broken[0].id) check: $($broken[0].message)" }
-    } finally {
-        Remove-Item -LiteralPath Env:WINSHELL_CONFIG_DIR, Env:WINSHELL_LOCAL_DIR
-    }
-}
-
 # The Store package version of this release. The first part is one more than Winshell's, because the Store takes no 0
 # there and always installs the highest version. The fourth part is the Store's.
 function Get-PackageVersion {
@@ -122,19 +101,7 @@ if ($Publish) {
         dotnet publish (Join-Path $root 'src/Winshell/Winshell.csproj') --nologo -c Release -r $rid --self-contained `
             -p:PublishReadyToRun=true "-p:Version=$Version" -o $dir
         if ($LASTEXITCODE -ne 0) { throw "dotnet publish for $rid failed with $LASTEXITCODE" }
-        # Debugger helpers and symbols are not part of the install, and neither is what nothing in Winshell loads: WebView2,
-        # the other garbage collectors, and HTTP/3. The .mui files are: without them WinUI ends the process, with no crash
-        # report, when a control asks for one of its strings. So is Microsoft.UI.Xaml.Phone.dll, whatever its name says,
-        # which WinUI's controls load.
-        Get-ChildItem -LiteralPath $dir -Recurse -File | Where-Object {
-            $_.Extension -eq '.pdb' -or $_.Name -eq 'createdump.exe' -or $_.Name -eq 'mscordbi.dll' -or
-            $_.Name -like 'mscordaccore*' -or $_.Name -like 'Microsoft.DiaSymReader.Native.*.dll' -or
-            $_.Name -like 'Microsoft.Web.WebView2.*' -or $_.Name -eq 'WebView2Loader.dll' -or
-            $_.Name -like 'clrgc*.dll' -or $_.Name -eq 'msquic.dll'
-        } | Remove-Item -Force
-        Get-ChildItem -LiteralPath $dir -Recurse -Directory | Sort-Object { $_.FullName.Length } -Descending | Where-Object {
-            -not (Get-ChildItem -LiteralPath $_.FullName -Force | Select-Object -First 1)
-        } | Remove-Item -Force
+        Remove-ReleaseFile $dir
         # winshellw.exe: the same apphost, marked as a Windows app so it opens no console, as the Store package's Start
         # entry runs it. It runs winshell.dll as winshell.exe does; the SDK makes a WinExe's apphost the same way. It is
         # made here, before anything signs the folder: the subsystem is inside a signature's hash. WinUI loads the main
@@ -306,9 +273,8 @@ if ($Verify) {
         }
         # arm64 runs only on arm64 hardware; this checks it on an x64 machine, as CI is.
         if ($rid -eq 'win-x64' -and [Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'X64') {
-            $reported = Assert-WinshellVersion (Join-Path $dir 'winshell.exe') $Version
+            $reported = Assert-WinshellRuns (Join-Path $dir 'winshell.exe') $Version (Join-Path $verifyRoot 'doctor')
             Write-Output "$name runs: $reported"
-            Test-Doctor (Join-Path $dir 'winshell.exe') (Join-Path $verifyRoot 'doctor')
             Write-Output "$name runs every winshell doctor check"
         }
         # The product name and version SignPath's artifact configuration requires of each binary it signs.

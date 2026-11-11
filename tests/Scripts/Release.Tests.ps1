@@ -192,6 +192,107 @@ Describe 'The product name' {
     }
 }
 
+Describe 'The files a release removes' {
+    It 'drops the symbols and helpers the product project lists, and keeps what a release ships' {
+        $dir = Join-Path $TestDrive 'publish'
+        $removed = @(
+            'winshell.pdb',
+            'createdump.exe',
+            'mscordbi.dll',
+            'mscordaccore_amd64.dll',
+            'Microsoft.DiaSymReader.Native.amd64.dll',
+            'Microsoft.Web.WebView2.Core.dll',
+            'native/WebView2Loader.dll',
+            'clrgc.dll',
+            'clrgcexp.dll',
+            'msquic.dll'
+        )
+        $kept = @(
+            'winshell.exe',
+            'winshell.dll',
+            'Microsoft.UI.Xaml.Phone.dll',
+            'en/winshell.mui',
+            'clrgc.txt'
+        )
+        foreach ($name in $removed + $kept) {
+            $path = Join-Path $dir $name
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $path) | Out-Null
+            Set-Content -LiteralPath $path -Value 'x'
+        }
+
+        Remove-ReleaseFile $dir
+
+        $left = @(Get-ChildItem -LiteralPath $dir -Recurse -File | ForEach-Object {
+                [IO.Path]::GetRelativePath($dir, $_.FullName).Replace('\', '/')
+            } | Sort-Object)
+        $left | Should -Be ($kept | Sort-Object)
+        Test-Path -LiteralPath (Join-Path $dir 'native') | Should -BeFalse
+    }
+}
+
+Describe 'A doctor check the release could not run' {
+    It 'is the sentence Doctor.Guard returns, not a message that only starts the same way' {
+        Test-DoctorCouldNotCheck 'Could not check: InvalidOperationException: no screens' | Should -BeTrue
+        Test-DoctorCouldNotCheck 'Could not check the clock' | Should -BeFalse
+        Test-DoctorCouldNotCheck 'Windows 11, build 22621.1' | Should -BeFalse
+    }
+}
+
+Describe 'Running a published winshell' {
+    BeforeAll {
+        function script:Set-WinshellStub([string] $DoctorJson, [int] $DoctorExit = 0) {
+            @"
+@echo off
+if "%1"=="--version" (
+  echo winshell 1.2.3
+  exit /b 0
+)
+echo $DoctorJson
+exit /b $DoctorExit
+"@ | Set-Content -LiteralPath $script:Exe
+        }
+    }
+
+    BeforeEach {
+        $script:Exe = Join-Path $TestDrive 'winshell.cmd'
+    }
+
+    It 'accepts the version and does not run doctor when no folder is given' {
+        Set-Content -LiteralPath $script:Exe -Value "@echo winshell 1.2.3`r`n@exit /b 0"
+        Assert-WinshellRuns $script:Exe '1.2.3' | Should -Be 'winshell 1.2.3'
+    }
+
+    It 'stops when doctor returns the sentence Guard returns' {
+        Set-WinshellStub '{"checks":[{"id":"dpi","message":"Could not check: InvalidOperationException: no screens"}]}'
+        { Assert-WinshellRuns $script:Exe '1.2.3' (Join-Path $TestDrive 'doctor') } |
+            Should -Throw '*could not run its dpi check*'
+    }
+
+    It 'accepts a check that failed on this PC' {
+        Set-WinshellStub '{"checks":[{"id":"dpi","message":"No screens"}]}' 1
+        Assert-WinshellRuns $script:Exe '1.2.3' (Join-Path $TestDrive 'doctor') | Should -Be 'winshell 1.2.3'
+    }
+
+    It 'stops when doctor <Case>' -ForEach @(
+        @{ Case = 'exits 2'; Json = '{"checks":[{"id":"dpi","message":"ok"}]}'; Exit = 2; Expected = '*exited with 2*' }
+        @{ Case = 'prints no checks'; Json = '{"checks":[]}'; Exit = 0; Expected = '*printed no checks*' }
+    ) {
+        Set-WinshellStub $Json $Exit
+        { Assert-WinshellRuns $script:Exe '1.2.3' (Join-Path $TestDrive 'doctor') } | Should -Throw $Expected
+    }
+
+    It 'is how the x64 doctor run and the arm64 exe run both check the build' {
+        $package = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../scripts/package.ps1')
+        $workflow = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../.github/workflows/package.yml')
+        $package | Should -Match 'Assert-WinshellRuns \(Join-Path \$dir ''winshell\.exe''\) \$Version \(Join-Path \$verifyRoot ''doctor''\)'
+        $package | Should -Not -Match 'Could not check'
+        $arm = ($workflow -split '(?m)^  arm64:\r?\n', 2)[1]
+        $arm | Should -Match 'Assert-WinshellRuns \(Join-Path \$dest ''winshell\.exe''\) \$version\s*$'
+        $arm | Should -Not -Match 'doctor'
+        $arm | Should -Not -Match 'Assert-WinshellVersion'
+    }
+}
+
 Describe 'Reading a PE header' {
     It 'finds the machine and subsystem .NET reads from this PowerShell' {
         $path = (Get-Process -Id $PID).Path
