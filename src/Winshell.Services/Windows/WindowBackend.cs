@@ -200,14 +200,14 @@ internal sealed class WindowBackend : IWindowBackend
         Hook(refused, PInvoke.EVENT_OBJECT_CLOAKED, PInvoke.EVENT_OBJECT_UNCLOAKED);
         // The shell hook messages Explorer's taskbar gets. Only HSHELL_FLASH is read: WinEvents say nothing when a
         // window flashes.
-        if (!ShellHookWindow.Start(OnShellHook, Listeners.RaiseNeverFails))
+        if (!ShellHookWindow.Start(OnShellHook))
             refused.Add("RegisterShellHookWindow failed; windows that flash will not show that they want attention");
         return refused;
     }
 
     private void Hook(List<string> refused, uint min, uint max)
     {
-        if (WinEventHook.Start(min, max, OnWinEvent, Listeners.RaiseNeverFails) is null)
+        if (WinEventHook.Start(min, max, OnWinEvent) is null)
             refused.Add($"SetWinEventHook failed for events {min:x}-{max:x}; those changes will not be seen");
     }
 

@@ -19,15 +19,15 @@ internal static class ShellHookWindow
     private static Action<nint, nint>? _received;
 
     /// <summary>
-    /// Creates the window and calls <paramref name="received"/> with each message's code and window, handing
-    /// <paramref name="failed"/> each exception it throws. Call it once. False when Windows refused the window or the
-    /// registration. A refused window is destroyed.
+    /// Creates the window and calls <paramref name="received"/> with each message's code and window. Call it once.
+    /// False when Windows refused the window or the registration. A refused window is destroyed.
+    /// <paramref name="received"/> cannot throw: a handler's failure was already reported before it returns.
     /// </summary>
-    internal static bool Start(Action<nint, nint> received, Action<Exception> failed)
+    internal static bool Start(Action<nint, nint> received)
     {
         _received = received;
         _message = PInvoke.RegisterWindowMessage("SHELLHOOK");
-        _window = NativeWindow.TryCreate(ClassName, 0, 0, OnMessage, failed, true);
+        _window = NativeWindow.TryCreate(ClassName, 0, 0, OnMessage, null, true);
         if (_window is not null && _message != 0 && PInvoke.RegisterShellHookWindow((HWND)_window.Handle))
             return true;
         _window?.Release(true);

@@ -66,9 +66,9 @@ internal sealed unsafe class NativeWindow
     private static readonly ConcurrentDictionary<string, byte> Registered = new();
 
     private readonly WindowMessageHandler _handler;
-    private readonly Action<Exception> _failed;
+    private readonly Action<Exception>? _failed;
 
-    private NativeWindow(nint handle, WindowMessageHandler handler, Action<Exception> failed)
+    private NativeWindow(nint handle, WindowMessageHandler handler, Action<Exception>? failed)
     {
         Handle = handle;
         _handler = handler;
@@ -99,10 +99,13 @@ internal sealed unsafe class NativeWindow
     /// <param name="style">The window style.</param>
     /// <param name="exStyle">The extended window style.</param>
     /// <param name="handler">Answers a message, or returns null to leave it to Windows.</param>
-    /// <param name="failed">Gets each exception <paramref name="handler"/> throws.</param>
+    /// <param name="failed">
+    /// Gets each exception <paramref name="handler"/> throws. Null when the handler cannot throw, because a failure
+    /// was already reported before it returns.
+    /// </param>
     /// <param name="messageOnly">Keeps the window off the desktop, so only messages sent to it arrive.</param>
     internal static NativeWindow? TryCreate(string className, uint style, uint exStyle, WindowMessageHandler handler,
-        Action<Exception> failed, bool messageOnly)
+        Action<Exception>? failed, bool messageOnly)
     {
         var parent = messageOnly ? HWND.HWND_MESSAGE : HWND.Null;
         return Make(className, style, exStyle, handler, failed, parent, 0);
@@ -120,7 +123,7 @@ internal sealed unsafe class NativeWindow
     }
 
     private static NativeWindow? Make(string className, uint style, uint exStyle, WindowMessageHandler handler,
-        Action<Exception> failed, HWND parent, int size)
+        Action<Exception>? failed, HWND parent, int size)
     {
         if (Registered.TryAdd(className, 0))
             Register(className);
