@@ -12,9 +12,9 @@ internal readonly record struct VirtualDesktopEntry(Guid Id, string Name);
 
 /// <summary>
 /// The virtual desktops through Explorer's internal manager, reached through the immersive shell. Its method table
-/// changes between Windows builds, so <see cref="VirtualDesktopManagerInternal"/> refuses a build it does not know
-/// before any slot is called. Each call takes the manager fresh and releases every object before it returns. A
-/// failed step goes no further and says what failed.
+/// changes between Windows builds, so <see cref="VirtualDesktopBuilds"/> refuses a build it does not know before
+/// any slot is called. Each call takes the manager fresh and releases every object before it returns. A failed
+/// step goes no further and says what failed.
 /// </summary>
 internal static class ImmersiveDesktops
 {
@@ -229,10 +229,10 @@ internal static class ImmersiveDesktops
     {
         manager = null;
         var build = OsVersion.Build();
-        if (!VirtualDesktopManagerInternal.Known(build))
+        if (!VirtualDesktopBuilds.Known(build))
         {
             var shown = build?.ToString(CultureInfo.InvariantCulture) ?? "unknown";
-            error = $"unavailable: Windows build {shown} is outside the virtual desktop method table Winshell knows ({VirtualDesktopManagerInternal.OldestBuild} through {VirtualDesktopManagerInternal.NewestBuild}).";
+            error = $"unavailable: Windows build {shown} is outside this method table.";
             return false;
         }
 

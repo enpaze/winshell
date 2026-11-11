@@ -3,10 +3,8 @@ using Winshell.Windows;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// The builds <see cref="VirtualDesktopManagerInternal"/> calls, and the report the virtual desktop service still gives.
-/// </summary>
-public sealed class VirtualDesktopManagerInternalTests
+/// <summary>Which Windows builds use the internal desktop table, and the report the service still gives.</summary>
+public sealed class VirtualDesktopBuildsTests
 {
     [Theory]
     [InlineData(22631u, false)]
@@ -19,7 +17,7 @@ public sealed class VirtualDesktopManagerInternalTests
     [InlineData(28000u, false)]
     public void Only_builds_26100_through_26399_use_the_desktop_method_table(uint build, bool supported)
     {
-        Assert.Equal(supported, VirtualDesktopManagerInternal.Known(build));
+        Assert.Equal(supported, VirtualDesktopBuilds.Known(build));
 
         var contract = DesktopContract.ForBuild(build);
         Assert.Equal(supported, contract.Supported);

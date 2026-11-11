@@ -8,16 +8,21 @@ internal readonly record struct DesktopRecord(Guid Id, string Name);
 /// <summary>
 /// Whether a Windows build uses the virtual desktop method table Winshell calls. Windows 11 23H2 shares some of
 /// the same interface ids and a different table, so the build number is the guard, not the interface id. The
-/// builds are <see cref="VirtualDesktopManagerInternal"/>.
+/// builds are <see cref="VirtualDesktopBuilds"/>.
 /// </summary>
 internal readonly record struct DesktopContract(bool Supported, string Reason)
 {
+    /// <summary>The shell's report that <paramref name="windows"/> is outside <see cref="VirtualDesktopBuilds"/>.</summary>
+    public static string Unsupported(string windows)
+    {
+        return $"{windows} is outside the virtual desktop method table Winshell knows ({VirtualDesktopBuilds.OldestBuild} through {VirtualDesktopBuilds.NewestBuild}).";
+    }
+
     public static DesktopContract ForBuild(uint build)
     {
-        if (VirtualDesktopManagerInternal.Known(build))
+        if (VirtualDesktopBuilds.Known(build))
             return new DesktopContract(true, "");
-        return new DesktopContract(false,
-            $"Windows build {build} is outside the virtual desktop method table Winshell knows ({VirtualDesktopManagerInternal.OldestBuild} through {VirtualDesktopManagerInternal.NewestBuild}).");
+        return new DesktopContract(false, Unsupported($"Windows build {build}"));
     }
 }
 
