@@ -85,20 +85,11 @@ internal static class AppIdentity
     }
 
     /// <summary>
-    /// The description of the program at <paramref name="path"/>, as Task Manager shows it. Null when it has none or
-    /// the file is gone.
+    /// The description of the program at <paramref name="path"/>, as Task Manager shows it.
+    /// <see cref="AppsService.ProgramDescription"/> owns the read.
     /// </summary>
     public static string? ProgramDescription(string path)
     {
-        try
-        {
-            return FileVersionInfo.GetVersionInfo(path).FileDescription?.Trim() is { Length: > 0 } description
-                ? description
-                : null;
-        }
-        catch (FileNotFoundException)
-        {
-            return null;
-        }
+        return AppsService.ProgramDescription(path);
     }
 }

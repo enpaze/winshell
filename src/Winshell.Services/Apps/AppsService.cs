@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 
 namespace Winshell.Apps;
 
@@ -66,6 +67,44 @@ public sealed class AppsService : ObservableObject, IDisposable
     {
         return AppIndex.Search(Entries, query, UsageFor, _loop.Time.GetUtcNow().ToUnixTimeMilliseconds())
             .Select(entry => _byId[entry.Id]).ToList();
+    }
+
+    /// <summary>
+    /// The description of the program at <paramref name="path"/>, as Task Manager shows it. Null when the file has
+    /// none or cannot be read.
+    /// </summary>
+    public static string? ProgramDescription(string path)
+    {
+        try
+        {
+            return FileVersionInfo.GetVersionInfo(path).FileDescription?.Trim() is { Length: > 0 } description
+                ? description
+                : null;
+        }
+        catch (Exception e) when (e is FileNotFoundException or IOException or UnauthorizedAccessException
+                                      or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The name to show for an app until <see cref="DisplayName"/> finds a better one: the program's name without
+    /// <c>.exe</c>, or else the id.
+    /// </summary>
+    public static string FallbackName(string appId)
+    {
+        return AppIdentity.FallbackName(appId);
+    }
+
+    /// <summary>
+    /// The name Windows shows for the app behind a media session: the name Start shows for its AppUserModelID, or
+    /// else the running program's <see cref="ProgramDescription"/>, or else <see cref="FallbackName"/>. It asks the
+    /// shell and can scan processes, so call it off the UI thread.
+    /// </summary>
+    public static string DisplayName(string appId)
+    {
+        return AppDisplayName.Find(appId);
     }
 
     private void OnChanged()

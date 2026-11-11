@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Windows.Win32.Media.Audio;
+using Winshell.Apps;
 using Winshell.Native;
 
 namespace Winshell.Privacy;
@@ -222,19 +222,7 @@ internal sealed class MicrophoneWatch : IDisposable
 
     private static string Description(string path)
     {
-        if (path.Length == 0)
-            return "";
-        try
-        {
-            return FileVersionInfo.GetVersionInfo(path).FileDescription?.Trim() is { Length: > 0 } description
-                ? description
-                : "";
-        }
-        catch (Exception e) when (e is FileNotFoundException or IOException or UnauthorizedAccessException
-                                      or ArgumentException)
-        {
-            return "";
-        }
+        return path.Length == 0 ? "" : AppsService.ProgramDescription(path) ?? "";
     }
 
     private void ReleaseDevices()

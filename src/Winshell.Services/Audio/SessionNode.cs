@@ -148,7 +148,7 @@ internal sealed class SessionNode : AudioGraphNode
         var programName = path is null ? "" : Path.GetFileNameWithoutExtension(path);
         var appName = system ? "System Sounds"
             : displayName.Length > 0 ? displayName
-            : path is not null && AppIdentity.ProgramDescription(path) is { } description ? description
+            : path is not null && AppsService.ProgramDescription(path) is { } description ? description
             : programName;
         Name = system ? "system-sounds" : programName.Length > 0 ? programName : $"session-{Id}";
         Description = appName;

@@ -12,13 +12,13 @@ internal sealed class AppNames(IEventLoop loop, Log log, Func<string, string> de
 
     /// <summary>
     /// The app's name. Until a lookup finds a better one, and when the lookup fails, it is
-    /// <see cref="AppIdentity.FallbackName"/>. When a lookup finds a name, <c>named</c> runs on the loop.
+    /// <see cref="AppsService.FallbackName"/>. When a lookup finds a name, <c>named</c> runs on the loop.
     /// </summary>
     public string Get(string appId)
     {
         if (_names.TryGetValue(appId, out var name))
             return name;
-        name = _names[appId] = AppIdentity.FallbackName(appId);
+        name = _names[appId] = AppsService.FallbackName(appId);
         _ = LookUpAsync(appId);
         return name;
     }

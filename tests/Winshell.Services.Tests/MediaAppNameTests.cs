@@ -59,6 +59,6 @@ public class MediaAppNameTests
         "Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic")]
     public void The_fallback_name_is_the_program_without_its_extension_or_else_the_app_id(string appId, string name)
     {
-        Assert.Equal(name, AppIdentity.FallbackName(appId));
+        Assert.Equal(name, AppsService.FallbackName(appId));
     }
 }

@@ -1,5 +1,6 @@
 using Windows.Foundation;
 using Windows.Media.Control;
+using Winshell.Apps;
 
 namespace Winshell.Media;
 
@@ -30,7 +31,7 @@ internal sealed class SmtcSessions : IMediaSessions
             Subscribe(manager);
             Read(manager.GetSessions());
         });
-        _names = new AppNames(loop, log, AppDisplayName.Find, _poll.Refresh);
+        _names = new AppNames(loop, log, AppsService.DisplayName, _poll.Refresh);
         loop.Post(_poll.Refresh);
     }
 
