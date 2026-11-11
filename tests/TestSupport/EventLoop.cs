@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Xunit.Sdk;
 
 namespace Winshell.TestSupport;
 
@@ -186,15 +187,12 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
         }
     }
 
-    /// <summary>xUnit failures must leave the loop. Every other exception is logged, and the loop goes on.</summary>
+    /// <summary>An assertion leaves the loop. Every other exception is logged, and the loop goes on.</summary>
     private static bool IsAssertion(Exception exception)
     {
         for (var current = exception; current is not null; current = current.InnerException)
-        {
-            var name = current.GetType().FullName;
-            if (name is not null && name.StartsWith("Xunit.Sdk.", StringComparison.Ordinal))
+            if (current is XunitException)
                 return true;
-        }
 
         return false;
     }
@@ -225,6 +223,8 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
 /// <summary>An event loop for tests: time moves only when the test advances it. It starts at 2026-01-01 UTC.</summary>
 internal sealed class ManualEventLoop : EventQueue
 {
+    private const int TurnCap = 1000;
+
     private readonly FakeTimeProvider _clock;
 
     public ManualEventLoop() : this(new FakeTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)))
@@ -236,12 +236,14 @@ internal sealed class ManualEventLoop : EventQueue
         _clock = clock;
     }
 
-    /// <summary>Runs everything that is due now.</summary>
+    /// <summary>Runs everything that is due now. Fails when that takes more turns than the cap.</summary>
     public void Process()
     {
-        for (var i = 0; i < 1000; i++)
+        for (var i = 0; i < TurnCap; i++)
             if (!RunDue())
                 return;
+
+        throw new InvalidOperationException($"The event loop hit its turn cap of {TurnCap}.");
     }
 
     /// <summary>

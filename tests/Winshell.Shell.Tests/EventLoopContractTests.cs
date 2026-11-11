@@ -61,6 +61,32 @@ public sealed partial class EventLoopContractTests
         Assert.Empty(failed);
     }
 
+    [Fact]
+    public void An_assertion_exception_outside_the_framework_namespace_fails_the_test()
+    {
+        var loop = new ManualEventLoop { Log = new Log { Sink = static (_, _, _) => { } } };
+        var failed = new List<Exception>();
+        loop.Failed += failed.Add;
+        loop.Post(static () => throw new PostedAssertion());
+
+        var thrown = Assert.Throws<PostedAssertion>(loop.Process);
+
+        Assert.Equal("from the callback", thrown.Message);
+        Assert.Empty(failed);
+    }
+
+    [Fact]
+    public void A_queue_that_keeps_posting_work_fails_when_the_turn_cap_is_hit()
+    {
+        var loop = new ManualEventLoop { Log = new Log { Sink = static (_, _, _) => { } } };
+        void KeepPosting() => loop.Post(KeepPosting);
+        loop.Post(KeepPosting);
+
+        var thrown = Assert.Throws<InvalidOperationException>(loop.Process);
+
+        Assert.Equal("The event loop hit its turn cap of 1000.", thrown.Message);
+    }
+
     private static async Task PostedWorkRunsInOrder(LoopRun run)
     {
         var order = new ConcurrentQueue<int>();
@@ -180,4 +206,6 @@ public sealed partial class EventLoopContractTests
             detach();
         }
     }
+
+    private sealed class PostedAssertion() : XunitException("from the callback");
 }
