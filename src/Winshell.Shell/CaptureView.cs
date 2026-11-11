@@ -1,9 +1,7 @@
 using System.ComponentModel;
-using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Foundation;
 using Winshell.Capture;
 
@@ -28,13 +26,14 @@ public sealed partial class CaptureView : Panel
 
     private readonly Image _image = new() { Stretch = Stretch.Uniform };
     private CaptureSession? _subscribed;
-    private readonly ShellWindowWatch _shell;
-    private WriteableBitmap? _bitmap;
+    private readonly ShellWindowSubscription _shell;
+    private int _frameWidth;
+    private int _frameHeight;
 
     /// <summary>A view with no session, which shows nothing.</summary>
     public CaptureView()
     {
-        _shell = new ShellWindowWatch(OnShellChanged);
+        _shell = new ShellWindowSubscription(OnShellChanged);
         Children.Add(_image);
         Loaded += (_, _) => OnLoaded();
         Unloaded += (_, _) => OnUnloaded();
@@ -119,46 +118,29 @@ public sealed partial class CaptureView : Panel
     {
         if (frame is null)
         {
-            if (_bitmap is null)
+            if (_image.Source is null)
                 return;
-            _bitmap = null;
             _image.Source = null;
+            _frameWidth = 0;
+            _frameHeight = 0;
             InvalidateMeasure();
             return;
         }
 
-        WriteableBitmap bitmap;
-        var resized = false;
-        if (_bitmap is { } current && current.PixelWidth == frame.Width && current.PixelHeight == frame.Height)
-        {
-            bitmap = current;
-        }
-        else
-        {
-            bitmap = new WriteableBitmap(frame.Width, frame.Height);
-            resized = true;
-        }
-
-        // Capture frames are premultiplied, which is what the bitmap stores.
-        using (var destination = bitmap.PixelBuffer.AsStream())
-        {
-            destination.Write(frame.Bgra);
-        }
-
-        bitmap.Invalidate();
-        _bitmap = bitmap;
-        if (!ReferenceEquals(_image.Source, bitmap))
-            _image.Source = bitmap;
+        var resized = _frameWidth != frame.Width || _frameHeight != frame.Height;
+        _frameWidth = frame.Width;
+        _frameHeight = frame.Height;
+        _image.Source = frame.ToImageSource();
         if (resized)
             InvalidateMeasure();
     }
 
     private Size Natural()
     {
-        if (_bitmap is null)
+        if (_frameWidth <= 0 || _frameHeight <= 0)
             return new Size(0, 0);
         var scale = ScaleOf();
-        return new Size(_bitmap.PixelWidth / scale, _bitmap.PixelHeight / scale);
+        return new Size(_frameWidth / scale, _frameHeight / scale);
     }
 
     private double ScaleOf()
