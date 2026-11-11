@@ -11,8 +11,87 @@ namespace Winshell;
 /// <param name="Settings">This placement's settings, or null for no settings. Widgets should treat nested values as read-only too.</param>
 public sealed record Placement(string Widget, IReadOnlyDictionary<string, object>? Settings = null)
 {
+    private const string NotAList = "must be a list of tables that each name a widget";
+    private const string MissingName = "must name a widget in each of its tables";
+
     /// <summary>A placement of a widget with no settings, so a list of placements can name widgets as plain strings.</summary>
     public static implicit operator Placement(string widget) => new(widget);
+
+    /// <summary>
+    /// Why <paramref name="value"/> is not a list of placement tables, or <c>""</c> when each table names a widget.
+    /// A placement table is <c>{ widget, ...settings }</c>: <c>widget</c> is the widget's name, and every other key is
+    /// one setting. A list of tables that misses a name is <c>must name a widget in each of its tables</c>. Any other
+    /// value is <c>must be a list of tables that each name a widget</c>.
+    /// </summary>
+    /// <param name="value">The list, as a preferences key or a screen row holds it.</param>
+    public static string Check(object value) => Reason(Tables(value));
+
+    /// <summary>
+    /// The placements in a list of tables <see cref="Check"/> accepted, in that order. <c>widget</c> names each one and
+    /// the other keys are its settings. A table with no other keys still has empty settings, which is not the null of
+    /// a placement written with no settings in code.
+    /// </summary>
+    /// <param name="tables">A value <see cref="Check"/> returned <c>""</c> for.</param>
+    /// <exception cref="ArgumentException">The value is not a list of tables that each name a widget.</exception>
+    public static IReadOnlyList<Placement> Parse(object tables)
+    {
+        ArgumentNullException.ThrowIfNull(tables);
+        if (Tables(tables) is not { } rows)
+            throw new ArgumentException(NotAList, nameof(tables));
+        if (!rows.All(NamesWidget))
+            throw new ArgumentException(MissingName, nameof(tables));
+        return rows.Select(Read).ToArray();
+    }
+
+    /// <summary>
+    /// The tables a preferences file writes for <paramref name="placements"/>. Each is <c>{ widget, ...settings }</c>,
+    /// with <c>widget</c> first. A setting named <c>widget</c> is left out, so the placement's own name is the one written.
+    /// </summary>
+    public static IReadOnlyList<IReadOnlyDictionary<string, object?>> Format(IReadOnlyList<Placement> placements)
+    {
+        ArgumentNullException.ThrowIfNull(placements);
+        return placements.Select(Write).ToArray();
+    }
+
+    private static Placement Read(IReadOnlyDictionary<string, object?> table) =>
+        new((string)table["widget"]!,
+            table.Where(pair => pair.Key != "widget").ToDictionary(pair => pair.Key, pair => pair.Value!));
+
+    private static Dictionary<string, object?> Write(Placement placement)
+    {
+        var table = new Dictionary<string, object?> { ["widget"] = placement.Widget };
+        if (placement.Settings is not null)
+            foreach (var (key, value) in placement.Settings)
+                table.TryAdd(key, value);
+        return table;
+    }
+
+    private static string Reason(IReadOnlyList<IReadOnlyDictionary<string, object?>>? tables) =>
+        tables is null ? NotAList : tables.All(NamesWidget) ? "" : MissingName;
+
+    private static bool NamesWidget(IReadOnlyDictionary<string, object?> table) =>
+        table.GetValueOrDefault("widget") is string name && !string.IsNullOrWhiteSpace(name);
+
+    private static IReadOnlyList<IReadOnlyDictionary<string, object?>>? Tables(object? value)
+    {
+        switch (value)
+        {
+            case IReadOnlyList<IReadOnlyDictionary<string, object?>> typed:
+                return typed;
+            case IEnumerable<object?> items:
+                var rows = new List<IReadOnlyDictionary<string, object?>>();
+                foreach (var item in items)
+                {
+                    if (item is not IReadOnlyDictionary<string, object?> table)
+                        return null;
+                    rows.Add(table);
+                }
+
+                return rows;
+            default:
+                return null;
+        }
+    }
 }
 
 /// <summary>

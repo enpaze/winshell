@@ -206,6 +206,9 @@ One entry in a widget area. Several placements may name the same widget. A strin
 | `Placement(string Widget, IReadOnlyDictionary of string, object? Settings = null)` | constructor |  |
 | `Settings` | IReadOnlyDictionary of string, object?, init | This placement's settings, or null for no settings. Widgets should treat nested values as read-only too. |
 | `Widget` | string, init | The case-sensitive name registered with Widgets.Register. |
+| `Check(object value)` | string, static | Why value is not a list of placement tables, or `""` when each table names a widget. A placement table is `{ widget, ...settings }`: `widget` is the widget's name, and every other key is one setting. A list of tables that misses a name is `must name a widget in each of its tables`. Any other value is `must be a list of tables that each name a widget`. |
+| `Format(IReadOnlyList of [Placement](#placement) placements)` | IReadOnlyList of IReadOnlyDictionary of string, object, static | The tables a preferences file writes for placements. Each is `{ widget, ...settings }`, with `widget` first. A setting named `widget` is left out, so the placement's own name is the one written. |
+| `Parse(object tables)` | IReadOnlyList of [Placement](#placement), static | The placements in a list of tables Check accepted, in that order. `widget` names each one and the other keys are its settings. A table with no other keys still has empty settings, which is not the null of a placement written with no settings in code. Throws ArgumentException when the value is not a list of tables that each name a widget. |
 
 ## PopupWindow
 
