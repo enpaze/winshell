@@ -62,7 +62,7 @@ internal sealed class SessionNode : AudioGraphNode
     {
         if (volumes.Count == 0 || _released)
             return;
-        var context = AudioGraph.Context;
+        var context = Guid.Empty;
         _volume.SetMasterVolume(Math.Clamp(volumes.Average(), 0, 1), ref context);
         ReadVolume();
     }
@@ -71,7 +71,7 @@ internal sealed class SessionNode : AudioGraphNode
     {
         if (_released)
             return;
-        var context = AudioGraph.Context;
+        var context = Guid.Empty;
         _volume.SetMute(muted, ref context);
         ReadVolume();
     }
@@ -154,17 +154,17 @@ internal sealed class SessionNode : AudioGraphNode
         Description = appName;
         Properties = new Dictionary<string, string>
         {
-            ["sessionId"] = InstanceId,
-            ["friendlyName"] = Description,
-            ["flow"] = Endpoint.IsPlayback ? "playback" : "recording",
-            ["appName"] = appName,
+            [AudioProperty.SessionId] = InstanceId,
+            [AudioProperty.FriendlyName] = Description,
+            [AudioProperty.Flow] = Endpoint.IsPlayback ? "playback" : "recording",
+            [AudioProperty.AppName] = appName,
             // The program's own icon: IconImage and Shell.iconPath accept a program's path.
-            ["icon"] = system ? "audio-volume-high" : path ?? "",
-            ["processId"] = _processId.ToString(CultureInfo.InvariantCulture),
-            ["processName"] = binary
+            [AudioProperty.Icon] = system ? "audio-volume-high" : path ?? "",
+            [AudioProperty.ProcessId] = _processId.ToString(CultureInfo.InvariantCulture),
+            [AudioProperty.ProcessName] = binary
         };
         if (path is null && !system)
-            Properties.Remove("icon");
+            Properties.Remove(AudioProperty.Icon);
     }
 
     private void OnState(AudioSessionState state)
