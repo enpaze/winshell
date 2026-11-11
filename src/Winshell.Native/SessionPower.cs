@@ -63,7 +63,6 @@ internal static class SessionPower
         return power.ModernStandby ? TurnScreenOff() : Suspend(false);
     }
 
-    /// <summary>Hibernates.</summary>
     internal static bool Hibernate()
     {
         return Suspend(true);

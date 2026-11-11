@@ -7,8 +7,6 @@ using Windows.Win32.UI.WindowsAndMessaging;
 namespace Winshell.Native;
 
 /// <summary>A key as the low-level keyboard hook sees it.</summary>
-/// <param name="VirtualKey">The virtual-key code.</param>
-/// <param name="Up">Whether the key came up.</param>
 internal readonly record struct HookedKey(int VirtualKey, bool Up);
 
 /// <summary>

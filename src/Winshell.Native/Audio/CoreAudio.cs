@@ -108,7 +108,6 @@ internal static class CoreAudio
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IMMDeviceEnumerator
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     void EnumAudioEndpoints(EDataFlow flow, DEVICE_STATE stateMask, out IMMDeviceCollection devices);
 
     [PreserveSig]
@@ -127,7 +126,6 @@ internal interface IMMDeviceEnumerator
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IMMDeviceCollection
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     void GetCount(out uint count);
 
     void Item(uint index, out IMMDevice device);
@@ -138,7 +136,6 @@ internal interface IMMDeviceCollection
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IMMDevice
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     void Activate(ref Guid iid, CLSCTX clsCtx, nint activationParams,
         [MarshalAs(UnmanagedType.IUnknown)] out object instance);
 
@@ -154,7 +151,6 @@ internal interface IMMDevice
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IMMNotificationClient
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     void OnDeviceStateChanged([MarshalAs(UnmanagedType.LPWStr)] string deviceId, uint newState);
 
     void OnDeviceAdded([MarshalAs(UnmanagedType.LPWStr)] string deviceId);
@@ -171,7 +167,6 @@ internal interface IMMNotificationClient
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioEndpointVolume
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     void RegisterControlChangeNotify(IAudioEndpointVolumeCallback notify);
 
     void UnregisterControlChangeNotify(IAudioEndpointVolumeCallback notify);
@@ -204,7 +199,6 @@ internal interface IAudioEndpointVolume
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioEndpointVolumeCallback
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     [PreserveSig]
     int OnNotify(nint data);
 }
@@ -214,7 +208,6 @@ internal interface IAudioEndpointVolumeCallback
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioMeterInformation
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     [PreserveSig]
     int GetPeakValue(out float peak);
 
@@ -230,7 +223,6 @@ internal interface IAudioMeterInformation
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioClient
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     [PreserveSig]
     int Initialize(AUDCLNT_SHAREMODE shareMode, uint streamFlags, long bufferDuration, long periodicity, nint format,
         nint sessionGuid);
@@ -265,7 +257,6 @@ internal interface IAudioClient
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioSessionManager2
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     void GetAudioSessionControl(nint sessionGuid, uint flags, out IAudioSessionControl2 control);
 
     void GetSimpleAudioVolume(nint sessionGuid, uint flags, out ISimpleAudioVolume volume);
@@ -282,7 +273,6 @@ internal interface IAudioSessionManager2
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioSessionEnumerator
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     void GetCount(out int count);
 
     void GetSession(int index, out IAudioSessionControl2 session);
@@ -293,7 +283,6 @@ internal interface IAudioSessionEnumerator
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioSessionControl2
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     // IAudioSessionControl
     void GetState(out AudioSessionState state);
 
@@ -329,7 +318,6 @@ internal interface IAudioSessionControl2
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioSessionNotification
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     [PreserveSig]
     int OnSessionCreated(IAudioSessionControl2 session);
 }
@@ -339,7 +327,6 @@ internal interface IAudioSessionNotification
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioSessionEvents
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     [PreserveSig]
     int OnDisplayNameChanged([MarshalAs(UnmanagedType.LPWStr)] string name, ref Guid context);
 
@@ -367,7 +354,6 @@ internal interface IAudioSessionEvents
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface ISimpleAudioVolume
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     void SetMasterVolume(float level, ref Guid context);
 
     void GetMasterVolume(out float level);
@@ -386,7 +372,6 @@ internal interface ISimpleAudioVolume
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IPolicyConfig
 {
-    // Deleting or reordering a method shifts later COM slots, so unused methods, parameters, and HRESULTs stay.
     void GetMixFormat();
 
     void GetDeviceFormat();

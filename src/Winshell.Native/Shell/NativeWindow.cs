@@ -80,8 +80,6 @@ internal sealed unsafe class NativeWindow
 
     /// <summary>Makes a window of <paramref name="className"/>, registered once in the process. Throws when Windows would not.</summary>
     /// <param name="className">The window class, registered once in the process.</param>
-    /// <param name="style">The window style.</param>
-    /// <param name="exStyle">The extended window style.</param>
     /// <param name="handler">Answers a message, or returns null to leave it to Windows.</param>
     /// <param name="failed">Gets each exception <paramref name="handler"/> throws.</param>
     internal static NativeWindow Create(string className, uint style, uint exStyle, WindowMessageHandler handler,
@@ -96,8 +94,6 @@ internal sealed unsafe class NativeWindow
     /// <paramref name="messageOnly"/> keeps it off the desktop: only messages sent to it arrive.
     /// </summary>
     /// <param name="className">The window class, registered once in the process.</param>
-    /// <param name="style">The window style.</param>
-    /// <param name="exStyle">The extended window style.</param>
     /// <param name="handler">Answers a message, or returns null to leave it to Windows.</param>
     /// <param name="failed">
     /// Gets each exception <paramref name="handler"/> throws. Null when the handler cannot throw, because a failure

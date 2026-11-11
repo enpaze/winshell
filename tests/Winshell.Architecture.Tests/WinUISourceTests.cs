@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -10,14 +11,21 @@ namespace Winshell.Architecture.Tests;
 /// </summary>
 public class WinUISourceTests
 {
+    private static readonly Regex ExistsCondition = new(
+        @"^Exists\(\s*'(?<path>[^']*)'\s*\)$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
     [Fact]
     public void Hand_written_code_in_a_WinUI_project_has_no_unsafe_code()
     {
         var projects = XDocument.Load(Path.Combine(Repo.Root, "winshell.slnx")).Descendants("Project")
             .Select(project => Path.Combine(Repo.Root, project.Attribute("Path")!.Value))
-            .Where(UsesWinUI)
             .ToList();
-        Assert.NotEmpty(projects);
+        var unseen = new List<string>();
+        var winui = projects.Where(path => UsesWinUI(path, unseen)).ToList();
+        Assert.True(unseen.Count == 0, string.Join(Environment.NewLine, unseen));
+        Assert.NotEmpty(winui);
+        projects = winui;
 
         var found = projects.SelectMany(Sources).Distinct(StringComparer.OrdinalIgnoreCase).SelectMany(UnsafeCode)
             .ToList();
@@ -26,14 +34,17 @@ public class WinUISourceTests
     }
 
     // The example sets UseWinUI in the props file it imports, as a configuration from the package does.
-    // The last assignment wins.
-    private static bool UsesWinUI(string path)
+    // The last assignment wins. A conditional true may hold, so it turns the project on; a conditional false
+    // may not, so it cannot turn the project off. An import the guard cannot read fails the test, because a
+    // UseWinUI inside it would never be scanned. Exists() of a file that is not there does not apply.
+    private static bool UsesWinUI(string path, List<string> unseen)
     {
-        return WinUISetting(path, new HashSet<string>(StringComparer.OrdinalIgnoreCase))
+        return WinUISetting(path, Path.GetDirectoryName(Path.GetFullPath(path))!, unseen,
+                new HashSet<string>(StringComparer.OrdinalIgnoreCase))
             ?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
     }
 
-    private static string? WinUISetting(string path, HashSet<string> seen)
+    private static string? WinUISetting(string path, string projectDirectory, List<string> unseen, HashSet<string> seen)
     {
         var full = Path.GetFullPath(path);
         if (!seen.Add(full))
@@ -45,20 +56,81 @@ public class WinUISourceTests
             if (element.Name == "Import")
             {
                 var imported = element.Attribute("Project")?.Value;
-                if (imported is null || imported.Contains('$') || element.Attribute("Condition") is not null)
+                if (imported is null)
                     continue;
 
-                var nested = WinUISetting(Path.Combine(folder, imported), seen);
-                if (nested is not null)
+                var condition = element.Attribute("Condition")?.Value;
+                if (!ImportApplies(condition, folder, projectDirectory))
+                    continue;
+
+                var resolved = ResolveImport(imported, folder, projectDirectory);
+                if (resolved is null)
+                {
+                    unseen.Add($"{Relative(full)} imports '{imported}', which the guard cannot read");
+                    continue;
+                }
+
+                if (!File.Exists(resolved))
+                {
+                    unseen.Add($"{Relative(full)} imports '{imported}', which is not on disk");
+                    continue;
+                }
+
+                var nested = WinUISetting(resolved, projectDirectory, unseen, seen);
+                if (nested is null)
+                    continue;
+
+                // A condition other than Exists() might be false, so it may turn WinUI on but not off.
+                if (condition is null || ExistsOnly(condition) ||
+                    nested.Equals("true", StringComparison.OrdinalIgnoreCase))
                     setting = nested;
             }
-            else if (element.Name == "UseWinUI" && element.Attribute("Condition") is null)
+            else if (element.Name == "UseWinUI")
             {
-                setting = element.Value.Trim();
+                var value = element.Value.Trim();
+                if (element.Attribute("Condition") is null)
+                    setting = value;
+                else if (value.Equals("true", StringComparison.OrdinalIgnoreCase))
+                    setting = value;
             }
 
         return setting;
     }
+
+    // $(WinshellWidgetsFile) is the widgets file beside the project when the property is empty, which is how
+    // Winshell.props imports it. Anything else with a '$' is a path this guard cannot open.
+    private static string? ResolveImport(string project, string fileDirectory, string projectDirectory)
+    {
+        var expanded = project
+            .Replace("$(MSBuildThisFileDirectory)", WithSeparator(fileDirectory), StringComparison.OrdinalIgnoreCase)
+            .Replace("$(MSBuildProjectDirectory)", projectDirectory, StringComparison.OrdinalIgnoreCase)
+            .Replace("$(WinshellWidgetsFile)", Path.Combine(projectDirectory, "widgets.props"),
+                StringComparison.OrdinalIgnoreCase);
+        if (expanded.Contains('$'))
+            return null;
+
+        return Path.GetFullPath(Path.Combine(fileDirectory, expanded));
+    }
+
+    private static bool ImportApplies(string? condition, string fileDirectory, string projectDirectory)
+    {
+        if (condition is null || !ExistsOnly(condition))
+            return true;
+
+        var target = ResolveImport(ExistsPath(condition), fileDirectory, projectDirectory);
+        return target is null || File.Exists(target);
+    }
+
+    private static bool ExistsOnly(string condition) => ExistsCondition.IsMatch(condition.Trim());
+
+    private static string ExistsPath(string condition) => ExistsCondition.Match(condition.Trim()).Groups["path"].Value;
+
+    private static string WithSeparator(string directory) =>
+        directory.EndsWith(Path.DirectorySeparatorChar) || directory.EndsWith(Path.AltDirectorySeparatorChar)
+            ? directory
+            : directory + Path.DirectorySeparatorChar;
+
+    private static string Relative(string path) => Path.GetRelativePath(Repo.Root, path);
 
     // The project's folder without the build output and generated code in bin and obj, and the files it links.
     private static IEnumerable<string> Sources(string project)

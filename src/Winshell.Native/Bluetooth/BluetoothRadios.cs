@@ -6,7 +6,6 @@ namespace Winshell.Native;
 /// <summary>Discovery and incoming connections of every local Bluetooth radio. Each call can block.</summary>
 internal static class BluetoothRadios
 {
-    /// <summary>Whether a radio is discoverable.</summary>
     internal static bool IsDiscoverable()
     {
         return PInvoke.BluetoothIsDiscoverable(HANDLE.Null);
