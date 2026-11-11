@@ -52,8 +52,8 @@ internal static unsafe class Wlan
     /// <summary>
     /// Calls <paramref name="changed"/> on a wlanapi thread when a WLAN connection or scan changes, and hands
     /// <paramref name="failed"/> each exception it throws, until <see cref="StopListening"/>. The process has one
-    /// listener: a later call replaces it. Returns false, and stores no listener, when this build has no WLAN client
-    /// or no such call.
+    /// listener: a later call replaces it. Returns false, and stores no listener, when there is no WLAN client or
+    /// this build has no such call.
     /// </summary>
     internal static bool Listen(Action changed, Action<Exception> failed)
     {
