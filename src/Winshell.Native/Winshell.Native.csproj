@@ -11,11 +11,9 @@
     <InternalsVisibleTo Include="Winshell.Core" />
     <InternalsVisibleTo Include="Winshell.Services" />
     <InternalsVisibleTo Include="Winshell.Shell" />
-    <!-- Test projects that call Native. The parent-process watch lives in TestSupport, so a test project that does
-         not call Native is not a friend. -->
-    <InternalsVisibleTo Include="Winshell.Services.Tests" />
-    <InternalsVisibleTo Include="Winshell.Shell.Tests" />
-    <InternalsVisibleTo Include="Winshell.Tests" />
-    <InternalsVisibleTo Include="Winshell.TestSupport" />
+    <!-- Every test project, found by its folder, so a new one needs no line here. Each compiles tests/TestSupport,
+         whose parent process watch asks ProcessImage for this process's parent. -->
+    <WinshellTestProject Include="$(MSBuildThisFileDirectory)..\..\tests\*\*.csproj" />
+    <InternalsVisibleTo Include="@(WinshellTestProject->'%(Filename)')" />
   </ItemGroup>
 </Project>
