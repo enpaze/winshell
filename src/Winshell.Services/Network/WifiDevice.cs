@@ -40,8 +40,7 @@ public sealed class WifiDevice : NetworkDevice
             Set(ref _error, "", nameof(Error));
         }, async () =>
         {
-            await Backend.ScanAsync(NativeId).ConfigureAwait(false);
-            return null;
+            return await Backend.ScanAsync(NativeId).ConfigureAwait(false);
         }, error =>
         {
             if (Removed)

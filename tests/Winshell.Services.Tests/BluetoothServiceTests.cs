@@ -324,12 +324,17 @@ public sealed class BluetoothServiceTests
     }
 
     [Fact]
+    public void A_bluetooth_address_is_six_bytes_high_byte_first()
+    {
+        Assert.Equal("AA:BB:CC:DD:EE:FF", BluetoothBackend.FormatAddress(0xAABBCCDDEEFF));
+    }
+
+    [Fact]
     public async Task Setting_the_radio_follows_a_read_and_reports_a_refusal()
     {
         var radio = new FakeRadio(RadioKind.Bluetooth, RadioState.On);
-        var access = new FakeAccess();
         using var session =
-            await Session.OpenAsync(new BluetoothSnapshot(true, Adapter(radio: radio), [DeviceInfo()]), access);
+            await Session.OpenAsync(new BluetoothSnapshot(true, Adapter(radio: radio), [DeviceInfo()]));
         var service = session.Service;
         var adapter = service.DefaultAdapter!;
         var failed = Failures(h => adapter.OperationFailed += h);
@@ -345,19 +350,26 @@ public sealed class BluetoothServiceTests
         Assert.Equal(RadioState.Off, radio.State);
         Assert.Empty(failed);
 
-        access.Access = RadioAccessStatus.DeniedByUser;
+        radio.Access = RadioAccessStatus.DeniedByUser;
         await service.SetAdapterEnabledAsync(adapter, true);
         session.Loop.Process();
         Assert.False(adapter.Enabled);
         Assert.Equal("The user denied radio control.", adapter.Error);
         Assert.Equal(1, radio.Sets);
 
-        access.Access = RadioAccessStatus.Allowed;
+        radio.Access = RadioAccessStatus.Unspecified;
+        await service.SetAdapterEnabledAsync(adapter, true);
+        session.Loop.Process();
+        Assert.False(adapter.Enabled);
+        Assert.Equal("Windows did not allow radio control.", adapter.Error);
+        Assert.Equal(1, radio.Sets);
+
+        radio.Access = RadioAccessStatus.Allowed;
         radio.Result = RadioAccessStatus.DeniedBySystem;
         await service.SetAdapterEnabledAsync(adapter, true);
         session.Loop.Process();
         Assert.False(adapter.Enabled);
-        Assert.Equal(RadioSwitch.AccessError(RadioAccessStatus.DeniedBySystem), adapter.Error);
+        Assert.Equal("Windows or its policy denied radio control.", adapter.Error);
         Assert.Equal(RadioState.Off, radio.State);
 
         radio.Result = RadioAccessStatus.Allowed;
@@ -369,7 +381,8 @@ public sealed class BluetoothServiceTests
         Assert.Equal(
             [
                 "The user denied radio control.",
-                RadioSwitch.AccessError(RadioAccessStatus.DeniedBySystem),
+                "Windows did not allow radio control.",
+                "Windows or its policy denied radio control.",
                 RadioSwitch.Unchanged
             ],
             failed);
@@ -393,12 +406,11 @@ public sealed class BluetoothServiceTests
         {
             Result = RadioAccessStatus.DeniedBySystem
         };
-        using var session =
-            await Session.OpenAsync(new BluetoothSnapshot(true, Adapter(radio: radio), []), new FakeAccess());
+        using var session = await Session.OpenAsync(new BluetoothSnapshot(true, Adapter(radio: radio), []));
         var service = session.Service;
         var adapter = service.DefaultAdapter!;
         var failed = Failures(h => adapter.OperationFailed += h);
-        var refusal = RadioSwitch.AccessError(RadioAccessStatus.DeniedBySystem);
+        const string refusal = "Windows or its policy denied radio control.";
 
         await service.SetAdapterEnabledAsync(adapter, true);
         session.Loop.Process();
@@ -419,19 +431,17 @@ public sealed class BluetoothServiceTests
     }
 
     [Fact]
-    public async Task An_adapter_without_a_radio_reports_it_and_asks_nothing()
+    public async Task An_adapter_without_a_radio_reports_it()
     {
-        var access = new FakeAccess();
         using var session = await Session.OpenAsync(
-            Snapshot() with { Adapter = Adapter() with { Radio = RadioReading.None } }, access);
+            Snapshot() with { Adapter = Adapter() with { Radio = RadioReading.None } });
         var adapter = session.Service.DefaultAdapter!;
 
         await session.Service.SetAdapterEnabledAsync(adapter, true);
         session.Loop.Process();
 
         Assert.Equal(BluetoothAdapterState.Unknown, adapter.State);
-        Assert.Equal(RadioSwitch.Missing(RadioKind.Bluetooth), adapter.Error);
-        Assert.Empty(access.Calls);
+        Assert.Equal("Windows reports no Bluetooth radio for this adapter.", adapter.Error);
     }
 
     [Fact]
@@ -439,8 +449,7 @@ public sealed class BluetoothServiceTests
     {
         var gate = new TaskCompletionSource<RadioAccessStatus>();
         var radio = new FakeRadio(RadioKind.Bluetooth, RadioState.Off) { Gate = gate };
-        using var session =
-            await Session.OpenAsync(new BluetoothSnapshot(true, Adapter(radio: radio), []), new FakeAccess());
+        using var session = await Session.OpenAsync(new BluetoothSnapshot(true, Adapter(radio: radio), []));
         var service = session.Service;
         var adapter = service.DefaultAdapter!;
 
@@ -694,9 +703,9 @@ public sealed class BluetoothServiceTests
 
     private sealed class Session : IDisposable
     {
-        private Session(IRadioAccess? radioAccess)
+        private Session()
         {
-            Service = new BluetoothService(Loop, new Log(), Backend, radioAccess);
+            Service = new BluetoothService(Loop, new Log(), Backend);
         }
 
         public FakeBackend Backend { get; } = new();
@@ -707,9 +716,9 @@ public sealed class BluetoothServiceTests
 
         public BluetoothDevice Device => Assert.Single(Service.Devices);
 
-        public static async Task<Session> OpenAsync(BluetoothSnapshot snapshot, IRadioAccess? radioAccess = null)
+        public static async Task<Session> OpenAsync(BluetoothSnapshot snapshot)
         {
-            var session = new Session(radioAccess);
+            var session = new Session();
             await session.ShowAsync(snapshot);
             return session;
         }

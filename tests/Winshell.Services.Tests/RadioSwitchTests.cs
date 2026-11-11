@@ -22,56 +22,72 @@ public sealed class RadioSwitchTests
     }
 
     [Fact]
+    public void A_status_has_one_sentence_and_the_feature_supplies_the_missing_one()
+    {
+        Assert.Null(RadioSwitch.Describe(RadioSwitchStatus.Done, "missing"));
+        Assert.Equal("missing", RadioSwitch.Describe(RadioSwitchStatus.Missing, "missing"));
+        Assert.Equal("The user denied radio control.",
+            RadioSwitch.Describe(RadioSwitchStatus.DeniedByUser, "missing"));
+        Assert.Equal("Windows or its policy denied radio control.",
+            RadioSwitch.Describe(RadioSwitchStatus.DeniedBySystem, "missing"));
+        Assert.Equal("Windows did not allow radio control.",
+            RadioSwitch.Describe(RadioSwitchStatus.NotAllowed, "missing"));
+        Assert.Equal(RadioSwitch.Unchanged, RadioSwitch.Describe(RadioSwitchStatus.Unchanged, "missing"));
+    }
+
+    [Fact]
     public async Task The_current_value_and_a_missing_radio_do_not_request_access()
     {
         var wifi = new FakeRadio(RadioKind.WiFi, RadioState.On);
         var bluetooth = new FakeRadio(RadioKind.Bluetooth, RadioState.Off);
-        var access = new FakeAccess();
 
-        Assert.Null(await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, [wifi, bluetooth], true, access));
-        Assert.Empty(access.Calls);
+        Assert.Equal(RadioSwitchStatus.Done,
+            await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, [wifi, bluetooth], true));
+        Assert.Equal(0, wifi.AccessRequests);
+        Assert.Equal(0, bluetooth.AccessRequests);
         Assert.Equal(0, wifi.Sets);
 
-        Assert.Equal(RadioSwitch.Missing(RadioKind.Bluetooth),
-            await RadioSwitch.SetEnabledAsync(RadioKind.Bluetooth, [wifi], true, access));
-        Assert.Empty(access.Calls);
+        Assert.Equal(RadioSwitchStatus.Missing,
+            await RadioSwitch.SetEnabledAsync(RadioKind.Bluetooth, [wifi], true));
+        Assert.Equal(0, wifi.AccessRequests);
     }
 
     [Fact]
     public async Task An_empty_list_does_not_request_access()
     {
-        var access = new FakeAccess();
-        Assert.Equal("Windows reports no Wi-Fi radio.",
-            await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, [], true, access));
-        Assert.Empty(access.Calls);
+        Assert.Equal(RadioSwitchStatus.Missing, await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, [], true));
     }
 
-    [Theory]
-    [InlineData(RadioAccessStatus.DeniedByUser, "The user denied radio control.")]
-    [InlineData(RadioAccessStatus.DeniedBySystem, "Windows or its policy denied radio control.")]
-    [InlineData(RadioAccessStatus.Unspecified, "Windows did not allow radio control.")]
-    public async Task Access_refusal_does_not_set_the_radio(RadioAccessStatus status, string expected)
+    [Fact]
+    public async Task Access_refusal_does_not_set_the_radio()
     {
-        var radio = new FakeRadio(RadioKind.WiFi, RadioState.Off);
-        var access = new FakeAccess { Access = status };
-        Assert.Equal(expected, await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, [radio], true, access));
-        Assert.Equal("access", Assert.Single(access.Calls));
-        Assert.Equal(0, radio.Sets);
-        Assert.Equal(RadioState.Off, radio.State);
+        await Refuse(RadioAccessStatus.DeniedByUser, RadioSwitchStatus.DeniedByUser);
+        await Refuse(RadioAccessStatus.DeniedBySystem, RadioSwitchStatus.DeniedBySystem);
+        await Refuse(RadioAccessStatus.Unspecified, RadioSwitchStatus.NotAllowed);
+
+        static async Task Refuse(RadioAccessStatus status, RadioSwitchStatus expected)
+        {
+            var radio = new FakeRadio(RadioKind.WiFi, RadioState.Off) { Access = status };
+            Assert.Equal(expected, await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, [radio], true));
+            Assert.Equal(1, radio.AccessRequests);
+            Assert.Equal(0, radio.Sets);
+            Assert.Equal(RadioState.Off, radio.State);
+        }
     }
 
     [Fact]
     public async Task A_refused_set_and_a_state_windows_did_not_reach_are_failures()
     {
         var denied = new FakeRadio(RadioKind.Bluetooth, RadioState.Off) { Result = RadioAccessStatus.DeniedBySystem };
-        Assert.Equal(RadioSwitch.AccessError(RadioAccessStatus.DeniedBySystem),
-            await RadioSwitch.SetEnabledAsync(RadioKind.Bluetooth, [denied], true, new FakeAccess()));
+        Assert.Equal(RadioSwitchStatus.DeniedBySystem,
+            await RadioSwitch.SetEnabledAsync(RadioKind.Bluetooth, [denied], true));
+        Assert.Equal(1, denied.AccessRequests);
         Assert.Equal(1, denied.Sets);
         Assert.Equal(RadioState.Off, denied.State);
 
         var stuck = new FakeRadio(RadioKind.WiFi, RadioState.On) { Reach = false };
-        Assert.Equal(RadioSwitch.Unchanged,
-            await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, [stuck], false, new FakeAccess()));
+        Assert.Equal(RadioSwitchStatus.Unchanged, await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, [stuck], false));
+        Assert.Equal(1, stuck.AccessRequests);
         Assert.Equal(RadioState.On, stuck.State);
     }
 
@@ -82,18 +98,23 @@ public sealed class RadioSwitchTests
         var wifiOn = new FakeRadio(RadioKind.WiFi, RadioState.On);
         var bluetooth = new FakeRadio(RadioKind.Bluetooth, RadioState.On);
 
-        Assert.Null(await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, [wifiOff, wifiOn, bluetooth], false,
-            new FakeAccess()));
+        Assert.Equal(RadioSwitchStatus.Done,
+            await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, [wifiOff, wifiOn, bluetooth], false));
+        Assert.Equal(1, wifiOff.AccessRequests);
         Assert.Equal(0, wifiOff.Sets);
+        Assert.Equal(0, wifiOn.AccessRequests);
         Assert.Equal(1, wifiOn.Sets);
         Assert.Equal(RadioState.Off, wifiOn.State);
+        Assert.Equal(0, bluetooth.AccessRequests);
         Assert.Equal(0, bluetooth.Sets);
 
         var blocked = new FakeRadio(RadioKind.WiFi, RadioState.Disabled) { Result = RadioAccessStatus.DeniedBySystem };
         var other = new FakeRadio(RadioKind.WiFi, RadioState.Off);
-        Assert.Equal(RadioSwitch.AccessError(RadioAccessStatus.DeniedBySystem),
-            await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, [blocked, other], true, new FakeAccess()));
+        Assert.Equal(RadioSwitchStatus.DeniedBySystem,
+            await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, [blocked, other], true));
+        Assert.Equal(1, blocked.AccessRequests);
         Assert.Equal(1, blocked.Sets);
+        Assert.Equal(0, other.AccessRequests);
         Assert.Equal(0, other.Sets);
         Assert.Equal(RadioState.Disabled, blocked.State);
         Assert.Equal(RadioState.Off, other.State);
@@ -104,15 +125,17 @@ public sealed class RadioSwitchTests
     {
         var on = new FakeRadio(RadioKind.Bluetooth, RadioState.On);
         var disabled = new FakeRadio(RadioKind.Bluetooth, RadioState.Disabled);
-        Assert.Null(await RadioSwitch.SetEnabledAsync(RadioKind.Bluetooth, [on, disabled], false, new FakeAccess()));
+        Assert.Equal(RadioSwitchStatus.Done,
+            await RadioSwitch.SetEnabledAsync(RadioKind.Bluetooth, [on, disabled], false));
+        Assert.Equal(1, on.AccessRequests);
         Assert.Equal(RadioState.Off, on.State);
+        Assert.Equal(0, disabled.AccessRequests);
         Assert.Equal(0, disabled.Sets);
 
         var off = new FakeRadio(RadioKind.WiFi, RadioState.Off);
-        var access = new FakeAccess();
-        Assert.Null(await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, [off], true, access));
+        Assert.Equal(RadioSwitchStatus.Done, await RadioSwitch.SetEnabledAsync(RadioKind.WiFi, [off], true));
         Assert.Equal(RadioState.On, off.State);
-        Assert.Equal("access", Assert.Single(access.Calls));
+        Assert.Equal(1, off.AccessRequests);
         Assert.Equal(1, off.Sets);
     }
 }
