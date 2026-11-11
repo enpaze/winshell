@@ -361,7 +361,7 @@ public sealed class WidgetCommandTests : IDisposable
     public void A_GitHub_repository_is_accepted_without_contacting_it(string text, string canonical, string gitUrl,
         string? reference)
     {
-        Assert.True(WidgetCommand.TryParse(text, out var source, out var error));
+        Assert.True(WidgetSource.TryParse(text, out var source, out var error));
 
         Assert.Null(error);
         Assert.Equal(canonical, source.Canonical);
