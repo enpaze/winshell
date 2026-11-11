@@ -7,7 +7,7 @@ internal enum NoticeKind
     /// <summary>The configuration did not build. It stays until it is fixed or dismissed.</summary>
     BuildError,
 
-    /// <summary>A TOML or XAML file does not read, under <c>winshell dev</c>. It stays until the file is fixed.</summary>
+    /// <summary>A preferences file does not read, under <c>winshell dev</c>. It stays until the file is fixed.</summary>
     ConfigError,
 
     /// <summary>Something failed and Winshell wrote a crash report. It goes away by itself.</summary>

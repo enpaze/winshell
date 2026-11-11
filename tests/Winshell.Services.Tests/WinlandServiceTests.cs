@@ -409,14 +409,16 @@ public sealed class WinlandServiceTests
     }
 
     [Fact]
-    public void A_watch_of_a_screens_monitor_runs_again_when_the_monitor_goes()
+    public void Removing_a_monitor_raises_the_list_and_the_screen_loses_it()
     {
         using var service = Connected();
         var screen = new ScreenInfo(@"\\.\DISPLAY2", "DISPLAY2", "", "", "", default, default, 1, 0, 0, 60, false);
+        var removed = false;
+        service.Monitors.CollectionChanged += (_, _) => removed = true;
 
-        Assert.True(ServiceReadTests.ChangesWhatItRead(
-            () => service.MonitorFor(screen),
-            () => Raise(@"monitorremoved>>\\.\DISPLAY2")));
+        Raise(@"monitorremoved>>\\.\DISPLAY2");
+
+        Assert.True(removed);
         Assert.Null(service.MonitorFor(screen));
     }
 

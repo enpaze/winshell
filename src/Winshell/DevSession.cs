@@ -6,19 +6,15 @@ using System.Threading.Channels;
 namespace Winshell;
 
 /// <summary>
-/// <c>winshell dev</c>: runs a configuration under <c>dotnet watch</c>, which applies a C# edit to the running program, and
-/// shows what would not compile on that program's screen. It stays until Ctrl+C, so a failed build costs nothing.
+/// <c>winshell dev</c>: runs a configuration under <c>dotnet watch</c>. Reactor's hot reload applies an edit to a
+/// component's <c>Render</c> in the running shell, and a compile error shows on that shell's screen. It stays until
+/// Ctrl+C, so a failed build costs nothing.
 /// </summary>
 internal static class DevSession
 {
-    public static async Task<int> Run(ConfigurationProject project)
+    public static Task<int> Run(ConfigurationProject project)
     {
-        while (true)
-        {
-            if (await Watch(project) is { } exitCode)
-                return exitCode;
-            Console.WriteLine("Building, because the XAML you saved needs it.");
-        }
+        return Watch(project);
     }
 
     /// <summary>
@@ -33,7 +29,7 @@ internal static class DevSession
         if (ShellOf(project) is { } shell)
         {
             var patience = closing ? ShellExit.Patience.Closing : ShellExit.Patience.Interactive;
-#pragma warning disable VSTHRD002 // A signal handler must finish before Windows ends this process, and the build loop waits for this anyway. No thread here runs a continuation it waits for.
+#pragma warning disable VSTHRD002 // A signal handler must finish before Windows ends this process. No thread here runs a continuation it waits for.
             _ = ShellExit.QuitAsync(shell, ExitIntent.None, patience, ShellExit.Ending.Always).GetAwaiter().GetResult();
 #pragma warning restore VSTHRD002
         }
@@ -48,8 +44,8 @@ internal static class DevSession
         }
     }
 
-    /// <summary>How <c>dotnet watch</c> ended, or null when a shell asked for a build, which only a new start gives it.</summary>
-    private static async Task<int?> Watch(ConfigurationProject project)
+    /// <summary>How <c>dotnet watch</c> ended.</summary>
+    private static async Task<int> Watch(ConfigurationProject project)
     {
         var start = new ProcessStartInfo("dotnet")
         {
@@ -71,8 +67,6 @@ internal static class DevSession
             start.ArgumentList.Add(argument);
         DevOutput.Prepare(start.Environment);
         start.Environment[Shell.DevProjectVariable] = project.Folder;
-        using var buildRequest =
-            new EventWaitHandle(false, EventResetMode.AutoReset, XamlReload.BuildRequest(project.Folder));
         using var process = Start(start);
         if (process is null)
         {
@@ -91,36 +85,16 @@ internal static class DevSession
         using var interrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, Stop);
         using var breaks = PosixSignalRegistration.Create(PosixSignal.SIGQUIT, Stop);
         using var close = PosixSignalRegistration.Create(PosixSignal.SIGHUP, Stop);
-        // A null line is the shell's build request.
-        var lines = Channel.CreateUnbounded<string?>();
+        var lines = Channel.CreateUnbounded<string>();
         var pumps = Task.WhenAll(Pump(process.StandardOutput, lines.Writer), Pump(process.StandardError, lines.Writer));
         _ = pumps.ContinueWith(_ => lines.Writer.Complete(), TaskScheduler.Default);
-        var asked = ThreadPool.RegisterWaitForSingleObject(buildRequest, (_, _) => lines.Writer.TryWrite(null), null,
-            Timeout.Infinite, true);
-        try
+        var output = new DevOutput(project.Folder);
+        await foreach (var line in lines.Reader.ReadAllAsync())
         {
-            var output = new DevOutput(project.Folder);
-            await foreach (var line in lines.Reader.ReadAllAsync())
-            {
-                if (line is null)
-                {
-                    // What the shell printed before it asked, such as why, may still be on its way.
-                    while (lines.Reader.TryRead(out var waiting) && waiting is not null)
-                        Console.WriteLine(waiting);
-                    StopShellAndWatch(project, process, false);
-                    await process.WaitForExitAsync();
-                    return null;
-                }
-
-                if (DevOutput.Shows(line))
-                    Console.WriteLine(line);
-                if (output.Read(line) is { } notice)
-                    await Show(project, notice);
-            }
-        }
-        finally
-        {
-            asked.Unregister(null);
+            if (DevOutput.Shows(line))
+                Console.WriteLine(line);
+            if (output.Read(line) is { } notice)
+                await Show(project, notice);
         }
 
         await process.WaitForExitAsync();
@@ -139,7 +113,7 @@ internal static class DevSession
         }
     }
 
-    private static async Task Pump(StreamReader stream, ChannelWriter<string?> lines)
+    private static async Task Pump(StreamReader stream, ChannelWriter<string> lines)
     {
         while (await stream.ReadLineAsync() is { } line)
             await lines.WriteAsync(line);

@@ -46,7 +46,7 @@ public sealed class AppsService : ObservableObject, IDisposable
     /// <summary>Visible apps with a use count, most used first.</summary>
     public ObservableList<AppEntry> Frequent { get => Read(field); } = [];
 
-    // What ById, Find and Search answer from. Reading it is a read a watch follows, and it changes with the lists.
+    // What ById, Find and Search answer from. It changes with the lists.
     private IReadOnlyList<AppRecord> Entries => Read(_entries);
 
     /// <summary>An entry by its id: a shortcut's path under Programs, or a packaged app's AppUserModelID. Includes hidden entries.</summary>

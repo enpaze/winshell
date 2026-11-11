@@ -6,7 +6,7 @@ A change is held to these, by people and by the `code-review` skill:
 
 - [How we build](AGENTS.md#how-we-build): the owner's notes on simple systems and scope.
 - [The architecture](docs/architecture.md): the layers, their boundaries and the sealed interop.
-- [Formatting and style](docs/development.md#formatting-and-style): C# whitespace, code style, names and XAML.
+- [Formatting and style](docs/development.md#formatting-and-style): C# whitespace, code style and names.
 - The test rules: [Where a test belongs](#where-a-test-belongs) and [Write tests that don't flake](#write-tests-that-dont-flake).
 - [The glossary](GLOSSARY.md): the words to name things with.
 - [The ADRs](docs/adr/): the decisions already made.

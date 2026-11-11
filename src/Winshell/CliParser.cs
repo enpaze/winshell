@@ -141,7 +141,7 @@ internal static class CliParser
     private const string DevUsage = """
                                     winshell dev [-c <name> | -p <path>]
                                       Runs a configuration project and applies each edit to the running shell, until Ctrl+C.
-                                      A saved C# or XAML file reaches the shell in place, and the other windows are left alone.
+                                      Reactor's hot reload applies a saved C# file in place, and the other windows are left alone.
                                       What does not compile shows on screen, and the last version that did keeps running.
                                       Needs the .NET SDK. See the guide for what an edit can change.
                                     """;

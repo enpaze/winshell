@@ -129,7 +129,6 @@ internal static class PanelReload
         try
         {
             var fresh = (UIElement)constructor.Invoke(null);
-            XamlReload.Refresh(fresh);
             place(fresh);
         }
         catch (TargetInvocationException e)

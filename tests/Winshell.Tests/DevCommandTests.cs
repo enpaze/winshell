@@ -60,10 +60,8 @@ public sealed partial class DevCommandTests : IDisposable
                                                                {
                                                                    public override void Start(Shell shell)
                                                                    {
-                                                                       var view = new Dev.PanelView();
-                                                                       _ = new PanelWindow { Anchors = Edges.Top | Edges.Left, Width = 200, Height = 32, Content = view, Visible = true };
+                                                                       _ = new PanelWindow { Anchors = Edges.Top | Edges.Left, Width = 200, Height = 32, Content = new Dev.PanelView(), Visible = true };
                                                                        shell.Ipc.Handle("probe", "value", Marker.Value);
-                                                                       shell.Ipc.Handle("probe", "label", view.Shown);
                                                                        shell.Ipc.Handle("probe", "reuse", () => Environment.GetEnvironmentVariable("MSBUILDDISABLENODEREUSE") ?? "");
                                                                        shell.Ipc.Handle("probe", "launch", (string name) =>
                                                                        {
@@ -82,19 +80,16 @@ public sealed partial class DevCommandTests : IDisposable
                                                                    private static void Main() => Shell.Run<Bare>(new ShellOptions { ShellId = "dev-probe" });
                                                                }
                                                                """);
-        File.WriteAllText(Path.Combine(Project, "PanelView.xaml.cs"), """
-                                                                      using Microsoft.UI.Xaml.Controls;
+        File.WriteAllText(Path.Combine(Project, "PanelView.cs"), """
+                                                                 using Microsoft.UI.Xaml.Controls;
 
-                                                                      namespace Dev;
+                                                                 namespace Dev;
 
-                                                                      public sealed partial class PanelView : UserControl
-                                                                      {
-                                                                          public PanelView() => InitializeComponent();
-
-                                                                          public string Shown() => Label.Text;
-                                                                      }
-                                                                      """);
-        Label("one");
+                                                                 public sealed class PanelView : UserControl
+                                                                 {
+                                                                     public PanelView() => Content = new TextBlock { Text = "probe" };
+                                                                 }
+                                                                 """);
         Mark("""=> "one";""");
     }
 
@@ -148,25 +143,6 @@ public sealed partial class DevCommandTests : IDisposable
     {
         File.WriteAllText(Path.Combine(Project, "Marker.cs"),
             $"internal static class Marker {{ public static string Value() {body} }}");
-    }
-
-    /// <param name="text">What the panel label shows.</param>
-    /// <param name="needsBuild">Marks the label x:Load, which only a build applies.</param>
-    private void Label(string text, bool needsBuild = false)
-    {
-        File.WriteAllText(Path.Combine(Project, "PanelView.xaml"), $"""
-                                                                    <UserControl
-                                                                        x:Class="Dev.PanelView"
-                                                                        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                                                                        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-                                                                        <TextBlock x:Name="Label" {(needsBuild ? "x:Load=\"True\" " : "")}Text="{text}" />
-                                                                    </UserControl>
-                                                                    """);
-    }
-
-    private async Task<string> Shown()
-    {
-        return (await ReadValue("label")).Text;
     }
 
     private Task<(int Code, string Text)> Value()
@@ -379,12 +355,12 @@ public sealed partial class DevCommandTests : IDisposable
         Assert.Contains("Run winshell new to make one.", result.Error, StringComparison.Ordinal);
     }
 
-    // One watch host covers in-place edits, a failed edit, a rebuild, an app opened from the shell, and graceful
-    // console shutdown. Its build leaves no idle MSBuild node, and the shell and an app it starts do not inherit
+    // One watch host covers an in-place edit, a failed edit, an app opened from the shell, and graceful console
+    // shutdown. Its build leaves no idle MSBuild node, and the shell and an app it starts do not inherit
     // MSBUILDDISABLENODEREUSE.
     [Fact(Timeout = 420_000)]
     [Trait("Category", "Window")]
-    public async Task Edits_rebuilds_an_opened_app_and_Ctrl_Break_keep_the_watch_lifecycle_correct()
+    public async Task Edits_an_opened_app_and_Ctrl_Break_keep_the_watch_lifecycle_correct()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         Assert.True(ProcessConsole.Window() != 0 || PInvoke.GetConsoleProcessList(new uint[1]) > 0,
@@ -405,7 +381,7 @@ public sealed partial class DevCommandTests : IDisposable
         await NodesExit();
         var shell = ShellProcess();
         var id = InstanceId();
-        // Start opens this shortcut. The app has to outlive the rebuild and the end of winshell dev.
+        // Start opens this shortcut. The app has to outlive the edit and the end of winshell dev.
         await Wait.UntilAsync(async () => await LaunchProbe() == "launched", "the app to open",
             TimeSpan.FromSeconds(60));
         await Wait.UntilAsync(ProbeAlive, "the opened app");
@@ -429,37 +405,14 @@ public sealed partial class DevCommandTests : IDisposable
         await Wait.UntilAsync(async () => (await Value()).Text == "three", "the fix", BuildPatience);
 
         Assert.Equal(shell, ShellProcess());
-
-        Label("two");
-        await Wait.UntilAsync(async () => await Shown() == "two", "the XAML edit", BuildPatience);
-        Assert.Equal(shell, ShellProcess());
-
-        Label("three", true);
-        await Wait.UntilAsync(() => Printed("Building, because the XAML you saved needs it."),
-            "the build the XAML needs");
-        await Wait.UntilAsync(async () =>
-        {
-            NoteDevNodes();
-            return await Shown() == "three";
-        }, "the shell to start again", BuildPatience);
-        Assert.NotEqual(shell, ShellProcess());
-        await NodesExit();
-        reuse = await ReadValue("reuse");
-        Assert.Equal(0, reuse.Code);
-        Assert.Equal("", reuse.Text);
-        Assert.True(ProbeAlive(), "The app opened from the shell ended when the shell was rebuilt.");
-        // A rebuild lets the old shell quit before replacing it: a forced end would not mark this record.
-        var record = await File.ReadAllTextAsync(Path.Combine(_dir, "local", "run", id, "instance.json"),
-            TestContext.Current.CancellationToken);
-        Assert.NotNull(JsonSerializer.Deserialize(record, InstanceJson.Default.InstanceInfo)?.ExitedAt);
-        var restartedId = InstanceId();
+        Assert.True(ProbeAlive(), "The app opened from the shell ended when the edit was applied.");
 
         // Ctrl+C reaches every process on the console, this test's too. Ctrl+Break reaches only this process group.
         Assert.True(PInvoke.GenerateConsoleCtrlEvent(CtrlBreakEvent, (uint)_dev!.Id), "Ctrl+Break was not sent.");
         Assert.True(_dev.WaitForExit(TimeSpan.FromSeconds(30)), "winshell dev did not exit.");
         Wait.Until(() => FromProject().Count == 0, "dotnet watch and the shell to end", TimeSpan.FromSeconds(30));
-        // Shutdown also asks the replacement shell to quit before ending watch.
-        record = await File.ReadAllTextAsync(Path.Combine(_dir, "local", "run", restartedId, "instance.json"),
+        // Shutdown asks the shell to quit before ending watch.
+        var record = await File.ReadAllTextAsync(Path.Combine(_dir, "local", "run", id, "instance.json"),
             TestContext.Current.CancellationToken);
         Assert.NotNull(JsonSerializer.Deserialize(record, InstanceJson.Default.InstanceInfo)?.ExitedAt);
         Assert.True(ProbeAlive(), "The app opened from the shell ended when winshell dev ended.");
