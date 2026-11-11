@@ -418,6 +418,7 @@ function Invoke-Pester {
         $calls = Get-Content -LiteralPath $env:WINSHELL_CHECK_LOG
         $calls[0] | Should -Match '^dotnet build '
         $calls | Should -Contain 'dotnet build scripts/generate-reference.cs --nologo'
+        $calls | Should -Contain 'dotnet build scripts/render-logo.cs --nologo'
         $test = @($calls | Where-Object { $_ -match '^dotnet test ' })
         $test | Should -HaveCount $script:ProjectCount
         $test | ForEach-Object { $_ | Should -Match '--filter Category!=Package&Category!=Window ' }

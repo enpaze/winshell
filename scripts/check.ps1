@@ -60,8 +60,10 @@ try {
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         & (Join-Path $PSScriptRoot 'build-template.ps1')
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        # DocsTests compiles the reference generator as a library, which leaves out its entry point.
+        # The reference program and the logo program, as dotnet run builds them.
         dotnet build scripts/generate-reference.cs --nologo
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        dotnet build scripts/render-logo.cs --nologo
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }
     $exit = Invoke-TestRun -Tier $Tier -Seed $Seed
