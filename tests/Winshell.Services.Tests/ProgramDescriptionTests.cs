@@ -3,10 +3,8 @@ using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// Audio sessions, media sessions and privacy uses ask the Apps service for one program's display name.
-/// </summary>
-public sealed class AppDisplayNameTests
+/// <summary>The program description is the file description. A tray icon shows that same description.</summary>
+public sealed class ProgramDescriptionTests
 {
     [Fact]
     public void The_program_description_is_the_file_description()
