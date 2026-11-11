@@ -32,7 +32,7 @@ public enum PowerDeviceType
     Battery = 2
 }
 
-/// <summary>The three positions of the Windows power mode slider.</summary>
+/// <summary>The Windows power mode slider, or unknown when Windows did not report one.</summary>
 public enum PowerModeLevel
 {
     /// <summary>Best power efficiency.</summary>
@@ -42,7 +42,10 @@ public enum PowerModeLevel
     Balanced = 1,
 
     /// <summary>Best performance.</summary>
-    BestPerformance = 2
+    BestPerformance = 2,
+
+    /// <summary>Windows did not report a power mode.</summary>
+    Unknown = 3
 }
 
 /// <summary>The power mode Windows is applying, including energy saver and game mode.</summary>
@@ -67,5 +70,8 @@ public enum EffectivePowerMode
     GameMode = 5,
 
     /// <summary>Windows Mixed Reality is running.</summary>
-    MixedReality = 6
+    MixedReality = 6,
+
+    /// <summary>Windows did not report the mode it is applying.</summary>
+    Unknown = -1
 }

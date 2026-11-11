@@ -112,7 +112,7 @@ public sealed partial class Shell
     /// <summary>The batteries of this PC.</summary>
     public PowerService Power => _power ??= new PowerService(Loop, Log);
 
-    /// <summary>The Windows power mode: best power efficiency, balanced, or best performance.</summary>
+    /// <summary>The Windows power mode: best power efficiency, balanced, best performance, or unknown.</summary>
     public PowerModeService PowerMode => _powerMode ??= new PowerModeService(Loop, Log);
 
     /// <summary>Which apps are using the microphone, the camera or location. Read only while something listens.</summary>

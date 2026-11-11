@@ -4,7 +4,7 @@ namespace Winshell.Power;
 
 internal sealed record PowerModeSnapshot(bool Ready, PowerModeLevel Mode, EffectivePowerMode Effective, bool Available)
 {
-    public static readonly PowerModeSnapshot Initial = new(false, PowerModeLevel.Balanced, EffectivePowerMode.Balanced,
+    public static readonly PowerModeSnapshot Initial = new(false, PowerModeLevel.Unknown, EffectivePowerMode.Unknown,
         false);
 }
 
@@ -18,7 +18,7 @@ internal interface IPowerModeBackend : IDisposable
 
     /// <summary>
     /// Sets the slider for the supply in use: DC while on battery, AC otherwise. Returns the Windows error, or 0. This
-    /// changes the power mode, not the power plan. <paramref name="mode"/> is a defined level; the service checks.
+    /// changes the power mode, not the power plan. <paramref name="mode"/> is a slider position; the service checks.
     /// </summary>
     uint Set(PowerModeLevel mode);
 }
@@ -30,7 +30,7 @@ internal interface IPowerModeBackend : IDisposable
 /// <param name="log">Where a failed power mode callback is reported.</param>
 internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
 {
-    private int _effective = (int)EffectivePowerMode.Balanced;
+    private int _effective = (int)EffectivePowerMode.Unknown;
     private bool _watching;
 
     public event Action? Changed;
@@ -55,9 +55,8 @@ internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
         }
 
         var effective = EffectiveFrom(Volatile.Read(ref _effective));
-        return PowerMode.GetUserConfigured(PowerBackend.OnBattery(), out var guid) == 0
-            ? new PowerModeSnapshot(true, FromGuid(guid), effective, true)
-            : new PowerModeSnapshot(true, PowerModeLevel.Balanced, effective, false);
+        var error = PowerMode.GetUserConfigured(PowerBackend.OnBattery(), out var guid);
+        return new PowerModeSnapshot(true, LevelFrom(error, guid), effective, error == 0);
     }
 
     public uint Set(PowerModeLevel mode)
@@ -72,6 +71,15 @@ internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
         if (_watching)
             PowerMode.StopListeningEffective();
         _watching = false;
+    }
+
+    /// <summary>
+    /// The slider after a read. A failed read is unknown, including when the GUID came back empty. An empty GUID on
+    /// success is Balanced, which is what Windows writes for that position.
+    /// </summary>
+    internal static PowerModeLevel LevelFrom(uint error, Guid guid)
+    {
+        return error == 0 ? FromGuid(guid) : PowerModeLevel.Unknown;
     }
 
     /// <summary>
@@ -97,8 +105,13 @@ internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
         };
     }
 
-    private static EffectivePowerMode EffectiveFrom(int mode)
+    /// <summary>
+    /// The effective mode Windows reported. No report yet is <see cref="EffectivePowerMode.Unknown"/>. A value this
+    /// enum does not name stays Balanced.
+    /// </summary>
+    internal static EffectivePowerMode EffectiveFrom(int mode)
     {
-        return Enum.IsDefined((EffectivePowerMode)mode) ? (EffectivePowerMode)mode : EffectivePowerMode.Balanced;
+        var value = (EffectivePowerMode)mode;
+        return Enum.IsDefined(value) ? value : EffectivePowerMode.Balanced;
     }
 }

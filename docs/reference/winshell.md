@@ -295,7 +295,7 @@ The running shell: its screens and services. There is one in a process. Each ser
 | `Notifications` | [NotificationListener](winshell-notifications.md#notificationlistener), read-only | Windows Notification Center. Reading this never prompts for access. |
 | `Options` | [ShellOptions](#shelloptions), read-only | The options the configuration passed to Run. |
 | `Power` | [PowerService](winshell-power.md#powerservice), read-only | The batteries of this PC. |
-| `PowerMode` | [PowerModeService](winshell-power.md#powermodeservice), read-only | The Windows power mode: best power efficiency, balanced, or best performance. |
+| `PowerMode` | [PowerModeService](winshell-power.md#powermodeservice), read-only | The Windows power mode: best power efficiency, balanced, best performance, or unknown. |
 | `Privacy` | [PrivacyService](winshell-privacy.md#privacyservice), read-only | Which apps are using the microphone, the camera or location. Read only while something listens. |
 | `RecentDocuments` | [RecentDocuments](winshell-apps.md#recentdocuments), read-only | The documents in the user's Recent folder, found by name. |
 | `Screens` | ObservableList of [ScreenInfo](#screeninfo), read-only | The connected screens. The primary screen comes first. |

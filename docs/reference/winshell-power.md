@@ -53,6 +53,7 @@ The power mode Windows is applying, including energy saver and game mode.
 | `MaxPerformance` | 4 | Favors performance the most. |
 | `GameMode` | 5 | Game mode is on. |
 | `MixedReality` | 6 | Windows Mixed Reality is running. |
+| `Unknown` | -1 | Windows did not report the mode it is applying. |
 
 ## IdleMonitor
 
@@ -92,7 +93,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `DeviceId` | string, read-only | The Windows device ID of the battery. Empty for PowerService.DisplayDevice. |
 | `FullChargeCapacity` | double, read-only | Full-charge capacity, in watt-hours. |
 | `HealthPercentage` | double, read-only | Full charge capacity over design capacity, from 0 to 100. |
-| `HealthSupported` | bool, read-only | Whether Windows reports the capacities HealthPercentage needs. |
+| `HealthSupported` | bool, read-only | Whether Windows reports the capacities HealthPercentage needs. True at a health of 0 when those capacities were reported. |
 | `IsPresent` | bool, read-only | Whether a battery is present. False on a PC with no battery. |
 | `IsSystemBattery` | bool, read-only | Whether the device is a battery that powers the PC. |
 | `Model` | string, read-only | The battery's name, as Windows lists the device. Empty for PowerService.DisplayDevice. |
@@ -129,13 +130,14 @@ The kind of a PowerDevice.
 
 ## PowerModeLevel
 
-The three positions of the Windows power mode slider.
+The Windows power mode slider, or unknown when Windows did not report one.
 
 | Value | Number | Description |
 | --- | --- | --- |
 | `BestEfficiency` | 0 | Best power efficiency. |
 | `Balanced` | 1 | Balanced. |
 | `BestPerformance` | 2 | Best performance. |
+| `Unknown` | 3 | Windows did not report a power mode. |
 
 ## PowerModeService
 
@@ -145,9 +147,9 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `Available` | bool, read-only | The public power-mode API answered. When this is false, Mode stays Balanced. |
-| `Effective` | [EffectivePowerMode](#effectivepowermode), read-only | The power mode Windows is applying now, which can differ from Mode while energy saver or game mode is on. |
-| `Mode` | [PowerModeLevel](#powermodelevel) | The position of the power mode slider for the supply in use, battery or plugged in. Setting it moves that slider; a value Windows refuses is logged. |
+| `Available` | bool, read-only | The public power-mode API answered. When this is false, Mode is PowerModeLevel.Unknown. |
+| `Effective` | [EffectivePowerMode](#effectivepowermode), read-only | The power mode Windows is applying now, which can differ from Mode while energy saver or game mode is on. EffectivePowerMode.Unknown when Windows did not report one. |
+| `Mode` | [PowerModeLevel](#powermodelevel) | The position of the power mode slider for the supply in use, battery or plugged in. Setting it moves that slider; a value Windows refuses is logged. PowerModeLevel.Unknown is not a slider position, and setting it does nothing. |
 | `Ready` | bool, read-only | Whether the first read of the power mode has finished. |
 | `Dispose()` | void | Stops following power mode changes. |
 
