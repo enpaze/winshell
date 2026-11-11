@@ -163,7 +163,7 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
 
     public void MoveCursor((int X, int Y) point)
     {
-        Native.Cursor.MoveTo(point.X, point.Y);
+        PointerInput.MoveTo(new POINT { X = point.X, Y = point.Y }, asMouse: false);
     }
 
     public void LetAppTakeForeground(nint window, uint processId)

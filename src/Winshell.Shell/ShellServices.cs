@@ -127,10 +127,10 @@ public sealed partial class Shell
         return new Hotkey(Loop, Log, _hotkeys ??= new HotkeyRegistrar(Loop, Log));
     }
 
-    /// <summary>Tells when there has been no input for a while.</summary>
+    /// <summary>Tells when the person has not used the PC for a while. Input this process sent does not count.</summary>
     public IdleMonitor NewIdleMonitor()
     {
-        return new IdleMonitor(Loop, Log);
+        return new IdleMonitor(Loop, Log, () => KeepAwake.AnyActive);
     }
 
     /// <summary>Winland resolves its windows from the window list once both are in use. Neither is made for the other.</summary>

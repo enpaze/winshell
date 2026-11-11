@@ -27,6 +27,9 @@ internal sealed class HotkeyBackend(IEventLoop loop, Action<Exception> failed) :
 
     public HotkeyClaim Register(HotkeyChord chord)
     {
+        // ProbeId is reserved: KeyInput borrows it to ask whether a chord is free.
+        if (_nextId == KeyInput.ProbeId)
+            _nextId++;
         if (_nextId > LastId)
             return HotkeyClaim.Invalid($"{chord.Text} could not be registered (no id).");
         _target ??= HotkeyTarget.Create(OnHotkey, failed);

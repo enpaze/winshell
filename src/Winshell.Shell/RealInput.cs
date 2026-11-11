@@ -18,14 +18,8 @@ namespace Winshell;
 /// </summary>
 internal sealed partial class RealInput(IEventLoop loop) : IDisposable
 {
-    /// <summary>How long the PC must have gone without the user's input before anything is sent.</summary>
-    private static readonly TimeSpan Quiet = TimeSpan.FromSeconds(3);
-
     /// <summary>How long <c>point</c> keeps the cursor when nothing gives it back.</summary>
     private static readonly TimeSpan HoldLimit = TimeSpan.FromSeconds(30);
-
-    /// <summary>How late Windows may stamp input this sent, after <c>SendInput</c> returned: a few clock ticks.</summary>
-    private const uint OwnInputSlack = 50;
 
     private const int Escape = 0x1B;
 
@@ -65,29 +59,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
 
         /// <summary>The user moved it, so it stays where they put it.</summary>
         Taken
-    }
-
-    /// <summary>
-    /// Whether someone other than this shell used the PC within <see cref="Quiet"/>. <paramref name="lastInput"/> is what
-    /// <c>GetLastInputInfo</c> says. When it was stamped during one of this shell's own recent sends,
-    /// <paramref name="sent"/>, oldest first, the input that counts is the one that send hid, and so on back. The send
-    /// that made a stamp is the first one it falls in: a later send in the same clock tick hid that stamp itself. The
-    /// times are <c>GetTickCount</c> milliseconds, which wrap and step about every 16.
-    /// </summary>
-    internal static bool UserActive(uint now, uint lastInput, IReadOnlyList<Send> sent)
-    {
-        var stamp = lastInput;
-        for (var step = 0; step <= sent.Count; step++)
-        {
-            var own = sent.Where(send => unchecked((int)(stamp - send.Start)) >= 0 &&
-                                         unchecked((int)(stamp - send.End)) <= OwnInputSlack)
-                .Select(send => (Send?)send).FirstOrDefault();
-            if (own is not { } hid)
-                break;
-            stamp = hid.Before;
-        }
-
-        return unchecked(now - stamp) < Quiet.TotalMilliseconds;
     }
 
     /// <summary>Moves the cursor onto the element and leaves it there.</summary>
@@ -438,7 +409,7 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
     /// <summary>Puts the cursor at <paramref name="back"/>, and keeps the time, so the move isn't taken for the user's.</summary>
     private static void PutBack(POINT back)
     {
-        SentInput.Around(() => Cursor.MoveTo(back.X, back.Y));
+        PointerInput.MoveTo(back, asMouse: false);
     }
 
     /// <summary>Posts Tab and waits up to a second for keyboard focus to move. False when it didn't.</summary>
@@ -476,11 +447,14 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
     /// <summary>Refuses while someone uses the PC, or when Windows won't say whether anyone does.</summary>
     private static void RefuseWhileUsed()
     {
-        if (SentInput.LastInput() is not { } last)
-            throw new IpcException("Windows won't say when the PC was last used, so nothing was sent.");
-        if (UserActive(Win32.GetTickCount(), last, SentInput.Recent))
-            throw new IpcException(
-                $"Someone used the mouse or keyboard in the last {Quiet.TotalSeconds:0} seconds, and real input would get in their way. Nothing was sent; try again once the PC is left alone.");
+        switch (SentInput.UsedWithinQuiet())
+        {
+            case null:
+                throw new IpcException("Windows won't say when the PC was last used, so nothing was sent.");
+            case true:
+                throw new IpcException(
+                    $"Someone used the mouse or keyboard in the last {SentInput.Quiet.TotalSeconds:0} seconds, and real input would get in their way. Nothing was sent; try again once the PC is left alone.");
+        }
     }
 
     private static void Sent(bool all)

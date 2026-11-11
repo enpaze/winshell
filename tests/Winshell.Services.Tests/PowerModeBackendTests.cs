@@ -21,7 +21,7 @@ public sealed class PowerModeBackendTests
 
         Assert.Equal(0, (int)EffectivePowerMode.EnergySaver);
         Assert.Equal(2, (int)EffectivePowerMode.Balanced);
-        using var monitor = new IdleMonitor(new ManualEventLoop(), new Log(), () => 0, () => false);
+        using var monitor = new IdleMonitor(new ManualEventLoop(), new Log(), () => false);
         Assert.True(monitor.RespectKeepAwake);
     }
 }

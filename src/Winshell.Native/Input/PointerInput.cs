@@ -5,9 +5,11 @@ using Windows.Win32.UI.WindowsAndMessaging;
 namespace Winshell.Native;
 
 /// <summary>
-/// Moves and presses the real mouse with <c>SendInput</c>, so WinUI raises its pointer events. Each call is one
-/// injection that nothing else can split, at the point it is given: the caller checks what is there first.
-/// Its wheel does not reach a WinUI window, which takes the one <see cref="InputSite.PostWheel"/> posts.
+/// Moves and presses the real mouse. A mouse move uses <c>SendInput</c>, so WinUI raises its pointer events. Placing
+/// the cursor uses <c>SetCursorPos</c>, which raises none: that is how a cursor goes back. Each call is one injection
+/// that nothing else can split, at the point it is given: the caller checks what is there first. Either move is
+/// recorded as this process's own input. Its wheel does not reach a WinUI window, which takes the one
+/// <see cref="InputSite.PostWheel"/> posts.
 /// </summary>
 internal static class PointerInput
 {
@@ -26,9 +28,15 @@ internal static class PointerInput
         return hwnd == 0 ? 0 : TopLevelWindows.RootOf(hwnd);
     }
 
-    /// <summary>Moves the mouse to a point on the screen, as a mouse does, so the window there sees it come.</summary>
-    internal static bool MoveTo(POINT point)
+    /// <summary>
+    /// Moves the pointer to <paramref name="point"/> and records it as this process's own input, so it is not taken
+    /// for the person's. When <paramref name="asMouse"/> is true, the move is a mouse move the window there sees.
+    /// Otherwise the cursor is placed, which raises no pointer event.
+    /// </summary>
+    internal static bool MoveTo(POINT point, bool asMouse = true)
     {
+        if (!asMouse)
+            return SentInput.Around(() => PInvoke.SetCursorPos(point.X, point.Y));
         return SentInput.Send([Move(point)], 1);
     }
 

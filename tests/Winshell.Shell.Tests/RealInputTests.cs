@@ -41,11 +41,10 @@ public sealed class RealInputTests
 
     private static bool Used(out uint idle)
     {
-        var now = Win32.GetTickCount();
-        // When Windows won't say, the commands refuse, so this counts as used.
-        var last = SentInput.LastInput() ?? now;
-        idle = unchecked(now - last);
-        return RealInput.UserActive(now, last, SentInput.Recent);
+        // When Windows won't say, the commands refuse, so this counts as used. The age is the same answer.
+        var seconds = SentInput.SecondsSinceLastUse();
+        idle = (uint)((seconds ?? 0) * 1000);
+        return SentInput.UsedWithinQuiet() is null or true;
     }
 
     private static PanelWindow Panel(FrameworkElement content)
