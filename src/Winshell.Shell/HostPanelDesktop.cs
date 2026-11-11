@@ -1,6 +1,5 @@
 using Windows.Win32.UI.WindowsAndMessaging;
 using Winshell.Native;
-using Winshell.Tray;
 
 namespace Winshell;
 
@@ -24,22 +23,22 @@ internal sealed class HostPanelDesktop(HostWindow host, ShellPlatform platform) 
 
     public bool Register(uint callback)
     {
-        return AppBarMessages.Register(host.Handle, callback);
+        return ExplorerTaskbarWindow.Register(host.Handle, callback);
     }
 
     public RECT Query(AppBarEdge edge, RECT proposed)
     {
-        return AppBarMessages.Query(host.Handle, edge, proposed);
+        return ExplorerTaskbarWindow.Query(host.Handle, edge, proposed);
     }
 
     public RECT Reserve(AppBarEdge edge, RECT desired)
     {
-        return AppBarMessages.Reserve(host.Handle, edge, desired);
+        return ExplorerTaskbarWindow.Reserve(host.Handle, edge, desired);
     }
 
     public void Remove()
     {
-        AppBarMessages.Remove(host.Handle);
+        ExplorerTaskbarWindow.Remove(host.Handle);
     }
 
     public void Move(RECT rect, bool topmost, double scale)

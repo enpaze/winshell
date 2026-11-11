@@ -327,13 +327,13 @@ public sealed class SystemTrayTests
         {
             _backend.Calls.Clear();
 
-            AppBarMessages.Autohide(0);
+            ExplorerTaskbarWindow.Autohide(0);
 
             Assert.Equal(["lower", "raise"], _backend.Calls);
         }
 
         _backend.Calls.Clear();
-        AppBarMessages.Autohide(0);
+        ExplorerTaskbarWindow.Autohide(0);
 
         Assert.Empty(_backend.Calls);
     }

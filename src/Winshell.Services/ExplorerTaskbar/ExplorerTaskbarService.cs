@@ -29,8 +29,7 @@ public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
     {
         get
         {
-            // The read is reported before the gate is taken, as every getter reports before it computes.
-            lock (Read(_gate))
+            lock (_gate)
             {
                 return _hidden;
             }
