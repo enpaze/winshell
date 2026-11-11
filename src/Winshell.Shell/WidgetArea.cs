@@ -278,7 +278,8 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
     }
 
     /// <summary>A named area's section: the <c>widgets</c> list that replaces its defaults while the file has it.</summary>
-    private sealed class AreaPreferences(string name, Func<IReadOnlyList<Placement>> defaults) : Preferences(name, Check)
+    private sealed class AreaPreferences(string name, Func<IReadOnlyList<Placement>> defaults)
+        : Preferences(name, (_, value) => Placement.Check(value))
     {
         [TomlComment(
             "The widgets, in order: each table names one and holds its settings. The list replaces the shell's whole\n" +
@@ -290,30 +291,10 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         }
 
         /// <summary>The list as placements, or null when the file has none.</summary>
-        public IReadOnlyList<Placement>? Placements => Widgets?
-            .Select(row => new Placement((string)row["widget"]!,
-                row.Where(pair => pair.Key != "widget").ToDictionary(pair => pair.Key, pair => pair.Value!)))
-            .ToArray();
+        public IReadOnlyList<Placement>? Placements => Widgets is { } rows ? Placement.Parse(rows) : null;
 
         /// <summary>A missing file shows the area's defaults, which are what the list replaces.</summary>
-        internal override object? Commented(TomlKey key)
-        {
-            return defaults().Select(placement =>
-            {
-                var row = new Dictionary<string, object?> { ["widget"] = placement.Widget };
-                foreach (var (setting, value) in placement.Settings ?? EmptySettings)
-                    row.TryAdd(setting, value);
-                return row;
-            }).ToArray();
-        }
-
-        private static string Check(string key, object value)
-        {
-            return value is IReadOnlyList<IReadOnlyDictionary<string, object?>> rows && rows.Any(row =>
-                row.GetValueOrDefault("widget") is not string widget || string.IsNullOrWhiteSpace(widget))
-                ? "must name a widget in each of its tables"
-                : "";
-        }
+        internal override object? Commented(TomlKey key) => Placement.Format(defaults());
     }
 }
 

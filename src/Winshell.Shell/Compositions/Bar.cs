@@ -213,7 +213,7 @@ public sealed class Bar : IDisposable
         }
 
         Element Placed(string key, object placements, HorizontalAlignment across, VerticalAlignment down) =>
-            Elements.WidgetArea(defaults: Placements(Pick(key, placements)),
+            Elements.WidgetArea(defaults: Placement.Parse(Pick(key, placements)),
                     orientation: vertical ? Orientation.Vertical : Orientation.Horizontal, style: Style)
                 .HAlign(vertical ? HorizontalAlignment.Stretch : across)
                 .VAlign(vertical ? down : VerticalAlignment.Stretch)
@@ -241,22 +241,8 @@ public sealed class Bar : IDisposable
             return value is string edge && EdgeNames.ContainsKey(edge)
                 ? ""
                 : "must be \"top\", \"bottom\", \"left\" or \"right\"";
-        return value is IEnumerable<object?> tables && tables.All(table =>
-            table is IReadOnlyDictionary<string, object?> settings &&
-            settings.GetValueOrDefault("widget") is string widget && !string.IsNullOrWhiteSpace(widget))
-            ? ""
-            : "must be a list of tables that each name a widget";
-    }
-
-    /// <summary>A list of tables as placements: <c>widget</c> names each widget, and the other keys are its settings.</summary>
-    private static Placement[] Placements(object tables)
-    {
-        return
-        [
-            .. ((IEnumerable<object?>)tables).Cast<IReadOnlyDictionary<string, object?>>().Select(table =>
-                new Placement((string)table["widget"]!,
-                    table.Where(pair => pair.Key != "widget").ToDictionary(pair => pair.Key, pair => pair.Value!)))
-        ];
+        // Placement.Check decides. A bar keeps the sentence it already logs for any list it refuses.
+        return Placement.Check(value).Length == 0 ? "" : "must be a list of tables that each name a widget";
     }
 
     /// <summary>Removes the bar from every screen, and stops following the screens, the file and the style.</summary>
@@ -285,35 +271,21 @@ public sealed class Bar : IDisposable
         {
             get;
             set => Set(ref field, value);
-        } = Tables(bar.Start);
+        } = Placement.Format(bar.Start);
 
         [TomlComment("The widgets in the middle.")]
         public IReadOnlyList<IReadOnlyDictionary<string, object?>> Center
         {
             get;
             set => Set(ref field, value);
-        } = Tables(bar.Center);
+        } = Placement.Format(bar.Center);
 
         [TomlComment("The widgets at the end.")]
         public IReadOnlyList<IReadOnlyDictionary<string, object?>> End
         {
             get;
             set => Set(ref field, value);
-        } = Tables(bar.End);
-
-        private static IReadOnlyDictionary<string, object?>[] Tables(IReadOnlyList<Placement> placements)
-        {
-            return
-            [
-                .. placements.Select(placement =>
-                {
-                    var table = new Dictionary<string, object?> { ["widget"] = placement.Widget };
-                    foreach (var (key, value) in placement.Settings ?? new Dictionary<string, object>())
-                        table.TryAdd(key, value);
-                    return table;
-                })
-            ];
-        }
+        } = Placement.Format(bar.End);
     }
 
     /// <summary>The slot size to use when neither the bar nor a style sets one: the built-in style's.</summary>
