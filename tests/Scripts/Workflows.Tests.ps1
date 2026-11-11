@@ -38,11 +38,11 @@ Describe 'The workflows' {
         $title = Get-Content -Raw -LiteralPath ($script:Workflows | Where-Object Name -EQ 'pr-title.yml').FullName
         $size = Get-Content -Raw -LiteralPath ($script:Workflows | Where-Object Name -EQ 'pr-size.yml').FullName
 
-        $table = $contributing -split '\r?\n'
-        $header = [array]::IndexOf($table, '| Type | Use it for |')
-        $header | Should -BeGreaterThan -1
+        $contributingLines = $contributing -split '\r?\n'
+        $typeTableIndex = [array]::IndexOf($contributingLines, '| Type | Use it for |')
+        $typeTableIndex | Should -BeGreaterThan -1
         $documentedTypes = @(
-            for ($i = $header + 2; $i -lt $table.Count -and $table[$i] -match '^\| `([a-z]+)` \|'; $i++) {
+            for ($i = $typeTableIndex + 2; $i -lt $contributingLines.Count -and $contributingLines[$i] -match '^\| `([a-z]+)` \|'; $i++) {
                 $Matches[1]
             }
         )
@@ -61,10 +61,10 @@ Describe 'The workflows' {
             }
             break
         }
-        $documented = $documentedTypes -join '|'
-        $documented | Should -Not -BeNullOrEmpty
-        ($branchTypes -join '|') | Should -BeExactly $documented
-        ($actionTypes -join '|') | Should -BeExactly $documented
+        $documentedTypeList = $documentedTypes -join '|'
+        $documentedTypeList | Should -Not -BeNullOrEmpty
+        ($branchTypes -join '|') | Should -BeExactly $documentedTypeList
+        ($actionTypes -join '|') | Should -BeExactly $documentedTypeList
 
         $contributing -match 'by its changed lines: (?<list>[^.]+)\.' | Should -BeTrue
         $documentedBounds = @()
@@ -92,8 +92,8 @@ Describe 'The workflows' {
                 $workflowBounds += "$($Matches[1])>=$lastUnder"
             }
         }
-        $listed = $documentedBounds -join ', '
-        $listed | Should -Not -BeNullOrEmpty
-        ($workflowBounds -join ', ') | Should -BeExactly $listed
+        $documentedBoundList = $documentedBounds -join ', '
+        $documentedBoundList | Should -Not -BeNullOrEmpty
+        ($workflowBounds -join ', ') | Should -BeExactly $documentedBoundList
     }
 }
