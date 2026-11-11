@@ -70,7 +70,7 @@ public sealed partial class Shell : IDisposable
             log,
             session.Instance.Crashes,
             (notice, act, dismiss) => new NoticeWindow(this, notice, act, dismiss, loop),
-            path => OpenToRead.Open(path, log),
+            (path, verb) => OpenToRead.Open(path, verb, log),
             ShellNotices.WindowsIsQuiet);
         StartToolTipStyle();
     }
