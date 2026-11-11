@@ -209,8 +209,8 @@ internal static class ProbeShell
     /// <summary>
     /// A file whose presence in the config folder makes the probe make one preferences section during
     /// <see cref="ShellConfiguration.Start"/> and post another for the next turn. It opens no window. The probe then
-    /// writes <c>preferences-report.txt</c> in that folder: <c>both</c> when the file holds both sections,
-    /// <c>missing</c> when that file is still absent, or <c>partial</c> otherwise. <c>waiting</c> is only the turn before.
+    /// writes <c>preferences-report.txt</c> in that folder once: <c>both</c> when the file holds both sections,
+    /// <c>missing</c> when that file is still absent, or <c>partial</c> otherwise.
     /// </summary>
     internal const string PreferencesMarker = "probe-preferences";
 
@@ -252,13 +252,32 @@ internal static class ProbeShell
                       {
                           var path = Path.Combine(shell.ConfigRoot, "preferences", shell.ShellId + ".toml");
                           var report = Path.Combine(config, "preferences-report.txt");
-                          if (!File.Exists(path))
+                          // The test reads the report from another process, so it appears once and whole: written
+                          // beside it, then moved to a name that does not exist yet, which no reader can hold open.
+                          // Antivirus can lock a file just written, so a refused move is tried again shortly.
+                          var written = report + ".tmp";
+                          void Publish()
                           {
-                              File.WriteAllText(report, "waiting");
-                              shell.Loop.Post(() => File.WriteAllText(report, PreferencesReport(path)));
+                              try
+                              {
+                                  File.Move(written, report);
+                              }
+                              catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+                              {
+                                  shell.Loop.Schedule(TimeSpan.FromMilliseconds(25), Publish);
+                              }
                           }
+
+                          void Report()
+                          {
+                              File.WriteAllText(written, PreferencesReport(path));
+                              Publish();
+                          }
+
+                          if (File.Exists(path))
+                              Report();
                           else
-                              File.WriteAllText(report, PreferencesReport(path));
+                              shell.Loop.Post(Report);
                       });
                   }
                   // A test that puts {{WindowMarker}} there gets a panel whose button opens a popup.
