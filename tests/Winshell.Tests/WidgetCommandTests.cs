@@ -173,6 +173,24 @@ public sealed class WidgetCommandTests : IDisposable
     }
 
     [Fact]
+    public void Rc_10_is_a_newer_Winshell_than_rc_9()
+    {
+        WriteConfig("1.0.0-rc.9");
+        var program = PlantProgram();
+        var repo = Commit("prerelease", Broken,
+            Library("""<WinshellWidget Include="clock" Type="ClockWidget.Clock" />""", "1.0.0-rc.10"), "prerelease");
+
+        var run = Run(["install", repo], input: "y");
+
+        Assert.Equal(1, run.Code);
+        Assert.Equal("This widget needs Winshell 1.0.0-rc.10 and this configuration uses 1.0.0-rc.9.", run.Error);
+        Assert.DoesNotContain("Install?", run.Output, StringComparison.Ordinal);
+        Assert.DoesNotContain("error CS", run.Error, StringComparison.Ordinal);
+        Assert.False(File.Exists(Props));
+        Assert.Equal(program, File.ReadAllBytes(ProgramFile));
+    }
+
+    [Fact]
     public void A_Winshell_package_reference_restores_from_the_configurations_source()
     {
         // The package exists only in the folder the configuration's nuget.config names. That file is not a parent of

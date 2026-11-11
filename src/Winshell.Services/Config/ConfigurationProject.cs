@@ -431,23 +431,48 @@ internal sealed partial class ConfigurationProject
         }
     }
 
-    private string? Build(RunProcess run)
+    /// <summary>
+    /// Builds the project. <paramref name="output"/> replaces the usual folder, and a running program is left where it
+    /// is. <paramref name="widgetsFile"/> is passed as <paramref name="widgetsProperty"/>, and that build does not
+    /// restore: the caller restored against an empty record first, so a restore would hand the staged file to the
+    /// widget library.
+    /// </summary>
+    internal string? Build(RunProcess run, string? output = null, string? widgetsProperty = null,
+        string? widgetsFile = null)
     {
-        // A running program keeps its files open. Windows will not replace those, and a build then waits on them
-        // until it gives up. Renaming the folder lets the build write the new program. A WinUI program also keeps the
-        // folder itself open, so the rename fails and the build goes in the folder beside it.
-        var destination = OutputFolder;
-        var parked = Park(destination);
-        if (parked is null && Directory.Exists(destination))
+        string destination;
+        string? parked = null;
+        if (output is null)
         {
-            destination = BesideFolder;
+            // A running program keeps its files open. Windows will not replace those, and a build then waits on them
+            // until it gives up. Renaming the folder lets the build write the new program. A WinUI program also keeps the
+            // folder itself open, so the rename fails and the build goes in the folder beside it.
+            destination = OutputFolder;
             parked = Park(destination);
             if (parked is null && Directory.Exists(destination))
-                return $"{Name} is running, and the build could not write a new program beside it.";
+            {
+                destination = BesideFolder;
+                parked = Park(destination);
+                if (parked is null && Directory.Exists(destination))
+                    return $"{Name} is running, and the build could not write a new program beside it.";
+            }
+        }
+        else
+        {
+            destination = output;
         }
 
-        var result = run("dotnet", ["build", ProjectFile, "-c", "Release", "-o", destination, "--nologo", "-v", "q"],
-            Folder);
+        List<string> arguments = ["build", ProjectFile, "-c", "Release", "-o", destination];
+        if (widgetsProperty is not null && widgetsFile is not null)
+        {
+            arguments.Add("-p:" + widgetsProperty + "=" + widgetsFile);
+            arguments.Add("--no-restore");
+        }
+
+        arguments.Add("--nologo");
+        arguments.Add("-v");
+        arguments.Add("q");
+        var result = run("dotnet", arguments, Folder);
         if (result.ExitCode == 0)
         {
             QuietDelete(parked);
