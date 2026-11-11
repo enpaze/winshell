@@ -472,10 +472,11 @@ public sealed class WidgetAreaTests
             area.Set(area.Props with { Style = null });
             host.RequestedTheme = ElementTheme.Light;
             await Wait.UntilAsync(() =>
-                ColorOf(text.Foreground) == WindowsText("Light") && button.ActualWidth == 32,
+                ColorOf(text.Foreground) == WindowsText("Light") && button.ActualWidth == 32 && button.ActualHeight == 32,
                 "the built-in light text color and slot");
             Assert.Equal(WindowsText("Light"), ColorOf(button.Foreground));
             Assert.Equal(("Segoe UI Variable Text,Segoe UI", 14.0), (text.FontFamily.Source, text.FontSize));
+            Assert.Equal((32d, 32d), (button.ActualWidth, button.ActualHeight));
 
             host.RequestedTheme = ElementTheme.Dark;
             await Wait.UntilAsync(
