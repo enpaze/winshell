@@ -12,19 +12,19 @@ Always build code cleanly, modularly, and with proper architecture and separatio
 
 ### Roles and model choices
 
-The coordinator delegates to explorers and builders on demand. The reviewer checks the resulting changes independently. These are agent roles: in the workflow docs, owner means User / Human, lead means Coordinator, and a delegate is a dispatched agent in its assigned role. Both `code-review` subagents use the Reviewer role.
+The Coordinator delegates to Explorers and Builders on demand. The Reviewer checks the resulting changes independently. These are agent roles: in the workflow docs, owner means User / Human, lead means Coordinator, and a delegate is a dispatched agent in its assigned role. Both `code-review` subagents use the Reviewer role.
 
 | Role | Responsibilities and limits | Preferred | Fallback 1 | Fallback 2 |
 | --- | --- | --- | --- | --- |
 | User / Human | Decisions, text, go/no-go | — | — | — |
 | Coordinator | Plan, brief, delegate on demand, land PRs, maintain docs | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) |
-| Explorer | Find files and report evidence; leave conclusions to the coordinator | Claude Haiku 5.5 (xhigh); Claude Sonnet 5.5 (xhigh) when judgment is needed | GPT 6.1 Terra (medium) | Grok 4.7 Fast (high) |
+| Explorer | Find files and report evidence; leave conclusions to the Coordinator | Claude Haiku 5.5 (xhigh); Claude Sonnet 5.5 (xhigh) when judgment is needed | GPT 6.1 Terra (medium) | Grok 4.7 Fast (high) |
 | Builder | Write code and tests in its own worktree | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) |
 | Reviewer | Independently check changes and report findings; read-only: no edits, commits, pushes or merges | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) |
 
-- Before an agent role is first needed in a thread, the coordinator asks the user to choose its model through T3 Code's structured question tool. Offer all model/effort pairs in that role's row as options, recommend the preferred choice appropriate to the work, and wait for an answer before starting the role's work.
+- Before an agent role is first needed in a thread, the Coordinator asks the user to choose its model through T3 Code's structured question tool. Offer all model/effort pairs in that role's row as options, recommend the preferred choice appropriate to the work, and wait for an answer before starting the role's work.
 - Reuse the user's selection for that role throughout the thread. If the selected model is unavailable, its usage is exhausted, or the effort setting is unsupported, explain and ask again with the remaining table choices. Wait for the user's answer; never switch silently.
-- Every subagent or delegate prompt must explicitly name its assigned role and include that role's responsibilities and limits from the table. Before dispatching work that will need further agent roles, the coordinator collects those model choices too and includes them in the brief. Each dispatcher sets the selected model and effort explicitly; children reuse the supplied assignments and role selections.
+- Every subagent or delegate prompt must explicitly name its assigned role and include that role's responsibilities and limits from the table. Before dispatching work that will need further agent roles, the Coordinator collects those model choices too and includes them in the brief. Each dispatcher sets the selected model and effort explicitly; children reuse the supplied assignments and role selections.
 
 ## Start a ticket
 
