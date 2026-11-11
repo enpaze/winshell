@@ -43,7 +43,7 @@ internal sealed partial class ShellNotices : IDisposable
     private readonly Log _log;
     private readonly CrashReports _crashes;
     private readonly Func<Notice, Action, Action, IDisposable> _show;
-    private readonly Action<string> _open;
+    private readonly Action<string, string?> _open;
     private readonly Func<bool> _isQuiet;
     private IDisposable? _window;
     private bool _disposed;
@@ -52,10 +52,10 @@ internal sealed partial class ShellNotices : IDisposable
     /// <param name="log">Where each notice, and a notice that could not be shown, is written.</param>
     /// <param name="crashes">The crash reports. One the shell survives shows a notice.</param>
     /// <param name="show">Shows a notice, given what its button does and what closing it does. Disposing takes it away.</param>
-    /// <param name="open">Opens a file: the project that did not build, or a crash report.</param>
+    /// <param name="open">Opens the file the notice names, with the verb it was given. Null is Windows' own verb.</param>
     /// <param name="isQuiet">Whether Windows is holding notifications back. A failure waits for it, and goes to the log.</param>
     public ShellNotices(IEventLoop loop, Log log, CrashReports crashes, Func<Notice, Action, Action, IDisposable> show,
-        Action<string> open, Func<bool> isQuiet)
+        Action<string, string?> open, Func<bool> isQuiet)
     {
         _loop = loop;
         _log = log;
@@ -207,7 +207,9 @@ internal sealed partial class ShellNotices : IDisposable
     {
         if (Current is not { } notice)
             return;
-        _open(notice.Target);
+        // A crash report opens with whatever Windows opens it with. Anything else, including a text log, asks for
+        // edit, so opening a script does not run it.
+        _open(notice.Target, notice.Kind == NoticeKind.Crash ? null : "edit");
         _loop.Post(Hide);
     }
 

@@ -4,7 +4,7 @@ using Winshell.Audio;
 namespace Winshell.Services.Tests;
 
 /// <summary>A graph a test changes by hand, raising what the real one raises in the order it does.</summary>
-internal sealed class FakeAudioGraph : IAudioGraph
+internal sealed class FakeAudioGraph : IAudioBackend
 {
     private readonly List<AudioGraphNode> _nodes = [];
 

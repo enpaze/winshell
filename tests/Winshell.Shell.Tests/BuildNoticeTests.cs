@@ -11,7 +11,7 @@ public sealed partial class BuildNoticeTests : IDisposable
     public BuildNoticeTests()
     {
         var crashes = new CrashReports(_dir);
-        _notices = new ShellNotices(new ManualEventLoop(), new Log(), crashes, (_, _, _) => new Window(), _ => { },
+        _notices = new ShellNotices(new ManualEventLoop(), new Log(), crashes, (_, _, _) => new Window(), (_, _) => { },
             () => false);
     }
 

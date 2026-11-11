@@ -8,7 +8,7 @@ namespace Winshell.Media;
 /// The media sessions Windows shows in its media flyout (the Global System Media Transport Controls), one per
 /// app that plays media. It lives on the UI thread; Windows' events arrive on other threads and are posted to it.
 /// </summary>
-internal sealed class SmtcSessions : IMediaSessions
+internal sealed class SmtcSessions : IMediaBackend
 {
     private readonly IEventLoop _loop;
     private readonly Log _log;
