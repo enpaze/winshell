@@ -438,6 +438,25 @@ public sealed class WidgetAreaTests
         });
     }
 
+    // A contrast theme cannot be turned on for one control, so this reads the dictionary Windows picks from in one.
+    [Fact]
+    public async Task A_contrast_theme_paints_with_its_own_colors_for_a_custom_style_and_the_built_in_one()
+    {
+        await ShellFixture.On(_ =>
+        {
+            var other = TestStyles.Other();
+            foreach (var style in new[] { other, null })
+            {
+                var contrast = (ResourceDictionary)Shell.LoadStyle(style).ThemeDictionaries["HighContrast"];
+                Assert.NotEqual(other.Background, ColorOf((Brush)contrast["ShellBackgroundBrush"]));
+                Assert.NotEqual(other.Foreground, ColorOf((Brush)contrast["ShellForegroundBrush"]));
+                Assert.NotEqual(other.Alert, ColorOf((Brush)contrast["ShellAlertBrush"]));
+            }
+
+            return true;
+        });
+    }
+
     [Fact]
     [Trait("Category", "Window")]
     public async Task A_custom_style_keeps_its_colors_font_and_slot_in_light_and_dark()
