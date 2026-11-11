@@ -1,6 +1,9 @@
 using System.Reflection;
+using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
@@ -239,18 +242,20 @@ public sealed partial class PanelReloadTests
         var (keptView, disposed, old, made) = await ShellFixture.On(async shell =>
         {
             var name = Guid.NewGuid().ToString();
-            Widgets.Register(name, _ => new EditedWidget());
+            Widgets.Register<EditedHost>(name);
             using var area = new WidgetArea { Defaults = [name] };
             var view = new NestedRoot(area);
             using var panel = Panel(view);
-            var widget = (EditedWidget)Assert.IsAssignableFrom<Panel>(area.Content).Children.Single();
+            await Wait.UntilAsync(() => Search<EditedWidget>(area) is not null, "the edited widget to render");
+            var widget = Find<EditedWidget>(area);
             await ShellFixture.LaidOut(widget).WaitAsync(TestContext.Current.CancellationToken);
 
             PanelReload.Apply(shell, [typeof(EditedWidget)]);
 
             // Read before the area is disposed, which disposes its widgets.
-            return (ReferenceEquals(panel.Content, view), widget.Disposed, widget,
-                Assert.IsAssignableFrom<Panel>(area.Content).Children.Single());
+            await Wait.UntilAsync(() => Search<EditedWidget>(area) is { } next && !ReferenceEquals(next, widget),
+                "the area to make the edited widget again");
+            return (ReferenceEquals(panel.Content, view), widget.Disposed, widget, Find<EditedWidget>(area));
         });
 
         Assert.True(keptView, "The view keeps its other state, and its area makes the widget again.");
@@ -264,9 +269,9 @@ public sealed partial class PanelReloadTests
         var (before, after) = await ShellFixture.On(async shell =>
         {
             var edited = Guid.NewGuid().ToString();
-            Widgets.Register(edited, _ => new EditedWidget());
+            Widgets.Register<EditedHost>(edited);
             var unchanged = Guid.NewGuid().ToString();
-            Widgets.Register(unchanged, _ => new TextBlock { Text = "unchanged" });
+            Widgets.Register<UnchangedHost>(unchanged);
             var screen = ScreenWindowsTests.Screen("TST", "Reload", "1");
             shell.Platform.Screens.Add(screen);
             try
@@ -284,12 +289,15 @@ public sealed partial class PanelReloadTests
                 var window = shell.Platform.Windows.Select(host => host.Client).OfType<PanelWindow>()
                     .Single(panel => panel.Screen == screen);
                 var content = window.Content;
+                await Wait.UntilAsync(() => Shows(window).Count == 2, "both placements to render");
                 var before = Shows(window);
                 await ShellFixture.LaidOut((FrameworkElement)before[1]).WaitAsync(TestContext.Current.CancellationToken);
 
                 PanelReload.Apply(shell, [typeof(EditedWidget)]);
 
                 Assert.True(ReferenceEquals(window.Content, content), "The bar keeps its surface and its areas.");
+                await Wait.UntilAsync(() => Shows(window) is [_, var edited] && !ReferenceEquals(edited, before[1]),
+                    "the bar to make the edited widget again");
                 return (before, Shows(window));
             }
             finally
@@ -303,14 +311,54 @@ public sealed partial class PanelReloadTests
         Assert.True(Assert.IsType<EditedWidget>(before[1]).Disposed);
         Assert.NotSame(before[1], Assert.IsType<EditedWidget>(after[1]));
 
-        // The widgets in the bar's areas, in order.
+        // The unchanged text and the edited widget, in that order.
         static List<UIElement> Shows(PanelWindow bar)
         {
-            return
-            [
-                .. Assert.IsType<Grid>(Assert.IsType<Surface>(bar.Content).Content).Children.Cast<WidgetArea>()
-                    .SelectMany(area => Assert.IsAssignableFrom<Panel>(area.Content).Children)
-            ];
+            var found = new List<UIElement>();
+            Walk(bar.Content!);
+            var text = found.OfType<TextBlock>().Where(block => block.Text == "unchanged").ToList();
+            var edited = found.OfType<EditedWidget>().ToList();
+            return text.Count == 1 && edited.Count == 1 ? [text[0], edited[0]] : [];
+
+            void Walk(DependencyObject node)
+            {
+                if (node is UIElement element)
+                    found.Add(element);
+                for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
+                    Walk(VisualTreeHelper.GetChild(node, i));
+            }
         }
+    }
+
+    private static T Find<T>(DependencyObject root)
+        where T : DependencyObject =>
+        Search<T>(root) ?? throw new InvalidOperationException($"No {typeof(T).Name} in the tree.");
+
+    private static T? Search<T>(DependencyObject root)
+        where T : DependencyObject
+    {
+        if (root is T found)
+            return found;
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+            if (Search<T>(VisualTreeHelper.GetChild(root, i)) is { } child)
+                return child;
+        return null;
+    }
+
+    /// <summary>Renders <see cref="EditedWidget"/>, and disposes it when the area drops the placement.</summary>
+    private sealed class EditedHost : Component<WidgetContext>
+    {
+        public override Element Render()
+        {
+            EditedWidget? widget = null;
+            UseEffect(() => () => widget?.Dispose(), false);
+            return XamlHost(() => widget = new EditedWidget());
+        }
+    }
+
+    /// <summary>The placement a reload must leave alone.</summary>
+    private sealed class UnchangedHost : Component<WidgetContext>
+    {
+        public override Element Render() => XamlHost(() => new TextBlock { Text = "unchanged" });
     }
 }

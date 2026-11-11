@@ -41,7 +41,7 @@ internal static class PanelReload
             foreach (var control in controls)
                 MakeAgain(shell, window, control);
             foreach (var area in areas)
-                area.Rebuild();
+                area.Remake();
         }
     }
 

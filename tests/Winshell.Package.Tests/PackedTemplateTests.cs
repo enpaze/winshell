@@ -92,20 +92,20 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
                     window.Closed += area.Dispose;
                 }
             }
-            public sealed class FirstWidget : UserControl
+            public sealed class FirstWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
             {
-                public FirstWidget(WidgetContext context) =>
-                    Content = new TextBlock { Text = "first:" + (string)context.Settings["value"] };
+                public override Microsoft.UI.Reactor.Core.Element Render() =>
+                    Microsoft.UI.Reactor.Factories.TextBlock("first:" + (string)Props.Settings["value"]);
             }
-            public sealed class CapitalWidget : UserControl
+            public sealed class CapitalWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
             {
-                public CapitalWidget(WidgetContext context) =>
-                    Content = new TextBlock { Text = "First:" + (string)context.Settings["value"] };
+                public override Microsoft.UI.Reactor.Core.Element Render() =>
+                    Microsoft.UI.Reactor.Factories.TextBlock("First:" + (string)Props.Settings["value"]);
             }
-            public sealed class SecondWidget : UserControl
+            public sealed class SecondWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
             {
-                public SecondWidget(WidgetContext context) =>
-                    Content = new TextBlock { Text = "second:" + (string)context.Settings["value"] };
+                public override Microsoft.UI.Reactor.Core.Element Render() =>
+                    Microsoft.UI.Reactor.Factories.TextBlock("second:" + (string)Props.Settings["value"]);
             }
             """);
         var project = ConfigurationProject.Find(projectFile, null, folder.Path, out var error);
@@ -191,9 +191,10 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             {
                 public override void Start(Shell shell) { }
             }
-            public sealed class ClockWidget : UserControl
+            public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
             {
-                public ClockWidget(WidgetContext context) => Content = new TextBlock { Text = "clock" };
+                public override Microsoft.UI.Reactor.Core.Element Render() =>
+                    Microsoft.UI.Reactor.Factories.TextBlock("clock");
             }
             """);
         // SourceLink embeds the registration file when a repository ignores it, which is how a .NET checkout treats
@@ -257,10 +258,10 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
 
             namespace WidgetLib;
 
-            public sealed class ClockWidget : UserControl
+            public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
             {
-                public ClockWidget(WidgetContext context) =>
-                    Content = new TextBlock { Text = "installed:" + (string)context.Settings["value"] };
+                public override Microsoft.UI.Reactor.Core.Element Render() =>
+                    Microsoft.UI.Reactor.Factories.TextBlock("installed:" + (string)Props.Settings["value"]);
             }
             """);
         File.WriteAllText(Path.Combine(shellDir, "widgets.props"), """
@@ -350,10 +351,10 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
 
             namespace PackedShell;
 
-            public sealed class StagedWidget : UserControl
+            public sealed class StagedWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
             {
-                public StagedWidget(WidgetContext context) =>
-                    Content = new TextBlock { Text = (string)context.Settings["value"] };
+                public override Microsoft.UI.Reactor.Core.Element Render() =>
+                    Microsoft.UI.Reactor.Factories.TextBlock((string)Props.Settings["value"]);
             }
             """);
         var staged = Path.Combine(shellDir, "staged.props");

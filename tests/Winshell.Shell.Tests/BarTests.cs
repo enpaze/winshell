@@ -1,7 +1,9 @@
+using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
+using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
@@ -33,7 +35,7 @@ public sealed class BarTests
                 Assert.Equal(Edges.Left | Edges.Right | Edges.Top, firstBar.Anchors);
                 Assert.Equal(32, firstBar.Height);
                 Assert.All(AreasOf(firstBar), area => Assert.Equal(Orientation.Horizontal, area.Orientation));
-                Assert.Equal([""], TextsOn(made, firstBar));
+                await Wait.UntilAsync(() => TextsOn(made, firstBar).SequenceEqual([""]), "the center widget to render");
 
                 screens.Add(second);
                 Assert.Single(BarsOn(shell, second));
@@ -80,7 +82,8 @@ public sealed class BarTests
                 var wideBar = Assert.Single(BarsOn(shell, wide));
                 Assert.Equal(Edges.Left | Edges.Right | Edges.Top, wideBar.Anchors);
                 Assert.Equal(0, wideBar.ReservedSize);
-                Assert.Equal(["from the file"], TextsOn(made, wideBar));
+                await Wait.UntilAsync(() => TextsOn(made, wideBar).SequenceEqual(["from the file"]),
+                    "the file's text to render");
                 var tallBar = Assert.Single(BarsOn(shell, tall));
                 Assert.Equal(Edges.Left | Edges.Top | Edges.Bottom, tallBar.Anchors);
                 Assert.Equal(32, tallBar.Width);
@@ -102,9 +105,10 @@ public sealed class BarTests
                 tallBar = await Replaced(shell, tall, tallBar);
                 Assert.Equal(Edges.Left | Edges.Right | Edges.Bottom, wideBar.Anchors);
                 Assert.All(AreasOf(wideBar), area => Assert.Equal(Orientation.Horizontal, area.Orientation));
-                Assert.Equal(["saved"], TextsOn(made, wideBar));
                 Assert.Equal(Edges.Right | Edges.Top | Edges.Bottom, tallBar.Anchors);
-                Assert.Equal(["saved"], TextsOn(made, tallBar));
+                await Wait.UntilAsync(
+                    () => TextsOn(made, wideBar).SequenceEqual(["saved"]) && TextsOn(made, tallBar).SequenceEqual(["saved"]),
+                    "the saved text to render");
             }
             finally
             {
@@ -138,13 +142,16 @@ public sealed class BarTests
                 var bars = BarsOn(shell, screen);
                 var topWindow = Assert.Single(bars, window => window.Anchors.HasFlag(Edges.Top));
                 var bottomWindow = Assert.Single(bars, window => window.Anchors.HasFlag(Edges.Bottom));
-                Assert.Equal(["top bar"], TextsOn(made, topWindow));
-                Assert.Equal(["bottom bar"], TextsOn(made, bottomWindow));
+                await Wait.UntilAsync(
+                    () => TextsOn(made, topWindow).SequenceEqual(["top bar"]) &&
+                          TextsOn(made, bottomWindow).SequenceEqual(["bottom bar"]),
+                    "each bar to render its own text");
 
                 await Save(shell, path, Lists(top, widget, "top bar, saved") + Lists(bottom, widget, "bottom bar"));
                 await Until(shell, screen, () => !BarsOn(shell, screen).Contains(topWindow), "the top bar to be replaced");
                 topWindow = Assert.Single(BarsOn(shell, screen), window => window.Anchors.HasFlag(Edges.Top));
-                Assert.Equal(["top bar, saved"], TextsOn(made, topWindow));
+                await Wait.UntilAsync(() => TextsOn(made, topWindow).SequenceEqual(["top bar, saved"]),
+                    "the saved text to render");
                 Assert.Same(bottomWindow, Assert.Single(BarsOn(shell, screen), window => window.Anchors.HasFlag(Edges.Bottom)));
             }
             finally
@@ -418,22 +425,39 @@ public sealed class BarTests
     /// <summary>The text of each widget the test widget made in <paramref name="bar"/> that is still in it.</summary>
     private static List<string> TextsOn(List<TextBlock> made, PanelWindow bar)
     {
-        var widgets = AreasOf(bar).SelectMany(area => Assert.IsAssignableFrom<Panel>(area.Content).Children).ToList();
-        return [.. made.Where(widgets.Contains).Select(view => view.Text)];
+        var shown = new HashSet<TextBlock>();
+        Collect(bar.Content!);
+        return [.. made.Where(shown.Contains).Select(view => view.Text)];
+
+        void Collect(DependencyObject node)
+        {
+            if (node is TextBlock block)
+                shown.Add(block);
+            for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
+                Collect(VisualTreeHelper.GetChild(node, i));
+        }
     }
 
     /// <summary>A widget registered under a new name that shows its <c>text</c> setting, and keeps what it makes.</summary>
     private static string Widget(out List<TextBlock> made)
     {
         var name = Guid.NewGuid().ToString();
-        var views = made = [];
-        Widgets.Register(name, context =>
+        TextSettingWidget.Views = made = [];
+        Widgets.Register<TextSettingWidget>(name);
+        return name;
+    }
+
+    /// <summary>A text block of the placement's <c>text</c> setting, or empty when it has none.</summary>
+    private sealed class TextSettingWidget : Component<WidgetContext>
+    {
+        public static List<TextBlock> Views = [];
+
+        public override Element Render() => XamlHost(() =>
         {
-            var view = new TextBlock { Text = context.Settings.TryGetValue("text", out var text) ? (string)text : "" };
-            views.Add(view);
+            var view = new TextBlock { Text = Props.Settings.TryGetValue("text", out var text) ? (string)text : "" };
+            Views.Add(view);
             return view;
         });
-        return name;
     }
 
     /// <summary>A bar's section with one widget at the start, and a row for the tall screen on <paramref name="tallEdge"/>.</summary>

@@ -17,10 +17,9 @@ public sealed class WorkspacesWidget : Component<WidgetContext>
 {
     public override Element Render()
     {
-        var (window, setWindow) = UseState<ShellWindow?>(null);
-        if (window is null)
-            return LoadedWindow.Placeholder(setWindow);
-        return Component<Workspaces, WorkspacesProps>(new(window, Props));
+        if (Props.Window is null)
+            return TextBlock("").IsVisible(false);
+        return Component<Workspaces, WorkspacesProps>(new(Props.Window, Props));
     }
 
     private sealed record WorkspacesProps(ShellWindow Window, WidgetContext Context);

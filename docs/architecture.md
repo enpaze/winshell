@@ -65,7 +65,7 @@ Media keeps one type per job, the split from #1102. `ISmtcLink` (#1306) stays th
 
 Keep `HostWindow` split by responsibility, with explicit owners for window lifetime, placement, native message handling and presentation. Keep `Shell.cs` and `ShellServices.cs` thin: they compose focused types instead of collecting feature behavior. Preserve disposal order, event-loop affinity, cancellation and the existing public Shell API.
 
-A shell author builds from primitives, building blocks and compositions such as `Bar`, and a composition uses only public API: see [shells are built from public building blocks](adr/0001-shells-are-built-from-public-building-blocks.md). A widget is a plain control the shell style styles: see [widgets are plain controls](adr/0003-widgets-are-plain-controls.md).
+A shell author builds from primitives, building blocks and compositions such as `Bar`, and a composition uses only public API: see [shells are built from public building blocks](adr/0001-shells-are-built-from-public-building-blocks.md). A widget is a component: see [UI is built with Reactor](adr/0005-ui-is-built-with-reactor.md).
 
 ## Crash supervision
 

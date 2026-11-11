@@ -85,7 +85,7 @@ public sealed class Battery : Component<WidgetContext>
 
 ### Register the widgets
 
-`Start` registers each component under the name the bar places. A plain control is still a `WinshellWidget` item, as [Widgets](#widgets) describes.
+`Start` registers each component under the name the bar places. A `WinshellWidget` item does the same for a component from a library, as [Widgets](#widgets) describes.
 
 `Program.cs` starts the shell, and you won't need to change it.
 
@@ -331,12 +331,12 @@ A [WidgetArea](reference/winshell.md#widgetarea) can go anywhere in a window. Li
 ```
 
 - `Include` is the case-sensitive placement name.
-- `Type` is the C# type name of a WinUI element with a constructor that takes a `WidgetContext`.
-- The build generates direct factory registrations that run before `Main`, without reflection. Names are escaped for C# automatically.
-- A missing type, a type that is not a C# type name, and a duplicate name fail the build, and the error names the widget.
-- You can still call `Widgets.Register` directly for factories that need custom construction.
+- `Type` is the C# type name of a `Component<WidgetContext>` with a public parameterless constructor.
+- The build generates `Widgets.Register<T>` calls that run before `Main`, without reflection. Names are escaped for C# automatically.
+- A missing type, a type that is not a C# type name, a type that is not such a component, and a duplicate name fail the build, and the error names the widget.
+- Call `Widgets.Register<T>` yourself for a component the project defines, as the starter does.
 
-A component widget is registered in code, not by a `WinshellWidget` item. It is a `Component<WidgetContext>`: `Render` reads `Props.Shell`, `Props.Settings` and `Props.Orientation`. Plain controls keep working beside it until a component is the only widget.
+A widget is a `Component<WidgetContext>`. `Render` reads `Props.Shell`, `Props.Window`, `Props.Settings` and `Props.Orientation`.
 
 ```csharp
         Widgets.Register<ClockWidget>("clock");
@@ -350,11 +350,38 @@ public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetCont
 }
 ```
 
-The build writes registration code only for an executable, an `OutputType` of `Exe` or `WinExe`. A [widget library](#write-a-widget) of plain controls can list `WinshellWidget` items so `dotnet msbuild -getItem:WinshellWidget` can read them, and that library does not register the widgets. The configuration that references the library does. Registering one name from both fails when the shell starts.
+The build writes registration code only for an executable, an `OutputType` of `Exe` or `WinExe`. A [widget library](#write-a-widget) can list `WinshellWidget` items so `dotnet msbuild -getItem:WinshellWidget` can read them, and that library does not register the widgets. The configuration that references the library does. Registering one name from both fails when the shell starts.
+
+### Move a configuration
+
+This release registers only component widgets. Three things move, and nothing reads the old shape.
+
+A widget was a control whose constructor took a `WidgetContext` and built its elements there. It is a `Component<WidgetContext>` whose `Render` returns those elements, registered with `Widgets.Register<T>` or a `WinshellWidget` item whose `Type` is that component. `Props` is the old constructor argument: `Props.Shell`, `Props.Settings` and `Props.Orientation`, and `Props.Window` for the shell window the area is in.
+
+A Watch block read services and then wrote the controls. That read moves into `Render`. `UseObservable` or `UseObservableTree` names the service, and the elements `Render` returns already show what it holds. The [battery](#a-battery) is that shape: it reads `Props.Shell.Power.DisplayDevice` and returns a text block, collapsed when no battery is present.
+
+A XAML resource dictionary of `Shell*` keys becomes a [ShellStyle](#style). A dictionary that set the background, the font and the slot size becomes `shell.Style`, and a bar or an area that pointed at a XAML file sets its own `Style` to a `ShellStyle` instead:
+
+```xml
+<SolidColorBrush x:Key="ShellBackgroundBrush" Color="#1A1B26" />
+<FontFamily x:Key="ShellFontFamily">Segoe UI</FontFamily>
+```
+
+```csharp
+        shell.Style = new ShellStyle
+        {
+            Background = Color.FromArgb(255, 0x1a, 0x1b, 0x26),
+            Foreground = Color.FromArgb(255, 0xa9, 0xb1, 0xd6),
+            Alert = Color.FromArgb(255, 0xf7, 0x76, 0x8e),
+            FontFamily = new FontFamily("Segoe UI")
+        };
+```
+
+Nothing reads the XAML file. A control Reactor has no element for is embedded with `XamlHost`, inside the component, and it still takes the shell style.
 
 ### Place widgets in an area
 
-Each placement passes the running `Shell`, that placement's settings and the area's orientation in its `WidgetContext`. A plain control is a fresh element. A component is one instance for that placement, rendered again with a new `WidgetContext` when the settings or the orientation change. Several placements may use one widget:
+Each placement passes the running `Shell`, the shell window the area is drawn in, that placement's settings and the area's orientation in its `WidgetContext`. `Props.Window` is null until the area is in a window, and the widget renders again once it is, so a widget reads the screen from `Props.Window.Screen`. One instance serves a placement, rendered again with a new `WidgetContext` when the settings, the orientation or the window change. Several placements may use one widget:
 
 ```csharp
         var area = new WidgetArea
@@ -371,16 +398,16 @@ Each placement passes the running `Shell`, that placement's settings and the are
         panel.Closed += area.Dispose;
 ```
 
-- **Replacing widgets.** Assigning `Defaults` snapshots the list unless the [preferences file](#preferences) has a list for the area. A plain control is disposed and made again, and so is a component whose name is no longer in that place. A component that stays is rendered again with the new props, and changing `Orientation` does the same. A plain control that implements `IDisposable` is disposed when it is replaced.
+- **Replacing widgets.** Assigning `Defaults` snapshots the list unless the [preferences file](#preferences) has a list for the area. A widget whose name is no longer in that place is disposed and made again. A widget that stays is rendered again with the new props, and changing `Orientation` does the same.
 - **Disposing an area.** The example treats a user closing the panel as permanent: `Closed` normally only hides a window. When your code tears the panel down with `panel.Dispose()`, explicitly call `area.Dispose()` too. Removing or reparenting the area does not dispose widgets.
 - **Settings.** Treat placement settings, including nested tables, as read-only.
 - **Styling.** The [shell style](#style) styles the plain controls in an area, including the ones a component renders, so a component names no brush of its own. A widget that still has XAML uses `{ThemeResource}` for area-sensitive resources: `{StaticResource}` resolves at construction, before the area owns the widget.
 - **Popups.** Assign `context.StylePopup(content)` to a `PopupWindow.Content`, or to a flyout's content, to load a fresh dictionary of the area's style and follow its resolved theme, style, font, font size and foreground until the area removes the widget or is disposed. `content` may be a plain element or a `ReactorHostControl` showing a component. The widget still owns its popup windows.
-- **A widget that fails.** An unknown widget, a factory that throws, or a component that throws while rendering shows a placeholder with its name and reason while the other placements keep running. The exception and its stack trace are logged under `widgets` in the shell's log (`winshell log`). Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Other exceptions after creation follow the shell's normal crash supervision.
+- **A widget that fails.** An unknown widget, or a component that throws while it is created or while it renders, shows a placeholder with its name and reason while the other placements keep running. The exception and its stack trace are logged under `widgets` in the shell's log (`winshell log`). Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Other exceptions after creation follow the shell's normal crash supervision.
 
 ### Let the user change an area
 
-Set an area's inherited WinUI `Name` to let the user replace its placements. The area is then a component, and its section of the [preferences file](#preferences) holds one `widgets` list. Names are case-sensitive, and areas with the same name use the same section. An area with no name always uses its defaults. A missing file is written with each named area's defaults commented out. Uncomment the list and edit it:
+Set an area's inherited WinUI `Name` to let the user replace its placements. The area then has a section of the [preferences file](#preferences), which holds one `widgets` list. Names are case-sensitive, and areas with the same name use the same section. An area with no name always uses its defaults. A missing file is written with each named area's defaults commented out. Uncomment the list and edit it:
 
 ```toml
 [end]
@@ -391,11 +418,11 @@ widgets = [
 ```
 
 - The list replaces the area's **whole** default list, in order.
-- `widget` names the registered factory, and the other keys become its `WidgetContext.Settings`, including nested tables and arrays.
+- `widget` names the registered widget, and the other keys become its `WidgetContext.Settings`, including nested tables and arrays.
 - `widgets = []` leaves the area empty.
 - Comment the list out or remove it to return to the author's defaults. An area absent from the file keeps its defaults.
 
-Saving applies changes live. A plain control in a changed area is disposed and made again, and a component whose name stays is rendered again with the new settings. A different list of names replaces those widgets. Other areas keep theirs. A syntax error or a list without string `widget` names keeps the last valid list and logs the file location under `preferences`. Winshell does not migrate or merge user lists into new defaults. The old placement file, `widgets\<shell id>.toml`, is not read.
+Saving applies changes live. A widget whose name stays is rendered again with the new settings. A different list of names replaces those widgets. Other areas keep theirs. A syntax error or a list without string `widget` names keeps the last valid list and logs the file location under `preferences`. Winshell does not migrate or merge user lists into new defaults. The old placement file, `widgets\<shell id>.toml`, is not read.
 
 ## Style
 
@@ -446,7 +473,7 @@ A widget reads the alert color from the style. With none set, `context.Style` is
 
 A widget other people use can be a class library. [samples/message-widget](samples/message-widget) is one, and the solution builds it: a component that shows one line of text, with one `text` setting. It is a sample for this guide, not a widget Winshell ships. A configuration references the library and registers the component the way [Widgets](#widgets) does, with the type `MessageWidget.Message`.
 
-The project is a WinUI library. In this repository it builds against Winshell's source. A plain control library lists a `WinshellWidget` item so [`winshell widget install`](#installed-widgets) can construct it. A component has no constructor for that item to call, so this sample lists none.
+The project is a WinUI library. In this repository it builds against Winshell's source. A library lists a `WinshellWidget` item whose `Type` is the component, so [`winshell widget install`](#installed-widgets) can register it. This sample lists none: the configuration registers `MessageWidget.Message` itself, as [Widgets](#widgets) shows.
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
