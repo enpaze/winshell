@@ -11,7 +11,7 @@ internal static class ExplorerTaskbarRecovery
     /// <summary>Whether a taskbar window of Explorer's is hidden. This does not say which process hid it.</summary>
     internal static bool AnyHidden()
     {
-        return ExplorerTaskbarBackend.Find().Windows.Any(taskbar => !Win32.IsWindowVisible(taskbar.Hwnd));
+        return ExplorerTaskbarBackend.Find().Windows.Any(taskbar => !PInvoke.IsWindowVisible((HWND)taskbar.Hwnd));
     }
 
     /// <summary>Shows every hidden taskbar window and reserves its edge again. A window that still reserves its edge keeps it.</summary>
@@ -20,7 +20,7 @@ internal static class ExplorerTaskbarRecovery
         var (windows, autohide) = ExplorerTaskbarBackend.Find();
         foreach (var (hwnd, primary) in windows)
         {
-            if (Win32.IsWindowVisible(hwnd))
+            if (PInvoke.IsWindowVisible((HWND)hwnd))
                 continue;
             var saved = ExplorerTaskbarBackend.Saved.Of(hwnd, primary, autohide, true);
             saved.Removed = saved.Reserves;

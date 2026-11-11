@@ -110,7 +110,7 @@ public sealed class RealInputTests
     /// <summary>A panel never takes activation, so the app in front is another one's.</summary>
     private static void Behind(PanelWindow panel)
     {
-        Assert.NotEqual(panel.Host!.Handle, TopLevelWindows.RootOf(Win32.GetForegroundWindow()));
+        Assert.NotEqual(panel.Host!.Handle, TopLevelWindows.RootOf(PInvoke.GetForegroundWindow()));
     }
 
     private static POINT Cursor()

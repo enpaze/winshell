@@ -19,7 +19,7 @@ internal sealed record MonitorGeometry(nint Handle, string Id, RECT Bounds, RECT
     public Rect Logical => DesktopSpace.ToLogical(Bounds, Bounds, Scale);
 
     /// <summary>The area a window is placed in, with the scale that turns its pixels into logical ones.</summary>
-    public MonitorFrame Frame => new(Area.Left, Area.Top, Area.Right, Area.Bottom, Scale);
+    public MonitorFrame Frame => new(Area.left, Area.top, Area.right, Area.bottom, Scale);
 }
 
 /// <summary>
@@ -46,7 +46,7 @@ internal static class Screens
         foreach (var handle in Monitors.List())
             if (Read(handle) is { } monitor)
                 result.Add(monitor);
-        return result.OrderByDescending(m => m.IsPrimary).ThenBy(m => m.Bounds.Left).ThenBy(m => m.Bounds.Top)
+        return result.OrderByDescending(m => m.IsPrimary).ThenBy(m => m.Bounds.left).ThenBy(m => m.Bounds.top)
             .ToList();
     }
 

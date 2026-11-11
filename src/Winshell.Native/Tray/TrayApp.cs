@@ -19,9 +19,9 @@ internal static class TrayApp
     /// </summary>
     internal static void AskForIcons()
     {
-        Win32.PostMessageW(HWND.HWND_BROADCAST, TaskbarWindows.Created, 0, 0);
+        PInvoke.PostMessage(HWND.HWND_BROADCAST, TaskbarWindows.Created, default, default);
         foreach (var window in WindowTree.MessageOnly())
-            Win32.PostMessageW(window, TaskbarWindows.Created, 0, 0);
+            PInvoke.PostMessage((HWND)window, TaskbarWindows.Created, default, default);
     }
 
     /// <summary>Lets the process take the foreground, if this process may pass that right on.</summary>

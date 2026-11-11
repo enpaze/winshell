@@ -25,17 +25,17 @@ internal sealed record SavedFloatingPlace(
     public bool Matches(string monitorId, RECT bounds, double scale)
     {
         return monitorId == MonitorId
-               && bounds.Left == MonitorBounds.Left
-               && bounds.Top == MonitorBounds.Top
-               && bounds.Right == MonitorBounds.Right
-               && bounds.Bottom == MonitorBounds.Bottom
+               && bounds.left == MonitorBounds.left
+               && bounds.top == MonitorBounds.top
+               && bounds.right == MonitorBounds.right
+               && bounds.bottom == MonitorBounds.bottom
                && Math.Abs(scale - Scale) < 0.001;
     }
 
     /// <summary>The saved place on a monitor, in that monitor's physical pixels at <paramref name="scale"/>.</summary>
     public RECT RectOn(RECT monitor, double scale)
     {
-        var logical = new Rect(monitor.Left + OffsetX, monitor.Top + OffsetY, Math.Max(0, Width), Math.Max(0, Height));
+        var logical = new Rect(monitor.left + OffsetX, monitor.top + OffsetY, Math.Max(0, Width), Math.Max(0, Height));
         return DesktopSpace.ToPhysical(logical, monitor, scale);
     }
 }

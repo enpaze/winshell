@@ -28,14 +28,15 @@ internal static unsafe class WindowTree
     internal static HashSet<nint> MessageOnly()
     {
         // Only a message-only window names their parent. Another app's may close before it is asked; this one can't.
-        var own = Win32.CreateWindowExW(0, "STATIC", "", 0, 0, 0, 0, 0, Win32.HWND_MESSAGE, 0, 0, 0);
-        if (own == 0)
+        var own = PInvoke.CreateWindowEx(default, "STATIC", "", default, 0, 0, 0, 0, HWND.HWND_MESSAGE, default,
+            default, null);
+        if ((nint)own == 0)
             return [];
-        var parent = Win32.GetAncestor(own, (uint)GET_ANCESTOR_FLAGS.GA_PARENT);
-        Win32.DestroyWindow(own);
+        var parent = (nint)PInvoke.GetAncestor(own, GET_ANCESTOR_FLAGS.GA_PARENT);
+        PInvoke.DestroyWindow(own);
         var windows = parent != 0 ? Descendants(parent) : [];
         // The list also has the child windows of message-only windows.
-        windows.RemoveWhere(hwnd => Win32.GetAncestor(hwnd, (uint)GET_ANCESTOR_FLAGS.GA_PARENT) != parent);
+        windows.RemoveWhere(hwnd => (nint)PInvoke.GetAncestor((HWND)hwnd, GET_ANCESTOR_FLAGS.GA_PARENT) != parent);
         return windows;
     }
 

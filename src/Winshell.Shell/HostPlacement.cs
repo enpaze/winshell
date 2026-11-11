@@ -30,26 +30,26 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
 
     public (int X, int Y) MapToScreen(double x, double y)
     {
-        var pt = new POINT { X = (int)Math.Round(x * Scale), Y = (int)Math.Round(y * Scale) };
-        Win32.ClientToScreen(Handle, ref pt);
+        var pt = new System.Drawing.Point((int)Math.Round(x * Scale), (int)Math.Round(y * Scale));
+        PInvoke.ClientToScreen((HWND)Handle, ref pt);
         return (pt.X, pt.Y);
     }
 
     /// <summary>Whether a point on the virtual desktop, in physical pixels, is inside this window.</summary>
     internal bool ContainsScreenPoint(POINT pt)
     {
-        Win32.GetWindowRect(Handle, out var r);
-        return pt.X >= r.Left && pt.X < r.Right && pt.Y >= r.Top && pt.Y < r.Bottom;
+        PInvoke.GetWindowRect((HWND)Handle, out var r);
+        return pt.X >= r.left && pt.X < r.right && pt.Y >= r.top && pt.Y < r.bottom;
     }
 
     /// <summary>Moves the window to a rectangle in physical pixels, then tells its client the size and place it got.</summary>
-    internal void Move(RECT rect, nint after, uint flags)
+    internal void Move(RECT rect, nint after, SET_WINDOW_POS_FLAGS flags)
     {
         // Moving onto a monitor of another DPI sends WM_DPICHANGED from inside SetWindowPos; this rect is already right for it.
         Placing = true;
         try
         {
-            Win32.SetWindowPos(Handle, after, rect.Left, rect.Top, rect.Width, rect.Height, flags);
+            PInvoke.SetWindowPos((HWND)Handle, (HWND)after, rect.left, rect.top, rect.Width, rect.Height, flags);
         }
         finally
         {
@@ -61,20 +61,20 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
 
     internal void SetExStyle(uint flag, bool on)
     {
-        var ex = (uint)Win32.GetWindowLongPtr(Handle, Win32.GWL_EXSTYLE);
+        var ex = (uint)PInvoke.GetWindowLongPtr((HWND)Handle, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
         var next = on ? ex | flag : ex & ~flag;
         if (next != ex)
-            Win32.SetWindowLongPtr(Handle, Win32.GWL_EXSTYLE, (nint)next);
+            PInvoke.SetWindowLongPtr((HWND)Handle, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE, (nint)next);
     }
 
     internal void UpdateSize()
     {
-        Win32.GetClientRect(Handle, out var rc);
-        var origin = new POINT();
-        Win32.ClientToScreen(Handle, ref origin);
+        PInvoke.GetClientRect((HWND)Handle, out var rc);
+        var origin = new System.Drawing.Point();
+        PInvoke.ClientToScreen((HWND)Handle, ref origin);
         var monitor = Screens.Of(Handle);
         var device = monitor?.Id ?? "";
-        _origin = DesktopSpace.ToLogical(origin, monitor?.Bounds ?? default, Scale);
+        _origin = DesktopSpace.ToLogical(new POINT { X = origin.X, Y = origin.Y }, monitor?.Bounds ?? default, Scale);
         var width = Math.Max(1, rc.Width);
         var height = Math.Max(1, rc.Height);
         host.Presentation.FitIsland(width, height);
@@ -97,13 +97,13 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
             host.Placer.Show();
             host.Focus.Show();
             // Showing a window can put it above the windows it owns. Put those back above it.
-            if (!Win32.IsIconic(Handle))
+            if (!PInvoke.IsIconic((HWND)Handle))
                 OwnedWindows.Raise(Handle, platform.Windows);
         }
         else
         {
             host.Placer.Hide();
-            Win32.ShowWindow(Handle, (int)SHOW_WINDOW_CMD.SW_HIDE);
+            PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_HIDE);
             host.Focus.Release();
         }
     }
@@ -146,20 +146,20 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
         _clickThrough = on;
         SetExStyle((uint)(WINDOW_EX_STYLE.WS_EX_TRANSPARENT | WINDOW_EX_STYLE.WS_EX_LAYERED), on);
         if (on)
-            Win32.SetLayeredWindowAttributes(Handle, 0, 255, Win32.LWA_ALPHA);
+            PInvoke.SetLayeredWindowAttributes((HWND)Handle, default, 255, LAYERED_WINDOW_ATTRIBUTES_FLAGS.LWA_ALPHA);
     }
 
     public void Raise()
     {
-        Win32.SetWindowPos(Handle, Win32.HWND_TOP, 0, 0, 0, 0,
-            (uint)(SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
+        PInvoke.SetWindowPos((HWND)Handle, HWND.HWND_TOP, 0, 0, 0, 0,
+            (SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
                    SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE));
     }
 
     public void StartSystemMove()
     {
         Win32.ReleaseCapture();
-        Win32.SendMessageW(Handle, Win32.WM_SYSCOMMAND, (nint)(Win32.SC_MOVE | 2), 0);
+        PInvoke.SendMessage((HWND)Handle, PInvoke.WM_SYSCOMMAND, (WPARAM)(nuint)(PInvoke.SC_MOVE | 2), 0);
     }
 
     public void StartSystemResize(Edges edges)
@@ -177,7 +177,7 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
             _ => 8
         };
         Win32.ReleaseCapture();
-        Win32.SendMessageW(Handle, Win32.WM_SYSCOMMAND, (nint)(Win32.SC_SIZE + code), 0);
+        PInvoke.SendMessage((HWND)Handle, PInvoke.WM_SYSCOMMAND, (WPARAM)(nuint)(PInvoke.SC_SIZE + code), 0);
     }
 
     /// <summary>Gives back what the window holds while it is placed: a popup's grab on clicks and a panel's edge.</summary>

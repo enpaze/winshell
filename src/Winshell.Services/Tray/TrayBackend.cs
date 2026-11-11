@@ -38,7 +38,7 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
         get
         {
             nint hwnd = 0;
-            while ((hwnd = Win32.FindWindowExW(0, hwnd, names.Explorer, null)) != 0)
+            while ((hwnd = PInvoke.FindWindowEx(HWND.Null, (HWND)hwnd, names.Explorer, null)) != 0)
                 if (hwnd != Window)
                     return hwnd;
             return 0;
@@ -107,21 +107,21 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
     public void Raise()
     {
         var explorer = Explorer;
-        if (explorer != 0 && Win32.GetWindowRect(explorer, out var r))
+        if (explorer != 0 && PInvoke.GetWindowRect((HWND)explorer, out var r))
             // Apps that read the taskbar's position from this window get Explorer's.
-            Win32.SetWindowPos(Window, Win32.HWND_TOPMOST, r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top,
-                (uint)SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
+            PInvoke.SetWindowPos((HWND)Window, HWND.HWND_TOPMOST, r.left, r.top, r.right - r.left, r.bottom - r.top,
+                SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
         else
-            Win32.SetWindowPos(Window, Win32.HWND_TOPMOST, 0, 0, 0, 0,
-                (uint)(SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
+            PInvoke.SetWindowPos((HWND)Window, HWND.HWND_TOPMOST, 0, 0, 0, 0,
+                (SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
                        SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE));
     }
 
     public bool Lower()
     {
         var explorer = Explorer;
-        return Window != 0 && explorer != 0 && Win32.SetWindowPos(Window, explorer, 0, 0, 0, 0,
-            (uint)(SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
+        return Window != 0 && explorer != 0 && PInvoke.SetWindowPos((HWND)Window, (HWND)explorer, 0, 0, 0, 0,
+            (SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
                    SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE));
     }
 
@@ -147,7 +147,7 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
 
     public uint ProcessOf(nint window)
     {
-        Win32.GetWindowThreadProcessId(window, out var pid);
+        PInvoke.GetWindowThreadProcessId((HWND)window, out var pid);
         return pid;
     }
 
@@ -193,9 +193,9 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
         if (explorer == 0 || (!desktopOrder && (hwnd != explorer || idObject != Win32.OBJID_WINDOW)))
             return;
         // A raise causes another reorder event. Only signal when Explorer is actually above this window.
-        for (var above = Win32.GetWindow(explorer, Win32.GW_HWNDPREV);
+        for (var above = PInvoke.GetWindow((HWND)explorer, GET_WINDOW_CMD.GW_HWNDPREV);
              above != 0;
-             above = Win32.GetWindow(above, Win32.GW_HWNDPREV))
+             above = PInvoke.GetWindow(above, GET_WINDOW_CMD.GW_HWNDPREV))
             if (above == Window)
                 return;
         ExplorerInFront?.Invoke();
@@ -233,11 +233,11 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
 
         // Apps that post a menu command to the taskbar, such as minimizing every window, find this window first.
         // These carry no pointers. Private WM_USER messages have no shared layout and cannot be forwarded safely.
-        if (msg == Win32.WM_SYSCOMMAND || (msg == PInvoke.WM_COMMAND && lParam == 0))
+        if (msg == PInvoke.WM_SYSCOMMAND || (msg == PInvoke.WM_COMMAND && lParam == 0))
         {
             var explorer = Explorer;
             if (explorer != 0)
-                Win32.PostMessageW(explorer, msg, wParam, lParam);
+                PInvoke.PostMessage((HWND)explorer, msg, (WPARAM)(nuint)wParam, lParam);
             return true;
         }
 

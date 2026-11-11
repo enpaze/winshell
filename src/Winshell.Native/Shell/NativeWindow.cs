@@ -1,6 +1,9 @@
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winshell.Native;
 
@@ -25,7 +28,7 @@ internal readonly unsafe ref struct WindowMessage
     {
         get
         {
-            Expect(Win32.WM_DPICHANGED);
+            Expect(PInvoke.WM_DPICHANGED);
             return *(RECT*)LParam;
         }
     }
@@ -35,7 +38,7 @@ internal readonly unsafe ref struct WindowMessage
     {
         get
         {
-            Expect(Win32.WM_GETMINMAXINFO);
+            Expect(PInvoke.WM_GETMINMAXINFO);
             return ref *(MINMAXINFO*)LParam;
         }
     }
@@ -84,7 +87,7 @@ internal sealed unsafe class NativeWindow
     internal static NativeWindow Create(string className, uint style, uint exStyle, WindowMessageHandler handler,
         Action<Exception> failed)
     {
-        return Make(className, style, exStyle, handler, failed, 0, 1)
+        return Make(className, style, exStyle, handler, failed, HWND.Null, 1)
                ?? throw new InvalidOperationException($"CreateWindowEx failed: {Marshal.GetLastPInvokeError()}");
     }
 
@@ -101,19 +104,31 @@ internal sealed unsafe class NativeWindow
     internal static NativeWindow? TryCreate(string className, uint style, uint exStyle, WindowMessageHandler handler,
         Action<Exception> failed, bool messageOnly)
     {
-        var parent = messageOnly ? Win32.HWND_MESSAGE : 0;
+        var parent = messageOnly ? HWND.HWND_MESSAGE : HWND.Null;
         return Make(className, style, exStyle, handler, failed, parent, 0);
     }
 
+    /// <summary>
+    /// A window of <paramref name="className"/>. <c>CreateWindowEx</c> takes a pointer for its last argument, which
+    /// only this assembly can pass, so this passes null.
+    /// </summary>
+    internal static nint OfClass(string className, string title, uint style, int x, int y, int width, int height,
+        nint parent, nint instance, uint exStyle = 0)
+    {
+        return PInvoke.CreateWindowEx((WINDOW_EX_STYLE)exStyle, className, title, (WINDOW_STYLE)style, x, y, width,
+            height, (HWND)parent, default, (HINSTANCE)instance, null);
+    }
+
     private static NativeWindow? Make(string className, uint style, uint exStyle, WindowMessageHandler handler,
-        Action<Exception> failed, nint parent, int size)
+        Action<Exception> failed, HWND parent, int size)
     {
         if (Registered.TryAdd(className, 0))
             Register(className);
-        var hwnd = Win32.CreateWindowExW(exStyle, className, "", style, 0, 0, size, size, parent, 0,
-            Win32.GetModuleHandleW(null), 0);
-        if (hwnd == 0)
+        var created = OfClass(className, "", style, 0, 0, size, size, (nint)parent, Win32.GetModuleHandleW(null),
+            exStyle);
+        if (created == 0)
             return null;
+        var hwnd = created;
         var window = new NativeWindow(hwnd, handler, failed);
         Live[hwnd] = window;
         return window;
@@ -130,7 +145,7 @@ internal sealed unsafe class NativeWindow
             return;
         Forget(hwnd);
         if (destroy)
-            Win32.DestroyWindow(hwnd);
+            PInvoke.DestroyWindow((HWND)hwnd);
     }
 
     private void Forget(nint hwnd)
@@ -147,15 +162,16 @@ internal sealed unsafe class NativeWindow
             var wc = new WNDCLASSEXW
             {
                 cbSize = (uint)sizeof(WNDCLASSEXW),
-                style = Win32.CS_DBLCLKS,
+                style = WNDCLASS_STYLES.CS_DBLCLKS,
                 lpfnWndProc = &WndProc,
-                hInstance = Win32.GetModuleHandleW(null),
-                hIcon = AppIcon(Win32.GetSystemMetrics(Win32.SM_CXICON), Win32.GetSystemMetrics(Win32.SM_CYICON)),
-                hIconSm = AppIcon(Win32.GetSystemMetrics(Win32.SM_CXSMICON), Win32.GetSystemMetrics(Win32.SM_CYSMICON)),
-                hCursor = Win32.LoadCursorW(0, Win32.IDC_ARROW),
+                hInstance = (HINSTANCE)Win32.GetModuleHandleW(null),
+                hIcon = (HICON)AppIcon(Win32.GetSystemMetrics(Win32.SM_CXICON), Win32.GetSystemMetrics(Win32.SM_CYICON)),
+                hIconSm = (HICON)AppIcon(Win32.GetSystemMetrics(Win32.SM_CXSMICON),
+                    Win32.GetSystemMetrics(Win32.SM_CYSMICON)),
+                hCursor = (HCURSOR)Win32.LoadCursorW(0, Win32.IDC_ARROW),
                 lpszClassName = name
             };
-            if (Win32.RegisterClassExW(wc) != 0 || Marshal.GetLastPInvokeError() == ErrorClassAlreadyExists)
+            if (PInvoke.RegisterClassEx(in wc) != 0 || Marshal.GetLastPInvokeError() == ErrorClassAlreadyExists)
                 return;
         }
 
@@ -172,23 +188,24 @@ internal sealed unsafe class NativeWindow
             0);
     }
 
-    [UnmanagedCallersOnly]
-    private static nint WndProc(nint hwnd, uint msg, nint wParam, nint lParam)
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
+    private static LRESULT WndProc(HWND hwnd, uint msg, WPARAM wParam, LPARAM lParam)
     {
-        if (Live.TryGetValue(hwnd, out var window))
+        var handle = (nint)hwnd;
+        if (Live.TryGetValue(handle, out var window))
             try
             {
-                if (Callback.Run(window._failed, () => window._handler(new WindowMessage(msg, wParam, lParam)), null)
-                    is { } result)
-                    return result;
+                if (Callback.Run(window._failed,
+                        () => window._handler(new WindowMessage(msg, (nint)wParam.Value, lParam)), null) is { } result)
+                    return (LRESULT)result;
             }
             finally
             {
                 // The last message a window gets, so a window its handler did not release lets go of it here.
                 if (msg == PInvoke.WM_NCDESTROY)
-                    window.Forget(hwnd);
+                    window.Forget(handle);
             }
 
-        return Win32.DefWindowProcW(hwnd, msg, wParam, lParam);
+        return PInvoke.DefWindowProc(hwnd, msg, wParam, lParam);
     }
 }

@@ -48,9 +48,9 @@ internal sealed class HostPanelDesktop(HostWindow host, ShellPlatform platform) 
         host.Placement.Scale = scale;
         host.Placement.SetExStyle((uint)WINDOW_EX_STYLE.WS_EX_TOPMOST, topmost);
         // HWND_NOTOPMOST would put it above every window that is not topmost, so over the fullscreen app.
-        var after = topmost ? Win32.HWND_TOPMOST : Win32.HWND_BOTTOM;
+        var after = topmost ? HWND.HWND_TOPMOST : HWND.HWND_BOTTOM;
         host.Placement.Move(rect, after,
-            (uint)(SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_NOOWNERZORDER));
+            (SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_NOOWNERZORDER));
     }
 
     public void WorkAreaMayHaveChanged()

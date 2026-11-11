@@ -239,12 +239,12 @@ public class PanelEdgeDecisionTests
 
         edge.Set(Panel(Edges.Top | Edges.Left));
         Assert.Equal(0, desktop.Registers);
-        Assert.Equal(PrimaryMonitor.Area.Top, desktop.Moved!.Value.Top);
+        Assert.Equal(PrimaryMonitor.Area.top, desktop.Moved!.Value.top);
 
         edge.Hide();
         edge.Set(Panel(Edges.Top | Edges.Left | Edges.Right));
         Assert.Equal(0, desktop.Registers);
-        Assert.Equal(PrimaryMonitor.Area.Top, desktop.Moved.Value.Top);
+        Assert.Equal(PrimaryMonitor.Area.top, desktop.Moved.Value.top);
     }
 
     [Fact]

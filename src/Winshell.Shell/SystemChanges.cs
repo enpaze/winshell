@@ -25,11 +25,11 @@ internal sealed class SystemChanges
     {
         return message switch
         {
-            Win32.WM_DISPLAYCHANGE => SystemChange.Screens,
+            PInvoke.WM_DISPLAYCHANGE => SystemChange.Screens,
             // The taskbar moved, resized, or started or stopped hiding.
-            Win32.WM_SETTINGCHANGE when wParam == Win32.SPI_SETWORKAREA => SystemChange.WorkArea | SystemChange.Theme,
-            Win32.WM_SETTINGCHANGE => SystemChange.Screens | SystemChange.Theme,
-            Win32.WM_DWMCOLORIZATIONCOLORCHANGED or Win32.WM_SYSCOLORCHANGE or Win32.WM_THEMECHANGED =>
+            PInvoke.WM_SETTINGCHANGE when wParam == Win32.SPI_SETWORKAREA => SystemChange.WorkArea | SystemChange.Theme,
+            PInvoke.WM_SETTINGCHANGE => SystemChange.Screens | SystemChange.Theme,
+            PInvoke.WM_DWMCOLORIZATIONCOLORCHANGED or PInvoke.WM_SYSCOLORCHANGE or PInvoke.WM_THEMECHANGED =>
                 SystemChange.Theme,
             _ => SystemChange.None
         };

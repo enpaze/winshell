@@ -20,7 +20,7 @@ internal static class NativeMenu
                 continue;
             // Finish cancellation before a button forwards another tray callback, but never let a hung app hold up
             // the shell.
-            Win32.SendMessageTimeoutW(owner, CancelMode, 0, 0, Win32.SMTO_ABORTIFHUNG | Win32.SMTO_BLOCK, 200, out _);
+            PInvoke.SendMessageTimeout((HWND)owner, CancelMode, 0, 0, SEND_MESSAGE_TIMEOUT_FLAGS.SMTO_ABORTIFHUNG | SEND_MESSAGE_TIMEOUT_FLAGS.SMTO_BLOCK, 200, out _);
         }
     }
 
@@ -30,9 +30,9 @@ internal static class NativeMenu
         // Windows keeps a hidden menu window ready on every desktop, so only a visible one is open.
         var threads = new HashSet<uint>();
         nint menu = 0;
-        while ((menu = Win32.FindWindowExW(0, menu, "#32768", null)) != 0)
-            if (Win32.IsWindowVisible(menu))
-                threads.Add(Win32.GetWindowThreadProcessId(menu, out _));
+        while ((menu = PInvoke.FindWindowEx(HWND.Null, (HWND)menu, "#32768", null)) != 0)
+            if (PInvoke.IsWindowVisible((HWND)menu))
+                threads.Add(PInvoke.GetWindowThreadProcessId((HWND)menu, out _));
         return threads;
     }
 }

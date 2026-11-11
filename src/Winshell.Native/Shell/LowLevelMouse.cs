@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Windows.Win32;
 
 namespace Winshell.Native;
 
@@ -47,8 +48,8 @@ internal static unsafe class LowLevelMouse
     private static nint Proc(int code, nint wParam, nint lParam)
     {
         if (code >= 0 && lParam != 0
-                      && (uint)wParam is Win32.WM_LBUTTONDOWN or Win32.WM_RBUTTONDOWN or Win32.WM_MBUTTONDOWN
-                      or Win32.WM_XBUTTONDOWN)
+                      && (uint)wParam is PInvoke.WM_LBUTTONDOWN or PInvoke.WM_RBUTTONDOWN or PInvoke.WM_MBUTTONDOWN
+                      or PInvoke.WM_XBUTTONDOWN)
         {
             var pt = ((MSLLHOOKSTRUCT*)lParam)->pt;
             foreach (var watch in Volatile.Read(ref _watches))

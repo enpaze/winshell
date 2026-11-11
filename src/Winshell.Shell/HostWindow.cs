@@ -33,7 +33,7 @@ internal sealed partial class HostWindow : IDisposable
         Handle = _window.Handle;
         try
         {
-            Placement.Scale = Win32.GetDpiForWindow(Handle) / 96.0;
+            Placement.Scale = PInvoke.GetDpiForWindow((HWND)Handle) / 96.0;
             Presentation.Attach();
         }
         catch

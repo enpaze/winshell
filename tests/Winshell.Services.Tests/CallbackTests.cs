@@ -19,7 +19,7 @@ public sealed class CallbackTests : IDisposable
         var reported = new List<Exception>();
         var window = Open(thrown, reported.Add);
 
-        Assert.Equal(1, Win32.SendMessageW(window.Handle, Probe, 0, 0));
+        Assert.Equal(1, (nint)PInvoke.SendMessage((HWND)window.Handle, Probe, 0, 0));
         Assert.Same(thrown, Assert.Single(reported));
     }
 
@@ -28,7 +28,7 @@ public sealed class CallbackTests : IDisposable
     {
         var window = Open(new InvalidOperationException("broken"), _ => throw new IOException("disk full"));
 
-        Assert.Equal(1, Win32.SendMessageW(window.Handle, Probe, 0, 0));
+        Assert.Equal(1, (nint)PInvoke.SendMessage((HWND)window.Handle, Probe, 0, 0));
     }
 
     private NativeWindow Open(Exception thrown, Action<Exception> failed)

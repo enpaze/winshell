@@ -91,10 +91,10 @@ internal sealed class FrameStream : IDisposable
                                      TopLevelWindows.TryFrameBounds(window, out var frame))
         {
             var bounds = screen.Bounds;
-            var crop = new RECT(Math.Max(frame.Left, bounds.Left) - bounds.Left,
-                Math.Max(frame.Top, bounds.Top) - bounds.Top,
-                Math.Min(frame.Right, bounds.Right) - bounds.Left,
-                Math.Min(frame.Bottom, bounds.Bottom) - bounds.Top);
+            var crop = new RECT(Math.Max(frame.left, bounds.left) - bounds.left,
+                Math.Max(frame.top, bounds.top) - bounds.top,
+                Math.Min(frame.right, bounds.right) - bounds.left,
+                Math.Min(frame.bottom, bounds.bottom) - bounds.top);
             if (crop.Width <= 0 || crop.Height <= 0)
                 throw new WindowsRefusal(
                     "Windows refused to capture the window by itself, and it is on no screen to capture instead.");
@@ -186,7 +186,7 @@ internal sealed class FrameStream : IDisposable
         var desc = texture.Description;
         var content = new RECT(0, 0, frame.ContentSize.Width, frame.ContentSize.Height);
         var (left, top, width, height) = _crop is { } crop
-            ? (crop.Left, crop.Top, crop.Width, crop.Height)
+            ? (crop.left, crop.top, crop.Width, crop.Height)
             : (0, 0, content.Width, content.Height);
         if (width <= 0 || height <= 0 || left + width > Math.Min(content.Width, desc.Width) ||
             top + height > Math.Min(content.Height, desc.Height))

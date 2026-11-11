@@ -284,9 +284,9 @@ public sealed class CaptureSessionTests
         using var session = new CaptureSession(loop, () => backend);
         session.Target = Screen;
         // A window that is gone: Windows refuses to open the clipboard for it, so the clipboard is left alone.
-        var gone = Win32.CreateWindowExW(0, "STATIC", "", 0, 0, 0, 0, 0, Win32.HWND_MESSAGE, 0, 0, 0);
+        var gone = NativeWindow.OfClass("STATIC", "", 0, 0, 0, 0, 0, HWND.HWND_MESSAGE, 0);
         Assert.NotEqual(0, gone);
-        Assert.True(Win32.DestroyWindow(gone));
+        Assert.True(PInvoke.DestroyWindow((HWND)gone));
 
         Assert.False(session.CopyToClipboard(gone));
         Assert.Contains("open window", session.Error, StringComparison.Ordinal);

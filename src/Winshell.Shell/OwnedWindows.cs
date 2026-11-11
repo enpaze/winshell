@@ -12,10 +12,10 @@ internal static class OwnedWindows
     /// </summary>
     public static void Link(nint window, HostWindow? owner)
     {
-        var hwnd = owner is { Handle: not 0 } && Win32.IsWindow(owner.Handle) ? owner.Handle : 0;
-        if (Win32.GetWindowLongPtr(window, Win32.GWLP_HWNDPARENT) == hwnd)
+        var hwnd = owner is { Handle: not 0 } && PInvoke.IsWindow((HWND)owner.Handle) ? owner.Handle : 0;
+        if (PInvoke.GetWindowLongPtr((HWND)window, WINDOW_LONG_PTR_INDEX.GWLP_HWNDPARENT) == hwnd)
             return;
-        Win32.SetWindowLongPtr(window, Win32.GWLP_HWNDPARENT, hwnd);
+        PInvoke.SetWindowLongPtr((HWND)window, WINDOW_LONG_PTR_INDEX.GWLP_HWNDPARENT, hwnd);
         if (hwnd != 0)
             PlaceAboveOwner(window);
     }
@@ -24,21 +24,21 @@ internal static class OwnedWindows
     public static void Raise(nint owner, IEnumerable<HostWindow> windows)
     {
         foreach (var window in windows)
-            if (window.Handle != 0 && Win32.GetWindowLongPtr(window.Handle, Win32.GWLP_HWNDPARENT) == owner)
+            if (window.Handle != 0 && PInvoke.GetWindowLongPtr((HWND)window.Handle, WINDOW_LONG_PTR_INDEX.GWLP_HWNDPARENT) == owner)
                 PlaceAboveOwner(window.Handle);
     }
 
     private static void PlaceAboveOwner(nint window)
     {
-        var owner = Win32.GetWindowLongPtr(window, Win32.GWLP_HWNDPARENT);
-        if (owner == 0 || !Win32.IsWindow(owner))
+        var owner = PInvoke.GetWindowLongPtr((HWND)window, WINDOW_LONG_PTR_INDEX.GWLP_HWNDPARENT);
+        if (owner == 0 || !PInvoke.IsWindow((HWND)owner))
             return;
-        var above = Win32.GetWindow(owner, Win32.GW_HWNDPREV);
+        var above = PInvoke.GetWindow((HWND)owner, GET_WINDOW_CMD.GW_HWNDPREV);
         if (above == window)
             return;
         // InsertAfter is the window above this one. Nothing above the owner means the top of the z-order.
-        Win32.SetWindowPos(window, above == 0 ? Win32.HWND_TOP : above, 0, 0, 0, 0,
-            (uint)(SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
+        PInvoke.SetWindowPos((HWND)window, above == 0 ? HWND.HWND_TOP : above, 0, 0, 0, 0,
+            (SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
                    SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_NOOWNERZORDER));
     }
 }

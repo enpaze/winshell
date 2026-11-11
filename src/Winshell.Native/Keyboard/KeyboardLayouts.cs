@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.Win32;
 using Windows.Win32;
+using Windows.Win32.Foundation;
 using Windows.Win32.UI.Input.KeyboardAndMouse;
 using Windows.Win32.UI.WindowsAndMessaging;
 
@@ -66,7 +67,7 @@ internal sealed unsafe class KeyboardLayouts
             if (!string.Equals(IdOf(handle), id, StringComparison.Ordinal))
                 continue;
             var window = Focused();
-            return window != 0 && Win32.PostMessageW(window, InputLanguageRequest, 0, handle);
+            return window != 0 && PInvoke.PostMessage((HWND)window, InputLanguageRequest, default, handle);
         }
 
         return false;
@@ -78,10 +79,10 @@ internal sealed unsafe class KeyboardLayouts
     /// </summary>
     private static nint Foreground()
     {
-        var window = Win32.GetForegroundWindow();
-        if (window == 0)
+        var window = PInvoke.GetForegroundWindow();
+        if ((nint)window == 0)
             return 0;
-        var thread = Win32.GetWindowThreadProcessId(window, out _);
+        var thread = PInvoke.GetWindowThreadProcessId(window);
         return thread == 0 ? 0 : (nint)PInvoke.GetKeyboardLayout(thread).Value;
     }
 
@@ -97,7 +98,7 @@ internal sealed unsafe class KeyboardLayouts
                 return info.hwndActive;
         }
 
-        return Win32.GetForegroundWindow();
+        return PInvoke.GetForegroundWindow();
     }
 
     private LayoutFacts Describe(nint handle)

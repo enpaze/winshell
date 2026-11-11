@@ -26,7 +26,7 @@ internal static class ShellHookWindow
     internal static bool Start(Action<nint, nint> received, Action<Exception> failed)
     {
         _received = received;
-        _message = Win32.RegisterWindowMessageW("SHELLHOOK");
+        _message = PInvoke.RegisterWindowMessage("SHELLHOOK");
         _window = NativeWindow.TryCreate(ClassName, 0, 0, OnMessage, failed, true);
         if (_window is not null && _message != 0 && PInvoke.RegisterShellHookWindow((HWND)_window.Handle))
             return true;

@@ -18,22 +18,22 @@ internal static class DesktopSpace
     /// <summary>A physical rectangle on a monitor, in logical pixels.</summary>
     public static Rect ToLogical(RECT rect, RECT monitor, double scale)
     {
-        var origin = ToLogical(new POINT { X = rect.Left, Y = rect.Top }, monitor, scale);
+        var origin = ToLogical(new POINT { X = rect.left, Y = rect.top }, monitor, scale);
         return new Rect(origin.X, origin.Y, Math.Max(0, rect.Width) / scale, Math.Max(0, rect.Height) / scale);
     }
 
     public static Point ToLogical(POINT point, RECT monitor, double scale)
     {
-        return new Point(monitor.Left + (point.X - monitor.Left) / scale,
-            monitor.Top + (point.Y - monitor.Top) / scale);
+        return new Point(monitor.left + (point.X - monitor.left) / scale,
+            monitor.top + (point.Y - monitor.top) / scale);
     }
 
     public static POINT ToPhysical(Point point, RECT monitor, double scale)
     {
         return new POINT
         {
-            X = (int)Math.Round(monitor.Left + (point.X - monitor.Left) * scale),
-            Y = (int)Math.Round(monitor.Top + (point.Y - monitor.Top) * scale)
+            X = (int)Math.Round(monitor.left + (point.X - monitor.left) * scale),
+            Y = (int)Math.Round(monitor.top + (point.Y - monitor.top) * scale)
         };
     }
 

@@ -59,8 +59,8 @@ internal static class WindowRules
     public static bool CoversMonitor(long style, RECT window, RECT monitor)
     {
         return (style & (uint)WINDOW_STYLE.WS_CAPTION) != (uint)WINDOW_STYLE.WS_CAPTION
-               && window.Left <= monitor.Left && window.Top <= monitor.Top && window.Right >= monitor.Right &&
-               window.Bottom >= monitor.Bottom;
+               && window.left <= monitor.left && window.top <= monitor.top && window.right >= monitor.right &&
+               window.bottom >= monitor.bottom;
     }
 
     /// <summary>Whether a WinEvent can move the foreground from one window to another.</summary>

@@ -4,6 +4,11 @@
     <UseWinUI>true</UseWinUI>
   </PropertyGroup>
   <ItemGroup>
+    <Using Include="Windows.Win32" />
+    <Using Include="Windows.Win32.Foundation" />
+    <Using Include="Windows.Win32.UI.WindowsAndMessaging" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" />
     <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" />
     <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" />
