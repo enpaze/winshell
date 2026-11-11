@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Foundation;
 using Winshell.Capture;
 
@@ -27,8 +28,7 @@ public sealed partial class CaptureView : Panel
     private readonly Image _image = new() { Stretch = Stretch.Uniform };
     private CaptureSession? _subscribed;
     private readonly ShellWindowSubscription _shell;
-    private int _frameWidth;
-    private int _frameHeight;
+    private WriteableBitmap? _bitmap;
 
     /// <summary>A view with no session, which shows nothing.</summary>
     public CaptureView()
@@ -118,29 +118,31 @@ public sealed partial class CaptureView : Panel
     {
         if (frame is null)
         {
-            if (_image.Source is null)
+            if (_bitmap is null)
                 return;
+            _bitmap = null;
             _image.Source = null;
-            _frameWidth = 0;
-            _frameHeight = 0;
             InvalidateMeasure();
             return;
         }
 
-        var resized = _frameWidth != frame.Width || _frameHeight != frame.Height;
-        _frameWidth = frame.Width;
-        _frameHeight = frame.Height;
-        _image.Source = frame.ToImageSource();
+        // One bitmap is reused while the frame size stays, so a live view does not allocate one per frame.
+        var resized = _bitmap is null || _bitmap.PixelWidth != frame.Width || _bitmap.PixelHeight != frame.Height;
+        if (resized)
+            _bitmap = new WriteableBitmap(frame.Width, frame.Height);
+        frame.WriteInto(_bitmap!);
+        if (!ReferenceEquals(_image.Source, _bitmap))
+            _image.Source = _bitmap;
         if (resized)
             InvalidateMeasure();
     }
 
     private Size Natural()
     {
-        if (_frameWidth <= 0 || _frameHeight <= 0)
+        if (_bitmap is null)
             return new Size(0, 0);
         var scale = ScaleOf();
-        return new Size(_frameWidth / scale, _frameHeight / scale);
+        return new Size(_bitmap.PixelWidth / scale, _bitmap.PixelHeight / scale);
     }
 
     private double ScaleOf()
