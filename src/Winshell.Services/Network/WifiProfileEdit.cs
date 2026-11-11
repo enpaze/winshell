@@ -3,69 +3,28 @@ using Winshell.Native;
 
 namespace Winshell.Network;
 
-/// <summary>The WLAN profile calls a backend can make. The real one is <see cref="WlanProfileApi"/>; tests supply a fake.</summary>
-internal interface IWlanProfileApi
-{
-    uint Get(Guid adapter, string profileName, out string? xml, out uint flags);
-
-    // Callers decide from the return code; the WLAN reason code is not part of this contract.
-    uint Set(Guid adapter, string xml, uint flags, out uint reason);
-    uint Connect(Guid adapter, string profileName, bool hidden);
-    uint Delete(Guid adapter, string profileName);
-}
-
-/// <summary>The real WLAN profile calls. Tests use a fake <see cref="IWlanProfileApi"/> and do not construct this.</summary>
-internal sealed class WlanProfileApi : IWlanProfileApi
-{
-    public static readonly WlanProfileApi Instance = new();
-
-    public uint Get(Guid adapter, string profileName, out string? xml, out uint flags)
-    {
-        return Wlan.GetProfile(adapter, profileName, out xml, out flags);
-    }
-
-    /// <summary>Refuses a document past <see cref="WifiProfileXml.MaxCharacters"/> with ERROR_INVALID_PARAMETER.</summary>
-    public uint Set(Guid adapter, string xml, uint flags, out uint reason)
-    {
-        if (xml.Length <= WifiProfileXml.MaxCharacters)
-            return Wlan.SetProfile(adapter, xml, flags, out reason);
-        reason = 0;
-        return 87;
-    }
-
-    public uint Connect(Guid adapter, string profileName, bool hidden)
-    {
-        return Wlan.ConnectProfile(adapter, profileName, hidden);
-    }
-
-    public uint Delete(Guid adapter, string profileName)
-    {
-        return Wlan.DeleteProfile(adapter, profileName);
-    }
-}
-
 /// <summary>A profile write. <see cref="Wrote"/> is false when nothing was sent to Windows.</summary>
 internal readonly record struct ProfileChange(string? Error, bool Wrote);
 
 /// <summary>Gets a profile, changes one element, and writes it back with the flag Windows reported.</summary>
 internal static class WifiProfileEdit
 {
-    public static ProfileChange SetAutoConnect(IWlanProfileApi api, Guid adapter, string profileName, bool auto)
+    public static ProfileChange SetAutoConnect(Guid adapter, string profileName, bool auto)
     {
-        if (!TryRead(api, adapter, profileName, out var xml, out var flags, out var error))
+        if (!TryRead(adapter, profileName, out var xml, out var flags, out var error))
             return new ProfileChange(error, false);
         if (!WifiProfileXml.TrySetAutoConnect(xml, auto, out var updated, out var changed, out error))
             return new ProfileChange(error, false);
-        return changed ? Write(api, adapter, updated, flags) : new ProfileChange(null, false);
+        return changed ? Write(adapter, updated, flags) : new ProfileChange(null, false);
     }
 
-    public static ProfileChange ClearPassword(IWlanProfileApi api, Guid adapter, string profileName)
+    public static ProfileChange ClearPassword(Guid adapter, string profileName)
     {
-        if (!TryRead(api, adapter, profileName, out var xml, out var flags, out var error))
+        if (!TryRead(adapter, profileName, out var xml, out var flags, out var error))
             return new ProfileChange(error, false);
         if (!WifiProfileXml.TryClearPassword(xml, out var updated, out var changed, out error))
             return new ProfileChange(error, false);
-        return changed ? Write(api, adapter, updated, flags) : new ProfileChange(null, false);
+        return changed ? Write(adapter, updated, flags) : new ProfileChange(null, false);
     }
 
     public static string WindowsMessage(uint code)
@@ -73,11 +32,10 @@ internal static class WifiProfileEdit
         return new Win32Exception((int)code).Message;
     }
 
-    private static bool TryRead(IWlanProfileApi api, Guid adapter, string profileName, out string xml, out uint flags,
-        out string? error)
+    private static bool TryRead(Guid adapter, string profileName, out string xml, out uint flags, out string? error)
     {
         xml = "";
-        var read = api.Get(adapter, profileName, out var text, out flags);
+        var read = Wlan.GetProfile(adapter, profileName, out var text, out flags);
         if (read != 0 || string.IsNullOrEmpty(text))
         {
             error = read == 0 ? WifiProfileXml.Unreadable : WindowsMessage(read);
@@ -89,9 +47,9 @@ internal static class WifiProfileEdit
         return true;
     }
 
-    private static ProfileChange Write(IWlanProfileApi api, Guid adapter, string xml, uint flags)
+    private static ProfileChange Write(Guid adapter, string xml, uint flags)
     {
-        var error = api.Set(adapter, xml, Wlan.ProfileWriteFlags(flags), out _);
+        var error = Wlan.SetProfile(adapter, xml, flags, out _);
         return error == 0 ? new ProfileChange(null, true) : new ProfileChange(WindowsMessage(error), true);
     }
 }
@@ -99,14 +57,9 @@ internal static class WifiProfileEdit
 /// <summary>Turns profile XML into the fields a configuration sees. The XML itself is not kept.</summary>
 internal static class WifiProfiles
 {
-    public static string Id(Guid adapter, string profileName)
-    {
-        return adapter + ":" + profileName;
-    }
-
     public static WifiProfileInfo Describe(Guid adapter, string profileName, string? xml, uint readError)
     {
-        var id = Id(adapter, profileName);
+        var id = WifiFields.Id(adapter, profileName);
         if (readError != 0 || string.IsNullOrEmpty(xml))
         {
             var message = readError == 0 ? WifiProfileXml.Unreadable : WifiProfileEdit.WindowsMessage(readError);

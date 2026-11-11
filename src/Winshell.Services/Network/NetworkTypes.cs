@@ -102,8 +102,8 @@ public enum ConnectionState
 }
 
 /// <summary>
-/// Why connecting to a Wi-Fi network failed. <see cref="Network.Error"/> holds the value's name after a failed
-/// <see cref="Network.Connect"/> or <see cref="WifiNetwork.ConnectWithPassword"/>.
+/// Why connecting to a Wi-Fi network failed. <see cref="WifiNetwork.Error"/> holds the value's name after a failed
+/// <see cref="WifiNetwork.Connect"/> or <see cref="WifiNetwork.ConnectWithPassword"/>.
 /// </summary>
 public enum ConnectionFailReason
 {

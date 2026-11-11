@@ -16,7 +16,7 @@ Whether airplane mode is on.
 
 ## ConnectionFailReason
 
-Why connecting to a Wi-Fi network failed. Network.Error holds the value's name after a failed Network.Connect or WifiNetwork.ConnectWithPassword.
+Why connecting to a Wi-Fi network failed. WifiNetwork.Error holds the value's name after a failed WifiNetwork.Connect or WifiNetwork.ConnectWithPassword.
 
 | Value | Number | Description |
 | --- | --- | --- |
@@ -50,25 +50,18 @@ The kind of a network adapter.
 
 ## Network
 
-A network of an adapter. Wi-Fi networks are WifiNetwork objects.
+A network of an adapter. A wired one is a WiredNetwork and a Wi-Fi one is a WifiNetwork.
 
 Has the members of [ObservableObject](winshell.md#observableobject).
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `Busy` | bool, read-only | An action is running. Other calls are ignored until it ends. |
 | `Connected` | bool, read-only | Whether the adapter is connected to this network. |
 | `Device` | [NetworkDevice](#networkdevice), read-only | The adapter this network is on. |
-| `Error` | string, read-only | Why the last action failed. Empty while an action runs and after one succeeds. |
 | `Name` | string, read-only | The SSID of a Wi-Fi network. For a wired network, the connection profile's name, or the adapter's. |
 | `Saved` | bool, read-only | A saved profile matches this network. True for a wired network. |
 | `SavedProfiles` | ObservableList of [WifiProfile](#wifiprofile), read-only | The saved Wi-Fi profiles for this network: those whose SSID is its name, and those that can't be read whose profile name is. Empty for a wired network. |
 | `State` | [ConnectionState](#connectionstate), read-only | The adapter's connection state on this network. ConnectionState.Disconnected for every Wi-Fi network the adapter is not on. |
-| `OperationFailed` | Action of string | An action failed, with the same text as Error. |
-| `Connect()` | void | Connects to this Wi-Fi network with saved credentials. Fails for a wired network. |
-| `ConnectWithProfile([WifiProfile](#wifiprofile)? profile)` | void | Connects with a saved profile of this network. The next snapshot reports whether the adapter associated. |
-| `Disconnect()` | void | Disconnects this network's Wi-Fi adapter. Fails for a wired network, and until NetworkingService.RequestAccess is allowed. |
-| `Forget()` | void | Deletes the saved Wi-Fi profile whose name is this SSID. |
 
 ## NetworkAccessStatus
 
@@ -197,9 +190,16 @@ Has the members of [Network](#network).
 
 | Member | Type | Description |
 | --- | --- | --- |
+| `Busy` | bool, read-only | An action is running. Other calls are ignored until it ends. |
+| `Error` | string, read-only | Why the last action failed. Empty while an action runs and after one succeeds. |
 | `Security` | [WifiSecurityType](#wifisecuritytype), read-only | How the network is secured. |
 | `SignalStrength` | double, read-only | The signal strength, from 0 to 1. |
+| `OperationFailed` | Action of string | An action failed, with the same text as Error. |
+| `Connect()` | void | Connects to this network with saved credentials. |
 | `ConnectWithPassword(string password)` | void | Connects with a password, for a secured network that isn't saved. The password is not kept. |
+| `ConnectWithProfile([WifiProfile](#wifiprofile)? profile)` | void | Connects with a saved profile of this network. The next snapshot reports whether the adapter associated. |
+| `Disconnect()` | void | Disconnects this network's adapter. Fails until NetworkingService.RequestAccess is allowed. |
+| `Forget()` | void | Deletes the saved profile whose name is this SSID. |
 
 ## WifiProfile
 
@@ -220,7 +220,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `OperationFailed` | Action of string | Setting AutoConnect, ClearPassword or Forget failed. |
 | `ClearPassword()` | void | Removes every key element and writes the profile back. The key text is not read. |
 | `Forget()` | void | Deletes this saved profile by its profile name. |
-| `Read()` | Dictionary of string, object | The profile's fields. There is no key in the result. |
 
 ## WifiRadioState
 
@@ -260,3 +259,9 @@ Has the members of [NetworkDevice](#networkdevice).
 | --- | --- | --- |
 | `HasLink` | bool, read-only | Whether the adapter has a link, such as a plugged-in cable. |
 | `LinkSpeed` | int, read-only | The link speed in Mbps. 0 without a link. |
+
+## WiredNetwork
+
+A wired network. Windows manages its connection; it has no Wi-Fi command.
+
+Has the members of [Network](#network).

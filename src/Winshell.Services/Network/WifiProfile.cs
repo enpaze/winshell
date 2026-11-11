@@ -65,21 +65,6 @@ public sealed class WifiProfile : ObservableObject
     /// <summary>Why the last change failed, or else why the profile can't be read. Empty when neither did.</summary>
     public string Error => Read(_actionError).Length > 0 ? _actionError : _info.Error;
 
-    /// <summary>The profile's fields. There is no key in the result.</summary>
-    public Dictionary<string, object?> Read()
-    {
-        return new Dictionary<string, object?>
-        {
-            ["id"] = Id,
-            ["name"] = Name,
-            ["ssid"] = Ssid,
-            ["autoConnect"] = AutoConnect,
-            ["security"] = Security.ToString(),
-            ["hasPassword"] = HasPassword,
-            ["loaded"] = Loaded
-        };
-    }
-
     /// <summary>Removes every key element and writes the profile back. The key text is not read.</summary>
     public void ClearPassword()
     {

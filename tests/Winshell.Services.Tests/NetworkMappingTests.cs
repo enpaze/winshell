@@ -60,6 +60,53 @@ public sealed class NetworkMappingTests
         Assert.Equal(expected, NetworkBackend.MapConnectionResult(value));
     }
 
+    [Theory]
+    [InlineData(NetworkAuthenticationType.Open80211, NetworkEncryptionType.None, "open", "none", WifiSecurityType.Open)]
+    [InlineData(NetworkAuthenticationType.Open80211, NetworkEncryptionType.Wep, "open", "WEP", WifiSecurityType.StaticWep)]
+    [InlineData(NetworkAuthenticationType.Open80211, NetworkEncryptionType.Wep40, "open", "WEP",
+        WifiSecurityType.StaticWep)]
+    [InlineData(NetworkAuthenticationType.Open80211, NetworkEncryptionType.Wep104, "open", "WEP",
+        WifiSecurityType.StaticWep)]
+    [InlineData(NetworkAuthenticationType.None, NetworkEncryptionType.Wep, "open", "none", WifiSecurityType.Open)]
+    [InlineData(NetworkAuthenticationType.SharedKey80211, NetworkEncryptionType.None, "shared", "none",
+        WifiSecurityType.StaticWep)]
+    [InlineData(NetworkAuthenticationType.Wpa, NetworkEncryptionType.None, "WPA", "TKIP", WifiSecurityType.WpaEap)]
+    [InlineData(NetworkAuthenticationType.WpaPsk, NetworkEncryptionType.None, "WPAPSK", "TKIP", WifiSecurityType.WpaPsk)]
+    [InlineData(NetworkAuthenticationType.Rsna, NetworkEncryptionType.None, "WPA2", "AES", WifiSecurityType.Wpa2Eap)]
+    [InlineData(NetworkAuthenticationType.Wpa3Enterprise, NetworkEncryptionType.None, "WPA3ENT", "AES",
+        WifiSecurityType.Wpa2Eap)]
+    [InlineData(NetworkAuthenticationType.RsnaPsk, NetworkEncryptionType.None, "WPA2PSK", "aes", WifiSecurityType.Wpa2Psk)]
+    [InlineData(NetworkAuthenticationType.Wpa3Enterprise192Bits, NetworkEncryptionType.None, "WPA3ENT192", "GCMP256",
+        WifiSecurityType.Wpa3SuiteB192)]
+    [InlineData(NetworkAuthenticationType.Wpa3Sae, NetworkEncryptionType.None, "WPA3SAE", "AES", WifiSecurityType.Sae)]
+    [InlineData(NetworkAuthenticationType.Wpa3Sae, NetworkEncryptionType.None, "WPA3", "AES", WifiSecurityType.Sae)]
+    [InlineData(NetworkAuthenticationType.Owe, NetworkEncryptionType.None, "OWE", "AES", WifiSecurityType.Owe)]
+    [InlineData((NetworkAuthenticationType)999, NetworkEncryptionType.None, "other", "AES", WifiSecurityType.Unknown)]
+    public void One_security_map_reads_a_scan_and_a_profile_the_same_way(
+        NetworkAuthenticationType authentication, NetworkEncryptionType encryption, string profileAuthentication,
+        string profileEncryption, WifiSecurityType expected)
+    {
+        Assert.Equal(expected, WifiFields.Security(authentication, encryption));
+        Assert.Equal(expected, WifiFields.Security(profileAuthentication, profileEncryption));
+    }
+
+    [Fact]
+    public void Strength_and_profile_id_have_one_rule()
+    {
+        Assert.Equal(0, WifiFields.Bars(0));
+        Assert.Equal(1, WifiFields.Bars(5));
+        Assert.Null(WifiFields.Bars(null));
+        Assert.Equal(0.4, WifiFields.Bars(2)!.Value, precision: 5);
+        Assert.Equal(0, WifiFields.Rssi(-100));
+        Assert.Equal(0.5, WifiFields.Rssi(-75));
+        Assert.Equal(1, WifiFields.Rssi(-50));
+        Assert.Equal(0, WifiFields.Rssi(-120));
+        Assert.Equal(1, WifiFields.Rssi(-20));
+
+        var adapter = Guid.Parse("0b0f2811-87b5-48d6-9d7a-7a26ae12ff33");
+        Assert.Equal("0b0f2811-87b5-48d6-9d7a-7a26ae12ff33:Office", WifiFields.Id(adapter, "Office"));
+    }
+
     [Fact]
     public void Wifi_radios_and_adapters_are_reread_when_the_set_of_wifi_devices_changes()
     {

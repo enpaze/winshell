@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Reflection;
 using Windows.Devices.Radios;
 using Winshell.Network;
 
@@ -146,9 +147,12 @@ public sealed class NetworkingServiceTests
     {
         using var session = new Session(Snapshot(Wifi(profiles: Described())));
 
-        _ = session.Profile.Read();
+        _ = session.Profile.Id;
+        _ = session.Profile.Security;
+        _ = session.Profile.HasPassword;
 
         Assert.Empty(session.Backend.Calls);
+        Assert.Null(typeof(WifiProfile).GetMethod("Read"));
     }
 
     [Fact]
@@ -432,23 +436,22 @@ public sealed class NetworkingServiceTests
     }
 
     [Fact]
-    public void Reading_a_profile_returns_its_fields_and_no_key()
+    public void A_profile_exposes_its_fields_and_no_key()
     {
         using var session = new Session(Snapshot(Wifi(profiles: Described())));
         var profile = session.Profile;
 
-        var fields = profile.Read();
-
-        Assert.Equal(["id", "name", "ssid", "autoConnect", "security", "hasPassword", "loaded"], fields.Keys);
-        Assert.Equal("Wpa2Psk", fields["security"]);
-        Assert.Equal(true, fields["hasPassword"]);
-        Assert.Equal(WifiProfiles.Id(AdapterId, "Office"), profile.Id);
+        Assert.Null(typeof(WifiProfile).GetMethod("Read"));
+        Assert.Equal(WifiSecurityType.Wpa2Psk, profile.Security);
+        Assert.True(profile.HasPassword);
+        Assert.True(profile.Loaded);
+        Assert.True(profile.AutoConnect);
+        Assert.Equal(AdapterId + ":Office", profile.Id);
         Assert.Equal("Office", profile.Name);
         Assert.Equal("Cafe", profile.Ssid);
-        Assert.DoesNotContain(Secret, string.Join('|', fields.Values));
         Assert.DoesNotContain(Secret, Described().ToString());
         Assert.DoesNotContain(typeof(WifiProfile).GetProperties(),
-            p => p.Name.Contains("Key", StringComparison.OrdinalIgnoreCase));
+            property => property.Name.Contains("Key", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -486,7 +489,7 @@ public sealed class NetworkingServiceTests
     [Fact]
     public void A_saved_profile_keeps_its_object_and_a_failed_read_raises_nothing()
     {
-        var failedRead = new WifiProfileInfo(WifiProfiles.Id(AdapterId, "Office"), "Office", "", false,
+        var failedRead = new WifiProfileInfo(WifiFields.Id(AdapterId, "Office"), "Office", "", false,
             WifiSecurityType.Unknown, false, false, false, WifiProfileXml.Unreadable);
         using var session = new Session(Snapshot(Wifi(profiles: Described())));
         var profile = session.Profile;
@@ -502,7 +505,7 @@ public sealed class NetworkingServiceTests
         session.Show(Snapshot(Wifi(profiles: failedRead with { AutoConnect = true })));
         Assert.Equal([nameof(WifiProfile.AutoConnect)], changes);
 
-        var second = Described() with { Name = "Office-5", Id = WifiProfiles.Id(AdapterId, "Office-5") };
+        var second = Described() with { Name = "Office-5", Id = WifiFields.Id(AdapterId, "Office-5") };
         session.Show(Snapshot(Wifi(profiles: [Described(), second])));
         Assert.Equal(["Office", "Office-5"], session.Network.SavedProfiles.Select(p => p.Name));
         Assert.Same(profile, session.Network.SavedProfiles[0]);
@@ -604,7 +607,7 @@ public sealed class NetworkingServiceTests
         session.Loop.Process();
         Assert.Equal("That saved profile is not on this network.", network.Error);
 
-        var other = Described() with { Name = "Home", Ssid = "Home", Id = WifiProfiles.Id(AdapterId, "Home") };
+        var other = Described() with { Name = "Home", Ssid = "Home", Id = WifiFields.Id(AdapterId, "Home") };
         session.Backend.Connects.Clear();
         session.Show(Snapshot(Wifi(profiles: Described()), Wifi("Home", profiles: other)));
         var foreign = Assert.Single(session.Device.Networks[1].SavedProfiles);
@@ -613,34 +616,58 @@ public sealed class NetworkingServiceTests
         Assert.Equal("That saved profile is not on this network.", network.Error);
 
         session.Show(Snapshot(Wifi(profiles: Described())));
-        await session.Device.Networks[0].ConnectProfileAsync(foreign);
+        await Assert.IsType<WifiNetwork>(session.Device.Networks[0]).ConnectProfileAsync(foreign);
         session.Loop.Process();
         Assert.Equal("That saved profile is not on this network.", network.Error);
         Assert.Empty(session.Backend.Connects);
     }
 
     [Fact]
-    public async Task A_wired_network_refuses_the_wifi_actions()
+    public void A_wired_network_shares_the_one_list_and_has_no_wifi_command()
     {
         var wiredId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-        var info = Described() with { Id = WifiProfiles.Id(wiredId, "Office") };
-        var wiredNetwork =
-            new NetworkInfo("Cafe", ConnectionState.Connected, true, 0, WifiSecurityType.Unknown, [info]);
+        var cable = new NetworkInfo("Office", ConnectionState.Connected, true, 0, WifiSecurityType.Unknown);
         var wired = new NetworkDeviceInfo(wiredId, DeviceType.Wired, "Ethernet", "aa:bb:cc:dd:ee:ff",
-            ConnectionState.Connected, true, 1000, [wiredNetwork]);
-        using var session =
-            new Session(new NetworkSnapshot(true, [wired], NetworkConnectivity.LocalAccess, WifiOn()));
-        var network = Assert.Single(Assert.IsType<WiredDevice>(Assert.Single(session.Service.Devices)).Networks);
-        Assert.IsNotType<WifiNetwork>(network);
+            ConnectionState.Connected, true, 1000, [cable]);
+        using var session = new Session(new NetworkSnapshot(true, [Adapter(Wifi()), wired],
+            NetworkConnectivity.LocalAccess, WifiOn()));
 
-        await network.ConnectProfileAsync(Assert.Single(network.SavedProfiles));
-        session.Loop.Process();
-        Assert.Equal("Windows manages wired connections automatically.", network.Error);
+        var networks = session.Service.Devices.SelectMany(device => device.Networks).ToArray();
+        Assert.Equal(2, networks.Length);
+        Assert.DoesNotContain(typeof(NetworkingService).GetProperties(), IsNetworkList);
+        Assert.Equal(nameof(NetworkDevice.Networks),
+            Assert.Single(typeof(NetworkDevice).GetProperties(), IsNetworkList).Name);
 
-        await network.ForgetAsync();
-        session.Loop.Process();
-        Assert.Equal("Only saved Wi-Fi profiles can be forgotten.", network.Error);
+        Assert.True(typeof(Winshell.Network.Network).IsAbstract);
+        var wireless = Assert.IsType<WifiNetwork>(
+            Assert.Single(networks, network => network.Device.Type == DeviceType.Wifi));
+        var ethernet = Assert.IsType<WiredNetwork>(
+            Assert.Single(networks, network => network.Device.Type == DeviceType.Wired));
+        Assert.Equal("Office", ethernet.Name);
+        Assert.Equal(ConnectionState.Connected, ethernet.State);
+        Assert.Equal(wiredId.ToString(), ethernet.Device.Id);
+        Assert.Empty(ethernet.SavedProfiles);
+        Assert.Empty(WifiCommands(ethernet.GetType()));
+        Assert.Empty(WifiCommands(typeof(Winshell.Network.Network)));
+        Assert.Equal(["Connect", "ConnectWithPassword", "ConnectWithProfile", "Disconnect", "Forget"],
+            WifiCommands(wireless.GetType()).Order(StringComparer.Ordinal).ToArray());
         Assert.Empty(session.Backend.Calls);
+    }
+
+    private static bool IsNetworkList(PropertyInfo property)
+    {
+        return property.PropertyType == typeof(ObservableList<Winshell.Network.Network>);
+    }
+
+    // Inherited methods too, so a command on Network still counts as a command of a wired network.
+    private static IEnumerable<string> WifiCommands(Type type)
+    {
+        return type.GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            .Where(method => !method.IsSpecialName)
+            .Select(method => method.Name)
+            .Where(name => name is "Connect" or "ConnectWithPassword" or "ConnectWithProfile"
+                or "Disconnect" or "Forget")
+            .Distinct();
     }
 
     private sealed class Session : IDisposable

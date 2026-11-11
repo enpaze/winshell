@@ -86,7 +86,6 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
     private string _radioError = "";
     private IReadOnlySet<Guid>? _wifiIds;
     private readonly ProfileWriteQueue _profileWrites = new();
-    private readonly IWlanProfileApi _profiles = WlanProfileApi.Instance;
     private bool _watching;
 
     public event Action? Changed;
@@ -357,13 +356,14 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
     private static NetworkConnectionInfo ReadConnection(ConnectionProfile profile)
     {
         var cost = profile.GetConnectionCost();
-        var info = new NetworkProfileInfo(profile.NetworkAdapter.NetworkAdapterId + ":" + profile.ProfileName,
+        var info = new NetworkProfileInfo(
+            WifiFields.Id(profile.NetworkAdapter.NetworkAdapterId, profile.ProfileName),
             profile.ProfileName, profile.NetworkAdapter.NetworkAdapterId,
             MapConnectivity(profile.GetNetworkConnectivityLevel()), MapCost(cost.NetworkCostType), cost.Roaming,
-            cost.OverDataLimit, profile.GetSignalBars() is { } bars ? bars / 5.0 : null);
+            cost.OverDataLimit, WifiFields.Bars(profile.GetSignalBars()));
         var ssid = ConnectedSsid(profile);
         return new NetworkConnectionInfo(info, ssid,
-            ssid is null ? WifiSecurityType.Unknown : Security(profile.NetworkSecuritySettings));
+            ssid is null ? WifiSecurityType.Unknown : WifiFields.Security(profile.NetworkSecuritySettings));
     }
 
     private List<NetworkInfo> ReadWifiNetworks(Guid id, ConnectionState deviceState, NetworkConnections connections)
@@ -376,9 +376,8 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         }
 
         var scanned = adapter?.NetworkReport.AvailableNetworks.Select(network => new NetworkInfo(network.Ssid,
-            ConnectionState.Disconnected, false,
-            Math.Clamp(2 * (network.NetworkRssiInDecibelMilliwatts + 100), 0, 100) / 100,
-            Security(network.SecuritySettings))) ?? [];
+            ConnectionState.Disconnected, false, WifiFields.Rssi(network.NetworkRssiInDecibelMilliwatts),
+            WifiFields.Security(network.SecuritySettings))) ?? [];
         return connections.WifiNetworks(id, deviceState, scanned, saved);
     }
 
@@ -415,28 +414,6 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         // Unlike scan/BSSID access, reading the connected SSID does not request location consent.
         var ssid = profile.WlanConnectionProfileDetails?.GetConnectedSsid();
         return string.IsNullOrEmpty(ssid) ? profile.ProfileName : ssid;
-    }
-
-    private static WifiSecurityType Security(NetworkSecuritySettings? settings)
-    {
-        if (settings is null)
-            return WifiSecurityType.Unknown;
-        return settings.NetworkAuthenticationType switch
-        {
-            NetworkAuthenticationType.Open80211 when settings.NetworkEncryptionType is NetworkEncryptionType.Wep
-                    or NetworkEncryptionType.Wep40 or NetworkEncryptionType.Wep104
-                => WifiSecurityType.StaticWep,
-            NetworkAuthenticationType.Open80211 or NetworkAuthenticationType.None => WifiSecurityType.Open,
-            NetworkAuthenticationType.SharedKey80211 => WifiSecurityType.StaticWep,
-            NetworkAuthenticationType.Wpa => WifiSecurityType.WpaEap,
-            NetworkAuthenticationType.WpaPsk => WifiSecurityType.WpaPsk,
-            NetworkAuthenticationType.Rsna or NetworkAuthenticationType.Wpa3Enterprise => WifiSecurityType.Wpa2Eap,
-            NetworkAuthenticationType.RsnaPsk => WifiSecurityType.Wpa2Psk,
-            NetworkAuthenticationType.Wpa3Enterprise192Bits => WifiSecurityType.Wpa3SuiteB192,
-            NetworkAuthenticationType.Wpa3Sae => WifiSecurityType.Sae,
-            NetworkAuthenticationType.Owe => WifiSecurityType.Owe,
-            _ => WifiSecurityType.Unknown
-        };
     }
 
     // Actions. Each returns an error message, or null when Windows did what was asked.
@@ -495,23 +472,23 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
 
     public Task<string?> ForgetAsync(Guid device, string profileName)
     {
-        return CallWlan(() => _profiles.Delete(device, profileName));
+        return CallWlan(() => Wlan.DeleteProfile(device, profileName));
     }
 
     public Task<string?> SetProfileAutoConnectAsync(Guid device, string profileName, bool autoConnect)
     {
-        return ChangeProfile(() => WifiProfileEdit.SetAutoConnect(_profiles, device, profileName, autoConnect));
+        return ChangeProfile(() => WifiProfileEdit.SetAutoConnect(device, profileName, autoConnect));
     }
 
     public Task<string?> ClearProfilePasswordAsync(Guid device, string profileName)
     {
-        return ChangeProfile(() => WifiProfileEdit.ClearPassword(_profiles, device, profileName));
+        return ChangeProfile(() => WifiProfileEdit.ClearPassword(device, profileName));
     }
 
     /// <summary>Connects in profile mode. The call returns when Windows accepts the request, and the snapshot that follows reports the association.</summary>
     public Task<string?> ConnectProfileAsync(Guid device, string profileName, bool hidden)
     {
-        return CallWlan(() => _profiles.Connect(device, profileName, hidden));
+        return CallWlan(() => Wlan.ConnectProfile(device, profileName, hidden));
     }
 
     /// <summary>Makes a WLAN call off the calling thread, since it blocks until Windows answers.</summary>
