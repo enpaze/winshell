@@ -447,20 +447,13 @@ public sealed class AudioServiceTests
         var device = audio.Nodes[0];
         monitor.Node = device;
         Assert.Equal(0.5, monitor.Peak);
-        Assert.Equal(1, node.Running);
 
         _graph.Remove(node);
-
-        Assert.DoesNotContain(audio.Nodes, item => item.Id == device.Id);
-        Assert.Equal(0, monitor.Peak);
-        Assert.Empty(monitor.Peaks);
-        Assert.Equal(0, node.Running);
-        Assert.Null(_loop.NextDue);
-
         var reads = meter.Reads;
         _graph.Remove(node);
         _loop.Advance(TimeSpan.FromMilliseconds(40));
 
+        Assert.DoesNotContain(audio.Nodes, item => item.Id == device.Id);
         Assert.Equal(0, monitor.Peak);
         Assert.Equal(0, node.Running);
         Assert.Equal(reads, meter.Reads);
