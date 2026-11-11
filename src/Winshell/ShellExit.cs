@@ -43,7 +43,6 @@ internal static partial class ShellExit
     /// <summary>Whether a shell that has not exited after the wait is ended.</summary>
     internal enum Ending
     {
-        /// <summary>It is left running.</summary>
         Never,
 
         /// <summary>
@@ -51,7 +50,6 @@ internal static partial class ShellExit
         /// </summary>
         IfAccepted,
 
-        /// <summary>Whatever it answered.</summary>
         Always
     }
 

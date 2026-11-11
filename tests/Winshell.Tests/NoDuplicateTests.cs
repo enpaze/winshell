@@ -26,13 +26,13 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
     }
 
     [Fact]
-    public void A_second_start_exits_and_another_shell_stays()
+    public async Task A_second_start_exits_and_another_shell_stays()
     {
         var first = Start(true);
         AssertHeld("probe");
 
         var same = Launch(true);
-        AssertExitedQuietly(same);
+        await AssertExitedQuietly(same);
         Assert.False(first.HasExited);
 
         var second = Start(true, "other");
@@ -42,17 +42,17 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
     }
 
     [Fact]
-    public void A_shell_started_without_the_flag_still_blocks_a_duplicate()
+    public async Task A_shell_started_without_the_flag_still_blocks_a_duplicate()
     {
         var first = Start(false);
         Assert.Throws<WaitHandleCannotBeOpenedException>(() => Mutex.OpenExisting(MutexName("probe")));
 
-        AssertExitedQuietly(Launch(true));
+        await AssertExitedQuietly(Launch(true));
         Assert.False(first.HasExited);
     }
 
     [Fact]
-    public void Two_overlapping_starts_leave_one_shell()
+    public async Task Two_overlapping_starts_leave_one_shell()
     {
         var first = Launch(true);
         var second = Launch(true);
@@ -60,7 +60,7 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
         Wait.Until(() => first.HasExited || second.HasExited, "one of the two starts to exit");
         var loser = first.HasExited ? first : second;
         var winner = ReferenceEquals(loser, first) ? second : first;
-        AssertExitedQuietly(loser);
+        await AssertExitedQuietly(loser);
 
         Wait.Until(() => Running().Any(i => i.Pid == winner.Id), $"instance {winner.Id}");
         Assert.False(winner.HasExited);
@@ -70,7 +70,7 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
     }
 
     [Fact]
-    public void Daemonize_leaves_the_mutex_to_the_child()
+    public async Task Daemonize_leaves_the_mutex_to_the_child()
     {
         ProbeShell.Detach(_config, _local, ["--no-duplicate", "-d"]).AssertExitCode(0);
 
@@ -80,7 +80,7 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
         _started.Add(child);
         AssertHeld("probe");
 
-        AssertExitedQuietly(Launch(true));
+        await AssertExitedQuietly(Launch(true));
         Assert.False(child.HasExited);
     }
 
@@ -101,11 +101,12 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
         return process;
     }
 
-    private void AssertExitedQuietly(Process process)
+    private async Task AssertExitedQuietly(Process process)
     {
-        Assert.True(process.WaitForExit(20_000));
-        // Without a timeout this waits for the output to be read to its end.
-        process.WaitForExit();
+        Wait.Until(() => process.HasExited, "the duplicate to exit");
+        // WaitForExit with no timeout finishes the redirected output. It takes no token, so the wait does, on a
+        // thread of its own: the call blocks in Windows.
+        await OwnThread.Run(process.WaitForExit).WaitAsync(TestContext.Current.CancellationToken);
         ChildProcess.Exited("The probe", process, _printed[process.Id]).AssertExitCode(0);
         Assert.Equal("", _printed[process.Id].ToString());
     }

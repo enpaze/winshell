@@ -31,13 +31,11 @@ internal static class InstanceCall
         return new Answer(null, $"Instance {info.Id} closed the control pipe without answering.");
     }
 
-    /// <summary>Asks the instance and prints its answer. Returns the exit code.</summary>
     internal static async Task<int> PrintAsync(InstanceInfo info, IpcRequest request)
     {
         return Print(await AskAsync(info, request));
     }
 
-    /// <summary>Prints an answer: its value on standard output, or else why it failed on standard error. Returns the exit code.</summary>
     internal static int Print(Answer answer)
     {
         if (answer.Response is not { Ok: true } response)
