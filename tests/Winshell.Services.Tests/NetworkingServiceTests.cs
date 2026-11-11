@@ -182,6 +182,15 @@ public sealed class NetworkingServiceTests
         Assert.Equal("Access revoked", session.Device.Error);
 
         session.Backend.Failure = null;
+        session.Backend.ScanResult = "Call NetworkingService.RequestAccess() before scanning Wi-Fi networks.";
+        await session.Device.ScanAsync();
+        session.Loop.Process();
+        Assert.False(session.Device.Scanning);
+        Assert.Equal(
+            "Call NetworkingService.RequestAccess() before scanning Wi-Fi networks.",
+            session.Device.Error);
+
+        session.Backend.Failure = null;
         session.Backend.ConnectResult = ConnectionFailReason.InvalidPassword;
         await network.ConnectAsync("wrong");
         session.Loop.Process();
@@ -285,6 +294,15 @@ public sealed class NetworkingServiceTests
         Assert.Equal([nameof(WiredDevice.LinkSpeed), nameof(WiredDevice.HasLink)], wiredChanges);
     }
 
+    [Fact]
+    public async Task Scanning_without_an_adapter_reports_the_request_error()
+    {
+        using var backend = new NetworkBackend(Log.Default);
+
+        Assert.Equal("Call NetworkingService.RequestAccess() before scanning Wi-Fi networks.",
+            await backend.ScanAsync(Guid.NewGuid()));
+    }
+
     [Theory]
     [InlineData(RadioState.On, WifiRadioState.On, true, true)]
     [InlineData(RadioState.Off, WifiRadioState.Off, false, true)]
@@ -300,11 +318,38 @@ public sealed class NetworkingServiceTests
     }
 
     [Fact]
+    public async Task Setting_wifi_without_a_radio_reports_it()
+    {
+        using var session = new Session(Snapshot() with { Wifi = RadioReading.None });
+
+        await session.Service.SetWifiEnabledAsync(true);
+        session.Loop.Process();
+
+        Assert.False(session.Service.WifiEnabled);
+        Assert.Equal("Windows reports no Wi-Fi radio.", session.Service.Error);
+    }
+
+    [Fact]
+    public async Task A_switch_sentence_still_shows_when_the_radio_list_failed()
+    {
+        using var session = new Session(Snapshot() with
+        {
+            Wifi = RadioReading.None,
+            Error = "Windows would not list the radios."
+        });
+        Assert.Equal("Windows would not list the radios.", session.Service.Error);
+
+        await session.Service.SetWifiEnabledAsync(true);
+        session.Loop.Process();
+
+        Assert.Equal("Windows reports no Wi-Fi radio.", session.Service.Error);
+    }
+
+    [Fact]
     public async Task Setting_wifi_follows_the_snapshot_and_a_refusal_stays_until_the_radios_change()
     {
         var radio = new FakeRadio(RadioKind.WiFi, RadioState.Off);
-        var access = new FakeAccess();
-        using var session = new Session(Reading(radio), access);
+        using var session = new Session(Reading(radio));
         var service = session.Service;
         var failed = Failures(h => service.OperationFailed += h);
 
@@ -319,19 +364,26 @@ public sealed class NetworkingServiceTests
         Assert.Equal("", service.Error);
         Assert.Empty(failed);
 
-        access.Access = RadioAccessStatus.DeniedByUser;
+        radio.Access = RadioAccessStatus.DeniedByUser;
         await service.SetWifiEnabledAsync(false);
         session.Loop.Process();
         Assert.True(service.WifiEnabled);
         Assert.Equal("The user denied radio control.", service.Error);
         Assert.Equal(1, radio.Sets);
 
-        access.Access = RadioAccessStatus.Allowed;
+        radio.Access = RadioAccessStatus.Unspecified;
+        await service.SetWifiEnabledAsync(false);
+        session.Loop.Process();
+        Assert.True(service.WifiEnabled);
+        Assert.Equal("Windows did not allow radio control.", service.Error);
+        Assert.Equal(1, radio.Sets);
+
+        radio.Access = RadioAccessStatus.Allowed;
         radio.Result = RadioAccessStatus.DeniedBySystem;
         await service.SetWifiEnabledAsync(false);
         session.Loop.Process();
         Assert.True(service.WifiEnabled);
-        Assert.Equal(RadioSwitch.AccessError(RadioAccessStatus.DeniedBySystem), service.Error);
+        Assert.Equal("Windows or its policy denied radio control.", service.Error);
         Assert.Equal(RadioState.On, radio.State);
 
         radio.Result = RadioAccessStatus.Allowed;
@@ -345,7 +397,8 @@ public sealed class NetworkingServiceTests
         Assert.Equal(
             [
                 "The user denied radio control.",
-                RadioSwitch.AccessError(RadioAccessStatus.DeniedBySystem),
+                "Windows did not allow radio control.",
+                "Windows or its policy denied radio control.",
                 RadioSwitch.Unchanged
             ],
             failed);
@@ -365,7 +418,7 @@ public sealed class NetworkingServiceTests
     {
         var gate = new TaskCompletionSource<RadioAccessStatus>();
         var radio = new FakeRadio(RadioKind.WiFi, RadioState.Off) { Gate = gate };
-        using var session = new Session(Reading(radio), new FakeAccess());
+        using var session = new Session(Reading(radio));
 
         var first = session.Service.SetWifiEnabledAsync(true);
         await session.Service.SetWifiEnabledAsync(false);
@@ -592,9 +645,9 @@ public sealed class NetworkingServiceTests
 
     private sealed class Session : IDisposable
     {
-        public Session(NetworkSnapshot snapshot, IRadioAccess? radioAccess = null)
+        public Session(NetworkSnapshot snapshot)
         {
-            Service = new NetworkingService(Loop, Log.Default, Backend, radioAccess);
+            Service = new NetworkingService(Loop, Log.Default, Backend);
             Show(snapshot);
         }
 
@@ -682,11 +735,13 @@ public sealed class NetworkingServiceTests
             return Task.FromResult(Current);
         }
 
-        public Task ScanAsync(Guid device)
+        public string? ScanResult { get; set; }
+
+        public Task<string?> ScanAsync(Guid device)
         {
             Calls.Add("scan");
             Assert.Equal(AdapterId, device);
-            return Failure is { } e ? Task.FromException(e) : Task.CompletedTask;
+            return Failure is { } e ? Task.FromException<string?>(e) : Task.FromResult(ScanResult);
         }
 
         public Task<ConnectionFailReason?> ConnectAsync(Guid device, string ssid, string? password)
