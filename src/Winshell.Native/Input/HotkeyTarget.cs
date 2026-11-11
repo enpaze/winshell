@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
 using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.Input.KeyboardAndMouse;
 
 namespace Winshell.Native;
 
@@ -40,14 +42,14 @@ internal sealed class HotkeyTarget : IDisposable
     /// <summary>Registers a chord under <paramref name="id"/>, or says with the Win32 error why Windows would not.</summary>
     internal bool Register(int id, uint modifiers, uint virtualKey, out int error)
     {
-        var registered = Win32.RegisterHotKey(Handle, id, modifiers, virtualKey);
+        var registered = PInvoke.RegisterHotKey((HWND)Handle, id, (HOT_KEY_MODIFIERS)modifiers, virtualKey);
         error = registered ? 0 : Marshal.GetLastPInvokeError();
         return registered;
     }
 
     internal void Unregister(int id)
     {
-        Win32.UnregisterHotKey(Handle, id);
+        PInvoke.UnregisterHotKey((HWND)Handle, id);
     }
 
     public void Dispose()

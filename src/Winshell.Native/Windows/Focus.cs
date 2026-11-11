@@ -21,7 +21,7 @@ internal static class Focus
         var foreground = (nint)PInvoke.GetForegroundWindow();
         var current = Win32.GetCurrentThreadId();
         var other = foreground == 0 ? 0 : PInvoke.GetWindowThreadProcessId((HWND)foreground);
-        if (other != 0 && other != current && Win32.AttachThreadInput(current, other, true))
+        if (other != 0 && other != current && PInvoke.AttachThreadInput(current, other, true))
             try
             {
                 // Joined to the foreground thread, the z-order change is allowed along with the focus change.
@@ -30,7 +30,7 @@ internal static class Focus
             }
             finally
             {
-                Win32.AttachThreadInput(current, other, false);
+                PInvoke.AttachThreadInput(current, other, false);
             }
 
         if ((nint)PInvoke.GetForegroundWindow() == window)

@@ -165,10 +165,11 @@ internal sealed unsafe class NativeWindow
                 style = WNDCLASS_STYLES.CS_DBLCLKS,
                 lpfnWndProc = &WndProc,
                 hInstance = (HINSTANCE)Win32.GetModuleHandleW(null),
-                hIcon = (HICON)AppIcon(Win32.GetSystemMetrics(Win32.SM_CXICON), Win32.GetSystemMetrics(Win32.SM_CYICON)),
-                hIconSm = (HICON)AppIcon(Win32.GetSystemMetrics(Win32.SM_CXSMICON),
-                    Win32.GetSystemMetrics(Win32.SM_CYSMICON)),
-                hCursor = (HCURSOR)Win32.LoadCursorW(0, Win32.IDC_ARROW),
+                hIcon = (HICON)AppIcon(PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXICON),
+                    PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYICON)),
+                hIconSm = (HICON)AppIcon(PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXSMICON),
+                    PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYSMICON)),
+                hCursor = PInvoke.LoadCursor(default, PInvoke.IDC_ARROW),
                 lpszClassName = name
             };
             if (PInvoke.RegisterClassEx(in wc) != 0 || Marshal.GetLastPInvokeError() == ErrorClassAlreadyExists)

@@ -183,8 +183,8 @@ internal sealed class WindowBackend : IWindowBackend
         if (_foregroundWatched)
             return refused;
         _foregroundWatched = true;
-        Hook(refused, Win32.EVENT_SYSTEM_FOREGROUND, Win32.EVENT_SYSTEM_FOREGROUND);
-        Hook(refused, Win32.EVENT_OBJECT_LOCATIONCHANGE, Win32.EVENT_OBJECT_LOCATIONCHANGE);
+        Hook(refused, PInvoke.EVENT_SYSTEM_FOREGROUND, PInvoke.EVENT_SYSTEM_FOREGROUND);
+        Hook(refused, PInvoke.EVENT_OBJECT_LOCATIONCHANGE, PInvoke.EVENT_OBJECT_LOCATIONCHANGE);
         return refused;
     }
 
@@ -194,10 +194,10 @@ internal sealed class WindowBackend : IWindowBackend
             return [];
         _started = true;
         var refused = WatchForeground().ToList();
-        Hook(refused, Win32.EVENT_SYSTEM_MINIMIZESTART, Win32.EVENT_SYSTEM_MINIMIZEEND);
-        Hook(refused, Win32.EVENT_OBJECT_CREATE, Win32.EVENT_OBJECT_HIDE);
-        Hook(refused, Win32.EVENT_OBJECT_NAMECHANGE, Win32.EVENT_OBJECT_NAMECHANGE);
-        Hook(refused, Win32.EVENT_OBJECT_CLOAKED, Win32.EVENT_OBJECT_UNCLOAKED);
+        Hook(refused, PInvoke.EVENT_SYSTEM_MINIMIZESTART, PInvoke.EVENT_SYSTEM_MINIMIZEEND);
+        Hook(refused, PInvoke.EVENT_OBJECT_CREATE, PInvoke.EVENT_OBJECT_HIDE);
+        Hook(refused, PInvoke.EVENT_OBJECT_NAMECHANGE, PInvoke.EVENT_OBJECT_NAMECHANGE);
+        Hook(refused, PInvoke.EVENT_OBJECT_CLOAKED, PInvoke.EVENT_OBJECT_UNCLOAKED);
         // The shell hook messages Explorer's taskbar gets. Only HSHELL_FLASH is read: WinEvents say nothing when a
         // window flashes.
         if (!ShellHookWindow.Start(OnShellHook, Listeners.RaiseNeverFails))

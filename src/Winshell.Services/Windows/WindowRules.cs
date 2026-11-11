@@ -41,18 +41,18 @@ internal static class WindowRules
     /// </summary>
     public static bool IsWindowObject(int idObject, int idChild)
     {
-        return idObject == Win32.OBJID_WINDOW && idChild == Win32.CHILDID_SELF;
+        return idObject == (int)OBJECT_IDENTIFIER.OBJID_WINDOW && idChild == (int)PInvoke.CHILDID_SELF;
     }
 
     /// <summary>Whether a WinEvent names a top-level window the list should read again.</summary>
     public static bool MarksWindow(uint eventType, nint hwnd, int idObject, int idChild, bool tracked, bool isRoot)
     {
-        if (eventType == Win32.EVENT_SYSTEM_FOREGROUND)
+        if (eventType == PInvoke.EVENT_SYSTEM_FOREGROUND)
             return hwnd != 0;
         if (hwnd == 0 || !IsWindowObject(idObject, idChild))
             return false;
         // A destroyed window can no longer say whether it was top-level, so only one the list already had counts.
-        return eventType == Win32.EVENT_OBJECT_DESTROY ? tracked : isRoot;
+        return eventType == PInvoke.EVENT_OBJECT_DESTROY ? tracked : isRoot;
     }
 
     /// <summary>Whether a window with this style and rectangle is fullscreen on a monitor: no title bar, and covering all of it.</summary>
@@ -66,11 +66,11 @@ internal static class WindowRules
     /// <summary>Whether a WinEvent can move the foreground from one window to another.</summary>
     public static bool MarksForeground(uint eventType)
     {
-        return eventType is Win32.EVENT_SYSTEM_FOREGROUND
-            or Win32.EVENT_SYSTEM_MINIMIZESTART
-            or Win32.EVENT_SYSTEM_MINIMIZEEND
-            or Win32.EVENT_OBJECT_DESTROY
-            or Win32.EVENT_OBJECT_HIDE;
+        return eventType is PInvoke.EVENT_SYSTEM_FOREGROUND
+            or PInvoke.EVENT_SYSTEM_MINIMIZESTART
+            or PInvoke.EVENT_SYSTEM_MINIMIZEEND
+            or PInvoke.EVENT_OBJECT_DESTROY
+            or PInvoke.EVENT_OBJECT_HIDE;
     }
 
     /// <summary>Whether a shell hook message is <c>HSHELL_FLASH</c>: a window flashed to ask for attention.</summary>
