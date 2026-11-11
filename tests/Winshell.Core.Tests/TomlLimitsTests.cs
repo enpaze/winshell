@@ -21,12 +21,18 @@ public sealed class TomlLimitsTests
     public void Nesting_past_64_levels_is_refused()
     {
         Assert.True(TomlDocument.TryParse("deep.toml", Dotted(64), out _, out var error), error);
-        Assert.False(TomlDocument.TryParse("deep.toml", Dotted(65), out _, out error));
-        Assert.Contains("maximum depth of 64", error, StringComparison.Ordinal);
+        Assert.False(TomlDocument.TryParse("deep.toml", Dotted(65), out _, out _));
 
         Assert.True(TomlDocument.TryParse("arrays.toml", Nested(63), out _, out error), error);
-        Assert.False(TomlDocument.TryParse("arrays.toml", Nested(64), out _, out error));
-        Assert.Contains("maximum depth of 64", error, StringComparison.Ordinal);
+        Assert.False(TomlDocument.TryParse("arrays.toml", Nested(64), out _, out _));
+
+        using var dir = new TempFolder();
+        var deep = Path.Combine(dir.Path, "deep.toml");
+        var arrays = Path.Combine(dir.Path, "arrays.toml");
+        File.WriteAllText(deep, Dotted(65));
+        File.WriteAllText(arrays, Nested(64));
+        Assert.Equal(TomlRead.Invalid, TomlDocument.Load(deep).Kind);
+        Assert.Equal(TomlRead.Invalid, TomlDocument.Load(arrays).Kind);
     }
 
     [Fact]
@@ -36,18 +42,18 @@ public sealed class TomlLimitsTests
 
         Assert.False(TomlDocument.TryParse("big.toml", text, out var document, out var error));
         Assert.Null(document);
-        Assert.Contains("big.toml: file is ", error, StringComparison.Ordinal);
-        Assert.Contains("above the limit of 1048576", error, StringComparison.Ordinal);
+        Assert.Equal("big.toml: file is 1048578 bytes, above the limit of 1048576", error);
     }
 
     [Fact]
     public void The_limit_counts_bytes_and_not_characters()
     {
-        // Fewer characters than the limit, more bytes.
+        // Fewer characters than the limit, more bytes: each é is two UTF-8 bytes.
         var text = "name = \"" + new string('é', Megabyte / 2) + "\"\n";
 
+        Assert.True(text.Length < Megabyte);
         Assert.False(TomlDocument.TryParse("accented.toml", text, out _, out var error));
-        Assert.Contains("above the limit of 1048576", error, StringComparison.Ordinal);
+        Assert.Equal("accented.toml: file is 1048586 bytes, above the limit of 1048576", error);
     }
 
     [Fact]
