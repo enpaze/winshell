@@ -4,7 +4,7 @@ namespace Winshell;
 
 /// <summary>
 /// Watches one folder on a thread of its own. FileSystemWatcher delivers on thread pool workers, so a busy pool
-/// holds a change back. The first read is queued before <see cref="Start"/> returns, then <see cref="Existing"/>
+/// holds a change back. The first read is queued before <see cref="Start"/> returns, then <see cref="ExistingNames"/>
 /// is taken, so a name made in that gap is in the list or in the callback. That thread makes every read, because
 /// Windows cancels a read when the thread that made it ends, and it waits while the list is taken so a long list
 /// cannot overflow the read. Callbacks run on the watch thread and must not block.
@@ -31,7 +31,7 @@ internal sealed class DirectoryWatch : IDisposable
     /// Names, relative to the folder, taken after the watch was queued and before <see cref="Start"/> returns.
     /// A name made after that arrives through the callback.
     /// </summary>
-    internal IReadOnlyList<string> Existing { get; private set; } = [];
+    internal IReadOnlyList<string> ExistingNames { get; private set; } = [];
 
     private DirectoryWatch(DirectoryChanges changes, Action<string> changed, Action lost)
     {
@@ -62,7 +62,7 @@ internal sealed class DirectoryWatch : IDisposable
             return null;
         }
 
-        watch.Existing = ExistingNames(path, filter, subtree);
+        watch.ExistingNames = ListNames(path, filter, subtree);
         return watch;
     }
 
@@ -110,16 +110,17 @@ internal sealed class DirectoryWatch : IDisposable
     }
 
     /// <summary>Names <paramref name="filter"/> already matches under <paramref name="path"/>.</summary>
-    private static string[] ExistingNames(string path, DirectoryChange filter, bool subtree)
+    private static string[] ListNames(string path, DirectoryChange filter, bool subtree)
     {
         var option = subtree ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
         var names = new List<string>();
         try
         {
-            if ((filter & FileChanges) != 0)
+            // FileName is in both presets, so a name watch lists files as well as folders.
+            if (ReportsFiles(filter))
                 foreach (var file in Directory.EnumerateFiles(path, "*", option))
                     names.Add(Path.GetRelativePath(path, file));
-            if ((filter & DirectoryChange.FolderName) != 0)
+            if (ReportsFolders(filter))
                 foreach (var folder in Directory.EnumerateDirectories(path, "*", option))
                     names.Add(Path.GetRelativePath(path, folder));
         }
@@ -130,6 +131,11 @@ internal sealed class DirectoryWatch : IDisposable
 
         return names.ToArray();
     }
+
+    /// <summary>True when <paramref name="filter"/> reports files. <see cref="NameChanges"/> does: it includes file names.</summary>
+    private static bool ReportsFiles(DirectoryChange filter) => (filter & FileChanges) != 0;
+
+    private static bool ReportsFolders(DirectoryChange filter) => (filter & DirectoryChange.FolderName) != 0;
 
     public void Dispose()
     {

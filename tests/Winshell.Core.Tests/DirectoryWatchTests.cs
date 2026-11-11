@@ -11,7 +11,7 @@ public sealed class DirectoryWatchTests : IDisposable
     }
 
     [Fact]
-    public void A_file_created_before_the_first_wait_is_reported()
+    public void A_file_and_a_folder_already_there_are_listed()
     {
         File.WriteAllText(Path.Combine(_directory, "made.txt"), "");
         Directory.CreateDirectory(Path.Combine(_directory, "made-dir"));
@@ -20,11 +20,11 @@ public sealed class DirectoryWatchTests : IDisposable
         using var names = DirectoryWatch.Start(_directory, DirectoryWatch.NameChanges, _ => { }, () => { });
 
         Assert.NotNull(files);
-        Assert.Contains("made.txt", files.Existing);
-        Assert.DoesNotContain("made-dir", files.Existing);
+        Assert.Contains("made.txt", files.ExistingNames);
+        Assert.DoesNotContain("made-dir", files.ExistingNames);
         Assert.NotNull(names);
-        Assert.Contains("made.txt", names.Existing);
-        Assert.Contains("made-dir", names.Existing);
+        Assert.Contains("made.txt", names.ExistingNames);
+        Assert.Contains("made-dir", names.ExistingNames);
     }
 
     [Fact]
