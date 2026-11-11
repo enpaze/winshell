@@ -52,7 +52,7 @@ internal static class InspectCommand
             Console.WriteLine(Summary(recorded, video, frames));
             return 0;
         }
-        catch (Exception e) when (CaptureFailure.IsExpected(e))
+        catch (Exception e) when (WindowsFailure.IsExpected(e))
         {
             await Console.Error.WriteLineAsync($"Could not record: {e.Message}");
             return 1;

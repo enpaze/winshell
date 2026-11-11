@@ -92,10 +92,14 @@ public sealed class CaptureSession : ObservableObject, IDisposable
             return false;
         Stop();
         Set(ref _error, "", nameof(Error));
+        if (_target is not { } chosen)
+        {
+            Set(ref _error, "Choose a window or a screen before starting capture.", nameof(Error));
+            return false;
+        }
+
         try
         {
-            var chosen = _target ??
-                         throw new InvalidOperationException("Choose a window or a screen before starting capture.");
             // The backend captures a handle. The app window stays here, so closing it can stop the session.
             var target = new CaptureTarget(chosen.Window, chosen.MonitorId);
             var generation = _generation;
@@ -110,7 +114,7 @@ public sealed class CaptureSession : ObservableObject, IDisposable
                 Schedule(generation);
             return Running;
         }
-        catch (Exception e) when (CaptureFailure.IsExpected(e))
+        catch (Exception e) when (WindowsFailure.IsExpected(e))
         {
             Fail(e);
             return false;
@@ -132,7 +136,7 @@ public sealed class CaptureSession : ObservableObject, IDisposable
                     FrameReady?.Invoke();
                 }
             }
-            catch (Exception e) when (CaptureFailure.IsExpected(e))
+            catch (Exception e) when (WindowsFailure.IsExpected(e))
             {
                 Fail(e);
             }
@@ -156,7 +160,7 @@ public sealed class CaptureSession : ObservableObject, IDisposable
         {
             backend?.Dispose();
         }
-        catch (Exception e) when (CaptureFailure.IsExpected(e))
+        catch (Exception e) when (WindowsFailure.IsExpected(e))
         {
             Set(ref _error, e.Message, nameof(Error));
         }
@@ -173,18 +177,27 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     /// </summary>
     public bool SaveToFile(string path)
     {
+        if (_frame is null)
+        {
+            Set(ref _error, "No capture frame is available.", nameof(Error));
+            return false;
+        }
+
+        if (LocalPath(path) is not { } local)
+        {
+            Set(ref _error, "Choose a local file path. (Parameter 'path')", nameof(Error));
+            return false;
+        }
+
         try
         {
-            if (_frame is null)
-                throw new InvalidOperationException("No capture frame is available.");
-            var local = LocalPath(path) ?? throw new ArgumentException("Choose a local file path.", nameof(path));
             var png = _frame.EncodePng();
             using var stream = new FileStream(local, FileMode.CreateNew, FileAccess.Write);
             stream.Write(png);
             Set(ref _error, "", nameof(Error));
             return true;
         }
-        catch (Exception e) when (CaptureFailure.IsExpected(e))
+        catch (Exception e) when (WindowsFailure.IsExpected(e))
         {
             Set(ref _error, e.Message, nameof(Error));
             return false;
@@ -194,15 +207,19 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     /// <summary>Copies the current frame to the Windows clipboard, owned by an open window of this program.</summary>
     public bool CopyToClipboard(nint owner)
     {
+        if (_frame is null || owner == 0)
+        {
+            Set(ref _error, "A capture frame and an open window are required.", nameof(Error));
+            return false;
+        }
+
         try
         {
-            if (_frame is null || owner == 0)
-                throw new InvalidOperationException("A capture frame and an open window are required.");
             CaptureClipboard.Copy(_frame, owner);
             Set(ref _error, "", nameof(Error));
             return true;
         }
-        catch (Exception e) when (CaptureFailure.IsExpected(e))
+        catch (Exception e) when (WindowsFailure.IsExpected(e))
         {
             Set(ref _error, e.Message, nameof(Error));
             return false;

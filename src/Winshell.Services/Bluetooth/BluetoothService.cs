@@ -182,18 +182,20 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         if (_disposed)
             return;
         Invalidate();
+        if (enabled && _adapter?.State != BluetoothAdapterState.On)
+        {
+            const string message = "Bluetooth must be on before discovery can start.";
+            Set(ref _error, message, nameof(Error));
+            OperationFailed?.Invoke(message);
+            return;
+        }
+
         try
         {
             if (enabled)
-            {
-                if (_adapter?.State != BluetoothAdapterState.On)
-                    throw new InvalidOperationException("Bluetooth must be on before discovery can start.");
                 Backend.StartDiscovery();
-            }
             else
-            {
                 Backend.StopDiscovery();
-            }
 
             Set(ref _error, "", nameof(Error));
         }

@@ -31,15 +31,15 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
     public void Start(CaptureTarget target, bool includeCursor, Action closed)
     {
         if (!GraphicsCaptureSession.IsSupported())
-            throw new NotSupportedException("Windows Graphics Capture is unavailable in this session.");
+            throw new WindowsRefusal("Windows Graphics Capture is unavailable in this session.");
         _closed = closed;
         var monitor = target.Window == 0 ? MonitorHandle(target.MonitorId) : 0;
         if (target.Window == 0 && monitor == 0)
-            throw new ArgumentException("The selected monitor is no longer connected.", nameof(target));
-        _item = CaptureInterop.CreateItem(target.Window, monitor);
+            throw new WindowsRefusal("The selected monitor is no longer connected. (Parameter 'target')");
+        _item = CaptureItem(target.Window, monitor);
         _size = _item.Size;
         if (_size.Width <= 0 || _size.Height <= 0)
-            throw new InvalidOperationException("The selected source has no capture surface.");
+            throw new WindowsRefusal("The selected source has no capture surface.");
 
         (_device, _context) = CreateDevice();
         _winrtDevice = CaptureInterop.CreateDevice(_device!);
@@ -50,6 +50,22 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
         _session.IsCursorCaptureEnabled = includeCursor;
         _item.Closed += OnClosed;
         _session.StartCapture();
+    }
+
+    /// <summary>
+    /// A capture item. <see cref="ArgumentException"/> here is WinRT's <c>E_INVALIDARG</c>, Windows refusing the
+    /// window or monitor, so it stays a refusal.
+    /// </summary>
+    internal static GraphicsCaptureItem CaptureItem(nint window, nint monitor)
+    {
+        try
+        {
+            return CaptureInterop.CreateItem(window, monitor);
+        }
+        catch (ArgumentException e)
+        {
+            throw new WindowsRefusal(e.Message);
+        }
     }
 
     /// <summary>A private Direct3D device for capture: the hardware one, or WARP when there is none.</summary>
@@ -193,7 +209,7 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
             {
                 session?.Dispose();
             }
-            catch (Exception e) when (CaptureFailure.IsExpected(e))
+            catch (Exception e) when (WindowsFailure.IsExpected(e))
             {
                 log.Warn("capture", $"Capture teardown: {e.Message}");
             }
@@ -203,7 +219,7 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
                 for (var i = 0; i < 2 && pool?.TryGetNextFrame() is { } frame; i++)
                     frame.Dispose();
             }
-            catch (Exception e) when (CaptureFailure.IsExpected(e))
+            catch (Exception e) when (WindowsFailure.IsExpected(e))
             {
                 log.Warn("capture", $"Capture teardown: {e.Message}");
             }
@@ -214,7 +230,7 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
             {
                 pool?.Dispose();
             }
-            catch (Exception e) when (CaptureFailure.IsExpected(e))
+            catch (Exception e) when (WindowsFailure.IsExpected(e))
             {
                 log.Warn("capture", $"Capture teardown: {e.Message}");
             }
@@ -251,7 +267,7 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
                 {
                     resource?.Dispose();
                 }
-                catch (Exception e) when (CaptureFailure.IsExpected(e))
+                catch (Exception e) when (WindowsFailure.IsExpected(e))
                 {
                     log.Warn("capture", $"Capture teardown: {e.Message}");
                 }

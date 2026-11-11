@@ -409,6 +409,9 @@ public sealed class NetworkingServiceTests
         var bug = new NullReferenceException("A bug");
         session.Backend.Failure = bug;
         session.Backend.AutoException = bug;
+        var busy = Watch(network);
+        var scanning = Watch(device);
+        var requesting = Watch(session.Service);
 
         Assert.Same(bug, await Assert.ThrowsAsync<NullReferenceException>(() => network.ConnectAsync(null)));
         Assert.Same(bug, await Assert.ThrowsAsync<NullReferenceException>(device.ScanAsync));
@@ -419,6 +422,9 @@ public sealed class NetworkingServiceTests
         Assert.False(network.Busy);
         Assert.False(device.Scanning);
         Assert.False(session.Service.RequestingAccess);
+        Assert.Equal(2, busy.Count(name => name == "Busy"));
+        Assert.Equal(2, scanning.Count(name => name == "Scanning"));
+        Assert.Equal(2, requesting.Count(name => name == "RequestingAccess"));
         session.Backend.AutoException = null;
         await profile.SetAutoConnectAsync(false);
         Assert.Equal([true, false], session.Backend.Autos.Select(a => a.Auto));

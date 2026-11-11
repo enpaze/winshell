@@ -300,8 +300,8 @@ public sealed class AppIndexTests
     }
 
     [Theory]
-    [InlineData(true, "apps: Could not read the installed apps: no packages")]
-    [InlineData(false, "apps: Could not read how often apps are used: no usage")]
+    [InlineData(true, "apps: Could not read the installed apps: COMException: no packages")]
+    [InlineData(false, "apps: Could not read how often apps are used: UnauthorizedAccessException: no usage")]
     public async Task A_read_that_keeps_failing_keeps_the_last_good_one_and_is_warned_once(bool packagesFail,
         string warning)
     {

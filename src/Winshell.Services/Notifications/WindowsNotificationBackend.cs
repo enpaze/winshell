@@ -162,7 +162,7 @@ internal sealed class WindowsNotificationBackend : INotificationBackend
             toast.Group = group;
         var notifier = ToastNotificationManager.CreateToastNotifier(appId);
         if (notifier.Setting != NotificationSetting.Enabled)
-            throw new InvalidOperationException(
+            throw new WindowsRefusal(
                 $"Windows disabled toast notifications for '{appId}': {notifier.Setting}.");
         notifier.Show(toast);
     }

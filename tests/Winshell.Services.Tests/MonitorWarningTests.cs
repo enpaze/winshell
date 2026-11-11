@@ -11,12 +11,20 @@ public sealed class MonitorWarningTests
 
         warning.Failed(new InvalidOperationException("radio broke"));
         warning.Failed(new InvalidOperationException("radio broke"));
-        warning.Failed(new InvalidOperationException("radio broke"));
-        Assert.Equal(["bluetooth: radio broke"], messages);
+        warning.Failed(new IOException("radio broke"));
+        Assert.Equal(
+            ["bluetooth: InvalidOperationException: radio broke", "bluetooth: IOException: radio broke"],
+            messages);
 
         warning.Failed(new InvalidOperationException("radio gone"));
         warning.Succeeded();
         warning.Failed(new InvalidOperationException("radio gone"));
-        Assert.Equal(["bluetooth: radio broke", "bluetooth: radio gone", "bluetooth: radio gone"], messages);
+        Assert.Equal(
+        [
+            "bluetooth: InvalidOperationException: radio broke",
+            "bluetooth: IOException: radio broke",
+            "bluetooth: InvalidOperationException: radio gone",
+            "bluetooth: InvalidOperationException: radio gone"
+        ], messages);
     }
 }

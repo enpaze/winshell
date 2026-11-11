@@ -190,13 +190,17 @@ public sealed class BluetoothDevice : ObservableObject
             _service.Invalidate();
             if (!_removed)
             {
-                SetOperation(BluetoothOperation.None);
                 Set(ref _error, error, nameof(Error));
                 if (error.Length > 0)
                     OperationFailed?.Invoke(error);
             }
 
             _service.Refresh();
+        }, () =>
+        {
+            // Busy follows the operation, not DeviceAction.Running. This runs when the action ends, including a fault.
+            if (!_removed)
+                SetOperation(BluetoothOperation.None);
         });
     }
 
