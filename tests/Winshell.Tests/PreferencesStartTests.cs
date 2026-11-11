@@ -21,8 +21,8 @@ public sealed class PreferencesStartTests : IDisposable, IClassFixture<ProbeBuil
         _started = ProbeShell.Start(config, Path.Combine(_dir, "local"), shellId);
 
         var report = Path.Combine(config, "preferences-report.txt");
-        Wait.Until(() => File.Exists(report) && File.ReadAllText(report).Trim() is "both" or "missing" or "partial",
-            "the probe to report the preferences file written when Start returns");
+        // The probe moves the report into place once it is whole, so it is read only after it exists.
+        Wait.Until(() => File.Exists(report), "the probe to report the preferences file written when Start returns");
         Assert.Equal("both", File.ReadAllText(report).Trim());
     }
 
