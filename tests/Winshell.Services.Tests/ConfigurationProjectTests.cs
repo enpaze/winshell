@@ -264,6 +264,22 @@ public sealed class ConfigurationProjectTests : IDisposable
     }
 
     [Fact]
+    public void A_staged_widget_record_builds_into_the_given_folder()
+    {
+        var file = Project("Bar.csproj");
+        var project = Found(file);
+        var output = Path.Combine(_root, "scratch");
+        var staged = Path.Combine(_root, "widgets.props");
+
+        Assert.Null(project.Build(Builds, output, "WinshellWidgetsFile", staged));
+
+        var command = Assert.Single(_commands);
+        Assert.Equal(
+            $"dotnet build {file} -c Release -o {output} -p:WinshellWidgetsFile={staged} --no-restore --nologo -v q",
+            command);
+    }
+
+    [Fact]
     public void A_failed_build_leaves_the_running_program_where_it_was()
     {
         var file = Project("Bar.csproj");

@@ -93,7 +93,7 @@ internal static class WidgetCommand
     /// <summary>What <c>remove</c> leaves when the last source goes. The file stays, so the next build sees it.</summary>
     private const string EmptyProject = "<Project />\n";
 
-    /// <summary>Keeps git and dotnet from prompting, and keeps a build from leaving a server for the next command.</summary>
+    /// <summary>Keeps git and dotnet from prompting, and keeps a restore from leaving an MSBuild server.</summary>
     private static readonly Dictionary<string, string> QuietTools = new()
     {
         ["GIT_TERMINAL_PROMPT"] = "0",
@@ -271,8 +271,9 @@ internal static class WidgetCommand
 
     /// <summary>
     /// Restores <paramref name="widgetProject"/> on its own, restores the configuration against an empty props file,
-    /// and builds it against a staged <c>widgets.props</c>. The file beside the project is replaced only when that
-    /// build succeeds. The clone at <paramref name="cache"/> is left in place either way.
+    /// and builds it through <see cref="ConfigurationProject.Build"/> against a staged <c>widgets.props</c>. The file
+    /// beside the project is replaced only when that build succeeds. The clone at <paramref name="cache"/> is left in
+    /// place either way.
     /// </summary>
     private static Result? Stage(string dotnet, ConfigurationProject project, ShellLocations locations, string props,
         string content, string cache, string widgetProject)
@@ -307,13 +308,9 @@ internal static class WidgetCommand
             ], project.Folder);
             if (Failed(prepared, project.Name, "restore", project.Folder) is { } configurationRestore)
                 return configurationRestore;
-            var built = Invoke(dotnet,
-            [
-                "build", project.ProjectFile, "-c", "Release", "-o", Path.Combine(scratch, "out"),
-                "-p:" + WidgetRecord.Property + "=" + staged, "--no-restore", "--nologo", "-v", "q", "-nodeReuse:false"
-            ], project.Folder);
-            if (Failed(built, project.Name, "build", project.Folder) is { } configurationBuild)
-                return configurationBuild;
+            var built = project.Build(BuildQuietly, Path.Combine(scratch, "out"), WidgetRecord.Property, staged);
+            if (built is not null)
+                return Fail(1, built);
             WidgetGit.MarkReadOnly(cache);
             Replace(props, content);
             return null;
@@ -887,7 +884,39 @@ internal static class WidgetCommand
             return 1;
         if (right.Pre is null)
             return -1;
-        return string.CompareOrdinal(left.Pre, right.Pre);
+        return ComparePre(left.Pre, right.Pre);
+    }
+
+    /// <summary>
+    /// Prerelease precedence by dot-separated identifier. A numeric identifier compares by value, so
+    /// <c>rc.10</c> is newer than <c>rc.9</c>. A number is older than text, and a longer equal prefix is newer.
+    /// </summary>
+    private static int ComparePre(string left, string right)
+    {
+        var a = left.Split('.');
+        var b = right.Split('.');
+        var count = Math.Min(a.Length, b.Length);
+        for (var i = 0; i < count; i++)
+        {
+            var compared = CompareIdentifier(a[i], b[i]);
+            if (compared != 0)
+                return compared;
+        }
+
+        return a.Length.CompareTo(b.Length);
+    }
+
+    private static int CompareIdentifier(string left, string right)
+    {
+        var leftNumber = long.TryParse(left, NumberStyles.None, CultureInfo.InvariantCulture, out var leftValue);
+        var rightNumber = long.TryParse(right, NumberStyles.None, CultureInfo.InvariantCulture, out var rightValue);
+        if (leftNumber && rightNumber)
+            return leftValue.CompareTo(rightValue);
+        if (leftNumber)
+            return -1;
+        if (rightNumber)
+            return 1;
+        return string.CompareOrdinal(left, right);
     }
 
     private sealed class Installed(string project, string source, string reference, string commit, IReadOnlyList<WidgetItem> widgets)
@@ -1022,6 +1051,17 @@ internal static class WidgetCommand
     internal static CommandResult Invoke(string file, IReadOnlyList<string> arguments, string folder)
     {
         return ConfigurationProject.Run(file, arguments, folder, QuietTools);
+    }
+
+    /// <summary>
+    /// The configuration build. It does not set <c>MSBUILDDISABLENODEREUSE</c>: a shell that build starts would inherit
+    /// it, and so would an app the shell starts. Node reuse is <see cref="ConfigurationProject.Build"/>'s decision.
+    /// </summary>
+    private static CommandResult BuildQuietly(string file, IReadOnlyList<string> arguments, string folder)
+    {
+        var environment = new Dictionary<string, string>(QuietTools);
+        environment.Remove("MSBUILDDISABLENODEREUSE");
+        return ConfigurationProject.Run(file, arguments, folder, environment);
     }
 
     /// <summary>A tool that did not start, or that exited with an error. Null when it succeeded.</summary>
