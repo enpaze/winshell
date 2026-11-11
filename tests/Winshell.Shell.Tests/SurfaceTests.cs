@@ -46,6 +46,12 @@ public sealed class SurfaceTests
                     "both surfaces to follow the shell back to the built-in style");
 
                 Assert.Equal(light, BarTests.BackgroundOf(ownHost));
+                var panel = (StackPanel)window.Content;
+                panel.RequestedTheme = ElementTheme.Dark;
+                var dark = WidgetAreaTests.WindowsColor("Default", "SolidBackgroundFillColorBase");
+                await Wait.UntilAsync(
+                    () => BarTests.BackgroundOf(followsHost) == dark && BarTests.BackgroundOf(ownHost) == dark,
+                    "both surfaces to follow a theme switch after returning to the built-in style");
             }
             finally
             {

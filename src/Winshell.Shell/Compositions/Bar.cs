@@ -37,10 +37,12 @@ public sealed class Bar : IDisposable
     };
 
     private readonly Shell _shell = Shell.Current;
+    private readonly List<Shown> _open = [];
     private BarPreferences? _preferences;
     private ScreenWindows? _windows;
     private bool _remakePosted;
     private bool _disposed;
+    private static ShellStyle? _metricDefaults;
 
     /// <summary>A bar on the top edge with no widgets. Make it on the shell's thread.</summary>
     public Bar()
@@ -83,24 +85,31 @@ public sealed class Bar : IDisposable
 
     /// <summary>
     /// The height of a top or bottom bar, or the width of a side bar, in logical pixels. Null takes the style's slot
-    /// size, 32 for the built-in style.
+    /// size.
     /// </summary>
     public double? Thickness { get; init; }
 
     /// <summary>
     /// The space between the areas and each end of the bar, along its length, in logical pixels: at the left and
-    /// right of a top or bottom bar, and at the top and bottom of a side bar. Null takes the style's padding, 4 for
-    /// the built-in style, or none when the style sets no padding.
+    /// right of a top or bottom bar, and at the top and bottom of a side bar. Null takes the style's padding, or none
+    /// when the style sets no padding.
     /// </summary>
     public double? Padding { get; init; }
 
     /// <summary>The bar's own style, which wins over <see cref="Shell.Style"/>, or null for the shell's.</summary>
     public ShellStyle? Style { get; init; }
 
+    /// <summary>
+    /// A shell style reaches a bar that has none of its own without making its windows again, so the widgets keep
+    /// their state. The edge, the lists and a screen's row still replace windows.
+    /// </summary>
     private void FollowShellStyle()
     {
-        if (Style is null)
-            PostRemake();
+        if (Style is not null)
+            return;
+        var thickness = SlotSize(Thickness, null, _shell.Style);
+        foreach (var shown in _open)
+            shown.Resize(thickness, Reserve);
     }
 
     // The properties are set after the constructor, and a save can change several keys at once. Making the bars once,
@@ -146,22 +155,37 @@ public sealed class Bar : IDisposable
         ReactorHostControl? host = null;
         try
         {
-            var look = Style ?? _shell.Style;
-            var thickness = Thickness ?? look?.SlotSize ?? 32;
-            // A style may leave padding unset, and then the bar has none. The built-in style uses 4.
-            var padding = Padding ?? (look is null ? 4 : look.Padding ?? 0);
-            var gap = vertical ? new Thickness(0, padding, 0, padding) : new Thickness(padding, 0, padding, 0);
-            // One cell, so the areas overlap and each alignment pins one of them. The surface paints the background.
-            var content = Grid(
+            var thickness = SlotSize(Thickness, Style, _shell.Style);
+            // One cell, so the areas overlap and each alignment pins one of them. The surface paints the background,
+            // and the padding sits on the areas so the background still fills the bar.
+            var areas = Grid(
                 [GridSize.Star()],
                 [GridSize.Star()],
                 Placed("start", section.Start, HorizontalAlignment.Left, VerticalAlignment.Top),
                 Placed("center", section.Center, HorizontalAlignment.Center, VerticalAlignment.Center),
                 Placed("end", section.End, HorizontalAlignment.Right, VerticalAlignment.Bottom));
+            var content = Memo(ctx =>
+            {
+                // The shell style can change after this tree is up. The areas stay mounted, and the inset follows.
+                var (_, bump) = ctx.UseReducer(0);
+                var follows = Style is null && Padding is null;
+                ctx.UseEffect(() =>
+                {
+                    if (!follows)
+                        return () => { };
+                    void Follow() => bump(_ => _ + 1);
+                    var shell = Shell.Current;
+                    shell.StyleChanged += Follow;
+                    return () => shell.StyleChanged -= Follow;
+                }, follows);
+                var padding = EndPadding(Padding, Style, Shell.Current.Style);
+                var gap = vertical ? new Thickness(0, padding, 0, padding) : new Thickness(padding, 0, padding, 0);
+                return areas.Padding(gap);
+            }, Style, Padding, vertical);
             host = new ReactorHostControl
             {
                 ComponentFactory = () => new Surface(),
-                Props = new SurfaceProps(content, gap, Style),
+                Props = new SurfaceProps(content, default, Style),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Stretch,
@@ -175,12 +199,11 @@ public sealed class Bar : IDisposable
                 ReservedSize = Reserve ? thickness : 0,
                 Content = host
             };
-            if (vertical)
-                window.Width = thickness;
-            else
-                window.Height = thickness;
+            var shown = new Shown(host, window, vertical, _open);
+            shown.Resize(thickness, Reserve);
             window.Visible = true;
-            return new Shown(host, window);
+            _open.Add(shown);
+            return shown;
         }
         catch
         {
@@ -293,11 +316,49 @@ public sealed class Bar : IDisposable
         }
     }
 
-    /// <summary>One screen's bar: the host that mounts its tree, and its panel.</summary>
-    private sealed class Shown(ReactorHostControl host, PanelWindow window) : IDisposable
+    /// <summary>The slot size to use when neither the bar nor a style sets one: the built-in style's.</summary>
+    private static double SlotSize(double? thickness, ShellStyle? own, ShellStyle? shell)
     {
+        if (thickness is { } set)
+            return set;
+        return (own ?? shell ?? MetricDefaults()).SlotSize;
+    }
+
+    /// <summary>
+    /// The padding to use when the bar sets none. A style that sets none gives a bar none. No style means the built-in
+    /// style's padding.
+    /// </summary>
+    private static double EndPadding(double? padding, ShellStyle? own, ShellStyle? shell)
+    {
+        if (padding is { } set)
+            return set;
+        var look = own ?? shell;
+        return look is null ? MetricDefaults().Padding ?? 0 : look.Padding ?? 0;
+    }
+
+    /// <summary>A <see cref="ShellStyle"/> that carries only the built-in metric defaults.</summary>
+    private static ShellStyle MetricDefaults() => _metricDefaults ??= new()
+    {
+        Background = default,
+        Foreground = default,
+        Alert = default
+    };
+
+    /// <summary>One screen's bar: the host that mounts its tree, and its panel.</summary>
+    private sealed class Shown(ReactorHostControl host, PanelWindow window, bool vertical, List<Shown> open) : IDisposable
+    {
+        public void Resize(double thickness, bool reserve)
+        {
+            window.ReservedSize = reserve ? thickness : 0;
+            if (vertical)
+                window.Width = thickness;
+            else
+                window.Height = thickness;
+        }
+
         public void Dispose()
         {
+            open.Remove(this);
             host.Dispose();
             window.Dispose();
         }

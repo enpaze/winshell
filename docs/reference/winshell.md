@@ -17,11 +17,11 @@ Its section of the preferences file, named after Name, holds `edge`, `start`, `c
 | `Edge` | [Edges](#edges), init | The edge the bar runs along: one of Edges.Top, Bottom, Left and Right. |
 | `End` | IReadOnlyList of [Placement](#placement), init | The widgets at the end: the right, or the bottom on a side bar. |
 | `Name` | string, init | The bar's name, which names its section of the preferences file. Give each bar of a shell its own. |
-| `Padding` | double?, init | The space between the areas and each end of the bar, along its length, in logical pixels: at the left and right of a top or bottom bar, and at the top and bottom of a side bar. Null takes the style's padding, 4 for the built-in style, or none when the style sets no padding. |
+| `Padding` | double?, init | The space between the areas and each end of the bar, along its length, in logical pixels: at the left and right of a top or bottom bar, and at the top and bottom of a side bar. Null takes the style's padding, or none when the style sets no padding. |
 | `Reserve` | bool, init | Whether the bar reserves its edge, so maximized windows stop short of it. False lays it over them. |
 | `Start` | IReadOnlyList of [Placement](#placement), init | The widgets at the start: the left, or the top on a side bar. A plain string names a widget with no settings. |
 | `Style` | [ShellStyle](#shellstyle)?, init | The bar's own style, which wins over Shell.Style, or null for the shell's. |
-| `Thickness` | double?, init | The height of a top or bottom bar, or the width of a side bar, in logical pixels. Null takes the style's slot size, 32 for the built-in style. |
+| `Thickness` | double?, init | The height of a top or bottom bar, or the width of a side bar, in logical pixels. Null takes the style's slot size. |
 | `Dispose()` | void | Removes the bar from every screen, and stops following the screens, the file and the style. |
 
 ## CaptureView
@@ -484,7 +484,7 @@ The props of one placement: the shell, the shell window the area is drawn in, th
 | `Shell` | [Shell](#shell), read-only | The shell that owns the area. |
 | `Style` | [ShellStyle](#shellstyle)?, read-only | The style this placement shows: the area's own, or the shell's, or null for the built-in style. A widget reads ShellStyle.Alert from it when something needs attention. |
 | `Window` | [ShellWindow](#shellwindow)?, read-only | The shell window this area is drawn in, and so the screen that window is on, or null before the area is in a window. The area renders the widget again once it is. |
-| `StylePopup(UIElement content)` | FrameworkElement | Wraps content for a PopupWindow or a flyout in the area's styling. Assign the result to the popup's Content on the shell's thread. A widget may call it as soon as it has its context, before the area is in a host. Each call loads a fresh dictionary of the area's style, preserving the content's own resources, so the popup's plain controls and a component hosted in it look like the area's. The wrapper follows later changes to that style at once, and the area's resolved theme, FontFamily, FontSize and Foreground once the area has an element, until the area removes the widget or is disposed. The widget still owns and disposes its popup windows. A new wrapper to use as the popup window's content. |
+| `StylePopup(UIElement content)` | FrameworkElement | Wraps content for a PopupWindow or a flyout in the area's styling. Assign the result to the popup's Content on the shell's thread. A widget may call it as soon as it has its context, before the area is in a host. Each call loads a fresh dictionary of the area's style, preserving the content's own resources, so the popup's plain controls and a component hosted in it look like the area's. The wrapper follows later changes to that style at once, until the area removes the widget or is disposed. The widget still owns and disposes its popup windows. A new wrapper to use as the popup window's content. |
 
 ## Widgets
 

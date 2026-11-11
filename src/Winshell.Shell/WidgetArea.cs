@@ -37,9 +37,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
     {
         var props = Props;
         var defaults = props.Defaults ?? [];
-        var (ready, setReady) = UseState(false);
         var root = UseRef<FrameworkElement?>(null);
-        var target = UseRef<FrameworkElement?>(null);
         var contexts = UseRef(new List<WidgetContext>());
         var names = UseRef<string[]?>(null);
         var generation = UseRef(0);
@@ -100,41 +98,34 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         }
 
         var shown = contexts.Current;
-        var slots = ready ? new Element[placements.Count] : [];
-        if (ready)
+        var slots = new Element[placements.Count];
+        for (var i = 0; i < placements.Count; i++)
         {
-            for (var i = 0; i < placements.Count; i++)
+            var placement = placements[i];
+            var settings = placement.Settings ?? EmptySettings;
+            WidgetContext context;
+            if (i < shown.Count && shown[i].Widget == placement.Widget)
+                context = shown[i] = shown[i].Next(settings, props.Orientation).In(window.Current);
+            else
             {
-                var placement = placements[i];
-                var settings = placement.Settings ?? EmptySettings;
-                WidgetContext context;
-                if (i < shown.Count && shown[i].Widget == placement.Widget)
-                    context = shown[i] = shown[i].Next(settings, props.Orientation).In(window.Current);
+                context = new WidgetContext(Shell.Current, settings, props.Orientation, window.Current,
+                    anchor.Current!, placement.Widget);
+                if (i < shown.Count)
+                    shown[i] = context;
                 else
-                {
-                    context = new WidgetContext(Shell.Current, settings, props.Orientation, window.Current,
-                        anchor.Current!, placement.Widget);
-                    if (i < shown.Count)
-                        shown[i] = context;
-                    else
-                        shown.Add(context);
-                }
-
-                slots[i] = Component<Slot, SlotProps>(new SlotProps(context, placement.Widget, props.Name))
-                    .WithKey($"{i}:{placement.Widget}:{generation.Current}");
+                    shown.Add(context);
             }
 
-            if (shown.Count > placements.Count)
-                shown.RemoveRange(placements.Count, shown.Count - placements.Count);
+            slots[i] = Component<Slot, SlotProps>(new SlotProps(context, placement.Widget, props.Name))
+                .WithKey($"{i}:{placement.Widget}:{generation.Current}");
         }
 
+        if (shown.Count > placements.Count)
+            shown.RemoveRange(placements.Count, shown.Count - placements.Count);
+
         var stack = props.Orientation == Orientation.Vertical ? VStack(0, slots) : HStack(0, slots);
-        // Widgets wait until the style dictionary is on an ancestor, so their first render inherits it. The stack
-        // stays, and a later style replaces that dictionary without making the widgets again.
         return stack.OnMount(element =>
         {
-            if (!ReferenceEquals(root.Current, element))
-                target.Current = null;
             root.Current = element;
             if (element is FrameworkElement panel)
             {
@@ -153,34 +144,16 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
                 }
 
                 Note();
-                panel.Loaded += (_, _) =>
-                {
-                    Note();
-                    // Loaded is the first moment the panel's parent is set, so the style can move onto the host.
-                    bumpFile(pulse => pulse + 1);
-                };
+                panel.Loaded += (_, _) => Note();
             }
 
             Restyle(element);
-            setReady(true);
         });
 
         void Restyle(FrameworkElement element)
         {
-            var current = target.Current;
-            var changed = StyleHost.Place(element, props.Style, ref current);
-            target.Current = current;
-            if (anchor.Current is { } live)
-            {
-                if (changed)
-                    live.RaiseStyleChanged();
-                // Popups follow the host the area is in. The first placement can run before the element is parented,
-                // and then the host replaces that fallback once the element is in the tree.
-                if (StyleHost.FindHost(element) is Control host)
-                    live.Element = host;
-                else
-                    live.Element ??= element as Control;
-            }
+            if (StyleHost.Show(element, props.Style) && anchor.Current is { } live)
+                live.RaiseStyleChanged();
         }
     }
 

@@ -39,34 +39,49 @@ public sealed record ShellStyle
     /// <summary>The space at each end of a bar, in logical pixels. Null gives a bar none. The built-in style uses 4.</summary>
     public double? Padding { get; init; } = 4;
 
+    /// <summary>
+    /// The built-in style paints with Windows' theme brushes. A custom style paints with <see cref="Background"/>,
+    /// <see cref="Foreground"/> and <see cref="Alert"/>.
+    /// </summary>
+    internal bool ThemeColors { get; init; }
+
+    /// <summary>The built-in style. <see cref="Shell.Style"/> stays null for it.</summary>
+    internal static ShellStyle BuiltIn { get; } = new()
+    {
+        Background = default,
+        Foreground = default,
+        Alert = default,
+        ThemeColors = true
+    };
+
     /// <summary>The resource dictionary a widget area, surface and styled popup merge.</summary>
     internal string ToXaml()
     {
-        var colors = string.Create(CultureInfo.InvariantCulture,
-            $"""
-                   <SolidColorBrush x:Key="ShellBackgroundBrush" Color="{Hex(Background)}" />
-                   <SolidColorBrush x:Key="ShellForegroundBrush" Color="{Hex(Foreground)}" />
-                   <SolidColorBrush x:Key="ShellAlertBrush" Color="{Hex(Alert)}" />
-             """);
+        var colors = ThemeColors
+            ? ""
+            : string.Create(CultureInfo.InvariantCulture,
+                $"""
+                       <SolidColorBrush x:Key="ShellBackgroundBrush" Color="{Hex(Background)}" />
+                       <SolidColorBrush x:Key="ShellForegroundBrush" Color="{Hex(Foreground)}" />
+                       <SolidColorBrush x:Key="ShellAlertBrush" Color="{Hex(Alert)}" />
+                 """);
         var padding = Padding is { } space
             ? string.Create(CultureInfo.InvariantCulture, $"""<x:Double x:Key="ShellPadding">{Number(space)}</x:Double>""")
             : "";
-        return Page(Themes(colors), string.Create(CultureInfo.InvariantCulture,
+        var metrics = string.Create(CultureInfo.InvariantCulture,
             $"""
                    <FontFamily x:Key="ShellFontFamily">{SecurityElement.Escape(FontFamily.Source)}</FontFamily>
                    <x:Double x:Key="ShellFontSize">{Number(FontSize)}</x:Double>
                    <x:Double x:Key="ShellSlotSize">{Number(SlotSize)}</x:Double>
                    {padding}
-             """));
+             """);
+        return Page(ThemeColors ? BuiltInBrushes + Contrast : Themes(colors), metrics);
     }
 
     private static string Hex(Color color) => string.Create(CultureInfo.InvariantCulture,
         $"#{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}");
 
     private static string Number(double value) => value.ToString(CultureInfo.InvariantCulture);
-
-    /// <summary>The built-in style: Windows' colors, Segoe UI and Segoe Fluent Icons.</summary>
-    internal static string BuiltInXaml { get; } = Page(BuiltInBrushes + Contrast, BuiltInMetrics);
 
     // The colors a contrast theme uses, in place of the style's own, so the shell stays readable.
     private const string Contrast = """
@@ -120,13 +135,6 @@ public sealed record ShellStyle
               <SolidColorBrush x:Key="ShellForegroundBrush" Color="{ThemeResource TextFillColorPrimary}" />
               <SolidColorBrush x:Key="ShellAlertBrush" Color="{ThemeResource SystemFillColorCritical}" />
             </ResourceDictionary>
-        """;
-
-    private const string BuiltInMetrics = """
-          <FontFamily x:Key="ShellFontFamily">Segoe UI Variable Text,Segoe UI</FontFamily>
-          <x:Double x:Key="ShellFontSize">14</x:Double>
-          <x:Double x:Key="ShellSlotSize">32</x:Double>
-          <x:Double x:Key="ShellPadding">4</x:Double>
         """;
 
     private static string Themes(string colors) =>
@@ -206,6 +214,6 @@ public sealed partial class Shell
     internal static ResourceDictionary LoadStyle(ShellStyle? style) =>
         (ResourceDictionary)XamlReader.Load(DictionaryXaml(style));
 
-    /// <summary>The XAML of a style, or of the built-in style for null. A surface parses it with its background.</summary>
-    internal static string DictionaryXaml(ShellStyle? style) => style is null ? ShellStyle.BuiltInXaml : style.ToXaml();
+    /// <summary>The XAML of one resolved style. Null is the built-in style.</summary>
+    internal static string DictionaryXaml(ShellStyle? style) => (style ?? ShellStyle.BuiltIn).ToXaml();
 }

@@ -28,20 +28,10 @@ public sealed class WidgetAreaTests
                 Defaults = [new(name)]
             });
             var host = area.Host;
-            host.RequestedTheme = ElementTheme.Light;
-            host.FontFamily = new FontFamily("Consolas");
-            host.FontSize = 23;
-            host.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Crimson);
-            var parent = new Grid { RequestedTheme = ElementTheme.Light, Children = { host } };
-            using var window = new PanelWindow { Width = 180, Height = 90, Content = parent, Visible = true };
+            using var window = new PanelWindow { Width = 180, Height = 90, Content = host, Visible = true };
             await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
             var input = PopupCapture.Context!;
-            var content = (StackPanel)Microsoft.UI.Xaml.Markup.XamlReader.Load("""
-                <StackPanel xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-                    <TextBlock Text="popup" />
-                </StackPanel>
-                """);
+            var content = new StackPanel { Children = { new TextBlock { Text = "popup" } } };
             var text = (TextBlock)content.Children[0];
             text.Resources["widget-owned"] = "keep";
             var root = input!.StylePopup(content);
@@ -53,33 +43,7 @@ public sealed class WidgetAreaTests
             Assert.Equal(36d, root.Resources["ShellSlotSize"]);
             Assert.Equal(36d, second.Resources["ShellSlotSize"]);
             Assert.Equal("keep", text.Resources["widget-owned"]);
-            Assert.Equal(ElementTheme.Light, root.RequestedTheme);
-            Assert.Equal(WindowsBrush("Light", "CardBackgroundFillColorDefaultBrush"),
-                Assert.IsType<SolidColorBrush>(content.Background).Color);
-            // The style sets a text block's font, so the area's font, size and foreground show on the wrapper.
-            var wrapper = Assert.IsAssignableFrom<Control>(root);
-            Assert.Equal("Consolas", wrapper.FontFamily.Source);
-            Assert.Equal(23, wrapper.FontSize);
-            Assert.Equal(Microsoft.UI.Colors.Crimson, Assert.IsType<SolidColorBrush>(wrapper.Foreground).Color);
 
-            host.RequestedTheme = ElementTheme.Dark;
-            await Wait.UntilAsync(() => root.ActualTheme == ElementTheme.Dark && second.ActualTheme == ElementTheme.Dark,
-                "both popup windows to follow the area's dark theme");
-            Assert.Equal(ElementTheme.Dark, root.RequestedTheme);
-            Assert.Equal(WindowsBrush("Default", "CardBackgroundFillColorDefaultBrush"),
-                Assert.IsType<SolidColorBrush>(content.Background).Color);
-            host.RequestedTheme = ElementTheme.Default;
-            await Wait.UntilAsync(() => root.ActualTheme == ElementTheme.Light,
-                "the popup to follow the area's inherited light theme");
-            Assert.Equal(ElementTheme.Light, root.RequestedTheme);
-            host.RequestedTheme = ElementTheme.Dark;
-            await Wait.UntilAsync(() => root.ActualTheme == ElementTheme.Dark, "the popup to return to dark");
-            host.FontFamily = new FontFamily("Georgia");
-            host.FontSize = 27;
-            host.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
-            Assert.Equal("Georgia", wrapper.FontFamily.Source);
-            Assert.Equal(27, wrapper.FontSize);
-            Assert.Equal(Microsoft.UI.Colors.LimeGreen, Assert.IsType<SolidColorBrush>(wrapper.Foreground).Color);
             area.Set(area.Props with { Style = null });
             await host.WaitForIdleAsync();
             Assert.Equal(32d, root.Resources["ShellSlotSize"]);
@@ -94,20 +58,14 @@ public sealed class WidgetAreaTests
                 area.Set(area.Props with { Defaults = [] });
                 await host.WaitForIdleAsync();
             }
-            host.RequestedTheme = ElementTheme.Light;
-            host.FontFamily = new FontFamily("Arial");
-            host.FontSize = 12;
-            host.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Blue);
+
             if (!disposeArea)
             {
                 area.Set(area.Props with { Style = null });
                 await host.WaitForIdleAsync();
             }
-            await Wait.UntilAsync(() => host.ActualTheme == ElementTheme.Light, "the area to return to light");
-            Assert.Equal(ElementTheme.Dark, root.RequestedTheme);
-            Assert.Equal("Georgia", wrapper.FontFamily.Source);
-            Assert.Equal(27, wrapper.FontSize);
-            Assert.Equal(Microsoft.UI.Colors.LimeGreen, Assert.IsType<SolidColorBrush>(wrapper.Foreground).Color);
+
+            Assert.Equal("keep", text.Resources["widget-owned"]);
             Assert.Equal(36d, root.Resources["ShellSlotSize"]);
             Assert.Throws<ObjectDisposedException>(() => input.StylePopup(new TextBlock()));
             return true;
@@ -116,7 +74,7 @@ public sealed class WidgetAreaTests
 
     [Fact]
     [Trait("Category", "Window")]
-    public async Task A_popup_takes_the_area_style_before_the_area_is_in_a_host_and_follows_it_once_shown()
+    public async Task A_popup_takes_the_area_style_before_the_area_is_in_a_host_and_keeps_it_once_shown()
     {
         await ShellFixture.On(async _ =>
         {
@@ -135,29 +93,10 @@ public sealed class WidgetAreaTests
             Assert.Equal(36d, root.Resources["ShellSlotSize"]);
 
             var host = area.Host;
-            host.RequestedTheme = ElementTheme.Light;
-            host.FontFamily = new FontFamily("Consolas");
-            host.FontSize = 23;
-            host.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Crimson);
             using var window = new PanelWindow { Width = 180, Height = 90, Content = host, Visible = true };
             using var popup = new PopupWindow { Rect = new Rect(200, 100, 200, 90), Content = root, Visible = true };
             await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
-            var wrapper = Assert.IsAssignableFrom<Control>(root);
-            await Wait.UntilAsync(
-                () => wrapper.FontFamily.Source == "Consolas" && wrapper.FontSize == 23 &&
-                    wrapper.RequestedTheme == ElementTheme.Light &&
-                    ColorOf(wrapper.Foreground) == Microsoft.UI.Colors.Crimson,
-                "the popup to follow the area once it is shown");
-            host.FontFamily = new FontFamily("Georgia");
-            host.FontSize = 27;
-            host.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
-            host.RequestedTheme = ElementTheme.Dark;
-            Assert.Equal("Georgia", wrapper.FontFamily.Source);
-            Assert.Equal(27, wrapper.FontSize);
-            Assert.Equal(Microsoft.UI.Colors.LimeGreen, ColorOf(wrapper.Foreground));
-            await Wait.UntilAsync(() => wrapper.ActualTheme == ElementTheme.Dark,
-                "the popup to follow the area's dark theme");
-            Assert.Equal(ElementTheme.Dark, wrapper.RequestedTheme);
+            Assert.Equal(36d, root.Resources["ShellSlotSize"]);
             return true;
         });
     }
@@ -443,7 +382,6 @@ public sealed class WidgetAreaTests
             var marked = TestStyles.Marked();
             var other = TestStyles.Other();
             await area.Host.WaitForIdleAsync();
-            // Off a window the panel is not parented, so the dictionary is on the panel. In a window it moves to the host.
             var styled = Styled(area.Host);
             styled.Resources["author"] = "keep";
             var authors = new ResourceDictionary { ["ShellSlotSize"] = 50.0 };
@@ -600,7 +538,7 @@ public sealed class WidgetAreaTests
                 Assert.Equal("Segoe Fluent Icons,Segoe MDL2 Assets", glyph.FontFamily.Source);
                 Assert.Equal(16, glyph.FontSize);
                 Assert.Equal(("Consolas", 18.0), (popupText.FontFamily.Source, popupText.FontSize));
-                Assert.Equal("Georgia", Font(own.Host));
+                Assert.Equal("Georgia", Font(Styled(own.Host)));
                 Assert.NotEqual("Consolas", ownText.FontFamily.Source);
                 Assert.Equal(ownFont, ownText.FontFamily.Source);
 
@@ -608,7 +546,7 @@ public sealed class WidgetAreaTests
                 await Wait.UntilAsync(() => glyphButton.ActualWidth == 32, "the area to return to the built-in style");
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", text.FontFamily.Source);
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", popupText.FontFamily.Source);
-                Assert.Equal("Georgia", Font(own.Host));
+                Assert.Equal("Georgia", Font(Styled(own.Host)));
             }
             finally
             {
@@ -704,7 +642,7 @@ public sealed class WidgetAreaTests
 
     private static string Font(FrameworkElement element) => ((FontFamily)element.Resources["ShellFontFamily"]).Source;
 
-    /// <summary>The element whose merged dictionaries hold the style: the host once it is connected, otherwise the panel.</summary>
+    /// <summary>The area panel whose merged dictionaries hold the style. The host does not.</summary>
     private static FrameworkElement Styled(DependencyObject root)
     {
         return Find(root) ?? Assert.IsAssignableFrom<FrameworkElement>(root);
@@ -737,10 +675,6 @@ public sealed class WidgetAreaTests
         var value = WindowsResource(theme, key);
         return value is SolidColorBrush brush ? brush.Color : (global::Windows.UI.Color)value;
     }
-
-    /// <summary>A brush Windows gives a theme, read as its color.</summary>
-    private static global::Windows.UI.Color WindowsBrush(string theme, string key) =>
-        Assert.IsType<SolidColorBrush>(WindowsResource(theme, key)).Color;
 
     private static object WindowsResource(string theme, string key)
     {
