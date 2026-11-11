@@ -2,10 +2,23 @@ namespace Winshell.Commands;
 
 internal static class ListCommand
 {
-    internal static int Run(CliOptions options)
+    internal static readonly CommandEntry Entry = new()
+    {
+        Name = "list",
+        Overview = "       winshell list [-j]                  list running instances",
+        Usage = """
+                winshell list [-j]
+                  Lists running instances. -j, --json prints them as JSON.
+                  Stopped instances are not listed.
+                """,
+        Options = [CliFlags.Json],
+        Run = static parsed => Task.FromResult(Execute(parsed))
+    };
+
+    internal static int Execute(Invocation parsed)
     {
         var instances = ShellLocations.Current.Instances.List(false);
-        if (options.Json)
+        if (parsed.IsSet(CliFlags.Json))
         {
             Console.WriteLine(CliJson.Instances(instances.Select(i => i.Info)));
             return 0;

@@ -78,7 +78,7 @@ public sealed partial class LogFallbackTests : IDisposable
 
     private InstanceSelection.Result Ask(params string[] args)
     {
-        return InstanceSelection.Select(CliParser.Parse(args), InstanceSelection.Question.Log,
+        return InstanceSelection.Select(CliParser.Parse(args).Instance, InstanceSelection.Question.Log,
             new Instances(_run).List(true));
     }
 

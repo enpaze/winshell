@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text;
 using Winshell.Commands;
 
@@ -9,10 +8,10 @@ internal static class Cli
     public static async Task<int> RunAsync(string[] args)
     {
         WriteUtf8WhenRedirected();
-        CliOptions options;
+        Invocation parsed;
         try
         {
-            options = CliParser.Parse(args);
+            parsed = CliParser.Parse(CommandLine.Parse(args));
         }
         catch (ArgumentException e)
         {
@@ -20,10 +19,14 @@ internal static class Cli
             return 2;
         }
 
-        var command = options.Command;
-        if (options.ShowHelp)
-            return HelpCommand.Run(command);
-        if (options.ShowVersion)
+        var command = parsed.Command;
+        if (parsed.ShowHelp)
+        {
+            Console.WriteLine(CliParser.Help(command));
+            return 0;
+        }
+
+        if (parsed.ShowVersion)
         {
             Console.WriteLine($"winshell {Shell.Version}");
             return 0;
@@ -31,55 +34,47 @@ internal static class Cli
 
         try
         {
-            switch (command)
+            if (command is null)
             {
-                case null:
-                    // The Start tile and sign-in host still start a shell without a command word.
-                    var windowless = WinshellHost.IsWindowless(Environment.ProcessPath);
-                    if (options.Arguments.IsEmpty && !windowless)
-                        return HelpCommand.Run();
-                    if (!windowless && !options.ShellStartAllowed)
-                    {
-                        await Console.Error.WriteLineAsync("No command. Use winshell run to start a shell.");
-                        return 2;
-                    }
+                // The Start tile and sign-in host still start a shell without a command word.
+                var windowless = WinshellHost.IsWindowless(Environment.ProcessPath);
+                if (parsed.Arguments.IsEmpty && !windowless)
+                {
+                    Console.WriteLine(CliParser.Help(null));
+                    return 0;
+                }
 
-                    return RunCommand.Run(options);
-                case CommandWords.Run:
-                    return RunCommand.Run(options);
-                case "list":
-                    return ListCommand.Run(options);
-                case "kill":
-                    return await KillCommand.RunAsync(options);
-                case "reload":
-                    return await ReloadCommand.RunAsync(options);
-                case "log":
-                    return await LogCommand.RunAsync(options);
-                case "ipc":
-                    return await IpcCommand.RunAsync(options);
-                case "doctor":
-                    return DoctorCommand.Run(options);
-                case "inspect":
-                    return await InspectCommand.RunAsync(options);
-                case "dev":
-                    return await DevCommand.RunAsync(options);
-                case "new":
-                    return NewCommand.Run(options);
-                case "widget":
-                    return WidgetCommand.Run(options);
-                case "use":
-                    return await UseCommand.RunAsync(options);
-                default:
-                    throw new UnreachableException($"No command \"{command}\".");
+                if (!windowless && !parsed.ShellStartAllowed)
+                {
+                    await Console.Error.WriteLineAsync("No command. Use winshell run to start a shell.");
+                    return 2;
+                }
+
+                return RunCommand.Execute(parsed);
             }
+
+            return await Dispatch(parsed);
         }
         catch (Exception e) when (e is not OutOfMemoryException && command is not (null or CommandWords.Run))
         {
-            await Console.Error.WriteLineAsync(options.Verbose
+            await Console.Error.WriteLineAsync(parsed.Verbose
                 ? $"winshell {command}: {e}"
                 : $"winshell {command}: {e.Message}");
             return 1;
         }
+    }
+
+    private static Task<int> Dispatch(Invocation parsed)
+    {
+        var entry = CliParser.Entries.First(candidate => candidate.Name == parsed.Command);
+        if (entry.Words == WordRule.Subcommand)
+        {
+            var sub = entry.Subcommands.First(candidate => candidate.Name == parsed.Positional[0]);
+            if (sub.Run is not null)
+                return sub.Run(parsed);
+        }
+
+        return entry.Run!(parsed);
     }
 
     /// <summary>

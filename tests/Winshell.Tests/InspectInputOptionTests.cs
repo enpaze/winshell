@@ -6,7 +6,7 @@ namespace Winshell.Tests;
 /// </summary>
 public class InspectInputOptionTests
 {
-    private static CliOptions Parse(params string[] args)
+    private static Invocation Parse(params string[] args)
     {
         return CliParser.Parse(args);
     }
@@ -14,8 +14,8 @@ public class InspectInputOptionTests
     [Fact]
     public void A_right_press_is_read_wherever_the_flag_is()
     {
-        Assert.True(Parse("inspect", "press", "--right", "Menu", "PanelView").Right);
-        Assert.True(Parse("inspect", "press", "Menu", "PanelView", "--right").Right);
+        Assert.True(Parse("inspect", "press", "--right", "Menu", "PanelView").IsSet(CliFlags.Right));
+        Assert.True(Parse("inspect", "press", "Menu", "PanelView", "--right").IsSet(CliFlags.Right));
         Assert.Equal(["press", "Menu", "PanelView"],
             Parse("inspect", "--right", "press", "Menu", "PanelView").Positional);
     }

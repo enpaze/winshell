@@ -7,11 +7,28 @@ internal static class NewCommand
 {
     private const string Guide = "https://github.com/enpaze/winshell/blob/main/docs/configuration.md#from-a-clone";
 
+    internal static readonly CommandEntry Entry = new()
+    {
+        Name = "new",
+        Overview = "       winshell new [<name>] [-p <folder>] list the examples, or copy one to start from",
+        Usage = """
+                winshell new [<name>] [-p <folder>]
+                  With no name, lists the starter and the examples this release can copy.
+                  With a name, copies that one into {config-root}\<name>, ready for
+                  winshell run -c <name>. Its project references this release's Winshell package.
+                  -p, --path <folder>    copy into this folder instead
+                  A folder that exists and isn't empty is refused, and nothing changes.
+                """,
+        Options = [CliFlags.Path],
+        Words = WordRule.One,
+        Run = static parsed => Task.FromResult(Execute(parsed))
+    };
+
     /// <summary>winshell new: lists what it can copy, or copies one into the config folder or <c>--path</c>.</summary>
-    internal static int Run(CliOptions options)
+    internal static int Execute(Invocation parsed)
     {
         var packages = Path.Combine(Path.GetDirectoryName(Environment.ProcessPath)!, "packages");
-        var result = Make(options, ShellLocations.Current.ConfigRoot, packages);
+        var result = Make(parsed, ShellLocations.Current.ConfigRoot, packages);
         Console.Write(result.Output);
         if (result.Error is not null)
             Console.Error.WriteLine(result.Error);
@@ -19,13 +36,13 @@ internal static class NewCommand
     }
 
     /// <summary>
-    /// What <see cref="Run"/> prints and returns. <paramref name="packages"/> is the folder beside winshell.exe that
+    /// What <see cref="Execute"/> prints and returns. <paramref name="packages"/> is the folder beside winshell.exe that
     /// may hold this release's Winshell package. An unknown name, or a folder that isn't empty, changes nothing.
     /// </summary>
-    internal static Result Make(CliOptions options, string configRoot, string packages)
+    internal static Result Make(Invocation parsed, string configRoot, string packages)
     {
         var output = new StringBuilder();
-        if (options.Positional.FirstOrDefault() is not { } name)
+        if (parsed.Positional.FirstOrDefault() is not { } name)
         {
             var width = Example.All.Max(example => example.Name.Length);
             foreach (var example in Example.All)
@@ -37,7 +54,8 @@ internal static class NewCommand
             Example.All.FirstOrDefault(example => example.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
         if (chosen is null)
             return new Result(2, "", $"No starter or example is named \"{name}\". Run winshell new to list them.");
-        var folder = Path.GetFullPath(options.Path ?? Path.Combine(configRoot, chosen.Name));
+        var path = parsed.Text(CliFlags.Path);
+        var folder = Path.GetFullPath(path ?? Path.Combine(configRoot, chosen.Name));
         if (File.Exists(folder) || (Directory.Exists(folder) && Directory.EnumerateFileSystemEntries(folder).Any()))
             return new Result(2, "", $"{folder} already exists and isn't empty. Pick another folder with -p.");
 
@@ -47,7 +65,7 @@ internal static class NewCommand
         if (!restores)
             output.AppendLine(CultureInfo.InvariantCulture,
                 $"The Winshell {version} package is not beside winshell.exe, so add a NuGet source for it: see {Guide}");
-        var run = options.Path is null
+        var run = path is null
             ? "-c " + chosen.Name
             : "-p " + (folder.Contains(' ', StringComparison.Ordinal) ? $"\"{folder}\"" : folder);
         output.AppendLine(CultureInfo.InvariantCulture, $"Run it: winshell run {run}");

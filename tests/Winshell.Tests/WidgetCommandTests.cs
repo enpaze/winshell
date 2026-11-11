@@ -605,8 +605,8 @@ public sealed class WidgetCommandTests : IDisposable
         Assert.Equal("Unexpected argument \"extra\".", spare.Message);
         Assert.Equal("update", named.Positional[0]);
         Assert.Equal("clock", named.Positional[1]);
-        Assert.True(named.Yes);
-        Assert.Equal("myshell", named.Config);
+        Assert.True(named.IsSet(CliFlags.Yes));
+        Assert.Equal("myshell", named.Text(CliFlags.Config));
         Assert.Contains("winshell widget install <source>[@ref] [--yes]", summary, StringComparison.Ordinal);
         Assert.Contains("winshell widget list", summary, StringComparison.Ordinal);
         Assert.Contains("list the widgets a configuration has", summary, StringComparison.Ordinal);
@@ -749,14 +749,8 @@ public sealed class WidgetCommandTests : IDisposable
         string? dotnet = null)
     {
         var output = new StringWriter();
-        var result = WidgetCommand.Apply(new CliOptions
-        {
-            Command = "widget",
-            Path = ProjectFile,
-            Positional = [.. positional],
-            Yes = yes,
-            Project = project
-        }, Locations, new StringReader(input), output, git ?? "git", dotnet ?? "dotnet");
+        var result = WidgetCommand.Apply(new WidgetRequest(ProjectFile, null, [.. positional], yes, project),
+            Locations, new StringReader(input), output, git ?? "git", dotnet ?? "dotnet");
         return new Outcome(result.Code, result.Error, output.ToString());
     }
 

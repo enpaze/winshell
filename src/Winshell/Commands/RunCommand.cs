@@ -1,29 +1,67 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using Winshell.ExplorerTaskbar;
 
 namespace Winshell.Commands;
 
 internal static class RunCommand
 {
-    internal static int Run(CliOptions options)
+    internal static readonly CommandEntry Entry = new()
     {
-        var project = ConfigurationProject.Find(options.Path, options.Config, ShellLocations.Current.ConfigRoot,
-            out var error);
+        Name = CommandWords.Run,
+        Overview = "Usage: winshell run [options]              start a shell",
+        Usage = """
+                winshell run [-c <name> | -p <path>] [-d] [-n] [--no-build] [-- <args>...]
+                  Starts a configuration project's shell, built first when a source is newer than its
+                  program. With no project, nothing starts.
+                  -d, --daemonize        run in the background
+                  -n, --no-duplicate     exit quietly if this config is already running
+                      --no-build         run the last build, and do not build again
+                  Words after -- go to the configuration's program.
+                """,
+        Options =
+        [
+            CliFlags.Path, CliFlags.Config, CliFlags.Daemonize, CliFlags.NoDuplicate, CliFlags.NoBuild
+        ],
+        Run = static parsed => Task.FromResult(Execute(parsed))
+    };
+
+    /// <summary>
+    /// What a <c>-d</c> child runs. The flag itself is already gone from <paramref name="kept"/>.
+    /// <c>--no-build</c> is added when this process builds, so the child does not build again. A line with no command
+    /// word is named <c>run</c>.
+    /// </summary>
+    internal static ImmutableArray<string> ChildArguments(IReadOnlyList<string> kept, string? command, bool noBuild)
+    {
+        var child = kept.ToList();
+        if (command is null)
+            child.Insert(0, CommandWords.Run);
+        if (!noBuild)
+            child.Insert(0, CommandWords.NoBuild.Long);
+        return [.. child];
+    }
+
+    internal static int Execute(Invocation parsed)
+    {
+        var path = parsed.Text(CliFlags.Path);
+        var config = parsed.Text(CliFlags.Config);
+        var project = ConfigurationProject.Find(path, config, ShellLocations.Current.ConfigRoot, out var error);
         if (error is not null)
         {
             // Before any instance log exists. An attached console prints it. Start and sign-in have no window.
-            StartupError.Report(error, StartupError.FolderFor(options.Path, ShellLocations.Current.ConfigRoot));
+            StartupError.Report(error, StartupError.FolderFor(path, ShellLocations.Current.ConfigRoot));
             return 1;
         }
 
         if (project is null)
             return 0;
-        if (options.NoDuplicate &&
+        if (parsed.IsSet(CliFlags.NoDuplicate) &&
             project.InstancesOf(ConfigurationBuild.Run,
                 ShellLocations.Current.Instances.List(false).Select(i => i.Info)).Any())
             return 0;
-        var reason = project.Prepare(options.NoBuild, ConfigurationProject.Run);
+        var reason = project.Prepare(parsed.IsSet(CliFlags.NoBuild), ConfigurationProject.Run);
         if (reason is not null)
         {
             StartupError.Report(reason, project.Folder);
@@ -31,12 +69,12 @@ internal static class RunCommand
         }
 
         // -d leaves the program to a child that supervises it. The build is done, and its errors were in this console.
-        // The child runs the tokens Parse kept, so a -d that is the value of -c or -p is not dropped.
-        if (options.Daemonize)
-            return Detach(options.ChildArguments);
+        // The child runs the tokens the parser kept, so a -d that is the value of -c or -p is not dropped.
+        if (parsed.IsSet(CliFlags.Daemonize))
+            return Detach(parsed.ChildArguments);
 
         var program = new ProcessStartInfo(project.Program) { UseShellExecute = false };
-        foreach (var a in CommandLine.ProgramArguments(options.NoDuplicate, options.Verbose, options.Rest))
+        foreach (var a in CommandLine.ProgramArguments(parsed.IsSet(CliFlags.NoDuplicate), parsed.Verbose, parsed.Rest))
             program.ArgumentList.Add(a);
         return Supervise(program, project);
     }

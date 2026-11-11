@@ -12,7 +12,7 @@ public class IpcArgumentTests
         var parsed = CliParser.Parse(["ipc", "call", "notes", "add", "-v", "-p", "50", "--after", "5"]);
 
         Assert.False(parsed.Verbose);
-        Assert.Null(parsed.Path);
+        Assert.Null(parsed.Text(CliFlags.Path));
         Assert.Equal(["call", "notes", "add", "-v", "-p", "50", "--after", "5"], parsed.Positional);
     }
 
@@ -22,7 +22,7 @@ public class IpcArgumentTests
         var parsed = CliParser.Parse(["ipc", "-v", "-p", "50", "call", "notes", "add"]);
 
         Assert.True(parsed.Verbose);
-        Assert.Equal("50", parsed.Path);
+        Assert.Equal("50", parsed.Text(CliFlags.Path));
         Assert.Equal(["call", "notes", "add"], parsed.Positional);
     }
 
@@ -40,8 +40,8 @@ public class IpcArgumentTests
     {
         var parsed = CliParser.Parse(["ipc", "show", "-j", "--", "-j", "--force"]);
 
-        Assert.True(parsed.Json);
-        Assert.False(parsed.Force);
+        Assert.True(parsed.IsSet(CliFlags.Json));
+        Assert.False(parsed.IsSet(CliFlags.Force));
         Assert.Equal(["show", "-j", "--force"], parsed.Positional);
     }
 
@@ -69,6 +69,6 @@ public class IpcArgumentTests
         Assert.Equal("winshell ipc call needs a target and a function.", error.Message);
         var kill = CliParser.Parse(["-c", "work", "kill"]);
         Assert.Equal("kill", kill.Command);
-        Assert.Equal("work", kill.Config);
+        Assert.Equal("work", kill.Text(CliFlags.Config));
     }
 }

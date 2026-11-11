@@ -2,12 +2,29 @@ namespace Winshell.Commands;
 
 internal static class LogCommand
 {
-    internal static async Task<int> RunAsync(CliOptions options)
+    internal static readonly CommandEntry Entry = new()
     {
-        var path = options.Positional.FirstOrDefault();
+        Name = "log",
+        Overview = "       winshell log [-f] [-t N] [file]     print an instance's log",
+        Usage = """
+                winshell log [-i <id> | --pid <pid> | -c <name> | -p <path>] [-t <n>] [-f] [file]
+                  Prints an instance's log. -t, --tail <n> prints the last n lines.
+                  -f, --follow keeps printing new lines. winshell log <file> prints that file.
+                  With one running instance and no selector, that instance is used.
+                  With several, this exits and lists them.
+                  With nothing running and no selector, the log of a stopped instance is printed.
+                """,
+        Options = [.. CliFlags.Instance, CliFlags.Tail, CliFlags.Follow],
+        Words = WordRule.One,
+        Run = Execute
+    };
+
+    internal static async Task<int> Execute(Invocation parsed)
+    {
+        var path = parsed.Positional.FirstOrDefault();
         if (path is null)
         {
-            if (InstanceCall.Select(options, InstanceSelection.Question.Log, out var code) is not { } info)
+            if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Log, out var code) is not { } info)
                 return code;
             path = info.Log;
         }
@@ -21,10 +38,10 @@ internal static class LogCommand
         await using var stream = InstanceLog.OpenToRead(path);
         using var reader = new StreamReader(stream);
         var all = (await reader.ReadToEndAsync()).TrimEnd('\n').Split('\n');
-        foreach (var line in options.Tail is { } n ? all.TakeLast(n) : all)
+        foreach (var line in parsed.Number(CliFlags.Tail) is { } n ? all.TakeLast(n) : all)
             if (line.Length > 0)
                 Console.WriteLine(line.TrimEnd('\r'));
-        if (options.Follow)
+        if (parsed.IsSet(CliFlags.Follow))
             await foreach (var line in InstanceLog.Follow(reader))
                 Console.WriteLine(line);
 

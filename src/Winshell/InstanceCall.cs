@@ -4,18 +4,18 @@ namespace Winshell;
 internal static class InstanceCall
 {
     /// <summary>
-    /// The instance <paramref name="options"/> select. Null once why not is printed, and <paramref name="code"/> is then
+    /// The instance <paramref name="choice"/> selects. Null once why not is printed, and <paramref name="code"/> is then
     /// the command's exit code.
     /// </summary>
-    internal static InstanceInfo? Select(CliOptions options, InstanceSelection.Question question, out int code)
+    internal static InstanceInfo? Select(InstanceChoice choice, InstanceSelection.Question question, out int code)
     {
-        var choice = InstanceSelection.Select(options, question, ShellLocations.Current.Instances.List(true));
-        code = choice.Code;
-        if (choice.Info is null)
-            Console.Error.WriteLine(choice.Error);
-        else if (choice.Notice is not null)
-            Console.Error.WriteLine(choice.Notice);
-        return choice.Info;
+        var selected = InstanceSelection.Select(choice, question, ShellLocations.Current.Instances.List(true));
+        code = selected.Code;
+        if (selected.Info is null)
+            Console.Error.WriteLine(selected.Error);
+        else if (selected.Notice is not null)
+            Console.Error.WriteLine(selected.Notice);
+        return selected.Info;
     }
 
     /// <summary>

@@ -1,0 +1,6 @@
+winshell use [<name>]
+  With a name, builds that config in {config-root} when it needs a build, and
+  chooses it: sign-in, the Start tile and winshell run with no -c or -p start it.
+  A shell that is running stops, and the chosen one starts in its place.
+  A failed build changes nothing.
+  With no name, lists the configs, with * before the one winshell run starts.

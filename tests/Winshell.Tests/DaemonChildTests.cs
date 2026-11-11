@@ -15,8 +15,8 @@ public class DaemonChildTests
     {
         var parsed = CliParser.Parse(["run", "-d", option, "-d"]);
 
-        Assert.True(parsed.Daemonize);
-        Assert.Equal("-d", option is "-p" or "--path" ? parsed.Path : parsed.Config);
+        Assert.True(parsed.IsSet(CliFlags.Daemonize));
+        Assert.Equal("-d", option is "-p" or "--path" ? parsed.Text(CliFlags.Path) : parsed.Text(CliFlags.Config));
         Assert.Equal(["--no-build", "run", option, "-d"], parsed.ChildArguments);
     }
 
@@ -44,7 +44,7 @@ public class DaemonChildTests
 
         Assert.Null(parsed.Command);
         Assert.True(parsed.ShellStartAllowed);
-        Assert.Equal("-d", parsed.Path);
+        Assert.Equal("-d", parsed.Text(CliFlags.Path));
         Assert.Equal(["--no-build", "run", "-p", "-d"], parsed.ChildArguments);
     }
 }
