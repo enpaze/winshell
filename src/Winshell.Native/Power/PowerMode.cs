@@ -50,19 +50,25 @@ internal static unsafe class PowerMode
     /// <summary>
     /// Calls <paramref name="changed"/> on a Windows thread with the effective mode, once right away and then on each
     /// change, until <see cref="StopListeningEffective"/>, and hands <paramref name="failed"/> each exception it throws.
-    /// The process has one listener: a later call replaces it. Does nothing on a Windows without these notifications.
+    /// The process has one listener: a later call replaces it. Returns false, and stores no listener, when this build
+    /// of Windows has no such call.
     /// </summary>
-    internal static void ListenEffective(Action<int> changed, Action<Exception> failed)
+    internal static bool ListenEffective(Action<int> changed, Action<Exception> failed)
     {
         StopListeningEffective();
+        // The first report arrives inside the register call, so the listener has to be in place before it.
         _effectiveChanged = mode => Callback.Run(failed, () => changed(mode));
         try
         {
             _ = PInvoke.PowerRegisterForEffectivePowerModeNotifications(PInvoke.EFFECTIVE_POWER_MODE_V2,
                 &OnEffectiveChanged, null, out _effectiveRegistration);
+            return true;
         }
         catch (EntryPointNotFoundException)
         {
+            _effectiveChanged = null;
+            _effectiveRegistration = null;
+            return false;
         }
     }
 

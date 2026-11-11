@@ -96,7 +96,8 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         WinNetworkInformation.NetworkStatusChanged += OnNetworkStatusChanged;
         NetworkChange.NetworkAddressChanged += OnNetworkChanged;
         NetworkChange.NetworkAvailabilityChanged += OnNetworkChanged;
-        Wlan.Listen(Refresh, e => log.Warn("network", e.Message));
+        if (!Wlan.Listen(Refresh, e => log.Warn("network", e.Message)))
+            log.Warn("network", "This Windows build has no WLAN notifications.");
     }
 
     /// <summary>Stops watching Windows and lets go of the radios.</summary>

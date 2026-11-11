@@ -154,7 +154,7 @@ A list a service keeps current. A configuration reads it, and only its service c
 
 ## ObservableObject
 
-The base of what a service exposes. A change is raised on the thread that made it, which for a service is its event loop, so Reactor can read it. A list property, once read through Read, raises this object when that list changes, so a change inside the list reaches the object.
+The base of what a service exposes. A change is raised on the thread that made it, which for a service is its event loop, so Reactor can read it. A list property, once read through Read, raises this object when that list changes, so a change inside the list reaches the object. One list followed under two properties throws, because the second property would not notify.
 
 | Member | Type | Description |
 | --- | --- | --- |
