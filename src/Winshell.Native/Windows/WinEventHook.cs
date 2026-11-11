@@ -1,5 +1,9 @@
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.Accessibility;
 
 namespace Winshell.Native;
 
@@ -40,10 +44,10 @@ internal sealed unsafe class WinEventHook : IDisposable
     internal static WinEventHook? Start(uint min, uint max, Action<uint, nint, int, int> onEvent,
         Action<Exception> failed)
     {
-        var handle = Win32.SetWinEventHook(min, max, 0, &OnEvent, 0, 0, Win32.WINEVENT_OUTOFCONTEXT);
-        if (handle == 0)
+        var handle = PInvoke.SetWinEventHook(min, max, default, &OnEvent, 0, 0, PInvoke.WINEVENT_OUTOFCONTEXT);
+        if (handle.IsNull)
             return null;
-        var hook = new WinEventHook(handle, onEvent, failed);
+        var hook = new WinEventHook((nint)handle, onEvent, failed);
         Hooks[handle] = hook;
         return hook;
     }
@@ -53,14 +57,15 @@ internal sealed unsafe class WinEventHook : IDisposable
         if (_hook == 0)
             return;
         Hooks.TryRemove(_hook, out _);
-        Win32.UnhookWinEvent(_hook);
+        PInvoke.UnhookWinEvent((HWINEVENTHOOK)_hook);
         _hook = 0;
     }
 
-    [UnmanagedCallersOnly]
-    private static void OnEvent(nint hook, uint eventType, nint hwnd, int idObject, int idChild, uint thread, uint time)
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
+    private static void OnEvent(HWINEVENTHOOK hook, uint eventType, HWND hwnd, int idObject, int idChild, uint thread,
+        uint time)
     {
-        if (Hooks.TryGetValue(hook, out var owner))
-            Callback.Run(owner._failed, () => owner._onEvent(eventType, hwnd, idObject, idChild));
+        if (Hooks.TryGetValue((nint)hook, out var owner))
+            Callback.Run(owner._failed, () => owner._onEvent(eventType, (nint)hwnd, idObject, idChild));
     }
 }

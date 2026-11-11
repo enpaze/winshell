@@ -235,8 +235,7 @@ DESKTOP_WALLPAPER_POSITION
 GetPackageFamilyName
 
 // Windows and messages: the window, its class, its placement and the messages it is sent. One block, so later
-// NativeMethods.txt edits can rebase around it. Hooks, input, cursors, metrics, power and the clipboard stay
-// hand-written until their own tickets.
+// NativeMethods.txt edits can rebase around it. Power and the clipboard stay hand-written until their own tickets.
 RECT
 MSG
 WNDCLASSEXW
@@ -323,3 +322,43 @@ IsIconic
 GetAncestor
 GetDpiForWindow
 AdjustWindowRectExForDpi
+
+// Hooks, keyboard and pointer input, the cursor and system metrics. One block, so later
+// NativeMethods.txt edits can rebase around it. The copied metric indexes live on SYSTEM_METRICS_INDEX.
+// CsWin32 will not generate POINT; Winshell keeps its own, and these calls convert at the boundary.
+SetWindowsHookEx
+UnhookWindowsHookEx
+CallNextHookEx
+WINDOWS_HOOK_ID
+MSLLHOOKSTRUCT
+SetWinEventHook
+UnhookWinEvent
+WINEVENT_OUTOFCONTEXT
+EVENT_SYSTEM_FOREGROUND
+EVENT_SYSTEM_MINIMIZESTART
+EVENT_SYSTEM_MINIMIZEEND
+EVENT_SYSTEM_DESKTOPSWITCH
+EVENT_OBJECT_CREATE
+EVENT_OBJECT_DESTROY
+EVENT_OBJECT_SHOW
+EVENT_OBJECT_HIDE
+EVENT_OBJECT_REORDER
+EVENT_OBJECT_LOCATIONCHANGE
+EVENT_OBJECT_NAMECHANGE
+EVENT_OBJECT_CLOAKED
+EVENT_OBJECT_UNCLOAKED
+OBJECT_IDENTIFIER
+CHILDID_SELF
+GetAsyncKeyState
+RegisterHotKey
+UnregisterHotKey
+GetCursorPos
+LoadCursor
+IDC_ARROW
+WindowFromPoint
+GetLastInputInfo
+LASTINPUTINFO
+ReleaseCapture
+AttachThreadInput
+GetSystemMetrics
+SYSTEM_METRICS_INDEX

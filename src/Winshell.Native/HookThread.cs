@@ -30,8 +30,8 @@ internal sealed unsafe class HookThread
     /// after the hook is removed. Windows can also remove the hook and leave the thread running, and then
     /// <paramref name="lost"/> does not run.
     /// </summary>
-    internal static HookThread? Start(int hookId, delegate* unmanaged<int, nint, nint, nint> proc, string name,
-        Action? lost = null)
+    internal static HookThread? Start(WINDOWS_HOOK_ID hookId,
+        delegate* unmanaged[Stdcall]<int, WPARAM, LPARAM, LRESULT> proc, string name, Action? lost = null)
     {
         var life = new Lifetime { Lost = lost };
         var started = new TaskCompletionSource<(nint Hook, uint ThreadId)>();
@@ -54,20 +54,20 @@ internal sealed unsafe class HookThread
         Thread.Join();
     }
 
-    private static void Pump(int hookId, delegate* unmanaged<int, nint, nint, nint> proc,
+    private static void Pump(WINDOWS_HOOK_ID hookId, delegate* unmanaged[Stdcall]<int, WPARAM, LPARAM, LRESULT> proc,
         TaskCompletionSource<(nint Hook, uint ThreadId)> started, Lifetime life)
     {
         // Creates the thread's message queue, so the quit message posted by Stop is not lost.
         PInvoke.PeekMessage(out _, HWND.Null, 0, 0, PEEK_MESSAGE_REMOVE_TYPE.PM_NOREMOVE);
-        var hook = Win32.SetWindowsHookExW(hookId, proc, Win32.GetModuleHandleW(null), 0);
-        started.SetResult((hook, Win32.GetCurrentThreadId()));
-        if (hook == 0)
+        var hook = PInvoke.SetWindowsHookEx(hookId, proc, (HINSTANCE)Win32.GetModuleHandleW(null), 0);
+        started.SetResult(((nint)hook, Win32.GetCurrentThreadId()));
+        if (hook.IsNull)
             return;
         while (PInvoke.GetMessage(out _, HWND.Null, 0, 0) > 0)
         {
         }
 
-        Win32.UnhookWindowsHookEx(hook);
+        PInvoke.UnhookWindowsHookEx(hook);
         if (Volatile.Read(ref life.StopRequested) == 0)
             life.Lost?.Invoke();
     }

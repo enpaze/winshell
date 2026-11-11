@@ -1,3 +1,4 @@
+using Windows.Win32.UI.Input.KeyboardAndMouse;
 using Winshell.Native;
 
 namespace Winshell.Power;
@@ -68,7 +69,7 @@ public sealed class IdleMonitor : ObservableObject, IDisposable
     private static double IdleSeconds()
     {
         var info = new LASTINPUTINFO { cbSize = 8 };
-        if (!Win32.GetLastInputInfo(ref info))
+        if (!PInvoke.GetLastInputInfo(ref info))
             return 0;
         return unchecked(Win32.GetTickCount() - info.dwTime) / 1000.0;
     }

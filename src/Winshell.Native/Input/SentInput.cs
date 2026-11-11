@@ -39,7 +39,7 @@ internal static unsafe class SentInput
     internal static uint? LastInput()
     {
         var info = new LASTINPUTINFO { cbSize = 8 };
-        return Win32.GetLastInputInfo(ref info) ? info.dwTime : null;
+        return PInvoke.GetLastInputInfo(ref info) ? info.dwTime : null;
     }
 
     /// <summary>

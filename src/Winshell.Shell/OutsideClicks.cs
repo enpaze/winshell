@@ -25,7 +25,7 @@ internal sealed partial class OutsideClicks : IDisposable
     public OutsideClicks(ShellPlatform platform)
     {
         _platform = platform;
-        _watch = WinEventHook.Start(Win32.EVENT_OBJECT_SHOW, OnWinEvent, Failed);
+        _watch = WinEventHook.Start(PInvoke.EVENT_OBJECT_SHOW, OnWinEvent, Failed);
     }
 
     private void OnWinEvent(uint evt, nint hwnd, int idObject, int idChild)

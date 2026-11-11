@@ -222,7 +222,7 @@ public sealed class FocusTakeoverTests
         var foreground = PInvoke.GetForegroundWindow();
         var current = Win32.GetCurrentThreadId();
         var other = foreground == 0 ? 0 : PInvoke.GetWindowThreadProcessId(foreground, out _);
-        if (other != 0 && other != current && Win32.AttachThreadInput(current, other, true))
+        if (other != 0 && other != current && PInvoke.AttachThreadInput(current, other, true))
             try
             {
                 TopLevelWindows.Raise(window);
@@ -230,7 +230,7 @@ public sealed class FocusTakeoverTests
             }
             finally
             {
-                Win32.AttachThreadInput(current, other, false);
+                PInvoke.AttachThreadInput(current, other, false);
             }
 
         return PInvoke.GetForegroundWindow() == window;

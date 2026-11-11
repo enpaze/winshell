@@ -1,4 +1,6 @@
+using Windows.Win32;
 using Windows.Win32.UI.Input.KeyboardAndMouse;
+using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winshell.Native;
 
@@ -9,21 +11,18 @@ namespace Winshell.Native;
 /// </summary>
 internal static class PointerInput
 {
-    private const int SmXVirtualScreen = 76;
-    private const int SmYVirtualScreen = 77;
-    private const int SmCxVirtualScreen = 78;
-    private const int SmCyVirtualScreen = 79;
-
     /// <summary>The cursor's place in physical pixels, or null when Windows won't say, as on a secure desktop.</summary>
     internal static POINT? Cursor()
     {
-        return Win32.GetCursorPos(out var point) ? point : null;
+        if (!PInvoke.GetCursorPos(out System.Drawing.Point point))
+            return null;
+        return new POINT { X = point.X, Y = point.Y };
     }
 
     /// <summary>The top-level window under a point on the screen, or 0.</summary>
     internal static nint RootWindowAt(POINT point)
     {
-        var hwnd = Win32.WindowFromPoint(point);
+        var hwnd = (nint)PInvoke.WindowFromPoint(new System.Drawing.Point(point.X, point.Y));
         return hwnd == 0 ? 0 : TopLevelWindows.RootOf(hwnd);
     }
 
@@ -52,10 +51,10 @@ internal static class PointerInput
     /// <summary>An absolute move, which spans the virtual desktop from 0 to 65535.</summary>
     private static INPUT Move(POINT point)
     {
-        var left = Win32.GetSystemMetrics(SmXVirtualScreen);
-        var top = Win32.GetSystemMetrics(SmYVirtualScreen);
-        var width = Math.Max(2, Win32.GetSystemMetrics(SmCxVirtualScreen));
-        var height = Math.Max(2, Win32.GetSystemMetrics(SmCyVirtualScreen));
+        var left = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_XVIRTUALSCREEN);
+        var top = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_YVIRTUALSCREEN);
+        var width = Math.Max(2, PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXVIRTUALSCREEN));
+        var height = Math.Max(2, PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYVIRTUALSCREEN));
         var input = new INPUT { type = INPUT_TYPE.INPUT_MOUSE };
         input.Anonymous.mi.dx = (int)Math.Round((point.X - left) * 65535.0 / (width - 1));
         input.Anonymous.mi.dy = (int)Math.Round((point.Y - top) * 65535.0 / (height - 1));

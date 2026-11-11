@@ -83,7 +83,7 @@ internal sealed class HotkeyBackend(IEventLoop loop, Action<Exception> failed) :
 
     public bool IsKeyDown(int virtualKey)
     {
-        return Win32.GetAsyncKeyState(virtualKey) < 0;
+        return PInvoke.GetAsyncKeyState(virtualKey) < 0;
     }
 
     public void SendMask()

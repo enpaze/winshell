@@ -40,8 +40,8 @@ internal sealed class FullscreenApps : IDisposable
         if (hwnd == 0 || !WindowRules.IsWindowObject(idObject, idChild))
             return;
         // A move or resize is sent for every window, so only the foreground one can change the answer.
-        var foreground = eventType == Win32.EVENT_SYSTEM_FOREGROUND
-                         || (eventType == Win32.EVENT_OBJECT_LOCATIONCHANGE && hwnd == _backend.Foreground);
+        var foreground = eventType == PInvoke.EVENT_SYSTEM_FOREGROUND
+                         || (eventType == PInvoke.EVENT_OBJECT_LOCATIONCHANGE && hwnd == _backend.Foreground);
         if (!foreground || _readPosted)
             return;
         _readPosted = true;
