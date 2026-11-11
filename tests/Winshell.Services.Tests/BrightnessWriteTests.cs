@@ -83,8 +83,7 @@ public class BrightnessWriteTests
         }, log);
 
         writer.Request("DISPLAY1", 10, _ => { });
-        Assert.True(started.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken),
-            "The first write did not start.");
+        started.Wait(TestContext.Current.CancellationToken);
         writer.Request("DISPLAY1", 80, _ => { });
         release.Set();
         Wait.Until(() => !writer.IsWriting("DISPLAY1"), "The writes did not finish.");

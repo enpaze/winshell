@@ -60,6 +60,16 @@ public class BrightnessRefreshTests
     }
 
     [Fact]
+    public void A_new_screen_field_has_to_say_whether_it_re_reads_brightness()
+    {
+        // WorkAreaOnly names every field but the work area. Add the new one there, then here.
+        Assert.Equal(
+            ["DevicePixelRatio", "Geometry", "Id", "IsPrimary", "Manufacturer", "Model", "Name",
+                "PhysicalHeightMm", "PhysicalWidthMm", "RefreshRate", "SerialNumber", "WorkArea"],
+            typeof(ScreenInfo).GetProperties().Select(property => property.Name).OrderBy(name => name, StringComparer.Ordinal));
+    }
+
+    [Fact]
     public void A_burst_of_writes_asks_for_one_read_after_the_queue_empties()
     {
         var drained = 0;
