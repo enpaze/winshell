@@ -10,6 +10,22 @@ When the documentation and existing code conflict, follow the code's conventions
 
 Always build code cleanly, modularly, and with proper architecture and separation of concerns. Never simply bolt on a feature because I asked for it. If you can't find an easy way to build it naturally, and you'd recommend a refactor to make the whole thing cleanly, stop your work ahead of time and say so.
 
+### Roles and model choices
+
+The coordinator delegates to explorers and builders on demand. The reviewer checks the resulting changes independently.
+
+| Role | Responsibilities and limits | Preferred | Fallback 1 | Fallback 2 |
+| --- | --- | --- | --- | --- |
+| User / Human | Decisions, text, go/no-go | — | — | — |
+| Coordinator | Plan, brief, delegate on demand, land PRs, maintain docs | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) |
+| Explorer | Find files and report evidence; leave conclusions to the coordinator | Claude Haiku 5.5 (xhigh); Claude Sonnet 5.5 (xhigh) when judgment is needed | GPT 6.1 Terra (medium) | Grok 4.7 Fast (high) |
+| Builder | Write code and tests in its own worktree | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) |
+| Reviewer | Independently check changes and report findings; read-only: no edits, commits, pushes or merges | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) |
+
+- Before an agent role is first needed in a thread, the coordinator asks the user to choose its model through T3 Code's structured question tool. Offer all model/effort pairs in that role's row as options, recommend the preferred choice appropriate to the work, and wait for an answer before starting the role's work.
+- Reuse the user's selection for that role throughout the thread. If the selected model is unavailable, its usage is exhausted, or the effort setting is unsupported, explain and ask again with the remaining table choices. Wait for the user's answer; never switch silently.
+- Every subagent or delegate prompt must explicitly name its assigned role and include that role's responsibilities and limits from the table. The coordinator chooses the model with the user before dispatch and sets the selected model and effort explicitly. Children use the supplied assignment.
+
 ## Start a ticket
 
 Work starts from a ticket: one issue that one PR closes. [The main flow](docs/agents/flow.md) says where tickets come from and who runs each step.
@@ -37,22 +53,6 @@ Scripts are PowerShell 7; `scripts/install.ps1` and `scripts/uninstall.ps1` also
 - Build related work as a stack: [Pull request stacks](docs/development.md#pull-request-stacks).
 - Lead a spec's tickets, or work as a delegate: [the lead page](docs/agents/lead.md).
 - Change something visible: [See what you changed](docs/development.md#see-what-you-changed).
-
-## Models and effort
-
-Take the model and effort for a subagent or a delegate from this table. Each job lists its models in order: use the first, and use the next only when the one before it is unavailable or its usage is used up.
-
-| Job | First | Then | Then | Then |
-| --- | --- | --- | --- | --- |
-| Most work: leading a spec, building a ticket, the `code-review` subagents | Claude Opus 5.5 (medium) | GPT 6.1 Sol (medium) | Grok 4.7 Fast (high) | |
-| A well-scoped everyday ticket: a bug fix, a docs change, a feature built against a clear spec | Claude Sonnet 5.5 (high) | GPT 6.1 Terra (high) | Grok 4.7 Fast (high) | |
-| A side task for a larger model: a search, a lookup, classifying or extracting | Claude Haiku 5.5 (high) | GPT 6.1 Terra (medium) | Grok 4.7 Fast (high) | |
-| A hard ticket: a migration, a performance fix, a change across several layers | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) | |
-| The hardest work, or a long unattended run | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) | |
-
-- A clear spec alone does not make a ticket a Sonnet ticket: a migration can be fully specified and still need Opus.
-- The lead picks the row when it delegates. A ticket carries no model label.
-- An agent that moves past the first model says in its report which model ran, and why the ones before it did not.
 
 ## Agent skills
 
