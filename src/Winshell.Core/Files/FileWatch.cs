@@ -62,23 +62,20 @@ internal sealed class FileWatch : IDisposable
     private static bool Listed(DirectoryWatch watch, string name) =>
         watch.ExistingNames.Any(candidate => candidate.Equals(name, StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>The folder went away or changes were dropped. Read the file, then watch again.</summary>
-    private void Lost(int generation)
-    {
-        if (_disposed || generation != _generation)
-            return;
-        _changed();
-        Rewatch(generation);
-    }
+    /// <summary>The folder went away or changes were dropped. Watch again, then read the file.</summary>
+    private void Lost(int generation) => Rewatch(generation, readFile: true);
 
     /// <summary>Watches again after a watched folder appeared or the watch ended.</summary>
-    private void Rewatch(int generation)
+    private void Rewatch(int generation, bool readFile = false)
     {
         if (_disposed || generation != _generation)
             return;
         _watch?.Dispose();
         _watch = null;
         Watch(reportExistingFile: true);
+        // After the new watch is queued, so a delete in this gap is in that watch or in this read.
+        if (readFile && !_disposed)
+            _changed();
     }
 
     private void Report()
