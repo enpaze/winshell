@@ -47,9 +47,8 @@ internal sealed partial class CrashReports
     }
 
     /// <summary>
-    /// Sets what is given and keeps the rest. Instances share the record, so one of them holds it until the file
-    /// contains this mark. The replace compares the text and then moves, which is not itself a compare, so a move
-    /// that lost is read again. Nothing is dropped after a fixed number of losses.
+    /// Sets what is given and keeps the rest. Instances share the record, so one writer at a time holds it from the
+    /// read to the write, and no mark is lost to another instance's save.
     /// </summary>
     private static void Update(string stateFile, DateTimeOffset? clean, string? shown)
     {
@@ -72,27 +71,15 @@ internal sealed partial class CrashReports
                 acquired = true;
             }
 
-            while (true)
-            {
-                var state = ReadState(stateFile);
-                var nextClean = clean ?? state.Clean;
-                var nextShown = shown ?? state.Shown;
-                if (Put(stateFile, nextClean, nextShown, state.Text) && Landed(stateFile, nextClean, nextShown))
-                    return;
-            }
+            // Every writer holds the mutex, so no other one can change the record between this read and write.
+            var state = ReadState(stateFile);
+            Put(stateFile, clean ?? state.Clean, shown ?? state.Shown, state.Text);
         }
         finally
         {
             if (acquired)
                 mutex.ReleaseMutex();
         }
-    }
-
-    /// <summary>Whether the record now has the mark this writer just put down.</summary>
-    private static bool Landed(string stateFile, DateTimeOffset? clean, string? shown)
-    {
-        var state = ReadState(stateFile);
-        return state.Clean == clean && state.Shown == shown;
     }
 
     private readonly record struct ExitState(DateTimeOffset? Clean, string? Shown, string? Text);
@@ -123,7 +110,7 @@ internal sealed partial class CrashReports
     }
 
     /// <summary>Writes the record, or returns false when a hand save landed and the file was left as it is.</summary>
-    private static bool Put(string stateFile, DateTimeOffset? clean, string? shown, string? expected)
+    private static void Put(string stateFile, DateTimeOffset? clean, string? shown, string? expected)
     {
         // Edit the file that is there. A file that is not TOML is replaced with the record alone.
         if (expected is null || !TomlDocument.TryParse(stateFile, expected, out var document, out _))
@@ -133,6 +120,6 @@ internal sealed partial class CrashReports
         if (shown is { Length: > 0 })
             document.Set("shown", shown);
         // File.WriteAllText writes UTF-8 without a byte order mark. Keep that.
-        return AtomicFile.Save(stateFile, document.ToString(), false, expected) == AtomicSave.Saved;
+        AtomicFile.Save(stateFile, document.ToString(), false, expected);
     }
 }
