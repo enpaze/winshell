@@ -112,10 +112,16 @@ internal static class Screens
             : Read(PInvoke.MonitorFromWindow((HWND)hwnd, MONITOR_FROM_FLAGS.MONITOR_DEFAULTTONEAREST));
     }
 
-    /// <summary>The PnP model code, such as <c>GSM5B7F</c>, in an interface path like <c>\\?\DISPLAY#GSM5B7F#...</c>.</summary>
+    /// <summary>
+    /// The PnP model code, such as <c>GSM5B7F</c>, in an interface path like <c>\\?\DISPLAY#GSM5B7F#...</c>
+    /// or a WMI instance name like <c>DISPLAY\GSM5B7F\...</c>.
+    /// </summary>
     internal static string ModelCode(string id)
     {
-        var parts = id.Split('#');
+        // An interface path also contains '\', and splitting those would put the model code past the second part.
+        // A WMI name has no '#'.
+        var separator = id.Contains('#') ? '#' : '\\';
+        var parts = id.Split(separator);
         return parts.Length > 1 ? parts[1] : "";
     }
 

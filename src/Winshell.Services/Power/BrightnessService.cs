@@ -125,10 +125,29 @@ public sealed class BrightnessService : ObservableObject, IDisposable
             Action: NotifyCollectionChangedAction.Replace,
             OldItems: [ScreenInfo old],
             NewItems: [ScreenInfo now]
-        }
-                           && old with { WorkArea = now.WorkArea } == now;
+        } && WorkAreaOnly(old, now);
         if (!workAreaOnly)
             _reader.Request();
+    }
+
+    // True when the only difference is the work area. Every other field is named, so a new ScreenInfo field fails
+    // here until it says whether a change re-reads brightness.
+    private static bool WorkAreaOnly(ScreenInfo old, ScreenInfo now)
+    {
+        var (id, name, model, manufacturer, serial, geometry, _, scale, width, height, refresh, primary) = old;
+        var (idNow, nameNow, modelNow, manufacturerNow, serialNow, geometryNow, _, scaleNow, widthNow, heightNow,
+                refreshNow, primaryNow) = now;
+        return id == idNow
+               && name == nameNow
+               && model == modelNow
+               && manufacturer == manufacturerNow
+               && serial == serialNow
+               && geometry == geometryNow
+               && scale == scaleNow
+               && width == widthNow
+               && height == heightNow
+               && refresh == refreshNow
+               && primary == primaryNow;
     }
 
     /// <summary>Stops following brightness changes.</summary>

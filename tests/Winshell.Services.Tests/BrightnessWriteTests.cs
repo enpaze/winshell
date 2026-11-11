@@ -54,4 +54,46 @@ public class BrightnessWriteTests
         monitor.Update(new BrightnessInfo("DISPLAY1", "Panel", BrightnessConnection.Internal, 0, 100, 78));
         Assert.Equal(78, monitor.Brightness);
     }
+
+    [Fact]
+    public void A_failed_write_is_reported_and_the_newest_level_is_still_written()
+    {
+        var written = new List<int>();
+        var warnings = new List<string>();
+        var log = new Log { Sink = (_, _, message) => warnings.Add(message) };
+        using var started = new SemaphoreSlim(0);
+        using var release = new ManualResetEventSlim();
+        var writer = new BrightnessWriter((_, value) =>
+        {
+            lock (written)
+            {
+                written.Add(value);
+            }
+
+            if (value == 10)
+            {
+                // The writer thread signals started before either handle is disposed.
+                started.Release();
+                // The writer thread blocks on release and finishes before it is disposed.
+                release.Wait(TestContext.Current.CancellationToken);
+                throw new InvalidOperationException("the panel refused 10");
+            }
+
+            return null;
+        }, log);
+
+        writer.Request("DISPLAY1", 10, _ => { });
+        Assert.True(started.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken),
+            "The first write did not start.");
+        writer.Request("DISPLAY1", 80, _ => { });
+        release.Set();
+        Wait.Until(() => !writer.IsWriting("DISPLAY1"), "The writes did not finish.");
+
+        lock (written)
+        {
+            Assert.Equal([10, 80], written);
+        }
+
+        Assert.Contains("the panel refused 10", warnings);
+    }
 }

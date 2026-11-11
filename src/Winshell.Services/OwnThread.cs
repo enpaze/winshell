@@ -15,4 +15,14 @@ internal static class OwnThread
         return Task.Factory.StartNew(call, CancellationToken.None,
             TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
+
+    /// <summary>Runs <paramref name="call"/> on a new thread.</summary>
+    public static Task Run(Action call)
+    {
+        return Run(() =>
+        {
+            call();
+            return false;
+        });
+    }
 }

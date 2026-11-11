@@ -9,7 +9,7 @@ namespace Winshell;
 /// </summary>
 internal static class MonitorSize
 {
-    private static readonly MonitorSizeCache Cache = new(Query, TimeSpan.FromMilliseconds(250));
+    private static readonly MonitorSizeCache Cache = new(Query);
 
     internal static (double WidthMm, double HeightMm) Read(string interfaceId)
     {
@@ -41,9 +41,10 @@ internal static class MonitorSize
 
 /// <summary>
 /// Asks Windows once for each monitor. A monitor is described each time the screen list is read or one screen is
-/// looked up, often on the loop, and a monitor's size does not change, so only the first read waits, and a query that is late reports 0 until it answers.
+/// looked up, often on the loop. The read never waits: a query that has not answered is 0, and a later read fills
+/// the size in.
 /// </summary>
-internal sealed class MonitorSizeCache(Func<string, Task<(double WidthMm, double HeightMm)>> query, TimeSpan wait)
+internal sealed class MonitorSizeCache(Func<string, Task<(double WidthMm, double HeightMm)>> query)
 {
     private readonly ConcurrentDictionary<string, Task<(double WidthMm, double HeightMm)>> _queries =
         new(StringComparer.Ordinal);
@@ -52,11 +53,11 @@ internal sealed class MonitorSizeCache(Func<string, Task<(double WidthMm, double
     {
         if (string.IsNullOrEmpty(interfaceId))
             return (0, 0);
-#pragma warning disable VSTHRD002 // The result is read when it has come, and the query never needs this thread, so the wait ends.
-        if (_queries.TryGetValue(interfaceId, out var known))
-            return known.IsCompletedSuccessfully ? known.Result : (0, 0);
         var started = _queries.GetOrAdd(interfaceId, query);
-        return started.Wait(wait) ? started.Result : (0, 0);
+        if (!started.IsCompletedSuccessfully)
+            return (0, 0);
+#pragma warning disable VSTHRD002 // The task has already completed, so this reads the cached size and does not wait.
+        return started.Result;
 #pragma warning restore VSTHRD002
     }
 }

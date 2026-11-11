@@ -124,7 +124,7 @@ internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
         {
             var panel = unmatched.FirstOrDefault(p =>
                 screen.ModelCode.Length > 0
-                && string.Equals(PanelModelCode(p.Instance), screen.ModelCode, StringComparison.OrdinalIgnoreCase));
+                && string.Equals(Screens.ModelCode(p.Instance), screen.ModelCode, StringComparison.OrdinalIgnoreCase));
             if (panel is not null)
             {
                 unmatched.Remove(panel);
@@ -155,13 +155,6 @@ internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
         return reading is { } r
             ? new BrightnessInfo(id, name, BrightnessConnection.External, r.Minimum, r.Maximum, r.Current)
             : previous.FirstOrDefault(p => p.Connection == BrightnessConnection.External && p.DeviceName == id);
-    }
-
-    /// <summary>The PnP model code, such as <c>AUS32A8</c>, in a WMI instance name like <c>DISPLAY\AUS32A8\...</c>.</summary>
-    private static string PanelModelCode(string instance)
-    {
-        var parts = instance.Split('\\');
-        return parts.Length > 1 ? parts[1] : "";
     }
 
     private static (int Minimum, int Current, int Maximum)? ReadExternal(nint monitor)
@@ -269,7 +262,7 @@ internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
 /// Writes each monitor's brightness on a background thread, one write at a time. A value asked for while a
 /// write runs replaces the one waiting, so a slider drag writes the newest value and drops the steps between.
 /// <paramref name="drained"/> runs each time a monitor's writes end. A write that throws is reported to
-/// <paramref name="log"/>.
+/// <paramref name="log"/>, and the newest level still waiting is written.
 /// </summary>
 internal sealed class BrightnessWriter(Func<string, int, string?> write, Log log, Action? drained = null)
 {
@@ -297,7 +290,7 @@ internal sealed class BrightnessWriter(Func<string, int, string?> write, Log log
         }
 
         // A thread of its own: a write blocks for hundreds of milliseconds, and it must not wait behind a busy pool.
-        new Thread(() => Drain(deviceName)) { IsBackground = true, Name = "Brightness write" }.Start();
+        _ = OwnThread.Run(() => Drain(deviceName));
     }
 
     private void Drain(string deviceName)
@@ -320,13 +313,22 @@ internal sealed class BrightnessWriter(Func<string, int, string?> write, Log log
                 if (next.Brightness == last)
                     continue;
                 last = next.Brightness;
-                if (write(deviceName, next.Brightness) is { } reason)
-                    next.Failed(reason);
+                try
+                {
+                    if (write(deviceName, next.Brightness) is { } reason)
+                        next.Failed(reason);
+                }
+#pragma warning disable CA1031 // A write that fails is reported, and the newest level still waiting is written.
+                catch (Exception e)
+#pragma warning restore CA1031
+                {
+                    log.Warn("power", e.Message);
+                }
             }
 
             drained?.Invoke();
         }
-#pragma warning disable CA1031 // A write that fails is reported. On this thread it would end the shell.
+#pragma warning disable CA1031 // Anything else is reported. A monitor left running would never write again.
         catch (Exception e)
 #pragma warning restore CA1031
         {

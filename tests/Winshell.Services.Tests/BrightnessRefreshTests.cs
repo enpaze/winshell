@@ -32,7 +32,7 @@ public class BrightnessRefreshTests
     }
 
     [Fact]
-    public void A_moved_work_area_reads_nothing_and_a_new_monitor_reads_brightness_again()
+    public void A_moved_work_area_reads_nothing_and_a_mode_change_or_a_new_monitor_reads_again()
     {
         var loop = new ManualEventLoop();
         var screen = new ScreenInfo(@"\.\DISPLAY1", "DISPLAY1", "", "", "", new Rect(0, 0, 1920, 1080),
@@ -50,9 +50,13 @@ public class BrightnessRefreshTests
         loop.Process();
         Assert.Equal(1, source.Reads);
 
-        screens.Add(new ScreenInfo(@"\.\DISPLAY2", "DISPLAY2", "", "", "", default, default, 1, 0, 0, 60, false));
+        screens[0] = screens[0] with { RefreshRate = 144 };
         loop.Process();
         Assert.Equal(2, source.Reads);
+
+        screens.Add(new ScreenInfo(@"\.\DISPLAY2", "DISPLAY2", "", "", "", default, default, 1, 0, 0, 60, false));
+        loop.Process();
+        Assert.Equal(3, source.Reads);
     }
 
     [Fact]
