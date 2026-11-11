@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Winshell;
@@ -31,3 +32,16 @@ internal sealed record IpcResponse(
 [JsonSerializable(typeof(IpcRequest))]
 [JsonSerializable(typeof(IpcResponse))]
 internal sealed partial class IpcJson : JsonSerializerContext;
+
+/// <summary>The target list on the control pipe when <c>ipc show</c> asks for JSON. The CLI prints it.</summary>
+[JsonSerializable(typeof(List<IpcTargetView>))]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+internal sealed partial class IpcShowJson : JsonSerializerContext;
+
+internal static class IpcShowPayload
+{
+    public static string Write(IReadOnlyList<IpcTargetView> targets)
+    {
+        return JsonSerializer.Serialize(targets.ToList(), IpcShowJson.Default.Options);
+    }
+}

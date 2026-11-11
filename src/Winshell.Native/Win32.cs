@@ -202,6 +202,14 @@ internal static partial class Win32
     [LibraryImport("kernel32.dll")]
     public static partial uint GetCurrentThreadId();
 
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool PeekNamedPipe(nint pipe, nint buffer, uint bufferSize, out uint bytesRead,
+        out uint totalBytesAvail, out uint bytesLeftThisMessage);
+
+    [LibraryImport("kernel32.dll")]
+    public static partial uint WaitForSingleObject(nint handle, uint milliseconds);
+
     [LibraryImport("user32.dll")]
     public static partial short GetAsyncKeyState(int key);
 

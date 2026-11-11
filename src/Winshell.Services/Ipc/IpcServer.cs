@@ -320,7 +320,7 @@ internal sealed class IpcServer : IDisposable
         var ipc = _control.Ipc;
         return request.Op switch
         {
-            IpcOps.Show when request.Json => new IpcResponse(true, CliJson.IpcShow(ipc.Describe())),
+            IpcOps.Show when request.Json => new IpcResponse(true, IpcShowPayload.Write(ipc.Describe())),
             IpcOps.Show => new IpcResponse(true, ipc.Show()),
             IpcOps.Call when request is { Target: "notice", Name: "dismiss" } => DismissNotice(request.Args),
             IpcOps.Call => new IpcResponse(true,

@@ -118,9 +118,10 @@ internal static class InstanceStart
         {
             host(session);
         }
-        catch (Exception e) when (instance.ReportFatal(e))
+        catch (Exception e)
         {
-            // ReportFatal returns false, so this never catches: the filter runs before finally closes the log.
+            // Recorded while the log is still open. The finally below closes it, and the exception still leaves.
+            instance.ReportFatal(e);
             throw;
         }
         finally

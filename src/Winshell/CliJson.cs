@@ -25,7 +25,7 @@ internal sealed record InstanceListItem(
 }
 
 [JsonSerializable(typeof(List<InstanceListItem>))]
-[JsonSerializable(typeof(IReadOnlyList<IpcTargetView>))]
+[JsonSerializable(typeof(List<IpcTargetView>))]
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal sealed partial class CliJsonContext : JsonSerializerContext;
 
@@ -39,7 +39,14 @@ internal static class CliJson
 
     public static string IpcShow(IReadOnlyList<IpcTargetView> targets)
     {
-        return Write(targets);
+        return Write(targets as List<IpcTargetView> ?? targets.ToList());
+    }
+
+    /// <summary>The target list the control pipe returned for <c>ipc show -j</c>, in the command's own JSON.</summary>
+    public static string IpcShow(string payload)
+    {
+        var targets = JsonSerializer.Deserialize(payload, CliJsonContext.Default.ListIpcTargetView) ?? [];
+        return IpcShow(targets);
     }
 
     /// <summary>The writer is <see cref="JsonText.IndentedWriter"/>, the same one <c>doctor --json</c> uses.</summary>
