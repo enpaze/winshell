@@ -125,10 +125,26 @@ public sealed class BrightnessService : ObservableObject, IDisposable
             Action: NotifyCollectionChangedAction.Replace,
             OldItems: [ScreenInfo old],
             NewItems: [ScreenInfo now]
-        }
-                           && old with { WorkArea = now.WorkArea } == now;
+        } && WorkAreaOnly(old, now);
         if (!workAreaOnly)
             _reader.Request();
+    }
+
+    // True when the only difference is the work area. Every other field is named, so a new ScreenInfo field is not
+    // folded in by record equality.
+    private static bool WorkAreaOnly(ScreenInfo old, ScreenInfo now)
+    {
+        return old.Id == now.Id
+               && old.Name == now.Name
+               && old.Model == now.Model
+               && old.Manufacturer == now.Manufacturer
+               && old.SerialNumber == now.SerialNumber
+               && old.Geometry == now.Geometry
+               && old.DevicePixelRatio == now.DevicePixelRatio
+               && old.PhysicalWidthMm == now.PhysicalWidthMm
+               && old.PhysicalHeightMm == now.PhysicalHeightMm
+               && old.RefreshRate == now.RefreshRate
+               && old.IsPrimary == now.IsPrimary;
     }
 
     /// <summary>Stops following brightness changes.</summary>

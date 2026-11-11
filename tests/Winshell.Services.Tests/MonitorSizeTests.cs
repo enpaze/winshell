@@ -14,7 +14,7 @@ public class MonitorSizeTests
     }
 
     [Fact]
-    public void A_monitor_is_asked_once_and_only_the_first_read_waits_for_it()
+    public void A_monitor_is_asked_once_and_a_late_answer_fills_the_size_in()
     {
         var answer = new TaskCompletionSource<(double, double)>();
         var queries = 0;
@@ -22,7 +22,7 @@ public class MonitorSizeTests
         {
             queries++;
             return answer.Task;
-        }, TimeSpan.FromMilliseconds(1));
+        });
 
         Assert.Equal((0d, 0d), cache.Read("monitor"));
         Assert.Equal((0d, 0d), cache.Read("monitor"));

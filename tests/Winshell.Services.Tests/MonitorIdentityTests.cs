@@ -14,6 +14,17 @@ public class MonitorIdentityTests
     }
 
     [Fact]
+    public void A_wmi_instance_name_has_the_same_model_code_as_the_interface_path()
+    {
+        // The same monitor as above. WMI names it with backslashes and a "_0" suffix.
+        var id = @"\\?\DISPLAY#AUS32A8#5&15335277&0&UID184582#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}";
+        var instance = @"DISPLAY\AUS32A8\5&15335277&0&UID184582_0";
+
+        Assert.Equal("AUS32A8", Screens.ModelCode(instance));
+        Assert.Equal(Screens.ModelCode(id), Screens.ModelCode(instance));
+    }
+
+    [Fact]
     public void A_monitor_windows_does_not_name_has_no_model_manufacturer_or_serial()
     {
         Assert.Equal("", Screens.ModelCode(""));
