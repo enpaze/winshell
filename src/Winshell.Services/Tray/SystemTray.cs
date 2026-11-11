@@ -227,7 +227,7 @@ public sealed class SystemTrayItem : ObservableObject
         _overflow = icon.Overflow;
         Executable = icon.ProgramPath;
         ProcessId = icon.ProcessId;
-        Id = Executable.Length > 0 ? Path.GetFileNameWithoutExtension(Executable) : icon.Key;
+        Id = Executable.Length > 0 ? AppIdentity.DesktopId(Executable) : icon.Key;
         AppName = Executable.Length > 0 && AppIdentity.ProgramDescription(Executable) is { } description
             ? description
             : Id;
@@ -239,7 +239,7 @@ public sealed class SystemTrayItem : ObservableObject
     /// <summary>The app showed a balloon notification: its title, its text and its icon. Explorer still shows it as a toast.</summary>
     public event Action<string, string, BalloonIcon>? Balloon;
 
-    /// <summary>The program's file name without its extension.</summary>
+    /// <summary>The program's name in lower case, without its extension, or the icon's key when its program is unknown.</summary>
     public string Id { get => Read(field); }
 
     /// <summary>The program's description, as Task Manager shows it, or its file name.</summary>

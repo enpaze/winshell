@@ -17,22 +17,13 @@ internal static class WindowRules
             return windowProperty;
         if (packageAppId.Length > 0)
             return packageAppId;
-        return executable.Length == 0 ? "" : Path.GetFileNameWithoutExtension(executable).ToLowerInvariant();
+        return AppIdentity.DesktopId(executable);
     }
 
     /// <summary>The AppUserModelID, or else the program's file name in lower case without the extension.</summary>
     public static string AppId(string appUserModelId, string executable)
     {
         return AppId(appUserModelId, "", executable);
-    }
-
-    /// <summary>
-    /// A path the icon provider draws. A packaged app's icon is the one Start shows for its id. Every other window
-    /// uses its program's icon.
-    /// </summary>
-    public static string IconPath(string appUserModelId, string executable)
-    {
-        return AppIdentity.IsPackaged(appUserModelId) ? AppIdentity.AppsFolderPath(appUserModelId) : executable;
     }
 
     /// <summary>
