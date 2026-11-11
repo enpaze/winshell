@@ -167,11 +167,7 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
     {
         if (_aggregate is null)
             Watch();
-        var hasStatus = PInvoke.GetSystemPowerStatus(out var status);
-        // Bit 128 of BatteryFlag: "no system battery".
-        var noSystemBattery = hasStatus && (status.BatteryFlag & 128) != 0;
-
-        var aggregate = ReadAggregate(status, hasStatus, noSystemBattery);
+        var display = ReadDisplay();
 
         List<PowerDeviceInfo> devices;
         lock (_batteriesLock)
@@ -183,11 +179,17 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
             ];
         }
 
-        return new PowerSnapshot(true, aggregate, devices, PowerSupply.OnBattery());
+        return new PowerSnapshot(true, display, devices, OnBattery());
     }
 
-    private static PowerDeviceInfo ReadAggregate(SYSTEM_POWER_STATUS status, bool hasStatus, bool noSystemBattery)
+    /// <summary>
+    /// What Windows reported about the battery: the no-battery flag, the <c>GetSystemPowerStatus</c> fallback when the
+    /// battery API has nothing to say, and the aggregate report.
+    /// </summary>
+    private static PowerDeviceInfo ReadDisplay()
     {
+        var (hasStatus, status, noSystemBattery) = SystemPower();
+
         WinBatteryReport? report = null;
         try
         {
@@ -197,39 +199,75 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
         {
         }
 
+        PowerDeviceInfo device;
         if (report is null || report.Status == BatteryStatus.NotPresent)
         {
             // GetSystemPowerStatus is the fallback when the battery API has nothing to say.
             if (!hasStatus || noSystemBattery || status.BatteryLifePercent == 255)
-                return PowerDeviceInfo.NoBattery;
-            var percentage = status.BatteryLifePercent / 100.0;
-            var charging = (status.BatteryFlag & 8) != 0;
-            var state = charging
-                ? PowerDeviceState.Charging
-                : status.ACLineStatus == 1
-                    ? percentage >= 0.99 ? PowerDeviceState.FullyCharged : PowerDeviceState.NotCharging
-                    : PowerDeviceState.Discharging;
-            var timeToEmpty = state == PowerDeviceState.Discharging && status.BatteryLifeTime != uint.MaxValue
-                ? status.BatteryLifeTime
-                : 0;
-            return new PowerDeviceInfo("", "", PowerDeviceType.Battery, true, true, state, percentage, 0, 0, 0,
-                timeToEmpty, 0, 0);
+                device = PowerDeviceInfo.NoBattery;
+            else
+            {
+                var percentage = status.BatteryLifePercent / 100.0;
+                var charging = (status.BatteryFlag & 8) != 0;
+                var state = charging
+                    ? PowerDeviceState.Charging
+                    : status.ACLineStatus == 1
+                        ? percentage >= 0.99 ? PowerDeviceState.FullyCharged : PowerDeviceState.NotCharging
+                        : PowerDeviceState.Discharging;
+                var timeToEmpty = state == PowerDeviceState.Discharging && status.BatteryLifeTime != uint.MaxValue
+                    ? status.BatteryLifeTime
+                    : 0;
+                device = new PowerDeviceInfo("", "", PowerDeviceType.Battery, true, true, state, percentage, 0, 0, 0,
+                    timeToEmpty, 0, 0);
+            }
+        }
+        else
+        {
+            double? remainingTime = null;
+            try
+            {
+                var t = PowerManager.RemainingDischargeTime;
+                if (t > TimeSpan.Zero && t < TimeSpan.FromDays(10))
+                    remainingTime = t.TotalSeconds;
+            }
+            catch (COMException)
+            {
+            }
+
+            if (remainingTime is null && hasStatus && status.BatteryLifeTime != uint.MaxValue)
+                remainingTime = status.BatteryLifeTime;
+            device = Describe(report, "", "", remainingTime);
         }
 
-        double? remainingTime = null;
+        return device;
+    }
+
+    /// <summary>
+    /// <c>GetSystemPowerStatus</c>. Bit 128 of <c>BatteryFlag</c> means there is no system battery.
+    /// </summary>
+    private static (bool HasStatus, SYSTEM_POWER_STATUS Status, bool NoSystemBattery) SystemPower()
+    {
+        var hasStatus = PInvoke.GetSystemPowerStatus(out var status);
+        return (hasStatus, status, hasStatus && (status.BatteryFlag & 128) != 0);
+    }
+
+    /// <summary>
+    /// Whether the PC runs on its battery: it has one, and no power supply is plugged in. The power supply status
+    /// decides, and the AC line when that does not answer.
+    /// </summary>
+    internal static bool OnBattery()
+    {
+        var (hasStatus, status, noSystemBattery) = SystemPower();
+        if (noSystemBattery)
+            return false;
         try
         {
-            var t = PowerManager.RemainingDischargeTime;
-            if (t > TimeSpan.Zero && t < TimeSpan.FromDays(10))
-                remainingTime = t.TotalSeconds;
+            return PowerManager.PowerSupplyStatus == PowerSupplyStatus.NotPresent;
         }
         catch (COMException)
         {
+            return hasStatus && status.ACLineStatus == 0;
         }
-
-        if (remainingTime is null && hasStatus && status.BatteryLifeTime != uint.MaxValue)
-            remainingTime = status.BatteryLifeTime;
-        return Describe(report, "", "", remainingTime);
     }
 
     /// <summary>A battery report. Capacities are watt-hours and the charge rate is watts.</summary>
@@ -277,29 +315,5 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
         return new PowerDeviceInfo(nativePath, model, PowerDeviceType.Battery, true, true, state, percentage,
             remaining ?? 0, full ?? 0, rate,
             Math.Round(timeToEmpty), Math.Round(timeToFull), health);
-    }
-}
-
-/// <summary>Which supply powers the PC.</summary>
-internal static class PowerSupply
-{
-    /// <summary>
-    /// Whether the PC runs on its battery: it has one, and no power supply is plugged in. Windows' power supply status
-    /// decides, and the AC line status when that does not answer.
-    /// </summary>
-    public static bool OnBattery()
-    {
-        var hasStatus = PInvoke.GetSystemPowerStatus(out var status);
-        // Bit 128 of BatteryFlag: "no system battery".
-        if (hasStatus && (status.BatteryFlag & 128) != 0)
-            return false;
-        try
-        {
-            return PowerManager.PowerSupplyStatus == PowerSupplyStatus.NotPresent;
-        }
-        catch (COMException)
-        {
-            return hasStatus && status.ACLineStatus == 0;
-        }
     }
 }
