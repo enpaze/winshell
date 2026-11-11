@@ -161,7 +161,6 @@ public sealed class AudioNode : ObservableObject
         var old = _volumes;
         _volumes = _node.Volumes;
         Changed(!old.SequenceEqual(_volumes), nameof(Volumes));
-        // The averages are of the stored channel volumes, so they match exactly when those do.
         Changed(Average(old) != Average(_volumes), nameof(Volume));
         Set(ref _muted, _node.Muted, nameof(Muted));
     }

@@ -75,21 +75,14 @@ public sealed class PowerDevice : ObservableObject
         _info = info;
         Changed(old.Type != info.Type, nameof(Type));
         Changed(old.PowersTheSystem != info.PowersTheSystem, nameof(PowersTheSystem));
-        // RemainingCapacity is the stored reading its property returns, so the difference is exact.
         Changed(old.RemainingCapacity != info.RemainingCapacity, nameof(RemainingCapacity));
-        // FullChargeCapacity is the stored reading its property returns, so the difference is exact.
         Changed(old.FullChargeCapacity != info.FullChargeCapacity, nameof(FullChargeCapacity));
-        // ChargeRate is the stored reading its property returns, so the difference is exact.
         Changed(old.ChargeRate != info.ChargeRate, nameof(ChargeRate));
-        // TimeToEmpty is the stored reading its property returns, so the difference is exact.
         Changed(old.TimeToEmpty != info.TimeToEmpty, nameof(TimeToEmpty));
-        // TimeToFull is the stored reading its property returns, so the difference is exact.
         Changed(old.TimeToFull != info.TimeToFull, nameof(TimeToFull));
-        // Percentage is the stored reading its property returns, so the difference is exact.
         Changed(old.Percentage != info.Percentage, nameof(Percentage));
         Changed(old.IsPresent != info.IsPresent, nameof(IsPresent));
         Changed(old.State != info.State, nameof(State));
-        // HealthPercentage is the stored reading its property returns, so the difference is exact.
         Changed(old.HealthPercentage != info.HealthPercentage, nameof(HealthPercentage));
         Changed(old.HealthSupported != HealthSupported, nameof(HealthSupported));
         Changed(old is { Type: PowerDeviceType.Battery, PowersTheSystem: true } != IsSystemBattery,
