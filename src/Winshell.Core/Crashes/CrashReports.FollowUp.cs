@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Winshell;
 
@@ -45,16 +47,38 @@ internal sealed partial class CrashReports
     }
 
     /// <summary>
-    /// Sets what is given and keeps the rest. Instances share the record, so another can save it between this read
-    /// and write; then it is read again, a few times at most, and the mark is dropped after that.
+    /// Sets what is given and keeps the rest. Instances share the record, so one writer at a time holds it from the
+    /// read to the write, and no mark is lost to another instance's save.
     /// </summary>
     private static void Update(string stateFile, DateTimeOffset? clean, string? shown)
     {
-        for (var attempt = 0; attempt < 3; attempt++)
+        // A mutex name has a fixed limit, so the path is hashed. A symbolic link uses its target, and the
+        // comparison ignores case, so those names wait on one writer.
+        var name = @"Local\winshell-exit-" + Convert.ToHexString(SHA256.HashData(
+            Encoding.UTF8.GetBytes(AtomicFile.FollowLink(stateFile).ToUpperInvariant())));
+        using var mutex = new Mutex(false, name);
+        var acquired = false;
+        try
         {
+            try
+            {
+                mutex.WaitOne();
+                acquired = true;
+            }
+            catch (AbandonedMutexException)
+            {
+                // The writer that owned this exited before it let go. This writer owns it now.
+                acquired = true;
+            }
+
+            // Every writer holds the mutex, so no other one can change the record between this read and write.
             var state = ReadState(stateFile);
-            if (Put(stateFile, clean ?? state.Clean, shown ?? state.Shown, state.Text))
-                return;
+            Put(stateFile, clean ?? state.Clean, shown ?? state.Shown, state.Text);
+        }
+        finally
+        {
+            if (acquired)
+                mutex.ReleaseMutex();
         }
     }
 
@@ -86,7 +110,7 @@ internal sealed partial class CrashReports
     }
 
     /// <summary>Writes the record, or returns false when a hand save landed and the file was left as it is.</summary>
-    private static bool Put(string stateFile, DateTimeOffset? clean, string? shown, string? expected)
+    private static void Put(string stateFile, DateTimeOffset? clean, string? shown, string? expected)
     {
         // Edit the file that is there. A file that is not TOML is replaced with the record alone.
         if (expected is null || !TomlDocument.TryParse(stateFile, expected, out var document, out _))
@@ -96,6 +120,6 @@ internal sealed partial class CrashReports
         if (shown is { Length: > 0 })
             document.Set("shown", shown);
         // File.WriteAllText writes UTF-8 without a byte order mark. Keep that.
-        return AtomicFile.Save(stateFile, document.ToString(), false, expected) == AtomicSave.Saved;
+        AtomicFile.Save(stateFile, document.ToString(), false, expected);
     }
 }
