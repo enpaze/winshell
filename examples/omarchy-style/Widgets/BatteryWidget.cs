@@ -6,9 +6,7 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
-/// <summary>
-/// The charge, when the PC has a battery. Health support is its own flag, and this glyph does not show a power mode.
-/// </summary>
+/// <summary>The battery, when the PC has one.</summary>
 public sealed class BatteryWidget : Component<WidgetContext>
 {
     public override Element Render()

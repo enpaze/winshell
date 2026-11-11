@@ -12,7 +12,7 @@ The bar has three areas: start, center and end. On a left or right edge they run
 
 - **Start:** the `windows` glyph, then `workspaces` for Winland's workspaces on that widget's own screen: 1 to 5 always, and any other that exists. An empty one is dimmed, the shown one is the tiling glyph, and a click shows it. Without Winland running there are no workspaces. On a side bar the buttons stack.
 - **Center:** the `clock`, the day and time, such as `Saturday 20:25`, in your Windows regional format. A `timezone` setting names another zone, such as `UTC`; without one the clock is local, and two clocks can show two zones. On a side bar the hours sit above the minutes, such as `20` over `25`, and the tooltip stays the full date.
-- **End:** `tray` on the primary screen only. Hovering its chevron slides out the icons Windows keeps in its overflow: out to the side on a top or bottom bar, and downwards on a side bar, where the icons stack. Then `bluetooth`, `network`, `audio`, `screen` and `battery`; each opens its Windows Settings page when clicked. The battery glyph is the charge, left out on a PC without one. It does not show health or a power mode. Bluetooth is left out when there is no adapter.
+- **End:** `tray` on the primary screen only. Hovering its chevron slides out the icons Windows keeps in its overflow: out to the side on a top or bottom bar, and downwards on a side bar, where the icons stack. Then `bluetooth`, `network`, `audio`, `screen` and `battery`; each opens its Windows Settings page when clicked. The battery is left out on a PC without one, and Bluetooth when there is no adapter.
 
 | Widget | Area | Settings |
 | --- | --- | --- |
