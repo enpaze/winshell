@@ -267,7 +267,7 @@ public sealed class PreferencesTests
             {
                 using var own = new Own();
                 using var top = new BarPreferences(bar);
-                using var area = new WidgetArea
+                using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
                 {
                     Name = name,
                     Defaults = [new(widget, new Dictionary<string, object>
@@ -276,8 +276,8 @@ public sealed class PreferencesTests
                         ["count"] = 7,
                         ["nested"] = new Dictionary<string, object> { ["enabled"] = true }
                     }), new(widget)]
-                };
-                using var empty = new WidgetArea { Name = name + "empty" };
+                });
+                using var empty = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = name + "empty" });
                 await Wait.UntilAsync(() => File.Exists(path), "the missing file to be written");
 
                 var text = File.ReadAllText(path);

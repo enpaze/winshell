@@ -1,6 +1,10 @@
+using Microsoft.UI.Reactor.Core;
+using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using static Microsoft.UI.Reactor.Factories;
+using static Winshell.Elements;
 using Color = global::Windows.UI.Color;
 
 namespace Winshell.ShellTests;
@@ -56,21 +60,12 @@ public static class GuideSamples
         _ = _registration;
     }
 
-    public static (WidgetArea Area, PanelWindow Panel) AWidgetArea()
+    public static PanelWindow AWidgetArea()
     {
-        var area = new WidgetArea
-        {
-            Name = "end",
-            Orientation = Orientation.Horizontal,
-            Defaults =
-            [
-                new("message", new Dictionary<string, object> { ["text"] = "Hello" }),
-                new("message", new Dictionary<string, object> { ["text"] = "World" })
-            ]
-        };
-        var panel = new PanelWindow { Height = 48, Content = area, Visible = true };
-        panel.Closed += area.Dispose;
-        return (area, panel);
+        var host = new ReactorHostControl { ComponentFactory = () => new EndArea() };
+        var panel = new PanelWindow { Height = 48, Content = host, Visible = true };
+        panel.Closed += host.Dispose;
+        return panel;
     }
 
     public static (Bar Top, Bar Side) Bars()
@@ -88,14 +83,9 @@ public static class GuideSamples
 
     public static PanelWindow ASurface()
     {
-        var area = new WidgetArea { Defaults = ["start", "tasks"] };
-        var surface = new Surface { Padding = new Thickness(4), Content = area };
-        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = surface, Visible = true };
-        dock.Closed += () =>
-        {
-            area.Dispose();
-            surface.Dispose();
-        };
+        var host = new ReactorHostControl { ComponentFactory = () => new Dock() };
+        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = host, Visible = true };
+        dock.Closed += host.Dispose;
         return dock;
     }
 
@@ -160,6 +150,21 @@ public static class GuideSamples
         if (!shell.Reload())
             shell.Log.Warn("shell", "Reload did not start.");
     }
+}
+
+public sealed class Dock : Component
+{
+    public override Element Render() =>
+        Surface(WidgetArea("dock", ["start", "tasks"]), new Thickness(4));
+}
+
+public sealed class EndArea : Component
+{
+    public override Element Render() => WidgetArea("end",
+    [
+        new("message", new Dictionary<string, object> { ["text"] = "Hello" }),
+        new("message", new Dictionary<string, object> { ["text"] = "World" })
+    ]);
 }
 
 public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>

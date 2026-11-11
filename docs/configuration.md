@@ -229,7 +229,7 @@ A [ScreenWindows](reference/winshell.md#screenwindows) keeps one window on each 
 - It makes a window for each screen when it is made, makes one for a screen that is connected, and disposes the window of a screen that is removed. The other screens' windows stay as they are, and so do their widgets.
 - A screen whose resolution or scale changes keeps its window, made with the screen as it was then: `shell.Screens` has it as it is now.
 - `Dispose` removes every window.
-- The function can return anything disposable that holds the window, such as an object that also disposes the window's widget areas.
+- The function can return anything disposable that holds the window, such as an object that also disposes the window's host, which unmounts its widgets.
 - A function that throws is logged under the component's name, and that screen has no window until the screens or the rows change.
 
 A screen that differs from the rest has a row in the component's section of the [preferences file](#preferences), and the function is given that row, or null:
@@ -305,24 +305,27 @@ Saving applies it live:
 
 ### A surface of your own
 
-A bar's areas sit on a [Surface](reference/winshell.md#surface), which paints the [style's](#style) `ShellBackgroundBrush` behind them in the window's light or dark theme, and follows a switch while the shell runs. A brush your code reads from the style comes back in the theme the app started in, so give a window of your own a surface too:
+A bar's areas sit in one [Surface](reference/winshell.md#surface) component, which paints the [style's](#style) `ShellBackgroundBrush` behind them in the window's light or dark theme, and follows a switch while the shell runs. A window's content is one `ReactorHostControl`, and that host mounts the component you write. A brush your code reads from the style comes back in the theme the app started in, so give a window of your own a surface too:
 
 ```csharp
-        var area = new WidgetArea { Defaults = ["start", "tasks"] };
-        var surface = new Surface { Padding = new Thickness(4), Content = area };
-        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = surface, Visible = true };
-        dock.Closed += () =>
-        {
-            area.Dispose();
-            surface.Dispose();
-        };
+public sealed class Dock : Component
+{
+    public override Element Render() =>
+        Surface(WidgetArea("dock", ["start", "tasks"]), new Thickness(4));
+}
 ```
 
-What a surface holds is in its style too, and stays loaded when the style changes. Its own `Style` wins over the shell's, as an area's does, and `Dispose` stops it following the shell's.
+```csharp
+        var host = new ReactorHostControl { ComponentFactory = () => new Dock() };
+        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = host, Visible = true };
+        dock.Closed += host.Dispose;
+```
+
+`using static Winshell.Elements` brings `Surface` and `WidgetArea` into scope. The props are immutable: rendering the component again with a new record is how the tree changes, and disposing the host unmounts it. What a surface holds stays loaded when the style changes. Its own style wins over the shell's, as an area's does. The area inside the tree is an element, not a second host.
 
 ## Widgets
 
-A [WidgetArea](reference/winshell.md#widgetarea) can go anywhere in a window. List widgets in your configuration's project, next to their project or package references:
+A [widget area](reference/winshell.md#widgetarea) is a component. A window mounts the component that renders it, and the same element can sit inside a surface. List widgets in your configuration's project, next to their project or package references:
 
 ```xml
 <ItemGroup>
@@ -384,30 +387,32 @@ Nothing reads the XAML file. A control Reactor has no element for is embedded wi
 Each placement passes the running `Shell`, the shell window the area is drawn in, that placement's settings and the area's orientation in its `WidgetContext`. `Props.Window` is null until the area is in a window, and the widget renders again once it is, so a widget reads the screen from `Props.Window.Screen`. One instance serves a placement, rendered again with a new `WidgetContext` when the settings, the orientation or the window change. Several placements may use one widget:
 
 ```csharp
-        var area = new WidgetArea
-        {
-            Name = "end",
-            Orientation = Orientation.Horizontal,
-            Defaults =
-            [
-                new("message", new Dictionary<string, object> { ["text"] = "Hello" }),
-                new("message", new Dictionary<string, object> { ["text"] = "World" })
-            ]
-        };
-        var panel = new PanelWindow { Height = 48, Content = area, Visible = true };
-        panel.Closed += area.Dispose;
+public sealed class EndArea : Component
+{
+    public override Element Render() => WidgetArea("end",
+    [
+        new("message", new Dictionary<string, object> { ["text"] = "Hello" }),
+        new("message", new Dictionary<string, object> { ["text"] = "World" })
+    ]);
+}
 ```
 
-- **Replacing widgets.** Assigning `Defaults` snapshots the list unless the [preferences file](#preferences) has a list for the area. A widget whose name is no longer in that place is disposed and made again. A widget that stays is rendered again with the new props, and changing `Orientation` does the same.
-- **Disposing an area.** The example treats a user closing the panel as permanent: `Closed` normally only hides a window. When your code tears the panel down with `panel.Dispose()`, explicitly call `area.Dispose()` too. Removing or reparenting the area does not dispose widgets.
+```csharp
+        var host = new ReactorHostControl { ComponentFactory = () => new EndArea() };
+        var panel = new PanelWindow { Height = 48, Content = host, Visible = true };
+        panel.Closed += host.Dispose;
+```
+
+- **Replacing widgets.** Render the area again with a new list, unless the [preferences file](#preferences) has a list for it. A widget whose name is no longer in that place is disposed and made again. A widget that stays is rendered again with the new props, and a new orientation does the same.
+- **Disposing an area.** The example treats a user closing the panel as permanent: `Closed` normally only hides a window, and here it disposes the host, which unmounts the widgets. When your code tears the panel down with `panel.Dispose()`, dispose the host too. Removing or reparenting the host does not dispose widgets.
 - **Settings.** Treat placement settings, including nested tables, as read-only.
 - **Styling.** The [shell style](#style) styles the plain controls in an area, including the ones a component renders, so a component names no brush of its own. A widget that still has XAML uses `{ThemeResource}` for area-sensitive resources: `{StaticResource}` resolves at construction, before the area owns the widget.
-- **Popups.** Assign `context.StylePopup(content)` to a `PopupWindow.Content`, or to a flyout's content, to load a fresh dictionary of the area's style and follow its resolved theme, style, font, font size and foreground until the area removes the widget or is disposed. `content` may be a plain element or a `ReactorHostControl` showing a component. The widget still owns its popup windows.
+- **Popups.** Assign `context.StylePopup(content)` to a `PopupWindow.Content`, or to a flyout's content. A widget may call it as soon as it has its context, before the area is in a host. The call loads a fresh dictionary of the area's style at once and follows later changes to that style. It follows the area's resolved theme, font, font size and foreground once the area has an element, until the area removes the widget or is disposed. `content` may be a plain element or a `ReactorHostControl` showing a component. The widget still owns its popup windows.
 - **A widget that fails.** An unknown widget, or a component that throws while it is created or while it renders, shows a placeholder with its name and reason while the other placements keep running. The exception and its stack trace are logged under `widgets` in the shell's log (`winshell log`). Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Other exceptions after creation follow the shell's normal crash supervision.
 
 ### Let the user change an area
 
-Set an area's inherited WinUI `Name` to let the user replace its placements. The area then has a section of the [preferences file](#preferences), which holds one `widgets` list. Names are case-sensitive, and areas with the same name use the same section. An area with no name always uses its defaults. A missing file is written with each named area's defaults commented out. Uncomment the list and edit it:
+Pass an area's name to let the user replace its placements. The section is created when the component renders. It holds one `widgets` list. Names are case-sensitive, and areas with the same name use the same section. An area with no name always uses its defaults. A missing file is written with each named area's defaults commented out. Uncomment the list and edit it:
 
 ```toml
 [end]
@@ -804,7 +809,7 @@ What each kind of edit does:
 
 - **A C# edit**, including a component's `Render`, reaches the running shell in about a second. Reactor's hot reload applies it without a restart. The first one takes a little longer, while the compiler warms up. An edited method runs its new code at its next call.
 - **A widget that shows an edited type** is made again, with the rest of its widget area, so a change to its constructor shows too. The window, its other areas and every other window stay as they are.
-- **Your own control that shows an edited type** anywhere else is made again in its place, so a change to a constructor shows there too. That is the outermost of your controls around it, such as your view, because its constructor builds everything inside. A Winshell or WinUI control around it, such as a `Surface` or a `Grid` you fill in code, stays with everything else it holds. A control in a place a new one can't go, such as a template, stays. The window keeps its place, and every other window keeps its content and its state. A control whose constructor takes arguments stays, and its edited methods still run. Keep state that must survive in a model the view is given.
+- **Your own control that shows an edited type** anywhere else is made again in its place, so a change to a constructor shows there too. That is the outermost of your controls around it, because its constructor builds everything inside. A Winshell or WinUI control around it, such as a `Grid` you fill in code, stays with everything else it holds. A control in a place a new one can't go, such as a template, stays. The window keeps its place, and every other window keeps its content and its state. A control whose constructor takes arguments stays, and its edited methods still run. Keep state that must survive in a model that control is given.
 - **An edit .NET can't apply to running code**, such as a new base class, restarts the shell. That takes as long as a build, and the state of every window goes with it.
 - **Code that doesn't compile** shows in a notice on screen, and the last version that did keeps running. The notice goes when the next save compiles. Before the first successful build there is no shell to show it, so the error is in the console.
 - **A TOML file with an error** shows in the same notice, and what came from it before stays in use. Without `winshell dev` it goes to the log.

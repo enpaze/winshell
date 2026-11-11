@@ -103,16 +103,16 @@ A WinUI control.
 _Avoid_: widget (that is placed in a widget area), item
 
 **Component**:
-A piece of UI described in C#, which renders controls and renders again when its state or what it observes changes. A widget is one.
-_Avoid_: view, element
+A piece of UI described in C#, which renders controls and renders again when its state or what it observes changes. A widget is one. Its `Render` returns a Reactor element, and `Elements` writes a surface or a widget area as one.
+_Avoid_: view
 
 **Widget**:
 A piece of UI a widget area creates by name from a placement's settings. It can come from the configuration, an example, or a separate project; it is not the Windows 11 Widgets board.
 _Avoid_: module, applet, plugin
 
 **Widget area**:
-A control a shell author puts anywhere in a window. It shows its placements in order, in one orientation, and styles them.
-_Avoid_: slot, zone
+A component a shell author puts anywhere in a window. It shows its placements in order, in one orientation, and styles them.
+_Avoid_: slot, zone, control
 
 **Surface**:
 What a bar, a dock or any composition is painted on: the style's background, in the window's theme, behind its widget areas.

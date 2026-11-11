@@ -1,6 +1,6 @@
 # UI is built with Reactor
 
-Every piece of UI Winshell or a configuration shows is a Microsoft.UI.Reactor component: widgets, bars, widget areas and the Notice. One C# way to describe UI is easier to learn than plain controls, `Watch` and XAML styles together, and it lets Winshell delete the machinery those needed. Winshell keeps its windows: a panel, a popup window or a floating window places and reserves itself as before and shows a mounted component as its content, because Reactor's own windows cannot anchor to an edge, reserve the work area or open next to another window.
+Every piece of UI a window shows is a Microsoft.UI.Reactor component: widgets, widget areas, surfaces and the Notice. A bar is the composition that opens those windows, and each window's content is one tree, a surface of three widget areas. One C# way to describe UI is easier to learn than plain controls, `Watch` and XAML styles together, and it lets Winshell delete the machinery those needed. Winshell keeps its windows: a panel, a popup window or a floating window places and reserves itself as before and shows one mounted component as its content, because Reactor's own windows cannot anchor to an edge, reserve the work area or open next to another window.
 
 ```text
 public sealed class Battery : Component<WidgetContext>
@@ -13,6 +13,7 @@ public sealed class Battery : Component<WidgetContext>
 }
 ```
 
+- **A surface and a widget area are elements with immutable props.** A component writes `Surface(WidgetArea("dock", ["start", "tasks"]))`, and a window mounts that component with a `ReactorHostControl`. An area reads its preferences section while it renders and follows later saves through hooks. Mounting and unmounting the tree is the lifecycle.
 - **A widget is a `Component<WidgetContext>`.** `WidgetContext` is a record of props: the shell, the shell window the area is drawn in, the placement's settings and the area's orientation. A changed placement, or the area moving into a window, renders the widget again with new props. Winshell has no widget base class, and a plain control is no longer a widget: a control Reactor has no element for is embedded through Reactor's XAML interop.
 - **A component names what it reacts to** with Reactor's `UseObservable` or `UseObservableTree`, on a service object or an `ObservableList<T>`. Winshell adds no read tracking of its own. An `ObservableList<T>` raises `PropertyChanged` when an item does, and an object raises when a list property it has read changes, so those hooks see a change inside a service. That is the object's own change, not a tracked read.
 - **A style is a C# value**, including the alert color, which Winshell writes into the window's resources along with the implicit control styles it builds from it, so a plain `Button` in a widget still matches the shell. No `.xaml` file is left, and `winshell dev` reloads through `dotnet watch` and Reactor's hot reload.

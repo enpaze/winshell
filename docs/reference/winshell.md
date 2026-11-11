@@ -6,7 +6,7 @@ The configuration's program uses these types. `Shell.Run<T>()` starts one, from 
 
 ## Bar
 
-A panel along one edge of every screen, with start, center and end widget areas. It is built only from Winshell's public building blocks, so a variant of your own can start as a copy of it. It shows on the next turn of the loop, once its properties are set, and Dispose removes it. A bar reserves its edge and leaves Explorer's taskbar as it is. A left or right edge runs the areas from top to bottom.
+A panel along one edge of every screen, with start, center and end widget areas. It is built only from Winshell's public building blocks, so a variant of your own can start as a copy of it. It shows on the next turn of the loop, once its properties are set, and Dispose removes it. A bar reserves its edge and leaves Explorer's taskbar as it is. A left or right edge runs the areas from top to bottom. One window's content is one tree: a Surface with three WidgetArea components.
 
 Its section of the preferences file, named after Name, holds `edge`, `start`, `center` and `end`, which replace the properties of the same names while the file has them. A `[[bar.screen]]` row, as ScreenWindows matches it, may change any of them for one screen. A change to a row replaces that screen's bar, and a change to the section replaces every screen's. A value in the section that can't be used is logged, and the bar keeps the one it had. One in a row is logged under the bar's name, and that screen uses the section's.
 
@@ -17,11 +17,11 @@ Its section of the preferences file, named after Name, holds `edge`, `start`, `c
 | `Edge` | [Edges](#edges), init | The edge the bar runs along: one of Edges.Top, Bottom, Left and Right. |
 | `End` | IReadOnlyList of [Placement](#placement), init | The widgets at the end: the right, or the bottom on a side bar. |
 | `Name` | string, init | The bar's name, which names its section of the preferences file. Give each bar of a shell its own. |
-| `Padding` | double?, init | The space between the areas and each end of the bar, along its length, in logical pixels: at the left and right of a top or bottom bar, and at the top and bottom of a side bar. Null takes the style's `ShellPadding`, or none when the style has no such key. |
+| `Padding` | double?, init | The space between the areas and each end of the bar, along its length, in logical pixels: at the left and right of a top or bottom bar, and at the top and bottom of a side bar. Null takes the style's padding, 4 for the built-in style, or none when the style sets no padding. |
 | `Reserve` | bool, init | Whether the bar reserves its edge, so maximized windows stop short of it. False lays it over them. |
 | `Start` | IReadOnlyList of [Placement](#placement), init | The widgets at the start: the left, or the top on a side bar. A plain string names a widget with no settings. |
 | `Style` | [ShellStyle](#shellstyle)?, init | The bar's own style, which wins over Shell.Style, or null for the shell's. |
-| `Thickness` | double?, init | The height of a top or bottom bar, or the width of a side bar, in logical pixels. Null takes the style's `ShellSlotSize`. |
+| `Thickness` | double?, init | The height of a top or bottom bar, or the width of a side bar, in logical pixels. Null takes the style's slot size, 32 for the built-in style. |
 | `Dispose()` | void | Removes the bar from every screen, and stops following the screens, the file and the style. |
 
 ## CaptureView
@@ -57,6 +57,15 @@ The edges of a screen or a window, such as the ones a panel is anchored to. Thes
 | `Left` | 2 | The left edge. |
 | `Right` | 4 | The right edge. |
 | `Bottom` | 8 | The bottom edge. |
+
+## Elements
+
+Surface and WidgetArea as elements, so a component can write them into its tree. A window mounts that component with `new ReactorHostControl { ComponentFactory = () => new Dock() }`.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `Surface(Element? content = null, Thickness padding = default, [ShellStyle](#shellstyle)? style = null)` | Element, static | A surface showing content in style, or the shell's style when that is null. |
+| `WidgetArea(string name = "", IReadOnlyList of [Placement](#placement)? defaults = null, Orientation orientation = Orientation.Horizontal, [ShellStyle](#shellstyle)? style = null)` | Element, static | A widget area. name selects its section of the preferences file, and defaults shows until that section has a list. An empty name uses the defaults only. |
 
 ## FloatingWindow
 
@@ -400,15 +409,25 @@ Has the members of [ObservableObject](#observableobject).
 
 ## Surface
 
-A control that paints the style's `ShellBackgroundBrush` behind its content in the window's theme, as plain controls take theirs, so a switch between light and dark while the shell runs reaches it. What it holds is in its style too. Make it the root of a bar, a dock or any composition, use it on the shell's thread, and dispose it when its owner closes. The style gives its background, so its own `Background`, border and corners don't show.
+Paints the style's `ShellBackgroundBrush` behind its content in the window's theme, as plain controls take theirs, so a switch between light and dark while the shell runs reaches it. A bar's window shows one of these as its tree, with the bar's areas inside it.
 
-A WinUI ContentControl. The members here are the ones Winshell adds.
+A WinUI Component`1. The members here are the ones Winshell adds.
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `Surface()` | constructor | An empty surface in the shell's style. |
-| `Style` | [ShellStyle](#shellstyle)? | The surface's own style, which wins over the shell's, or null for Shell.Style. It hides the inherited WinUI `Style`, which a surface does not use. |
-| `Dispose()` | void | Stops following the shell's style. The content is the owner's to dispose. |
+| `Surface()` | constructor |  |
+| `Render()` | Element | The background under the content. The content is not keyed, so a new style leaves it loaded. |
+
+## SurfaceProps
+
+What a Surface shows. Content is one element, often a WidgetArea, and it stays loaded when the style changes. A null Style follows Shell.Style.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `SurfaceProps(Element? Content = null, Thickness Padding = default, [ShellStyle](#shellstyle)? Style = null)` | constructor |  |
+| `Content` | Element?, init | What the surface holds, or null for nothing. |
+| `Padding` | Thickness, init | The space around Content, in logical pixels. |
+| `Style` | [ShellStyle](#shellstyle)?, init | The surface's own style, which wins over the shell's, or null for the shell's. |
 
 ## TomlCommentAttribute
 
@@ -433,17 +452,26 @@ An exception.
 
 ## WidgetArea
 
-An ordered area of widgets. Use it on the shell's thread and dispose it when its owner closes. Unloading or reparenting does not dispose widgets. The shell's Shell.Style, or the area's own, styles the plain controls a widget renders; area-sensitive XAML uses ThemeResource. Set the inherited Name to give the area a section of the shell's preferences file. That section holds one `widgets` list, which replaces Defaults while the file has it. An empty name uses only Defaults.
+An ordered area of widgets, in one direction. A bar shows three of these in one tree. The shell's Shell.Style, or the area's own, styles the plain controls a widget renders; area-sensitive XAML uses ThemeResource. Unloading the host leaves the widgets mounted; disposing the host unmounts them.
 
-A WinUI UserControl. The members here are the ones Winshell adds.
+A WinUI Component`1. The members here are the ones Winshell adds.
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `WidgetArea()` | constructor | Creates an empty, horizontal area in the shell's style. |
-| `Defaults` | IReadOnlyList of [Placement](#placement) | The author's ordered placements. Assigning a list snapshots it. A widget whose name stays is rendered again with the new props. A different list of names disposes the previous widgets and creates the new ones. This happens immediately unless the preferences file has a list for this area's Name. To apply edits, assign the list again. Settings are passed through without copying. |
-| `Orientation` | Orientation | The layout direction. Changing it gives each placement the new orientation, and a widget whose name stays renders again with the new props. |
-| `Style` | [ShellStyle](#shellstyle)? | This area's own style, which wins over the shell's, or null for Shell.Style. Tooltips follow the shell's style, not the area's. Changing it replaces only the dictionary the style loaded, leaving the area's other resources intact. It hides the inherited WinUI `Style`, which a widget area does not use. |
-| `Dispose()` | void | Detaches and disposes every disposable widget, once. All are attempted even if one disposal throws. |
+| `WidgetArea()` | constructor |  |
+| `Render()` | Element | The placements, in order. A widget whose name stays is the same component. |
+
+## WidgetAreaProps
+
+What a WidgetArea shows. Name selects the area's section of the preferences file. That section holds one `widgets` list, which replaces Defaults while the file has it. An empty name uses only the defaults. The component reads the section when it renders and follows later saves.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `WidgetAreaProps(string Name = "", IReadOnlyList of [Placement](#placement)? Defaults = null, Orientation Orientation = Orientation.Horizontal, [ShellStyle](#shellstyle)? Style = null)` | constructor |  |
+| `Defaults` | IReadOnlyList of [Placement](#placement)?, init | The author's ordered placements. A missing list is none. |
+| `Name` | string, init | The section, or `""` to use only Defaults. |
+| `Orientation` | Orientation, init | The direction the placements run. |
+| `Style` | [ShellStyle](#shellstyle)?, init | This area's own style, which wins over the shell's, or null for the shell's. |
 
 ## WidgetContext
 
@@ -456,7 +484,7 @@ The props of one placement: the shell, the shell window the area is drawn in, th
 | `Shell` | [Shell](#shell), read-only | The shell that owns the area. |
 | `Style` | [ShellStyle](#shellstyle)?, read-only | The style this placement shows: the area's own, or the shell's, or null for the built-in style. A widget reads ShellStyle.Alert from it when something needs attention. |
 | `Window` | [ShellWindow](#shellwindow)?, read-only | The shell window this area is drawn in, and so the screen that window is on, or null before the area is in a window. The area renders the widget again once it is. |
-| `StylePopup(UIElement content)` | FrameworkElement | Wraps content for a PopupWindow or a flyout in the area's styling. Assign the result to the popup's Content on the shell's thread. Each call loads a fresh dictionary of the area's style, preserving the content's own resources, so the popup's plain controls and a component hosted in it look like the area's. The wrapper follows the area's resolved theme, style, FontFamily, FontSize and Foreground until the area removes the widget or is disposed. The widget still owns and disposes its popup windows. A new wrapper to use as the popup window's content. |
+| `StylePopup(UIElement content)` | FrameworkElement | Wraps content for a PopupWindow or a flyout in the area's styling. Assign the result to the popup's Content on the shell's thread. A widget may call it as soon as it has its context, before the area is in a host. Each call loads a fresh dictionary of the area's style, preserving the content's own resources, so the popup's plain controls and a component hosted in it look like the area's. The wrapper follows later changes to that style at once, and the area's resolved theme, FontFamily, FontSize and Foreground once the area has an element, until the area removes the widget or is disposed. The widget still owns and disposes its popup windows. A new wrapper to use as the popup window's content. |
 
 ## Widgets
 

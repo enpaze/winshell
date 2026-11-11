@@ -1,6 +1,6 @@
 # Shells are built from public building blocks
 
-Winshell gives a shell author three layers. Primitives are what exists today: windows, widget areas, services and screens. Building blocks sit on them: `Watch`, windows on each screen, component preferences, the shell style and `shell.Open`. Compositions put building blocks together for a common shape of desktop, and `Bar` is the first. A composition uses only public API, the same API a configuration has, and an architecture test holds it to that. So a dock, a sidebar, an overlay or any other desktop can be built the way `Bar` is, and `Bar` stays short enough to read and copy into a variant of your own.
+Winshell gives a shell author three layers. Primitives are what exists today: windows, widget areas, services and screens. Building blocks sit on them: windows on each screen, component preferences, the shell style and `shell.Open`. Compositions put building blocks together for a common shape of desktop, and `Bar` is the first. A composition uses only public API, the same API a configuration has, and an architecture test holds it to that. So a dock, a sidebar, an overlay or any other desktop can be built the way `Bar` is, and `Bar` stays short enough to read and copy into a variant of your own.
 
 ## Considered options
 

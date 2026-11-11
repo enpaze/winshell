@@ -219,14 +219,15 @@ public sealed partial class PanelReloadTests
             var row = new StackPanel { Children = { other } };
             if (besideOthers)
                 row.Children.Add(edited);
-            using var surface = new Surface { Content = besideOthers ? row : edited };
-            using var panel = Panel(surface);
+            using var surface = new Mounted<Surface, SurfaceProps>(new SurfaceProps { Content = XamlHost(() => besideOthers ? row : edited) });
+            var host = surface.Host;
+            using var panel = Panel(host);
             await ShellFixture.LaidOut(edited).WaitAsync(TestContext.Current.CancellationToken);
 
             PanelReload.Apply(shell, [typeof(EditedWidget)]);
 
-            return (ReferenceEquals(panel.Content, surface), ReferenceEquals(row.Children[0], other), edited.Disposed,
-                edited, besideOthers ? row.Children[1] : surface.Content);
+            return (ReferenceEquals(panel.Content, host), ReferenceEquals(row.Children[0], other), edited.Disposed,
+                edited, besideOthers ? row.Children[1] : Find<EditedWidget>(host));
         });
 
         Assert.True(keptSurface, "The window keeps the surface a composition filled.");
@@ -243,19 +244,20 @@ public sealed partial class PanelReloadTests
         {
             var name = Guid.NewGuid().ToString();
             Widgets.Register<EditedHost>(name);
-            using var area = new WidgetArea { Defaults = [name] };
-            var view = new NestedRoot(area);
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [name] });
+            var host = area.Host;
+            var view = new NestedRoot(host);
             using var panel = Panel(view);
-            await Wait.UntilAsync(() => Search<EditedWidget>(area) is not null, "the edited widget to render");
-            var widget = Find<EditedWidget>(area);
+            await Wait.UntilAsync(() => Search<EditedWidget>(host) is not null, "the edited widget to render");
+            var widget = Find<EditedWidget>(host);
             await ShellFixture.LaidOut(widget).WaitAsync(TestContext.Current.CancellationToken);
 
             PanelReload.Apply(shell, [typeof(EditedWidget)]);
 
             // Read before the area is disposed, which disposes its widgets.
-            await Wait.UntilAsync(() => Search<EditedWidget>(area) is { } next && !ReferenceEquals(next, widget),
+            await Wait.UntilAsync(() => Search<EditedWidget>(host) is { } next && !ReferenceEquals(next, widget),
                 "the area to make the edited widget again");
-            return (ReferenceEquals(panel.Content, view), widget.Disposed, widget, Find<EditedWidget>(area));
+            return (ReferenceEquals(panel.Content, view), widget.Disposed, widget, Find<EditedWidget>(host));
         });
 
         Assert.True(keptView, "The view keeps its other state, and its area makes the widget again.");
