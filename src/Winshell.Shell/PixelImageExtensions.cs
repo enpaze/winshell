@@ -17,6 +17,16 @@ public static class PixelImageExtensions
     {
         ArgumentNullException.ThrowIfNull(image);
         var bitmap = new WriteableBitmap(image.Width, image.Height);
+        image.WriteInto(bitmap);
+        return bitmap;
+    }
+
+    /// <summary>
+    /// Writes the picture into <paramref name="bitmap"/>, which has its pixel size, premultiplied when needed. A view
+    /// that shows frame after frame reuses one bitmap this way. Call on the UI thread.
+    /// </summary>
+    internal static void WriteInto(this PixelImage image, WriteableBitmap bitmap)
+    {
         using (var stream = bitmap.PixelBuffer.AsStream())
         {
             if (image.Premultiplied)
@@ -39,6 +49,5 @@ public static class PixelImageExtensions
         }
 
         bitmap.Invalidate();
-        return bitmap;
     }
 }
