@@ -101,7 +101,7 @@ public sealed class CrashFollowUpTests : IDisposable
         var clean = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
         const string shown = @"C:\crashes\crash-one.txt";
 
-        // One pair often finishes in order. Repeat so a lost update between the read and the replace is caught.
+        // One pair can finish in order and hide a lost replace. Each pass asserts on its own, so a miss fails the test.
         for (var i = 0; i < 40; i++)
         {
             if (File.Exists(state))

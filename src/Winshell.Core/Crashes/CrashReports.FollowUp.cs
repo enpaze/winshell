@@ -47,9 +47,9 @@ internal sealed partial class CrashReports
     }
 
     /// <summary>
-    /// Sets what is given and keeps the rest. Instances share the record, so one of them holds it across the read
-    /// and the replace, through a link as well as the path. The replace compares the text and then moves, and a
-    /// writer that does not hold it can land in between; that replace is read again until this one lands.
+    /// Sets what is given and keeps the rest. Instances share the record, so one of them holds it until the file
+    /// contains this mark. The replace compares the text and then moves, which is not itself a compare, so a move
+    /// that lost is read again. Nothing is dropped after a fixed number of losses.
     /// </summary>
     private static void Update(string stateFile, DateTimeOffset? clean, string? shown)
     {
@@ -75,7 +75,9 @@ internal sealed partial class CrashReports
             while (true)
             {
                 var state = ReadState(stateFile);
-                if (Put(stateFile, clean ?? state.Clean, shown ?? state.Shown, state.Text))
+                var nextClean = clean ?? state.Clean;
+                var nextShown = shown ?? state.Shown;
+                if (Put(stateFile, nextClean, nextShown, state.Text) && Landed(stateFile, nextClean, nextShown))
                     return;
             }
         }
@@ -84,6 +86,13 @@ internal sealed partial class CrashReports
             if (acquired)
                 mutex.ReleaseMutex();
         }
+    }
+
+    /// <summary>Whether the record now has the mark this writer just put down.</summary>
+    private static bool Landed(string stateFile, DateTimeOffset? clean, string? shown)
+    {
+        var state = ReadState(stateFile);
+        return state.Clean == clean && state.Shown == shown;
     }
 
     private readonly record struct ExitState(DateTimeOffset? Clean, string? Shown, string? Text);
