@@ -1,3 +1,4 @@
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
@@ -29,18 +30,18 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
     private const int Ctrl = 0x11;
     private const int Alt = 0x12;
 
-    /// <summary>How long a step waits for WinUI to take the input before the next, and what a recording sees of it.</summary>
-    private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(100);
-
     /// <summary>
-    /// How long to wait for an element to see the pointer come or go. A window that has just opened can miss the first
-    /// move into it, so the move is sent again every <see cref="Retry"/> until then.
+    /// How long a command waits for the element to see the pointer or the key. Past this it stops, rather than sending
+    /// again.
     /// </summary>
     private static readonly TimeSpan Arrival = TimeSpan.FromSeconds(2);
 
-    private static readonly TimeSpan Retry = TimeSpan.FromMilliseconds(200);
-
-    private static readonly TimeSpan HoldCheck = TimeSpan.FromMilliseconds(100);
+    /// <summary>
+    /// How long the first move is given to raise the pointer event before one more goes a pixel aside. The event ends
+    /// the wait. A second move sent sooner is coalesced into the first, and a window that has just opened can miss
+    /// that one move.
+    /// </summary>
+    private static readonly TimeSpan MissedMove = TimeSpan.FromMilliseconds(200);
 
     private Hold? _hold;
     private bool _busy;
@@ -70,10 +71,12 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         RefuseWhileUsed();
         var back = CursorNow();
         var landed = await Arrive(target, back);
-        var hold = new Hold(target, back, landed, loop.Time.GetTimestamp());
+        var hold = new Hold(target, back, landed);
         _hold = hold;
         _away = null;
-        hold.Timer = loop.Time.CreateTimer(_ => loop.Post(() => Check(hold)), null, HoldCheck, HoldCheck);
+        hold.Motion = new Sighting(target.Element, () => Moved(hold),
+            UIElement.PointerMovedEvent, UIElement.PointerExitedEvent);
+        hold.Timer = loop.Schedule(HoldLimit, () => ExpireIfHeld(hold));
         return $"Pointing at {name}. winshell inspect leave puts the cursor back.";
     }
 
@@ -107,8 +110,12 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
             if (!IsAt(landed))
                 throw new IpcException("The mouse moved, so nothing more was sent.");
             // The press carries its own move to the checked point, so it can't land where the cursor went since.
+            using var released = new Sighting(element, UIElement.PointerReleasedEvent);
             Sent(PointerInput.Press(landed, right));
-            await Task.Delay(Settle, loop.Time);
+            if (!await SeenWithin(released.Seen, Arrival))
+                throw new IpcException(
+                    $"{name} didn't see the press within {Arrival.TotalSeconds:0} seconds, so nothing more was sent.");
+            await LetPressedLookApply();
         }
         finally
         {
@@ -141,13 +148,10 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
                 RefuseAt(target, landed);
                 if (!InputSite.PostWheel(site, landed, steps > 0))
                     throw new IpcException("Windows took none or only part of the input.");
-                await Task.WhenAny(turned.Seen, Task.Delay(Arrival, loop.Time));
-                if (!turned.Seen.IsCompleted)
+                if (!await SeenWithin(turned.Seen, Arrival))
                     throw new IpcException(
                         $"{name} didn't see the wheel turn within {Arrival.TotalSeconds:0} seconds, so nothing more was sent.");
             }
-
-            await Task.Delay(Settle, loop.Time);
         }
         finally
         {
@@ -206,8 +210,10 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
             : throw new IpcException("That window has no native window.");
         var site = Site(window);
         RefuseWhileUsed();
+        var root = KeyTarget(shown);
         foreach (var chord in sequence.Chords)
         {
+            using var struck = new Sighting(root, UIElement.KeyUpEvent);
             if (chord.Modifiers == HotkeyModifiers.None)
             {
                 if (!InputSite.PostKey(site, chord.VirtualKey))
@@ -222,7 +228,9 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
                 Sent(KeyInput.Chord((int[])[.. Modifiers(chord.Modifiers), chord.VirtualKey]));
             }
 
-            await Task.Delay(Settle, loop.Time);
+            if (!await SeenWithin(struck.Seen, Arrival))
+                throw new IpcException(
+                    $"{chord.Text} wasn't seen within {Arrival.TotalSeconds:0} seconds, so nothing more was sent.");
         }
 
         return $"Pressed {sequence.Text}";
@@ -237,6 +245,7 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         var hold = _hold;
         _hold = null;
         hold?.Timer?.Dispose();
+        hold?.Motion?.Dispose();
         var away = _away ?? (hold is null ? null : (hold.Back, hold.At));
         if (away is var (back, at) && IsAt(at))
             PutBack(back);
@@ -309,6 +318,13 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
             : throw new IpcException("That window has no input site to take keys and the wheel.");
     }
 
+    /// <summary>The window's root, which sees a key wherever focus is inside it.</summary>
+    private static UIElement KeyTarget(ShellWindow shown)
+    {
+        return shown.Content?.XamlRoot?.Content as UIElement
+            ?? throw new IpcException("That window shows nothing, so nothing was sent.");
+    }
+
     private static POINT CursorNow()
     {
         return PointerInput.Cursor() ?? throw new IpcException("Windows won't say where the cursor is.");
@@ -364,9 +380,9 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
     }
 
     /// <summary>
-    /// Moves the real mouse onto the element until the element sees it come, and says where the cursor landed. A move
-    /// that goes unseen, as the first into a window that has just opened can, is sent again a pixel to the side. When
-    /// the element never sees it, or a check fails between moves, the cursor goes <paramref name="back"/>.
+    /// Moves the real mouse onto the element and waits until the element sees it come. Says where the cursor landed.
+    /// When that first move raises nothing, one more goes a pixel to the side. When the element never sees either, or a
+    /// check fails, the cursor goes <paramref name="back"/>.
     /// </summary>
     private async Task<POINT> Arrive(Target target, POINT back)
     {
@@ -375,17 +391,19 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         {
             using (var come = new Sighting(target.Element, UIElement.PointerEnteredEvent, UIElement.PointerMovedEvent))
             {
-                for (var attempt = 0; attempt * Retry < Arrival && !come.Seen.IsCompleted; attempt++)
+                RefuseAt(target, at);
+                _away = (back, at);
+                Sent(PointerInput.MoveTo(at));
+                if (!await SeenWithin(come.Seen, MissedMove))
                 {
-                    var next = target.At with { X = target.At.X + attempt % 2 };
-                    RefuseAt(target, next);
-                    _away = (back, next);
-                    Sent(PointerInput.MoveTo(next));
-                    at = next;
-                    await Task.WhenAny(come.Seen, Task.Delay(Retry, loop.Time));
+                    var aside = at with { X = at.X + 1 };
+                    RefuseAt(target, aside);
+                    _away = (back, aside);
+                    Sent(PointerInput.MoveTo(aside));
+                    at = aside;
                 }
 
-                if (!come.Seen.IsCompleted)
+                if (!await SeenWithin(come.Seen, Arrival))
                     throw new IpcException(
                         $"{target.Name} didn't see the pointer come within {Arrival.TotalSeconds:0} seconds, so nothing more was sent.");
             }
@@ -410,6 +428,34 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
     private static void PutBack(POINT back)
     {
         PointerInput.MoveTo(back, asMouse: false);
+    }
+
+    /// <summary>Whether <paramref name="seen"/> finished within <paramref name="limit"/>.</summary>
+    private async Task<bool> SeenWithin(Task seen, TimeSpan limit)
+    {
+        try
+        {
+            await seen.WaitAsync(limit, loop.Time);
+            return true;
+        }
+        catch (TimeoutException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// The button's pressed look is applied on a later dispatcher turn. Wait for that turn before the cursor moves.
+    /// </summary>
+    private static async Task LetPressedLookApply()
+    {
+        var queue = DispatcherQueue.GetForCurrentThread();
+        if (queue is null)
+            return;
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!queue.TryEnqueue(DispatcherQueuePriority.Low, () => done.TrySetResult()))
+            return;
+        await done.Task;
     }
 
     /// <summary>Posts Tab and waits up to a second for keyboard focus to move. False when it didn't.</summary>
@@ -486,8 +532,7 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
                 _away = (back, off);
                 Sent(PointerInput.MoveTo(off));
                 now = off;
-                await Task.WhenAny(go.Seen, Task.Delay(Arrival, loop.Time));
-                stepped = go.Seen.IsCompleted;
+                stepped = await SeenWithin(go.Seen, Arrival);
             }
             catch (IpcException)
             {
@@ -537,6 +582,7 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
             return null;
         _hold = null;
         hold.Timer?.Dispose();
+        hold.Motion?.Dispose();
         return await GiveBack(hold.Target, hold.Back, hold.At);
     }
 
@@ -546,29 +592,47 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         await Release();
     }
 
-    /// <summary>A held cursor goes back after <see cref="HoldLimit"/>, and is let go at once when the user moves it.</summary>
-    private void Check(Hold hold)
+    /// <summary>A held cursor goes back after <see cref="HoldLimit"/>.</summary>
+    private void ExpireIfHeld(Hold hold)
     {
         // A command that is running ends the hold itself.
         if (!ReferenceEquals(_hold, hold) || _busy)
             return;
         if (!IsAt(hold.At))
         {
-            _hold = null;
-            hold.Timer?.Dispose();
+            Drop(hold);
             return;
         }
 
-        if (loop.Time.GetElapsedTime(hold.Since) >= HoldLimit)
-            _ = Expire();
+        _ = Expire();
+    }
+
+    /// <summary>The user moved the held cursor, so it stays where they put it.</summary>
+    private void Moved(Hold hold)
+    {
+        if (!ReferenceEquals(_hold, hold) || _busy || IsAt(hold.At))
+            return;
+        Drop(hold);
+    }
+
+    /// <summary>Forgets a hold without moving the cursor. The unhook waits, because a pointer handler may be the caller.</summary>
+    private void Drop(Hold hold)
+    {
+        _hold = null;
+        hold.Timer?.Dispose();
+        var motion = hold.Motion;
+        hold.Motion = null;
+        loop.Post(() => motion?.Dispose());
     }
 
     /// <summary>An element to aim at, its window, and its middle on the screen.</summary>
     private sealed record Target(FrameworkElement Element, string Name, nint Window, POINT At);
 
-    private sealed record Hold(Target Target, POINT Back, POINT At, long Since)
+    private sealed record Hold(Target Target, POINT Back, POINT At)
     {
-        public ITimer? Timer { get; set; }
+        public IDisposable? Timer { get; set; }
+
+        public Sighting? Motion { get; set; }
     }
 
     private sealed partial class Turned(RealInput input) : IDisposable
@@ -579,21 +643,39 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         }
     }
 
-    /// <summary>Whether an element raised one of some pointer events, handled or not, while this is undisposed.</summary>
+    /// <summary>
+    /// Whether an element raised one of some pointer or key events, handled or not, while this is undisposed.
+    /// </summary>
     private sealed partial class Sighting : IDisposable
     {
         private readonly UIElement _element;
         private readonly RoutedEvent[] _events;
-        private readonly PointerEventHandler _handler;
+        private readonly PointerEventHandler _pointer;
+        private readonly KeyEventHandler _key;
         private readonly TaskCompletionSource _seen = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public Sighting(UIElement element, params RoutedEvent[] events)
+            : this(element, null, events)
+        {
+        }
+
+        /// <param name="element">The element that raises <paramref name="events"/>.</param>
+        /// <param name="each">Called on every event, including once <see cref="Seen"/> has completed. Null completes <see cref="Seen"/> only.</param>
+        /// <param name="events">Pointer or key events, handled or not.</param>
+        public Sighting(UIElement element, Action? each, params RoutedEvent[] events)
         {
             _element = element;
             _events = events;
-            _handler = (_, _) => _seen.TrySetResult();
+            void Note()
+            {
+                _seen.TrySetResult();
+                each?.Invoke();
+            }
+
+            _pointer = (_, _) => Note();
+            _key = (_, _) => Note();
             foreach (var routed in events)
-                element.AddHandler(routed, _handler, true);
+                element.AddHandler(routed, Handler(routed), true);
         }
 
         public Task Seen => _seen.Task;
@@ -601,7 +683,12 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         public void Dispose()
         {
             foreach (var routed in _events)
-                _element.RemoveHandler(routed, _handler);
+                _element.RemoveHandler(routed, Handler(routed));
+        }
+
+        private object Handler(RoutedEvent routed)
+        {
+            return routed == UIElement.KeyDownEvent || routed == UIElement.KeyUpEvent ? _key : _pointer;
         }
     }
 }
