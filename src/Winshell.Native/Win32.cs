@@ -4,8 +4,8 @@ using Windows.Win32.Foundation;
 
 namespace Winshell.Native;
 
-// CsWin32 will not generate POINT: it tells callers to use System.Drawing.Point, which the pointer and hook
-// structs below do not. The generated RECT is the window rectangle.
+// CsWin32 will not generate POINT: it tells callers to use System.Drawing.Point. Pointer helpers keep this
+// one and convert where a generated call takes System.Drawing.Point. The generated RECT is the window rectangle.
 [StructLayout(LayoutKind.Sequential)]
 internal struct POINT
 {
@@ -60,23 +60,6 @@ internal struct MARGINS
     public int Right;
     public int Top;
     public int Bottom;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct MSLLHOOKSTRUCT
-{
-    public POINT pt;
-    public uint mouseData;
-    public uint flags;
-    public uint time;
-    public nint dwExtraInfo;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct LASTINPUTINFO
-{
-    public uint cbSize;
-    public uint dwTime;
 }
 
 /// <summary>REASON_CONTEXT. Only the simple string is used; the two fields after it pad the union to the size of its Detailed member.</summary>
@@ -148,27 +131,6 @@ internal static partial class Win32
     public const uint ABN_POSCHANGED = 1;
     public const uint ABS_AUTOHIDE = 1;
 
-    public const uint WINEVENT_OUTOFCONTEXT = 0x0000;
-    public const uint EVENT_SYSTEM_FOREGROUND = 0x0003;
-    public const uint EVENT_SYSTEM_MINIMIZESTART = 0x0016;
-    public const uint EVENT_SYSTEM_MINIMIZEEND = 0x0017;
-    public const uint EVENT_SYSTEM_DESKTOPSWITCH = 0x0020;
-    public const uint EVENT_OBJECT_CREATE = 0x8000;
-    public const uint EVENT_OBJECT_DESTROY = 0x8001;
-    public const uint EVENT_OBJECT_SHOW = 0x8002;
-    public const uint EVENT_OBJECT_HIDE = 0x8003;
-    public const uint EVENT_OBJECT_REORDER = 0x8004;
-    public const uint EVENT_OBJECT_LOCATIONCHANGE = 0x800B;
-    public const uint EVENT_OBJECT_NAMECHANGE = 0x800C;
-    public const uint EVENT_OBJECT_CLOAKED = 0x8017;
-    public const uint EVENT_OBJECT_UNCLOAKED = 0x8018;
-    public const int OBJID_WINDOW = 0;
-    public const int OBJID_CLIENT = -4;
-    public const int CHILDID_SELF = 0;
-
-    public const int WH_KEYBOARD_LL = 13;
-    public const int WH_MOUSE_LL = 14;
-
     public const uint DWMWA_COLOR_NONE = 0xFFFFFFFE;
 
     public const uint GMEM_MOVEABLE = 0x0002;
@@ -177,12 +139,6 @@ internal static partial class Win32
 
     public const uint IMAGE_ICON = 1;
     public const int IDI_APPLICATION = 32512;
-    public const int SM_CXICON = 11;
-    public const int SM_CYICON = 12;
-    public const int SM_CXSMICON = 49;
-    public const int SM_CYSMICON = 50;
-
-    public const int IDC_ARROW = 32512;
 
     public const int RGN_OR = 2;
 
@@ -190,49 +146,14 @@ internal static partial class Win32
     [return: MarshalAs(UnmanagedType.Bool)]
     public static unsafe partial bool SystemParametersInfoW(uint action, uint param, void* value, uint winIni);
 
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool ReleaseCapture();
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool AttachThreadInput(uint idAttach, uint idAttachTo,
-        [MarshalAs(UnmanagedType.Bool)] bool attach);
-
     [LibraryImport("kernel32.dll")]
     public static partial uint GetCurrentThreadId();
-
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool PeekNamedPipe(nint pipe, nint buffer, uint bufferSize, out uint bytesRead,
-        out uint totalBytesAvail, out uint bytesLeftThisMessage);
-
-    [LibraryImport("kernel32.dll")]
-    public static partial uint WaitForSingleObject(nint handle, uint milliseconds);
-
-    [LibraryImport("user32.dll")]
-    public static partial short GetAsyncKeyState(int key);
-
-    [LibraryImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool RegisterHotKey(nint hwnd, int id, uint modifiers, uint virtualKey);
-
-    [LibraryImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool UnregisterHotKey(nint hwnd, int id);
-
-    [LibraryImport("user32.dll")]
-    public static partial nint LoadCursorW(nint instance, nint name);
 
     [LibraryImport("user32.dll", EntryPoint = "LoadImageW", SetLastError = true)]
     public static partial nint LoadImageW(nint instance, nint name, uint type, int width, int height, uint flags);
 
     [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
     public static partial nint LoadImageW(nint instance, string name, uint type, int width, int height, uint flags);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool GetCursorPos(out POINT point);
 
     [LibraryImport("user32.dll")]
     public static partial nint MonitorFromWindow(nint hwnd, uint flags);
@@ -323,33 +244,6 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool GetLastInputInfo(ref LASTINPUTINFO info);
-
-    [LibraryImport("user32.dll")]
-    public static unsafe partial nint SetWindowsHookExW(int hook, delegate* unmanaged<int, nint, nint, nint> proc,
-        nint module, uint thread);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool UnhookWindowsHookEx(nint hook);
-
-    [LibraryImport("user32.dll")]
-    public static unsafe partial nint SetWinEventHook(uint eventMin, uint eventMax, nint module,
-        delegate* unmanaged<nint, uint, nint, int, int, uint, uint, void> callback, uint processId, uint threadId,
-        uint flags);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool UnhookWinEvent(nint hook);
-
-    [LibraryImport("user32.dll")]
-    public static partial nint CallNextHookEx(nint hook, int code, nint wParam, nint lParam);
-
-    [LibraryImport("user32.dll")]
-    public static partial nint WindowFromPoint(POINT point);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool OpenClipboard(nint owner);
 
     [LibraryImport("user32.dll")]
@@ -372,9 +266,6 @@ internal static partial class Win32
     [LibraryImport("kernel32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GlobalUnlock(nint mem);
-
-    [LibraryImport("user32.dll")]
-    public static partial int GetSystemMetrics(int index);
 
     public static int LowWord(nint value)
     {

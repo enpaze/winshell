@@ -1,10 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
-using Winshell.Native;
 
 namespace Winshell;
 
@@ -50,11 +48,7 @@ internal sealed partial class ConfigurationProject
     internal const string NeedsSdk = "Building a configuration needs the .NET SDK, from https://dot.net/download.";
 
     private static readonly TimeSpan BuildLimit = TimeSpan.FromMinutes(10);
-
-    /// <summary>
-    /// How long a reader waits on the process when its pipe has nothing new. The wait ends early when the process does.
-    /// </summary>
-    private const uint OutputWaitMs = 15;
+    private static readonly TimeSpan StreamLimit = TimeSpan.FromSeconds(1);
 
     private ConfigurationProject(string projectFile)
     {
@@ -355,9 +349,9 @@ internal sealed partial class ConfigurationProject
     }
 
     /// <summary>
-    /// Runs a program and collects what it prints, up to a limit. A reader ends when its stream closes, or when the
-    /// process has exited: it takes what is already written and stops, even if a child still holds the stream. The
-    /// readers have threads of their own, so a busy pool cannot lose the last lines.
+    /// Runs a program and collects what it prints, up to a limit. The streams get a short wait after it exits, because a
+    /// build server that outlives it keeps them open. They have threads of their own, so a busy pool cannot lose the last
+    /// lines.
     /// </summary>
     public static CommandResult Run(string file, IReadOnlyList<string> arguments, string folder)
     {
@@ -392,32 +386,36 @@ internal sealed partial class ConfigurationProject
         var error = new List<string>();
         var gate = new object();
 
-        Thread Read(Process process, StreamReader stream, List<string> into)
+        Thread Read(StreamReader stream, List<string> into)
         {
-            var reader = new Thread(() => ReadOutput(process, stream, lines, into, gate)) { IsBackground = true };
+            var reader = new Thread(() =>
+                {
+                    while (stream.ReadLine() is { } line)
+                        lock (gate)
+                        {
+                            lines.Add(line);
+                            into.Add(line);
+                        }
+                })
+            { IsBackground = true };
             reader.Start();
             return reader;
         }
 
         try
         {
-            using var process = Process.Start(start)!;
-            Thread[] readers =
-            [
-                Read(process, process.StandardOutput, output),
-                Read(process, process.StandardError, error)
-            ];
+            // Not disposed: a reader may still be waiting on a stream that a build server holds.
+            var process = Process.Start(start)!;
+            Thread[] readers = [Read(process.StandardOutput, output), Read(process.StandardError, error)];
             if (!process.WaitForExit(BuildLimit))
             {
                 process.Kill(true);
-                foreach (var reader in readers)
-                    reader.Join();
                 return new CommandResult(-1,
                     $"{Path.GetFileName(file)} was still running after {BuildLimit.TotalMinutes} minutes.");
             }
 
             foreach (var reader in readers)
-                reader.Join();
+                reader.Join(StreamLimit);
             lock (gate)
             {
                 return new CommandResult(process.ExitCode, string.Join('\n', lines))
@@ -430,154 +428,6 @@ internal sealed partial class ConfigurationProject
         catch (Win32Exception)
         {
             return new CommandResult(-1, NeedsSdk) { Missing = true };
-        }
-    }
-
-    /// <summary>
-    /// Copies <paramref name="stream"/> until <paramref name="process"/> has exited and what it already wrote is taken.
-    /// A synchronous pipe read cannot be cancelled, and a child can keep the pipe open, so this never blocks in one:
-    /// it reads the bytes already there and otherwise waits on the process.
-    /// </summary>
-    private static void ReadOutput(Process process, StreamReader stream, List<string> lines, List<string> into,
-        object gate)
-    {
-        try
-        {
-            var encoding = stream.CurrentEncoding;
-            var decoder = encoding.GetDecoder();
-            var bytes = new byte[4096];
-            var chars = new char[encoding.GetMaxCharCount(bytes.Length)];
-            var pending = new StringBuilder();
-            while (!Exited(process))
-            {
-                if (!Take(stream, bytes, chars, decoder, pending, lines, into, gate))
-                    WaitForProcess(process, OutputWaitMs);
-            }
-
-            // One snapshot. A child that still holds the pipe can write more, and that is not this process's output.
-            var left = Available(stream);
-            while (left > 0)
-            {
-                var read = ReadSome(stream, bytes, (int)Math.Min(left, bytes.Length));
-                if (read <= 0)
-                    break;
-                left -= read;
-                Append(decoder, bytes, read, chars, pending, lines, into, gate);
-            }
-
-            var tail = new char[8];
-            var flushed = decoder.GetChars([], 0, 0, tail, 0, true);
-            if (flushed > 0)
-                pending.Append(tail, 0, flushed);
-            if (pending.Length > 0)
-                Keep(Line(pending.ToString()), lines, into, gate);
-        }
-        catch (Exception e) when (e is IOException or ObjectDisposedException)
-        {
-        }
-    }
-
-    private static bool Take(StreamReader stream, byte[] bytes, char[] chars, Decoder decoder, StringBuilder pending,
-        List<string> lines, List<string> into, object gate)
-    {
-        var available = Available(stream);
-        if (available <= 0)
-            return false;
-        var read = ReadSome(stream, bytes, (int)Math.Min(available, bytes.Length));
-        if (read <= 0)
-            return false;
-        Append(decoder, bytes, read, chars, pending, lines, into, gate);
-        return true;
-    }
-
-    private static void Append(Decoder decoder, byte[] bytes, int read, char[] chars, StringBuilder pending,
-        List<string> lines, List<string> into, object gate)
-    {
-        var count = decoder.GetChars(bytes, 0, read, chars, 0);
-        var start = 0;
-        for (var i = 0; i < count; i++)
-        {
-            if (chars[i] != '\n')
-                continue;
-            var piece = new string(chars, start, i - start);
-            start = i + 1;
-            if (pending.Length == 0)
-                Keep(Line(piece), lines, into, gate);
-            else
-            {
-                pending.Append(piece);
-                Keep(Line(pending.ToString()), lines, into, gate);
-                pending.Clear();
-            }
-        }
-
-        if (start < count)
-            pending.Append(chars, start, count - start);
-    }
-
-    private static string Line(string text)
-    {
-        return text.Length > 0 && text[^1] == '\r' ? text[..^1] : text;
-    }
-
-    private static void Keep(string line, List<string> lines, List<string> into, object gate)
-    {
-        lock (gate)
-        {
-            lines.Add(line);
-            into.Add(line);
-        }
-    }
-
-    private static int Available(StreamReader reader)
-    {
-        if (reader.BaseStream is not FileStream file || file.SafeFileHandle.IsClosed || file.SafeFileHandle.IsInvalid)
-            return 0;
-        var handle = file.SafeFileHandle;
-        var added = false;
-        try
-        {
-            handle.DangerousAddRef(ref added);
-            return Win32.PeekNamedPipe(handle.DangerousGetHandle(), 0, 0, out _, out var avail, out _)
-                ? (int)avail
-                : 0;
-        }
-        finally
-        {
-            if (added)
-                handle.DangerousRelease();
-        }
-    }
-
-    private static int ReadSome(StreamReader reader, byte[] bytes, int count)
-    {
-        return reader.BaseStream.Read(bytes, 0, count);
-    }
-
-    private static bool Exited(Process process)
-    {
-        try
-        {
-            return process.HasExited;
-        }
-        catch (InvalidOperationException)
-        {
-            return true;
-        }
-    }
-
-    private static void WaitForProcess(Process process, uint milliseconds)
-    {
-        try
-        {
-            if (process.HasExited)
-                return;
-            // The wait is how the reader hears that the process ended. A failure just falls through to the next read.
-            if (Win32.WaitForSingleObject(process.SafeHandle.DangerousGetHandle(), milliseconds) == uint.MaxValue)
-                return;
-        }
-        catch (Exception e) when (e is InvalidOperationException or IOException or ObjectDisposedException)
-        {
         }
     }
 
