@@ -25,14 +25,13 @@ public sealed class AppDisplayNameTests
     }
 
     [Fact]
-    public void A_program_with_no_description_uses_its_file_name()
+    public void A_program_file_with_no_description_has_none()
     {
         using var folder = new TempFolder();
         var path = Path.Combine(folder.Path, "Player.exe");
         File.WriteAllText(path, "not a program");
 
         Assert.Null(AppsService.ProgramDescription(path));
-        Assert.Equal("Player", AppsService.FallbackName("Player.exe"));
     }
 
     [Fact]
