@@ -37,22 +37,25 @@ internal static class DoctorScreens
         {
             var onScreen = windows
                 .Where(w => w.Right > m.Left && w.Left < m.Right && w.Bottom > m.Top && w.Top < m.Bottom).ToList();
-            foreach (var (edge, reserved) in new[]
+            foreach (var (side, reserved) in new[]
                      {
-                         ("top", m.WorkTop - m.Top), ("bottom", m.Bottom - m.WorkBottom), ("left", m.WorkLeft - m.Left),
-                         ("right", m.Right - m.WorkRight)
+                         (AppBarEdge.Top, m.WorkTop - m.Top), (AppBarEdge.Bottom, m.Bottom - m.WorkBottom),
+                         (AppBarEdge.Left, m.WorkLeft - m.Left), (AppBarEdge.Right, m.Right - m.WorkRight)
                      })
             {
                 if (reserved <= 0)
                     continue;
+                var edge = Name(side);
                 var taskbars = onScreen.Where(w =>
-                        w.ClassName is TaskbarClass or SecondaryTaskbarClass && Within(Depth(m, w, edge), reserved))
+                        w.ClassName is TaskbarClass or SecondaryTaskbarClass && SitsOn(m, w, side) &&
+                        Within(Depth(m, w, edge), reserved))
                     .ToList();
                 // A Winshell panel also reserves its margins, which its window does not cover, and its zone can differ
                 // from its size. A window that starts in the strip explains those pixels, but another app's window
                 // in the same strip is still named, even when it overlaps the panel and nothing is left over.
                 var winshell = onScreen
-                    .Where(w => w.ClassName == WinshellClass && Starts(m, Depth(m, w, edge), edge, reserved)).ToList();
+                    .Where(w => w.ClassName == WinshellClass && SitsOn(m, w, side) &&
+                                Starts(m, Depth(m, w, edge), edge, reserved)).ToList();
                 var taskbar = Covered(taskbars.Select(w => Depth(m, w, edge)), reserved);
                 var unexplained =
                     reserved - Covered(taskbars.Concat(winshell).Select(w => Depth(m, w, edge)), reserved);
@@ -62,7 +65,7 @@ internal static class DoctorScreens
                     continue;
                 var others = onScreen.Where(w =>
                         w.ClassName is not (TaskbarClass or SecondaryTaskbarClass or WinshellClass) &&
-                        w.Program.Length > 0)
+                        w.Program.Length > 0 && SitsOn(m, w, side))
                     .Select(w => (w.Program, Depth: Depth(m, w, edge)))
                     .Where(w => Within(w.Depth, reserved))
                     .Select(w => (w.Program, Thickness: w.Depth.End - w.Depth.Start))
@@ -91,6 +94,32 @@ internal static class DoctorScreens
                 $"The Windows taskbar and a Winshell panel both reserve {string.Join(" and ", both)}, so maximized windows lose both.",
                 "Turn on Automatically hide the taskbar in Settings > Personalization > Taskbar, or put the Winshell panel on another edge.");
         return new DoctorCheck("appBars", "App bars", CheckStatus.Pass, "No other app reserves an edge of a screen");
+    }
+
+    /// <summary>The edge's name in a doctor's sentence, such as "bottom".</summary>
+    private static string Name(AppBarEdge edge)
+    {
+        return edge switch
+        {
+            AppBarEdge.Bottom => "bottom",
+            AppBarEdge.Left => "left",
+            AppBarEdge.Right => "right",
+            _ => "top"
+        };
+    }
+
+    /// <summary>Whether <paramref name="window"/> sits on <paramref name="edge"/> of <paramref name="monitor"/>, the same rule the Explorer taskbar uses.</summary>
+    private static bool SitsOn(MonitorFacts monitor, WindowFacts window, AppBarEdge edge)
+    {
+        var bounds = new RECT { left = window.Left, top = window.Top, right = window.Right, bottom = window.Bottom };
+        var screen = new RECT
+        {
+            left = monitor.Left,
+            top = monitor.Top,
+            right = monitor.Right,
+            bottom = monitor.Bottom
+        };
+        return ExplorerTaskbarWindow.EdgeOf(bounds, screen) == edge;
     }
 
     /// <summary>How far into the screen from an edge a window starts and ends.</summary>

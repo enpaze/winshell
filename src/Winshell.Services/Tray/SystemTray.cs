@@ -86,7 +86,7 @@ public sealed class SystemTray : ObservableObject, IDisposable
         }
 
         _open = true;
-        AppBarMessages.Opened(_backend);
+        ExplorerTaskbarWindow.Opened(_backend, _backend.Lower, _backend.Raise);
         _answered = _backend.Explorer;
         UseSettings();
         KeepInFront();
@@ -193,7 +193,7 @@ public sealed class SystemTray : ObservableObject, IDisposable
         _answer?.Dispose();
         _timer = _answer = null;
         _clicker.Dispose();
-        AppBarMessages.Closed(_backend);
+        ExplorerTaskbarWindow.Closed(_backend);
         // The window goes, the next instance may take over, and apps are asked to add their icons again to whichever
         // taskbar window is first now.
         _backend.Close();
