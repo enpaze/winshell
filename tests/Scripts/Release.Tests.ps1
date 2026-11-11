@@ -180,33 +180,15 @@ Describe 'The product name' {
         $filled | Should -Match 'TaskId="Winshell"'
     }
 
-    It 'is the shortcut description the shipped installer gets, and the product SignPath is given' {
-        $source = Join-Path $PSScriptRoot '../../scripts/install.ps1'
-        $released = Get-ReleasedInstallScript (Get-ProductName)
-        ([regex]::Match($released, '\$link\.Description = ''([^'']*)''').Groups[1].Value) | Should -Be (Get-ProductName)
-        $released | Should -Be ([IO.File]::ReadAllText($source))
+    # install.ps1 is fetched on its own and can't read Get-ProductName, so its shortcut keeps a literal this test ties.
+    It 'is the installer''s shortcut description, and the product SignPath is given' {
+        $install = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../scripts/install.ps1')
+        ([regex]::Match($install, '\$link\.Description = ''([^'']*)''').Groups[1].Value) | Should -Be (Get-ProductName)
         [xml] $signing = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../packaging/signpath/artifact-configuration.xml')
         $signing.'artifact-configuration'.'zip-file'.'pe-file-set'.'product-name' | Should -Be '${product}'
         $workflow = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../.github/workflows/package.yml')
         $workflow | Should -Match 'product=\$\(Get-ProductName\)'
         $workflow | Should -Match 'steps\.product\.outputs\.product'
-    }
-
-    It 'replaces a shortcut description that is not the product name' {
-        $root = Join-Path $TestDrive 'repo'
-        New-Item -ItemType Directory -Path (Join-Path $root 'scripts/lib') -Force | Out-Null
-        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../../scripts/lib/Release.ps1') -Destination (Join-Path $root 'scripts/lib/Release.ps1')
-        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../../scripts/install.ps1') -Destination (Join-Path $root 'scripts/install.ps1')
-        $install = Join-Path $root 'scripts/install.ps1'
-        (Get-Content -Raw -LiteralPath $install).Replace("`$link.Description = 'Winshell'", "`$link.Description = 'Other'") |
-            Set-Content -LiteralPath $install -NoNewline
-        @'
-. ./scripts/lib/Release.ps1
-Get-ReleasedInstallScript 'Winshell'
-'@ | Set-Content -LiteralPath (Join-Path $root 'probe.ps1')
-        Push-Location $root
-        try { $released = (& pwsh -NoProfile -File .\probe.ps1 | Out-String) } finally { Pop-Location }
-        ([regex]::Match($released, '\$link\.Description = ''([^'']*)''').Groups[1].Value) | Should -Be 'Winshell'
     }
 }
 

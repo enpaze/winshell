@@ -1,7 +1,7 @@
 # What a release ships and how its build is checked, for scripts/package.ps1, scripts/pack.ps1,
 # scripts/publish-release.ps1 and .github/workflows/package.yml. install.ps1 is a release asset fetched on its own
-# and can't dot-source this; Install.Tests.ps1 serves it a release named by Get-ReleaseZipName. The copy a release
-# ships gets its shortcut description from Get-ProductName. SignPath gets that same name as its product parameter.
+# and can't dot-source this; Install.Tests.ps1 serves it a release named by Get-ReleaseZipName, and Release.Tests.ps1
+# ties its shortcut description to Get-ProductName. SignPath gets that same name as its product parameter.
 
 function Get-RepoRoot { Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
 
@@ -17,17 +17,6 @@ function Get-ProductName {
     $match = [regex]::Match((Get-Content -LiteralPath $props -Raw), '<Product>([^<]+)</Product>')
     if (-not $match.Success) { throw 'Directory.Build.props does not set Product.' }
     $match.Groups[1].Value
-}
-
-# install.ps1 as a release ships it. The script is fetched on its own, so the description is written in here.
-# When it already names $ProductName, the text is the file's own, and the pack copies those bytes.
-function Get-ReleasedInstallScript([string] $ProductName) {
-    $path = Join-Path (Get-RepoRoot) 'scripts/install.ps1'
-    $text = [IO.File]::ReadAllText($path)
-    $described = [regex]::Match($text, '\$link\.Description = ''([^'']*)''')
-    if (-not $described.Success) { throw 'install.ps1 does not set the shortcut description.' }
-    if ($described.Groups[1].Value -ceq $ProductName) { return $text }
-    $text.Remove($described.Groups[1].Index, $described.Groups[1].Length).Insert($described.Groups[1].Index, $ProductName)
 }
 
 # Fills the $(...) values in the Store manifest.

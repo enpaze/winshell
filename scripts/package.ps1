@@ -241,16 +241,7 @@ ManifestType: defaultLocale
 ManifestVersion: $schema
 "@ | Set-Content -LiteralPath (Join-Path $wingetDir "$id.locale.en-US.yaml")
     New-Zip $wingetDir (Join-Path $Out 'winget-manifests.zip') $releaseDay
-    $installSource = Join-Path $PSScriptRoot 'install.ps1'
-    $releasedInstall = Get-ReleasedInstallScript $product
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'uninstall.ps1') -Destination $Out
-    if ($releasedInstall -ceq [IO.File]::ReadAllText($installSource)) {
-        Copy-Item -LiteralPath $installSource -Destination $Out
-    } else {
-        $bytes = [IO.File]::ReadAllBytes($installSource)
-        $bom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
-        [IO.File]::WriteAllText((Join-Path $Out 'install.ps1'), $releasedInstall, [Text.UTF8Encoding]::new($bom))
-    }
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'install.ps1'), (Join-Path $PSScriptRoot 'uninstall.ps1') -Destination $Out
 
     # The Microsoft Store package: one .msix per architecture, bundled. The Store signs it.
     $makeappx = Get-WindowsSdkTool makeappx.exe
