@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
@@ -233,14 +234,69 @@ public sealed class BarTests
                 Assert.Equal(20, Assert.Single(bars, window => !window.Anchors.HasFlag(Edges.Right)).Width);
 
                 shell.Style = other;
-                await Until(shell, screen, () => !BarsOn(shell, screen).Contains(followsBar), "the bar to take the new style");
-                Assert.Equal(40, Assert.Single(BarsOn(shell, screen), window => window.Anchors == (Edges.Left | Edges.Right | Edges.Top)).Height);
+                await NextTurn(shell);
+                Assert.Same(followsBar, Assert.Single(BarsOn(shell, screen),
+                    window => window.Anchors == (Edges.Left | Edges.Right | Edges.Top)));
+                Assert.Equal(40, followsBar.Height);
                 Assert.Contains(ownBar, BarsOn(shell, screen));
             }
             finally
             {
                 shell.Style = null;
                 shell.Platform.Screens.Remove(screen);
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task A_color_change_keeps_the_bar_window_and_the_widget_state()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var paint = new ShellStyle
+            {
+                Background = global::Windows.UI.Color.FromArgb(0xff, 0x1a, 0x1b, 0x26),
+                Foreground = global::Windows.UI.Color.FromArgb(0xff, 0xff, 0xff, 0xff),
+                Alert = global::Windows.UI.Color.FromArgb(0xff, 0xff, 0xa5, 0x00)
+            };
+            var screen = ScreenWindowsTests.Screen("TST", "Only", "1");
+            var widget = CountingWidget.Register(out var made);
+            shell.Platform.Screens.Add(screen);
+            try
+            {
+                using var bar = new Bar
+                {
+                    Name = "keeps" + Guid.NewGuid().ToString("N"),
+                    Reserve = false,
+                    Center = [widget]
+                };
+                await NextTurn(shell);
+                var window = Assert.Single(BarsOn(shell, screen));
+                Assert.Equal(32, window.Height);
+                await Wait.UntilAsync(() => TextsOn(made, window).SequenceEqual(["0"]), "the widget to render");
+                var state = CountingWidget.Live;
+                Assert.NotNull(state);
+                state.Value = 1;
+
+                shell.Style = paint;
+                await NextTurn(shell);
+                Assert.Same(window, Assert.Single(BarsOn(shell, screen)));
+                Assert.Same(state, CountingWidget.Live);
+                await Until(shell, screen, () =>
+                    ReferenceEquals(Assert.Single(BarsOn(shell, screen)), window) &&
+                    ReferenceEquals(CountingWidget.Live, state) &&
+                    BackgroundOf(window.Content!) == paint.Background,
+                    "the bar to take the new color and keep the widget");
+                Assert.Equal(1, state.Value);
+                Assert.Equal(32, window.Height);
+            }
+            finally
+            {
+                shell.Style = null;
+                shell.Platform.Screens.Remove(screen);
+                CountingWidget.Live = null;
             }
 
             return true;
@@ -471,6 +527,48 @@ public sealed class BarTests
             Views.Add(view);
             return view;
         });
+    }
+
+    /// <summary>Holds a count the test changes. A new instance starts again at zero.</summary>
+    private sealed class CountingWidget : Component<WidgetContext>
+    {
+        public static List<TextBlock> Views = [];
+
+        public static Count? Live;
+
+        public static string Register(out List<TextBlock> made)
+        {
+            var name = Guid.NewGuid().ToString();
+            Views = made = [];
+            Live = null;
+            Widgets.Register<CountingWidget>(name);
+            return name;
+        }
+
+        public override Element Render()
+        {
+            var held = UseRef<Count?>(null);
+            if (held.Current is null)
+                held.Current = new Count();
+            var mine = held.Current;
+            Live = mine;
+            UseEffect(() => () =>
+            {
+                if (ReferenceEquals(Live, mine))
+                    Live = null;
+            }, false);
+            return XamlHost(() =>
+            {
+                var view = new TextBlock { Text = mine.Value.ToString(CultureInfo.InvariantCulture) };
+                Views.Add(view);
+                return view;
+            });
+        }
+
+        internal sealed class Count
+        {
+            public int Value;
+        }
     }
 
     /// <summary>A bar's section with one widget at the start, and a row for the tall screen on <paramref name="tallEdge"/>.</summary>

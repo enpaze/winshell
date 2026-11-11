@@ -1,9 +1,8 @@
-using System.Globalization;
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Markup;
+using Microsoft.UI.Xaml.Media;
 using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
@@ -28,12 +27,10 @@ public sealed class Surface : Component<SurfaceProps>
     public override Element Render()
     {
         var props = Props;
-        var (ready, setReady) = UseState(false);
         var root = UseRef<FrameworkElement?>(null);
-        var target = UseRef<FrameworkElement?>(null);
-        var seen = UseRef(false);
-        var last = UseRef<ShellStyle?>(null);
-        var stamp = UseRef(0);
+        var layer = UseRef<Border?>(null);
+        var shown = UseRef(props.Style);
+        shown.Current = props.Style;
         var (_, bump) = UseReducer(0);
         UseEffect(() =>
         {
@@ -45,70 +42,38 @@ public sealed class Surface : Component<SurfaceProps>
             return () => shell.StyleChanged -= Follow;
         }, props.Style);
 
-        var resolved = props.Style ?? Shell.Current.Style;
-        if (!seen.Current || !Equals(last.Current, resolved))
-        {
-            if (seen.Current)
-                stamp.Current++;
-            seen.Current = true;
-            last.Current = resolved;
-        }
-
         if (root.Current is { } mounted)
-            Restyle(mounted);
+            Paint(mounted);
 
-        // The brush is a {ThemeResource} read where this XAML is parsed, so the style dictionary has to be in that
-        // dictionary. A new style parses it again. The content is not keyed, so it stays loaded. It is held back
-        // until the dictionary is on the host, so what it holds inherits the style on its first render.
-        var content = ready ? (props.Content ?? Empty()).Padding(props.Padding) : Empty();
+        var content = (props.Content ?? Empty()).Padding(props.Padding);
         return Grid(
                 [GridSize.Star()],
                 [GridSize.Star()],
-                XamlHost(() => BackgroundLayer(resolved))
-                    .WithKey(string.Create(CultureInfo.InvariantCulture, $"background{stamp.Current}"))
-                    .Grid(0, 0),
+                XamlHost(() =>
+                {
+                    var border = new Border
+                    {
+                        IsHitTestVisible = false,
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        VerticalAlignment = VerticalAlignment.Stretch
+                    };
+                    layer.Current = border;
+                    return border;
+                }).Grid(0, 0),
                 content.Grid(0, 0))
             .OnMount(element =>
             {
-                if (!ReferenceEquals(root.Current, element))
-                    target.Current = null;
                 root.Current = element;
-                Restyle(element);
-                setReady(true);
-                element.Loaded += (_, _) => bump(_ => _ + 1);
+                Paint(element);
+                element.ActualThemeChanged += (_, _) => Paint(element);
             });
 
-        void Restyle(FrameworkElement element)
+        // The brush is the one the style dictionary already loaded. A theme switch reads it again.
+        void Paint(FrameworkElement element)
         {
-            var current = target.Current;
-            StyleHost.Place(element, props.Style, ref current);
-            target.Current = current;
+            StyleHost.Show(element, shown.Current);
+            if (layer.Current is { } border && element.Resources["ShellBackgroundBrush"] is Brush brush)
+                border.Background = brush;
         }
-    }
-
-    /// <summary>
-    /// A layer whose template paints <c>ShellBackgroundBrush</c>. Parsed with the style merged in, so the theme
-    /// resource resolves, and a theme switch reaches it without a new layer.
-    /// </summary>
-    private static ContentControl BackgroundLayer(ShellStyle? style)
-    {
-        var xaml = "<ResourceDictionary xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" " +
-                   "xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\">" +
-                   "<ResourceDictionary.MergedDictionaries>" + Shell.DictionaryXaml(style) +
-                   "</ResourceDictionary.MergedDictionaries>" +
-                   "<ControlTemplate x:Key=\"SurfaceBackground\" TargetType=\"ContentControl\">" +
-                   "<Border Background=\"{ThemeResource ShellBackgroundBrush}\" />" +
-                   "</ControlTemplate></ResourceDictionary>";
-        var dictionary = (ResourceDictionary)XamlReader.Load(xaml);
-        return new ContentControl
-        {
-            IsTabStop = false,
-            IsHitTestVisible = false,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch,
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            VerticalContentAlignment = VerticalAlignment.Stretch,
-            Template = (ControlTemplate)dictionary["SurfaceBackground"]
-        };
     }
 }

@@ -64,8 +64,7 @@ public sealed record WidgetContext
     /// the shell's thread. A widget may call it as soon as it has its context, before the area is in a host. Each call
     /// loads a fresh dictionary of the area's style, preserving the content's own resources, so the popup's plain
     /// controls and a component hosted in it look like the area's. The wrapper follows later changes to that style at
-    /// once, and the area's resolved theme, FontFamily, FontSize and Foreground once the area has an element, until
-    /// the area removes the widget or is disposed. The widget still owns and disposes its popup windows.
+    /// once, until the area removes the widget or is disposed. The widget still owns and disposes its popup windows.
     /// </summary>
     /// <param name="content">The popup's unparented content.</param>
     /// <returns>A new wrapper to use as the popup window's content.</returns>
@@ -92,15 +91,12 @@ public sealed record WidgetContext
     {
         private readonly PopupAnchor _anchor;
         private readonly List<UserControl> _popups = [];
-        private readonly List<(DependencyProperty Property, long Token)> _callbacks = [];
-        private Control? _followed;
         private bool _watchingStyle;
 
         public PopupStyles(PopupAnchor anchor)
         {
             _anchor = anchor;
             anchor.Stopping += Stop;
-            anchor.ElementChanged += OnElement;
         }
 
         public bool Stopped { get; private set; }
@@ -112,16 +108,8 @@ public sealed record WidgetContext
             ArgumentNullException.ThrowIfNull(content);
             ObjectDisposedException.ThrowIf(Stopped, this);
             var wrapper = new UserControl { Content = content };
-            // The dictionary is the area's style, which does not need a host. Theme, font and foreground follow once
-            // the area has an element, including a popup opened before that.
             LoadStyle(wrapper);
             WatchStyle();
-            if (_anchor.Element is { } element)
-            {
-                CopyStyle(wrapper, element);
-                Follow(element);
-            }
-
             _popups.Add(wrapper);
             return wrapper;
         }
@@ -132,26 +120,9 @@ public sealed record WidgetContext
                 return;
             Stopped = true;
             _anchor.Stopping -= Stop;
-            _anchor.ElementChanged -= OnElement;
             if (_watchingStyle)
                 _anchor.StyleChanged -= ReloadStyles;
-            Unfollow();
             _popups.Clear();
-        }
-
-        private void OnElement()
-        {
-            if (Stopped)
-                return;
-            var element = _anchor.Element;
-            if (ReferenceEquals(element, _followed))
-                return;
-            Unfollow();
-            if (element is null || _popups.Count == 0)
-                return;
-            foreach (var wrapper in _popups)
-                CopyStyle(wrapper, element);
-            Follow(element);
         }
 
         private void WatchStyle()
@@ -161,45 +132,6 @@ public sealed record WidgetContext
             _anchor.StyleChanged += ReloadStyles;
             _watchingStyle = true;
         }
-
-        private void Follow(Control element)
-        {
-            if (_followed is not null)
-                return;
-            element.ActualThemeChanged += ThemeChanged;
-            foreach (var property in new[] { Control.FontFamilyProperty, Control.FontSizeProperty, Control.ForegroundProperty })
-                _callbacks.Add((property, element.RegisterPropertyChangedCallback(property, (_, _) => CopyStyles())));
-            _followed = element;
-        }
-
-        private void Unfollow()
-        {
-            if (_followed is not { } element)
-                return;
-            element.ActualThemeChanged -= ThemeChanged;
-            foreach (var (property, token) in _callbacks)
-                element.UnregisterPropertyChangedCallback(property, token);
-            _callbacks.Clear();
-            _followed = null;
-        }
-
-        private void CopyStyle(UserControl wrapper, Control element)
-        {
-            wrapper.RequestedTheme = element.ActualTheme;
-            wrapper.FontFamily = element.FontFamily;
-            wrapper.FontSize = element.FontSize;
-            wrapper.Foreground = element.Foreground;
-        }
-
-        private void CopyStyles()
-        {
-            if (_anchor.Element is not { } element)
-                return;
-            foreach (var wrapper in _popups)
-                CopyStyle(wrapper, element);
-        }
-
-        private void ThemeChanged(FrameworkElement sender, object args) => CopyStyles();
 
         private void LoadStyle(UserControl wrapper)
         {
@@ -215,27 +147,9 @@ public sealed record WidgetContext
     }
 }
 
-/// <summary>
-/// Where an area's popups copy their theme, font and style from: the host the area is shown in. One placement's
-/// wrappers share it, and disposing the area stops them all.
-/// </summary>
+/// <summary>The style an area's popups load. One placement's wrappers share it, and disposing the area stops them.</summary>
 internal sealed class PopupAnchor
 {
-    public Control? Element
-    {
-        get;
-        set
-        {
-            if (ReferenceEquals(field, value))
-                return;
-            field = value;
-            ElementChanged?.Invoke();
-        }
-    }
-
-    /// <summary>Raised when <see cref="Element"/> changes, including the first time the area is in a host.</summary>
-    public event Action? ElementChanged;
-
     public Func<ShellStyle?> Style { get; set; } = () => null;
 
     public event Action? StyleChanged;

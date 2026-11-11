@@ -300,7 +300,8 @@ end = []
 Saving applies it live:
 
 - A changed row replaces that screen's bar, and the other screens keep theirs.
-- A changed section replaces the bar on every screen, which starts its widgets again, and so does a new `shell.Style` for a bar without a style of its own.
+- A changed section replaces the bar on every screen, which starts its widgets again.
+- A new `shell.Style` restyles a bar without a style of its own in place, so its widgets keep their state.
 - A value in the section that can't be used is logged under `preferences` with its line, and the bar keeps the one it had. One in a row is logged under the bar's name, and that screen uses the section's.
 
 ### A surface of your own
@@ -407,7 +408,7 @@ public sealed class EndArea : Component
 - **Disposing an area.** The example treats a user closing the panel as permanent: `Closed` normally only hides a window, and here it disposes the host, which unmounts the widgets. When your code tears the panel down with `panel.Dispose()`, dispose the host too. Removing or reparenting the host does not dispose widgets.
 - **Settings.** Treat placement settings, including nested tables, as read-only.
 - **Styling.** The [shell style](#style) styles the plain controls in an area, including the ones a component renders, so a component names no brush of its own. A widget that still has XAML uses `{ThemeResource}` for area-sensitive resources: `{StaticResource}` resolves at construction, before the area owns the widget.
-- **Popups.** Assign `context.StylePopup(content)` to a `PopupWindow.Content`, or to a flyout's content. A widget may call it as soon as it has its context, before the area is in a host. The call loads a fresh dictionary of the area's style at once and follows later changes to that style. It follows the area's resolved theme, font, font size and foreground once the area has an element, until the area removes the widget or is disposed. `content` may be a plain element or a `ReactorHostControl` showing a component. The widget still owns its popup windows.
+- **Popups.** Assign `context.StylePopup(content)` to a `PopupWindow.Content`, or to a flyout's content. A widget may call it as soon as it has its context, before the area is in a host. The call loads a fresh dictionary of the area's style at once and follows later changes to that style, until the area removes the widget or is disposed. `content` may be a plain element or a `ReactorHostControl` showing a component. The widget still owns its popup windows.
 - **A widget that fails.** An unknown widget, or a component that throws while it is created or while it renders, shows a placeholder with its name and reason while the other placements keep running. The exception and its stack trace are logged under `widgets` in the shell's log (`winshell log`). Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Other exceptions after creation follow the shell's normal crash supervision.
 
 ### Let the user change an area
@@ -565,7 +566,7 @@ public sealed class Message : Component<WidgetContext>
 
 `text` is the placement's setting. The line is that string followed by a middle dot. A value that is not a string throws [UnsupportedWidgetException](reference/winshell.md#unsupportedwidgetexception), and so does a vertical area. The area shows the widget's name and that reason, and the other placements keep running.
 
-[StylePopup](reference/winshell.md#widgetcontext) wraps content for a [PopupWindow](reference/winshell.md#popupwindow). Assign the result to the popup's `Content`. The wrapper loads the area's style and follows its theme, font, font size and foreground. The effect disposes the popup when the component goes, and a press disposes the previous one first.
+[StylePopup](reference/winshell.md#widgetcontext) wraps content for a [PopupWindow](reference/winshell.md#popupwindow). Assign the result to the popup's `Content`. The wrapper loads the area's style and follows its changes. The effect disposes the popup when the component goes, and a press disposes the previous one first.
 
 [ShellWindow.Of](reference/winshell.md#shellwindow) is null until the text is in a window. `OnMount` reads the screen then, or from `Loaded` when the text is not in a window yet. Null is the primary screen.
 
