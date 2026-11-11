@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Winshell;
 
@@ -45,16 +47,42 @@ internal sealed partial class CrashReports
     }
 
     /// <summary>
-    /// Sets what is given and keeps the rest. Instances share the record, so another can save it between this read
-    /// and write; then it is read again, a few times at most, and the mark is dropped after that.
+    /// Sets what is given and keeps the rest. Instances share the record, so one of them holds it across the read
+    /// and the replace, through a link as well as the path. The replace compares the text and then moves, and a
+    /// writer that does not hold it can land in between; that replace is read again until this one lands.
     /// </summary>
     private static void Update(string stateFile, DateTimeOffset? clean, string? shown)
     {
-        for (var attempt = 0; attempt < 3; attempt++)
+        // A mutex name has a fixed limit, so the path is hashed. A symbolic link uses its target, and the
+        // comparison ignores case, so those names wait on one writer.
+        var name = @"Local\winshell-exit-" + Convert.ToHexString(SHA256.HashData(
+            Encoding.UTF8.GetBytes(AtomicFile.FollowLink(stateFile).ToUpperInvariant())));
+        using var mutex = new Mutex(false, name);
+        var acquired = false;
+        try
         {
-            var state = ReadState(stateFile);
-            if (Put(stateFile, clean ?? state.Clean, shown ?? state.Shown, state.Text))
-                return;
+            try
+            {
+                mutex.WaitOne();
+                acquired = true;
+            }
+            catch (AbandonedMutexException)
+            {
+                // The writer that owned this exited before it let go. This writer owns it now.
+                acquired = true;
+            }
+
+            while (true)
+            {
+                var state = ReadState(stateFile);
+                if (Put(stateFile, clean ?? state.Clean, shown ?? state.Shown, state.Text))
+                    return;
+            }
+        }
+        finally
+        {
+            if (acquired)
+                mutex.ReleaseMutex();
         }
     }
 

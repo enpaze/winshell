@@ -95,6 +95,57 @@ public sealed class CrashFollowUpTests : IDisposable
     }
 
     [Fact]
+    public void A_follow_up_mark_survives_a_race_with_another_writer()
+    {
+        var state = Path.Combine(_dir, "race.toml");
+        var clean = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
+        const string shown = @"C:\crashes\crash-one.txt";
+
+        // One pair often finishes in order. Repeat so a lost update between the read and the replace is caught.
+        for (var i = 0; i < 40; i++)
+        {
+            if (File.Exists(state))
+                File.Delete(state);
+            using var gate = new Barrier(2);
+            var failed = new Exception[2];
+            var cleanWriter = new Thread(() =>
+            {
+                try
+                {
+                    gate.SignalAndWait();
+                    CrashReports.MarkClean(state, clean);
+                }
+                catch (Exception e)
+                {
+                    failed[0] = e;
+                }
+            });
+            var shownWriter = new Thread(() =>
+            {
+                try
+                {
+                    gate.SignalAndWait();
+                    CrashReports.MarkShown(state, shown);
+                }
+                catch (Exception e)
+                {
+                    failed[1] = e;
+                }
+            });
+            cleanWriter.Start();
+            shownWriter.Start();
+            cleanWriter.Join();
+            shownWriter.Join();
+            Assert.Null(failed[0]);
+            Assert.Null(failed[1]);
+
+            var text = File.ReadAllText(state);
+            Assert.Contains("clean = \"2026-01-02T03:04:05.0000000+00:00\"", text, StringComparison.Ordinal);
+            Assert.Contains("shown = \"C:\\\\crashes\\\\crash-one.txt\"", text, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void The_state_file_is_written_without_a_byte_order_mark()
     {
         var state = Path.Combine(_dir, "mark.toml");
