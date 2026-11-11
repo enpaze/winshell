@@ -36,7 +36,7 @@ public class SystemChangesTests
         Assert.Equal(SystemChange.Screens, SystemChanges.From(PInvoke.WM_DISPLAYCHANGE, 0));
         Assert.Equal(SystemChange.Screens | SystemChange.Theme, SystemChanges.From(PInvoke.WM_SETTINGCHANGE, 0));
         Assert.Equal(SystemChange.WorkArea | SystemChange.Theme,
-            SystemChanges.From(PInvoke.WM_SETTINGCHANGE, Win32.SPI_SETWORKAREA));
+            SystemChanges.From(PInvoke.WM_SETTINGCHANGE, (nint)SYSTEM_PARAMETERS_INFO_ACTION.SPI_SETWORKAREA));
         Assert.Equal(SystemChange.Theme, SystemChanges.From(PInvoke.WM_THEMECHANGED, 0));
         Assert.Equal(SystemChange.Theme, SystemChanges.From(PInvoke.WM_DWMCOLORIZATIONCOLORCHANGED, 0));
     }

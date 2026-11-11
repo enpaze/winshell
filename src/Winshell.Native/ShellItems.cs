@@ -64,7 +64,9 @@ internal static unsafe partial class ShellItems
     /// <summary>A 32-bit DIB's pixels, top row first, with no gap between rows.</summary>
     private static (int Width, int Height, byte[] Bgra)? Pixels(nint bitmap)
     {
-        if (Win32.GetObjectW(bitmap, sizeof(BITMAP), out var info) == 0 || info.bmBits == 0 || info.bmBitsPixel != 32)
+        BITMAP info;
+        if (PInvoke.GetObject(new HGDIOBJ(bitmap), sizeof(BITMAP), &info) == 0 || info.bmBits == null ||
+            info.bmBitsPixel != 32)
             return null;
         var width = info.bmWidth;
         var height = Math.Abs(info.bmHeight);

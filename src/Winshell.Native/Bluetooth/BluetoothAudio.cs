@@ -1,6 +1,8 @@
+using Microsoft.Win32.SafeHandles;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Media.KernelStreaming;
+using Windows.Win32.Storage.FileSystem;
 
 namespace Winshell.Native;
 
@@ -13,7 +15,10 @@ internal static class BluetoothAudio
     /// <summary>Asks the audio filter at <paramref name="filterPath"/> to connect or disconnect. Whether the driver accepted the request.</summary>
     internal static unsafe bool SetConnection(string filterPath, bool connect)
     {
-        using var device = Win32.CreateFileW(filterPath, 0xC0000000, 3, 0, 3, 0, 0);
+        using var device = new SafeFileHandle(PInvoke.CreateFile(filterPath,
+            (uint)(GENERIC_ACCESS_RIGHTS.GENERIC_READ | GENERIC_ACCESS_RIGHTS.GENERIC_WRITE),
+            FILE_SHARE_MODE.FILE_SHARE_READ | FILE_SHARE_MODE.FILE_SHARE_WRITE, null,
+            FILE_CREATION_DISPOSITION.OPEN_EXISTING, default, default), ownsHandle: true);
         if (device.IsInvalid)
             return false;
         var request = new KSIDENTIFIER

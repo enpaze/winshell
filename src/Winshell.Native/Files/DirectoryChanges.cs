@@ -33,8 +33,6 @@ internal sealed unsafe class DirectoryChanges : IDisposable
 {
     private const int BufferSize = 16 * 1024;
 
-    private const uint FileListDirectory = 1;
-
     // NextEntryOffset, Action and FileNameLength come before the name.
     private const int HeaderSize = 3 * sizeof(uint);
 
@@ -63,10 +61,11 @@ internal sealed unsafe class DirectoryChanges : IDisposable
     /// <param name="subtree">Also report changes in folders under <paramref name="path"/>.</param>
     internal static DirectoryChanges? Open(string path, DirectoryChange filter, bool subtree)
     {
-        var handle = Win32.CreateFileW(path, FileListDirectory, (uint)(FileShare.ReadWrite | FileShare.Delete), 0,
-            (uint)FileMode.Open,
-            (uint)(FILE_FLAGS_AND_ATTRIBUTES.FILE_FLAG_BACKUP_SEMANTICS |
-                   FILE_FLAGS_AND_ATTRIBUTES.FILE_FLAG_OVERLAPPED), 0);
+        var handle = new SafeFileHandle(PInvoke.CreateFile(path, (uint)FILE_ACCESS_RIGHTS.FILE_LIST_DIRECTORY,
+            FILE_SHARE_MODE.FILE_SHARE_READ | FILE_SHARE_MODE.FILE_SHARE_WRITE | FILE_SHARE_MODE.FILE_SHARE_DELETE,
+            null, FILE_CREATION_DISPOSITION.OPEN_EXISTING,
+            FILE_FLAGS_AND_ATTRIBUTES.FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAGS_AND_ATTRIBUTES.FILE_FLAG_OVERLAPPED,
+            default), ownsHandle: true);
         if (handle.IsInvalid)
         {
             handle.Dispose();

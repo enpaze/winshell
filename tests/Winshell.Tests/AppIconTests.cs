@@ -18,8 +18,8 @@ public class AppIconTests
     public void The_executable_embeds_the_application_icon()
     {
         var exe = Path.Combine(AppContext.BaseDirectory, "winshell.exe");
-        // The C# compiler stores ApplicationIcon as icon group 32512, Win32.IDI_APPLICATION.
-        using var icon = OwnedIcon.Load(exe, Win32.IDI_APPLICATION, "", 32);
+        // The C# compiler stores ApplicationIcon as icon group 32512, IDI_APPLICATION.
+        using var icon = OwnedIcon.Load(exe, 32512, "", 32);
         Assert.NotNull(icon);
     }
 

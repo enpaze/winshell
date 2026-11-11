@@ -49,7 +49,7 @@ internal static unsafe class NamedPipeServer
         }
         finally
         {
-            Win32.LocalFree((nint)sd.Value);
+            PInvoke.LocalFree(new HLOCAL((nint)sd.Value));
         }
     }
 
@@ -76,7 +76,7 @@ internal static unsafe class NamedPipeServer
             }
             finally
             {
-                Win32.LocalFree((nint)text.Value);
+                PInvoke.LocalFree(new HLOCAL((nint)text.Value));
             }
         }
     }
@@ -98,7 +98,7 @@ internal static unsafe class NamedPipeServer
         }
         finally
         {
-            Win32.LocalFree((nint)sd.Value);
+            PInvoke.LocalFree(new HLOCAL((nint)sd.Value));
         }
     }
 

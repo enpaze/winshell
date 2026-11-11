@@ -59,7 +59,7 @@ internal sealed class MicrophoneWatch : IDisposable
             {
             }
 
-        CoreAudio.Release(_devicesEnumerator);
+        Winshell.Native.Com.Release(_devicesEnumerator);
         _devicesEnumerator = null;
         _deviceEvents = null;
     }
@@ -102,7 +102,7 @@ internal sealed class MicrophoneWatch : IDisposable
         }
         finally
         {
-            CoreAudio.Release(devices);
+            Winshell.Native.Com.Release(devices);
         }
     }
 
@@ -127,12 +127,12 @@ internal sealed class MicrophoneWatch : IDisposable
                 {
                     sessions.GetSession(i, out var session);
                     if (!watch.Hold(session, _sessionEvents))
-                        CoreAudio.Release(session);
+                        Winshell.Native.Com.Release(session);
                 }
             }
             finally
             {
-                CoreAudio.Release(sessions);
+                Winshell.Native.Com.Release(sessions);
             }
 
             _devices.Add(watch);
@@ -157,8 +157,8 @@ internal sealed class MicrophoneWatch : IDisposable
                     {
                     }
 
-                CoreAudio.Release(manager);
-                CoreAudio.Release(device);
+                Winshell.Native.Com.Release(manager);
+                Winshell.Native.Com.Release(device);
             }
 
             LogOnce(e);
@@ -188,7 +188,7 @@ internal sealed class MicrophoneWatch : IDisposable
                     }
                     finally
                     {
-                        CoreAudio.Release(session);
+                        Winshell.Native.Com.Release(session);
                     }
                 }
             }
@@ -198,7 +198,7 @@ internal sealed class MicrophoneWatch : IDisposable
             }
             finally
             {
-                CoreAudio.Release(sessions);
+                Winshell.Native.Com.Release(sessions);
             }
         }
 
@@ -300,12 +300,12 @@ internal sealed class MicrophoneWatch : IDisposable
                 {
                 }
 
-                CoreAudio.Release(session);
+                Winshell.Native.Com.Release(session);
             }
 
             _sessions.Clear();
-            CoreAudio.Release(Manager);
-            CoreAudio.Release(device);
+            Winshell.Native.Com.Release(Manager);
+            Winshell.Native.Com.Release(device);
         }
     }
 
@@ -339,7 +339,7 @@ internal sealed class MicrophoneWatch : IDisposable
     {
         public int OnSessionCreated(IAudioSessionControl2 session)
         {
-            CoreAudio.Release(session);
+            Winshell.Native.Com.Release(session);
             watch.Ask(true);
             return 0;
         }

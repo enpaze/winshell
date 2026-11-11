@@ -41,7 +41,7 @@ internal static class CoreAudio
         }
         finally
         {
-            Release(policy);
+            Com.Release(policy);
         }
     }
 
@@ -74,17 +74,8 @@ internal static class CoreAudio
                 Marshal.FreeCoTaskMem(format);
             }
 
-        Release(client);
+        Com.Release(client);
         return null;
-    }
-
-    /// <summary>
-    /// Gives back one hand-out of a Core Audio object, as <see cref="Com.Release"/> does: a device a node holds stays
-    /// alive while another read's copy of it is released. Does nothing for null.
-    /// </summary>
-    public static void Release(object? comObject)
-    {
-        Com.Release(comObject);
     }
 
     /// <summary>Resolves a string like <c>@%SystemRoot%\System32\AudioSrv.Dll,-202</c> to its text.</summary>

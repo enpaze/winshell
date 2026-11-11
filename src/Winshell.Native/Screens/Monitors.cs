@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -14,27 +15,27 @@ internal static unsafe class Monitors
     /// <summary>The handle of every connected monitor, in the order Windows lists them.</summary>
     internal static List<nint> List()
     {
-        return Callback.Collect(context => Win32.EnumDisplayMonitors(0, 0, &Collect, context));
+        return Callback.Collect(context => PInvoke.EnumDisplayMonitors(default, (RECT*)null, &Collect, context));
     }
 
-    [UnmanagedCallersOnly]
-    private static int Collect(nint monitor, nint hdc, RECT* rect, nint context)
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
+    private static BOOL Collect(HMONITOR monitor, HDC hdc, RECT* rect, LPARAM context)
     {
-        return Callback.Collected(context, monitor);
+        return (BOOL)Callback.Collected(context, monitor);
     }
 
     /// <summary>The monitor's device name and rectangles. False once the monitor is gone.</summary>
     internal static bool TryRead(nint monitor, out MonitorInfo info)
     {
-        var mi = new MONITORINFOEXW { cbSize = (uint)sizeof(MONITORINFOEXW) };
-        if (!Win32.GetMonitorInfo(monitor, ref mi))
+        var mi = new MONITORINFOEXW { monitorInfo = { cbSize = (uint)sizeof(MONITORINFOEXW) } };
+        if (!PInvoke.GetMonitorInfo((HMONITOR)monitor, (MONITORINFO*)&mi))
         {
             info = default;
             return false;
         }
 
-        info = new MonitorInfo(Text(mi.szDevice, 32), mi.rcMonitor, mi.rcWork,
-            (mi.dwFlags & Win32.MONITORINFOF_PRIMARY) != 0);
+        info = new MonitorInfo(mi.szDevice.ToString(), mi.monitorInfo.rcMonitor, mi.monitorInfo.rcWork,
+            (mi.monitorInfo.dwFlags & PInvoke.MONITORINFOF_PRIMARY) != 0);
         return true;
     }
 

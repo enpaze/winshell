@@ -152,6 +152,6 @@ internal static unsafe class SentInput
     /// <summary>The Windows input clock. This is the one <c>GetTickCount</c> read in <c>src/</c>.</summary>
     private static uint InputClock()
     {
-        return Win32.GetTickCount();
+        return PInvoke.GetTickCount();
     }
 }

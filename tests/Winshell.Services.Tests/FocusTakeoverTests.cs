@@ -220,7 +220,7 @@ public sealed class FocusTakeoverTests
         if (PInvoke.SetForegroundWindow((HWND)window) && PInvoke.GetForegroundWindow() == window)
             return true;
         var foreground = PInvoke.GetForegroundWindow();
-        var current = Win32.GetCurrentThreadId();
+        var current = PInvoke.GetCurrentThreadId();
         var other = foreground == 0 ? 0 : PInvoke.GetWindowThreadProcessId(foreground, out _);
         if (other != 0 && other != current && PInvoke.AttachThreadInput(current, other, true))
             try
@@ -529,11 +529,11 @@ public sealed class FocusTakeoverTests
             {
                 var hwnd = NativeWindow.OfClass("STATIC", "winshell-focus-target",
                     (uint)(WINDOW_STYLE.WS_OVERLAPPEDWINDOW | WINDOW_STYLE.WS_VISIBLE), 0, 80, 80, 40, 0,
-                    Win32.GetModuleHandleW(null));
+                    PInvoke.GetModuleHandle(null));
                 if (hwnd != 0)
                     PInvoke.ShowWindow((HWND)hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
                 PInvoke.PeekMessage(out _, HWND.Null, 0, 0, PEEK_MESSAGE_REMOVE_TYPE.PM_NOREMOVE);
-                _threadId = Win32.GetCurrentThreadId();
+                _threadId = PInvoke.GetCurrentThreadId();
                 _created.SetResult(hwnd);
                 while (PInvoke.GetMessage(out var msg, HWND.Null, 0, 0) > 0)
                 {

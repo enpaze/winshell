@@ -13,7 +13,7 @@ public sealed class ShellServicesTests
         {
             var winland = shell.Winland;
             var hwnd = NativeWindow.OfClass("STATIC", "winshell-listed-window",
-                (uint)WINDOW_STYLE.WS_OVERLAPPEDWINDOW, 0, 80, 80, 40, 0, Win32.GetModuleHandleW(null));
+                (uint)WINDOW_STYLE.WS_OVERLAPPEDWINDOW, 0, 80, 80, 40, 0, PInvoke.GetModuleHandle(null));
             Assert.NotEqual(0, hwnd);
             try
             {

@@ -87,7 +87,7 @@ public sealed class PanelMenuTests
 
         private void Show()
         {
-            _thread = Win32.GetCurrentThreadId();
+            _thread = PInvoke.GetCurrentThreadId();
             var owner = NativeWindow.OfClass("STATIC", "", 0, 0, 0, 0, 0, 0, 0);
             var menu = PInvoke.CreatePopupMenu();
             try

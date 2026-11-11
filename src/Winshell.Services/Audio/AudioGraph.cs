@@ -126,7 +126,7 @@ internal sealed class AudioGraph : IAudioGraph
             endpoint.Release();
         }
 
-        CoreAudio.Release(_enumerator);
+        Winshell.Native.Com.Release(_enumerator);
     }
 
     /// <summary>Asks for the device list to be read again, once, on the UI thread.</summary>
@@ -157,12 +157,12 @@ internal sealed class AudioGraph : IAudioGraph
                 {
                     devices.Item(i, out var device);
                     if (!Open(device, flow == EDataFlow.eRender, present))
-                        CoreAudio.Release(device);
+                        Winshell.Native.Com.Release(device);
                 }
             }
             finally
             {
-                CoreAudio.Release(devices);
+                Winshell.Native.Com.Release(devices);
             }
         }
 
@@ -227,7 +227,7 @@ internal sealed class AudioGraph : IAudioGraph
         }
         finally
         {
-            CoreAudio.Release(device);
+            Winshell.Native.Com.Release(device);
         }
     }
 

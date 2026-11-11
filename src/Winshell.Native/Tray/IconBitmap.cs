@@ -34,8 +34,9 @@ internal static unsafe class IconBitmap
             if (size <= 0)
             {
                 size = 32;
-                if (Win32.GetObjectW(info.hbmColor != default ? info.hbmColor : info.hbmMask, sizeof(BITMAP),
-                        out var bmp) != 0)
+                BITMAP bmp;
+                if (PInvoke.GetObject(info.hbmColor != default ? info.hbmColor : info.hbmMask, sizeof(BITMAP),
+                        &bmp) != 0)
                     size = Math.Clamp(bmp.bmWidth, 16, 256);
             }
 

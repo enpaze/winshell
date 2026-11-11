@@ -1,4 +1,6 @@
 using Windows.Foundation;
+using Windows.Win32.Graphics.Gdi;
+using Windows.Win32.UI.HiDpi;
 using Winshell.Native;
 
 namespace Winshell;
@@ -73,7 +75,7 @@ internal static class Screens
     {
         if (!Monitors.TryRead(handle, out var mi))
             return null;
-        Win32.GetDpiForMonitor(handle, 0, out var dpi, out _);
+        PInvoke.GetDpiForMonitor((HMONITOR)handle, MONITOR_DPI_TYPE.MDT_EFFECTIVE_DPI, out var dpi, out _);
         return new MonitorGeometry(handle, mi.Device, mi.Bounds, mi.Work, DesktopSpace.Scale(dpi), mi.IsPrimary);
     }
 
@@ -105,7 +107,9 @@ internal static class Screens
     /// </summary>
     public static MonitorGeometry? Of(nint hwnd)
     {
-        return hwnd == 0 ? null : Read(Win32.MonitorFromWindow(hwnd, Win32.MONITOR_DEFAULTTONEAREST));
+        return hwnd == 0
+            ? null
+            : Read(PInvoke.MonitorFromWindow((HWND)hwnd, MONITOR_FROM_FLAGS.MONITOR_DEFAULTTONEAREST));
     }
 
     /// <summary>The PnP model code, such as <c>GSM5B7F</c>, in an interface path like <c>\\?\DISPLAY#GSM5B7F#...</c>.</summary>

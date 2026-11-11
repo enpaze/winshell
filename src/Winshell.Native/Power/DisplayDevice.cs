@@ -1,4 +1,5 @@
 using Windows.Win32;
+using Windows.Win32.Graphics.Gdi;
 
 namespace Winshell.Native;
 
@@ -13,8 +14,8 @@ internal static class DisplayDevice
     {
         var info = new DISPLAY_DEVICEW { cb = (uint)sizeof(DISPLAY_DEVICEW) };
         // Without the interface name, the device ID has a class GUID in place of the instance.
-        if (!Win32.EnumDisplayDevicesW(deviceName, 0, ref info, PInvoke.EDD_GET_DEVICE_INTERFACE_NAME))
+        if (!PInvoke.EnumDisplayDevices(deviceName, 0, ref info, PInvoke.EDD_GET_DEVICE_INTERFACE_NAME))
             return ("", "");
-        return (Monitors.Text(info.DeviceString, 128), Monitors.Text(info.DeviceID, 128));
+        return (info.DeviceString.ToString(), info.DeviceID.ToString());
     }
 }
