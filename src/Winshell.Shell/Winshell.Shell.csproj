@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <RootNamespace>Winshell</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <UseWinUI>true</UseWinUI>
   </PropertyGroup>

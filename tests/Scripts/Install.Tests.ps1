@@ -134,6 +134,38 @@ Describe 'install.ps1 and uninstall.ps1' {
         foreach ($name in $shared) { $installs[$name] | Should -BeExactly $uninstalls[$name] -Because $name }
     }
 
+    It 'refuse constrained language with the same top-level guard, since each script carries its own' {
+        # The refusal names the script, and the try block calls that script's entry point. Everything else is one copy.
+        function Get-GuardShape([string] $Path) {
+            $tokens = $null
+            $parseErrors = $null
+            $tree = [Management.Automation.Language.Parser]::ParseFile((Resolve-Path -LiteralPath $Path).Path, [ref]$tokens, [ref]$parseErrors)
+            if ($parseErrors) { throw "Could not parse ${Path}: $parseErrors" }
+            $comment = @($tokens | Where-Object { $_.Kind -eq 'Comment' -and $_.Text -match 'Constrained Language Mode' })
+            $comment.Count | Should -Be 1 -Because $Path
+            $guards = @($tree.FindAll({
+                        param($node)
+                        $node -is [Management.Automation.Language.IfStatementAst] -and
+                        $node.Clauses[0].Item1.Extent.Text -eq '$ExecutionContext.SessionState.LanguageMode -ne ''FullLanguage'''
+                    }, $false))
+            $guards.Count | Should -Be 1 -Because $Path
+            $guard = $guards[0]
+            $messages = @($guard.Clauses[0].Item2.FindAll({
+                        param($node)
+                        $node -is [Management.Automation.Language.ExpandableStringExpressionAst]
+                    }, $false))
+            $messages.Count | Should -Be 1 -Because $Path
+            $tries = @($guard.FindAll({ param($node) $node -is [Management.Automation.Language.TryStatementAst] }, $false))
+            $tries.Count | Should -Be 1 -Because $Path
+            $leaf = Split-Path -Leaf $Path
+            $messages[0].Extent.Text | Should -Match ([regex]::Escape("$leaf needs PowerShell's full language mode, and a system policy such as WDAC or AppLocker keeps this session in"))
+            $shape = $guard.Extent.Text.Replace($messages[0].Extent.Text, 'REFUSAL').Replace($tries[0].Body.Extent.Text, 'ENTRY')
+            return ($comment[0].Text + "`n" + $shape) -replace "`r`n", "`n"
+        }
+
+        (Get-GuardShape $Install) | Should -BeExactly (Get-GuardShape $Uninstall)
+    }
+
     It 'installs the latest release, with sign-in from WINSHELL_AUTOSTART' {
         $p = New-TestProfile
         $result = Invoke-Script $p -File $Install -Environment @{ WINSHELL_AUTOSTART = 'yes' }
@@ -148,6 +180,27 @@ Describe 'install.ps1 and uninstall.ps1' {
         $link.Arguments | Should -Be '--no-duplicate'
         Get-Text $p.SignIn | Should -Be "$env:SystemRoot\System32\conhost.exe --headless `"$($p.Bin)\winshell.exe`" --no-build --no-duplicate"
         $result.Output | Should -Match 'Winshell 0\.6\.0 is installed\. Open a new terminal and run winshell\.'
+        $result.Output | Should -Not -Match 'Store check was skipped'
+    }
+
+    It 'says the Store check was skipped when the package query fails, and still finishes' {
+        $p = New-TestProfile
+        $command = @"
+Remove-Item Env:WINSHELL_INSTALL_TEST
+function Get-AppxPackage {
+    [CmdletBinding()]
+    param([string] `$Name)
+    throw 'Store query failed.'
+}
+& '$Install' -Version 0.5.0
+"@
+        $result = Invoke-Script $p -Command $command
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'Could not check for a Microsoft Store copy of Winshell, so that check was skipped\. Store query failed\.'
+        # Windows PowerShell 5.1 writes Appx's "Preparing modules for first use." as CLIXML when this
+        # process's error stream is redirected. The script itself writes failures as plain text.
+        ($result.Error -replace '(?s)#< CLIXML.*', '').Trim() | Should -BeNullOrEmpty
+        Get-Text (Join-Path $p.Bin 'winshell.exe') | Should -Be '0.5.0'
     }
 
     It 'reinstalls a pinned version over the latest, given with a leading v' {
