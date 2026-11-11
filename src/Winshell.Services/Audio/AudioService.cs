@@ -175,7 +175,7 @@ public sealed class AudioNode : ObservableObject
 /// <summary>Every playback device, recording device and audio session Windows has.</summary>
 public sealed class AudioService : ObservableObject, IDisposable
 {
-    private readonly IAudioGraph _graph;
+    private readonly IAudioBackend _graph;
     private readonly Log _log;
     private AudioNode? _defaultPlayback;
     private AudioNode? _defaultRecording;
@@ -185,7 +185,7 @@ public sealed class AudioService : ObservableObject, IDisposable
     {
     }
 
-    internal AudioService(IAudioGraph graph, Log log)
+    internal AudioService(IAudioBackend graph, Log log)
     {
         _log = log;
         _graph = graph;

@@ -35,7 +35,7 @@ public sealed partial class WindowThumbnail : FrameworkElement
         typeof(WindowThumbnail),
         new PropertyMetadata(false, (sender, _) => ((WindowThumbnail)sender).UpdatePeek()));
 
-    private readonly ShellWindowWatch _shell;
+    private readonly ShellWindowSubscription _shell;
     private WindowPeek? _peeker;
     private nint _thumbnail;
     private nint _destination;
@@ -47,7 +47,7 @@ public sealed partial class WindowThumbnail : FrameworkElement
     /// </summary>
     public WindowThumbnail()
     {
-        _shell = new ShellWindowWatch(OnShellChanged);
+        _shell = new ShellWindowSubscription(OnShellChanged);
         IsHitTestVisible = false;
         AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw);
         Loaded += (_, _) => OnLoaded();

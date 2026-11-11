@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -28,13 +27,13 @@ public sealed partial class CaptureView : Panel
 
     private readonly Image _image = new() { Stretch = Stretch.Uniform };
     private CaptureSession? _subscribed;
-    private readonly ShellWindowWatch _shell;
+    private readonly ShellWindowSubscription _shell;
     private WriteableBitmap? _bitmap;
 
     /// <summary>A view with no session, which shows nothing.</summary>
     public CaptureView()
     {
-        _shell = new ShellWindowWatch(OnShellChanged);
+        _shell = new ShellWindowSubscription(OnShellChanged);
         Children.Add(_image);
         Loaded += (_, _) => OnLoaded();
         Unloaded += (_, _) => OnUnloaded();
@@ -127,28 +126,13 @@ public sealed partial class CaptureView : Panel
             return;
         }
 
-        WriteableBitmap bitmap;
-        var resized = false;
-        if (_bitmap is { } current && current.PixelWidth == frame.Width && current.PixelHeight == frame.Height)
-        {
-            bitmap = current;
-        }
-        else
-        {
-            bitmap = new WriteableBitmap(frame.Width, frame.Height);
-            resized = true;
-        }
-
-        // Capture frames are premultiplied, which is what the bitmap stores.
-        using (var destination = bitmap.PixelBuffer.AsStream())
-        {
-            destination.Write(frame.Bgra);
-        }
-
-        bitmap.Invalidate();
-        _bitmap = bitmap;
-        if (!ReferenceEquals(_image.Source, bitmap))
-            _image.Source = bitmap;
+        // One bitmap is reused while the frame size stays, so a live view does not allocate one per frame.
+        var resized = _bitmap is null || _bitmap.PixelWidth != frame.Width || _bitmap.PixelHeight != frame.Height;
+        if (resized)
+            _bitmap = new WriteableBitmap(frame.Width, frame.Height);
+        frame.WriteInto(_bitmap!);
+        if (!ReferenceEquals(_image.Source, _bitmap))
+            _image.Source = _bitmap;
         if (resized)
             InvalidateMeasure();
     }

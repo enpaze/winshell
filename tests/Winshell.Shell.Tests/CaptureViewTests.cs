@@ -62,6 +62,7 @@ public sealed partial class CaptureViewTests
             backend.Next = blue;
             loop.Advance(TimeSpan.FromMilliseconds(16));
             Assert.Equal(before, Pixels(bitmap));
+            Assert.Null(ImageOf(view).Source);
             Assert.Equal(blue, session.Frame);
             return true;
         });
@@ -111,6 +112,43 @@ public sealed partial class CaptureViewTests
 
         Assert.True(shown.found);
         Assert.True(shown.same);
+    }
+
+    [Fact]
+    public async Task A_capture_view_shows_a_straight_frame_in_premultiplied_colors()
+    {
+        var shown = await ShellFixture.On(async shell =>
+        {
+            var screen = shell.Screens[0].Geometry;
+            var backend = new FakeCapture();
+            var loop = new ManualEventLoop();
+            using var session = new CaptureSession(loop, () => backend);
+            session.FrameInterval = 16;
+            session.Target = CaptureTarget.ForWindow(1);
+            var view = new CaptureView
+            {
+                Width = 80,
+                Height = 48,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Session = session
+            };
+            using var popup = new PopupWindow();
+            popup.Rect = new Rect(screen.X + 120, screen.Y + 40, 200, 120);
+            popup.Content = new Grid { Children = { view } };
+            popup.Visible = true;
+            await ShellFixture.LaidOut(view);
+
+            // Straight BGRA. These bytes are the premultiplied colors of that picture.
+            backend.Next = new PixelImage(2, 2,
+                [32, 64, 128, 128, 10, 20, 30, 255, 100, 150, 200, 0, 128, 64, 32, 64],
+                false);
+            Assert.True(session.Start());
+            loop.Advance(TimeSpan.FromMilliseconds(16));
+            return Pixels(Shown(view));
+        });
+
+        Assert.Equal(new byte[] { 16, 32, 64, 128, 10, 20, 30, 255, 0, 0, 0, 0, 32, 16, 8, 64 }, shown);
     }
 
     private static PixelImage Solid(byte red, byte green, byte blue)

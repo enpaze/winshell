@@ -7,27 +7,21 @@ namespace Winshell;
 internal static class OpenToRead
 {
     /// <summary>
-    /// Opens a file off the loop, so a slow app does not hold up the shell. A crash report opens with what Windows opens
-    /// it with. Any other file opens with its edit verb, since opening a script runs it. A file no app opens that way is
-    /// shown selected in File Explorer.
+    /// Opens a file off the loop, so a slow app does not hold up the shell. <paramref name="verb"/> is the shell verb
+    /// the caller asked for, or null for the one Windows uses. A file no app opens that way is shown selected in
+    /// File Explorer.
     /// </summary>
-    public static void Open(string path, Log log)
+    public static void Open(string path, string? verb, Log log)
     {
-        _ = Task.Run(() => OpenNow(path, log));
+        _ = Task.Run(() => OpenNow(path, verb, log));
     }
 
-    /// <summary>The verb a file is opened with: null for the default, which only a report gets.</summary>
-    private static string? VerbFor(string path)
-    {
-        return Path.GetExtension(path).Equals(".txt", StringComparison.OrdinalIgnoreCase) ? null : "edit";
-    }
-
-    private static void OpenNow(string path, Log log)
+    private static void OpenNow(string path, string? verb, Log log)
     {
         try
         {
             var open = new ProcessStartInfo(path) { UseShellExecute = true };
-            if (VerbFor(path) is { } verb)
+            if (verb is not null)
                 open.Verb = verb;
             Process.Start(open)?.Dispose();
         }
