@@ -49,8 +49,8 @@ public sealed class NotificationListener : ObservableObject, IDisposable
         _backend = backend;
         _changes = new ToastChanges(backend.ToastStamp, loop.Time);
         _icons = new NotificationAppIcons(loop, log, _stop.Token);
-        // The reads call Windows synchronously for each toast, so they run off the loop.
-        _reader = new StateReader<NotificationSnapshot>(c => Task.Run(() => ReadAsync(c), c), Apply, loop,
+        // Each toast calls Windows synchronously, so the read takes a thread of its own instead of a pool thread.
+        _reader = new StateReader<NotificationSnapshot>(c => OwnThread.Run(() => Read(c)), Apply, loop,
             new MonitorWarning(log, "notifications"));
         _poll = SchedulePoll();
         _reader.Request();
@@ -59,7 +59,7 @@ public sealed class NotificationListener : ObservableObject, IDisposable
     /// <summary>Raised after <see cref="Notifications"/> holds a newly seen notification, including those in the first read.</summary>
     public event Action<Notification>? NotificationAdded;
 
-    /// <summary>An access request, a dismissal or <see cref="Notification.Invoke"/> failed. The text is <see cref="Error"/>.</summary>
+    /// <summary>An access request or a dismissal failed. The text is <see cref="Error"/>.</summary>
     public event Action<string>? OperationFailed;
 
     /// <summary>Every readable notification, newest first. Empty without access.</summary>
@@ -151,7 +151,7 @@ public sealed class NotificationListener : ObservableObject, IDisposable
         return _reader.ReadAsync();
     }
 
-    private async Task<NotificationSnapshot> ReadAsync(CancellationToken cancellation)
+    private NotificationSnapshot Read(CancellationToken cancellation)
     {
         cancellation.ThrowIfCancellationRequested();
         // With package identity and access Windows reports toast changes; until then each read tries again.
@@ -170,7 +170,9 @@ public sealed class NotificationListener : ObservableObject, IDisposable
 
             if (!_changes.Due(out var stamp))
                 return new NotificationSnapshot(access, _toasts, focus, mode);
-            var listed = await _backend.ListToastsAsync(cancellation).ConfigureAwait(false);
+#pragma warning disable VSTHRD002 // This thread waits so the toast reads that follow stay on it, not on the pool.
+            var listed = _backend.ListToastsAsync(cancellation).GetAwaiter().GetResult();
+#pragma warning restore VSTHRD002
             cancellation.ThrowIfCancellationRequested();
             // Access may be revoked while the asynchronous read is in progress.
             access = _backend.ReadAccess();
@@ -384,21 +386,10 @@ public sealed class Notification : ObservableObject
     /// <summary>When it expires, or null when Windows supplied no expiry.</summary>
     public DateTimeOffset? ExpiresAt => Read(_toast).ExpiresAt;
 
-    /// <summary>Always false: Windows gives a shell no way to activate another app's notification.</summary>
-    public bool CanInvoke => Read(false);
-
     /// <summary>Removes the notification from Windows. Returns true only when Windows accepted the removal.</summary>
     public bool Dismiss()
     {
         return _listener.DismissMany([this]);
-    }
-
-    /// <summary>UserNotificationListener exposes no activation arguments or actions for other apps.</summary>
-    public bool Invoke()
-    {
-        _listener.Fail(
-            "Windows UserNotificationListener does not support invoking another app's notification. Use Windows Notification Center to activate it.");
-        return false;
     }
 
     /// <summary>The sending app, or this notification alone when it has no app identity.</summary>
