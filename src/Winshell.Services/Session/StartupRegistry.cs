@@ -91,7 +91,7 @@ internal sealed class WindowsStartupRegistry(
         var wantedLine = CommandLine.Parse(command);
         var wanted = wantedLine.ReadSignIn();
         if (!wanted.NamesConfiguration)
-            return wantedLine.SameProgram(CommandLine.Parse(actual));
+            return wantedLine.SameArguments(CommandLine.Parse(actual));
         var seen = CommandLine.ReadSignIn(actual);
         return wanted.Program is { } here && seen.Program is { } started &&
                SignInEntry.SameInstall(started, here, SignInEntry.Resolve) &&

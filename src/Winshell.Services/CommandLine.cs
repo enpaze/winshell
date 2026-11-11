@@ -7,7 +7,7 @@ namespace Winshell;
 
 /// <summary>
 /// A Winshell command line. Parsing, quoting and the sign-in policy live here, so the sign-in entry, a shell's
-/// restart and an app launch cannot each grow their own.
+/// reload and an app launch cannot each grow their own.
 /// </summary>
 internal sealed class CommandLine
 {
@@ -198,7 +198,7 @@ internal sealed class CommandLine
     }
 
     /// <summary>Whether these arguments are <paramref name="other"/>'s, reading <c>winshellw.exe</c> as <c>winshell.exe</c>.</summary>
-    public bool SameProgram(CommandLine other)
+    public bool SameArguments(CommandLine other)
     {
         return _arguments.Select(WinshellHost.ConsoleOf).SequenceEqual(
             other._arguments.Select(WinshellHost.ConsoleOf), StringComparer.OrdinalIgnoreCase);

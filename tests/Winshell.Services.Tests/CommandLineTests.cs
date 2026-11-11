@@ -2,7 +2,7 @@ using Winshell.Apps;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>One command line parses and writes the words sign-in, a shell's restart and an app launch share.</summary>
+/// <summary>One command line parses and writes the words sign-in, a shell's reload and an app launch share.</summary>
 public sealed class CommandLineTests
 {
     [Fact]
