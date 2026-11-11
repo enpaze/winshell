@@ -24,7 +24,6 @@ internal sealed partial class DevOutput(string projectFolder)
         environment["DOTNET_WATCH_SUPPRESS_EMOJIS"] = "1";
     }
 
-    /// <summary>Whether the console shows <paramref name="line"/>.</summary>
     public static bool Shows(string line)
     {
         return line != RestartHint;

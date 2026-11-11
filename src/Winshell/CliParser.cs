@@ -29,7 +29,6 @@ internal static class CliParser
         return Finish(line);
     }
 
-    /// <summary>The help for <paramref name="command"/>, or the overview when that is null or has no help of its own.</summary>
     internal static string Help(string? command)
     {
         var text = command is not null && ByName.TryGetValue(command, out var entry) && entry.Usage.Length > 0

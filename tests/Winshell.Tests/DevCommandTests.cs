@@ -409,7 +409,7 @@ public sealed partial class DevCommandTests : IDisposable
 
         // Ctrl+C reaches every process on the console, this test's too. Ctrl+Break reaches only this process group.
         Assert.True(PInvoke.GenerateConsoleCtrlEvent(CtrlBreakEvent, (uint)_dev!.Id), "Ctrl+Break was not sent.");
-        Assert.True(_dev.WaitForExit(TimeSpan.FromSeconds(30)), "winshell dev did not exit.");
+        Wait.Until(() => _dev.HasExited, "winshell dev to exit");
         Wait.Until(() => FromProject().Count == 0, "dotnet watch and the shell to end", TimeSpan.FromSeconds(30));
         // Shutdown asks the shell to quit before ending watch.
         var record = await File.ReadAllTextAsync(Path.Combine(_dir, "local", "run", id, "instance.json"),
