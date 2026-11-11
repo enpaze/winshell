@@ -11,8 +11,8 @@ namespace Winshell;
 /// </summary>
 internal static class DevSession
 {
-    /// <summary>ERROR_FILE_NOT_FOUND. <c>dotnet</c> is not on PATH.</summary>
-    private const int MissingFile = 2;
+    /// <summary>Win32 ERROR_FILE_NOT_FOUND. <c>dotnet</c> is not on PATH.</summary>
+    private const int ErrorFileNotFound = 2;
 
     /// <summary>
     /// Asks this project's shell to quit, as <c>winshell kill</c> does, so its app bar and tray go and its instance is
@@ -91,7 +91,7 @@ internal static class DevSession
         {
             return Process.Start(start);
         }
-        catch (Win32Exception e) when (e.NativeErrorCode == MissingFile)
+        catch (Win32Exception e) when (e.NativeErrorCode == ErrorFileNotFound)
         {
             return null;
         }

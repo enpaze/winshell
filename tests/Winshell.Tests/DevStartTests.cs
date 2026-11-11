@@ -48,10 +48,25 @@ public class DevStartTests
     }
 
     /// <summary>
-    /// The runtime's own reason <paramref name="file"/> cannot start. <c>winshell dev</c> prints that sentence, so the
-    /// test does not depend on one language's wording.
+    /// The part of <see cref="Process.Start(ProcessStartInfo)"/>'s failure that does not name <paramref name="file"/> or
+    /// <paramref name="folder"/>. <c>winshell dev</c> prints that same failure for <c>dotnet</c>.
     /// </summary>
     private static string FailureReason(string file, string folder)
+    {
+        var elsewhere = Directory.CreateDirectory(Path.Combine(Path.GetDirectoryName(folder)!, "other")).FullName;
+        var here = StartFailure(file, folder);
+        var there = StartFailure(file, elsewhere);
+        var same = 0;
+        while (same < here.Length && same < there.Length && here[here.Length - 1 - same] == there[there.Length - 1 - same])
+            same++;
+        var reason = here[^same..];
+        var toldApart = here[..^same];
+        Assert.Contains(file, toldApart, StringComparison.Ordinal);
+        Assert.Contains(folder, toldApart, StringComparison.Ordinal);
+        return reason;
+    }
+
+    private static string StartFailure(string file, string folder)
     {
         try
         {
@@ -68,9 +83,7 @@ public class DevStartTests
         }
         catch (Win32Exception e)
         {
-            var split = e.Message.LastIndexOf("'. ", StringComparison.Ordinal);
-            Assert.True(split >= 0, e.Message);
-            return e.Message[(split + 3)..];
+            return e.Message;
         }
     }
 
