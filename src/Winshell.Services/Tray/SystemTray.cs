@@ -229,7 +229,7 @@ public sealed class SystemTrayItem : ObservableObject
         ProcessId = icon.ProcessId;
         var file = Executable.Length > 0 ? Path.GetFileNameWithoutExtension(Executable) : icon.Key;
         Id = Executable.Length > 0 ? AppIdentity.DesktopId(Executable) : icon.Key;
-        AppName = Executable.Length > 0 && AppIdentity.ProgramDescription(Executable) is { } description
+        AppName = Executable.Length > 0 && AppsService.ProgramDescription(Executable) is { } description
             ? description
             : file;
     }

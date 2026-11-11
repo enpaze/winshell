@@ -5,8 +5,9 @@ using Winshell.Native;
 namespace Winshell.Apps;
 
 /// <summary>
-/// One app's identity: the packaged-id rule, the desktop id, the icon path, the program description and known-folder
-/// expansion. A packaged id contains <c>!</c>. A desktop id is the file name in lower case, without the extension.
+/// One app's identity: the packaged-id rule, the desktop id, the icon path and known-folder expansion.
+/// The program description is <see cref="AppsService.ProgramDescription"/>. A packaged id contains <c>!</c>. A desktop
+/// id is the file name in lower case, without the extension.
 /// A media id can still be the file name with <c>.exe</c>, such as <c>Spotify.exe</c>.
 /// </summary>
 internal static class AppIdentity
@@ -82,14 +83,5 @@ internal static class AppIdentity
             return path;
         var rest = path[(end + 1)..].TrimStart('\\', '/');
         return rest.Length == 0 ? folder : Path.Combine(folder, rest);
-    }
-
-    /// <summary>
-    /// The description of the program at <paramref name="path"/>, as Task Manager shows it.
-    /// <see cref="AppsService.ProgramDescription"/> owns the read.
-    /// </summary>
-    public static string? ProgramDescription(string path)
-    {
-        return AppsService.ProgramDescription(path);
     }
 }

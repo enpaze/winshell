@@ -81,6 +81,9 @@ public sealed class AppsService : ObservableObject, IDisposable
                 ? description
                 : null;
         }
+        // A missing file already had no description. An invalid path, a denied read, or an IO error now
+        // does too, so each caller keeps its file-name fallback: an audio session and a tray icon used to
+        // throw, a media lookup used to stop and log, and a privacy use used to log once.
         catch (Exception e) when (e is FileNotFoundException or IOException or UnauthorizedAccessException
                                       or ArgumentException)
         {

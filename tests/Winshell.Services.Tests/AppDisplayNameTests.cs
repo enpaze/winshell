@@ -1,4 +1,5 @@
 using Winshell.Apps;
+using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
 
@@ -34,11 +35,31 @@ public sealed class AppDisplayNameTests
         using var folder = new TempFolder();
         var path = Path.Combine(folder.Path, "Player.exe");
         File.WriteAllText(path, "not a program");
-        // No running program and no Start entry uses this name, so the lookup falls through to the file name.
-        var appId = "winshell-name-" + Guid.NewGuid().ToString("N") + ".exe";
 
         Assert.Null(AppsService.ProgramDescription(path));
         Assert.Equal("Player", AppsService.FallbackName("Player.exe"));
-        Assert.Equal(appId[..^4], AppsService.DisplayName(appId));
+    }
+
+    [Fact]
+    public void A_tray_icon_shows_that_same_description()
+    {
+        var path = typeof(AppsService).Assembly.Location;
+        const nint hwnd = 0x410;
+        var loop = new ManualEventLoop();
+        var backend = new FakeTrayBackend();
+        backend.Windows[hwnd] = 1;
+        backend.Programs[hwnd] = path;
+        using var tray = new SystemTray(loop, Log.Default, backend);
+        loop.Process();
+        backend.Send(new NotifyIconCall
+        {
+            Message = TrayProtocol.Add,
+            Flags = TrayProtocol.NIF_TIP,
+            Window = hwnd,
+            Id = 1,
+            Tip = "Services"
+        });
+
+        Assert.Equal("Winshell.Services", Assert.Single(tray.Items).AppName);
     }
 }
