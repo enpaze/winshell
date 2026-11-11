@@ -1,9 +1,7 @@
 using System.Collections.Immutable;
 using System.Globalization;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -31,7 +29,7 @@ internal readonly record struct WidgetRequest(
 /// second copy of that record. <c>update</c> resolves each recorded ref again and, when the commit moved, builds that
 /// commit the same way <c>install</c> builds a new one.
 /// </summary>
-internal static partial class WidgetCommand
+internal static class WidgetCommand
 {
     internal static readonly CommandEntry Entry = new()
     {
@@ -87,16 +85,10 @@ internal static partial class WidgetCommand
         Run = static parsed => Task.FromResult(Execute(parsed))
     };
 
-    internal const string NeedsGit = "Installing a widget needs git, from https://git-scm.com/download/win.";
-
-    private const string NeedsGitToUpdate = "Updating a widget needs git, from https://git-scm.com/download/win.";
-
     private const string Warning =
         "Building runs this repository's code and MSBuild targets in a program that starts at sign-in.";
 
     private static readonly UTF8Encoding Utf8 = new(false);
-
-    private const string WidgetsFile = "WinshellWidgetsFile";
 
     /// <summary>What <c>remove</c> leaves when the last source goes. The file stays, so the next build sees it.</summary>
     private const string EmptyProject = "<Project />\n";
@@ -147,9 +139,9 @@ internal static partial class WidgetCommand
 
         if (EnsureLocal(locations.LocalRoot) is { } local)
             return local;
-        if (RequireTools(git, dotnet, locations.LocalRoot, NeedsGit) is { } tools)
+        if (RequireTools(git, dotnet, locations.LocalRoot, WidgetGit.NeedsGit) is { } tools)
             return tools;
-        if (!TryParse(request.Words[1], out var source, out error))
+        if (!WidgetSource.TryParse(request.Words[1], out var source, out error))
             return Fail(2, error!);
         var prior = installed.FirstOrDefault(item => SameSource(item.Source, source.Canonical));
         if (prior is not null)
@@ -161,7 +153,7 @@ internal static partial class WidgetCommand
         if (!TryPin(git, source, locations.LocalRoot, out var pin, out error))
             return Fail(1, error!);
         var cache = Cache(locations.LocalRoot, source, pin.Commit);
-        if (!TryClone(git, source, pin.Commit, cache, locations.LocalRoot, out error))
+        if (!WidgetGit.TryClone(git, source, pin.Commit, cache, locations.LocalRoot, out error))
             return Fail(1, error!);
         if (!TrySelectProject(dotnet, cache, request.Project, out var widgetProject, out error))
             return Fail(1, error!);
@@ -213,13 +205,13 @@ internal static partial class WidgetCommand
 
         if (EnsureLocal(locations.LocalRoot) is { } local)
             return local;
-        if (RequireTools(git, dotnet, locations.LocalRoot, NeedsGitToUpdate) is { } tools)
+        if (RequireTools(git, dotnet, locations.LocalRoot, WidgetGit.NeedsGitToUpdate) is { } tools)
             return tools;
 
         var next = installed.ToList();
         foreach (var item in chosen)
         {
-            if (!TryParse(item.Source, out var source, out var error))
+            if (!WidgetSource.TryParse(item.Source, out var source, out var error))
                 return Fail(1, error!);
             source = source with { Ref = item.Ref.Length == 0 ? null : item.Ref };
             if (!TryPin(git, source, locations.LocalRoot, out var pin, out error))
@@ -231,7 +223,7 @@ internal static partial class WidgetCommand
             }
 
             var cache = Cache(locations.LocalRoot, source, pin.Commit);
-            if (!TryClone(git, source, pin.Commit, cache, locations.LocalRoot, out error))
+            if (!WidgetGit.TryClone(git, source, pin.Commit, cache, locations.LocalRoot, out error))
                 return Fail(1, error!);
             if (!TryUpdatedProject(locations.LocalRoot, source, item, pin.Commit, out var widgetProject, out error))
                 return Fail(1, error!);
@@ -250,7 +242,7 @@ internal static partial class WidgetCommand
 
             if (!VersionsAllow(project.ProjectFile, widgetProject, out error))
                 return Fail(1, error!);
-            if (!TryLog(git, source, item.Commit, pin.Commit, locations, out var log, out error))
+            if (!WidgetGit.TryLog(git, source, item.Commit, pin.Commit, locations, out var log, out error))
                 return Fail(1, error!);
 
             var added = widgets.Where(widget => item.Widgets.All(existing => existing.Name != widget.Name))
@@ -311,18 +303,18 @@ internal static partial class WidgetCommand
                 return widgetRestore;
             var prepared = Invoke(dotnet,
             [
-                "restore", project.ProjectFile, "--nologo", "-nodeReuse:false", "-p:" + WidgetsFile + "=" + empty
+                "restore", project.ProjectFile, "--nologo", "-nodeReuse:false", "-p:" + WidgetRecord.Property + "=" + empty
             ], project.Folder);
             if (Failed(prepared, project.Name, "restore", project.Folder) is { } configurationRestore)
                 return configurationRestore;
             var built = Invoke(dotnet,
             [
                 "build", project.ProjectFile, "-c", "Release", "-o", Path.Combine(scratch, "out"),
-                "-p:" + WidgetsFile + "=" + staged, "--no-restore", "--nologo", "-v", "q", "-nodeReuse:false"
+                "-p:" + WidgetRecord.Property + "=" + staged, "--no-restore", "--nologo", "-v", "q", "-nodeReuse:false"
             ], project.Folder);
             if (Failed(built, project.Name, "build", project.Folder) is { } configurationBuild)
                 return configurationBuild;
-            MarkReadOnly(cache);
+            WidgetGit.MarkReadOnly(cache);
             Replace(props, content);
             return null;
         }
@@ -332,50 +324,11 @@ internal static partial class WidgetCommand
         }
         finally
         {
-            DeleteTree(scratch);
+            WidgetGit.DeleteTree(scratch);
         }
     }
 
     internal readonly record struct Result(int Code, string? Error);
-
-    /// <summary>A repository argument: a GitHub repository, a <c>file://</c> URL, or a folder, and the ref after <c>@</c>.</summary>
-    internal readonly record struct WidgetSource(
-        string Canonical, string GitUrl, string? Ref, string CacheOwner, string CacheRepo, string Name);
-
-    /// <summary>
-    /// Reads <paramref name="text"/> as <c>github.com/owner/repo</c>, an <c>https://github.com</c> URL, a <c>file://</c>
-    /// URL or a folder. <c>@ref</c> is the branch, tag or commit. Nothing is contacted.
-    /// </summary>
-    internal static bool TryParse(string text, out WidgetSource source, out string? error)
-    {
-        source = default;
-        error = null;
-        text = text.Trim();
-        if (GitHubSource().Match(text) is { Success: true } match)
-        {
-            var owner = match.Groups["owner"].Value;
-            var repo = match.Groups["repo"].Value;
-            if (owner is "." or ".." || repo is "." or "..")
-            {
-                error = $"\"{text}\" is not a GitHub repository. Use github.com/owner/repo, or a local path.";
-                return false;
-            }
-
-            var reference = match.Groups["ref"].Success ? match.Groups["ref"].Value : null;
-            if (!RefOk(reference, text, out error))
-                return false;
-            source = new WidgetSource($"github.com/{owner}/{repo}", $"https://github.com/{owner}/{repo}.git", reference,
-                Sanitize(owner), Sanitize(repo), repo);
-            return true;
-        }
-
-        if (text.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
-            return TryFile(text, out source, out error);
-        if (TryFolder(text, out source, out error))
-            return error is null;
-        error ??= $"\"{text}\" is not a GitHub repository. Use github.com/owner/repo, a file:// URL, or a local path.";
-        return false;
-    }
 
     private static Result List(List<Installed> installed, TextWriter output)
     {
@@ -526,194 +479,10 @@ internal static partial class WidgetCommand
         return true;
     }
 
-    /// <summary><c>git log --oneline old..new</c> in the source repository. A remote ref is fetched into a temporary clone first.</summary>
-    private static bool TryLog(string git, WidgetSource source, string oldCommit, string newCommit, ShellLocations locations,
-        out string log, out string? error)
-    {
-        var repo = LocalRepository(source);
-        if (repo is not null)
-            return ReadLog(git, repo, oldCommit, newCommit, locations.LocalRoot, out log, out error);
-
-        log = "";
-        error = null;
-        var scratch = Path.Combine(locations.CacheRoot, "widget-log", Guid.NewGuid().ToString("N"));
-        try
-        {
-            Directory.CreateDirectory(scratch);
-            string[][] steps =
-            [
-                ["-C", scratch, "init", "--quiet"],
-                ["-C", scratch, "remote", "add", "origin", source.GitUrl],
-                ["-C", scratch, "fetch", "--quiet", "origin", source.Ref ?? "HEAD"]
-            ];
-            foreach (var step in steps)
-            {
-                var result = Git(git, step, locations.LocalRoot);
-                if (result.Missing)
-                {
-                    error = NeedsGitToUpdate;
-                    return false;
-                }
-
-                if (result.ExitCode != 0)
-                {
-                    var detail = FirstLine(result.Error, result.StandardOutput);
-                    error = detail.Length == 0
-                        ? $"Could not read {source.Canonical}."
-                        : $"Could not read {source.Canonical}: {detail}";
-                    return false;
-                }
-            }
-
-            return ReadLog(git, scratch, oldCommit, newCommit, locations.LocalRoot, out log, out error);
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-            error = e.Message;
-            return false;
-        }
-        finally
-        {
-            DeleteTree(scratch);
-        }
-    }
-
-    private static string? LocalRepository(WidgetSource source)
-    {
-        if (Directory.Exists(source.GitUrl))
-            return source.GitUrl;
-        if (Uri.TryCreate(source.GitUrl, UriKind.Absolute, out var uri) && uri.IsFile && Directory.Exists(uri.LocalPath))
-            return uri.LocalPath;
-        return null;
-    }
-
-    private static bool ReadLog(string git, string repo, string oldCommit, string newCommit, string localRoot,
-        out string log, out string? error)
-    {
-        log = "";
-        error = null;
-        var result = Git(git,
-        [
-            "-c", "color.ui=never", "--no-pager", "-C", repo, "log", "--oneline", $"{oldCommit}..{newCommit}"
-        ], localRoot);
-        if (result.Missing)
-        {
-            error = NeedsGitToUpdate;
-            return false;
-        }
-
-        if (result.ExitCode != 0)
-        {
-            var detail = FirstLine(result.Error, result.StandardOutput);
-            error = detail.Length == 0 ? $"Could not read the commits between {oldCommit} and {newCommit}." : detail;
-            return false;
-        }
-
-        log = result.StandardOutput;
-        return true;
-    }
-
     private static string Names(IEnumerable<string> names)
     {
         var text = string.Join(", ", names);
         return text.Length == 0 ? "none" : text;
-    }
-
-    private static bool TryFile(string text, out WidgetSource source, out string? error)
-    {
-        source = default;
-        error = null;
-        var body = text;
-        string? reference = null;
-        if (!ExistingFileUrl(text) && text.LastIndexOf('@') is var at and > 5)
-        {
-            body = text[..at];
-            reference = text[(at + 1)..];
-        }
-
-        if (!Uri.TryCreate(body, UriKind.Absolute, out var uri) || !uri.IsFile)
-        {
-            error = $"\"{text}\" is not a file URL.";
-            return false;
-        }
-
-        if (!RefOk(reference, text, out error))
-            return false;
-        var path = uri.LocalPath;
-        var canonical = uri.AbsoluteUri;
-        source = new WidgetSource(canonical, canonical, reference, "local", CacheRepo(path, canonical),
-            Path.GetFileName(Path.TrimEndingDirectorySeparator(path)));
-        return true;
-    }
-
-    private static bool TryFolder(string text, out WidgetSource source, out string? error)
-    {
-        source = default;
-        error = null;
-        var body = text;
-        string? reference = null;
-        if (Directory.Exists(text))
-            body = text;
-        else if (text.LastIndexOf('@') is var at and > 1 && Directory.Exists(text[..at]))
-        {
-            body = text[..at];
-            reference = text[(at + 1)..];
-        }
-        else if (!LooksLikePath(text))
-            return false;
-        else if (text.LastIndexOf('@') is var cut and > 1 && LooksLikePath(text[..cut]))
-        {
-            body = text[..cut];
-            reference = text[(cut + 1)..];
-        }
-
-        string full;
-        try
-        {
-            full = Path.GetFullPath(body);
-        }
-        catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException)
-        {
-            error = $"\"{text}\" is not a folder.";
-            return false;
-        }
-
-        if (!RefOk(reference, text, out error))
-            return false;
-        if (!Directory.Exists(full))
-        {
-            error = $"{full} is not a folder.";
-            return false;
-        }
-
-        source = new WidgetSource(full, full, reference, "local", CacheRepo(full, full),
-            Path.GetFileName(Path.TrimEndingDirectorySeparator(full)));
-        return true;
-    }
-
-    private static bool LooksLikePath(string text)
-    {
-        return text.Contains('\\', StringComparison.Ordinal) || text.Contains(':', StringComparison.Ordinal) ||
-               text.StartsWith('/') || text.StartsWith('.');
-    }
-
-    private static bool ExistingFileUrl(string text)
-    {
-        return Uri.TryCreate(text, UriKind.Absolute, out var uri) && uri.IsFile && Directory.Exists(uri.LocalPath);
-    }
-
-    private static bool RefOk(string? reference, string text, out string? error)
-    {
-        error = null;
-        if (reference is null)
-            return true;
-        if (reference.Length == 0 || reference.StartsWith('-') || reference.Any(char.IsWhiteSpace))
-        {
-            error = $"\"{text}\" has no usable ref. A ref is a branch, a tag or a commit.";
-            return false;
-        }
-
-        return true;
     }
 
     private readonly record struct Pin(string Commit, string Ref);
@@ -731,7 +500,7 @@ internal static partial class WidgetCommand
 
         if (reference is null || reference.Equals("HEAD", StringComparison.OrdinalIgnoreCase))
         {
-            var head = Git(git, ["ls-remote", "--symref", source.GitUrl, "HEAD"], localRoot);
+            var head = WidgetGit.Run(git, ["ls-remote", "--symref", source.GitUrl, "HEAD"], localRoot);
             if (!GitOk(head, source, out error))
                 return false;
             if (!TryHead(head.StandardOutput, out var commit, out var branch))
@@ -744,7 +513,7 @@ internal static partial class WidgetCommand
             return true;
         }
 
-        var listed = Git(git,
+        var listed = WidgetGit.Run(git,
         [
             "ls-remote", source.GitUrl, "refs/heads/" + reference, "refs/tags/" + reference,
             "refs/tags/" + reference + "^{}"
@@ -767,7 +536,7 @@ internal static partial class WidgetCommand
         error = null;
         if (result.Missing)
         {
-            error = NeedsGit;
+            error = WidgetGit.NeedsGit;
             return false;
         }
 
@@ -837,93 +606,6 @@ internal static partial class WidgetCommand
         return Path.Combine(localRoot, "widgets", source.CacheOwner, source.CacheRepo, commit);
     }
 
-    private static string CacheRepo(string path, string canonical)
-    {
-        var name = Sanitize(Path.GetFileName(Path.TrimEndingDirectorySeparator(path)));
-        var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)))[..8];
-        return name + "-" + hash;
-    }
-
-    private static string Sanitize(string name)
-    {
-        var chars = name.Select(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '-' ? c : '_').ToArray();
-        var text = new string(chars).Trim('_');
-        if (text.Length == 0 || text is "." or "..")
-            text = "widget";
-        return text.Length > 40 ? text[..40] : text;
-    }
-
-    private static bool TryClone(string git, WidgetSource source, string commit, string cache, string localRoot,
-        out string? error)
-    {
-        error = null;
-        if (Directory.Exists(cache))
-        {
-            var head = Git(git, ["-C", cache, "rev-parse", "HEAD"], localRoot);
-            if (head.ExitCode == 0 && head.StandardOutput.Trim().Equals(commit, StringComparison.OrdinalIgnoreCase))
-                return true;
-            DeleteTree(cache);
-        }
-
-        Directory.CreateDirectory(cache);
-        string[][] steps =
-        [
-            ["-C", cache, "init", "--quiet"],
-            ["-C", cache, "remote", "add", "origin", source.GitUrl],
-            ["-C", cache, "fetch", "--depth", "1", "origin", commit],
-            ["-C", cache, "checkout", "--detach", "--quiet", "FETCH_HEAD"],
-            ["-C", cache, "remote", "remove", "origin"]
-        ];
-        foreach (var step in steps)
-        {
-            var result = Git(git, step, localRoot);
-            if (result.Missing || result.ExitCode != 0)
-            {
-                DeleteTree(cache);
-                if (result.Missing)
-                {
-                    error = NeedsGit;
-                    return false;
-                }
-
-                var detail = FirstLine(result.Error, result.StandardOutput);
-                error = detail.Length == 0
-                    ? $"Could not clone {source.Canonical}."
-                    : $"Could not clone {source.Canonical}: {detail}";
-                return false;
-            }
-        }
-
-        var checkedOut = Git(git, ["-C", cache, "rev-parse", "HEAD"], localRoot);
-        if (checkedOut.ExitCode != 0 || !checkedOut.StandardOutput.Trim().Equals(commit, StringComparison.OrdinalIgnoreCase))
-        {
-            DeleteTree(cache);
-            error = $"The clone of {source.Canonical} is not {commit}.";
-            return false;
-        }
-
-        MarkReadOnly(cache);
-        return true;
-    }
-
-    private static void MarkReadOnly(string cache)
-    {
-        foreach (var file in Directory.EnumerateFiles(cache, "*", SearchOption.AllDirectories))
-        {
-            if (InDirectory(file, ".git") || InDirectory(file, "bin") || InDirectory(file, "obj"))
-                continue;
-            var attributes = File.GetAttributes(file);
-            if ((attributes & FileAttributes.ReadOnly) == 0)
-                File.SetAttributes(file, attributes | FileAttributes.ReadOnly);
-        }
-    }
-
-    private static bool InDirectory(string file, string name)
-    {
-        var needle = Path.DirectorySeparatorChar + name + Path.DirectorySeparatorChar;
-        return file.Contains(needle, StringComparison.OrdinalIgnoreCase);
-    }
-
     private static bool TrySelectProject(string dotnet, string cache, string? project, out string widgetProject,
         out string? error)
     {
@@ -970,7 +652,7 @@ internal static partial class WidgetCommand
 
         if (found.Count == 0)
         {
-            error = "No project in the repository lists a WinshellWidget item. Name one with --project.";
+            error = $"No project in the repository lists a {WidgetRecord.Item} item. Name one with --project.";
             return false;
         }
 
@@ -996,7 +678,7 @@ internal static partial class WidgetCommand
         error = null;
         var result = Invoke(dotnet,
         [
-            "msbuild", project, "-getItem:WinshellWidget", "-nologo", "-restore:false", "-nodeReuse:false"
+            "msbuild", project, "-getItem:" + WidgetRecord.Item, "-nologo", "-restore:false", "-nodeReuse:false"
         ], localRoot);
         if (result.Missing)
         {
@@ -1022,15 +704,15 @@ internal static partial class WidgetCommand
         {
             using var json = JsonDocument.Parse(result.StandardOutput[start..(end + 1)]);
             if (!json.RootElement.TryGetProperty("Items", out var items) ||
-                !items.TryGetProperty("WinshellWidget", out var listed))
+                !items.TryGetProperty(WidgetRecord.Item, out var listed))
                 return true;
             foreach (var item in listed.EnumerateArray())
             {
                 var widgetName = item.TryGetProperty("Identity", out var identity) ? identity.GetString() ?? "" : "";
-                var type = item.TryGetProperty("Type", out var typeValue) ? typeValue.GetString() ?? "" : "";
+                var type = item.TryGetProperty(WidgetRecord.Metadata, out var typeValue) ? typeValue.GetString() ?? "" : "";
                 if (widgetName.Length == 0 || type.Length == 0)
                 {
-                    error = $"A WinshellWidget item in {Path.GetFileName(project)} needs a name and a Type.";
+                    error = $"A {WidgetRecord.Item} item in {Path.GetFileName(project)} needs a name and a {WidgetRecord.Metadata}.";
                     return false;
                 }
 
@@ -1239,15 +921,15 @@ internal static partial class WidgetCommand
             {
                 if (element.Name.LocalName == "ProjectReference")
                 {
-                    current = new Installed((string?)element.Attribute("Include") ?? "", Child(element, "WinshellSource"),
-                        Child(element, "WinshellRef"), Child(element, "WinshellCommit"), []);
+                    current = new Installed((string?)element.Attribute("Include") ?? "", Child(element, WidgetRecord.Source),
+                        Child(element, WidgetRecord.Ref), Child(element, WidgetRecord.Commit), []);
                     installed.Add(current);
                 }
-                else if (element.Name.LocalName == "WinshellWidget")
+                else if (element.Name.LocalName == WidgetRecord.Item)
                 {
                     var widget = new WidgetItem((string?)element.Attribute("Include") ?? "",
-                        (string?)element.Attribute("Type") ?? "");
-                    var source = Child(element, "WinshellSource");
+                        (string?)element.Attribute(WidgetRecord.Metadata) ?? "");
+                    var source = Child(element, WidgetRecord.Source);
                     var home = source.Length > 0
                         ? installed.FirstOrDefault(item => item.Source == source) ?? current
                         : current;
@@ -1284,16 +966,16 @@ internal static partial class WidgetCommand
             // widgets file instead of this one, so it does not reference itself.
             group.Add(new XElement("ProjectReference",
                 new XAttribute("Include", item.Project),
-                new XElement("WinshellSource", item.Source),
-                new XElement("WinshellRef", item.Ref),
-                new XElement("WinshellCommit", item.Commit),
-                new XElement("UndefineProperties", WidgetsFile)));
+                new XElement(WidgetRecord.Source, item.Source),
+                new XElement(WidgetRecord.Ref, item.Ref),
+                new XElement(WidgetRecord.Commit, item.Commit),
+                new XElement("UndefineProperties", WidgetRecord.Property)));
             foreach (var widget in item.Widgets)
             {
-                group.Add(new XElement("WinshellWidget",
+                group.Add(new XElement(WidgetRecord.Item,
                     new XAttribute("Include", widget.Name),
-                    new XAttribute("Type", widget.Type),
-                    new XElement("WinshellSource", item.Source)));
+                    new XAttribute(WidgetRecord.Metadata, widget.Type),
+                    new XElement(WidgetRecord.Source, item.Source)));
             }
         }
 
@@ -1336,14 +1018,8 @@ internal static partial class WidgetCommand
         return result.ExitCode == 0 && !result.Missing;
     }
 
-    /// <summary>Git, allowed to fetch a <c>file://</c> URL. That protocol is otherwise refused when it comes from a remote.</summary>
-    private static CommandResult Git(string git, IReadOnlyList<string> arguments, string folder)
-    {
-        return Invoke(git, ["-c", "protocol.file.allow=always", .. arguments], folder);
-    }
-
     /// <summary><see cref="ConfigurationProject.Run"/>, with the variables git and dotnet need so they do not prompt.</summary>
-    private static CommandResult Invoke(string file, IReadOnlyList<string> arguments, string folder)
+    internal static CommandResult Invoke(string file, IReadOnlyList<string> arguments, string folder)
     {
         return ConfigurationProject.Run(file, arguments, folder, QuietTools);
     }
@@ -1366,15 +1042,6 @@ internal static partial class WidgetCommand
         return line ?? "";
     }
 
-    private static void DeleteTree(string path)
-    {
-        if (!Directory.Exists(path))
-            return;
-        foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
-            File.SetAttributes(file, FileAttributes.Normal);
-        Directory.Delete(path, true);
-    }
-
     private static Result Fail(int code, string error)
     {
         return new Result(code, error);
@@ -1384,9 +1051,4 @@ internal static partial class WidgetCommand
     {
         return new Result(0, null);
     }
-
-    [GeneratedRegex(
-        @"^(?:https://)?github\.com/(?<owner>[A-Za-z0-9_.-]+)/(?<repo>[A-Za-z0-9_.-]+?)(?:\.git)?(?:@(?<ref>.+))?$",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex GitHubSource();
 }
