@@ -20,7 +20,7 @@ internal sealed class OwnedIcon : IDisposable
     /// group closest to the size, and scales it only if none matches. The library is only mapped as data, and only
     /// while the icon loads. Null when the module or the resource is gone.
     /// </summary>
-    internal static OwnedIcon? Load(string module, ushort id, string name, int size)
+    internal static unsafe OwnedIcon? Load(string module, ushort id, string name, int size)
     {
         var library = PInvoke.LoadLibraryEx(module,
             LOAD_LIBRARY_FLAGS.LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_FLAGS.LOAD_LIBRARY_AS_IMAGE_RESOURCE);
@@ -29,9 +29,9 @@ internal sealed class OwnedIcon : IDisposable
         try
         {
             var icon = id != 0
-                ? Win32.LoadImageW(library, id, Win32.IMAGE_ICON, size, size, 0)
-                : Win32.LoadImageW(library, name, Win32.IMAGE_ICON, size, size, 0);
-            return icon == 0 ? null : new OwnedIcon(icon);
+                ? PInvoke.LoadImage(library, (char*)id, GDI_IMAGE_TYPE.IMAGE_ICON, size, size, default)
+                : PInvoke.LoadImage(library, name, GDI_IMAGE_TYPE.IMAGE_ICON, size, size, default);
+            return icon.IsNull ? null : new OwnedIcon(icon);
         }
         finally
         {

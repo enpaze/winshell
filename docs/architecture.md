@@ -110,12 +110,13 @@ The supervisor owns Explorer taskbar recovery independently of the child. Recove
 - **Layer order:** `LayerTests`. Each layer's project references and its compiled assembly's Winshell references name only layers below it. Restore already fails on an upward project reference that closes a cycle (MSB4006); the test catches the rest, such as a reference to a project outside the layers or to a built DLL.
 - **Feature backends:** `FeatureBackendTests`. In the compiled Services and Shell, only types in an `I*Backend` interface's own namespace in Services, such as `Winshell.Session`, name the interface or a type that implements it, in a declaration, signature or method body.
 - **Compositions use only public API** ([ADR 0001](adr/0001-shells-are-built-from-public-building-blocks.md)): `CompositionTests`. It compiles the C# files in `src/Winshell.Shell/Compositions`, such as `Bar`, again as an assembly of their own against the built Winshell assemblies, which shows them only the public API, and fails on any compiler error. In Shell itself the compiler lets them see Shell's internals and those Core and Services show Shell.
+- **Who may see Native, and that `Win32.cs` declares no native method:** `NativeVisibilityTests`. It reads `Winshell.Native.csproj` and `Win32.cs`. The friend projects are the boundary, so this guard names them. `Win32.cs` has no `DllImport`, `LibraryImport` or `ComImport`.
 
 How the tests work:
 
-- **The tests read the project files and the compiled assemblies**, never a list of expected files, so a new project, reference, backend or composition is covered without editing them. Only a new layer is added to `LayerTests`' list.
+- **The tests read the project files and the compiled assemblies**, never a list of expected files, so a new project, reference, backend or composition is covered without editing them. Only a new layer is added to `LayerTests`' list. A project Native newly friends is added to `NativeVisibilityTests`, because that list is the boundary.
 - **The CLI, `src/Winshell`, is outside the tests' guards:** it composes the layers.
-- **Two guards read sources.** A WinUI project's assembly can't tell CsWinRT's generated unsafe code from ours, so that guard reads the sources. The composition guard reads them too, because only the compiler can say what a file may see.
+- **Some guards read sources.** A WinUI project's assembly can't tell CsWinRT's generated unsafe code from ours, so that guard reads the sources. The composition guard reads them too, because only the compiler can say what a file may see. `NativeVisibilityTests` reads `Win32.cs`, because the generated declarations live under `obj/` and that file is the one that must declare no import.
 - **Prove a new or changed guard.** Show that it rejects a representative forbidden dependency or declaration, then remove that violation. Do not add production hooks solely to exercise the guards.
 
 Tests follow [where a test belongs](../CONTRIBUTING.md#where-a-test-belongs), which says what a changed test keeps, and the [test rules](../CONTRIBUTING.md#write-tests-that-dont-flake). Use fake clocks and real completion signals.

@@ -78,7 +78,7 @@ internal sealed partial class ShellNotices : IDisposable
     /// <summary>Whether Windows is holding notifications back, as it reports it now.</summary>
     internal static bool WindowsIsQuiet()
     {
-        return Win32.SHQueryUserNotificationState(out var state) == 0 && QuietState(state);
+        return PInvoke.SHQueryUserNotificationState(out var state).Succeeded && QuietState((int)state);
     }
 
     /// <summary>How long a crash notice stays for someone who asked Windows to keep notifications up. A shorter setting doesn't shorten it.</summary>

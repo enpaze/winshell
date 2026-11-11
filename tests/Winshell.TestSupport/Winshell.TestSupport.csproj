@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Winshell.TestSupport</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\TestSupport\ParentProcessWatch.cs" Link="ParentProcessWatch.cs" />
+    <ProjectReference Include="..\..\src\Winshell.Native\Winshell.Native.csproj" />
+  </ItemGroup>
+</Project>

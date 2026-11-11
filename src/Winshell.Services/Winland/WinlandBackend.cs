@@ -155,7 +155,9 @@ internal sealed class WinlandBackend : IWinlandBackend
 
     private static uint? ServerProcess(NamedPipeClientStream pipe)
     {
-        return Win32.GetNamedPipeServerProcessId(pipe.SafePipeHandle.DangerousGetHandle(), out var pid) ? pid : null;
+        return PInvoke.GetNamedPipeServerProcessId(new HANDLE(pipe.SafePipeHandle.DangerousGetHandle()), out var pid)
+            ? pid
+            : null;
     }
 
     private sealed record Handlers(Action<bool> ConnectionChanged, Action<string> EventReceived);

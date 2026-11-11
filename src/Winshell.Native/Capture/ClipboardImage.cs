@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
+using Windows.Win32.System.Memory;
 using Windows.Win32.System.Ole;
 
 namespace Winshell.Native;
@@ -13,42 +14,43 @@ internal static class ClipboardImage
     /// <paramref name="owner"/> is the window that opens the clipboard. Throws a <see cref="Win32Exception"/> when
     /// Windows refuses.
     /// </summary>
-    internal static void SetDibV5(byte[] dib, nint owner)
+    internal static unsafe void SetDibV5(byte[] dib, nint owner)
     {
-        var memory = Win32.GlobalAlloc(Win32.GMEM_MOVEABLE, (nuint)dib.Length);
-        if (memory == 0)
+        var memory = PInvoke.GlobalAlloc(GLOBAL_ALLOC_FLAGS.GMEM_MOVEABLE, (nuint)dib.Length);
+        if (memory.IsNull)
             throw new Win32Exception();
         try
         {
-            var pointer = Win32.GlobalLock(memory);
-            if (pointer == 0)
+            var pointer = PInvoke.GlobalLock(memory);
+            if (pointer is null)
                 throw new Win32Exception();
             try
             {
-                Marshal.Copy(dib, 0, pointer, dib.Length);
+                Marshal.Copy(dib, 0, (nint)pointer, dib.Length);
             }
             finally
             {
-                Win32.GlobalUnlock(memory);
+                PInvoke.GlobalUnlock(memory);
             }
 
-            if (!Win32.OpenClipboard(owner))
+            if (!PInvoke.OpenClipboard((HWND)owner))
                 throw new Win32Exception();
             try
             {
-                if (!Win32.EmptyClipboard() || Win32.SetClipboardData((uint)CLIPBOARD_FORMAT.CF_DIBV5, memory) == 0)
+                if (!PInvoke.EmptyClipboard() ||
+                    PInvoke.SetClipboardData((uint)CLIPBOARD_FORMAT.CF_DIBV5, (HANDLE)(nint)memory).IsNull)
                     throw new Win32Exception();
-                memory = 0; // The clipboard owns the allocation now.
+                memory = default; // The clipboard owns the allocation now.
             }
             finally
             {
-                Win32.CloseClipboard();
+                PInvoke.CloseClipboard();
             }
         }
         finally
         {
-            if (memory != 0)
-                PInvoke.GlobalFree(new HGLOBAL(memory));
+            if (!memory.IsNull)
+                PInvoke.GlobalFree(memory);
         }
     }
 }

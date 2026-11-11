@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Microsoft.UI;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Composition.SystemBackdrops;
@@ -10,6 +11,7 @@ using Windows.Foundation;
 using Windows.Graphics;
 using Windows.System;
 using Windows.Win32.Graphics.Dwm;
+using MARGINS = Windows.Win32.UI.Controls.MARGINS;
 using WinRT;
 using Winshell.Native;
 
@@ -52,13 +54,19 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
     public void Attach()
     {
         // The material shows wherever the content is transparent.
-        var margins = new MARGINS { Left = -1, Right = -1, Top = -1, Bottom = -1 };
-        Win32.DwmExtendFrameIntoClientArea(Handle, margins);
+        var margins = new MARGINS
+        {
+            cxLeftWidth = -1,
+            cxRightWidth = -1,
+            cyTopHeight = -1,
+            cyBottomHeight = -1
+        };
+        PInvoke.DwmExtendFrameIntoClientArea((HWND)Handle, margins);
         if (host.Kind != WindowKind.Floating)
         {
             // Panels and popups appear without the Windows fade, as layer surfaces do.
-            Win32.DwmSetWindowAttribute(Handle, (int)DWMWINDOWATTRIBUTE.DWMWA_TRANSITIONS_FORCEDISABLED, 1, 4);
-            Win32.DwmSetWindowAttribute(Handle, (int)DWMWINDOWATTRIBUTE.DWMWA_EXCLUDED_FROM_PEEK, 1, 4);
+            SetDwm(DWMWINDOWATTRIBUTE.DWMWA_TRANSITIONS_FORCEDISABLED, 1);
+            SetDwm(DWMWINDOWATTRIBUTE.DWMWA_EXCLUDED_FROM_PEEK, 1);
         }
 
         SetCornersAndBorder(WindowBackdrop.None, WindowCorners.Default);
@@ -96,8 +104,7 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
     {
         if (Handle == 0)
             return;
-        var dark = platform.IsDark ? 1 : 0;
-        Win32.DwmSetWindowAttribute(Handle, (int)DWMWINDOWATTRIBUTE.DWMWA_USE_IMMERSIVE_DARK_MODE, dark, 4);
+        SetDwm(DWMWINDOWATTRIBUTE.DWMWA_USE_IMMERSIVE_DARK_MODE, platform.IsDark ? 1 : 0);
     }
 
     private void OnRootKeyDown(object sender, KeyRoutedEventArgs e)
@@ -175,10 +182,9 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
         if (host.Kind != WindowKind.Floating)
         {
             // A material window gets Windows' hairline border; a plain one gets none.
-            var border = host.Kind == WindowKind.Popup && backdrop != WindowBackdrop.None
-                ? 0xFFFFFFFF
-                : Win32.DWMWA_COLOR_NONE;
-            Win32.DwmSetWindowAttribute(Handle, (int)DWMWINDOWATTRIBUTE.DWMWA_BORDER_COLOR, border, 4);
+            SetDwm(DWMWINDOWATTRIBUTE.DWMWA_BORDER_COLOR, host.Kind == WindowKind.Popup && backdrop != WindowBackdrop.None
+                ? PInvoke.DWMWA_COLOR_DEFAULT
+                : PInvoke.DWMWA_COLOR_NONE);
         }
     }
 
@@ -192,7 +198,13 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
             WindowCorners.RoundSmall => 3,
             _ => 0
         };
-        Win32.DwmSetWindowAttribute(Handle, (int)DWMWINDOWATTRIBUTE.DWMWA_WINDOW_CORNER_PREFERENCE, preference, 4);
+        SetDwm(DWMWINDOWATTRIBUTE.DWMWA_WINDOW_CORNER_PREFERENCE, preference);
+    }
+
+    private void SetDwm<T>(DWMWINDOWATTRIBUTE attribute, T value)
+        where T : unmanaged
+    {
+        PInvoke.DwmSetWindowAttribute((HWND)Handle, attribute, MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in value)));
     }
 
     /// <summary>Hands the keyboard to the island, unless it already has it.</summary>

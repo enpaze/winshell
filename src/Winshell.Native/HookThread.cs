@@ -59,8 +59,8 @@ internal sealed unsafe class HookThread
     {
         // Creates the thread's message queue, so the quit message posted by Stop is not lost.
         PInvoke.PeekMessage(out _, HWND.Null, 0, 0, PEEK_MESSAGE_REMOVE_TYPE.PM_NOREMOVE);
-        var hook = PInvoke.SetWindowsHookEx(hookId, proc, (HINSTANCE)Win32.GetModuleHandleW(null), 0);
-        started.SetResult(((nint)hook, Win32.GetCurrentThreadId()));
+        var hook = PInvoke.SetWindowsHookEx(hookId, proc, PInvoke.GetModuleHandle(null), 0);
+        started.SetResult(((nint)hook, PInvoke.GetCurrentThreadId()));
         if (hook.IsNull)
             return;
         while (PInvoke.GetMessage(out _, HWND.Null, 0, 0) > 0)

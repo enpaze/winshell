@@ -47,7 +47,7 @@ internal sealed class EndpointNode : AudioGraphNode
         }
         finally
         {
-            CoreAudio.Release(store);
+            Winshell.Native.Com.Release(store);
         }
 
         _volume = CoreAudio.Activate<IAudioEndpointVolume>(device);
@@ -62,7 +62,7 @@ internal sealed class EndpointNode : AudioGraphNode
         catch
         {
             // No node holds the device's volume when it fails to open.
-            CoreAudio.Release(_volume);
+            Winshell.Native.Com.Release(_volume);
             throw;
         }
     }
@@ -152,7 +152,7 @@ internal sealed class EndpointNode : AudioGraphNode
             // The device is gone already.
         }
 
-        CoreAudio.Release(client);
+        Winshell.Native.Com.Release(client);
     }
 
     private void ReadVolume()
@@ -199,7 +199,7 @@ internal sealed class EndpointNode : AudioGraphNode
             }
             finally
             {
-                CoreAudio.Release(sessions);
+                Winshell.Native.Com.Release(sessions);
             }
         }
         catch (COMException e)
@@ -219,7 +219,7 @@ internal sealed class EndpointNode : AudioGraphNode
         finally
         {
             if (session is null)
-                CoreAudio.Release(control);
+                Winshell.Native.Com.Release(control);
         }
 
         if (session is null)
@@ -271,10 +271,10 @@ internal sealed class EndpointNode : AudioGraphNode
         }
 
         StopKeepAlive();
-        CoreAudio.Release(_meter);
-        CoreAudio.Release(_sessionManager);
-        CoreAudio.Release(_volume);
-        CoreAudio.Release(_device);
+        Winshell.Native.Com.Release(_meter);
+        Winshell.Native.Com.Release(_sessionManager);
+        Winshell.Native.Com.Release(_volume);
+        Winshell.Native.Com.Release(_device);
     }
 
     private static string IconName(uint? formFactor, bool render)
@@ -333,7 +333,7 @@ internal sealed class EndpointNode : AudioGraphNode
             }
             finally
             {
-                CoreAudio.Release(session);
+                Winshell.Native.Com.Release(session);
             }
 
             node._graph.Post(() => node.AddSession((IAudioSessionControl2)ComApartment.Restore(stream)));

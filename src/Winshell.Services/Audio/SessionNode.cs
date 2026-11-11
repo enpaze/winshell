@@ -120,7 +120,7 @@ internal sealed class SessionNode : AudioGraphNode
         }
 
         // The volume and the meter are this same object.
-        CoreAudio.Release(_control);
+        Winshell.Native.Com.Release(_control);
     }
 
     /// <summary>Drops the exit callback before the process is disposed, so a late exit is not delivered.</summary>

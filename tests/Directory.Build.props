@@ -13,7 +13,9 @@
     <Using Include="Xunit" />
     <Using Include="Winshell.TestSupport" />
     <Using Include="Microsoft.Extensions.Time.Testing" />
-    <Compile Include="$(MSBuildThisFileDirectory)TestSupport\*.cs" Link="TestSupport\%(Filename)%(Extension)" />
+    <Compile Include="$(MSBuildThisFileDirectory)TestSupport\*.cs" Link="TestSupport\%(Filename)%(Extension)"
+             Exclude="$(MSBuildThisFileDirectory)TestSupport\ParentProcessWatch.cs" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Winshell.TestSupport\Winshell.TestSupport.csproj" />
     <None Include="$(MSBuildThisFileDirectory)xunit.runner.json" Link="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

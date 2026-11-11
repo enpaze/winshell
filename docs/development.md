@@ -649,14 +649,15 @@ To submit a release:
 │   ├── Winshell.Shell/              # Shell.Run and WinUI windows
 │   └── Winshell.Package/            # Packs Native, Core, Services and Shell as the single Winshell package
 ├── tests/
-│   ├── Winshell.Architecture.Tests/ # The layer and feature backend boundaries, and no hand-written unsafe code in WinUI projects
+│   ├── Winshell.Architecture.Tests/ # Layer order, feature backends, WinUI unsafe code, and who may see Native
 │   ├── Winshell.Core.Tests/         # The log, TOML files, crash reports and file helpers
 │   ├── Winshell.Services.Tests/     # The services; only the category Window opens a window
 │   ├── Winshell.Shell.Tests/        # A real shell and the event-loop contract; only the category Window opens a window
 │   ├── Winshell.Tests/              # Runs winshell.exe instances side by side; only the category Window opens a window
 │   ├── Winshell.Package.Tests/      # Packs the template and runs its shell; Category=Package, left out of the main run
+│   ├── Winshell.TestSupport/        # The parent-process watch. Native friends this assembly, not every test project
 │   ├── Scripts/                     # PowerShell tooling tests and their fixtures
-│   ├── TestSupport/                 # Source files every test project links instead of copying
+│   ├── TestSupport/                 # Source files every test project links, except the parent-process watch
 │   └── Directory.Build.props        # What every test project shares
 ├── winshell.slnx                    # The solution the check builds
 ├── Directory.Build.targets          # Turns unsafe code off outside Winshell.Native and WinUI projects

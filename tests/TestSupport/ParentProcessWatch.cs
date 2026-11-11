@@ -9,9 +9,13 @@ namespace Winshell.TestSupport;
 /// testhost. A hang timeout that names no dump type kills only testhost, and the hung program then holds the pipe
 /// that <c>dotnet test</c> writes to, so a run piped to anything never ends.
 /// </summary>
-internal static class ParentProcessWatch
+public static class ParentProcessWatch
 {
+    // The watch starts when a test program loads this assembly. The attribute belongs on the library: each test
+    // program only forces the load.
+#pragma warning disable CA2255
     [ModuleInitializer]
+#pragma warning restore CA2255
     internal static void Start()
     {
         var parent = Parent();

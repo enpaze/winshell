@@ -10,6 +10,6 @@ internal static class ThreadDpi
     {
         return PInvoke.AreDpiAwarenessContextsEqual(
             PInvoke.GetThreadDpiAwarenessContext(),
-            new DPI_AWARENESS_CONTEXT(Win32.DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2));
+            DPI_AWARENESS_CONTEXT.DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     }
 }

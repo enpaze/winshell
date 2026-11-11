@@ -1,4 +1,6 @@
 using System.Runtime.InteropServices;
+using Windows.Win32;
+using Windows.Win32.Foundation;
 
 namespace Winshell.Native;
 
@@ -10,19 +12,19 @@ internal static unsafe class CommandLine
     {
         if (string.IsNullOrWhiteSpace(command))
             return [];
-        var argv = Win32.CommandLineToArgvW(command, out var count);
-        if (argv == 0)
+        var argv = PInvoke.CommandLineToArgv(command, out var count);
+        if (argv is null)
             return [];
         try
         {
             var args = new string[count];
             for (var i = 0; i < count; i++)
-                args[i] = Marshal.PtrToStringUni(((nint*)argv)[i]) ?? "";
+                args[i] = Marshal.PtrToStringUni((nint)argv[i].Value) ?? "";
             return args;
         }
         finally
         {
-            Win32.LocalFree(argv);
+            PInvoke.LocalFree(new HLOCAL((nint)argv));
         }
     }
 }

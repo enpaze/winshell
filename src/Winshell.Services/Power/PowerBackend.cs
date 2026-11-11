@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Windows.Devices.Enumeration;
 using Windows.System.Power;
+using Windows.Win32.System.Power;
 using Winshell.Native;
 using WinBattery = Windows.Devices.Power.Battery;
 using WinBatteryReport = Windows.Devices.Power.BatteryReport;
@@ -166,7 +167,7 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
     {
         if (_aggregate is null)
             Watch();
-        var hasStatus = Win32.GetSystemPowerStatus(out var status);
+        var hasStatus = PInvoke.GetSystemPowerStatus(out var status);
         // Bit 128 of BatteryFlag: "no system battery".
         var noSystemBattery = hasStatus && (status.BatteryFlag & 128) != 0;
 
@@ -288,7 +289,7 @@ internal static class PowerSupply
     /// </summary>
     public static bool OnBattery()
     {
-        var hasStatus = Win32.GetSystemPowerStatus(out var status);
+        var hasStatus = PInvoke.GetSystemPowerStatus(out var status);
         // Bit 128 of BatteryFlag: "no system battery".
         if (hasStatus && (status.BatteryFlag & 128) != 0)
             return false;

@@ -19,7 +19,7 @@ internal static class Focus
             return;
 
         var foreground = (nint)PInvoke.GetForegroundWindow();
-        var current = Win32.GetCurrentThreadId();
+        var current = PInvoke.GetCurrentThreadId();
         var other = foreground == 0 ? 0 : PInvoke.GetWindowThreadProcessId((HWND)foreground);
         if (other != 0 && other != current && PInvoke.AttachThreadInput(current, other, true))
             try

@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
+using Windows.Win32;
 using Windows.Win32.Foundation;
+using Windows.Win32.UI.Shell;
 
 namespace Winshell.Native;
 
@@ -28,7 +30,7 @@ internal static class AppBars
     {
         var data = Data(window);
         data.uCallbackMessage = callback;
-        return Win32.SHAppBarMessage(Win32.ABM_NEW, ref data) != 0;
+        return PInvoke.SHAppBarMessage(PInvoke.ABM_NEW, ref data) != 0;
     }
 
     /// <summary>The part of <paramref name="edge"/> still free inside <paramref name="proposed"/>.</summary>
@@ -37,7 +39,7 @@ internal static class AppBars
         var data = Data(window);
         data.uEdge = Edge(edge);
         data.rc = proposed;
-        Win32.SHAppBarMessage(Win32.ABM_QUERYPOS, ref data);
+        PInvoke.SHAppBarMessage(PInvoke.ABM_QUERYPOS, ref data);
         return data.rc;
     }
 
@@ -47,7 +49,7 @@ internal static class AppBars
         var data = Data(window);
         data.uEdge = Edge(edge);
         data.rc = desired;
-        Win32.SHAppBarMessage(Win32.ABM_SETPOS, ref data);
+        PInvoke.SHAppBarMessage(PInvoke.ABM_SETPOS, ref data);
         return data.rc;
     }
 
@@ -55,22 +57,22 @@ internal static class AppBars
     internal static bool Remove(nint window)
     {
         var data = Data(window);
-        return Win32.SHAppBarMessage(Win32.ABM_REMOVE, ref data) != 0;
+        return PInvoke.SHAppBarMessage(PInvoke.ABM_REMOVE, ref data) != 0;
     }
 
     /// <summary>Whether the taskbar auto-hides. An auto-hidden taskbar reserves no edge.</summary>
     internal static bool Autohide(nint window)
     {
         var data = Data(window);
-        var state = (uint)Win32.SHAppBarMessage(Win32.ABM_GETSTATE, ref data);
-        return (state & Win32.ABS_AUTOHIDE) != 0;
+        var state = (uint)PInvoke.SHAppBarMessage(PInvoke.ABM_GETSTATE, ref data);
+        return (state & PInvoke.ABS_AUTOHIDE) != 0;
     }
 
     /// <summary>The taskbar's edge and rectangle, when Explorer reports one that has area.</summary>
     internal static bool TryPosition(nint window, out AppBarEdge edge, out RECT bounds)
     {
         var data = Data(window);
-        if (Win32.SHAppBarMessage(Win32.ABM_GETTASKBARPOS, ref data) != 0 &&
+        if (PInvoke.SHAppBarMessage(PInvoke.ABM_GETTASKBARPOS, ref data) != 0 &&
             data.rc is { Width: > 0, Height: > 0 })
         {
             edge = From(data.uEdge);
@@ -86,22 +88,22 @@ internal static class AppBars
     /// <summary>Whether <paramref name="parameter"/> is Explorer's notice that app-bar positions changed.</summary>
     internal static bool PositionChanged(nint parameter)
     {
-        return (uint)parameter == Win32.ABN_POSCHANGED;
+        return (uint)parameter == PInvoke.ABN_POSCHANGED;
     }
 
     private static APPBARDATA Data(nint window)
     {
-        return new APPBARDATA { cbSize = (uint)Marshal.SizeOf<APPBARDATA>(), hWnd = window };
+        return new APPBARDATA { cbSize = (uint)Marshal.SizeOf<APPBARDATA>(), hWnd = (HWND)window };
     }
 
     private static uint Edge(AppBarEdge edge)
     {
         return edge switch
         {
-            AppBarEdge.Left => Win32.ABE_LEFT,
-            AppBarEdge.Right => Win32.ABE_RIGHT,
-            AppBarEdge.Bottom => Win32.ABE_BOTTOM,
-            _ => Win32.ABE_TOP
+            AppBarEdge.Left => PInvoke.ABE_LEFT,
+            AppBarEdge.Right => PInvoke.ABE_RIGHT,
+            AppBarEdge.Bottom => PInvoke.ABE_BOTTOM,
+            _ => PInvoke.ABE_TOP
         };
     }
 
@@ -109,9 +111,9 @@ internal static class AppBars
     {
         return edge switch
         {
-            Win32.ABE_LEFT => AppBarEdge.Left,
-            Win32.ABE_RIGHT => AppBarEdge.Right,
-            Win32.ABE_BOTTOM => AppBarEdge.Bottom,
+            PInvoke.ABE_LEFT => AppBarEdge.Left,
+            PInvoke.ABE_RIGHT => AppBarEdge.Right,
+            PInvoke.ABE_BOTTOM => AppBarEdge.Bottom,
             _ => AppBarEdge.Top
         };
     }

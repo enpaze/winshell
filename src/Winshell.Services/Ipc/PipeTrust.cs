@@ -90,7 +90,7 @@ internal static class PipeTrust
         var user = WindowsIdentity.GetCurrent().User;
         if (user is null || !user.Equals(pipe.GetAccessControl().GetOwner(typeof(SecurityIdentifier))))
             return "The control pipe belongs to another user.";
-        if (!Win32.GetNamedPipeServerProcessId(pipe.SafePipeHandle.DangerousGetHandle(), out var pid))
+        if (!PInvoke.GetNamedPipeServerProcessId(new HANDLE(pipe.SafePipeHandle.DangerousGetHandle()), out var pid))
             return "The shell behind the control pipe could not be identified.";
         if (!AtLeast(ProcessIntegrity.TryRead(pid), ProcessIntegrity.TryRead((uint)Environment.ProcessId)))
             return "The shell runs at a lower integrity level than this command. Run the command without elevation.";

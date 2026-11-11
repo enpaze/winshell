@@ -1,5 +1,6 @@
 using Windows.Win32;
 using Windows.Win32.Foundation;
+using Windows.Win32.Graphics.Dwm;
 
 namespace Winshell.Native;
 
@@ -30,14 +31,14 @@ internal static class DwmThumbnails
     {
         var properties = new DWM_THUMBNAIL_PROPERTIES
         {
-            Flags = PInvoke.DWM_TNP_RECTDESTINATION | PInvoke.DWM_TNP_RECTSOURCE | PInvoke.DWM_TNP_OPACITY |
-                    PInvoke.DWM_TNP_VISIBLE,
-            Destination = destination,
-            Source = source,
-            Opacity = opacity,
-            Visible = visible ? 1 : 0
+            dwFlags = PInvoke.DWM_TNP_RECTDESTINATION | PInvoke.DWM_TNP_RECTSOURCE | PInvoke.DWM_TNP_OPACITY |
+                      PInvoke.DWM_TNP_VISIBLE,
+            rcDestination = destination,
+            rcSource = source,
+            opacity = opacity,
+            fVisible = visible
         };
-        return Win32.DwmUpdateThumbnailProperties(thumbnail, properties) == 0;
+        return PInvoke.DwmUpdateThumbnailProperties(thumbnail, properties).Succeeded;
     }
 
     internal static void Unregister(nint thumbnail)

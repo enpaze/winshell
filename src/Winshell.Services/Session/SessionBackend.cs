@@ -14,7 +14,7 @@ internal sealed class SessionBackend : ISessionBackend
 
     public bool Lock()
     {
-        return Workstation.Lock();
+        return PInvoke.LockWorkStation();
     }
 
     public bool SignOut()

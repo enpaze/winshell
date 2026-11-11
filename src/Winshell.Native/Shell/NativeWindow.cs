@@ -124,7 +124,7 @@ internal sealed unsafe class NativeWindow
     {
         if (Registered.TryAdd(className, 0))
             Register(className);
-        var created = OfClass(className, "", style, 0, 0, size, size, (nint)parent, Win32.GetModuleHandleW(null),
+        var created = OfClass(className, "", style, 0, 0, size, size, (nint)parent, PInvoke.GetModuleHandle(null),
             exStyle);
         if (created == 0)
             return null;
@@ -164,7 +164,7 @@ internal sealed unsafe class NativeWindow
                 cbSize = (uint)sizeof(WNDCLASSEXW),
                 style = WNDCLASS_STYLES.CS_DBLCLKS,
                 lpfnWndProc = &WndProc,
-                hInstance = (HINSTANCE)Win32.GetModuleHandleW(null),
+                hInstance = PInvoke.GetModuleHandle(null),
                 hIcon = (HICON)AppIcon(PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXICON),
                     PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYICON)),
                 hIconSm = (HICON)AppIcon(PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXSMICON),
@@ -185,8 +185,8 @@ internal sealed unsafe class NativeWindow
     /// </summary>
     private static nint AppIcon(int width, int height)
     {
-        return Win32.LoadImageW(Win32.GetModuleHandleW(null), Win32.IDI_APPLICATION, Win32.IMAGE_ICON, width, height,
-            0);
+        return PInvoke.LoadImage(PInvoke.GetModuleHandle(null), PInvoke.IDI_APPLICATION, GDI_IMAGE_TYPE.IMAGE_ICON,
+            width, height, default);
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
