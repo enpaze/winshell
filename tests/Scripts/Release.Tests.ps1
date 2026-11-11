@@ -99,6 +99,117 @@ Describe 'Packing a zip' {
     }
 }
 
+Describe 'The release version a build stamps' {
+    # The version Directory.Build.props stamps, from a copy of that file beside $Manifest. -Missing leaves the file absent.
+    BeforeAll {
+        function Get-StampedVersion {
+            param([string] $Manifest, [switch] $Missing)
+            $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+            New-Item -ItemType Directory -Path (Join-Path $root 'proj') | Out-Null
+            Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../../Directory.Build.props') -Destination (Join-Path $root 'Directory.Build.props')
+            if (-not $Missing) {
+                Set-Content -LiteralPath (Join-Path $root '.release-please-manifest.json') -Value $Manifest -NoNewline
+            }
+            $proj = Join-Path $root 'proj/version.proj'
+            @'
+<Project>
+  <Import Project="..\Directory.Build.props" />
+  <Target Name="Print">
+    <Message Importance="high" Text="VERSION=[$(Version)]" />
+  </Target>
+</Project>
+'@ | Set-Content -LiteralPath $proj
+            $out = & dotnet msbuild $proj -t:Print -nologo -v:m 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 0) { throw "msbuild failed: $out" }
+            if ($out -notmatch 'VERSION=\[([^\]]*)\]') { throw "msbuild printed no version: $out" }
+            $Matches[1]
+        }
+    }
+
+    It 'is the manifest''s "." property, not the first number in the file' {
+        Get-StampedVersion '{ "other": "9.9.9", ".": "1.2.3-beta.1" }' | Should -Be '1.2.3-beta.1'
+    }
+
+    It 'is 0.0.0-dev when the manifest cannot be read' {
+        Get-StampedVersion -Missing | Should -Be '0.0.0-dev'
+        Get-StampedVersion '{ "other": "9.9.9" }' | Should -Be '0.0.0-dev'
+    }
+
+    It 'matches the release the scripts read from this checkout' {
+        $manifest = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../.release-please-manifest.json')
+        Get-StampedVersion $manifest | Should -Be (Get-ReleaseVersion)
+    }
+}
+
+Describe 'The release the scripts read' {
+    It 'is the manifest''s "." property, not the first number in the file' {
+        $root = Join-Path $TestDrive 'repo'
+        $lib = Join-Path $root 'scripts/lib/Release.ps1'
+        New-Item -ItemType Directory -Path (Split-Path -Parent $lib) -Force | Out-Null
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../../scripts/lib/Release.ps1') -Destination $lib
+        Set-Content -LiteralPath (Join-Path $root '.release-please-manifest.json') -Value '{ "other": "9.9.9", ".": "1.2.3-beta.1" }' -NoNewline
+        $env:WINSHELL_RELEASE_LIB = $lib
+        try {
+            $version = (& pwsh -NoProfile -Command '. $env:WINSHELL_RELEASE_LIB; Get-ReleaseVersion' | Out-String).Trim()
+        } finally {
+            Remove-Item Env:\WINSHELL_RELEASE_LIB
+        }
+        $version | Should -Be '1.2.3-beta.1'
+    }
+}
+
+Describe 'The Store test identity' {
+    It 'is Winshell.Test published by CN=Winshell Test until Partner Center sets one' {
+        $identity = Get-StoreTestIdentity
+        $identity.Name | Should -Be 'Winshell.Test'
+        $identity.Publisher | Should -Be 'CN=Winshell Test'
+    }
+}
+
+Describe 'The product name' {
+    It 'is Winshell, the name the build stamps and the Store manifest is filled with' {
+        Get-ProductName | Should -Be 'Winshell'
+        $template = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../packaging/msix/AppxManifest.xml')
+        $filled = Expand-StoreManifest $template 'Winshell.Test' 'CN=Winshell Test' 'Dante Sparrås' '1.2.3.0' 'x64' (Get-ProductName)
+        @([regex]::Matches($filled, '<DisplayName>([^<]*)</DisplayName>') | ForEach-Object { $_.Groups[1].Value }) |
+            Should -Be (Get-ProductName)
+        $named = @([regex]::Matches($filled, 'DisplayName="([^"]*)"') | ForEach-Object { $_.Groups[1].Value })
+        $named | Should -HaveCount 2
+        $named | Select-Object -Unique | Should -Be (Get-ProductName)
+        $filled | Should -Match 'Application Id="Winshell"'
+        $filled | Should -Match 'TaskId="Winshell"'
+    }
+
+    It 'is the shortcut description the shipped installer gets, and the product SignPath is given' {
+        $source = Join-Path $PSScriptRoot '../../scripts/install.ps1'
+        $released = Get-ReleasedInstallScript (Get-ProductName)
+        ([regex]::Match($released, '\$link\.Description = ''([^'']*)''').Groups[1].Value) | Should -Be (Get-ProductName)
+        $released | Should -Be ([IO.File]::ReadAllText($source))
+        [xml] $signing = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../packaging/signpath/artifact-configuration.xml')
+        $signing.'artifact-configuration'.'zip-file'.'pe-file-set'.'product-name' | Should -Be '${product}'
+        $workflow = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../.github/workflows/package.yml')
+        $workflow | Should -Match 'product=\$\(Get-ProductName\)'
+        $workflow | Should -Match 'steps\.product\.outputs\.product'
+    }
+
+    It 'replaces a shortcut description that is not the product name' {
+        $root = Join-Path $TestDrive 'repo'
+        New-Item -ItemType Directory -Path (Join-Path $root 'scripts/lib') -Force | Out-Null
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../../scripts/lib/Release.ps1') -Destination (Join-Path $root 'scripts/lib/Release.ps1')
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../../scripts/install.ps1') -Destination (Join-Path $root 'scripts/install.ps1')
+        $install = Join-Path $root 'scripts/install.ps1'
+        (Get-Content -Raw -LiteralPath $install).Replace("`$link.Description = 'Winshell'", "`$link.Description = 'Other'") |
+            Set-Content -LiteralPath $install -NoNewline
+        @'
+. ./scripts/lib/Release.ps1
+Get-ReleasedInstallScript 'Winshell'
+'@ | Set-Content -LiteralPath (Join-Path $root 'probe.ps1')
+        Push-Location $root
+        try { $released = (& pwsh -NoProfile -File .\probe.ps1 | Out-String) } finally { Pop-Location }
+        ([regex]::Match($released, '\$link\.Description = ''([^'']*)''').Groups[1].Value) | Should -Be 'Winshell'
+    }
+}
+
 Describe 'Reading a PE header' {
     It 'finds the machine and subsystem .NET reads from this PowerShell' {
         $path = (Get-Process -Id $PID).Path

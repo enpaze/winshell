@@ -48,8 +48,10 @@ if (-not $Publish -and -not $Pack -and -not $Verify) { $Publish = $true; $Pack =
 if (-not $Version) { $Version = Get-ReleaseVersion }
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "Version must be major.minor.patch, not '$Version'" }
 if ($Tag -and $Tag -cne "v$Version") { throw "The checkout is version $Version, not the release $Tag." }
-if (-not $IdentityName) { $IdentityName = 'Winshell.Test' }
-if (-not $Publisher) { $Publisher = 'CN=Winshell Test' }
+$product = Get-ProductName
+$testIdentity = Get-StoreTestIdentity
+if (-not $IdentityName) { $IdentityName = $testIdentity.Name }
+if (-not $Publisher) { $Publisher = $testIdentity.Publisher }
 $publisherName = 'Dante Sparrås'
 if (-not $PublisherDisplayName) { $PublisherDisplayName = $publisherName }
 $Out = [IO.Path]::GetFullPath($Out, $root)
@@ -219,7 +221,7 @@ PackageLocale: en-US
 Publisher: $publisherName
 PublisherUrl: https://github.com/enpaze
 PublisherSupportUrl: https://github.com/$Repository/issues
-PackageName: Winshell
+PackageName: $product
 PackageUrl: https://github.com/$Repository
 License: MIT
 LicenseUrl: https://github.com/$Repository/blob/main/LICENSE
@@ -239,7 +241,16 @@ ManifestType: defaultLocale
 ManifestVersion: $schema
 "@ | Set-Content -LiteralPath (Join-Path $wingetDir "$id.locale.en-US.yaml")
     New-Zip $wingetDir (Join-Path $Out 'winget-manifests.zip') $releaseDay
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'install.ps1'), (Join-Path $PSScriptRoot 'uninstall.ps1') -Destination $Out
+    $installSource = Join-Path $PSScriptRoot 'install.ps1'
+    $releasedInstall = Get-ReleasedInstallScript $product
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'uninstall.ps1') -Destination $Out
+    if ($releasedInstall -ceq [IO.File]::ReadAllText($installSource)) {
+        Copy-Item -LiteralPath $installSource -Destination $Out
+    } else {
+        $bytes = [IO.File]::ReadAllBytes($installSource)
+        $bom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+        [IO.File]::WriteAllText((Join-Path $Out 'install.ps1'), $releasedInstall, [Text.UTF8Encoding]::new($bom))
+    }
 
     # The Microsoft Store package: one .msix per architecture, bundled. The Store signs it.
     $makeappx = Get-WindowsSdkTool makeappx.exe
@@ -252,11 +263,7 @@ ManifestVersion: $schema
         if (Test-Path -LiteralPath $layout) { Remove-Item -LiteralPath $layout -Recurse -Force }
         Copy-Item -LiteralPath (Join-Path $publishRoot $rid) -Destination $layout -Recurse
         Copy-Item -LiteralPath (Join-Path $root 'packaging/msix/Assets') -Destination (Join-Path $layout 'Assets') -Recurse
-        $manifest = $template.Replace('$(IdentityName)', [Security.SecurityElement]::Escape($IdentityName)).
-            Replace('$(Publisher)', [Security.SecurityElement]::Escape($Publisher)).
-            Replace('$(PublisherDisplayName)', [Security.SecurityElement]::Escape($PublisherDisplayName)).
-            Replace('$(PackageVersion)', (Get-PackageVersion)).
-            Replace('$(Architecture)', ($rid -replace '^win-', ''))
+        $manifest = Expand-StoreManifest $template $IdentityName $Publisher $PublisherDisplayName (Get-PackageVersion) ($rid -replace '^win-', '') $product
         Set-Content -LiteralPath (Join-Path $layout 'AppxManifest.xml') -Value $manifest -NoNewline
         & $makeappx pack /o /h SHA256 /d $layout /p (Join-Path $packages "winshell-$Version-$rid.msix") | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "makeappx pack for $rid failed with $LASTEXITCODE" }
@@ -318,8 +325,8 @@ if ($Verify) {
         if (-not $ownBinaries) { throw "packaging/signpath/artifact-configuration.xml signs nothing in $rid" }
         foreach ($binary in $ownBinaries) {
             $info = (Get-Item -LiteralPath (Join-Path $dir $binary)).VersionInfo
-            if ($info.ProductName -cne 'Winshell' -or $info.ProductVersion -notmatch "^$([regex]::Escape($Version))(\+|$)") {
-                throw "$binary in $name is product '$($info.ProductName)' $($info.ProductVersion), not Winshell $Version"
+            if ($info.ProductName -cne $product -or $info.ProductVersion -notmatch "^$([regex]::Escape($Version))(\+|$)") {
+                throw "$binary in $name is product '$($info.ProductName)' $($info.ProductVersion), not $product $Version"
             }
         }
         if ($Signed) {
