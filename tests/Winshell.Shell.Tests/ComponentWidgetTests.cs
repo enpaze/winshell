@@ -9,7 +9,7 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
-/// <summary>A widget can be a Reactor component, placed by name beside a plain control.</summary>
+/// <summary>A widget is a Reactor component, placed by name in an area or a bar.</summary>
 public sealed class ComponentWidgetTests
 {
     [Fact]
@@ -125,7 +125,7 @@ public sealed class ComponentWidgetTests
         {
             var name = Guid.NewGuid().ToString();
             var survivor = "survivor" + name;
-            Widgets.Register(survivor, _ => new TextBlock { Text = "survivor" });
+            Widgets.Register<SurvivorWidget>(survivor);
             Widgets.Register<ThrowingWidget>(name);
             using var area = new WidgetArea { Name = "end", Defaults = [new(survivor), new(name)] };
             using var window = new PanelWindow { Width = 280, Height = 90, Content = area, Visible = true };
@@ -283,6 +283,41 @@ public sealed class ComponentWidgetTests
             for (var i = 0; i < count; i++)
                 Walk(VisualTreeHelper.GetChild(node, i));
         }
+    }
+
+    [Fact]
+    [Trait("Category", "Window")]
+    public async Task A_widget_reads_the_shell_window_its_area_is_in()
+    {
+        await ShellFixture.On(async _ =>
+        {
+            var name = Guid.NewGuid().ToString();
+            WindowWidget.Seen = null;
+            Widgets.Register<WindowWidget>(name);
+            using var area = new WidgetArea { Defaults = [name] };
+            using var window = new PanelWindow { Width = 160, Height = 48, Content = area, Visible = true };
+            await ShellFixture.LaidOut(area).WaitAsync(TestContext.Current.CancellationToken);
+            await Wait.UntilAsync(() => WindowWidget.Seen == window, "the widget to be told its window");
+            return true;
+        });
+    }
+
+    /// <summary>Records the window its area is drawn in.</summary>
+    private sealed class WindowWidget : Component<WidgetContext>
+    {
+        public static ShellWindow? Seen;
+
+        public override Element Render()
+        {
+            Seen = Props.Window;
+            return TextBlock("window");
+        }
+    }
+
+    /// <summary>A line of text that stays while the placement beside it fails.</summary>
+    private sealed class SurvivorWidget : Component<WidgetContext>
+    {
+        public override Element Render() => TextBlock("survivor");
     }
 
     /// <summary>Shows its <c>text</c> setting and a button, so a test can see the controls a placement rendered.</summary>

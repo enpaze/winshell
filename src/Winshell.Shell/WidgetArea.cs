@@ -6,9 +6,9 @@ namespace Winshell;
 
 /// <summary>
 /// An ordered area of widgets. Use it on the shell's thread and dispose it when its owner closes. Unloading or
-/// reparenting does not dispose widgets. The shell's <see cref="Shell.Style"/>, or the area's own, styles its plain
-/// controls; area-sensitive XAML uses ThemeResource.
-/// Set the inherited Name to make the area a component: its section of the shell's preferences file holds one
+/// reparenting does not dispose widgets. The shell's <see cref="Shell.Style"/>, or the area's own, styles the plain
+/// controls a widget renders; area-sensitive XAML uses ThemeResource.
+/// Set the inherited Name to give the area a section of the shell's preferences file. That section holds one
 /// <c>widgets</c> list, which replaces Defaults while the file has it. An empty name uses only Defaults.
 /// </summary>
 public sealed partial class WidgetArea : UserControl, IDisposable
@@ -22,6 +22,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     private ShellStyle? _style;
     private ResourceDictionary? _styleResources;
     private readonly List<ShownWidget> _shown = [];
+    private ShellWindow? _window;
     private bool _disposed;
 
     internal event Action? StyleChanged;
@@ -34,11 +35,12 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         LoadStyle(null);
         _shell.StyleChanged += FollowShellStyle;
         _nameChanged = RegisterPropertyChangedCallback(NameProperty, (_, _) => FollowName());
+        Loaded += (_, _) => FollowWindow();
     }
 
     /// <summary>
-    /// The layout direction. Changing it gives each placement the new orientation. A plain control is disposed and made
-    /// again. A component renders again with the new props.
+    /// The layout direction. Changing it gives each placement the new orientation, and a widget whose name stays
+    /// renders again with the new props.
     /// </summary>
     public Orientation Orientation
     {
@@ -54,10 +56,10 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     }
 
     /// <summary>
-    /// The author's ordered placements. Assigning a list snapshots it. A plain control is disposed and made again, and
-    /// a component whose name stays is rendered again with the new props. A different list of names disposes the
-    /// previous widgets and creates the new ones. This happens immediately unless the preferences file has a list for
-    /// this area's Name. To apply edits, assign the list again. Settings are passed through without copying.
+    /// The author's ordered placements. Assigning a list snapshots it. A widget whose name stays is rendered again
+    /// with the new props. A different list of names disposes the previous widgets and creates the new ones. This
+    /// happens immediately unless the preferences file has a list for this area's Name. To apply edits, assign the
+    /// list again. Settings are passed through without copying.
     /// </summary>
     public IReadOnlyList<Placement> Defaults
     {
@@ -138,8 +140,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
     }
 
     /// <summary>
-    /// Shows the placements. A component whose name stays is rendered again with the new props. A plain control is
-    /// disposed and made again. A disposed area makes none.
+    /// Shows the placements. A widget whose name stays is rendered again with the new props. A disposed area makes none.
     /// </summary>
     internal void Rebuild()
     {
@@ -155,6 +156,36 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         }
 
         ClearWidgets();
+        ShowAll(placements);
+    }
+
+    /// <summary>
+    /// Drops every widget and makes each placement again. An edit to a type the area is showing needs a new instance:
+    /// the edited methods already run, and what the constructor built does not.
+    /// </summary>
+    internal void Remake()
+    {
+        if (_disposed)
+            return;
+        ClearWidgets();
+        ShowAll((_override ?? _defaults).ToArray());
+    }
+
+    /// <summary>The shell window the area is drawn in, once it has one, so a widget can read that window's screen.</summary>
+    private void FollowWindow()
+    {
+        if (_disposed)
+            return;
+        var window = ShellWindow.Of(this);
+        if (ReferenceEquals(window, _window))
+            return;
+        _window = window;
+        foreach (var shown in _shown)
+            shown.ShowIn(window, Name);
+    }
+
+    private void ShowAll(Placement[] placements)
+    {
         foreach (var placement in placements)
         {
             var shown = Make(placement);
@@ -163,7 +194,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         }
     }
 
-    /// <summary>Renders a component again, or replaces a plain control, at one index.</summary>
+    /// <summary>Renders a widget again at one index, or replaces a placeholder that is not a component.</summary>
     private void UpdateShown(int index, Placement placement)
     {
         var shown = _shown[index];
@@ -181,7 +212,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
 
     private ShownWidget Make(Placement placement)
     {
-        var context = new WidgetContext(Shell.Current, this, SettingsOf(placement));
+        var context = new WidgetContext(Shell.Current, this, SettingsOf(placement), _window);
         UIElement widget;
         try
         {
@@ -210,7 +241,7 @@ public sealed partial class WidgetArea : UserControl, IDisposable
         Shell.DisposeEach(widgets);
     }
 
-    /// <summary>One placement currently on screen. A component renders again; a plain control is made again.</summary>
+    /// <summary>One placement currently on screen. A component renders again; a placeholder is made again.</summary>
     private sealed class ShownWidget(string name, WidgetContext context, UIElement control)
     {
         public string Name { get; } = name;
@@ -219,12 +250,18 @@ public sealed partial class WidgetArea : UserControl, IDisposable
 
         public UIElement Control { get; } = control;
 
-        /// <summary>Renders a component again. Returns false when the area must make a new plain control.</summary>
-        public bool TryShowAgain(IReadOnlyDictionary<string, object> settings, Orientation orientation, string area)
+        /// <summary>Renders a component again. Returns false when the area must make the placement again.</summary>
+        public bool TryShowAgain(IReadOnlyDictionary<string, object> settings, Orientation orientation, string area) =>
+            Show(Context.Next(settings, orientation), area);
+
+        /// <summary>Renders a component again in <paramref name="window"/>.</summary>
+        public void ShowIn(ShellWindow? window, string area) => Show(Context.In(window), area);
+
+        /// <summary>Renders a component with <paramref name="next"/>. A placeholder is not a component.</summary>
+        private bool Show(WidgetContext next, string area)
         {
             if (Control is not ComponentWidgetHost host)
                 return false;
-            var next = Context.Next(settings, orientation);
             Context = next;
             host.Show(next, area);
             return true;

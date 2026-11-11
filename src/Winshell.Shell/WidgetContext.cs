@@ -16,17 +16,18 @@ public sealed record Placement(string Widget, IReadOnlyDictionary<string, object
 }
 
 /// <summary>
-/// The props of one placement: the shell, the placement's settings and the area's orientation, plus the styling of a
-/// popup the widget opens. A component widget reads them as <c>Props</c>. A changed placement is a new value of this
-/// record, and the component renders again. A plain control receives the same value from its factory.
+/// The props of one placement: the shell, the shell window the area is drawn in, the placement's settings and the
+/// area's orientation, plus the styling of a popup the widget opens. A widget reads them as <c>Props</c>. A changed
+/// placement, or the area moving into a window, is a new value of this record, and the component renders again.
 /// </summary>
 public sealed record WidgetContext
 {
     private readonly PopupStyles _popups;
 
-    internal WidgetContext(Shell shell, WidgetArea area, IReadOnlyDictionary<string, object> settings)
+    internal WidgetContext(Shell shell, WidgetArea area, IReadOnlyDictionary<string, object> settings, ShellWindow? window)
     {
         Shell = shell;
+        Window = window;
         Orientation = area.Orientation;
         Settings = settings;
         _popups = new PopupStyles(area);
@@ -34,6 +35,12 @@ public sealed record WidgetContext
 
     /// <summary>The shell that owns the area.</summary>
     public Shell Shell { get; }
+
+    /// <summary>
+    /// The shell window this area is drawn in, and so the screen that window is on, or null before the area is in a
+    /// window. The area renders the widget again once it is.
+    /// </summary>
+    public ShellWindow? Window { get; internal init; }
 
     /// <summary>The direction in which the area arranges its placements.</summary>
     public Orientation Orientation { get; internal init; }
@@ -62,9 +69,12 @@ public sealed record WidgetContext
         return _popups.Wrap(content);
     }
 
-    /// <summary>The same placement with new settings and orientation. Popup styling stays with this placement.</summary>
+    /// <summary>The same placement with new settings and orientation. Popup styling and the window stay with it.</summary>
     internal WidgetContext Next(IReadOnlyDictionary<string, object> settings, Orientation orientation) =>
         this with { Settings = settings, Orientation = orientation };
+
+    /// <summary>The same placement drawn in <paramref name="window"/>. Popup styling stays with this placement.</summary>
+    internal WidgetContext In(ShellWindow? window) => this with { Window = window };
 
     internal void StopStyling() => _popups.Stop();
 
@@ -142,6 +152,6 @@ public sealed record WidgetContext
     }
 }
 
-/// <summary>A widget factory throws this with the reason it cannot run in this placement.</summary>
+/// <summary>A widget throws this with the reason it cannot run in this placement.</summary>
 /// <param name="message">The reason shown beside the widget's name in the area's placeholder.</param>
 public sealed class UnsupportedWidgetException(string message) : Exception(message);

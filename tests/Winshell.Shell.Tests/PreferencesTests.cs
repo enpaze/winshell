@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Text;
+using Microsoft.UI.Reactor.Core;
+using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
@@ -260,7 +262,7 @@ public sealed class PreferencesTests
             var bar = "bar" + Guid.NewGuid().ToString("N");
             var name = "area" + Guid.NewGuid().ToString("N");
             var widget = Guid.NewGuid().ToString();
-            Widgets.Register(widget, _ => new Microsoft.UI.Xaml.Controls.TextBlock { Text = "default" });
+            Widgets.Register<DefaultWidget>(widget);
             try
             {
                 using var own = new Own();
@@ -548,5 +550,11 @@ public sealed class PreferencesTests
             Assert.Contains($"[{bar}]\n\n# top, bottom, left or right.\n# edge = \"top\"\n", File.ReadAllText(path),
                 StringComparison.Ordinal);
         });
+    }
+
+    /// <summary>A placement the missing-file test names, so the area can write that name into the defaults.</summary>
+    private sealed class DefaultWidget : Component<WidgetContext>
+    {
+        public override Element Render() => TextBlock("default");
     }
 }

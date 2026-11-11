@@ -436,7 +436,7 @@ The docs are plain Markdown, read on GitHub or in an editor. `docs/agents/` is f
 
 - **A new reference page** goes into the list in `docs/reference/index.md`.
 - **Links between pages** are relative `.md` links, also to files outside `docs/`, such as `../CONTRIBUTING.md`. The `ci` job runs lychee offline over every Markdown file, with `--include-fragments`, and fails on a link to a file or a heading that isn't there.
-- **C# examples** in a `csharp` code block are checked by `DocsTests`: each one is text from `tests/Winshell.Shell.Tests/GuideSamples.cs`, which the test project builds.
+- **C# examples** in a `csharp` code block are checked by `DocsTests`: each one is text from a file the build compiles. Those files are `tests/Winshell.Shell.Tests/GuideSamples.cs`, which the test project builds, the template's `.cs` files in `templates/winshell`, which `scripts/build-template.ps1` builds, and the message-widget sample `docs/samples/message-widget/Message.cs`, which the solution builds.
 - **The reference** in `docs/reference/` has a page per namespace of the `Winshell` package (the public types of `Winshell.Shell`, `Winshell.Services` and `Winshell.Core`), `winshell.md` for `Winshell` and `winshell-<namespace>.md` for the others, starting with `# <namespace>` and an intro written by hand. `dotnet run scripts/generate-reference.cs` writes the rest, a `## Type` section for each public type with its members, from the `///` comments, and `DocsTests` fails when a page is not what it writes.
 - **Links to other sites** are checked by `links.yml`, on `main` and every Monday. That job isn't part of `check.ps1`.
 

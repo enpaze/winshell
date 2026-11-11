@@ -99,6 +99,17 @@ public static class GuideSamples
         return dock;
     }
 
+    public static void AMovedStyle(Shell shell)
+    {
+        shell.Style = new ShellStyle
+        {
+            Background = Color.FromArgb(255, 0x1a, 0x1b, 0x26),
+            Foreground = Color.FromArgb(255, 0xa9, 0xb1, 0xd6),
+            Alert = Color.FromArgb(255, 0xf7, 0x76, 0x8e),
+            FontFamily = new FontFamily("Segoe UI")
+        };
+    }
+
     public static void AStyle(Shell shell)
     {
         shell.Style = new ShellStyle

@@ -11,10 +11,9 @@ public sealed class ScreenWidget : Component<WidgetContext>
 {
     public override Element Render()
     {
-        var (window, setWindow) = UseState<ShellWindow?>(null);
-        if (window is null)
-            return LoadedWindow.Placeholder(setWindow);
-        return Component<Glyph, GlyphProps>(new(window, Props));
+        if (Props.Window is null)
+            return TextBlock("").IsVisible(false);
+        return Component<Glyph, GlyphProps>(new(Props.Window, Props));
     }
 
     private sealed record GlyphProps(ShellWindow Window, WidgetContext Context);
