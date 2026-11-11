@@ -51,18 +51,20 @@ internal sealed class FileWatch : IDisposable
             {
                 if (changedName.Equals(name, StringComparison.OrdinalIgnoreCase))
                     _loop.Post(arrived);
-            }, () => _loop.Post(() => Rewatch(generation)));
-        // The watch was queued before Existing was taken, so a name already there was not missed.
-        if (_watch is not null && Listed(_watch.Existing, name) && (parent || reportExistingFile))
+            }, () => _loop.Post(() => Lost(generation)));
+        // Existing was taken after the watch was queued, so a name already there was not missed.
+        if (_watch is not null && (parent || reportExistingFile) &&
+            _watch.Existing.Any(candidate => candidate.Equals(name, StringComparison.OrdinalIgnoreCase)))
             _loop.Post(arrived);
     }
 
-    private static bool Listed(IReadOnlyList<string> names, string name)
+    /// <summary>The folder went away or changes were dropped. Read the file, then watch again.</summary>
+    private void Lost(int generation)
     {
-        foreach (var candidate in names)
-            if (candidate.Equals(name, StringComparison.OrdinalIgnoreCase))
-                return true;
-        return false;
+        if (_disposed || generation != _generation)
+            return;
+        _changed();
+        Rewatch(generation);
     }
 
     /// <summary>Watches again after a watched folder appeared or the watch ended.</summary>

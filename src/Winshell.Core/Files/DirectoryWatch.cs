@@ -4,9 +4,10 @@ namespace Winshell;
 
 /// <summary>
 /// Watches one folder on a thread of its own. FileSystemWatcher delivers on thread pool workers, so a busy pool
-/// holds a change back. The first read is queued before <see cref="Start"/> returns, and <see cref="Existing"/>
-/// names what was already there, so a file made in that gap is not missed. That thread makes every read, because
-/// Windows cancels a read when the thread that made it ends. Callbacks run on the watch thread and must not block.
+/// holds a change back. The first read is queued before <see cref="Start"/> returns, then <see cref="Existing"/>
+/// is taken, so a name made in that gap is in the list or in the callback. That thread makes every read, because
+/// Windows cancels a read when the thread that made it ends, and it waits while the list is taken so a long list
+/// cannot overflow the read. Callbacks run on the watch thread and must not block.
 /// </summary>
 internal sealed class DirectoryWatch : IDisposable
 {
@@ -17,31 +18,24 @@ internal sealed class DirectoryWatch : IDisposable
     /// <summary>A file or folder was created, deleted or renamed.</summary>
     public const DirectoryChange NameChanges = DirectoryChange.FileName | DirectoryChange.FolderName;
 
-    private readonly string _path;
     private readonly DirectoryChanges _changes;
-    private readonly DirectoryChange _filter;
-    private readonly bool _subtree;
     private readonly Action<string> _changed;
     private readonly Action _lost;
-    private readonly ManualResetEventSlim _started = new(false);
+    private readonly ManualResetEventSlim _queued = new(false);
     private readonly Thread _thread;
     private bool _reading;
     private volatile bool _stopped;
     private int _disposed;
 
     /// <summary>
-    /// Names, relative to the folder, already there when the watch was queued. A name made after that arrives
-    /// through the callback.
+    /// Names, relative to the folder, taken after the watch was queued and before <see cref="Start"/> returns.
+    /// A name made after that arrives through the callback.
     /// </summary>
     internal IReadOnlyList<string> Existing { get; private set; } = [];
 
-    private DirectoryWatch(string path, DirectoryChanges changes, DirectoryChange filter, bool subtree,
-        Action<string> changed, Action lost)
+    private DirectoryWatch(DirectoryChanges changes, Action<string> changed, Action lost)
     {
-        _path = path;
         _changes = changes;
-        _filter = filter;
-        _subtree = subtree;
         _changed = changed;
         _lost = lost;
         _thread = new Thread(Run) { IsBackground = true, Name = "Directory watch" };
@@ -58,25 +52,31 @@ internal sealed class DirectoryWatch : IDisposable
     {
         if (DirectoryChanges.Open(path, filter, subtree) is not { } changes)
             return null;
-        var watch = new DirectoryWatch(path, changes, filter, subtree, changed, lost);
+        var watch = new DirectoryWatch(changes, changed, lost);
         watch._thread.Start();
-        // The thread queues the read and records what is already there before this returns.
-        watch._started.Wait();
+        // The thread only queues the read, then waits. This list runs while that wait drains the buffer.
+        watch._queued.Wait();
         if (!watch._reading)
         {
             watch.Dispose();
             return null;
         }
 
+        watch.Existing = ExistingNames(path, filter, subtree);
         return watch;
     }
 
     private void Run()
     {
-        _reading = _changes.Read();
-        if (_reading)
-            Existing = NamesThere(_path, _filter, _subtree);
-        _started.Set();
+        try
+        {
+            _reading = _changes.Read();
+        }
+        finally
+        {
+            _queued.Set();
+        }
+
         if (!_reading)
             return;
         var names = new List<string>();
@@ -109,14 +109,14 @@ internal sealed class DirectoryWatch : IDisposable
         }
     }
 
-    /// <summary>What <paramref name="filter"/> would already see under <paramref name="path"/>.</summary>
-    private static string[] NamesThere(string path, DirectoryChange filter, bool subtree)
+    /// <summary>Names <paramref name="filter"/> already matches under <paramref name="path"/>.</summary>
+    private static string[] ExistingNames(string path, DirectoryChange filter, bool subtree)
     {
         var option = subtree ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
         var names = new List<string>();
         try
         {
-            if ((filter & (DirectoryChange.FileName | DirectoryChange.Size | DirectoryChange.LastWrite)) != 0)
+            if ((filter & FileChanges) != 0)
                 foreach (var file in Directory.EnumerateFiles(path, "*", option))
                     names.Add(Path.GetRelativePath(path, file));
             if ((filter & DirectoryChange.FolderName) != 0)
@@ -125,7 +125,7 @@ internal sealed class DirectoryWatch : IDisposable
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            // Listing can stop early when the folder goes away. The queued read still reports a change, or ends the watch.
+            // Listing can stop early when the folder goes away. The watch thread still reports a change, or ends it.
         }
 
         return names.ToArray();
@@ -143,6 +143,6 @@ internal sealed class DirectoryWatch : IDisposable
         }
 
         _changes.Dispose();
-        _started.Dispose();
+        _queued.Dispose();
     }
 }
