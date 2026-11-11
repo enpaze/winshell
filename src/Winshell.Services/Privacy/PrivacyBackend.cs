@@ -74,7 +74,7 @@ internal sealed class PrivacyBackend : IPrivacyBackend
     private readonly Dictionary<string, string> _packageNames = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _gate = new();
     private readonly MicrophoneWatch _microphones;
-    private RegistryWatch? _store;
+    private RegistryWatch? _watch;
     private bool _watching;
     private bool _disposed;
     private int _loggedStore;
@@ -98,7 +98,7 @@ internal sealed class PrivacyBackend : IPrivacyBackend
             var paths = new string[Capabilities.Length];
             for (var i = 0; i < paths.Length; i++)
                 paths[i] = $@"{Store}\{Capabilities[i].Name}";
-            _store = new RegistryWatch(paths, OnStore);
+            _watch = new RegistryWatch(paths, OnStore);
         }
 
         _microphones.Start();
@@ -106,17 +106,17 @@ internal sealed class PrivacyBackend : IPrivacyBackend
 
     public void Stop()
     {
-        RegistryWatch? store;
+        RegistryWatch? watch;
         lock (_gate)
         {
             if (!_watching)
                 return;
             _watching = false;
-            store = _store;
-            _store = null;
+            watch = _watch;
+            _watch = null;
         }
 
-        store?.Dispose();
+        watch?.Dispose();
         _microphones.Stop();
     }
 
