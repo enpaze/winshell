@@ -10,11 +10,14 @@ namespace Winshell.Media;
 public sealed class MediaSession : ObservableObject
 {
     // Every public property, read through its getter, so a new one is raised without a second list. Position moves
-    // with the clock between reports, so only Seeked raises it. Length does too while the app reports none.
+    // with the clock between reports, so only Seeked raises it. Length does too while the app reports none, and
+    // that pass records the value it published.
     private static readonly PropertyInfo[] Reported = typeof(MediaSession)
         .GetProperties(BindingFlags.Public | BindingFlags.Instance)
         .Where(static property => property.Name != nameof(Position))
         .ToArray();
+
+    private static readonly int LengthReport = Array.FindIndex(Reported, static property => property.Name == nameof(Length));
 
     private readonly SmtcSession _session;
     private readonly IEventLoop _loop;
@@ -393,7 +396,10 @@ public sealed class MediaSession : ObservableObject
     public void RefreshPosition()
     {
         Changed(nameof(Position));
-        Changed(!_session.LengthSupported, nameof(Length));
+        if (_session.LengthSupported)
+            return;
+        Changed(nameof(Length));
+        _reported[LengthReport] = Length;
     }
 
     internal void Detach()
@@ -449,17 +455,15 @@ public sealed class MediaSession : ObservableObject
     {
         var was = _reported;
         _reported = Snapshot();
+        // Length is the moving position while the app reports none. Seeked publishes that and records it.
+        if (!LengthSupported)
+            _reported[LengthReport] = was[LengthReport];
         var newTrack = _track != UniqueId;
         _track = UniqueId;
         if (newTrack)
             TrackChanged?.Invoke();
         for (var i = 0; i < Reported.Length; i++)
-        {
-            // Seeked raises Length while the app reports none, because that value is the moving position.
-            if (Reported[i].Name == nameof(Length) && !LengthSupported)
-                continue;
             Changed(!Same(was[i], _reported[i]), Reported[i].Name);
-        }
 
         if (newTrack)
             PostTrackChanged?.Invoke();
