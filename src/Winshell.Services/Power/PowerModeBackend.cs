@@ -30,18 +30,6 @@ internal interface IPowerModeBackend : IDisposable
 /// <param name="log">Where a failed power mode callback is reported.</param>
 internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
 {
-    /// <summary><c>GUID_POWER_MODE_BEST_EFFICIENCY</c>.</summary>
-    private static readonly Guid BestEfficiency = new("961cc777-2547-4f9d-8174-7d86181b8a7a");
-
-    /// <summary><c>GUID_POWER_MODE_BEST_PERFORMANCE</c>.</summary>
-    private static readonly Guid BestPerformance = new("ded574b5-45a0-4f42-8737-46345c09c238");
-
-    /// <summary>
-    /// <c>GUID_POWER_MODE_PERFORMANCE</c>, which Windows documents as deprecated. It is a performance
-    /// mode, so a read reports Best performance. A write never sends it.
-    /// </summary>
-    private static readonly Guid DeprecatedPerformance = new("3af9b8d9-7c97-431d-ad78-34a8bfea439f");
-
     private int _effective = (int)EffectivePowerMode.Balanced;
     private bool _watching;
 
@@ -67,14 +55,16 @@ internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
         }
 
         var effective = EffectiveFrom(Volatile.Read(ref _effective));
-        return PowerMode.GetUserConfigured(PowerSupply.OnBattery(), out var guid) == 0
+        var onBattery = PowerBackend.ReadReported().OnBattery;
+        return PowerMode.GetUserConfigured(onBattery, out var guid) == 0
             ? new PowerModeSnapshot(true, FromGuid(guid), effective, true)
             : new PowerModeSnapshot(true, PowerModeLevel.Balanced, effective, false);
     }
 
     public uint Set(PowerModeLevel mode)
     {
-        var result = PowerMode.SetUserConfigured(PowerSupply.OnBattery(), ToGuid(mode));
+        var onBattery = PowerBackend.ReadReported().OnBattery;
+        var result = PowerMode.SetUserConfigured(onBattery, ToGuid(mode));
         Changed?.Invoke();
         return result;
     }
@@ -86,11 +76,15 @@ internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
         _watching = false;
     }
 
+    /// <summary>
+    /// The slider GUID Windows returned. The deprecated performance GUID is best performance, and a write never sends
+    /// it. Anything else, including an empty GUID, is Balanced.
+    /// </summary>
     internal static PowerModeLevel FromGuid(Guid guid)
     {
-        if (guid == BestEfficiency)
+        if (guid == PowerMode.BestEfficiency)
             return PowerModeLevel.BestEfficiency;
-        if (guid == BestPerformance || guid == DeprecatedPerformance)
+        if (guid == PowerMode.BestPerformance || guid == PowerMode.DeprecatedPerformance)
             return PowerModeLevel.BestPerformance;
         return PowerModeLevel.Balanced;
     }
@@ -99,8 +93,8 @@ internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
     {
         return mode switch
         {
-            PowerModeLevel.BestEfficiency => BestEfficiency,
-            PowerModeLevel.BestPerformance => BestPerformance,
+            PowerModeLevel.BestEfficiency => PowerMode.BestEfficiency,
+            PowerModeLevel.BestPerformance => PowerMode.BestPerformance,
             _ => Guid.Empty
         };
     }
