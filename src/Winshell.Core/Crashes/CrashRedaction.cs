@@ -26,11 +26,10 @@ internal static partial class CrashRedaction
         return text;
     }
 
-    // scheme://user:password@host
     [GeneratedRegex(@"(?<scheme>\b[a-z][a-z0-9+.\-]*://)[^/\s:@""'<>]+(?::[^/\s@""'<>]*)?@", RegexOptions.IgnoreCase)]
     private static partial Regex UrlUserInfo();
 
-    // Every query of a URL: its values are where links carry keys and signatures.
+    // Query values are where links carry keys and signatures.
     [GeneratedRegex(@"(?<url>\b[a-z][a-z0-9+.\-]*://[^\s?#""'<>]*)\?[^\s#""'<>]*", RegexOptions.IgnoreCase)]
     private static partial Regex UrlQuery();
 
@@ -57,7 +56,6 @@ internal static partial class CrashRedaction
         RegexOptions.IgnoreCase)]
     private static partial Regex Assignment();
 
-    // Keys whose prefix gives them away: GitHub, Slack, OpenAI-style and AWS access keys.
     [GeneratedRegex(
         @"\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[abprs]-[A-Za-z0-9\-]{10,}|sk-[A-Za-z0-9\-_]{16,}|AKIA[A-Z0-9]{16})\b")]
     private static partial Regex KnownTokenShape();
@@ -75,7 +73,6 @@ internal static partial class CrashRedaction
                run.Count(c => c == '-') <= 2;
     }
 
-    // 40 or more letters, digits, dashes and underscores in a row.
     [GeneratedRegex(@"[A-Za-z0-9_\-]{40,}")]
     private static partial Regex LongOpaque();
 }

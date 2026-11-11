@@ -119,7 +119,7 @@ internal static class AtomicFile
 
     private static void WriteText(string path, string text, bool bom)
     {
-        // Flush to disk before a later rename. A power loss after WriteAllText can leave an empty file.
+        // A power loss after WriteAllText can leave an empty file.
         var encoding = new UTF8Encoding(bom);
         using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read);
         using (var writer = new StreamWriter(stream, encoding, leaveOpen: true))

@@ -109,7 +109,6 @@ internal sealed partial class CrashReports
         }
     }
 
-    /// <summary>Writes the record, or returns false when a hand save landed and the file was left as it is.</summary>
     private static void Put(string stateFile, DateTimeOffset? clean, string? shown, string? expected)
     {
         // Edit the file that is there. A file that is not TOML is replaced with the record alone.
