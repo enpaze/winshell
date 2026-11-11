@@ -16,7 +16,7 @@ internal sealed class FakeAudioGraph : IAudioGraph
 
     public AudioGraphNode? DefaultRecording { get; private set; }
 
-    public List<AudioGraphNode> DefaultsAsked { get; } = [];
+    public List<string> DefaultsAsked { get; } = [];
 
     public event Action<AudioGraphNode>? NodeAdded;
 
@@ -24,9 +24,9 @@ internal sealed class FakeAudioGraph : IAudioGraph
 
     public event Action? DefaultsChanged;
 
-    public void SetDefault(AudioGraphNode node)
+    public void SetDefault(string endpointId)
     {
-        DefaultsAsked.Add(node);
+        DefaultsAsked.Add(endpointId);
     }
 
     public void Dispose()

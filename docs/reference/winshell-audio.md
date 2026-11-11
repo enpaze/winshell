@@ -49,7 +49,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `IsSession` | bool, read-only | True for an app's audio session, false for a device. |
 | `Muted` | bool | Whether the device or session is muted. Setting it mutes or unmutes it in Windows. |
 | `Name` | string, read-only | For a device, the Windows endpoint id. For a session, the program's file name without `.exe`, or `system-sounds`. |
-| `Properties` | IReadOnlyDictionary of string, string, read-only | More about the node. A device has `endpointId`, `friendlyName`, `interfaceName`, `flow`, `adapter`, `icon` and `formFactor`. A session has `sessionId`, `friendlyName`, `flow`, `appName`, `icon`, `processId` and `processName`. |
+| `Properties` | IReadOnlyDictionary of string, string, read-only | More about the node. AudioProperty holds the keys. A device has `endpointId`, `friendlyName`, `interfaceName`, `flow`, `adapter`, `icon` and `formFactor`. A session has `sessionId`, `friendlyName`, `flow`, `appName`, `icon`, `processId` and `processName`. |
 | `Volume` | double | The average of the channels, from 0 to 1: the slider position the Windows volume flyout shows. Setting it keeps the balance between channels. Windows cannot go above 1. |
 | `Volumes` | IReadOnlyList of double | The volume of each channel, from 0 to 1. A list of a different length sets every channel to its first entry. A session has one volume in Windows, so every entry shows it, and setting this sets it to their average. |
 
@@ -68,6 +68,24 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Peak` | double, read-only | The highest of Peaks, from 0 to 1. |
 | `Peaks` | IReadOnlyList of double, read-only | The peak of each channel since the last read, from 0 to 1. |
 | `Dispose()` | void | Stops reading the meter and closes the recording stream it keeps open. |
+
+## AudioProperty
+
+The keys of AudioNode.Properties. A device, a session and a shell read this one list, and the spellings do not change.
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `Adapter` | string, static | The adapter a device is on (`adapter`). |
+| `AppName` | string, static | The program a session belongs to (`appName`). |
+| `EndpointId` | string, static | A device's Windows endpoint id (`endpointId`). |
+| `Flow` | string, static | `playback` or `recording` (`flow`). |
+| `FormFactor` | string, static | A device's shape, such as `speaker` or `headphone` (`formFactor`). |
+| `FriendlyName` | string, static | The name to show (`friendlyName`). |
+| `Icon` | string, static | An icon name, or a program's path for a session (`icon`). |
+| `InterfaceName` | string, static | The description Windows gives a device (`interfaceName`). |
+| `ProcessId` | string, static | The process id of a session's program (`processId`). |
+| `ProcessName` | string, static | The file name of a session's program (`processName`). |
+| `SessionId` | string, static | A session's Windows id (`sessionId`). |
 
 ## AudioService
 

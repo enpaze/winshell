@@ -19,5 +19,5 @@ internal interface IAudioGraph : IDisposable
 
     event Action? DefaultsChanged;
 
-    void SetDefault(AudioGraphNode node);
+    void SetDefault(string endpointId);
 }

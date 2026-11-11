@@ -23,7 +23,6 @@ internal sealed class EndpointNode : AudioGraphNode
     {
         _graph = graph;
         _device = device;
-        DeviceId = deviceId;
         Type = render ? AudioNodeType.PlaybackDevice : AudioNodeType.RecordingDevice;
         Name = deviceId;
         device.OpenPropertyStore(0, out var store);
@@ -35,13 +34,13 @@ internal sealed class EndpointNode : AudioGraphNode
             var formFactor = PropertyStore.ReadUInt(store, CoreAudio.EndpointFormFactor);
             Properties = new Dictionary<string, string>
             {
-                ["endpointId"] = Name,
-                ["friendlyName"] = Description,
-                ["interfaceName"] = InterfaceName,
-                ["flow"] = render ? "playback" : "recording",
-                ["adapter"] = PropertyStore.ReadString(store, CoreAudio.InterfaceFriendlyName) ?? Description,
-                ["icon"] = IconName(formFactor, render),
-                ["formFactor"] = FormFactorName(formFactor)
+                [AudioProperty.EndpointId] = Name,
+                [AudioProperty.FriendlyName] = Description,
+                [AudioProperty.InterfaceName] = InterfaceName,
+                [AudioProperty.Flow] = render ? "playback" : "recording",
+                [AudioProperty.Adapter] = PropertyStore.ReadString(store, CoreAudio.InterfaceFriendlyName) ?? Description,
+                [AudioProperty.Icon] = IconName(formFactor, render),
+                [AudioProperty.FormFactor] = FormFactorName(formFactor)
             };
             format = PropertyStore.ReadBlob(store, CoreAudio.EngineDeviceFormat);
         }
@@ -66,8 +65,6 @@ internal sealed class EndpointNode : AudioGraphNode
             throw;
         }
     }
-
-    public string DeviceId { get; }
 
     public List<SessionNode> Sessions { get; } = [];
 
@@ -94,9 +91,9 @@ internal sealed class EndpointNode : AudioGraphNode
     {
         if (volumes.Count == 0 || Released)
             return;
-        var context = AudioGraph.Context;
+        var context = Guid.Empty;
         // Equal channels are the same value being set, so one master volume applies.
-        if (volumes.All(v => v == volumes[0]) || volumes.Count != Channels.Length)
+        if (volumes.All(v => v == volumes[0]))
             _volume.SetMasterVolumeLevelScalar(Math.Clamp(volumes[0], 0, 1), ref context);
         else
             for (var i = 0; i < volumes.Count; i++)
@@ -108,7 +105,7 @@ internal sealed class EndpointNode : AudioGraphNode
     {
         if (Released)
             return;
-        var context = AudioGraph.Context;
+        var context = Guid.Empty;
         _volume.SetMute(muted, ref context);
         ReadVolume();
     }

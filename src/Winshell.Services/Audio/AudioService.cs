@@ -62,9 +62,10 @@ public sealed class AudioNode : ObservableObject
     public bool Active => Read(_active);
 
     /// <summary>
-    /// More about the node. A device has <c>endpointId</c>, <c>friendlyName</c>, <c>interfaceName</c>, <c>flow</c>,
-    /// <c>adapter</c>, <c>icon</c> and <c>formFactor</c>. A session has <c>sessionId</c>, <c>friendlyName</c>,
-    /// <c>flow</c>, <c>appName</c>, <c>icon</c>, <c>processId</c> and <c>processName</c>.
+    /// More about the node. <see cref="AudioProperty"/> holds the keys. A device has <c>endpointId</c>,
+    /// <c>friendlyName</c>, <c>interfaceName</c>, <c>flow</c>, <c>adapter</c>, <c>icon</c> and <c>formFactor</c>.
+    /// A session has <c>sessionId</c>, <c>friendlyName</c>, <c>flow</c>, <c>appName</c>, <c>icon</c>,
+    /// <c>processId</c> and <c>processName</c>.
     /// </summary>
     public IReadOnlyDictionary<string, string> Properties => Read(_node).Properties;
 
@@ -85,8 +86,10 @@ public sealed class AudioNode : ObservableObject
         set
         {
             var old = Average(_volumes);
-            var factor = old == 0 ? 0 : value / old;
-            Apply(() => _node.SetVolumes([.. _node.Volumes.Select(v => (float)(factor == 0 ? value : v * factor))]));
+            if (old == 0)
+                SetLevels(Enumerable.Repeat(value, _volumes.Count).ToArray());
+            else
+                SetLevels([.. _volumes.Select(level => level * (value / old))]);
         }
     }
 
@@ -97,12 +100,7 @@ public sealed class AudioNode : ObservableObject
     public IReadOnlyList<double> Volumes
     {
         get => [.. Read(_volumes).Select(v => (double)v)];
-        set
-        {
-            // A configuration can pass null, so the setter keeps this guard.
-            var volumes = (value ?? []).Select(v => (float)Math.Max(0, v)).ToArray();
-            Apply(() => _node.SetVolumes(volumes));
-        }
+        set => SetLevels(value);
     }
 
     /// <summary>The speaker position of each entry of <see cref="Volumes"/>.</summary>
@@ -122,6 +120,22 @@ public sealed class AudioNode : ObservableObject
     private static double Average(IReadOnlyList<float> volumes)
     {
         return volumes.Count == 0 ? 0 : volumes.Average();
+    }
+
+    // A configuration can pass null, so a missing list changes nothing.
+    private void SetLevels(IReadOnlyList<double>? levels)
+    {
+        var count = _volumes.Count;
+        if (count == 0)
+            return;
+        var requested = levels ?? [];
+        if (requested.Count == 0)
+            return;
+
+        float[] next = requested.Count == count
+            ? [.. requested.Select(level => (float)Math.Max(0, level))]
+            : [.. Enumerable.Repeat((float)Math.Max(0, requested[0]), count)];
+        Apply(() => _node.SetVolumes(next));
     }
 
     private void Apply(Action change)
@@ -218,7 +232,7 @@ public sealed class AudioService : ObservableObject, IDisposable
             return;
         }
 
-        _graph.SetDefault(node.Node);
+        _graph.SetDefault(node.Name);
     }
 
     private void OnNodeChanged(AudioGraphNode _)

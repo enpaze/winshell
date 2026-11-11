@@ -20,9 +20,6 @@ internal sealed class AudioGraph : IAudioGraph
     private int _nextId = 1;
     private bool _disposed;
 
-    /// <summary>The event context Winshell's own volume changes carry.</summary>
-    public static readonly Guid Context = Guid.NewGuid();
-
     /// <summary>Reads the devices and starts hearing about changes to them. Call on the UI thread.</summary>
     public AudioGraph(IEventLoop loop, Log log)
     {
@@ -85,22 +82,17 @@ internal sealed class AudioGraph : IAudioGraph
         });
     }
 
-    /// <summary>Makes a device the Windows default for apps (the console and multimedia roles).</summary>
-    private void SetDefault(EndpointNode node)
+    void IAudioGraph.SetDefault(string endpointId)
     {
         try
         {
-            CoreAudio.SetDefaultEndpoint(node.DeviceId);
+            CoreAudio.SetDefaultEndpoint(endpointId);
         }
         catch (Exception e) when (e is COMException or InvalidCastException)
         {
-            _log.Warn("audio", $"Cannot set the default audio device to \"{node.Description}\": {e.Message}");
+            var name = _endpoints.GetValueOrDefault(endpointId)?.Description ?? endpointId;
+            _log.Warn("audio", $"Cannot set the default audio device to \"{name}\": {e.Message}");
         }
-    }
-
-    void IAudioGraph.SetDefault(AudioGraphNode node)
-    {
-        SetDefault((EndpointNode)node);
     }
 
     /// <summary>Stops hearing from Windows and releases every device and session. Call on the UI thread.</summary>

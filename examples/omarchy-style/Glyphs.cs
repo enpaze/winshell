@@ -78,7 +78,7 @@ internal static class Glyphs
     /// <summary>Headphones, or a speaker by volume, with a cross when muted or silent.</summary>
     public static string Audio(AudioNode device)
     {
-        var form = device.Properties.GetValueOrDefault("formFactor");
+        var form = device.Properties.GetValueOrDefault(AudioProperty.FormFactor);
         if (form is "headphone" or "headset")
             return Headphones;
         if (device.Muted)

@@ -28,6 +28,22 @@ public sealed class AudioServiceTests
     }
 
     [Fact]
+    public void Property_keys_keep_the_spellings_a_shell_reads()
+    {
+        Assert.Equal("endpointId", AudioProperty.EndpointId);
+        Assert.Equal("friendlyName", AudioProperty.FriendlyName);
+        Assert.Equal("interfaceName", AudioProperty.InterfaceName);
+        Assert.Equal("flow", AudioProperty.Flow);
+        Assert.Equal("adapter", AudioProperty.Adapter);
+        Assert.Equal("icon", AudioProperty.Icon);
+        Assert.Equal("formFactor", AudioProperty.FormFactor);
+        Assert.Equal("sessionId", AudioProperty.SessionId);
+        Assert.Equal("appName", AudioProperty.AppName);
+        Assert.Equal("processId", AudioProperty.ProcessId);
+        Assert.Equal("processName", AudioProperty.ProcessName);
+    }
+
+    [Fact]
     public void The_nodes_already_there_are_listed_and_a_session_knows_its_device()
     {
         var speaker = _graph.Add(new FakeAudioNode(AudioNodeType.PlaybackDevice, "Speakers"));
@@ -107,12 +123,14 @@ public sealed class AudioServiceTests
     [Fact]
     public void Setting_a_default_asks_Windows_and_shows_it_when_Windows_says_so()
     {
-        var speaker = _graph.Add(new FakeAudioNode(AudioNodeType.PlaybackDevice));
+        var speaker = _graph.Add(new FakeAudioNode(AudioNodeType.PlaybackDevice, "Endpoint"));
+        speaker.Rename("Speakers");
         using var audio = Service();
 
         audio.DefaultPlaybackDevice = audio.Nodes[0];
 
-        Assert.Same(speaker, Assert.Single(_graph.DefaultsAsked));
+        Assert.Equal("Endpoint", Assert.Single(_graph.DefaultsAsked));
+        Assert.Equal("Speakers", audio.Nodes[0].Description);
         Assert.Null(audio.DefaultPlaybackDevice);
     }
 
@@ -181,6 +199,32 @@ public sealed class AudioServiceTests
         audio.Nodes[0].Volumes = [-1, 0.5];
 
         Assert.Equal([0, 0.5], audio.Nodes[0].Volumes);
+    }
+
+    [Fact]
+    public void A_missing_or_empty_channel_list_leaves_the_levels()
+    {
+        var speaker = _graph.Add(new FakeAudioNode(AudioNodeType.PlaybackDevice));
+        speaker.SetAudio([0.25f, 0.5f], false);
+        using var audio = Service();
+        var levels = audio.Nodes[0];
+
+        levels.Volumes = null!;
+        Assert.Equal([0.25, 0.5], levels.Volumes);
+
+        levels.Volumes = [];
+        Assert.Equal([0.25, 0.5], levels.Volumes);
+    }
+
+    [Fact]
+    public void A_channel_list_of_another_length_sets_every_channel_to_its_first()
+    {
+        _graph.Add(new FakeAudioNode(AudioNodeType.PlaybackDevice));
+        using var audio = Service();
+
+        audio.Nodes[0].Volumes = [0.25, 0.5, 1];
+
+        Assert.Equal([0.25, 0.25], audio.Nodes[0].Volumes);
     }
 
     [Fact]
