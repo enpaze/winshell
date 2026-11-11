@@ -84,7 +84,8 @@ public sealed class WinlandServiceTests
         Assert.True(focused.Focused);
         Assert.True(focused.Active);
         Assert.True(focused.HasFullscreen);
-        Assert.Equal("1", focused.Address);
+        Assert.Equal("1", focused.Name);
+        Assert.Null(typeof(WinlandWorkspace).GetProperty("Address"));
 
         Assert.Same(service.Windows[0], service.ActiveWindow);
         Assert.True(service.ActiveWindow!.Activated);

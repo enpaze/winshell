@@ -334,142 +334,109 @@ public sealed class WinlandService : ObservableObject, IDisposable
         return true;
     }
 
-    private static JsonElement? ParseJson(string? reply)
-    {
-        if (string.IsNullOrWhiteSpace(reply))
-            return null;
-        try
-        {
-            using var doc = JsonDocument.Parse(reply);
-            return doc.RootElement.Clone();
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
-
-    // Events
-
     private void OnEvent(string name, string data)
     {
-        switch (name)
+        switch (ReadEvent(name, data))
         {
-            case "configreloaded":
+            case null:
+                break;
+            case WinlandProtocol.ConfigReloaded:
                 RefreshAll();
                 break;
-            case "monitoraddedv2":
+            case WinlandProtocol.MonitorAdded added:
                 {
-                    var args = ParseArgs(data, 3);
-                    var monitor = FindMonitor(args[1], true)!;
-                    monitor.UpdateInitial(Integer(args[0]) ?? -1, args[1], args[2]);
+                    var monitor = FindMonitor(added.Name, true)!;
+                    monitor.UpdateInitial(added.Id, added.Name, added.Description);
                     RefreshMonitors(false);
                     break;
                 }
-            case "monitorremoved":
-                if (FindMonitor(data, false) is { } removed)
-                    RemoveMonitor(removed);
+            case WinlandProtocol.MonitorRemoved removed:
+                if (FindMonitor(removed.Name, false) is { } gone)
+                    RemoveMonitor(gone);
                 break;
-            case "createworkspacev2":
+            case WinlandProtocol.WorkspaceCreated created:
                 {
-                    // id,name,monitor
-                    var args = ParseArgs(data, 3);
-                    var existed = FindWorkspace(args[1], args[2], false) is not null;
-                    var workspace = FindWorkspace(args[1], args[2], true, WorkspaceId(args[0], args[1]))!;
-                    workspace.SetId(WorkspaceId(args[0], args[1]));
+                    var existed = FindWorkspace(created.Name, created.Monitor, false) is not null;
+                    var workspace = FindWorkspace(created.Name, created.Monitor, true, created.Id)!;
+                    workspace.SetId(created.Id);
                     if (!existed)
                         RefreshWorkspaces(false);
                     break;
                 }
-            case "destroyworkspacev2":
+            case WinlandProtocol.WorkspaceDestroyed destroyed:
                 {
-                    var args = ParseArgs(data, 3);
-                    if (FindWorkspace(args[1], args[2], false) is { } workspace)
+                    if (FindWorkspace(destroyed.Name, destroyed.Monitor, false) is { } workspace)
                         RemoveWorkspace(workspace);
                     if (_monitorList.Any(m => m.ActiveWorkspace is null))
                         RefreshMonitors(false);
                     break;
                 }
-            case "focusedmon":
+            case WinlandProtocol.MonitorFocused focused:
                 {
-                    // monitor,workspace name
-                    var args = ParseArgs(data, 2);
-                    var monitor = FindMonitor(args[0], true)!;
-                    var workspace = args[1] == "?" ? null : FindWorkspace(args[1], args[0], false);
+                    var monitor = FindMonitor(focused.Monitor, true)!;
+                    var workspace = focused.Workspace is null
+                        ? null
+                        : FindWorkspace(focused.Workspace, focused.Monitor, false);
                     SetFocusedMonitor(monitor);
                     monitor.SetActiveWorkspace(workspace);
                     break;
                 }
-            case "workspacev2":
+            case WinlandProtocol.WorkspaceShown shown:
                 {
-                    // id,name,monitor: Winland names the Monitor whose shown Workspace changed.
-                    var args = ParseArgs(data, 3);
-                    var monitor = args[2].Length > 0 ? FindMonitor(args[2], true) : _focusedMonitor;
+                    var monitor = shown.Monitor.Length > 0 ? FindMonitor(shown.Monitor, true) : _focusedMonitor;
                     if (monitor is not null)
-                        monitor.SetActiveWorkspace(
-                            FindWorkspace(args[1], monitor.Name, true, WorkspaceId(args[0], args[1])));
+                        monitor.SetActiveWorkspace(FindWorkspace(shown.Name, monitor.Name, true, shown.Id));
                     break;
                 }
-            case "moveworkspacev2":
+            case WinlandProtocol.WorkspaceMoved moved:
                 {
-                    // id,name,monitor it moved to
-                    var args = ParseArgs(data, 3);
-                    var monitor = FindMonitor(args[2], true)!;
-                    var workspace = FindWorkspace(args[1], args[2], false)
-                                    ?? _workspaceList.FirstOrDefault(w => w.Name == args[1] && w.Monitor != monitor)
-                                    ?? FindWorkspace(args[1], args[2], true, WorkspaceId(args[0], args[1]))!;
+                    var monitor = FindMonitor(moved.Monitor, true)!;
+                    var workspace = FindWorkspace(moved.Name, moved.Monitor, false)
+                                    ?? _workspaceList.FirstOrDefault(w => w.Name == moved.Name && w.Monitor != monitor)
+                                    ?? FindWorkspace(moved.Name, moved.Monitor, true, moved.Id)!;
                     workspace.SetMonitor(monitor);
                     // The Workspace's number can change on its new Monitor, and the Monitors' shown Workspaces with it.
                     RefreshWorkspaces(false);
                     RefreshMonitors(false);
                     break;
                 }
-            case "fullscreen":
-                _focusedWorkspace?.SetHasFullscreen(data == "1");
+            case WinlandProtocol.FullscreenChanged fullscreen:
+                _focusedWorkspace?.SetHasFullscreen(fullscreen.Fullscreen);
                 RefreshWorkspaces(false);
                 break;
-            case "openwindow":
+            case WinlandProtocol.WindowOpened opened:
                 {
-                    // address,workspace,monitor,class,title
-                    var args = ParseArgs(data, 5);
-                    var address = ParseAddress(args[0]);
-                    if (address == 0)
+                    if (opened.Address == 0)
                         return;
-                    if (FindWorkspace(args[1], args[2], false) is not { } workspace)
+                    if (FindWorkspace(opened.Workspace, opened.Monitor, false) is not { } workspace)
                     {
-                        _log.Debug("winland", $"openwindow for workspace {args[1]} which was not previously tracked");
+                        _log.Debug("winland",
+                            $"openwindow for workspace {opened.Workspace} which was not previously tracked");
                         return;
                     }
 
-                    var window = FindWindow(address, true)!;
-                    window.SetTitle(args[4]);
+                    var window = FindWindow(opened.Address, true)!;
+                    window.SetTitle(opened.Title);
                     MoveWindow(window, workspace);
                     break;
                 }
-            case "closewindow":
-                if (FindWindow(ParseAddress(data), false) is { } closed)
-                    RemoveWindow(closed);
+            case WinlandProtocol.WindowClosed closed:
+                if (FindWindow(closed.Address, false) is { } closedWindow)
+                    RemoveWindow(closedWindow);
                 break;
-            case "movewindowv2":
-                {
-                    // address,id,name,monitor
-                    var args = ParseArgs(data, 4);
-                    if (FindWindow(ParseAddress(args[0]), false) is { } window
-                        && FindWorkspace(args[2], args[3], false) is { } workspace)
-                        MoveWindow(window, workspace);
-                    break;
-                }
-            case "windowtitlev2":
-                {
-                    var args = ParseArgs(data, 2);
-                    FindWindow(ParseAddress(args[0]), true)?.SetTitle(args[1]);
-                    break;
-                }
-            case "activewindowv2":
-                SetActiveWindow(FindWindow(ParseAddress(data), true));
+            case WinlandProtocol.WindowMoved movedWindow:
+                if (FindWindow(movedWindow.Address, false) is { } found
+                    && FindWorkspace(movedWindow.Workspace, movedWindow.Monitor, false) is { } destination)
+                    MoveWindow(found, destination);
                 break;
-            case "urgent":
-                FindWindow(ParseAddress(data), true)?.SetUrgent(true);
+            case WinlandProtocol.WindowTitleChanged titled:
+                FindWindow(titled.Address, true)?.SetTitle(titled.Title);
+                break;
+            case WinlandProtocol.WindowActivated activated:
+                SetActiveWindow(FindWindow(activated.Address, true));
+                break;
+            case WinlandProtocol.WindowUrgent urgent:
+                FindWindow(urgent.Address, true)?.SetUrgent(true);
                 break;
         }
     }

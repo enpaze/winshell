@@ -90,7 +90,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | Member | Type | Description |
 | --- | --- | --- |
 | `Active` | bool, read-only | Whether the Workspace is shown on its Monitor. |
-| `Address` | string, read-only | The same as Name. |
 | `Focused` | bool, read-only | Whether this is WinlandService.FocusedWorkspace. |
 | `HasFullscreen` | bool, read-only | Whether a window on the Workspace is fullscreen. |
 | `Id` | int, read-only | The Workspace number. A named Workspace gets a negative id, and `special:special` gets -99. |
