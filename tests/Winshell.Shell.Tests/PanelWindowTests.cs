@@ -46,7 +46,7 @@ public sealed class PanelWindowTests
         {
             using var panel = Panel(new Grid());
             panel.Visible = true;
-            return (uint)Win32.GetWindowLongPtr(panel.Host!.Handle, Win32.GWL_EXSTYLE);
+            return (uint)PInvoke.GetWindowLongPtr((HWND)panel.Host!.Handle, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
         });
 
         Assert.Equal((uint)WINDOW_EX_STYLE.WS_EX_NOACTIVATE, styles & (uint)WINDOW_EX_STYLE.WS_EX_NOACTIVATE);
@@ -85,7 +85,7 @@ public sealed class PanelWindowTests
             panel.Visible = true;
             var handle = panel.Host!.Handle;
             panel.Dispose();
-            return Win32.IsWindow(handle);
+            return PInvoke.IsWindow((HWND)handle);
         });
 
         Assert.False(alive);

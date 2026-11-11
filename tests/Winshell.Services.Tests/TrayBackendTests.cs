@@ -15,7 +15,7 @@ namespace Winshell.Services.Tests;
 /// </summary>
 public sealed class TrayBackendTests : IDisposable
 {
-    private static readonly uint TaskbarCreated = Win32.RegisterWindowMessageW("TaskbarCreated");
+    private static readonly uint TaskbarCreated = PInvoke.RegisterWindowMessage("TaskbarCreated");
     private readonly string _id = Guid.NewGuid().ToString("N");
     private readonly ManualEventLoop _loop = new();
     private readonly Log _log;
@@ -26,7 +26,7 @@ public sealed class TrayBackendTests : IDisposable
     {
         _log = new Log { Sink = (_, category, message) => output.WriteLine($"{category}: {message}") };
         // The window an app would add its icon for. Message-only, so nothing else can find it.
-        _app = Win32.CreateWindowExW(0, "STATIC", "", 0, 0, 0, 0, 0, Win32.HWND_MESSAGE, 0, 0, 0);
+        _app = NativeWindow.OfClass("STATIC", "", 0, 0, 0, 0, 0, HWND.HWND_MESSAGE, 0);
         Assert.NotEqual(0, _app);
     }
 
@@ -80,14 +80,14 @@ public sealed class TrayBackendTests : IDisposable
     {
         // Hex keeps its icon on a message-only window, which a broadcast to every window does not reach, so the shell
         // also posts to each one it finds. Nothing is posted here: other tests and apps own message-only windows too.
-        var window = Win32.CreateWindowExW(0, "STATIC", "", 0, 0, 0, 0, 0, Win32.HWND_MESSAGE, 0, 0, 0);
+        var window = NativeWindow.OfClass("STATIC", "", 0, 0, 0, 0, 0, HWND.HWND_MESSAGE, 0);
         Assert.NotEqual(0, window);
         // Apps open and close message-only windows all the time, as test runs beside this one do.
         var stop = new StrongBox<bool>(false);
         var churn = new Thread(() =>
         {
             while (!Volatile.Read(ref stop.Value))
-                Win32.DestroyWindow(Win32.CreateWindowExW(0, "STATIC", "", 0, 0, 0, 0, 0, Win32.HWND_MESSAGE, 0, 0, 0));
+                PInvoke.DestroyWindow((HWND)NativeWindow.OfClass("STATIC", "", 0, 0, 0, 0, 0, HWND.HWND_MESSAGE, 0));
         });
         churn.Start();
         try
@@ -103,7 +103,7 @@ public sealed class TrayBackendTests : IDisposable
         {
             Volatile.Write(ref stop.Value, true);
             Assert.True(churn.Join(TimeSpan.FromMinutes(1)), "The thread that opens and closes windows did not stop");
-            Win32.DestroyWindow(window);
+            PInvoke.DestroyWindow((HWND)window);
         }
 
         Assert.DoesNotContain(window, WindowTree.MessageOnly());
@@ -120,7 +120,7 @@ public sealed class TrayBackendTests : IDisposable
         // Explorer ends, and a new one makes a new taskbar and asks apps to add their icons.
         Close(explorer);
         explorer = OpenExplorer();
-        Win32.SendMessageW(host.Window, TaskbarCreated, 0, 0);
+        PInvoke.SendMessage((HWND)host.Window, TaskbarCreated, 0, 0);
         Assert.Equal(1, created);
 
         Send(host.Window, TrayCall.Build(TrayProtocol.Add, (int)_app, 1, TrayProtocol.NIF_TIP, tip: "Again"));
@@ -143,7 +143,7 @@ public sealed class TrayBackendTests : IDisposable
         // return before Windows has ended the thread, so the next instance tries again, as SystemTray does.
         owner.Exit(clean);
         if (clean)
-            Assert.False(Win32.IsWindow(window));
+            Assert.False(PInvoke.IsWindow((HWND)window));
 
         Wait.Until(next.TryOwn, "the next instance to own the notification area");
         Assert.True(next.Open(_ => true));
@@ -174,12 +174,12 @@ public sealed class TrayBackendTests : IDisposable
             var host = Open(HostNames);
             // Explorer here is a test window, but the commands are still ones no real taskbar acts on. It also gets
             // whatever is broadcast to every window meanwhile, which is not a command.
-            Win32.PostMessageW(explorer.Window, 0x8005, 0, 0);
-            (uint, nint, nint)[] commands = [(PInvoke.WM_COMMAND, 0x1234, 0), (Win32.WM_SYSCOMMAND, 0xF120, 0)];
+            PInvoke.PostMessage((HWND)explorer.Window, 0x8005, 0, 0);
+            (uint, nint, nint)[] commands = [(PInvoke.WM_COMMAND, 0x1234, 0), (PInvoke.WM_SYSCOMMAND, 0xF120, 0)];
             foreach (var (message, wParam, lParam) in commands)
-                Win32.PostMessageW(host.Window, message, wParam, lParam);
-            while (Win32.PeekMessageW(out var msg, host.Window, 0, 0, Win32.PM_REMOVE))
-                Win32.DispatchMessageW(msg);
+                PInvoke.PostMessage((HWND)host.Window, message, (WPARAM)(nuint)wParam, lParam);
+            while (PInvoke.PeekMessage(out var msg, (HWND)host.Window, 0, 0, PEEK_MESSAGE_REMOVE_TYPE.PM_REMOVE))
+                PInvoke.DispatchMessage(msg);
 
             foreach (var command in commands)
             {
@@ -253,13 +253,13 @@ public sealed class TrayBackendTests : IDisposable
                     Window = backend.Window;
                     _started.Set();
                     busy?.Wait();
-                    while (Win32.GetMessageW(out var msg, 0, 0, 0) > 0 && !(msg.hwnd == Window && msg.message == Quit))
+                    while (PInvoke.GetMessage(out var msg, HWND.Null, 0, 0) > 0 && !((nint)msg.hwnd == Window && msg.message == Quit))
                     {
                         // Only the commands a host forwards. Any shell that takes the tray, a test's included, broadcasts
                         // TaskbarCreated to every window, this one too.
-                        if (msg.hwnd == Window && msg.message is PInvoke.WM_COMMAND or Win32.WM_SYSCOMMAND)
-                            Posted.Add((msg.message, msg.wParam, msg.lParam));
-                        Win32.DispatchMessageW(msg);
+                        if ((nint)msg.hwnd == Window && msg.message is PInvoke.WM_COMMAND or PInvoke.WM_SYSCOMMAND)
+                            Posted.Add((msg.message, (nint)msg.wParam.Value, msg.lParam));
+                        PInvoke.DispatchMessage(msg);
                     }
 
                     backend.Dispose();
@@ -276,7 +276,7 @@ public sealed class TrayBackendTests : IDisposable
 
         public void Exit()
         {
-            Win32.PostMessageW(Window, Quit, 0, 0);
+            PInvoke.PostMessage((HWND)Window, Quit, 0, 0);
             Assert.True(_thread.Join(TimeSpan.FromMinutes(1)), "The stand-in Explorer did not exit");
         }
     }
@@ -291,13 +291,13 @@ public sealed class TrayBackendTests : IDisposable
         var signals = 0;
         host.Backend.ExplorerInFront += () => signals++;
 
-        Win32.SetWindowPos(explorer.Window, Win32.HWND_TOPMOST, 0, 0, 0, 0,
-            (uint)(SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
+        PInvoke.SetWindowPos((HWND)explorer.Window, HWND.HWND_TOPMOST, 0, 0, 0, 0,
+            (SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
                    SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE));
         Wait.Until(() => signals > 0, "the host to hear that Explorer is in front", () =>
         {
-            while (Win32.PeekMessageW(out var msg, 0, 0, 0, Win32.PM_REMOVE))
-                Win32.DispatchMessageW(msg);
+            while (PInvoke.PeekMessage(out var msg, HWND.Null, 0, 0, PEEK_MESSAGE_REMOVE_TYPE.PM_REMOVE))
+                PInvoke.DispatchMessage(msg);
         });
         Assert.True(Above(explorer.Window, host.Window));
     }
@@ -305,9 +305,9 @@ public sealed class TrayBackendTests : IDisposable
     /// <summary>Whether one window is in front of another, as FindWindow and SHAppBarMessage see the order.</summary>
     private static bool Above(nint upper, nint lower)
     {
-        for (var hwnd = Win32.GetWindow(upper, Win32.GW_HWNDNEXT);
+        for (nint hwnd = PInvoke.GetWindow((HWND)upper, GET_WINDOW_CMD.GW_HWNDNEXT);
              hwnd != 0;
-             hwnd = Win32.GetWindow(hwnd, Win32.GW_HWNDNEXT))
+             hwnd = PInvoke.GetWindow((HWND)hwnd, GET_WINDOW_CMD.GW_HWNDNEXT))
             if (hwnd == lower)
                 return true;
         return false;
@@ -348,9 +348,10 @@ public sealed class TrayBackendTests : IDisposable
         {
             if (msg == 0x8001)
                 seen.Add($"callback {wParam} {lParam:X}");
-            return Win32.DefWindowProcW(hwnd, msg, wParam, lParam);
+            return PInvoke.DefWindowProc((HWND)hwnd, msg, (WPARAM)(nuint)wParam, lParam);
         };
-        var previous = Win32.SetWindowLongPtr(_app, GWLP_WNDPROC, Marshal.GetFunctionPointerForDelegate(record));
+        var previous = PInvoke.SetWindowLongPtr((HWND)_app, WINDOW_LONG_PTR_INDEX.GWLP_WNDPROC,
+            Marshal.GetFunctionPointerForDelegate(record));
         var backend = new TrayBackend(_loop, _log, HostNames);
         _backends.Add(backend);
         try
@@ -360,7 +361,7 @@ public sealed class TrayBackendTests : IDisposable
         }
         finally
         {
-            Win32.SetWindowLongPtr(_app, GWLP_WNDPROC, previous);
+            PInvoke.SetWindowLongPtr((HWND)_app, WINDOW_LONG_PTR_INDEX.GWLP_WNDPROC, previous);
             GC.KeepAlive(record);
         }
 
@@ -368,8 +369,6 @@ public sealed class TrayBackendTests : IDisposable
     }
 
     private delegate nint WindowProc(nint hwnd, uint msg, nint wParam, nint lParam);
-
-    private const int GWLP_WNDPROC = -4;
 
     /// <summary>A backend with its window open, and the icon table its icon calls go to.</summary>
     private sealed record Host(TrayBackend Backend, TrayIcons Table)
@@ -412,7 +411,7 @@ public sealed class TrayBackendTests : IDisposable
             Marshal.WriteIntPtr(copy, 0, (nint)data);
             Marshal.WriteInt32(copy, IntPtr.Size, payload.Length);
             Marshal.WriteIntPtr(copy, IntPtr.Size * 2, bytes);
-            return Win32.SendMessageW(window, PInvoke.WM_COPYDATA, 0, copy);
+            return PInvoke.SendMessage((HWND)window, PInvoke.WM_COPYDATA, 0, copy);
         }
         finally
         {
@@ -425,7 +424,7 @@ public sealed class TrayBackendTests : IDisposable
     {
         foreach (var backend in _backends)
             backend.Dispose();
-        Win32.DestroyWindow(_app);
+        PInvoke.DestroyWindow((HWND)_app);
     }
 
     /// <summary>A backend on its own thread, the way another winshell process holds the tray.</summary>

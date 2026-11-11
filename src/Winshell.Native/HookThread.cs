@@ -1,3 +1,7 @@
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.WindowsAndMessaging;
+
 namespace Winshell.Native;
 
 /// <summary>
@@ -46,7 +50,7 @@ internal sealed unsafe class HookThread
     internal void Stop()
     {
         Interlocked.Exchange(ref _life.StopRequested, 1);
-        Win32.PostThreadMessageW(_threadId, Win32.WM_QUIT, 0, 0);
+        PInvoke.PostThreadMessage(_threadId, PInvoke.WM_QUIT, default, default);
         Thread.Join();
     }
 
@@ -54,12 +58,12 @@ internal sealed unsafe class HookThread
         TaskCompletionSource<(nint Hook, uint ThreadId)> started, Lifetime life)
     {
         // Creates the thread's message queue, so the quit message posted by Stop is not lost.
-        Win32.PeekMessageW(out _, 0, 0, 0, Win32.PM_NOREMOVE);
+        PInvoke.PeekMessage(out _, HWND.Null, 0, 0, PEEK_MESSAGE_REMOVE_TYPE.PM_NOREMOVE);
         var hook = Win32.SetWindowsHookExW(hookId, proc, Win32.GetModuleHandleW(null), 0);
         started.SetResult((hook, Win32.GetCurrentThreadId()));
         if (hook == 0)
             return;
-        while (Win32.GetMessageW(out _, 0, 0, 0) > 0)
+        while (PInvoke.GetMessage(out _, HWND.Null, 0, 0) > 0)
         {
         }
 

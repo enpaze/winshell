@@ -22,7 +22,7 @@ public class AppBarReservationTests
         public RECT SetPos(RECT asked)
         {
             Requests++;
-            return Other == 0 ? asked : new RECT(asked.Left, asked.Top - Other, asked.Right, asked.Bottom - Other);
+            return Other == 0 ? asked : new RECT(asked.left, asked.top - Other, asked.right, asked.bottom - Other);
         }
     }
 

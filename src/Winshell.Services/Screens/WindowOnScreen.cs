@@ -69,7 +69,7 @@ internal static class WindowOnScreen
     private static (int X, int Y) Bias(WindowToMove window, RECT primaryMonitor, RECT primaryWork)
     {
         if (window is { HasPlacement: true, Minimized: false, Maximized: false })
-            return (window.Shown.Left - window.Restored.Left, window.Shown.Top - window.Restored.Top);
+            return (window.Shown.left - window.Restored.left, window.Shown.top - window.Restored.top);
         if (window.HasPlacement)
             return WorkspaceOffset(primaryMonitor, primaryWork, window.ToolWindow);
         return (0, 0);
@@ -91,12 +91,12 @@ internal static class WindowOnScreen
     {
         return toolWindow || primaryWork is not { Width: > 0, Height: > 0 }
             ? (0, 0)
-            : (primaryWork.Left - primaryMonitor.Left, primaryWork.Top - primaryMonitor.Top);
+            : (primaryWork.left - primaryMonitor.left, primaryWork.top - primaryMonitor.top);
     }
 
     private static RECT Shift(RECT rect, int x, int y)
     {
-        return new RECT(rect.Left + x, rect.Top + y, rect.Right + x, rect.Bottom + y);
+        return new RECT(rect.left + x, rect.top + y, rect.right + x, rect.bottom + y);
     }
 
     /// <summary>
@@ -108,10 +108,10 @@ internal static class WindowOnScreen
     {
         if (from.Scale <= 0 || to.Scale <= 0 || from.Right <= from.Left || from.Bottom <= from.Top)
             return window;
-        var width = (window.Right - window.Left) / from.Scale * to.Scale;
-        var height = (window.Bottom - window.Top) / from.Scale * to.Scale;
-        var left = to.Left + (window.Left - from.Left) / from.Scale * to.Scale;
-        var top = to.Top + (window.Top - from.Top) / from.Scale * to.Scale;
+        var width = (window.right - window.left) / from.Scale * to.Scale;
+        var height = (window.bottom - window.top) / from.Scale * to.Scale;
+        var left = to.Left + (window.left - from.Left) / from.Scale * to.Scale;
+        var top = to.Top + (window.top - from.Top) / from.Scale * to.Scale;
         var targetWidth = to.Right - to.Left;
         var targetHeight = to.Bottom - to.Top;
         if (width > targetWidth)

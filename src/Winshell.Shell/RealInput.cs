@@ -244,7 +244,7 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
             }
             else
             {
-                if (!Ours(TopLevelWindows.RootOf(Win32.GetForegroundWindow()), window))
+                if (!Ours(TopLevelWindows.RootOf(PInvoke.GetForegroundWindow()), window))
                     throw new IpcException(
                         $"{chord.Text} holds a modifier, which only the real keyboard carries, and Windows gives that to the window in front. This window isn't in front, so nothing more was sent. A plain key, such as Tab or Enter, reaches any window.");
                 RefuseWhileUsed();
@@ -357,17 +357,17 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
     /// <summary>A window of the target's: its own, or a flyout's or menu's, which is owned by the window it opened from.</summary>
     private static bool Ours(nint root, nint window)
     {
-        return root == window || Win32.GetWindow(root, Win32.GW_OWNER) == window;
+        return root == window || (nint)PInvoke.GetWindow((HWND)root, GET_WINDOW_CMD.GW_OWNER) == window;
     }
 
     private static POINT? OnScreen(nint window, XamlRoot root, Point at)
     {
-        var point = new POINT
-        {
-            X = (int)Math.Round(at.X * root.RasterizationScale),
-            Y = (int)Math.Round(at.Y * root.RasterizationScale)
-        };
-        return Win32.ClientToScreen(window, ref point) ? point : null;
+        var point = new System.Drawing.Point(
+            (int)Math.Round(at.X * root.RasterizationScale),
+            (int)Math.Round(at.Y * root.RasterizationScale));
+        return PInvoke.ClientToScreen((HWND)window, ref point)
+            ? new POINT { X = point.X, Y = point.Y }
+            : null;
     }
 
     /// <summary>

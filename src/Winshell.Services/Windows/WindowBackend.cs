@@ -145,7 +145,7 @@ internal sealed class WindowBackend : IWindowBackend
         return _flashes.Add(handler, failed);
     }
 
-    public nint Foreground => Win32.GetForegroundWindow();
+    public nint Foreground => PInvoke.GetForegroundWindow();
 
     public IReadOnlyList<nint> TopLevel()
     {
@@ -154,7 +154,7 @@ internal sealed class WindowBackend : IWindowBackend
 
     public nint OwnerOf(nint hwnd)
     {
-        return Win32.GetWindow(hwnd, Win32.GW_OWNER);
+        return PInvoke.GetWindow((HWND)hwnd, GET_WINDOW_CMD.GW_OWNER);
     }
 
     public nint RootOf(nint hwnd)
@@ -227,17 +227,17 @@ internal sealed class WindowBackend : IWindowBackend
     {
         // Asking a window of this process for its title sends it a message with no timeout. A hidden one can belong to a
         // thread waiting for this one, as SystemEvents does while it raises an event, and neither would ever go on.
-        if (!Win32.IsWindowVisible(hwnd))
-            return new TaskbarWindowFacts(Win32.IsWindow(hwnd), false, false, false, false, false, false, false, false,
+        if (!PInvoke.IsWindowVisible((HWND)hwnd))
+            return new TaskbarWindowFacts(PInvoke.IsWindow((HWND)hwnd), false, false, false, false, false, false, false, false,
                 false);
-        var ex = (long)Win32.GetWindowLongPtr(hwnd, Win32.GWL_EXSTYLE);
+        var ex = (long)PInvoke.GetWindowLongPtr((HWND)hwnd, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
         return new TaskbarWindowFacts(
-            Win32.IsWindow(hwnd),
+            PInvoke.IsWindow((HWND)hwnd),
             true,
             TopLevelWindows.IsShellWindow(hwnd),
             TopLevelWindows.HasChildStyle(hwnd),
             (ex & (uint)WINDOW_EX_STYLE.WS_EX_APPWINDOW) != 0,
-            Win32.GetWindow(hwnd, Win32.GW_OWNER) != 0,
+            PInvoke.GetWindow((HWND)hwnd, GET_WINDOW_CMD.GW_OWNER) != 0,
             (ex & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW) != 0,
             (ex & (uint)WINDOW_EX_STYLE.WS_EX_NOACTIVATE) != 0,
             TopLevelWindows.HasTitle(hwnd),
@@ -246,12 +246,12 @@ internal sealed class WindowBackend : IWindowBackend
 
     public WindowRead Read(nint hwnd, bool package, bool executable)
     {
-        var minimized = Win32.IsIconic(hwnd);
-        var maximized = !minimized && Win32.IsZoomed(hwnd);
+        var minimized = PInvoke.IsIconic((HWND)hwnd);
+        var maximized = !minimized && PInvoke.IsZoomed((HWND)hwnd);
         var monitor = Screens.Of(hwnd);
         var device = monitor?.Id ?? "";
-        var fullscreen = !minimized && monitor is not null && Win32.GetWindowRect(hwnd, out var rect) &&
-                         WindowRules.CoversMonitor(Win32.GetWindowLongPtr(hwnd, Win32.GWL_STYLE), rect,
+        var fullscreen = !minimized && monitor is not null && PInvoke.GetWindowRect((HWND)hwnd, out var rect) &&
+                         WindowRules.CoversMonitor(PInvoke.GetWindowLongPtr((HWND)hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE), rect,
                              monitor.Bounds);
 
         // The property can arrive after the window is first shown, so it is read every time.
@@ -259,7 +259,7 @@ internal sealed class WindowBackend : IWindowBackend
         string? packageAppId = null;
         if (property.Length == 0 && package)
         {
-            Win32.GetWindowThreadProcessId(hwnd, out var pid);
+            PInvoke.GetWindowThreadProcessId((HWND)hwnd, out var pid);
             packageAppId = AppUserModelIds.OfProcess(pid);
         }
 
@@ -270,19 +270,19 @@ internal sealed class WindowBackend : IWindowBackend
     /// <summary>The full path of the program that owns a window, or empty when it cannot be read.</summary>
     private static string ExePath(nint hwnd)
     {
-        Win32.GetWindowThreadProcessId(hwnd, out var pid);
+        PInvoke.GetWindowThreadProcessId((HWND)hwnd, out var pid);
         return ProcessImage.TryRead(pid) ?? "";
     }
 
     public IReadOnlySet<string> FullscreenScreens()
     {
         HashSet<string> screens = [];
-        var hwnd = Win32.GetForegroundWindow();
-        if (hwnd == 0 || !Win32.IsWindowVisible(hwnd) || TopLevelWindows.IsShellWindow(hwnd)
-            || (Win32.GetWindowLongPtr(hwnd, Win32.GWL_EXSTYLE) & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW) != 0
-            || !Win32.GetWindowRect(hwnd, out var rect))
+        var hwnd = PInvoke.GetForegroundWindow();
+        if (hwnd == 0 || !PInvoke.IsWindowVisible(hwnd) || TopLevelWindows.IsShellWindow(hwnd)
+            || (PInvoke.GetWindowLongPtr(hwnd, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE) & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW) != 0
+            || !PInvoke.GetWindowRect(hwnd, out var rect))
             return screens;
-        var style = (long)Win32.GetWindowLongPtr(hwnd, Win32.GWL_STYLE);
+        var style = (long)PInvoke.GetWindowLongPtr(hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE);
         foreach (var monitor in Screens.List())
             if (WindowRules.CoversMonitor(style, rect, monitor.Bounds))
                 screens.Add(monitor.Id);
@@ -296,22 +296,22 @@ internal sealed class WindowBackend : IWindowBackend
     /// </summary>
     public void MoveToMonitor(nint hwnd, string deviceName)
     {
-        if (deviceName.Length == 0 || !Win32.IsWindow(hwnd))
+        if (deviceName.Length == 0 || !PInvoke.IsWindow((HWND)hwnd))
             return;
         if (Screens.Find(deviceName) is not { } target)
             return;
         var source = Screens.Of(hwnd);
         if (source is null || source.Id == target.Id)
             return;
-        if (!Win32.GetWindowRect(hwnd, out var current))
+        if (!PInvoke.GetWindowRect((HWND)hwnd, out var current))
             return;
         var hasPlacement = TopLevelWindows.TryPlacement(hwnd, out var placement);
-        var minimized = Win32.IsIconic(hwnd);
-        var maximized = !minimized && Win32.IsZoomed(hwnd);
+        var minimized = PInvoke.IsIconic((HWND)hwnd);
+        var maximized = !minimized && PInvoke.IsZoomed((HWND)hwnd);
         var primary = Screens.Primary();
-        var window = new WindowToMove(current, hasPlacement ? placement.Normal : default, hasPlacement, minimized,
+        var window = new WindowToMove(current, hasPlacement ? placement.rcNormalPosition : default, hasPlacement, minimized,
             maximized,
-            (Win32.GetWindowLongPtr(hwnd, Win32.GWL_EXSTYLE) & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW) != 0);
+            (PInvoke.GetWindowLongPtr((HWND)hwnd, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE) & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW) != 0);
         if (!WindowOnScreen.TryMove(window, source.Frame, target.Frame, primary?.Bounds ?? default,
                 primary?.Work ?? default, out var place))
             return;
@@ -324,7 +324,7 @@ internal sealed class WindowBackend : IWindowBackend
     /// <summary>Brings a window to the front and focuses it.</summary>
     public void Activate(nint hwnd)
     {
-        if (Win32.IsIconic(hwnd))
+        if (PInvoke.IsIconic((HWND)hwnd))
             TopLevelWindows.Restore(hwnd);
         Focus.Take(hwnd);
     }

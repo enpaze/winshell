@@ -30,9 +30,9 @@ internal readonly unsafe ref struct CopyData
     /// </summary>
     internal nint Forward(nint window, uint timeoutMilliseconds)
     {
-        Win32.SendMessageTimeoutW(window, PInvoke.WM_COPYDATA, _sender, (nint)_data, Win32.SMTO_ABORTIFHUNG,
-            timeoutMilliseconds, out var result);
-        return result;
+        PInvoke.SendMessageTimeout((HWND)window, PInvoke.WM_COPYDATA, (nuint)_sender, (nint)_data,
+            SEND_MESSAGE_TIMEOUT_FLAGS.SMTO_ABORTIFHUNG, timeoutMilliseconds, out var result);
+        return (nint)result;
     }
 }
 
@@ -70,7 +70,7 @@ internal sealed unsafe class TrayWindow : IDisposable
             failed, false);
         if (window is null)
             return null;
-        Win32.SetLayeredWindowAttributes(window.Handle, 0, 0, Win32.LWA_ALPHA);
+        PInvoke.SetLayeredWindowAttributes((HWND)window.Handle, default, 0, LAYERED_WINDOW_ATTRIBUTES_FLAGS.LWA_ALPHA);
         // Explorer's taskbar lets these through from any integrity level, so an elevated shell still hears Explorer
         // start, and an app at a lower level can still add its icon.
         foreach (var allowed in new[] { TaskbarWindows.Created, PInvoke.WM_COPYDATA })

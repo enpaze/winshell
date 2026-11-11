@@ -1,85 +1,16 @@
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
+using Windows.Win32.Foundation;
 
 namespace Winshell.Native;
 
+// CsWin32 will not generate POINT: it tells callers to use System.Drawing.Point, which the pointer and hook
+// structs below do not. The generated RECT is the window rectangle.
 [StructLayout(LayoutKind.Sequential)]
 internal struct POINT
 {
     public int X;
     public int Y;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct RECT(int left, int top, int right, int bottom) : IEquatable<RECT>
-{
-    public int Left = left;
-    public int Top = top;
-    public int Right = right;
-    public int Bottom = bottom;
-
-    public readonly int Width => Right - Left;
-
-    public readonly int Height => Bottom - Top;
-
-    public readonly bool Equals(RECT other)
-    {
-        return Left == other.Left && Top == other.Top && Right == other.Right && Bottom == other.Bottom;
-    }
-
-    public readonly override bool Equals(object? obj)
-    {
-        return obj is RECT other && Equals(other);
-    }
-
-    public readonly override int GetHashCode()
-    {
-        return HashCode.Combine(Left, Top, Right, Bottom);
-    }
-}
-
-/// <summary>
-/// The restored position of a window. The rectangle is in workspace coordinates, not the screen coordinates of
-/// <c>GetWindowRect</c>, though in the same pixels for a per-monitor aware process.
-/// </summary>
-[StructLayout(LayoutKind.Sequential)]
-internal struct WINDOWPLACEMENT
-{
-    public uint Length;
-    public uint Flags;
-    public uint ShowCmd;
-    public POINT MinPosition;
-    public POINT MaxPosition;
-    public RECT Normal;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct MSG
-{
-    public nint hwnd;
-    public uint message;
-    public nint wParam;
-    public nint lParam;
-    public uint time;
-    public POINT pt;
-    public uint lPrivate;
-}
-
-[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-internal unsafe struct WNDCLASSEXW
-{
-    public uint cbSize;
-    public uint style;
-    public delegate* unmanaged<nint, uint, nint, nint, nint> lpfnWndProc;
-    public int cbClsExtra;
-    public int cbWndExtra;
-    public nint hInstance;
-    public nint hIcon;
-    public nint hCursor;
-    public nint hbrBackground;
-    public char* lpszMenuName;
-    public char* lpszClassName;
-    public nint hIconSm;
 }
 
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -129,16 +60,6 @@ internal struct MARGINS
     public int Right;
     public int Top;
     public int Bottom;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct MINMAXINFO
-{
-    public POINT ptReserved;
-    public POINT ptMaxSize;
-    public POINT ptMaxPosition;
-    public POINT ptMinTrackSize;
-    public POINT ptMaxTrackSize;
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -205,60 +126,11 @@ internal struct DWM_THUMBNAIL_PROPERTIES
 
 internal static partial class Win32
 {
-    public const uint CS_DBLCLKS = 0x0008;
-
-    public const int GWL_STYLE = -16;
-    public const int GWL_EXSTYLE = -20;
-    public const int GWLP_HWNDPARENT = -8;
-
-    public const uint GW_HWNDNEXT = 2;
-    public const uint GW_HWNDPREV = 3;
-    public const uint GW_OWNER = 4;
-
-    public const uint WM_DESTROY = 0x0002;
-    public const uint WM_MOVE = 0x0003;
-    public const uint WM_SIZE = 0x0005;
-    public const uint WM_ACTIVATE = 0x0006;
-    public const uint WM_SETFOCUS = 0x0007;
-    public const uint WM_CLOSE = 0x0010;
-    public const uint WM_QUIT = 0x0012;
-    public const uint WM_ERASEBKGND = 0x0014;
-    public const uint WM_SETTINGCHANGE = 0x001A;
+    // The work-area value of WM_SETTINGCHANGE. Generating it pulls the whole system-parameters catalog.
     public const nint SPI_SETWORKAREA = 0x002F;
-    public const uint WM_MOUSEACTIVATE = 0x0021;
-    public const uint WM_GETMINMAXINFO = 0x0024;
-    public const uint WM_DISPLAYCHANGE = 0x007E;
-    public const uint WM_KEYDOWN = 0x0100;
-    public const uint WM_KEYUP = 0x0101;
-    public const uint WM_LBUTTONDOWN = 0x0201;
-    public const uint WM_LBUTTONUP = 0x0202;
-    public const uint WM_LBUTTONDBLCLK = 0x0203;
-    public const uint WM_RBUTTONDOWN = 0x0204;
-    public const uint WM_RBUTTONUP = 0x0205;
-    public const uint WM_MBUTTONDOWN = 0x0207;
-    public const uint WM_MBUTTONUP = 0x0208;
-    public const uint WM_MOUSEWHEEL = 0x020A;
-    public const uint WM_XBUTTONDOWN = 0x020B;
-    public const uint WM_DPICHANGED = 0x02E0;
-    public const uint WM_DWMCOLORIZATIONCOLORCHANGED = 0x0320;
-    public const uint WM_SYSCOLORCHANGE = 0x0015;
-    public const uint WM_THEMECHANGED = 0x031A;
-
     public const uint SPI_GETHIGHCONTRAST = 0x0042;
     public const uint SPI_GETMESSAGEDURATION = 0x2016;
     public const uint HCF_HIGHCONTRASTON = 0x0001;
-
-    public const uint WM_APP = 0x8000;
-
-    public const int MA_NOACTIVATE = 3;
-
-    public static readonly nint HWND_TOPMOST = -1;
-    public static readonly nint HWND_TOP = 0;
-    public static readonly nint HWND_BOTTOM = 1;
-    public static readonly nint HWND_MESSAGE = -3;
-
-    public const uint PM_NOREMOVE = 0x0000;
-    public const uint PM_REMOVE = 0x0001;
 
     public const uint MONITOR_DEFAULTTONEAREST = 2;
     public const uint MONITORINFOF_PRIMARY = 1;
@@ -299,8 +171,6 @@ internal static partial class Win32
 
     public const uint DWMWA_COLOR_NONE = 0xFFFFFFFE;
 
-    public const uint LWA_ALPHA = 0x2;
-
     public const uint GMEM_MOVEABLE = 0x0002;
 
     public static readonly nint DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4;
@@ -314,135 +184,15 @@ internal static partial class Win32
 
     public const int IDC_ARROW = 32512;
 
-    public const uint SC_MOVE = 0xF010;
-    public const uint SC_SIZE = 0xF000;
-    public const uint WM_SYSCOMMAND = 0x0112;
-    public const uint WM_HOTKEY = 0x0312;
-
     public const int RGN_OR = 2;
-
-    [LibraryImport("user32.dll", SetLastError = true)]
-    public static partial ushort RegisterClassExW(in WNDCLASSEXW wc);
 
     [LibraryImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static unsafe partial bool SystemParametersInfoW(uint action, uint param, void* value, uint winIni);
 
-    [LibraryImport("user32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-    public static partial nint CreateWindowExW(uint exStyle, string className, string windowName, uint style, int x,
-        int y, int width, int height, nint parent, nint menu, nint instance, nint param);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool DestroyWindow(nint hwnd);
-
-    [LibraryImport("user32.dll")]
-    public static partial nint DefWindowProcW(nint hwnd, uint msg, nint wParam, nint lParam);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool ShowWindow(nint hwnd, int cmd);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool SetWindowPos(nint hwnd, nint after, int x, int y, int cx, int cy, uint flags);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool GetWindowPlacement(nint hwnd, ref WINDOWPLACEMENT placement);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool SetWindowPlacement(nint hwnd, in WINDOWPLACEMENT placement);
-
-    [LibraryImport("user32.dll")]
-    public static partial nint GetWindow(nint hwnd, uint command);
-
-    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
-    public static partial nint FindWindowExW(nint parent, nint after, string? className, string? windowName);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool EnumWindows(delegate* unmanaged<nint, nint, int> callback, nint data);
-
-    [LibraryImport("user32.dll")]
-    public static unsafe partial int GetClassNameW(nint hwnd, char* name, int capacity);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool GetWindowRect(nint hwnd, out RECT rect);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool IsWindow(nint hwnd);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool SetLayeredWindowAttributes(nint hwnd, uint key, byte alpha, uint flags);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool GetClientRect(nint hwnd, out RECT rect);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool ClientToScreen(nint hwnd, ref POINT point);
-
-    [LibraryImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
-    public static partial nint SetWindowLongPtr(nint hwnd, int index, nint value);
-
-    [LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
-    public static partial nint GetWindowLongPtr(nint hwnd, int index);
-
-    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool SetWindowTextW(nint hwnd, string text);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool PeekMessageW(out MSG msg, nint hwnd, uint min, uint max, uint remove);
-
-    [LibraryImport("user32.dll")]
-    public static partial int GetMessageW(out MSG msg, nint hwnd, uint min, uint max);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool PostThreadMessageW(uint thread, uint msg, nint wParam, nint lParam);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool TranslateMessage(in MSG msg);
-
-    [LibraryImport("user32.dll")]
-    public static partial nint DispatchMessageW(in MSG msg);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool PostMessageW(nint hwnd, uint msg, nint wParam, nint lParam);
-
-    [LibraryImport("user32.dll")]
-    public static partial nint SendMessageW(nint hwnd, uint msg, nint wParam, nint lParam);
-
-    public const uint SMTO_BLOCK = 0x1;
-    public const uint SMTO_ABORTIFHUNG = 0x2;
-
-    [LibraryImport("user32.dll")]
-    public static partial nint SendMessageTimeoutW(nint hwnd, uint msg, nint wParam, nint lParam, uint flags,
-        uint timeout, out nint result);
-
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool ReleaseCapture();
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool SetForegroundWindow(nint hwnd);
-
-    [LibraryImport("user32.dll")]
-    public static partial nint GetForegroundWindow();
-
-    [LibraryImport("user32.dll")]
-    public static partial uint GetWindowThreadProcessId(nint hwnd, out uint processId);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -479,35 +229,26 @@ internal static partial class Win32
     [LibraryImport("user32.dll")]
     public static partial nint MonitorFromWindow(nint hwnd, uint flags);
 
-    [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
+    // LibraryImport will not marshal a struct that holds CsWin32's RECT: those fields are internal.
+    [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool GetMonitorInfo(nint monitor, ref MONITORINFOEXW info);
+    public static extern bool GetMonitorInfo(nint monitor, ref MONITORINFOEXW info);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static unsafe partial bool EnumDisplayMonitors(nint hdc, nint clip,
-        delegate* unmanaged<nint, nint, RECT*, nint, int> callback, nint data);
+        delegate* unmanaged<nint, nint, global::Windows.Win32.Foundation.RECT*, nint, int> callback, nint data);
 
     [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool EnumDisplayDevicesW(string? device, uint index, ref DISPLAY_DEVICEW info, uint flags);
 
-    [LibraryImport("user32.dll")]
-    public static partial uint GetDpiForWindow(nint hwnd);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool AdjustWindowRectExForDpi(ref RECT rect, uint style,
-        [MarshalAs(UnmanagedType.Bool)] bool menu, uint exStyle, uint dpi);
-
     [LibraryImport("shcore.dll")]
     public static partial int GetDpiForMonitor(nint monitor, int type, out uint dpiX, out uint dpiY);
 
-    [LibraryImport("shell32.dll")]
-    public static partial nint SHAppBarMessage(uint message, ref APPBARDATA data);
-
-    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
-    public static partial uint RegisterWindowMessageW(string name);
+    // LibraryImport will not marshal a struct that holds CsWin32's RECT: those fields are internal.
+    [DllImport("shell32.dll")]
+    public static extern nint SHAppBarMessage(uint message, ref APPBARDATA data);
 
     [LibraryImport("user32.dll")]
     public static partial int SetWindowRgn(nint hwnd, nint region, [MarshalAs(UnmanagedType.Bool)] bool redraw);
@@ -527,8 +268,9 @@ internal static partial class Win32
     [LibraryImport("dwmapi.dll")]
     public static partial int DwmSetWindowAttribute(nint hwnd, int attribute, in uint value, int size);
 
-    [LibraryImport("dwmapi.dll")]
-    public static partial int DwmUpdateThumbnailProperties(nint thumbnail, in DWM_THUMBNAIL_PROPERTIES properties);
+    // LibraryImport will not marshal a struct that holds CsWin32's RECT: those fields are internal.
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmUpdateThumbnailProperties(nint thumbnail, in DWM_THUMBNAIL_PROPERTIES properties);
 
     [LibraryImport("dwmapi.dll")]
     public static partial int DwmExtendFrameIntoClientArea(nint hwnd, in MARGINS margins);
@@ -597,21 +339,6 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll")]
     public static partial nint WindowFromPoint(POINT point);
-
-    [LibraryImport("user32.dll")]
-    public static partial nint GetAncestor(nint hwnd, uint flags);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool IsWindowVisible(nint hwnd);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool IsZoomed(nint hwnd);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool IsIconic(nint hwnd);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

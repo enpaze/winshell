@@ -1,3 +1,6 @@
+using Windows.Win32;
+using Windows.Win32.Foundation;
+
 namespace Winshell.Native;
 
 /// <summary>Brings a window to the front and gives it the keyboard.</summary>
@@ -10,14 +13,14 @@ internal static class Focus
     /// </summary>
     internal static void Take(nint window)
     {
-        if (window == 0 || Win32.GetForegroundWindow() == window)
+        if (window == 0 || (nint)PInvoke.GetForegroundWindow() == window)
             return;
         if (Ask(window))
             return;
 
-        var foreground = Win32.GetForegroundWindow();
+        var foreground = (nint)PInvoke.GetForegroundWindow();
         var current = Win32.GetCurrentThreadId();
-        var other = foreground == 0 ? 0 : Win32.GetWindowThreadProcessId(foreground, out _);
+        var other = foreground == 0 ? 0 : PInvoke.GetWindowThreadProcessId((HWND)foreground);
         if (other != 0 && other != current && Win32.AttachThreadInput(current, other, true))
             try
             {
@@ -30,7 +33,7 @@ internal static class Focus
                 Win32.AttachThreadInput(current, other, false);
             }
 
-        if (Win32.GetForegroundWindow() == window)
+        if ((nint)PInvoke.GetForegroundWindow() == window)
             return;
         // Joining was not enough. A key makes this process the one that last sent input, which may take the foreground.
         KeyInput.Tap();
@@ -39,6 +42,6 @@ internal static class Focus
 
     private static bool Ask(nint window)
     {
-        return Win32.SetForegroundWindow(window) && Win32.GetForegroundWindow() == window;
+        return PInvoke.SetForegroundWindow((HWND)window) && (nint)PInvoke.GetForegroundWindow() == window;
     }
 }

@@ -13,16 +13,16 @@ internal sealed class HostFocusEffects(HostWindow host, ShellPlatform platform) 
 
     public void Show(bool activate)
     {
-        var show = activate ? (int)SHOW_WINDOW_CMD.SW_SHOW : (int)SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE;
-        Win32.ShowWindow(host.Handle, show);
+        var show = activate ? SHOW_WINDOW_CMD.SW_SHOW : SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE;
+        PInvoke.ShowWindow((HWND)host.Handle, show);
         // A process's first SW_SHOW takes the state its launcher asked for, so a hidden start would hide the window.
-        if (!Win32.IsWindowVisible(host.Handle))
-            Win32.ShowWindow(host.Handle, show);
+        if (!PInvoke.IsWindowVisible((HWND)host.Handle))
+            PInvoke.ShowWindow((HWND)host.Handle, show);
     }
 
     public void TakeForeground()
     {
-        Win32.SetForegroundWindow(host.Handle);
+        PInvoke.SetForegroundWindow((HWND)host.Handle);
     }
 
     public void TakeKeyboard()

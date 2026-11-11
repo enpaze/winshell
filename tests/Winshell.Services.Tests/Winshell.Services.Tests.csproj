@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <Using Include="Windows.Win32" />
+    <Using Include="Windows.Win32.Foundation" />
+    <Using Include="Windows.Win32.UI.WindowsAndMessaging" />
     <ProjectReference Include="..\..\src\Winshell.Services\Winshell.Services.csproj" />
   </ItemGroup>
 </Project>

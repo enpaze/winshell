@@ -131,8 +131,8 @@ internal static class DoctorProbe
     public static IReadOnlyList<DoctorScreens.MonitorFacts> Monitors()
     {
         return Screens.List()
-            .Select(m => new DoctorScreens.MonitorFacts(m.Name, m.Bounds.Left, m.Bounds.Top, m.Bounds.Right,
-                m.Bounds.Bottom, m.Work.Left, m.Work.Top, m.Work.Right, m.Work.Bottom, m.Scale))
+            .Select(m => new DoctorScreens.MonitorFacts(m.Name, m.Bounds.left, m.Bounds.top, m.Bounds.right,
+                m.Bounds.bottom, m.Work.left, m.Work.top, m.Work.right, m.Work.bottom, m.Scale))
             .ToList();
     }
 
@@ -145,12 +145,12 @@ internal static class DoctorProbe
         var result = new List<DoctorScreens.WindowFacts>();
         foreach (var hwnd in TopLevelWindows.List())
         {
-            if (!Win32.IsWindowVisible(hwnd) || Win32.IsIconic(hwnd) || TopLevelWindows.IsCloaked(hwnd) ||
-                !Win32.GetWindowRect(hwnd, out var rect))
+            if (!PInvoke.IsWindowVisible((HWND)hwnd) || PInvoke.IsIconic((HWND)hwnd) || TopLevelWindows.IsCloaked(hwnd) ||
+                !PInvoke.GetWindowRect((HWND)hwnd, out var rect))
                 continue;
-            Win32.GetWindowThreadProcessId(hwnd, out var pid);
-            result.Add(new DoctorScreens.WindowFacts(TopLevelWindows.ClassName(hwnd), rect.Left, rect.Top, rect.Right,
-                rect.Bottom, ProgramOf((int)pid)));
+            PInvoke.GetWindowThreadProcessId((HWND)hwnd, out var pid);
+            result.Add(new DoctorScreens.WindowFacts(TopLevelWindows.ClassName(hwnd), rect.left, rect.top, rect.right,
+                rect.bottom, ProgramOf((int)pid)));
         }
 
         return result;

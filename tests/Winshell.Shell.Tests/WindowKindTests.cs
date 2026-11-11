@@ -24,7 +24,7 @@ public sealed class WindowKindTests
             popup.Content = content;
             popup.Visible = true;
             await ShellFixture.LaidOut(content);
-            Win32.GetWindowRect(popup.Host!.Handle, out var r);
+            PInvoke.GetWindowRect((HWND)popup.Host!.Handle, out var r);
             return (r.Width, r.Height, popup.Scale);
         });
 
@@ -68,9 +68,9 @@ public sealed class WindowKindTests
             popup.Dismissed += () => count++;
             popup.Visible = true;
             await Task.Yield();
-            Win32.GetWindowRect(popup.Host!.Handle, out var r);
+            PInvoke.GetWindowRect((HWND)popup.Host!.Handle, out var r);
 
-            shell.Platform.OutsideClicks.Click(new POINT { X = r.Left + 5, Y = r.Top + 5 });
+            shell.Platform.OutsideClicks.Click(new POINT { X = r.left + 5, Y = r.top + 5 });
 
             return count;
         });
@@ -106,9 +106,9 @@ public sealed class WindowKindTests
             var child = (FrameworkElement)VisualTreeHelper.GetOpenPopupsForXamlRoot(button.XamlRoot)[0].Child;
             var corner = child.TransformToVisual(null).TransformPoint(default);
             var (left, _) = popup.Host!.Placement.MapToScreen(corner.X, corner.Y);
-            Win32.GetWindowRect(popup.Host.Handle, out var r);
+            PInvoke.GetWindowRect((HWND)popup.Host.Handle, out var r);
 
-            var below = new POINT { X = left + 10, Y = r.Bottom + 10 };
+            var below = new POINT { X = left + 10, Y = r.bottom + 10 };
             shell.Platform.OutsideClicks.Click(below);
             var result = (heard, popup.Visible, flyout.IsOpen);
 
@@ -178,11 +178,11 @@ public sealed class WindowKindTests
             await Task.Yield();
             var front = app.Host!.Handle;
             app.Focus();
-            await Wait.UntilAsync(() => Win32.GetForegroundWindow() == front, "the app window to come to the front");
+            await Wait.UntilAsync(() => (nint)PInvoke.GetForegroundWindow() == front, "the app window to come to the front");
 
             window.Focus();
 
-            return (front, window.Host!.Handle, Win32.GetForegroundWindow());
+            return (front, window.Host!.Handle, (nint)PInvoke.GetForegroundWindow());
         });
     }
 

@@ -1,3 +1,6 @@
+using Windows.Win32;
+using Windows.Win32.Foundation;
+
 namespace Winshell.Native;
 
 /// <summary>
@@ -21,8 +24,8 @@ internal static class InputSite
     {
         // A repeat count of 1, the scan code and the extended flag; a release adds the previous state and transition bits.
         var flags = 1 | ((nint)KeyInput.ScanCode(key) << 16) | (KeyInput.IsExtended(key) ? 1 << 24 : 0);
-        return Win32.PostMessageW(site, Win32.WM_KEYDOWN, key, flags)
-               && Win32.PostMessageW(site, Win32.WM_KEYUP, key, flags | unchecked((nint)0xC0000000u));
+        return PInvoke.PostMessage((HWND)site, PInvoke.WM_KEYDOWN, (nuint)key, flags)
+               && PInvoke.PostMessage((HWND)site, PInvoke.WM_KEYUP, (nuint)key, flags | unchecked((nint)0xC0000000));
     }
 
     /// <summary>
@@ -32,7 +35,7 @@ internal static class InputSite
     internal static bool PostWheel(nint site, POINT at, bool down)
     {
         var delta = (ushort)(short)(down ? -WheelDelta : WheelDelta);
-        return Win32.PostMessageW(site, Win32.WM_MOUSEWHEEL, (nint)delta << 16,
+        return PInvoke.PostMessage((HWND)site, PInvoke.WM_MOUSEWHEEL, (nuint)((uint)delta << 16),
             ((at.Y & 0xFFFF) << 16) | (at.X & 0xFFFF));
     }
 }

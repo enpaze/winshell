@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -20,13 +21,13 @@ internal static unsafe class TopLevelWindows
     /// <summary>Every top-level window, in z-order from the top.</summary>
     internal static List<nint> List()
     {
-        return Callback.Collect(context => Win32.EnumWindows(&Collect, context));
+        return Callback.Collect(context => PInvoke.EnumWindows(&Collect, context));
     }
 
-    [UnmanagedCallersOnly]
-    private static int Collect(nint hwnd, nint context)
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
+    private static BOOL Collect(HWND hwnd, LPARAM context)
     {
-        return Callback.Collected(context, hwnd);
+        return (BOOL)Callback.Collected(context, hwnd);
     }
 
     /// <summary>The window's title, cut at <see cref="MaxTitle"/> characters. Empty when it has none.</summary>
@@ -49,7 +50,7 @@ internal static unsafe class TopLevelWindows
     internal static string ClassName(nint hwnd)
     {
         var buffer = stackalloc char[ClassNameCapacity];
-        var got = Win32.GetClassNameW(hwnd, buffer, ClassNameCapacity);
+        var got = PInvoke.GetClassName((HWND)hwnd, buffer, ClassNameCapacity);
         return new string(buffer, 0, Math.Clamp(got, 0, ClassNameCapacity - 1));
     }
 
@@ -72,13 +73,13 @@ internal static unsafe class TopLevelWindows
 
     internal static bool HasChildStyle(nint hwnd)
     {
-        return (Win32.GetWindowLongPtr(hwnd, Win32.GWL_STYLE) & (long)WINDOW_STYLE.WS_CHILD) != 0;
+        return (PInvoke.GetWindowLongPtr((HWND)hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE) & (long)WINDOW_STYLE.WS_CHILD) != 0;
     }
 
     /// <summary>The top-level window that holds this one, or 0.</summary>
     internal static nint RootOf(nint hwnd)
     {
-        return Win32.GetAncestor(hwnd, (uint)GET_ANCESTOR_FLAGS.GA_ROOT);
+        return PInvoke.GetAncestor((HWND)hwnd, GET_ANCESTOR_FLAGS.GA_ROOT);
     }
 
     /// <summary>The window's visible frame in screen pixels, without the invisible resize borders.</summary>
@@ -94,7 +95,7 @@ internal static unsafe class TopLevelWindows
     /// <summary>Asks the window to close, as its close button does.</summary>
     internal static void Close(nint hwnd)
     {
-        Win32.PostMessageW(hwnd, Win32.WM_SYSCOMMAND, (nint)PInvoke.SC_CLOSE, 0);
+        PInvoke.PostMessage((HWND)hwnd, PInvoke.WM_SYSCOMMAND, (nuint)PInvoke.SC_CLOSE, 0);
     }
 
     internal static void Restore(nint hwnd)
@@ -115,17 +116,17 @@ internal static unsafe class TopLevelWindows
     /// <summary>Puts the window at the top of the z-order without activating it.</summary>
     internal static void Raise(nint hwnd)
     {
-        Win32.SetWindowPos(hwnd, Win32.HWND_TOP, 0, 0, 0, 0,
-            (uint)(SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
-                   SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_ASYNCWINDOWPOS));
+        PInvoke.SetWindowPos((HWND)hwnd, HWND.HWND_TOP, 0, 0, 0, 0,
+            SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
+            SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_ASYNCWINDOWPOS);
     }
 
     /// <summary>Moves and sizes the window to <paramref name="rect"/>, in screen pixels, without activating it.</summary>
     internal static void Move(nint hwnd, RECT rect)
     {
-        Win32.SetWindowPos(hwnd, 0, rect.Left, rect.Top, rect.Width, rect.Height,
-            (uint)(SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE |
-                   SET_WINDOW_POS_FLAGS.SWP_ASYNCWINDOWPOS));
+        PInvoke.SetWindowPos((HWND)hwnd, HWND.HWND_TOP, rect.left, rect.top, rect.Width, rect.Height,
+            SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE |
+            SET_WINDOW_POS_FLAGS.SWP_ASYNCWINDOWPOS);
     }
 
     /// <summary>
@@ -133,8 +134,8 @@ internal static unsafe class TopLevelWindows
     /// </summary>
     internal static bool TryPlacement(nint hwnd, out WINDOWPLACEMENT placement)
     {
-        placement = new WINDOWPLACEMENT { Length = (uint)sizeof(WINDOWPLACEMENT) };
-        return Win32.GetWindowPlacement(hwnd, ref placement);
+        placement = new WINDOWPLACEMENT { length = (uint)sizeof(WINDOWPLACEMENT) };
+        return PInvoke.GetWindowPlacement((HWND)hwnd, ref placement);
     }
 
     /// <summary>
@@ -143,10 +144,10 @@ internal static unsafe class TopLevelWindows
     /// </summary>
     internal static void Place(nint hwnd, WINDOWPLACEMENT placement, RECT normal, bool minimized, bool maximized)
     {
-        placement.Normal = normal;
-        placement.ShowCmd = (uint)(minimized ? SHOW_WINDOW_CMD.SW_SHOWMINIMIZED :
-            maximized ? SHOW_WINDOW_CMD.SW_MAXIMIZE : SHOW_WINDOW_CMD.SW_SHOWNORMAL);
-        placement.Flags |= (uint)WINDOWPLACEMENT_FLAGS.WPF_ASYNCWINDOWPLACEMENT;
-        Win32.SetWindowPlacement(hwnd, placement);
+        placement.rcNormalPosition = normal;
+        placement.showCmd = minimized ? SHOW_WINDOW_CMD.SW_SHOWMINIMIZED :
+            maximized ? SHOW_WINDOW_CMD.SW_MAXIMIZE : SHOW_WINDOW_CMD.SW_SHOWNORMAL;
+        placement.flags |= WINDOWPLACEMENT_FLAGS.WPF_ASYNCWINDOWPLACEMENT;
+        PInvoke.SetWindowPlacement((HWND)hwnd, in placement);
     }
 }

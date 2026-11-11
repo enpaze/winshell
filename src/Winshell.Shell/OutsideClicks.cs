@@ -47,7 +47,7 @@ internal sealed partial class OutsideClicks : IDisposable
     /// <summary>A flyout's window in this process. The hook sees every process's windows.</summary>
     private static bool IsPopupWindow(nint hwnd)
     {
-        return Win32.GetWindowThreadProcessId(hwnd, out var process) != 0 && process == Environment.ProcessId
+        return PInvoke.GetWindowThreadProcessId((HWND)hwnd, out var process) != 0 && process == Environment.ProcessId
                                                                           && TopLevelWindows.ClassName(hwnd) ==
                                                                           PopupClass;
     }

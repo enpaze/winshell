@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Windows.Win32;
 
 namespace Winshell.Native;
 
@@ -28,7 +29,7 @@ internal sealed class HotkeyTarget : IDisposable
     {
         var window = NativeWindow.TryCreate(ClassName, 0, 0, message =>
         {
-            if (message.Id != Win32.WM_HOTKEY)
+            if (message.Id != PInvoke.WM_HOTKEY)
                 return null;
             onHotkey((int)message.WParam);
             return null;

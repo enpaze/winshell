@@ -17,7 +17,7 @@ internal static unsafe class TaskbarWindows
     /// The message Explorer broadcasts to top-level windows once it has made its taskbar: when it starts, after a crash
     /// or an update. Apps then add their notification area icons again, and app bars register again.
     /// </summary>
-    internal static readonly uint Created = Win32.RegisterWindowMessageW("TaskbarCreated");
+    internal static readonly uint Created = PInvoke.RegisterWindowMessage("TaskbarCreated");
 
     /// <summary>
     /// Calls <paramref name="changed"/> on this thread when Explorer may have made a taskbar window: on
@@ -33,7 +33,7 @@ internal static unsafe class TaskbarWindows
             (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW,
             message =>
             {
-                if (message.Id != Created && message.Id != Win32.WM_DISPLAYCHANGE)
+                if (message.Id != Created && message.Id != PInvoke.WM_DISPLAYCHANGE)
                     return null;
                 changed();
                 return 0;

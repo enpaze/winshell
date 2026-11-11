@@ -25,8 +25,8 @@ internal sealed class PopupPlacer(HostWindow host, ShellPlatform platform) : IWi
             return;
         host.Placement.Scale = monitor.Scale;
         var r = DesktopSpace.ToPhysical(placement.Rect, monitor.Bounds, monitor.Scale);
-        host.Placement.Move(r, Win32.HWND_TOPMOST,
-            (uint)(SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_NOOWNERZORDER));
+        host.Placement.Move(r, HWND.HWND_TOPMOST,
+            (SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_NOOWNERZORDER));
     }
 
     /// <summary>A popup only changes DPI on its own when its monitor's scale changes: place it again from its logical size.</summary>

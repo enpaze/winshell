@@ -86,7 +86,7 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
         if (!IsExplorerTaskbar(saved.Hwnd))
             return;
         if (saved.WasVisible)
-            Win32.ShowWindow(saved.Hwnd, (int)SHOW_WINDOW_CMD.SW_SHOWNA);
+            PInvoke.ShowWindow((HWND)saved.Hwnd, SHOW_WINDOW_CMD.SW_SHOWNA);
         if (!saved.Removed)
             return;
         if (!AppBarMessages.Register(saved.Hwnd, Callback()))
@@ -98,19 +98,19 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
 
     private void Take(nint hwnd, bool primary, bool autohide)
     {
-        if (!Win32.IsWindow(hwnd))
+        if (!PInvoke.IsWindow((HWND)hwnd))
             return;
-        var saved = Saved.Of(hwnd, primary, autohide, Win32.IsWindowVisible(hwnd));
+        var saved = Saved.Of(hwnd, primary, autohide, PInvoke.IsWindowVisible((HWND)hwnd));
         _saved.Add(saved);
         if (saved.Reserves)
             saved.Removed = AppBarMessages.Remove(hwnd);
-        Win32.ShowWindow(hwnd, (int)SHOW_WINDOW_CMD.SW_HIDE);
+        PInvoke.ShowWindow((HWND)hwnd, SHOW_WINDOW_CMD.SW_HIDE);
     }
 
     private static uint Callback()
     {
         if (_callback == 0)
-            _callback = Win32.RegisterWindowMessageW("WinshellExplorerTaskbar");
+            _callback = PInvoke.RegisterWindowMessage("WinshellExplorerTaskbar");
         return _callback;
     }
 
@@ -119,7 +119,7 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
         if (primary && AppBarMessages.TryPosition(hwnd, out edge, out rect))
             return true;
 
-        if (Win32.GetWindowRect(hwnd, out rect) && rect is { Width: > 0, Height: > 0 })
+        if (PInvoke.GetWindowRect((HWND)hwnd, out rect) && rect is { Width: > 0, Height: > 0 })
         {
             edge = EdgeOf(hwnd, rect);
             return true;
@@ -135,10 +135,10 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
     {
         var monitor = Screens.Of(hwnd)?.Bounds ?? window;
         if (window.Height <= window.Width)
-            return Math.Abs(window.Top - monitor.Top) < Math.Abs(monitor.Bottom - window.Bottom)
+            return Math.Abs(window.top - monitor.top) < Math.Abs(monitor.bottom - window.bottom)
                 ? AppBarEdge.Top
                 : AppBarEdge.Bottom;
-        return Math.Abs(window.Left - monitor.Left) < Math.Abs(monitor.Right - window.Right)
+        return Math.Abs(window.left - monitor.left) < Math.Abs(monitor.right - window.right)
             ? AppBarEdge.Left
             : AppBarEdge.Right;
     }
@@ -147,9 +147,9 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
     private static List<nint> Windows(string className)
     {
         var found = new List<nint>();
-        for (nint hwnd = 0, next; (next = Win32.FindWindowExW(0, hwnd, className, null)) != 0; hwnd = next)
+        for (nint hwnd = 0, next; (next = PInvoke.FindWindowEx(HWND.Null, (HWND)hwnd, className, null)) != 0; hwnd = next)
         {
-            Win32.GetWindowThreadProcessId(next, out var pid);
+            PInvoke.GetWindowThreadProcessId((HWND)next, out var pid);
             if (pid != Environment.ProcessId && IsExplorer((int)pid))
                 found.Add(next);
         }
@@ -174,7 +174,7 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
     /// <summary>False when the handle was destroyed or reused, so restore does not show some other window.</summary>
     private static bool IsExplorerTaskbar(nint hwnd)
     {
-        return Win32.IsWindow(hwnd) &&
+        return PInvoke.IsWindow((HWND)hwnd) &&
                TopLevelWindows.ClassName(hwnd) is TaskbarWindows.PrimaryClass or TaskbarWindows.SecondaryClass;
     }
 

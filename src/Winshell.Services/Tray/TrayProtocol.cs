@@ -135,19 +135,19 @@ internal static class TrayProtocol
         return click switch
         {
             TrayClick.Left => current
-                ? [Win32.WM_LBUTTONDOWN, Win32.WM_LBUTTONUP, PInvoke.NIN_SELECT]
-                : [Win32.WM_LBUTTONDOWN, Win32.WM_LBUTTONUP],
+                ? [PInvoke.WM_LBUTTONDOWN, PInvoke.WM_LBUTTONUP, PInvoke.NIN_SELECT]
+                : [PInvoke.WM_LBUTTONDOWN, PInvoke.WM_LBUTTONUP],
             TrayClick.Double => current
                 ?
                 [
-                    Win32.WM_LBUTTONDOWN, Win32.WM_LBUTTONUP, PInvoke.NIN_SELECT, Win32.WM_LBUTTONDBLCLK,
-                    Win32.WM_LBUTTONUP, PInvoke.NIN_SELECT
+                    PInvoke.WM_LBUTTONDOWN, PInvoke.WM_LBUTTONUP, PInvoke.NIN_SELECT, PInvoke.WM_LBUTTONDBLCLK,
+                    PInvoke.WM_LBUTTONUP, PInvoke.NIN_SELECT
                 ]
-                : [Win32.WM_LBUTTONDOWN, Win32.WM_LBUTTONUP, Win32.WM_LBUTTONDBLCLK, Win32.WM_LBUTTONUP],
-            TrayClick.Middle => [Win32.WM_MBUTTONDOWN, Win32.WM_MBUTTONUP],
+                : [PInvoke.WM_LBUTTONDOWN, PInvoke.WM_LBUTTONUP, PInvoke.WM_LBUTTONDBLCLK, PInvoke.WM_LBUTTONUP],
+            TrayClick.Middle => [PInvoke.WM_MBUTTONDOWN, PInvoke.WM_MBUTTONUP],
             _ => current
-                ? [Win32.WM_RBUTTONDOWN, Win32.WM_RBUTTONUP, PInvoke.WM_CONTEXTMENU]
-                : [Win32.WM_RBUTTONDOWN, Win32.WM_RBUTTONUP]
+                ? [PInvoke.WM_RBUTTONDOWN, PInvoke.WM_RBUTTONUP, PInvoke.WM_CONTEXTMENU]
+                : [PInvoke.WM_RBUTTONDOWN, PInvoke.WM_RBUTTONUP]
         };
     }
 

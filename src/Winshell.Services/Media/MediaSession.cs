@@ -448,7 +448,7 @@ public sealed class MediaSession : ObservableObject
             return;
         }
 
-        if (Win32.IsIconic(window))
+        if (PInvoke.IsIconic((HWND)window))
             TopLevelWindows.Restore(window);
         Focus.Take(window);
     }

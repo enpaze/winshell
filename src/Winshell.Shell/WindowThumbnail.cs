@@ -188,14 +188,14 @@ public sealed partial class WindowThumbnail : FrameworkElement
     /// <summary>The window without its invisible resize borders. A minimized window keeps the borders it had while shown.</summary>
     private RECT SourceRect(nint hwnd, int width, int height)
     {
-        if (!Win32.IsIconic(hwnd) && Win32.GetWindowRect(hwnd, out var window)
+        if (!PInvoke.IsIconic((HWND)hwnd) && PInvoke.GetWindowRect((HWND)hwnd, out var window)
                                   && TopLevelWindows.TryFrameBounds(hwnd, out var frame))
         {
             var visible = PreviewSource(window, frame);
-            _insets = new RECT(visible.Left, visible.Top, window.Width - visible.Right, window.Height - visible.Bottom);
+            _insets = new RECT(visible.left, visible.top, window.Width - visible.right, window.Height - visible.bottom);
         }
 
-        var inset = new RECT(_insets.Left, _insets.Top, width - _insets.Right, height - _insets.Bottom);
+        var inset = new RECT(_insets.left, _insets.top, width - _insets.right, height - _insets.bottom);
         return inset is { Width: > 0, Height: > 0 } ? inset : new RECT(0, 0, width, height);
     }
 
@@ -275,10 +275,10 @@ public sealed partial class WindowThumbnail : FrameworkElement
         var whole = new RECT(0, 0, Math.Max(0, window.Width), Math.Max(0, window.Height));
         if (frame.Width <= 0 || frame.Height <= 0 || window.Width <= 0 || window.Height <= 0)
             return whole;
-        var left = Math.Clamp(frame.Left - window.Left, 0, window.Width);
-        var top = Math.Clamp(frame.Top - window.Top, 0, window.Height);
-        var right = Math.Clamp(frame.Right - window.Left, left, window.Width);
-        var bottom = Math.Clamp(frame.Bottom - window.Top, top, window.Height);
+        var left = Math.Clamp(frame.left - window.left, 0, window.Width);
+        var top = Math.Clamp(frame.top - window.top, 0, window.Height);
+        var right = Math.Clamp(frame.right - window.left, left, window.Width);
+        var bottom = Math.Clamp(frame.bottom - window.top, top, window.Height);
         return right - left <= 0 || bottom - top <= 0 ? whole : new RECT(left, top, right, bottom);
     }
 
@@ -293,8 +293,8 @@ public sealed partial class WindowThumbnail : FrameworkElement
         var scale = Math.Min(1, Math.Min((double)box.Width / sourceWidth, (double)box.Height / sourceHeight));
         var width = Math.Max(1, (int)Math.Round(sourceWidth * scale));
         var height = Math.Max(1, (int)Math.Round(sourceHeight * scale));
-        var left = box.Left + (box.Width - width) / 2;
-        var top = box.Top + (box.Height - height) / 2;
+        var left = box.left + (box.Width - width) / 2;
+        var top = box.top + (box.Height - height) / 2;
         return new RECT(left, top, left + width, top + height);
     }
 

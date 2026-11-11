@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Windows.Win32.Foundation;
 using Windows.Win32.System.Com;
 using Windows.Win32.UI.Shell;
 
@@ -124,7 +125,7 @@ internal static class DesktopWallpaper
         if (monitorId.Length > 0 && byPath.TryGetValue(monitorId, out var byName))
             return byName;
         if (monitorId.Length > 0 && desktop.GetMonitorRECT(monitorId, out var rect) >= 0 &&
-            byRect.TryGetValue((rect.Left, rect.Top, rect.Right, rect.Bottom), out var byPlace))
+            byRect.TryGetValue((rect.left, rect.top, rect.right, rect.bottom), out var byPlace))
             return byPlace;
         return (monitorId, false);
     }
@@ -142,7 +143,7 @@ internal static class DesktopWallpaper
             var (_, path) = DisplayDevice.Monitor(info.Device);
             if (path.Length > 0)
                 byPath[path] = (info.Device, info.IsPrimary);
-            byRect[(info.Bounds.Left, info.Bounds.Top, info.Bounds.Right, info.Bounds.Bottom)] =
+            byRect[(info.Bounds.left, info.Bounds.top, info.Bounds.right, info.Bounds.bottom)] =
                 (info.Device, info.IsPrimary);
         }
 

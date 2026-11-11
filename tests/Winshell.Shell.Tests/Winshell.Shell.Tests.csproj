@@ -15,6 +15,9 @@
     <Compile Include="..\..\scripts\generate-reference.cs" Link="ReferencePages.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Using Include="Windows.Win32" />
+    <Using Include="Windows.Win32.Foundation" />
+    <Using Include="Windows.Win32.UI.WindowsAndMessaging" />
     <ProjectReference Include="..\..\src\Winshell.Shell\Winshell.Shell.csproj" />
   </ItemGroup>
 </Project>

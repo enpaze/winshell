@@ -32,7 +32,7 @@ public sealed class FocusTakeoverTests
     [Fact]
     public async Task Taking_focus_reaches_the_window_only_after_a_key_tap()
     {
-        var previous = Win32.GetForegroundWindow();
+        var previous = PInvoke.GetForegroundWindow();
         var suffix = Guid.NewGuid().ToString("N");
         var stopName = @"Local\WinshellFocusStop" + suffix;
         var steadyName = @"Local\WinshellFocusSteady" + suffix;
@@ -77,7 +77,7 @@ public sealed class FocusTakeoverTests
             // The holder stays put, so a foreground change that lands after SetForegroundWindow returns is visible.
             // Take is the same steps as the refusal check, plus the key tap.
             Focus.Take(window.Handle);
-            Wait.Until(() => Win32.GetForegroundWindow() == window.Handle,
+            Wait.Until(() => PInvoke.GetForegroundWindow() == window.Handle,
                 "Focus.Take to give the window the keyboard after Windows had refused it",
                 TimeSpan.FromSeconds(5), () =>
                 {
@@ -123,7 +123,7 @@ public sealed class FocusTakeoverTests
                 restoreFailed = !RestoreZeroTimeout(errors);
             try
             {
-                if (previous != 0 && (window == null || previous != window.Handle) && Win32.IsWindow(previous))
+                if (previous != 0 && (window == null || previous != window.Handle) && PInvoke.IsWindow((HWND)previous))
                     Focus.Take(previous);
             }
             finally
@@ -207,41 +207,41 @@ public sealed class FocusTakeoverTests
                 Assert.Fail("The focus holder exited early (" + holder.ExitCode + "). " + errors);
         }
 
-        if (Win32.GetForegroundWindow() != window && ForegroundProcess() == (uint)holder.Id)
+        if (PInvoke.GetForegroundWindow() != window && ForegroundProcess() == (uint)holder.Id)
             return Refusal.Refused;
         steady.Reset();
         tapped.Reset();
-        return Win32.GetForegroundWindow() == window ? Refusal.Granted : Refusal.Waiting;
+        return PInvoke.GetForegroundWindow() == window ? Refusal.Granted : Refusal.Waiting;
     }
 
     /// <summary>What <see cref="Focus.Take"/> does before it taps a key, including the raise while joined.</summary>
     private static bool TakenWithoutTheKey(nint window)
     {
-        if (Win32.SetForegroundWindow(window) && Win32.GetForegroundWindow() == window)
+        if (PInvoke.SetForegroundWindow((HWND)window) && PInvoke.GetForegroundWindow() == window)
             return true;
-        var foreground = Win32.GetForegroundWindow();
+        var foreground = PInvoke.GetForegroundWindow();
         var current = Win32.GetCurrentThreadId();
-        var other = foreground == 0 ? 0 : Win32.GetWindowThreadProcessId(foreground, out _);
+        var other = foreground == 0 ? 0 : PInvoke.GetWindowThreadProcessId(foreground, out _);
         if (other != 0 && other != current && Win32.AttachThreadInput(current, other, true))
             try
             {
                 TopLevelWindows.Raise(window);
-                Win32.SetForegroundWindow(window);
+                PInvoke.SetForegroundWindow((HWND)window);
             }
             finally
             {
                 Win32.AttachThreadInput(current, other, false);
             }
 
-        return Win32.GetForegroundWindow() == window;
+        return PInvoke.GetForegroundWindow() == window;
     }
 
     private static uint ForegroundProcess()
     {
-        var foreground = Win32.GetForegroundWindow();
+        var foreground = PInvoke.GetForegroundWindow();
         if (foreground == 0)
             return 0;
-        Win32.GetWindowThreadProcessId(foreground, out var process);
+        PInvoke.GetWindowThreadProcessId(foreground, out var process);
         return process;
     }
 
@@ -519,7 +519,7 @@ public sealed class FocusTakeoverTests
         public async ValueTask DisposeAsync()
         {
             if (_threadId != 0)
-                Win32.PostThreadMessageW(_threadId, Win32.WM_QUIT, 0, 0);
+                PInvoke.PostThreadMessage(_threadId, PInvoke.WM_QUIT, 0, 0);
             await Task.Run(() => _thread.Join()).WaitAsync(TestContext.Current.CancellationToken);
         }
 
@@ -527,22 +527,22 @@ public sealed class FocusTakeoverTests
         {
             try
             {
-                var hwnd = Win32.CreateWindowExW(0, "STATIC", "winshell-focus-target",
-                    (uint)(WINDOW_STYLE.WS_OVERLAPPEDWINDOW | WINDOW_STYLE.WS_VISIBLE), 0, 80, 80, 40, 0, 0,
-                    Win32.GetModuleHandleW(null), 0);
+                var hwnd = NativeWindow.OfClass("STATIC", "winshell-focus-target",
+                    (uint)(WINDOW_STYLE.WS_OVERLAPPEDWINDOW | WINDOW_STYLE.WS_VISIBLE), 0, 80, 80, 40, 0,
+                    Win32.GetModuleHandleW(null));
                 if (hwnd != 0)
-                    Win32.ShowWindow(hwnd, (int)SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
-                Win32.PeekMessageW(out _, 0, 0, 0, 0);
+                    PInvoke.ShowWindow((HWND)hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
+                PInvoke.PeekMessage(out _, HWND.Null, 0, 0, PEEK_MESSAGE_REMOVE_TYPE.PM_NOREMOVE);
                 _threadId = Win32.GetCurrentThreadId();
                 _created.SetResult(hwnd);
-                while (Win32.GetMessageW(out var msg, 0, 0, 0) > 0)
+                while (PInvoke.GetMessage(out var msg, HWND.Null, 0, 0) > 0)
                 {
-                    Win32.TranslateMessage(msg);
-                    Win32.DispatchMessageW(msg);
+                    PInvoke.TranslateMessage(msg);
+                    PInvoke.DispatchMessage(msg);
                 }
 
                 if (hwnd != 0)
-                    Win32.DestroyWindow(hwnd);
+                    PInvoke.DestroyWindow((HWND)hwnd);
             }
             catch (Exception error)
             {

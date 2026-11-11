@@ -10,10 +10,10 @@ public class SystemChangesTests
     {
         var changes = new SystemChanges();
 
-        Assert.True(changes.Add(SystemChanges.From(Win32.WM_SETTINGCHANGE, 0)));
-        Assert.False(changes.Add(SystemChanges.From(Win32.WM_SETTINGCHANGE, 0)));
-        Assert.False(changes.Add(SystemChanges.From(Win32.WM_THEMECHANGED, 0)));
-        Assert.False(changes.Add(SystemChanges.From(Win32.WM_SYSCOLORCHANGE, 0)));
+        Assert.True(changes.Add(SystemChanges.From(PInvoke.WM_SETTINGCHANGE, 0)));
+        Assert.False(changes.Add(SystemChanges.From(PInvoke.WM_SETTINGCHANGE, 0)));
+        Assert.False(changes.Add(SystemChanges.From(PInvoke.WM_THEMECHANGED, 0)));
+        Assert.False(changes.Add(SystemChanges.From(PInvoke.WM_SYSCOLORCHANGE, 0)));
 
         Assert.Equal(SystemChange.Screens | SystemChange.Theme, changes.Take());
     }
@@ -33,12 +33,12 @@ public class SystemChangesTests
     [Fact]
     public void Each_broadcast_asks_for_what_it_changes()
     {
-        Assert.Equal(SystemChange.Screens, SystemChanges.From(Win32.WM_DISPLAYCHANGE, 0));
-        Assert.Equal(SystemChange.Screens | SystemChange.Theme, SystemChanges.From(Win32.WM_SETTINGCHANGE, 0));
+        Assert.Equal(SystemChange.Screens, SystemChanges.From(PInvoke.WM_DISPLAYCHANGE, 0));
+        Assert.Equal(SystemChange.Screens | SystemChange.Theme, SystemChanges.From(PInvoke.WM_SETTINGCHANGE, 0));
         Assert.Equal(SystemChange.WorkArea | SystemChange.Theme,
-            SystemChanges.From(Win32.WM_SETTINGCHANGE, Win32.SPI_SETWORKAREA));
-        Assert.Equal(SystemChange.Theme, SystemChanges.From(Win32.WM_THEMECHANGED, 0));
-        Assert.Equal(SystemChange.Theme, SystemChanges.From(Win32.WM_DWMCOLORIZATIONCOLORCHANGED, 0));
+            SystemChanges.From(PInvoke.WM_SETTINGCHANGE, Win32.SPI_SETWORKAREA));
+        Assert.Equal(SystemChange.Theme, SystemChanges.From(PInvoke.WM_THEMECHANGED, 0));
+        Assert.Equal(SystemChange.Theme, SystemChanges.From(PInvoke.WM_DWMCOLORIZATIONCOLORCHANGED, 0));
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class SystemChangesTests
     {
         var changes = new SystemChanges();
 
-        Assert.False(changes.Add(SystemChanges.From(Win32.WM_SIZE, 0)));
-        Assert.True(changes.Add(SystemChanges.From(Win32.WM_SYSCOLORCHANGE, 0)));
+        Assert.False(changes.Add(SystemChanges.From(PInvoke.WM_SIZE, 0)));
+        Assert.True(changes.Add(SystemChanges.From(PInvoke.WM_SYSCOLORCHANGE, 0)));
     }
 }

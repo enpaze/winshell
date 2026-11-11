@@ -30,16 +30,17 @@ public sealed class PanelMenuTests
                 using var panel = new PanelWindow();
                 panel.Content = new Grid();
                 using var host = new HostWindow(shell.Platform, WindowKind.Panel, panel);
-                var foreground = Win32.GetForegroundWindow();
+                var foreground = PInvoke.GetForegroundWindow();
                 Assert.True(menu.Shows);
 
                 if (mouseActivation)
-                    Assert.Equal(Win32.MA_NOACTIVATE, Win32.SendMessageW(host.Handle, Win32.WM_MOUSEACTIVATE, 0, 0));
+                    Assert.Equal((nint)PInvoke.MA_NOACTIVATE,
+                        (nint)PInvoke.SendMessage((HWND)host.Handle, PInvoke.WM_MOUSEACTIVATE, 0, 0));
                 else
                     // What `winshell inspect click` does before it invokes a control.
                     host.Messages.Press();
 
-                Assert.Equal(foreground, Win32.GetForegroundWindow());
+                Assert.Equal(foreground, PInvoke.GetForegroundWindow());
                 return true;
             });
 
@@ -87,7 +88,7 @@ public sealed class PanelMenuTests
         private void Show()
         {
             _thread = Win32.GetCurrentThreadId();
-            var owner = Win32.CreateWindowExW(0, "STATIC", "", 0, 0, 0, 0, 0, 0, 0, 0, 0);
+            var owner = NativeWindow.OfClass("STATIC", "", 0, 0, 0, 0, 0, 0, 0);
             var menu = PInvoke.CreatePopupMenu();
             try
             {
@@ -100,7 +101,7 @@ public sealed class PanelMenuTests
             finally
             {
                 _ = PInvoke.DestroyMenu(menu);
-                _ = Win32.DestroyWindow(owner);
+                _ = PInvoke.DestroyWindow((HWND)owner);
             }
         }
 
@@ -116,8 +117,8 @@ public sealed class PanelMenuTests
         private static bool MenuShowsOn(uint thread)
         {
             nint menu = 0;
-            while ((menu = Win32.FindWindowExW(0, menu, "#32768", null)) != 0)
-                if (Win32.IsWindowVisible(menu) && Win32.GetWindowThreadProcessId(menu, out _) == thread)
+            while ((menu = PInvoke.FindWindowEx(HWND.Null, (HWND)menu, "#32768", null)) != 0)
+                if (PInvoke.IsWindowVisible((HWND)menu) && PInvoke.GetWindowThreadProcessId((HWND)menu, out _) == thread)
                     return true;
             return false;
         }

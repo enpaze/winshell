@@ -25,7 +25,7 @@ internal sealed record PanelPlacement(
 /// </summary>
 internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
 {
-    private static readonly uint Message = Win32.WM_APP + 1;
+    private static readonly uint Message = PInvoke.WM_APP + 1;
 
     private static readonly ConcurrentDictionary<IPanelDesktop, byte> Held = new();
 
@@ -178,10 +178,10 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
     {
         return edge switch
         {
-            Edges.Bottom => offered with { Top = offered.Bottom - thickness },
-            Edges.Left => offered with { Right = offered.Left + thickness },
-            Edges.Right => offered with { Left = offered.Right - thickness },
-            _ => offered with { Bottom = offered.Top + thickness }
+            Edges.Bottom => offered with { top = offered.bottom - thickness },
+            Edges.Left => offered with { right = offered.left + thickness },
+            Edges.Right => offered with { left = offered.right - thickness },
+            _ => offered with { bottom = offered.top + thickness }
         };
     }
 
@@ -190,10 +190,10 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
     {
         return edge switch
         {
-            Edges.Bottom => monitor with { Bottom = granted.Bottom, Left = granted.Left, Right = granted.Right },
-            Edges.Left => monitor with { Left = granted.Left, Top = granted.Top, Bottom = granted.Bottom },
-            Edges.Right => monitor with { Right = granted.Right, Top = granted.Top, Bottom = granted.Bottom },
-            _ => monitor with { Top = granted.Top, Left = granted.Left, Right = granted.Right }
+            Edges.Bottom => monitor with { bottom = granted.bottom, left = granted.left, right = granted.right },
+            Edges.Left => monitor with { left = granted.left, top = granted.top, bottom = granted.bottom },
+            Edges.Right => monitor with { right = granted.right, top = granted.top, bottom = granted.bottom },
+            _ => monitor with { top = granted.top, left = granted.left, right = granted.right }
         };
     }
 
@@ -206,9 +206,9 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
         var mb = (int)Math.Round(p.MarginBottom * scale);
         var w = (int)Math.Round(p.Width * scale);
         var h = (int)Math.Round(p.Height * scale);
-        var (x, width) = Span(area.Left, area.Width, p.Anchors.HasFlag(Edges.Left), p.Anchors.HasFlag(Edges.Right), ml,
+        var (x, width) = Span(area.left, area.Width, p.Anchors.HasFlag(Edges.Left), p.Anchors.HasFlag(Edges.Right), ml,
             mr, w);
-        var (y, height) = Span(area.Top, area.Height, p.Anchors.HasFlag(Edges.Top), p.Anchors.HasFlag(Edges.Bottom), mt,
+        var (y, height) = Span(area.top, area.Height, p.Anchors.HasFlag(Edges.Top), p.Anchors.HasFlag(Edges.Bottom), mt,
             mb, h);
         return new RECT(x, y, x + Math.Max(1, width), y + Math.Max(1, height));
     }

@@ -12,19 +12,19 @@ public sealed class ShellServicesTests
         var resolved = await ShellFixture.On(async shell =>
         {
             var winland = shell.Winland;
-            var hwnd = Win32.CreateWindowExW(0, "STATIC", "winshell-listed-window",
-                (uint)WINDOW_STYLE.WS_OVERLAPPEDWINDOW, 0, 80, 80, 40, 0, 0, Win32.GetModuleHandleW(null), 0);
+            var hwnd = NativeWindow.OfClass("STATIC", "winshell-listed-window",
+                (uint)WINDOW_STYLE.WS_OVERLAPPEDWINDOW, 0, 80, 80, 40, 0, Win32.GetModuleHandleW(null));
             Assert.NotEqual(0, hwnd);
             try
             {
-                Win32.ShowWindow(hwnd, (int)SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
+                PInvoke.ShowWindow((HWND)hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
                 await Wait.UntilAsync(() => shell.WindowList.Find(hwnd) is not null,
                     "the window list to list the window");
                 return ReferenceEquals(shell.WindowList.Find(hwnd), winland.FindWindow(hwnd));
             }
             finally
             {
-                Win32.DestroyWindow(hwnd);
+                PInvoke.DestroyWindow((HWND)hwnd);
             }
         });
 

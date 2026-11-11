@@ -3,6 +3,11 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <Using Include="Windows.Win32" />
+    <Using Include="Windows.Win32.Foundation" />
+    <Using Include="Windows.Win32.UI.WindowsAndMessaging" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Winshell.Core\Winshell.Core.csproj" />
     <ProjectReference Include="..\Winshell.Native\Winshell.Native.csproj" />
   </ItemGroup>

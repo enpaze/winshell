@@ -44,7 +44,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
         _applying = true;
         try
         {
-            Win32.SetWindowTextW(Handle, placement.Title);
+            PInvoke.SetWindowText((HWND)Handle, placement.Title);
             OwnedWindows.Link(Handle, placement.Owner);
             if (_fullscreen && !placement.Fullscreen)
             {
@@ -59,16 +59,16 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
             {
                 _lastWidth = placement.Width;
                 _lastHeight = placement.Height;
-                if (placement.Minimized && !Win32.IsIconic(Handle))
+                if (placement.Minimized && !PInvoke.IsIconic((HWND)Handle))
                 {
-                    Win32.ShowWindow(Handle, (int)SHOW_WINDOW_CMD.SW_MINIMIZE);
+                    PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_MINIMIZE);
                 }
-                else if (!placement.Minimized && Win32.IsIconic(Handle))
+                else if (!placement.Minimized && PInvoke.IsIconic((HWND)Handle))
                 {
-                    Win32.ShowWindow(Handle, (int)SHOW_WINDOW_CMD.SW_RESTORE);
+                    PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_RESTORE);
                     FillMonitor();
                 }
-                else if (!Win32.IsIconic(Handle))
+                else if (!PInvoke.IsIconic((HWND)Handle))
                 {
                     FillMonitor();
                 }
@@ -79,7 +79,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
             }
 
             // Showing or restoring the owner can put it above the windows it owns. Put those back above it.
-            if (!Win32.IsIconic(Handle))
+            if (!PInvoke.IsIconic((HWND)Handle))
                 OwnedWindows.Raise(Handle, platform.Windows);
             ReportState();
         }
@@ -93,14 +93,14 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
     {
         switch (message.Id)
         {
-            case Win32.WM_SIZE or Win32.WM_MOVE:
+            case PInvoke.WM_SIZE or PInvoke.WM_MOVE:
                 // The user may have maximized, minimized or restored it. A move the window makes itself reports once done.
                 if (!host.Placement.Placing && !host.Released && !_applying)
                     ReportState();
                 return null;
-            case Win32.WM_GETMINMAXINFO:
+            case PInvoke.WM_GETMINMAXINFO:
                 return OnGetMinMaxInfo(ref message.MinMaxInfo);
-            case Win32.WM_DISPLAYCHANGE:
+            case PInvoke.WM_DISPLAYCHANGE:
                 if (_fullscreen)
                     FillMonitor();
                 return null;
@@ -120,8 +120,8 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
         else
         {
             // The user dragged it to another monitor, or that monitor's scale changed: Windows' rect keeps the logical size.
-            Win32.SetWindowPos(Handle, 0, suggested.Left, suggested.Top, suggested.Width, suggested.Height,
-                (uint)(SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE));
+            PInvoke.SetWindowPos((HWND)Handle, HWND.HWND_TOP, suggested.left, suggested.top, suggested.Width, suggested.Height,
+                (SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE));
         }
     }
 
@@ -133,8 +133,8 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
             // The default maximum is the work area, which would stop the window short of the taskbar.
             if (Screens.Of(Handle)?.Bounds is not { Width: > 0, Height: > 0 } bounds)
                 return null;
-            info.ptMaxPosition.X = bounds.Left;
-            info.ptMaxPosition.Y = bounds.Top;
+            info.ptMaxPosition.X = bounds.left;
+            info.ptMaxPosition.Y = bounds.top;
             info.ptMaxSize.X = bounds.Width;
             info.ptMaxSize.Y = bounds.Height;
             info.ptMaxTrackSize.X = bounds.Width;
@@ -165,41 +165,41 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
         {
             _lastWidth = placement.Width;
             _lastHeight = placement.Height;
-            var dpi = Win32.GetDpiForWindow(Handle);
+            var dpi = PInvoke.GetDpiForWindow((HWND)Handle);
             host.Placement.Scale = dpi / 96.0;
             var client = new RECT(0, 0, (int)Math.Round(placement.Width * host.Placement.Scale),
                 (int)Math.Round(placement.Height * host.Placement.Scale));
             var (style, ex) = Styles;
-            Win32.AdjustWindowRectExForDpi(ref client, style, false, ex, dpi);
+            PInvoke.AdjustWindowRectExForDpi(ref client, (WINDOW_STYLE)style, false, (WINDOW_EX_STYLE)ex, dpi);
             int x, y;
             if (first)
             {
                 var monitor = placement.Screen is { } screen ? Screens.Find(screen.Id) : Screens.Primary();
                 var area = monitor?.Area ?? default;
-                x = area.Left + (area.Width - client.Width) / 2;
-                y = area.Top + (area.Height - client.Height) / 2;
+                x = area.left + (area.Width - client.Width) / 2;
+                y = area.top + (area.Height - client.Height) / 2;
             }
             else
             {
-                Win32.GetWindowRect(Handle, out var current);
-                x = current.Left;
-                y = current.Top;
+                PInvoke.GetWindowRect((HWND)Handle, out var current);
+                x = current.left;
+                y = current.top;
             }
 
-            Win32.SetWindowPos(Handle, 0, x, y, client.Width, client.Height,
-                (uint)(SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE));
+            PInvoke.SetWindowPos((HWND)Handle, HWND.HWND_TOP, x, y, client.Width, client.Height,
+                (SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE));
             _placed = true;
         }
 
         if (host.Placement.IsVisible)
         {
-            if (placement.Minimized && !Win32.IsIconic(Handle))
-                Win32.ShowWindow(Handle, (int)SHOW_WINDOW_CMD.SW_MINIMIZE);
-            else if (placement.Maximized && !Win32.IsZoomed(Handle))
-                Win32.ShowWindow(Handle, (int)SHOW_WINDOW_CMD.SW_SHOWMAXIMIZED);
+            if (placement.Minimized && !PInvoke.IsIconic((HWND)Handle))
+                PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_MINIMIZE);
+            else if (placement.Maximized && !PInvoke.IsZoomed((HWND)Handle))
+                PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_SHOWMAXIMIZED);
             else if (placement is { Maximized: false, Minimized: false } &&
-                     (Win32.IsZoomed(Handle) || Win32.IsIconic(Handle)))
-                Win32.ShowWindow(Handle, (int)SHOW_WINDOW_CMD.SW_RESTORE);
+                     (PInvoke.IsZoomed((HWND)Handle) || PInvoke.IsIconic((HWND)Handle)))
+                PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_RESTORE);
         }
     }
 
@@ -209,8 +209,8 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
         _fullscreen = true;
         host.Presentation.SetFullscreen(true);
         SetStyle(BorderlessStyle());
-        if (Win32.IsIconic(Handle) || Win32.IsZoomed(Handle))
-            Win32.ShowWindow(Handle, (int)SHOW_WINDOW_CMD.SW_RESTORE);
+        if (PInvoke.IsIconic((HWND)Handle) || PInvoke.IsZoomed((HWND)Handle))
+            PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_RESTORE);
         FillMonitor();
     }
 
@@ -235,12 +235,12 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
         if (monitor is not null && saved.Matches(monitor.Id, monitor.Bounds, scale) && saved.HasPlacement)
         {
             var next = saved.Placement;
-            next.ShowCmd = placement.StateRequested
+            next.showCmd = placement.StateRequested
                 ? RequestedShow(placement)
                 : Shown(saved);
             if (placement is { StateRequested: true, Maximized: false })
-                next.Flags &= ~(uint)WINDOWPLACEMENT_FLAGS.WPF_RESTORETOMAXIMIZED;
-            if (Win32.SetWindowPlacement(Handle, next))
+                next.flags &= ~WINDOWPLACEMENT_FLAGS.WPF_RESTORETOMAXIMIZED;
+            if (PInvoke.SetWindowPlacement((HWND)Handle, next))
             {
                 host.Placement.UpdateSize();
                 return;
@@ -260,52 +260,52 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
         var maximized = placement.StateRequested ? placement.Maximized : saved.Maximized;
         var minimized = placement.StateRequested ? placement.Minimized : saved.Minimized;
         if (minimized)
-            Win32.ShowWindow(Handle, (int)SHOW_WINDOW_CMD.SW_MINIMIZE);
+            PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_MINIMIZE);
         else if (maximized)
-            Win32.ShowWindow(Handle, (int)SHOW_WINDOW_CMD.SW_SHOWMAXIMIZED);
-        else if (Win32.IsZoomed(Handle) || Win32.IsIconic(Handle))
-            Win32.ShowWindow(Handle, (int)SHOW_WINDOW_CMD.SW_RESTORE);
+            PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_SHOWMAXIMIZED);
+        else if (PInvoke.IsZoomed((HWND)Handle) || PInvoke.IsIconic((HWND)Handle))
+            PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_RESTORE);
     }
 
-    private uint Shown(SavedFloatingPlace saved)
+    private SHOW_WINDOW_CMD Shown(SavedFloatingPlace saved)
     {
         if (!host.Placement.IsVisible)
-            return (uint)SHOW_WINDOW_CMD.SW_HIDE;
+            return SHOW_WINDOW_CMD.SW_HIDE;
         if (saved.Minimized)
-            return (uint)SHOW_WINDOW_CMD.SW_SHOWMINIMIZED;
+            return SHOW_WINDOW_CMD.SW_SHOWMINIMIZED;
         if (saved.Maximized)
-            return (uint)SHOW_WINDOW_CMD.SW_SHOWMAXIMIZED;
-        var show = saved.HasPlacement ? saved.Placement.ShowCmd : 0;
+            return SHOW_WINDOW_CMD.SW_SHOWMAXIMIZED;
+        var show = saved.HasPlacement ? saved.Placement.showCmd : 0;
         // A window that was never shown has no show command. Leaving fullscreen while it is visible shows it.
-        return show == 0 ? (uint)SHOW_WINDOW_CMD.SW_SHOWNORMAL : show;
+        return show == 0 ? SHOW_WINDOW_CMD.SW_SHOWNORMAL : show;
     }
 
-    private static uint RequestedShow(FloatingPlacement placement)
+    private static SHOW_WINDOW_CMD RequestedShow(FloatingPlacement placement)
     {
-        return (uint)(placement.Minimized ? SHOW_WINDOW_CMD.SW_SHOWMINIMIZED :
-            placement.Maximized ? SHOW_WINDOW_CMD.SW_SHOWMAXIMIZED : SHOW_WINDOW_CMD.SW_SHOWNORMAL);
+        return placement.Minimized ? SHOW_WINDOW_CMD.SW_SHOWMINIMIZED :
+            placement.Maximized ? SHOW_WINDOW_CMD.SW_SHOWMAXIMIZED : SHOW_WINDOW_CMD.SW_SHOWNORMAL;
     }
 
     private SavedFloatingPlace CapturePlace()
     {
         var monitor = Screens.Of(Handle);
-        var dpi = Win32.GetDpiForWindow(Handle);
+        var dpi = PInvoke.GetDpiForWindow((HWND)Handle);
         var scale = dpi == 0 ? monitor?.Scale ?? host.Placement.Scale : dpi / 96.0;
         if (scale <= 0)
             scale = 1;
         var bounds = monitor?.Bounds ?? default;
-        Win32.GetWindowRect(Handle, out var shown);
-        var maximized = Win32.IsZoomed(Handle);
-        var minimized = Win32.IsIconic(Handle);
+        PInvoke.GetWindowRect((HWND)Handle, out var shown);
+        var maximized = PInvoke.IsZoomed((HWND)Handle);
+        var minimized = PInvoke.IsIconic((HWND)Handle);
         var hasPlacement = TopLevelWindows.TryPlacement(Handle, out var placement);
         var normal = shown;
         if ((maximized || minimized) && hasPlacement)
         {
             var primary = Screens.Primary();
             var tool =
-                (Win32.GetWindowLongPtr(Handle, Win32.GWL_EXSTYLE) & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW) != 0;
+                (PInvoke.GetWindowLongPtr((HWND)Handle, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE) & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW) != 0;
             normal = WindowOnScreen.Restored(
-                new WindowToMove(shown, placement.Normal, true, minimized, maximized, tool),
+                new WindowToMove(shown, placement.rcNormalPosition, true, minimized, maximized, tool),
                 primary?.Bounds ?? default, primary?.Work ?? default);
         }
 
@@ -313,12 +313,12 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
             ? DesktopSpace.ToLogical(normal, bounds, scale)
             : new Rect(0, 0, normal.Width, normal.Height);
         return new SavedFloatingPlace(
-            (uint)Win32.GetWindowLongPtr(Handle, Win32.GWL_STYLE),
+            (uint)PInvoke.GetWindowLongPtr((HWND)Handle, WINDOW_LONG_PTR_INDEX.GWL_STYLE),
             scale,
             bounds,
             monitor?.Id ?? "",
-            logical.X - bounds.Left,
-            logical.Y - bounds.Top,
+            logical.X - bounds.left,
+            logical.Y - bounds.top,
             logical.Width,
             logical.Height,
             maximized,
@@ -329,7 +329,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
 
     private uint BorderlessStyle()
     {
-        var style = (uint)Win32.GetWindowLongPtr(Handle, Win32.GWL_STYLE);
+        var style = (uint)PInvoke.GetWindowLongPtr((HWND)Handle, WINDOW_LONG_PTR_INDEX.GWL_STYLE);
         var next = (style & ~(uint)WINDOW_STYLE.WS_OVERLAPPEDWINDOW) |
                    (uint)(WINDOW_STYLE.WS_POPUP | WINDOW_STYLE.WS_CLIPCHILDREN);
         if ((style & (uint)WINDOW_STYLE.WS_VISIBLE) != 0)
@@ -341,7 +341,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
     {
         if (Handle == 0)
             return;
-        var current = (uint)Win32.GetWindowLongPtr(Handle, Win32.GWL_STYLE);
+        var current = (uint)PInvoke.GetWindowLongPtr((HWND)Handle, WINDOW_LONG_PTR_INDEX.GWL_STYLE);
         // Showing and hiding go through ShowWindow. A frame change keeps whichever of those the window is in.
         if ((current & (uint)WINDOW_STYLE.WS_VISIBLE) != 0)
             style |= (uint)WINDOW_STYLE.WS_VISIBLE;
@@ -349,13 +349,13 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
             style &= ~(uint)WINDOW_STYLE.WS_VISIBLE;
         if (current == style)
             return;
-        Win32.SetWindowLongPtr(Handle, Win32.GWL_STYLE, (nint)style);
+        PInvoke.SetWindowLongPtr((HWND)Handle, WINDOW_LONG_PTR_INDEX.GWL_STYLE, (nint)style);
     }
 
     private void Reframe()
     {
-        Win32.SetWindowPos(Handle, 0, 0, 0, 0, 0,
-            (uint)(SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
+        PInvoke.SetWindowPos((HWND)Handle, HWND.HWND_TOP, 0, 0, 0, 0,
+            (SET_WINDOW_POS_FLAGS.SWP_NOMOVE | SET_WINDOW_POS_FLAGS.SWP_NOSIZE |
                    SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE |
                    SET_WINDOW_POS_FLAGS.SWP_FRAMECHANGED));
     }
@@ -371,7 +371,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
     private void PlaceOuter(RECT rect)
     {
         host.Placement.Move(rect, 0,
-            (uint)(SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE |
+            (SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE |
                    SET_WINDOW_POS_FLAGS.SWP_FRAMECHANGED));
     }
 
@@ -383,17 +383,17 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
         _fullscreen = fullscreen;
         host.Client.OnFullscreenChanged(fullscreen);
         // A fullscreen window covers the monitor, not the work area, so it is not the framed maximized state.
-        host.Client.OnStateChanged(Win32.IsZoomed(Handle) && !fullscreen, Win32.IsIconic(Handle));
+        host.Client.OnStateChanged(PInvoke.IsZoomed((HWND)Handle) && !fullscreen, PInvoke.IsIconic((HWND)Handle));
     }
 
     private bool ReadsFullscreen()
     {
-        if (Win32.IsIconic(Handle))
+        if (PInvoke.IsIconic((HWND)Handle))
             return _fullscreen;
-        if (!Win32.GetWindowRect(Handle, out var rect))
+        if (!PInvoke.GetWindowRect((HWND)Handle, out var rect))
             return _fullscreen;
         if (Screens.Of(Handle)?.Bounds is not { Width: > 0, Height: > 0 } bounds)
             return _fullscreen;
-        return WindowRules.CoversMonitor(Win32.GetWindowLongPtr(Handle, Win32.GWL_STYLE), rect, bounds);
+        return WindowRules.CoversMonitor(PInvoke.GetWindowLongPtr((HWND)Handle, WINDOW_LONG_PTR_INDEX.GWL_STYLE), rect, bounds);
     }
 }

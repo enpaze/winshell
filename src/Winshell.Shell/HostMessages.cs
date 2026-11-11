@@ -24,12 +24,12 @@ internal sealed class HostMessages(HostWindow host, ShellPlatform platform)
         var (msg, wParam) = (message.Id, message.WParam);
         switch (msg)
         {
-            case Win32.WM_SIZE:
-            case Win32.WM_MOVE:
+            case PInvoke.WM_SIZE:
+            case PInvoke.WM_MOVE:
                 if (host.Handle != 0)
                     placement.UpdateSize();
                 return null;
-            case Win32.WM_DPICHANGED:
+            case PInvoke.WM_DPICHANGED:
                 {
                     // A size we apply from this message can send it again with the monitor's old scale. Keep the one that started it.
                     if (!placement.Placing)
@@ -39,28 +39,28 @@ internal sealed class HostMessages(HostWindow host, ShellPlatform platform)
                     platform.ScreensMayHaveChanged();
                     return 0;
                 }
-            case Win32.WM_MOUSEACTIVATE:
+            case PInvoke.WM_MOUSEACTIVATE:
                 // A click here does not close a menu another app opened without the foreground, as tray menus
                 // often are. Close it before the mouse message reaches the XAML island.
                 Press();
-                return host.Focus.ActivatesOnClick ? null : Win32.MA_NOACTIVATE;
-            case Win32.WM_ACTIVATE:
+                return host.Focus.ActivatesOnClick ? null : (nint)PInvoke.MA_NOACTIVATE;
+            case PInvoke.WM_ACTIVATE:
                 // A grabbing popup closes on a click outside it, which the mouse hook sees; losing activation
                 // alone does not close it, since Windows can take activation away at any time.
                 host.Client.OnActiveChanged(Win32.LowWord(wParam) != 0);
                 return null;
-            case Win32.WM_SETFOCUS:
+            case PInvoke.WM_SETFOCUS:
                 host.Presentation.FocusContent();
                 return null;
-            case Win32.WM_CLOSE:
+            case PInvoke.WM_CLOSE:
                 host.Client.OnClosed();
                 placement.SetVisible(false);
                 return 0;
-            case Win32.WM_DESTROY:
+            case PInvoke.WM_DESTROY:
                 // The owner is closing, so Windows destroys this window. Drop the handle before it dangles.
                 host.NoteExternalDestroy();
                 return null;
-            case Win32.WM_ERASEBKGND:
+            case PInvoke.WM_ERASEBKGND:
                 return 1;
             default:
                 return null;
