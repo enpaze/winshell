@@ -10,7 +10,7 @@ public sealed class ShellStartTests
     [Fact]
     public void After_and_no_duplicate_are_read_and_the_rest_stays_the_programs()
     {
-        var arguments = ShellArguments.Parse(["--theme", "dark", "--after", "4242", "-n"]);
+        var arguments = CommandLine.ReadProgram(["--theme", "dark", "--after", "4242", "-n"]);
 
         Assert.Equal(4242, arguments.After);
         Assert.True(arguments.NoDuplicate);
@@ -25,7 +25,7 @@ public sealed class ShellStartTests
     {
         var given = line.Split(' ');
 
-        var arguments = ShellArguments.Parse(given);
+        var arguments = CommandLine.ReadProgram(given);
 
         Assert.Null(arguments.After);
         Assert.False(arguments.NoDuplicate);
@@ -35,24 +35,24 @@ public sealed class ShellStartTests
     [Fact]
     public void The_next_process_keeps_the_arguments_and_names_only_this_one()
     {
-        var arguments = ShellArguments.Parse(["--after", "1", "--no-duplicate", "--", "a"]);
+        var arguments = CommandLine.ReadProgram(["--after", "1", "--no-duplicate", "--", "a"]);
 
         Assert.Equal(["--after", "2", "--no-duplicate", "--", "a"], arguments.ForNext(2));
-        Assert.Equal(2, ShellArguments.Parse(arguments.ForNext(2)).After);
-        Assert.False(ShellArguments.Parse(arguments.ForNext(2)).Daemonize);
+        Assert.Equal(2, CommandLine.ReadProgram(arguments.ForNext(2)).After);
+        Assert.False(CommandLine.ReadProgram(arguments.ForNext(2)).Daemonize);
     }
 
     [Fact]
     public void A_detached_start_drops_d_and_keeps_the_handoff()
     {
-        var arguments = ShellArguments.Parse(["-d", "--after", "7", "--theme", "dark", "--daemonize", "--", "-d"]);
+        var arguments = CommandLine.ReadProgram(["-d", "--after", "7", "--theme", "dark", "--daemonize", "--", "-d"]);
 
         Assert.True(arguments.Daemonize);
         Assert.Equal(7, arguments.After);
         Assert.Equal(["--theme", "dark", "--", "-d"], arguments.Kept);
         Assert.Equal(["--after", "7", "--theme", "dark", "--", "-d"], arguments.Detached);
         Assert.Equal(["--after", "8", "--theme", "dark", "--", "-d"], arguments.ForNext(8));
-        Assert.False(ShellArguments.Parse(arguments.ForNext(8)).Daemonize);
+        Assert.False(CommandLine.ReadProgram(arguments.ForNext(8)).Daemonize);
 
         var start = InstanceStart.DetachedStart(@"C:\shells\winshell-next.exe", arguments.Detached);
         Assert.Equal(@"C:\shells\winshell-next.exe", start.FileName);

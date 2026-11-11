@@ -1,8 +1,6 @@
 using System.Security;
 using Microsoft.Win32;
 using Windows.ApplicationModel;
-using Winshell.Native;
-
 namespace Winshell.Session;
 
 /// <summary>
@@ -90,19 +88,15 @@ internal sealed class WindowsStartupRegistry(
     /// </summary>
     private bool Starts(string actual)
     {
-        var wanted = SignInEntry.Read(command);
+        var wantedLine = CommandLine.Parse(command);
+        var wanted = wantedLine.ReadSignIn();
         if (!wanted.NamesConfiguration)
-            return Words(actual).SequenceEqual(Words(command), StringComparer.OrdinalIgnoreCase);
-        var seen = SignInEntry.Read(actual);
+            return wantedLine.SameProgram(CommandLine.Parse(actual));
+        var seen = CommandLine.ReadSignIn(actual);
         return wanted.Program is { } here && seen.Program is { } started &&
                SignInEntry.SameInstall(started, here, SignInEntry.Resolve) &&
                SignInEntry.ProjectOf(wanted, configRoot) is { } project &&
                SignInEntry.Starts(seen, project, configRoot);
-    }
-
-    private static IEnumerable<string> Words(string command)
-    {
-        return CommandLine.Split(command).Select(WinshellHost.ConsoleOf);
     }
 }
 

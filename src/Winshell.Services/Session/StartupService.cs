@@ -41,7 +41,7 @@ public sealed class StartupService : ObservableObject
         if (supervisor is null || !WinshellHost.Is(supervisor) ||
             ConfigurationProject.RunPath(program) is not { } project)
             return null;
-        return SignInEntry.CommandFor(supervisor, [CommandWords.Run, CommandWords.Path.Short, project]);
+        return CommandLine.ForSignIn(supervisor, [CommandWords.Run, CommandWords.Path.Short!, project]);
     }
 
     private static IStartupRegistry? RegistryForThisProcess()
@@ -51,7 +51,7 @@ public sealed class StartupService : ObservableObject
         if (Environment.ProcessPath is not { } exe)
             return null;
         var command = ConfigurationProject.FolderOf(exe) is null
-            ? SignInEntry.CommandFor(exe, Environment.GetCommandLineArgs().Skip(1))
+            ? CommandLine.ForSignIn(exe, Environment.GetCommandLineArgs().Skip(1))
             : SignInCommand(exe, WinshellHost.Supervising());
         return command is null ? null : new WindowsStartupRegistry(command, ShellLocations.Current.ConfigRoot);
     }

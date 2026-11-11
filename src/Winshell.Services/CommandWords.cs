@@ -36,7 +36,8 @@ internal static class CommandWords
 /// <summary>An option's long spelling and the shorter ones it also answers to.</summary>
 internal sealed record CommandWord(string Long, params string[] Shorts)
 {
-    public string Short => Shorts[0];
+    /// <summary>The short spelling, or null when the word has none.</summary>
+    public string? Short => Shorts.Length == 0 ? null : Shorts[0];
 
     public bool Is(string token)
     {
