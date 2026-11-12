@@ -1,24 +1,5 @@
 #requires -Version 7.0
-# Builds the files a release ships into one folder, and checks them. See docs/development.md#releasing.
-#
-#   pwsh scripts/package.ps1                  publishes, packs and verifies both architectures into artifacts/
-#   pwsh scripts/package.ps1 -Publish         only publishes, into artifacts/publish/<runtime>/
-#   pwsh scripts/package.ps1 -Pack            only packs what artifacts/publish/ already has
-#   pwsh scripts/package.ps1 -Verify          only checks what artifacts/ already has
-#
-# Publishing is a self-contained, trimmed ReadyToRun build of src/Winshell for each runtime, so no .NET install is needed
-# and sign-in does less JIT work. Each folder also gets packages/Winshell.<version>.nupkg, the package scripts/pack.ps1
-# makes, which a configuration builds against.
-# Packing makes winshell-<version>-<runtime>.zip for each, SHA256SUMS.txt, the winget manifests in winget/<version>/
-# and, zipped, in winget-manifests.zip, and copies install.ps1 and uninstall.ps1 next to them. It also makes
-# winshell-<version>.msixbundle for the Microsoft Store, unsigned, from packaging/msix/ and the identity -IdentityName,
-# -Publisher and -PublisherDisplayName give it. That needs makeappx.exe from the Windows SDK. The same files pack to the
-# same bytes: entries are in ordinal path order and dated the day of the commit, which is also the manifests'
-# ReleaseDate.
-# Verifying checks that every file a release uploads is there, the checksums, that each zip and Store package carries
-# the Winshell package of its version and no other, that each zip's binaries are for its architecture, that the x64
-# winshell.exe runs, reports the version, runs every winshell doctor check, and that the manifests pass the validator
-# wingetcreate runs before it submits them.
+# Builds the files a release ships into one folder, and checks them. See docs/development.md#package-a-release.
 param(
     [switch] $Publish,
     [switch] $Pack,
@@ -340,8 +321,6 @@ public static extern IntPtr WinGetValidateManifest(string manifestPath, [Marshal
     if (-not $ok) { throw "The winget manifests do not validate: $message" }
     if ($message) { Write-Warning "winget manifest validation: $message" }
 
-    # The Store package: each architecture's has this identity and version, Start's winshellw.exe opens no console and
-    # the winshell command is a console app.
     $makeappx = Get-WindowsSdkTool makeappx.exe
     if (-not (Test-Path -LiteralPath (Join-Path $Out "winshell-$Version.msixbundle"))) { throw "No winshell-$Version.msixbundle in $Out" }
     foreach ($rid in $Runtime) {
@@ -354,6 +333,7 @@ public static extern IntPtr WinGetValidateManifest(string manifestPath, [Marshal
         $actual = "$($identity.Name)|$($identity.Publisher)|$($identity.Version)|$($identity.ProcessorArchitecture)"
         if ($actual -cne $expected) { throw "The $rid package's identity is $actual, not $expected" }
         Assert-WinshellPackage $dir $Version "The $rid package"
+        # 3 is a console app and 2 opens no console, the marks written onto winshell.exe and winshellw.exe above.
         foreach ($pair in @(@('winshell.exe', 3), @('winshellw.exe', 2))) {
             $bytes = [IO.File]::ReadAllBytes((Join-Path $dir $pair[0]))
             $subsystem = [BitConverter]::ToUInt16($bytes, (Get-PeLayout $bytes).Subsystem)

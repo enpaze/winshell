@@ -5,7 +5,7 @@
 
 function Get-RepoRoot { Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
 
-# The release in .release-please-manifest.json: its "." property, not another number in the file.
+# The manifest's other numbers are not the release.
 function Get-ReleaseVersion {
     $manifest = Join-Path (Get-RepoRoot) '.release-please-manifest.json'
     (Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).'.'

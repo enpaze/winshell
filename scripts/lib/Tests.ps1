@@ -37,8 +37,7 @@ function Get-TestRun {
             # keep them off the desktop that dev and reload use to compile their shells.
             if ($Shard -eq 1) { $run.Filter += '&Category!=Widget' }
             if ($Shard -eq 5) { $run.Filter += '&Category=Widget' }
-            # This worker already builds the Shell libraries, so it also compiles the template, the samples,
-            # the reference program and the logo. CI asks this instead of naming the shard.
+            # The Shell tests already build the Shell libraries. CI asks this instead of naming the shard.
             $run.CompileTemplateSamplesReferenceAndLogo = @($run.Projects | Where-Object {
                 [IO.Path]::GetFileNameWithoutExtension($_) -eq 'Winshell.Shell.Tests'
             }).Count -gt 0
