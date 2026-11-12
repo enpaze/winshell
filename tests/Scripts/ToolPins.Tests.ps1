@@ -4,11 +4,20 @@ BeforeAll {
     $script:Root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
     $script:Pin = 'scripts/tool-pins.psd1'
     $script:Pins = Import-PowerShellDataFile -LiteralPath (Join-Path $script:Root $script:Pin)
+    $script:Readers = @(
+        'scripts/check.ps1'
+        'scripts/update-skills.ps1'
+        'scripts/package.ps1'
+        '.github/workflows/ci.yml'
+        '.github/workflows/links.yml'
+        '.github/workflows/package.yml'
+        '.github/actions/powershell/action.yml'
+    )
 
     # git grep exits 1 when nothing matches. That is an empty result, not a failed search.
-    function script:Get-OtherPinHits([string] $Needle) {
+    function script:Get-OtherPinHits([string] $Needle, [string[]] $Paths = @('.')) {
         if (-not $Needle) { throw 'A pin needle is empty.' }
-        $output = git -C $script:Root grep -F -I -n -e $Needle -- .
+        $output = git -C $script:Root grep -F -I -n -e $Needle -- @Paths
         if ($LASTEXITCODE -eq 1) { return @() }
         if ($LASTEXITCODE -ne 0) { throw "git grep failed while looking for $Needle" }
         @(
@@ -21,40 +30,41 @@ BeforeAll {
 }
 
 Describe 'The tools CI installs by URL' {
+    # A hash or a URL names one download anywhere in the repository. A bare version such as 1.7.6 can also be some
+    # other package's, so it is looked for only where the pins are read.
     It 'keeps every version and hash in scripts/tool-pins.psd1 alone' {
-        $needles = @(
-            $script:Pins.lychee.version
+        $anywhere = @(
             $script:Pins.lychee.windowsSha256
             $script:Pins.lychee.linuxSha256
-            $script:Pins.actionlint.version
-            $script:Pins.zizmor.version
-            $script:Pins.skills.version
-            $script:Pins.pester.version
             $script:Pins.pester.sha256
             $script:Pins.wingetCreate.url
             $script:Pins.wingetCreate.sha256
             $script:Pins.wingetUtil.url
             $script:Pins.wingetUtil.sha256
+        )
+        $inReaders = @(
+            $script:Pins.lychee.version
+            $script:Pins.actionlint.version
+            $script:Pins.zizmor.version
+            $script:Pins.skills.version
+            $script:Pins.pester.version
             # The versions sit in those URLs. They are not a second copy of the download.
             ([regex]::Match($script:Pins.wingetCreate.url, '/v(?<version>\d+\.\d+\.\d+\.\d+)/')).Groups['version'].Value
             ([regex]::Match($script:Pins.wingetUtil.url, '/(?<version>\d+\.\d+\.\d+)/')).Groups['version'].Value
         )
-        $copied = foreach ($needle in $needles) {
-            foreach ($path in (Get-OtherPinHits $needle)) { "$needle in $path" }
-        }
+        $copied = @(
+            foreach ($needle in $anywhere) {
+                foreach ($path in (Get-OtherPinHits $needle)) { "$needle in $path" }
+            }
+            foreach ($needle in $inReaders) {
+                foreach ($path in (Get-OtherPinHits $needle ($script:Readers + 'docs/development.md'))) { "$needle in $path" }
+            }
+        )
         $copied | Should -BeNullOrEmpty
     }
 
     It 'is what the workflows, check, the skills update and packaging read' {
-        foreach ($relative in @(
-                'scripts/check.ps1'
-                'scripts/update-skills.ps1'
-                'scripts/package.ps1'
-                '.github/workflows/ci.yml'
-                '.github/workflows/links.yml'
-                '.github/workflows/package.yml'
-                '.github/actions/powershell/action.yml'
-            )) {
+        foreach ($relative in $script:Readers) {
             $text = Get-Content -Raw -LiteralPath (Join-Path $script:Root $relative)
             $text | Should -Match 'tool-pins\.psd1' -Because $relative
         }
