@@ -57,8 +57,10 @@ if (-not $PublisherDisplayName) { $PublisherDisplayName = $publisherName }
 $Out = [IO.Path]::GetFullPath($Out, $root)
 $publishRoot = Join-Path $Out 'publish'
 $id = 'DanteSparras.Winshell'
-# The newest manifest schema the pinned wingetcreate (v1.12.13.0) validates and submits. winget-pkgs merges it too.
+# The newest manifest schema the pinned wingetcreate validates and submits. winget-pkgs merges it too.
+# scripts/tool-pins.psd1 names that wingetcreate and the validator package it is built with.
 $schema = '1.12.0'
+$pins = Import-PowerShellDataFile (Join-Path $PSScriptRoot 'tool-pins.psd1')
 $wingetDir = Join-Path $Out "winget/$Version"
 # The day of the commit packed, so a later repair of a release packs the same bytes.
 $day = (git -C $root log -1 --format=%cs)
@@ -297,8 +299,8 @@ if ($Verify) {
     }
     if (Test-Path -LiteralPath $verifyRoot) { Remove-Item -LiteralPath $verifyRoot -Recurse -Force }
 
-    # The manifests carry the same hashes, and pass WinGetUtil.dll from Microsoft.WindowsPackageManager.Utils 1.12.350,
-    # the validator the pinned wingetcreate v1.12.13.0 is built with and runs before it submits.
+    # The manifests carry the same hashes, and pass WinGetUtil.dll from the validator package the pinned
+    # wingetcreate is built with. scripts/tool-pins.psd1 has that download.
     $installer = Get-Content -LiteralPath (Join-Path $wingetDir "$id.installer.yaml") -Raw
     foreach ($rid in $Runtime) {
         if ($installer -notmatch "(?m)^\s+InstallerSha256: $($listed[(Get-ReleaseZipName $Version $rid)].ToUpperInvariant())\r?$") {
@@ -306,12 +308,12 @@ if ($Verify) {
         }
     }
     $tools = Join-Path $Out 'tools'
-    $utils = Join-Path $tools 'microsoft.windowspackagemanager.utils.1.12.350.nupkg'
+    $utils = Join-Path $tools ([IO.Path]::GetFileName($pins.wingetUtil.url))
     if (-not (Test-Path -LiteralPath $utils)) {
         New-Item -ItemType Directory -Force -Path $tools | Out-Null
-        Invoke-WebRequest 'https://api.nuget.org/v3-flatcontainer/microsoft.windowspackagemanager.utils/1.12.350/microsoft.windowspackagemanager.utils.1.12.350.nupkg' -OutFile $utils
+        Invoke-WebRequest $pins.wingetUtil.url -OutFile $utils
     }
-    if ((Get-Sha256 $utils) -ne 'cb7786683a7ce395467850efabba506203889f9c71b395d0d9a26753410eaa58') {
+    if ((Get-Sha256 $utils) -ne $pins.wingetUtil.sha256) {
         Remove-Item -LiteralPath $utils
         throw 'The WinGetUtil package does not have the pinned hash'
     }

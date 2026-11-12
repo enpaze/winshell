@@ -16,11 +16,12 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $root = Split-Path -Parent $PSScriptRoot
+$pins = Import-PowerShellDataFile (Join-Path $PSScriptRoot 'tool-pins.psd1')
 
 if ($Lint) {
     foreach ($tool in @('lychee', 'actionlint', 'zizmor')) {
         if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
-            throw "$tool is required for -Lint. Install the pinned tools listed in docs/development.md#local-lint-setup."
+            throw "$tool $($pins[$tool].version) is required for -Lint. Install the version in scripts/tool-pins.psd1, as docs/development.md#local-lint-setup describes."
         }
     }
     Push-Location $root
@@ -43,10 +44,11 @@ $full = $Tier -eq 'Tests'
 $run = Get-TestRun -Tier $Tier
 
 if ($full) {
-    if (-not (Get-Module -ListAvailable -Name Pester | Where-Object Version -EQ ([version]'5.6.1'))) {
-        throw 'Pester 5.6.1 is required. Run: Install-Module Pester -RequiredVersion 5.6.1 -Scope CurrentUser -Force -SkipPublisherCheck'
+    $pester = [version] $pins.pester.version
+    if (-not (Get-Module -ListAvailable -Name Pester | Where-Object Version -EQ $pester)) {
+        throw "Pester $($pins.pester.version) is required. Run: Install-Module Pester -RequiredVersion $($pins.pester.version) -Scope CurrentUser -Force -SkipPublisherCheck"
     }
-    Import-Module Pester -RequiredVersion 5.6.1
+    Import-Module Pester -RequiredVersion $pins.pester.version
 }
 
 Push-Location $root

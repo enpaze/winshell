@@ -6,7 +6,7 @@ How to build, check and release Winshell. [CONTRIBUTING.md](../CONTRIBUTING.md) 
 
 - Git
 - PowerShell 7
-- Pester 5.6.1, for the PowerShell tooling tests
+- Pester, the version named in [`scripts/tool-pins.psd1`](../scripts/tool-pins.psd1), for the PowerShell tooling tests
 - .NET 10 SDK
 - Node.js, for `npx` when updating agent skills
 - Claude Code 2.1.281 or later, only for an agent on Claude Code: an older one may not read `AGENTS.md`, and then starts without the repo's instructions and nothing says they are missing
@@ -25,7 +25,7 @@ The unpackaged CLI does not provision these identities; the Microsoft Store pack
 ```sh
 git clone https://github.com/enpaze/winshell.git
 cd winshell
-pwsh -NoProfile -Command "Install-Module Pester -RequiredVersion 5.6.1 -Scope CurrentUser -Force -SkipPublisherCheck"
+pwsh -NoProfile -Command 'Install-Module Pester -RequiredVersion (Import-PowerShellDataFile scripts/tool-pins.psd1).pester.version -Scope CurrentUser -Force -SkipPublisherCheck'
 pwsh scripts/check.ps1
 ```
 
@@ -66,22 +66,22 @@ The repo's skills are committed in `.agents/skills`, one folder each, so a clone
 
 Claude Code reads `.claude/skills`, so the repo commits a copy there too: the same files, byte for byte. Claude Code lists each skill by its bare name, `/<name>` and the Skill tool both, and the repo's `code-review` overrides Claude Code's built-in skill of that name. The lock marks each skill `"installMode": "copy"`, so the skills tool writes the same files into both folders, and the `ci` check fails a pull request that leaves the two folders different.
 
-The committed files are the pin: a skill changes only when a PR changes it. To list the skills that have a newer version, changing nothing:
+The committed files are the pin: a skill changes only when a PR changes it. The skills CLI version is `skills.version` in [`scripts/tool-pins.psd1`](../scripts/tool-pins.psd1). To list the skills that have a newer version, changing nothing:
 
 ```sh
-npx -y skills@1.7.6 check
+npx -y skills@<version> check
 ```
 
 To take one of them, or all, into both folders:
 
 ```sh
-npx -y skills@1.7.6 update <name> -p
-npx -y skills@1.7.6 update -p
+npx -y skills@<version> update <name> -p
+npx -y skills@<version> update -p
 ```
 
-It writes each newer version into `.agents/skills` and `.claude/skills`, and its hash into the lock. It also writes a folder for each other agent it finds on your machine, such as `.grok/skills`: delete those. Read `git diff` before you open the PR. Use this version of the tool or a later one: in 1.7.4, `check` takes every update where this one only lists them.
+`<version>` is that pin. It writes each newer version into `.agents/skills` and `.claude/skills`, and its hash into the lock. It also writes a folder for each other agent it finds on your machine, such as `.grok/skills`: delete those. Read `git diff` before you open the PR. Use this version of the tool or a later one: in 1.7.4, `check` takes every update where this one only lists them.
 
-The [`skills` job](#jobs) does this every Monday with `scripts/update-skills.ps1`, and opens or updates one pull request, `build/update-skills`, holding the diff. It leaves a source alone while the source's newest commit is younger than seven days, as Dependabot here waits a week for a release, and it pushes nothing when the branch already holds the same versions, so closing its pull request declines those versions until a source has newer ones, for as long as the branch is kept. It never merges: an agent follows a skill with full permissions, so read every skills pull request before you merge it, or close it.
+The [`skills` job](#jobs) does this every Monday with `scripts/update-skills.ps1`, and opens or updates one pull request, `build/update-skills`, holding the diff. It leaves a source alone while the source's newest commit is younger than the quiet days in `scripts/tool-pins.psd1`, the same wait as Dependabot's cooldown, and it pushes nothing when the branch already holds the same versions, so closing its pull request declines those versions until a source has newer ones, for as long as the branch is kept. It never merges: an agent follows a skill with full permissions, so read every skills pull request before you merge it, or close it.
 
 A checkout that ran the old install script keeps what it wrote that the repo does not track: any skill folder in `.agents/skills` or `.claude/skills` the lock no longer records. To list them, then delete them:
 
@@ -255,7 +255,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | --- | --- |
 | `pwsh scripts/check.ps1 [-Tier Tests\|Docs\|Package] [-Seed <seed>] [-NoBuild]` | By default, builds, verifies formatting, and runs the .NET tests that open no windows and the PowerShell suites. See [The full check](#the-full-check). |
 | `pwsh -NoProfile scripts/check.ps1 -Lint` | Checks Markdown links and workflows, without building. See [Lint](#lint). |
-| `Invoke-Pester -Path tests/Scripts/<Name>.Tests.ps1` | Runs one of the PowerShell suites `check.ps1` runs, each named after the script or tooling it tests. None changes the checkout or GitHub. Requires Pester 5.6.1 and PowerShell 7; `Install.Tests.ps1` also runs on Windows PowerShell 5.1. |
+| `Invoke-Pester -Path tests/Scripts/<Name>.Tests.ps1` | Runs one of the PowerShell suites `check.ps1` runs, each named after the script or tooling it tests. None changes the checkout or GitHub. Requires the Pester version in `scripts/tool-pins.psd1` and PowerShell 7; `Install.Tests.ps1` also runs on Windows PowerShell 5.1. |
 | `pwsh -NoProfile scripts/format.ps1 [-VerifyNoChanges]` | Formats handwritten C# files, or verifies them. See [What the formatter covers](#what-the-formatter-covers). |
 | `pwsh -NoProfile scripts/build-template.ps1` | Compiles the template against the current source libraries. See [The template build](#the-template-build). |
 | `dotnet run scripts/generate-reference.cs` | Builds `Winshell.Shell`, `Winshell.Services` and `Winshell.Core`, then writes `docs/reference/winshell*.md` from their public types and `///` comments. Each page keeps what is above its `<!-- generated below -->` line. Commit the pages after changing a public member; `DocsTests` fails when a page is not what this writes. |
@@ -268,9 +268,9 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | `pwsh scripts/pr-rules.ps1 -Title <title> -Body <body> -Path <file>` | What the `pr-rules` job runs, given a file of changed paths. It prints each problem and exits 1. |
 | `pwsh scripts/pr-screenshot.ps1 <png>` | Publishes a `winshell inspect` screenshot on the `pr-screenshots` branch, which never merges, and prints the Markdown to paste into a PR. |
 | `pwsh scripts/ci-changes.ps1 -Files <json> [-MaxFiles <limit>]` | Classifies GitHub changed-file JSON from the checkout root and prints the flags `ci.yml` and `package.yml` use. PR file lists have a 3000-file limit; push comparisons have a 300-file limit. CI fetches this input; local contributors normally choose the checks above directly. |
-| `npx -y skills@1.7.6 check` | Lists the skills in `.agents/skills` that have a newer version, changing nothing. See [Agent skills](#agent-skills). |
-| `npx -y skills@1.7.6 update [<name>] -p` | Writes the newer version of that skill, or of every skill, into `.agents/skills` and `.claude/skills`, for review in `git diff`. |
-| `pwsh scripts/update-skills.ps1 -BodyPath <file>` | What the `skills` job runs: takes the newer skills from each source whose newest commit is at least seven days old, and writes the pull request body, naming each skill that changed and the commits its source gained. Requires an authenticated `gh` and the history of `skills-lock.json`. On Windows the skills tool crashes as it exits, after it has updated the skills, so the script stops there and writes no body; the job runs it on Linux. |
+| `npx -y skills@<version> check` | Lists the skills in `.agents/skills` that have a newer version, changing nothing. `<version>` is `skills.version` in `scripts/tool-pins.psd1`. See [Agent skills](#agent-skills). |
+| `npx -y skills@<version> update [<name>] -p` | Writes the newer version of that skill, or of every skill, into `.agents/skills` and `.claude/skills`, for review in `git diff`. `<version>` is the same pin. |
+| `pwsh scripts/update-skills.ps1 -BodyPath <file>` | What the `skills` job runs: takes the newer skills from each source whose newest commit has waited out the quiet days in `scripts/tool-pins.psd1`, and writes the pull request body, naming each skill that changed and the commits its source gained. Requires an authenticated `gh` and the history of `skills-lock.json`. On Windows the skills tool crashes as it exits, after it has updated the skills, so the script stops there and writes no body; the job runs it on Linux. |
 
 ### The full check
 
@@ -286,7 +286,7 @@ It opens no windows, so any number of agents can run it at once, one per worktre
 | `-Seed <seed>` | Replays the randomized .NET test order. |
 | `-NoBuild` | Uses an existing solution build. Template and reference-program compilation still run. |
 
-- Missing Pester 5.6.1 fails with an installation command; it is never silently skipped or downloaded.
+- Missing the Pester version in `scripts/tool-pins.psd1` fails with an installation command; it is never silently skipped or downloaded.
 - A run fails when a test fails, no test ran, or a test project wrote no results.
 - A run fails when a process its .NET tests started shows a visible top-level window, and names the test project and the window. Give the test that shows it the category `Window`. A hidden, cloaked or message-only window doesn't count, and neither does a window of a program the check didn't start. Two kinds of window escape it: one that closes within milliseconds, and one whose process was started by a program that has since exited, such as a shell started detached. `-Tier Docs` and `-Tier Package` don't watch.
 - It ends by naming each skipped test with its reason, including after a failure.
@@ -299,11 +299,11 @@ It needs the pinned lint tools below on PATH. It does not build, run tests, requ
 
 ### Local lint setup
 
-Install these versions, matching `.github/workflows/ci.yml`, and put their executables on PATH:
+Install the lychee, actionlint and zizmor versions named in [`scripts/tool-pins.psd1`](../scripts/tool-pins.psd1), the same versions CI installs, and put their executables on PATH. A bump is an edit to that file.
 
-- [lychee 0.24.2](https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2): extract the Windows archive and add the folder containing `lychee.exe`.
-- [actionlint 1.7.12](https://github.com/rhysd/actionlint/releases/tag/v1.7.12): extract the Windows archive and add the folder containing `actionlint.exe`.
-- [zizmor 1.31.1](https://github.com/zizmorcore/zizmor/releases/tag/v1.31.1): `uv tool install zizmor==1.31.1`, then `uv tool update-shell` if its executable folder is not on PATH. This setup command needs [uv](https://docs.astral.sh/uv/getting-started/installation/).
+- [lychee](https://github.com/lycheeverse/lychee/releases): extract the Windows archive for the pinned version and add the folder containing `lychee.exe`.
+- [actionlint](https://github.com/rhysd/actionlint/releases): extract the Windows archive for the pinned version and add the folder containing `actionlint.exe`.
+- [zizmor](https://github.com/zizmorcore/zizmor/releases): `uv tool install zizmor==<version>`, using the version in that file, then `uv tool update-shell` if its executable folder is not on PATH. This setup command needs [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
 ### Pack the library and the template
 
@@ -388,24 +388,25 @@ The `changes` job selects checks for PRs and pushes to `main`. Each kind of chan
 - A path no row names is code, and so is every path of an empty or cut-off file list.
 - The suite's own machinery is code, because a change to it could break the shards: `scripts/lib/`, `scripts/build-template.ps1`, `scripts/generate-reference.cs`, `scripts/reference-pages.cs`, `scripts/render-logo.cs`, `.github/workflows/ci.yml` and `.github/actions/`.
 - So are the files the suite reads: `scripts/install.ps1`, `packaging/winshell.ico` and `packaging/msix/Assets/`.
+- `scripts/tool-pins.psd1` is tooling, and a change to it also selects `actionlint` and the Package workflow. Those jobs install the tools the file names.
 - A draft skips quality checks and suite shards; marking it ready runs them.
 - A newer push cancels the superseded CI run on the same branch, including `main` and manual runs.
 - `gh workflow run ci.yml --ref <branch>` runs every check by hand.
 
 ### Jobs
 
-`check.ps1` requires Pester 5.6.1 and runs the PowerShell 7 suites. CI installs hash-verified modules through `.github/actions/powershell`; the installer job additionally runs the combined installer/uninstaller tests on Windows PowerShell 5.1 and feeds the required `ci` result. Workflow and link checks remain separate:
+`check.ps1` requires the Pester version in `scripts/tool-pins.psd1` and runs the PowerShell 7 suites. CI installs hash-verified modules through `.github/actions/powershell`; the installer job additionally runs the combined installer/uninstaller tests on Windows PowerShell 5.1 and feeds the required `ci` result. Workflow and link checks remain separate:
 
 | Job | When it runs | How to run it locally |
 | --- | --- | --- |
-| `installer` | PRs and pushes to `main` that change `scripts/`, `tests/Scripts/`, `ci.yml` or `.github/actions/`. | Windows PowerShell 5.1 runs `tests/Scripts/Install.Tests.ps1` with Pester 5.6.1 against temporary profiles and releases served on loopback. PowerShell 7 tooling suites run once in `quality`. |
+| `installer` | PRs and pushes to `main` that change `scripts/`, `tests/Scripts/`, `ci.yml` or `.github/actions/`. | Windows PowerShell 5.1 runs `tests/Scripts/Install.Tests.ps1` with the Pester version in `scripts/tool-pins.psd1` against temporary profiles and releases served on loopback. PowerShell 7 tooling suites run once in `quality`. |
 | `tests (1/5)` through `tests (5/5)` | Non-draft PRs and pushes to `main` that change code, as [How checks are selected](#how-checks-are-selected) says, in `ci.yml`. Results feed the one required `ci` check. | `pwsh scripts/check.ps1` for the tests that open no windows, and [A windowed test](#a-windowed-test) for the rest. See [Test shards](#test-shards). |
 | `close-fixed-issues` | Every merged pull request, in `close-fixed-issues.yml`. Not required. | Nothing to run. Once the merge commit is on `main`, it closes each issue the pull request fixes that GitHub left open, with a comment naming the pull request. |
 | `pr-size` | Every pull request, from `pr-size.yml` on the base branch. Not required. | Nothing to run. It labels the pull request `size:XS` to `size:XL`, as "PR description" in `CONTRIBUTING.md` says. |
 | `trim-caches` | Every push to `main`, after `ci`, in `ci.yml` | Nothing to run. It deletes all but the two newest CodeQL databases of each language from the Actions cache, which would otherwise pass the 10 GB GitHub keeps. |
 | `skills` | Every Monday, and by hand, in `skills.yml`. Not required. | `pwsh scripts/update-skills.ps1 -BodyPath <file>`. The job then commits only `.agents/skills`, `.claude/skills` and `skills-lock.json`, and opens or updates the `build/update-skills` pull request with the `RELEASE_PLEASE_TOKEN` secret, so its checks run. See [Agent skills](#agent-skills). |
-| `links` | Pushes to `main` that change docs or Markdown, and every Monday, in `links.yml` | lychee 0.24.2 over `docs/**/*.md`, `README.md`, `CONTRIBUTING.md`, `GLOSSARY.md` and `.github/*.md`, excluding `docs/agents`. |
-| `actionlint` | PRs and pushes to `main` that change workflows, actions or `.github/dependabot.yml`, in `ci.yml` | actionlint on `.github/workflows`, then zizmor on `.github`. |
+| `links` | Pushes to `main` that change docs or Markdown, and every Monday, in `links.yml` | lychee, the version in `scripts/tool-pins.psd1`, over `docs/**/*.md`, `README.md`, `CONTRIBUTING.md`, `GLOSSARY.md` and `.github/*.md`, excluding `docs/agents`. |
+| `actionlint` | PRs and pushes to `main` that change workflows, actions, `.github/dependabot.yml` or `scripts/tool-pins.psd1`, in `ci.yml` | actionlint on `.github/workflows`, then zizmor on `.github`. |
 | `package` | PRs and pushes to `main` that `scripts/ci-changes.ps1` flags `package`, pushes to `main` that change code, and releases, in `package.yml`. Not required. | `pwsh scripts/package.ps1`. It publishes both architectures and needs the Windows SDK for the MSIX check. The workflow's `publish` job builds each architecture on its own runner, `windows-2025` and `windows-11-arm`, and `package` packs both. The `arm64` job then runs that zip's `winshell.exe --version` on `windows-11-arm`. |
 
 ### Test shards
