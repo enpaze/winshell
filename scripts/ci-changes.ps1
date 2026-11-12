@@ -39,7 +39,8 @@ $checks = [ordered]@{
     code = $unknown -or @($nonProse -notmatch $noShard).Count -gt 0
     docs = $unknown
     scripts = Test-Changed '^scripts/|^tests/Scripts/|^\.github/(workflows/ci\.yml$|actions/)'
-    workflows = Test-Changed '^\.github/(workflows|actions)/|^\.github/dependabot\.yml$'
+    # The pin file is not a workflow, but the actionlint job installs actionlint and zizmor from it.
+    workflows = Test-Changed '^\.github/(workflows|actions)/|^\.github/dependabot\.yml$|^scripts/tool-pins\.psd1$'
     # What package.yml's jobs read: the release files, the template, the library's project and build files, the package
     # tests and the support they compile, and the scripts and actions that pack, package and test them.
     package = Test-Changed (
@@ -48,7 +49,9 @@ $checks = [ordered]@{
         '^((src|tests)/)?Directory\.',
         '^(global\.json|nuget\.config|release-please-config\.json|\.release-please-manifest\.json)$',
         '^scripts/(check|pack|package|publish-release)\.ps1$',
-        '^\.github/workflows/(package|release-please)\.yml$' -join '|')
+        '^\.github/workflows/(package|release-please)\.yml$',
+        # package.ps1 and the release job install the winget downloads named here.
+        '^scripts/tool-pins\.psd1$' -join '|')
 }
 # quality's formatting check and PowerShell suites.
 $checks.powershell = $checks.code -or $checks.scripts -or $checks.workflows

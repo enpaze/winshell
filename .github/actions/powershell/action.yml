@@ -5,17 +5,15 @@ runs:
   steps:
     - name: Install pinned PowerShell modules
       shell: pwsh
-      env:
-        PESTER_VERSION: 5.6.1
-        PESTER_SHA256: 37b3749f69accead67c366d81508977f62afc7cbb9c4db88c3a255a1f0b20da5
       run: |
         $ErrorActionPreference = 'Stop'
         $ProgressPreference = 'SilentlyContinue'
+        $pins = Import-PowerShellDataFile (Join-Path $env:GITHUB_WORKSPACE 'scripts/tool-pins.psd1')
         $dest = Join-Path $env:RUNNER_TEMP 'psmodules'
         New-Item -ItemType Directory -Force -Path $dest | Out-Null
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         $modules = @(
-          @{ Name = 'Pester'; Version = $env:PESTER_VERSION; Sha256 = $env:PESTER_SHA256 }
+          @{ Name = 'Pester'; Version = $pins.pester.version; Sha256 = $pins.pester.sha256 }
         )
         foreach ($module in $modules) {
           $nupkg = Join-Path $env:RUNNER_TEMP "$($module.Name).$($module.Version).nupkg"

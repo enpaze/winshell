@@ -84,6 +84,8 @@ Describe 'Selecting CI checks from GitHub changed files' {
         @{ Path = '.gitignore'; Flags = 'none' },
         @{ Path = 'scripts/uninstall.ps1'; Flags = 'powershell scripts' },
         @{ Path = 'scripts/pr-rules.ps1'; Flags = 'powershell scripts' },
+        # The actionlint job and the Package workflow install the tools this file names.
+        @{ Path = 'scripts/tool-pins.psd1'; Flags = 'powershell scripts workflows package' },
         @{ Path = 'tests/Scripts/Install.Tests.ps1'; Flags = 'powershell scripts' },
         @{ Path = '.github/workflows/pr-title.yml'; Flags = 'powershell workflows' },
         @{ Path = '.github/dependabot.yml'; Flags = 'powershell workflows' },

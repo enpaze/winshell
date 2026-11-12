@@ -1,6 +1,7 @@
 #requires -Version 7.0
-# Takes the newer version of each skill in .agents/skills, from every source whose newest commit is at least a week old,
-# and writes the body of the pull request that holds the change. The skills workflow runs it weekly:
+# Takes the newer version of each skill in .agents/skills, from every source whose newest commit has waited out the
+# quiet days in scripts/tool-pins.psd1, and writes the body of the pull request that holds the change. The skills
+# workflow runs it weekly:
 #
 #   pwsh scripts/update-skills.ps1 -BodyPath <file>
 #
@@ -10,24 +11,24 @@ param([Parameter(Mandatory)][string] $BodyPath)
 $ErrorActionPreference = 'Stop'
 $BodyPath = [IO.Path]::GetFullPath($BodyPath)
 Set-Location (Join-Path $PSScriptRoot '..')
+$pins = Import-PowerShellDataFile (Join-Path $PSScriptRoot 'tool-pins.psd1')
 
 # The committed lock, so a second run compares with the same versions as the first.
 $lock = (git show HEAD:skills-lock.json | ConvertFrom-Json -AsHashtable).skills
-$cutoff = [DateTimeOffset]::UtcNow.AddDays(-7)
-
-# Wait a week, as dependabot.yml does, so a compromised commit is usually caught first.
+# Wait out the pin's quiet days, as dependabot.yml does, so a compromised commit is usually caught first.
+$cutoff = [DateTimeOffset]::UtcNow.AddDays(-$pins.skills.quietDays)
 $names = foreach ($source in $lock.Values.source | Sort-Object -Unique) {
     $newest = [DateTimeOffset] (gh api "repos/$source/commits?per_page=1" --jq '.[0].commit.committer.date')
     if ($LASTEXITCODE) { throw "gh could not read the commits of $source." }
     if ($newest -gt $cutoff) {
-        Write-Host "Leaving $source alone: its newest commit, from $($newest.ToString('u')), is younger than 7 days."
+        Write-Host "Leaving $source alone: its newest commit, from $($newest.ToString('u')), is younger than $($pins.skills.quietDays) days."
         continue
     }
     $lock.Keys | Where-Object { $lock[$_].source -eq $source } | Sort-Object
 }
 if (-not $names) { return }
 
-npx -y skills@1.7.6 update @names -p -y | Out-Host
+npx -y "skills@$($pins.skills.version)" update @names -p -y | Out-Host
 if ($LASTEXITCODE) { throw "skills update failed with exit code $LASTEXITCODE." }
 
 $updated = (Get-Content -Raw -LiteralPath skills-lock.json | ConvertFrom-Json -AsHashtable).skills

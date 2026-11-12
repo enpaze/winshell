@@ -56,21 +56,19 @@ jobs:
       - name: Check .claude/skills is a copy of .agents/skills
         run: git diff --no-index --exit-code .agents/skills .claude/skills
       # Offline, so only links to files in the repo and their headings: links.yml checks other sites. The lychee release
-      # archive is checked against its SHA-256 before it runs. Dependabot doesn't update this: bump the version and the
-      # digest together, here and in links.yml.
+      # archive is checked against its SHA-256 before it runs. Dependabot does not see a raw download.
       - name: Check links between pages
         shell: pwsh
-        env:
-          LYCHEE_VERSION: lychee-v0.24.2
-          LYCHEE_SHA256: 32975d1493ee1a975d6bb41e4fb56fe419cb442ded628bb772ba2e614acfacad
         run: |
           $ErrorActionPreference = 'Stop'
           $ProgressPreference = 'SilentlyContinue'
+          $pins = Import-PowerShellDataFile ./scripts/tool-pins.psd1
           $archive = Join-Path $env:RUNNER_TEMP 'lychee.zip'
-          Invoke-WebRequest -Uri "https://github.com/lycheeverse/lychee/releases/download/$env:LYCHEE_VERSION/lychee-x86_64-pc-windows-msvc.zip" -OutFile $archive -MaximumRetryCount 5 -RetryIntervalSec 15
+          $tag = "lychee-v$($pins.lychee.version)"
+          Invoke-WebRequest -Uri "https://github.com/lycheeverse/lychee/releases/download/$tag/lychee-x86_64-pc-windows-msvc.zip" -OutFile $archive -MaximumRetryCount $pins.lychee.downloadMaxRetries -RetryIntervalSec $pins.lychee.downloadRetrySeconds
           $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash
-          if (-not $hash.Equals($env:LYCHEE_SHA256, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "lychee $env:LYCHEE_VERSION SHA-256 is $hash, expected $env:LYCHEE_SHA256."
+          if (-not $hash.Equals($pins.lychee.windowsSha256, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "lychee $($pins.lychee.version) SHA-256 is $hash, expected $($pins.lychee.windowsSha256)."
           }
           Expand-Archive -LiteralPath $archive -DestinationPath $env:RUNNER_TEMP
           & (Join-Path $env:RUNNER_TEMP 'lychee-x86_64-pc-windows-msvc\lychee.exe') --offline --include-fragments --no-progress '**/*.md' '.github/**/*.md'
@@ -88,7 +86,8 @@ jobs:
           $env:PSModulePath = "$(Join-Path $env:RUNNER_TEMP 'psmodules');$env:PSModulePath"
           ./scripts/format.ps1 -VerifyNoChanges
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Import-Module Pester -RequiredVersion 5.6.1
+          $pins = Import-PowerShellDataFile ./scripts/tool-pins.psd1
+          Import-Module Pester -RequiredVersion $pins.pester.version
           $result = Invoke-Pester -Path tests/Scripts -PassThru
           if ($result.Result -ne 'Passed') { exit 1 }
       - name: Check compiled documentation
@@ -185,15 +184,22 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # actionlint and zizmor take their versions as inputs, so this step exports the pin. The actions' default is
+      # latest: actionlint would download whatever rhysd/actionlint just published, and zizmor follows a lock that
+      # moves when its action pin moves.
+      - name: Read the tool pins
+        id: pins
+        shell: pwsh
+        run: |
+          $pins = Import-PowerShellDataFile ./scripts/tool-pins.psd1
+          "actionlint=$($pins.actionlint.version)" >> $env:GITHUB_OUTPUT
+          "zizmor=$($pins.zizmor.version)" >> $env:GITHUB_OUTPUT
       - uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
         with:
-          # The action's default is latest, which downloads whatever release rhysd/actionlint just published.
-          version: "1.7.12"
+          version: "${{ steps.pins.outputs.actionlint }}"
       - uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
         with:
-          # The action's default is latest, which follows a lock that moves when this action pin moves.
-          # 1.31.1 is the newest stable release that lock can run.
-          version: "1.31.1"
+          version: "${{ steps.pins.outputs.zizmor }}"
           # This repository is public, so code scanning accepts the SARIF. The action rejects annotations
           # at the same time.
           advanced-security: true
@@ -240,6 +246,7 @@ jobs:
         shell: powershell
         run: |
           $env:PSModulePath = "$(Join-Path $env:RUNNER_TEMP 'psmodules');$env:PSModulePath"
-          Import-Module Pester -RequiredVersion 5.6.1
+          $pins = Import-PowerShellDataFile .\scripts\tool-pins.psd1
+          Import-Module Pester -RequiredVersion $pins.pester.version
           Invoke-Pester -Path tests/Scripts/Install.Tests.ps1 -CI
           exit $LASTEXITCODE

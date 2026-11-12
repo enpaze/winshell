@@ -367,6 +367,7 @@ Describe 'Check command' {
     BeforeAll {
         $script:Check = (Resolve-Path (Join-Path $PSScriptRoot '../../scripts/check.ps1')).Path
         $script:ProjectCount = (Get-TestRun).ProjectCount
+        $script:PesterVersion = (Import-PowerShellDataFile (Join-Path $PSScriptRoot '../../scripts/tool-pins.psd1')).pester.version
 
         # pwsh prepends the user module folder to an inherited PSModulePath at startup, where a developer's real Pester
         # lives. Setting the path inside the child, after startup, leaves only the stub visible.
@@ -388,7 +389,7 @@ Describe 'Check command' {
         }
         $script:Stub = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
         $modules = Join-Path $script:Stub 'modules'
-        $pester = Join-Path $modules 'Pester/5.6.1'
+        $pester = Join-Path $modules "Pester/$script:PesterVersion"
         New-Item -ItemType Directory -Path $pester -Force | Out-Null
         $env:WINSHELL_CHECK_LOG = Join-Path $script:Stub 'calls.txt'
         $env:WINSHELL_CHECK_RESULTS = Join-Path $script:Stub 'results'
@@ -423,7 +424,7 @@ function Invoke-Pester {
     [pscustomobject]@{ Result = $(if ($env:WINSHELL_CHECK_FAIL_PESTER) { 'Failed' } else { 'Passed' }) }
 }
 '@
-        New-ModuleManifest -Path (Join-Path $pester 'Pester.psd1') -RootModule Pester.psm1 -ModuleVersion 5.6.1 -FunctionsToExport Invoke-Pester
+        New-ModuleManifest -Path (Join-Path $pester 'Pester.psd1') -RootModule Pester.psm1 -ModuleVersion $script:PesterVersion -FunctionsToExport Invoke-Pester
         $env:PATH = "$script:Stub;$env:PATH"
         $script:ModulePath = "$modules;$(Join-Path $PSHOME 'Modules')"
     }
@@ -470,7 +471,7 @@ function Invoke-Pester {
         @{ Tier = 'Docs'; Project = 'tests\Winshell.Shell.Tests' }
         @{ Tier = 'Package'; Project = 'tests\Winshell.Package.Tests' }
     ) {
-        Remove-Item -LiteralPath (Join-Path $script:Stub 'modules/Pester/5.6.1/Pester.psd1')
+        Remove-Item -LiteralPath (Join-Path $script:Stub "modules/Pester/$script:PesterVersion/Pester.psd1")
         Invoke-Check @{ Tier = $Tier } | Out-Null
         $LASTEXITCODE | Should -Be 0
         $calls = @(Get-Content -LiteralPath $env:WINSHELL_CHECK_LOG)
@@ -491,10 +492,10 @@ function Invoke-Pester {
     }
 
     It 'fails before building when the pinned Pester version is missing' {
-        Remove-Item -LiteralPath (Join-Path $script:Stub 'modules/Pester/5.6.1/Pester.psd1')
+        Remove-Item -LiteralPath (Join-Path $script:Stub "modules/Pester/$script:PesterVersion/Pester.psd1")
         $output = Invoke-Check 2>&1
         $LASTEXITCODE | Should -Not -Be 0
-        ($output -join "`n") | Should -Match 'Pester 5.6.1 is required'
+        ($output -join "`n") | Should -Match ([regex]::Escape("Pester $script:PesterVersion is required"))
         Test-Path -LiteralPath $env:WINSHELL_CHECK_LOG | Should -BeFalse
     }
 
@@ -505,7 +506,7 @@ function Invoke-Pester {
     }
 
     It 'lints offline without Pester, a build, or tests' {
-        Remove-Item -LiteralPath (Join-Path $script:Stub 'modules/Pester/5.6.1/Pester.psd1')
+        Remove-Item -LiteralPath (Join-Path $script:Stub "modules/Pester/$script:PesterVersion/Pester.psd1")
         pwsh -NoProfile -File $script:Check -Lint | Out-Null
         $LASTEXITCODE | Should -Be 0
         $calls = @(Get-Content -LiteralPath $env:WINSHELL_CHECK_LOG)
