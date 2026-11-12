@@ -222,7 +222,6 @@ internal sealed class SmtcSession
             _ => MediaPlaybackState.Stopped
         };
         var seeked = false;
-        // Exact rate stored from the last report.
         if (state != PlaybackState || info.Rate != _playback.Rate)
         {
             _position = PositionNow();
@@ -249,7 +248,6 @@ internal sealed class SmtcSession
         var supported = length > 0 || reported > TimeSpan.Zero;
         var position = (reported - start).TotalSeconds;
         // A poll repeats the last report. Applying it again restarts interpolation and looks like a seek.
-        // Exact length stored from the last timeline.
         if (StartTime == start && Length == length && PositionSupported == supported
             && Math.Abs(_position - position) < 0.001)
             return;
