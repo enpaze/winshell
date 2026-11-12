@@ -60,7 +60,7 @@ Nothing retries a test and nothing sets one aside. A test that fails sometimes i
 
 `<type>/<short-description>`, lowercase, using a type from the table below. For example, `fix/duplicate-orders` or `feat/csv-export`.
 
-An AI agent names its branch `agent/<tool>/<issue#>-<slug>` instead, after its ticket, such as `agent/claude/123-tray-overflow`.
+An AI agent names its branch `agent/<tool>/<issue#>-<slug>` instead, after its ticket, such as `agent/claude/123-tray-overflow`. The branch-name reminder also accepts `dependabot/*`, `release-please--*`, `revert-<n>-*`, and a branch that starts with `agent/`, `claude/`, `codex/`, `copilot/`, `cursor/` or `grok/`.
 
 ### PR title
 
@@ -84,7 +84,7 @@ For a breaking change, add `!` before the colon: `feat(api)!: remove the v1 endp
 
 Commits on your branch can use any message; the squash merge replaces them with the PR title. Using the same format for them is still a good habit.
 
-CI checks the PR title. It also checks the branch name, but only as a reminder; it doesn't block merging.
+CI checks the PR title. A title that starts with `Revert "` on a `revert-*` branch skips that required job. A `dependabot/*` branch skips the title step, because Dependabot cannot lowercase its subject. CI also checks the branch name, but only as a reminder; it doesn't block merging.
 
 ### PR description
 

@@ -19,9 +19,9 @@ Winshell.Shell -> Winshell.Services -> Winshell.Core -> Winshell.Native
 | --- | --- |
 | `Winshell.Native` | Native declarations, COM contracts, unsafe interop, marshaling, native resource ownership and safe managed operations. |
 | `Winshell.Core` | `IEventLoop`, `Log`, `ObservableObject` and `ObservableList`, which raise property and collection changes, TOML and Crashes, with the file and version helpers they use. Shared infrastructure has no dependency on a service feature or WinUI. |
-| `Winshell.Services` | One assembly of feature folders. Services apply policy and publish state on the event loop; feature backends perform platform work. |
-| `Winshell.Shell` | WinUI hosting, the production event loop, window lifecycle, and a window whose content is one component tree. |
-| CLI (`src/Winshell`) | Commands, configuration builds and shell process supervision. |
+| `Winshell.Services` | One assembly of feature folders. Services apply policy and publish state on the event loop; feature backends perform platform work. Configuration builds live here (`ConfigurationProject`), which the CLI commands, sign-in and doctor call. |
+| `Winshell.Shell` | WinUI hosting, the production event loop, window lifecycle, and a window whose content is one `UIElement`. |
+| CLI (`src/Winshell`) | The commands that invoke those builds, and shell process supervision. |
 
 A removed public API gets no compatibility shim. Moving an implementation does not justify forwarding assemblies or duplicate implementations. Keep shared infrastructure in Core and feature policy in its owning Services folder.
 
@@ -33,7 +33,7 @@ Only `Winshell.Native` may contain `LibraryImport`, `DllImport`, `ComImport`, `G
 
 - **Declarations.** CsWin32 generates the Win32 declarations from an explicit API list, `NativeMethods.txt`. Add a Win32 API to that list, and remove the handwritten declarations a generated one replaces. Native may own declarations CsWin32 cannot supply, such as undocumented interfaces. Do not maintain duplicate Win32 declarations alongside generated ones.
 - **Ownership.** Keep allocation and release together: handles, COM objects, buffers and callbacks have an explicit owner and lifetime. Callback exceptions must not escape into native code.
-- **The boundary.** Put safe operations at this boundary. Do not expose the generated declaration set as a public service API or move feature policy into Native.
+- **The boundary.** Native keeps the declarations and the unsafe code. Core, Services, Shell and the test projects are friends of Native. Services, Shell and the test projects call the generated `PInvoke` declarations. Core uses Native's managed types, such as `DirectoryChanges`. Do not expose that set as a public service API, and do not move feature policy into Native.
 - **No `System.Runtime.InteropServices.ComTypes` in `src/`.** A release trims the framework, and a trimmed COM interface calls the wrong method. Declare the interface in Native instead.
 
 ### What the build enforces
@@ -54,7 +54,7 @@ A project with `UseWinUI` keeps unsafe compilation, because CsWinRT generates it
 Services remains one assembly. Each feature folder owns its `I*Backend` seam and platform implementation.
 
 - **A seam describes platform operations the production service actually needs.** Avoid interfaces added only for tests.
-- **Only a feature may consume its own backend contracts and implementations.** Another feature uses the service's managed contract, events or shared Core infrastructure. It must not construct, resolve, reference or call a neighboring feature's backend.
+- **Only a feature may consume its own backend contracts and implementations.** Another feature uses the service's managed contract, events or shared Core infrastructure. Windows, Tray and Media also call Apps' `AppIdentity` for an app id, a path or a name. That helper is not a backend. A feature must not construct, resolve, reference or call a neighboring feature's backend.
 - **Composition belongs with the feature that owns the backend.**
 
 Test service policy against fake backends on the test event loop in `tests/TestSupport` (`ManualEventLoop`, or `EventQueue` when the test pumps posted work itself). Fakes supply platform results and signals; the real service supplies the behavior under test. Keep tests that own distinct platform, transport or lifecycle contracts.
@@ -65,11 +65,11 @@ Media keeps one type per job, the split from #1102. `ISmtcLink` (#1306) stays th
 
 Keep `HostWindow` split by responsibility, with explicit owners for window lifetime, placement, native message handling and presentation. Keep `Shell.cs` and `ShellServices.cs` thin: they compose focused types instead of collecting feature behavior. Preserve disposal order, event-loop affinity and cancellation.
 
-A window's content is one Reactor host. A bar's host shows a surface, and that surface shows three widget areas, and each area shows its widgets: one tree, not a control per placement. A surface and a widget area take immutable props, written as elements in that tree. Mounting the host is the lifecycle. A shell author builds from primitives, building blocks and compositions such as `Bar`, and a composition uses only public API: see [shells are built from public building blocks](adr/0001-shells-are-built-from-public-building-blocks.md). Widgets, widget areas and surfaces are components: see [UI is built with Reactor](adr/0005-ui-is-built-with-reactor.md).
+A window's content is one `UIElement`. Shell UI is one component tree mounted with a `ReactorHostControl`. A bar's host shows a surface, and that surface shows three widget areas, and each area shows its widgets: one tree, not a control per placement. `CaptureView` and `WindowThumbnail` are public controls, for a picture Reactor has no element for, embedded in that tree. A surface and a widget area take immutable props, written as elements in that tree. An area stays subscribed to its preferences section until it unmounts or its name changes, and disposing the Reactor host unmounts the tree. A shell author builds from primitives, building blocks and compositions such as `Bar`, and a composition uses only public API: see [shells are built from public building blocks](adr/0001-shells-are-built-from-public-building-blocks.md). Widgets, widget areas and surfaces are components: see [UI is built with Reactor](adr/0005-ui-is-built-with-reactor.md).
 
 ## Crash supervision
 
-The CLI supervises a shell in a child process. An unexpected shell exit triggers respawn with backoff; a requested stop ends supervision.
+The CLI supervises a shell in a child process. Exit code 0 is a stop that was asked for. Exit code 1 ends supervision, including a shell that could not start and Task Manager's End task. Any other exit respawns with backoff, unless `winshell kill` had asked the shell to stop. A reload is not one of those exits: the supervisor starts the last build at once, whatever the code. A requested stop ends supervision.
 
 - Keep restart policy, cancellation and child ownership in a focused supervisor rather than in the window host.
 - Drive policy time through `TimeProvider` so tests can advance it without sleeping.
@@ -83,7 +83,7 @@ A reload is not a stop. The two reload paths stay separate modules on purpose: e
 | Supervised | `winshell reload` and the supervisor in `winshell run` | `ShellExit`, `ShellSupervisor` |
 | Unsupervised | The shell that quits and the one that takes over | `Shell.Reload`, `--after`, `Instances.WaitForExit` |
 
-On the supervised path, the supervisor starts a reloaded configuration's program itself, so it owns the new child under the same rules as the first. A configuration that calls `shell.Reload()` itself still hands over to an unsupervised process: the supervisor cannot see that start.
+On the supervised path, the supervisor starts the last build at once, whatever the exit code, and counts that shell's crashes from none. The new child is supervised as the first was. A configuration that calls `shell.Reload()` itself still hands over to an unsupervised process: the supervisor cannot see that start.
 
 ### Explorer taskbar recovery
 

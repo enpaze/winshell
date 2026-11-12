@@ -124,7 +124,7 @@ Install the extension once with `gh extension install github/gh-stack`.
 
 For automation without the interactive editor, create each PR with `gh pr create --base <parent-branch> --head <branch> --title <title> --body-file <file>`, using `main` for the bottom layer. Then link the PRs in bottom-to-top order with `gh stack link <bottom-pr> <next-pr> ...`. To extend an existing stack, use `gh stack link <stack-number> <new-pr>`.
 
-After the merge, confirm each layer's issue is closed with `gh issue view <issue> --json state --jq .state`. GitHub sometimes leaves one open; `close-fixed-issues` closes it a minute or so later. If it stays `OPEN`, close it with `gh issue close <issue> --comment "Fixed by #<pr>."`.
+After the merge, confirm each layer's issue is closed with `gh issue view <issue> --json state --jq .state`. GitHub sometimes leaves one open; `close-fixed-issues` waits 30 seconds, then closes it. If it stays `OPEN`, close it with `gh issue close <issue> --comment "Fixed by #<pr>."`.
 
 ## Formatting and style
 
@@ -175,10 +175,10 @@ Winland tiles every normal window, so the windows a live run or a windowed test 
 windowrule = ignore, exe:(winshell|winshellw|Winshell\..*Tests|Probe|Dev)\.exe
 ```
 
-- Leave the rule and the user's workspaces as they are. A run never adds the rule or reloads Winland.
+- Leave the rule and the user's Winland workspaces as they are. A run never adds the rule or reloads Winland.
 - One live run or windowed test at a time on a machine: they share the desktop and the foreground.
 - Test projects are their own programs, not `testhost`; `Probe` and `Dev` are their shell fixtures. Without the rule `A_floating_window_has_the_size_and_title_it_was_given` fails.
-- No workspace contains what the rule ignores: an ignored window opens where Windows puts it, usually on the primary monitor, and a taskbar opens on every screen. Keep what a test opens small and short.
+- No Winland workspace contains what the rule ignores: an ignored window opens where Windows puts it, usually on the primary monitor, and a bar opens on every screen. Keep what a test opens small and short.
 - `winland -j clients` must list no Winshell window, and the user's windows must be where they were when you finish.
 
 ## See what you changed
@@ -231,8 +231,8 @@ Choose checks from the complete change against the PR's base, including renamed 
 | --- | --- |
 | Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/` outside `docs/samples/`, Markdown such as the PR template, the skills in `.agents/skills/` and `.claude/skills/`, `skills-lock.json`, `LICENSE` and `.gitignore`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`, and `git diff --no-index --stat .agents/skills .claude/skills` for a change to the skills, which prints nothing when the folders are the same. No application build, formatting or test suite is needed. |
 | A page in `docs/` (outside `docs/agents/`) or `README.md` containing or removing a C# example fence, or a generated `docs/reference/winshell*.md` page | Lint, then `pwsh scripts/check.ps1 -Tier Docs`. This builds the samples and checks the generated reference, without unrelated tests or windows. |
-| Only tooling: `scripts/` and `tests/Scripts/`, except the files that [count as code](#how-checks-are-selected) | `Invoke-Pester -Path tests/Scripts`. A change to `scripts/uninstall.ps1` or `tests/Scripts/Install.Tests.ps1` also runs `Install.Tests.ps1` on Windows PowerShell 5.1, as the `installer` job in the [Jobs](#jobs) table does. |
-| Only workflows: `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | Lint, then `Invoke-Pester -Path tests/Scripts`. |
+| Only tooling: `scripts/` and `tests/Scripts/`, except the files that [count as code](#how-checks-are-selected) | `Invoke-Pester -Path tests/Scripts`, and `pwsh -NoProfile scripts/format.ps1 -VerifyNoChanges`. Windows PowerShell 5.1 also runs `tests/Scripts/Install.Tests.ps1`, as the `installer` job does for every such change. |
+| Only workflows: `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | Lint, `pwsh -NoProfile scripts/format.ps1 -VerifyNoChanges`, then `Invoke-Pester -Path tests/Scripts`. |
 | Other changes, including source, the files that count as code, and build configuration | `pwsh scripts/check.ps1`, followed by the focused checks the [Jobs](#jobs) table lists for that change. |
 
 Some changes need more than checks:
@@ -352,7 +352,7 @@ It checks:
 
 - `-Version x.y.z` picks a release, and `-AutoStart` registers sign-in. Under `irm | iex` those are `WINSHELL_VERSION` and `WINSHELL_AUTOSTART`.
 - A leftover `bin.old` folder is removed on a later install once nothing from that install is running.
-- If a Microsoft Store copy is also installed, it says so and still finishes, because that copy's WindowsApps alias usually comes first on PATH.
+- If a Microsoft Store copy is also installed, it says so and still finishes, because that copy's WindowsApps alias usually comes first on PATH. If that query fails, it says the Store check was skipped and still finishes.
 - `irm | iex`, and running the file with the call operator, also add that folder to the current window's PATH and tell you to run `winshell`. `pwsh scripts/install.ps1` starts a process that exits, so it tells you to open a new terminal.
 
 `pwsh scripts/uninstall.ps1` removes that install folder, that PATH entry, that shortcut and that sign-in entry. It leaves `%APPDATA%\winshell`, and logs and state stay in `%LOCALAPPDATA%\winshell`. Under `irm | iex` it also removes that folder from the current window's PATH and leaves every other entry.
@@ -386,7 +386,7 @@ The `changes` job selects checks for PRs and pushes to `main`. Each kind of chan
 | Code | Everything else | The five .NET suite shards, which build their own projects, the formatting check and the PowerShell suites, and the jobs that read the file |
 
 - A path no row names is code, and so is every path of an empty or cut-off file list.
-- The suite's own machinery is code, because a change to it could break the shards: `scripts/lib/`, `scripts/build-template.ps1`, `scripts/generate-reference.cs`, `scripts/reference-pages.cs`, `scripts/render-logo.cs`, `.github/workflows/ci.yml` and `.github/actions/`.
+- The suite's own machinery is code, because a change to it could break the shards: `scripts/lib/`, `scripts/build-template.ps1`, `scripts/generate-reference.cs`, `scripts/reference-pages.cs`, `scripts/render-logo.cs`, `.github/workflows/ci.yml` and `.github/actions/`. A change under `.github/actions/` also selects the workflow checks, which is why `actionlint` runs for it.
 - So are the files the suite reads: `scripts/install.ps1`, `packaging/winshell.ico` and `packaging/msix/Assets/`.
 - `scripts/tool-pins.psd1` is tooling, and a change to it also selects `actionlint` and the Package workflow. Those jobs install the tools the file names.
 - A draft skips quality checks and suite shards; marking it ready runs them.
