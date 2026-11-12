@@ -13,10 +13,10 @@ public sealed class Battery : Component<WidgetContext>
 }
 ```
 
-- **A surface and a widget area are elements with immutable props.** A component writes `Surface(WidgetArea("dock", ["start", "tasks"]))`, and a window mounts that component with a `ReactorHostControl`. An area reads its preferences section while it renders and follows later saves through hooks. Mounting and unmounting the tree is the lifecycle.
+- **A surface and a widget area are elements with immutable props.** A component writes `Surface(WidgetArea("dock", ["start", "tasks"]))`, and a window mounts that component with a `ReactorHostControl`. An area reads its preferences section while it renders and stays subscribed to that section until it unmounts or its name changes. It notes its window when the area's element loads, and a hot reload can remake that area's widgets without rebuilding the tree. Unloading the Reactor host leaves the widgets mounted; disposing it unmounts them.
 - **A widget is a `Component<WidgetContext>`.** `WidgetContext` is a record of props: the shell, the shell window the area is drawn in, the placement's settings and the area's orientation. A changed placement, or the area moving into a window, renders the widget again with new props. Winshell has no widget base class, and a plain control is no longer a widget: a control Reactor has no element for is embedded through Reactor's XAML interop.
 - **A component names what it reacts to** with Reactor's `UseObservable` or `UseObservableTree`, on a service object or an `ObservableList<T>`. Winshell adds no read tracking of its own. An `ObservableList<T>` raises `PropertyChanged` when an item does, and an object raises when a list property it has read changes, so those hooks see a change inside a service. That is the object's own change, not a tracked read.
-- **A style is a C# value**, including the alert color, which Winshell writes into the window's resources along with the implicit control styles it builds from it, so a plain `Button` in a widget still matches the shell. No `.xaml` file is left, and `winshell dev` reloads through `dotnet watch` and Reactor's hot reload.
+- **A style is a C# value**, including the alert color, which Winshell writes into a XAML resource dictionary along with the implicit control styles it builds from it, so a plain `Button` in a widget still matches the shell. That dictionary is the styling channel. No `.xaml` file is left, and `winshell dev` reloads through `dotnet watch` and Reactor's hot reload.
 - **Widget areas still create widgets by name** from the placements in the preferences file, so a user can rearrange a shell without code.
 - **Reactor is a preview.** Winshell pins one exact version and carries it in the `Winshell` package. A Reactor update that breaks a configuration is released as a Winshell breaking change.
 
@@ -31,6 +31,6 @@ public sealed class Battery : Component<WidgetContext>
 
 ## Consequences
 
-- This supersedes [widgets are plain controls](0003-widgets-are-plain-controls.md) and [Watch tracks what a block reads](0004-watch-tracks-what-a-block-reads.md). `Watch`, the read tracking in `Winshell.Core` and the test that every service property reports its read, the XAML styles and `XamlReload` go. Services keep `INotifyPropertyChanged`, which `UseObservable` needs.
+- This supersedes [widgets are plain controls](0003-widgets-are-plain-controls.md) and [Watch tracks what a block reads](0004-watch-tracks-what-a-block-reads.md). `Watch`, the read tracking in `Winshell.Core` and the test that every service property reports its read, the `.xaml` style files and `XamlReload` go. Styling stays the resource dictionary built from the C# style. Services keep `INotifyPropertyChanged`, which `UseObservable` needs.
 - "Component" now names a piece of UI. A named part of the shell's preferences file is a section.
 - The switch is one breaking release with no compatibility layer. The template, the examples, the samples and the docs move with it.

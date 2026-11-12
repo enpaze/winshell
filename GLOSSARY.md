@@ -138,7 +138,11 @@ _Avoid_: toplevel, client
 
 **Virtual desktop**:
 A desktop Task View lists and can switch to. An app window is on one of them.
-_Avoid_: workspace
+_Avoid_: workspace (that is a Winland workspace)
+
+**Winland workspace**:
+A numbered space on one monitor in Winland. Two monitors can both show a workspace numbered 3. It is not a virtual desktop.
+_Avoid_: virtual desktop, desktop
 
 **App**:
 A program Start lists: a shortcut or a packaged app.

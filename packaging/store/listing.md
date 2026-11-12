@@ -8,7 +8,7 @@ Winshell
 
 ## Short description (≤ 270 recommended)
 
-A toolkit for writing your own Windows 11 desktop shell: a taskbar, launcher or dock, as a .NET program.
+A toolkit for writing your own Windows 11 desktop shell: a taskbar, launcher or dock, in C# and WinUI 3.
 
 ## Description (≤ 10,000)
 
