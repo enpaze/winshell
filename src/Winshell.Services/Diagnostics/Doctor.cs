@@ -43,6 +43,9 @@ public static class Doctor
 {
     internal const string BugReports = "https://github.com/enpaze/winshell/issues/new/choose";
 
+    /// <summary>Windows 11 22H2, the oldest build a release runs on. An older Windows 11 build warns.</summary>
+    internal const int OldestReleaseBuild = 22621;
+
     internal static IReadOnlyList<DoctorCheck> Run(DoctorContext context)
     {
         return Report(context, ChooseUser(context.Locations.ConfigRoot, context.Path, context.Config));
@@ -213,7 +216,7 @@ public static class Doctor
         if (build < 22000)
             return new DoctorCheck("windows", "Windows", CheckStatus.Fail, message,
                 "Winshell needs Windows 11. Upgrade this PC to Windows 11.");
-        if (build < 22621)
+        if (build < OldestReleaseBuild)
             return new DoctorCheck("windows", "Windows", CheckStatus.Warn, message,
                 "Update Windows in Settings > Windows Update: Mica, Acrylic and other parts Winshell uses need Windows 11 version 22H2 or later.");
         return new DoctorCheck("windows", "Windows", CheckStatus.Pass, message);

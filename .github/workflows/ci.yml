@@ -121,8 +121,7 @@ jobs:
             dotnet build $project -warnaserror --nologo
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          # Get-TestRun names the worker that already builds Shell. It also compiles the template, the samples,
-          # the reference program and the logo. Quality verifies files without loading the project graph.
+          # Quality verifies files without loading the project graph.
           if ($testRun.CompileTemplateSamplesReferenceAndLogo) {
             ./scripts/build-template.ps1
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

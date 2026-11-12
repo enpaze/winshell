@@ -149,7 +149,6 @@ internal static partial class ReferencePages
             foreach (var property in type.GetProperties(Declared).Where(member => !Skip(member))
                          .OrderBy(member => member.Name, StringComparer.Ordinal))
             {
-                // A property has a getter or a setter.
                 var accessor = property.GetMethod ?? property.SetMethod!;
                 var kind = Name(property.PropertyType, _nullability.Create(property).ReadState) +
                            (accessor.IsStatic ? ", static" : "");
@@ -169,7 +168,6 @@ internal static partial class ReferencePages
                 yield return (field.Name, kind, "F:" + Id(type) + "." + field.Name);
             }
 
-            // An event has a handler type.
             foreach (var evt in type.GetEvents(Declared).Where(member => !Skip(member))
                          .OrderBy(member => member.Name, StringComparer.Ordinal))
                 yield return (evt.Name, Name(evt.EventHandlerType!), "E:" + Id(type) + "." + evt.Name);
