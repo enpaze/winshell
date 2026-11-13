@@ -18,7 +18,7 @@ public sealed class ShellInstanceTests
         var responses = new List<IpcResponse>();
         await foreach (var reply in IpcClient.Request(info.Pipe, request, TestContext.Current.CancellationToken))
         {
-            if (reply.Response is { } response)
+            if (reply is IpcResponse response)
                 responses.Add(response);
             break;
         }

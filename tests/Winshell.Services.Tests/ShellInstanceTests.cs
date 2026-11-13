@@ -19,9 +19,11 @@ public sealed class ShellInstanceTests
     {
         await foreach (var reply in IpcClient.Request(pipe, request, TestContext.Current.CancellationToken))
         {
-            if (reply.Failure is { } failure)
-                throw new InvalidOperationException(failure.Reason);
-            return reply.Response!;
+            return reply switch
+            {
+                IpcFailure failure => throw new InvalidOperationException(failure.Reason),
+                IpcResponse response => response,
+            };
         }
 
         throw new InvalidOperationException("The server closed the pipe without answering.");
@@ -366,7 +368,7 @@ public sealed class ShellInstanceTests
         var other = ProductVersion.Current.Major == 9 ? "1.0.0" : "9.9.9";
         var answering = AnswerOnce(shell, $$"""{"ok":true,"winshell":"{{other}}"}""");
 
-        IpcReply reply = default;
+        IpcReply? reply = null;
         await foreach (var next in IpcClient.Request(pipe, IpcRequest.ForShow(false),
                            TestContext.Current.CancellationToken))
         {
@@ -374,9 +376,9 @@ public sealed class ShellInstanceTests
             break;
         }
 
-        Assert.NotNull(reply.Failure);
-        Assert.Equal(IpcProtocol.ReleaseRefusal(other, ProductVersion.Current.Text), reply.Failure.Value.Reason);
-        Assert.True(reply.Failure.Value.Rejected);
+        var failure = Assert.IsType<IpcFailure>(reply?.Value);
+        Assert.Equal(IpcProtocol.ReleaseRefusal(other, ProductVersion.Current.Text), failure.Reason);
+        Assert.True(failure.Rejected);
         await answering;
     }
 

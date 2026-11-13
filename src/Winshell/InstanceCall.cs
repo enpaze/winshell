@@ -54,9 +54,11 @@ internal static class InstanceCall
     {
         public static Answer Of(IpcReply reply, string instanceId)
         {
-            return reply.Failure is { } failure
-                ? new Answer(null, failure.Sentence(instanceId))
-                : new Answer(reply.Response, null);
+            return reply switch
+            {
+                IpcFailure failure => new Answer(null, failure.Sentence(instanceId)),
+                IpcResponse response => new Answer(response, null),
+            };
         }
 
         /// <summary>

@@ -23,18 +23,7 @@ internal readonly record struct IpcFailure(string Reason, bool Rejected)
 }
 
 /// <summary>One answer from a shell, or the reason this winshell has none. A shell that refuses is an answer.</summary>
-internal readonly record struct IpcReply(IpcResponse? Response, IpcFailure? Failure)
-{
-    public static IpcReply Answer(IpcResponse response)
-    {
-        return new IpcReply(response, null);
-    }
-
-    public static IpcReply Miss(IpcFailure failure)
-    {
-        return new IpcReply(null, failure);
-    }
-}
+internal union IpcReply(IpcResponse, IpcFailure);
 
 /// <summary>The side of the control pipe that sends a request to a running instance.</summary>
 internal static class IpcClient
@@ -53,7 +42,7 @@ internal static class IpcClient
         var connected = await Connect(pipe, cancel).ConfigureAwait(false);
         if (connected.Failure is { } connectFailure)
         {
-            yield return IpcReply.Miss(connectFailure);
+            yield return connectFailure;
             yield break;
         }
 
@@ -62,7 +51,7 @@ internal static class IpcClient
         await using var client = connected.Client!;
         if (PipeTrust.ServerRefusal(client) is { } refusal)
         {
-            yield return IpcReply.Miss(new IpcFailure(refusal, true));
+            yield return new IpcFailure(refusal, true);
             yield break;
         }
 
@@ -74,7 +63,7 @@ internal static class IpcClient
             IpcJson.Default.IpcRequest);
         if (await Write(client, sent, cancel).ConfigureAwait(false) is { } writeFailure)
         {
-            yield return IpcReply.Miss(writeFailure);
+            yield return writeFailure;
             yield break;
         }
 
@@ -83,7 +72,7 @@ internal static class IpcClient
             var read = await Read(reader, cancel).ConfigureAwait(false);
             if (read.Failure is { } readFailure)
             {
-                yield return IpcReply.Miss(readFailure);
+                yield return readFailure;
                 yield break;
             }
 
@@ -95,18 +84,18 @@ internal static class IpcClient
             // A failed response is already a sentence for the user, whichever side wrote it.
             if (response.Ok && IpcProtocol.ShellRefusal(response.Protocol) is { } mismatch)
             {
-                yield return IpcReply.Miss(new IpcFailure(mismatch, true));
+                yield return new IpcFailure(mismatch, true);
                 yield break;
             }
 
             if (response.Ok && IpcOps.ChecksRelease(request.Op) &&
                 IpcProtocol.ReleaseRefusal(response.Winshell, ProductVersion.Current.Text) is { } release)
             {
-                yield return IpcReply.Miss(new IpcFailure(release, true));
+                yield return new IpcFailure(release, true);
                 yield break;
             }
 
-            yield return IpcReply.Answer(response);
+            yield return response;
         }
     }
 
