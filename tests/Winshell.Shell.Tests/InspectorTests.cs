@@ -59,7 +59,7 @@ public sealed partial class InspectorTests : IDisposable
 
     private static JsonElement OpenWindow(string tree, string content)
     {
-        return JsonDocument.Parse(tree).RootElement.EnumerateArray()
+        return JsonElement.Parse(tree).EnumerateArray()
             .Single(window => window.GetProperty("content").GetProperty("type").GetString() == content).Clone();
     }
 

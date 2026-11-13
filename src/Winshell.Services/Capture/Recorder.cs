@@ -90,7 +90,10 @@ internal static class Recorder
                }, e => ended.TrySetResult(e)))
         {
             // An encoder that fails ends the recording at once, rather than after frames nobody reads pile up.
-            var finished = await Task.WhenAny(Task.Delay(recording.Length, time), ended.Task, encoding);
+            // The timer stops as soon as the recording ends some other way.
+            using var timer = new CancellationTokenSource();
+            var finished = await Task.WhenAny(Task.Delay(recording.Length, time, timer.Token), ended.Task, encoding);
+            await timer.CancelAsync();
             length = finished == ended.Task ? Since(time, time.GetTimestamp()) - start : recording.Length;
             closed = finished == ended.Task && ended.Task.Result is null;
             onScreen = stream.OnScreen;
