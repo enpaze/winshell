@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Reactor.Hosting;
@@ -72,13 +73,13 @@ public sealed class Bar : IDisposable
     /// <summary>
     /// The widgets at the start: the left, or the top on a side bar. A plain string names a widget with no settings.
     /// </summary>
-    public IReadOnlyList<Placement> Start { get; init; } = [];
+    public ImmutableArray<Placement> Start { get; init; } = [];
 
     /// <summary>The widgets in the middle.</summary>
-    public IReadOnlyList<Placement> Center { get; init; } = [];
+    public ImmutableArray<Placement> Center { get; init; } = [];
 
     /// <summary>The widgets at the end: the right, or the bottom on a side bar.</summary>
-    public IReadOnlyList<Placement> End { get; init; } = [];
+    public ImmutableArray<Placement> End { get; init; } = [];
 
     /// <summary>Whether the bar reserves its edge, so maximized windows stop short of it. False lays it over them.</summary>
     public bool Reserve { get; init; } = true;
