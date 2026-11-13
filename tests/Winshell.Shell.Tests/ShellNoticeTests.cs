@@ -346,7 +346,7 @@ public sealed partial class ShellNoticeTests : IDisposable
             var panel = (PanelWindow)shell.Platform.Windows.Single().Client;
             await Shown(panel);
             var tree = await Inspector.Run(shell, "tree", []);
-            return JsonDocument.Parse(tree).RootElement.EnumerateArray().Single()
+            return JsonElement.Parse(tree).EnumerateArray().Single()
                 .GetProperty("content").GetProperty("type").GetString();
         });
 

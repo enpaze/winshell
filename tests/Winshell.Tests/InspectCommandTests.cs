@@ -60,7 +60,7 @@ public sealed partial class InspectCommandTests : IDisposable, IClassFixture<Pro
 
     private static int Count(string tree, string type)
     {
-        return JsonDocument.Parse(tree).RootElement.EnumerateArray().Count(window =>
+        return JsonElement.Parse(tree).EnumerateArray().Count(window =>
             window.GetProperty("content").GetProperty("type").GetString() == type);
     }
 
