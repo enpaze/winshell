@@ -27,4 +27,4 @@ winshell kill               # stop it
 
 If something goes wrong, run `winshell doctor` or read [troubleshooting](docs/troubleshooting.md).
 
-[Commands](docs/reference/command-line.md) · [API reference](docs/reference/index.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
+[Commands](docs/reference/command-line.md) · [API reference](docs/reference/index.md) · [MIT license](LICENSE)
