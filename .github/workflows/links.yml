@@ -59,6 +59,5 @@ jobs:
           --exclude-path 'docs/agents'
           'docs/**/*.md'
           README.md
-          CONTRIBUTING.md
           GLOSSARY.md
           '.github/*.md'

@@ -6,7 +6,6 @@ BeforeAll {
     $script:Pins = Import-PowerShellDataFile -LiteralPath (Join-Path $script:Root $script:Pin)
     $script:Readers = @(
         'scripts/check.ps1'
-        'scripts/update-skills.ps1'
         'scripts/package.ps1'
         '.github/workflows/ci.yml'
         '.github/workflows/links.yml'
@@ -46,7 +45,6 @@ Describe 'The tools CI installs by URL' {
             $script:Pins.lychee.version
             $script:Pins.actionlint.version
             $script:Pins.zizmor.version
-            $script:Pins.skills.version
             $script:Pins.pester.version
             # The versions sit in those URLs. They are not a second copy of the download.
             ([regex]::Match($script:Pins.wingetCreate.url, '/v(?<version>\d+\.\d+\.\d+\.\d+)/')).Groups['version'].Value
@@ -63,7 +61,7 @@ Describe 'The tools CI installs by URL' {
         $copied | Should -BeNullOrEmpty
     }
 
-    It 'is what the workflows, check, the skills update and packaging read' {
+    It 'is what the workflows, check and packaging read' {
         foreach ($relative in $script:Readers) {
             $text = Get-Content -Raw -LiteralPath (Join-Path $script:Root $relative)
             $text | Should -Match 'tool-pins\.psd1' -Because $relative
@@ -76,16 +74,13 @@ Describe 'The tools CI installs by URL' {
         $ci | Should -Match 'steps\.pins\.outputs\.zizmor'
     }
 
-    It 'does not copy the lychee waits or the skills quiet days out of the pin' {
+    It 'does not copy the lychee waits out of the pin' {
         $links = Get-Content -Raw -LiteralPath (Join-Path $script:Root '.github/workflows/links.yml')
         $ci = Get-Content -Raw -LiteralPath (Join-Path $script:Root '.github/workflows/ci.yml')
-        $update = Get-Content -Raw -LiteralPath (Join-Path $script:Root 'scripts/update-skills.ps1')
         $links | Should -Not -Match 'retry-wait-time \d+'
         $links | Should -Not -Match 'max-retries \d+'
         $ci | Should -Not -Match 'RetryIntervalSec \d+'
         $ci | Should -Not -Match 'MaximumRetryCount \d+'
-        $update | Should -Not -Match 'AddDays\(-\d+\)'
-        $update | Should -Match 'quietDays'
     }
 
     It 'is the file docs/development.md names instead of the numbers' {
@@ -95,7 +90,6 @@ Describe 'The tools CI installs by URL' {
                 $script:Pins.lychee.version
                 $script:Pins.actionlint.version
                 $script:Pins.zizmor.version
-                $script:Pins.skills.version
                 $script:Pins.pester.version
             )) {
             $docs | Should -Not -Match ([regex]::Escape($needle)) -Because $needle

@@ -119,4 +119,4 @@ How the tests work:
 - **Some guards read sources.** A WinUI project's assembly can't tell CsWinRT's generated unsafe code from ours, so that guard reads the sources. The composition guard reads them too, because only the compiler can say what a file may see. `NativeVisibilityTests` reads `Win32.cs`, because the generated declarations live under `obj/` and that file is the one that must declare no import.
 - **Prove a new or changed guard.** Show that it rejects a representative forbidden dependency or declaration, then remove that violation. Do not add production hooks solely to exercise the guards.
 
-Tests follow [where a test belongs](../CONTRIBUTING.md#where-a-test-belongs), which says what a changed test keeps, and the [test rules](../CONTRIBUTING.md#write-tests-that-dont-flake). Use fake clocks and real completion signals.
+Use fake clocks and real completion signals in tests.

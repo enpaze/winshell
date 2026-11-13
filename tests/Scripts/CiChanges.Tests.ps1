@@ -10,7 +10,7 @@ Describe 'Selecting CI checks from GitHub changed files' {
         @{ Name = 'keeps documentation sample prose to link checks'; Path = 'docs/samples/message-widget/README.md'; Text = '# Sample'; Patch = '+A sentence'; Code = $false; Docs = $false },
         @{ Name = 'keeps script documentation out of installer checks'; Path = 'scripts/README.md'; Text = '# Scripts'; Patch = '+A sentence'; Code = $false; Docs = $false },
         @{ Name = 'keeps action documentation out of tooling checks'; Path = '.github/actions/README.md'; Text = '# Actions'; Patch = '+A sentence'; Code = $false; Docs = $false },
-        @{ Name = 'keeps an issue form to lint'; Path = '.github/ISSUE_TEMPLATE/agent_task.yml'; Text = 'name: Agent task'; Patch = '+  - type: textarea'; Code = $false; Docs = $false },
+        @{ Name = 'keeps an issue form to lint'; Path = '.github/ISSUE_TEMPLATE/bug_report.yml'; Text = 'name: Bug report'; Patch = '+  - type: textarea'; Code = $false; Docs = $false },
         @{ Name = 'keeps a deleted prose page to link checks'; Path = 'docs/privacy.md'; Text = $null; Patch = '-# Privacy'; Code = $false; Docs = $false },
         @{ Name = 'checks a page containing compiled examples'; Path = 'docs/configuration.md'; Text = "``````csharp`nShell.Run();`n``````"; Patch = '+A sentence'; Code = $false; Docs = $true },
         @{ Name = 'checks a new README example'; Path = 'README.md'; Text = "``````csharp`nShell.Run();`n``````"; Patch = '+```csharp'; Code = $false; Docs = $true },
@@ -75,19 +75,13 @@ Describe 'Selecting CI checks from GitHub changed files' {
     # check and the PowerShell suites in quality, scripts the installer job, workflows actionlint, and package the Package
     # workflow.
     It '<Path> selects <Flags>' -ForEach @(
-        @{ Path = 'skills-lock.json'; Flags = 'none' },
-        @{ Path = '.agents/skills/wizard/template.sh'; Flags = 'none' },
-        @{ Path = '.agents/skills/tdd/agents/openai.yaml'; Flags = 'none' },
-        @{ Path = '.claude/skills/wizard/template.sh'; Flags = 'none' },
-        @{ Path = '.claude/skills/tdd/agents/openai.yaml'; Flags = 'none' },
         @{ Path = 'LICENSE'; Flags = 'none' },
         @{ Path = '.gitignore'; Flags = 'none' },
         @{ Path = 'scripts/uninstall.ps1'; Flags = 'powershell scripts' },
-        @{ Path = 'scripts/pr-rules.ps1'; Flags = 'powershell scripts' },
         # The actionlint job and the Package workflow install the tools this file names.
         @{ Path = 'scripts/tool-pins.psd1'; Flags = 'powershell scripts workflows package' },
         @{ Path = 'tests/Scripts/Install.Tests.ps1'; Flags = 'powershell scripts' },
-        @{ Path = '.github/workflows/pr-title.yml'; Flags = 'powershell workflows' },
+        @{ Path = '.github/workflows/links.yml'; Flags = 'powershell workflows' },
         @{ Path = '.github/dependabot.yml'; Flags = 'powershell workflows' },
         @{ Path = '.github/workflows/package.yml'; Flags = 'powershell workflows package' },
         @{ Path = 'packaging/msix/AppxManifest.xml'; Flags = 'package' },
@@ -126,7 +120,7 @@ Describe 'Selecting CI checks from GitHub changed files' {
         $json = Join-Path $TestDrive 'kinds.json'
         ConvertTo-Json -InputObject @(
             @{ filename = 'scripts/uninstall.ps1'; patch = '' },
-            @{ filename = '.github/workflows/pr-title.yml'; patch = '' },
+            @{ filename = '.github/workflows/links.yml'; patch = '' },
             @{ filename = 'packaging/msix/AppxManifest.xml'; patch = '' }
         ) | Set-Content -LiteralPath $json
         $output = & $script:Classifier -Files $json

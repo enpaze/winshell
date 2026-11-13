@@ -4,8 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Winshell.Architecture.Tests;
 
 /// <summary>
-/// Last-input time is measured on <c>GetTickCount</c>. The time rule in CONTRIBUTING.md allows that read in
-/// <c>SentInput</c> and nowhere else in <c>src/</c>.
+/// Last-input time is measured on <c>GetTickCount</c>. Only <c>SentInput</c> reads that clock in <c>src/</c>.
 /// </summary>
 public class InputClockTests
 {

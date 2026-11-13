@@ -1,6 +1,6 @@
 # Development
 
-How to build, check and release Winshell. [CONTRIBUTING.md](../CONTRIBUTING.md) has the test rules and how a change lands, and the [architecture rules](architecture.md) define the assembly boundaries and feature ownership.
+How to build, check and release Winshell. The [architecture rules](architecture.md) define the assembly boundaries and feature ownership.
 
 ## Prerequisites
 
@@ -8,8 +8,6 @@ How to build, check and release Winshell. [CONTRIBUTING.md](../CONTRIBUTING.md) 
 - PowerShell 7
 - Pester, the version named in [`scripts/tool-pins.psd1`](../scripts/tool-pins.psd1), for the PowerShell tooling tests
 - .NET 10 SDK
-- Node.js, for `npx` when updating agent skills
-- Claude Code 2.1.281 or later, only for an agent on Claude Code: an older one may not read `AGENTS.md`, and then starts without the repo's instructions and nothing says they are missing
 - The Windows SDK, for `makeappx.exe`, only to run `scripts/package.ps1`
 - GitHub CLI (`gh`), only when publishing a draft release outside GitHub Actions
 
@@ -59,72 +57,6 @@ dotnet run --project src/Winshell -- kill -i <id>
 ```
 
 `winshell dev` is the edit loop. From source it is `dotnet run --project src/Winshell -- dev -p ..\MyShell`. It runs the configuration under `dotnet watch`, and Reactor's hot reload applies an edit to a component's `Render` in the running shell, without a restart. An edit .NET cannot apply restarts the shell. [Develop a shell](configuration.md#develop-a-shell) is the same path as an author sees it.
-
-## Agent skills
-
-The repo's skills are committed in `.agents/skills`, one folder each, so a clone or worktree has them with nothing to run. `skills-lock.json` records the source each one came from, and the licence of each source is beside them, in `LICENSE-<owner>-skills`. Codex reads the folder as it is.
-
-Claude Code reads `.claude/skills`, so the repo commits a copy there too: the same files, byte for byte. Claude Code lists each skill by its bare name, `/<name>` and the Skill tool both, and the repo's `code-review` overrides Claude Code's built-in skill of that name. The lock marks each skill `"installMode": "copy"`, so the skills tool writes the same files into both folders, and the `ci` check fails a pull request that leaves the two folders different.
-
-The committed files are the pin: a skill changes only when a PR changes it. The skills CLI version is `skills.version` in [`scripts/tool-pins.psd1`](../scripts/tool-pins.psd1). To list the skills that have a newer version, changing nothing:
-
-```sh
-npx -y skills@<version> check
-```
-
-To take one of them, or all, into both folders:
-
-```sh
-npx -y skills@<version> update <name> -p
-npx -y skills@<version> update -p
-```
-
-`<version>` is that pin. It writes each newer version into `.agents/skills` and `.claude/skills`, and its hash into the lock. It also writes a folder for each other agent it finds on your machine, such as `.grok/skills`: delete those. Read `git diff` before you open the PR. Use this version of the tool or a later one: in 1.7.4, `check` takes every update where this one only lists them.
-
-The [`skills` job](#jobs) does this every Monday with `scripts/update-skills.ps1`, and opens or updates one pull request, `build/update-skills`, holding the diff. It leaves a source alone while the source's newest commit is younger than the quiet days in `scripts/tool-pins.psd1`, the same wait as Dependabot's cooldown, and it pushes nothing when the branch already holds the same versions, so closing its pull request declines those versions until a source has newer ones, for as long as the branch is kept. It never merges: an agent follows a skill with full permissions, so read every skills pull request before you merge it, or close it.
-
-A checkout that ran the old install script keeps what it wrote that the repo does not track: any skill folder in `.agents/skills` or `.claude/skills` the lock no longer records. To list them, then delete them:
-
-```sh
-git clean -ndx -- .agents/skills .claude/skills
-git clean -fdx -- .agents/skills .claude/skills
-```
-
-## Start a task
-
-Fetch before creating a task's worktree. Use its issue number in the branch and folder names:
-
-```powershell
-git fetch origin main
-if ($LASTEXITCODE -ne 0) { throw 'Could not fetch main.' }
-git worktree add -b agent/codex/123-short-description ../winshell-123 origin/main
-```
-
-In an existing task worktree, fetch again and run `git rev-list --left-right --count HEAD...origin/main`. It prints commits unique to the task, then commits unique to `main`. A nonzero second count means the task is behind; update its base before editing. An intentionally stacked task starts from its predecessor instead.
-
-T3 Code's Winshell project uses worktrees and automatic pulls, with a **Check task base** script that fetches and reports divergence on creation. It stops on a stale base without resetting files. Other tools should use the commands above.
-
-For agent shell commands, use profile-free PowerShell (`pwsh -NoProfile`, or `login: false` in Codex's command tool). Search with `rg` and read the relevant file section or diff; set a bounded output limit so unrelated output does not hide failures.
-
-### Pull request stacks
-
-Prefer small, focused PR stacks for related work. Each layer still has its own issue, branch, worktree and PR, and must build and be reviewable on its own. Create a dependent layer's worktree from its predecessor's branch, then adopt the existing branches in bottom-to-top order with `gh stack init`.
-
-Install the extension once with `gh extension install github/gh-stack`.
-
-| Command | When to use it |
-| --- | --- |
-| `gh stack init <bottom-branch> [<next-branch> ...]` | Start a stack or adopt existing branches, ordered from the branch targeting `main` to the top layer. |
-| `gh stack add <next-branch>` | Create the next branch on top of the stack. Return the current worktree to its previous branch, then use `git worktree add <folder> <next-branch>` for the new layer before editing. |
-| `gh stack view` | Inspect the layers and their PR status. |
-| `gh stack submit` | Fill in each PR's title and description in the interactive editor, then push and publish the stack. Follow the [PR template](../CONTRIBUTING.md#pr-description). Run the required checks in each affected worktree before this command, since it pushes. |
-| `gh stack rebase` | Fetch the latest trunk and rebase each layer onto its updated parent. Resolve conflicts by intent, as [Conflicts and merging](../CONTRIBUTING.md#conflicts-and-merging) describes. |
-| `gh stack push` | Push updated layers together with explicit leases. Run the [checks for the change](#checks-by-change) in each affected worktree after rebasing and before pushing. |
-| `gh stack merge <stack-number> --squash` | Merge the ready stack in one operation, with one squash commit per PR. Every layer must meet its required checks and reviews. This avoids intermediate rebases and repeated CI runs between individual merges. |
-
-For automation without the interactive editor, create each PR with `gh pr create --base <parent-branch> --head <branch> --title <title> --body-file <file>`, using `main` for the bottom layer. Then link the PRs in bottom-to-top order with `gh stack link <bottom-pr> <next-pr> ...`. To extend an existing stack, use `gh stack link <stack-number> <new-pr>`.
-
-After the merge, confirm each layer's issue is closed with `gh issue view <issue> --json state --jq .state`. GitHub sometimes leaves one open; `close-fixed-issues` waits 30 seconds, then closes it. If it stays `OPEN`, close it with `gh issue close <issue> --comment "Fixed by #<pr>."`.
 
 ## Formatting and style
 
@@ -225,11 +157,11 @@ The [command-line reference](reference/command-line.md) lists each command and r
 
 ## Checks by change
 
-Choose checks from the complete change against the PR's base, including renamed and deleted files. Run them again after rebasing.
+Choose checks for the complete change, including renamed and deleted files.
 
-| Change | Before pushing |
+| Change | Checks |
 | --- | --- |
-| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/` outside `docs/samples/`, Markdown such as the PR template, the skills in `.agents/skills/` and `.claude/skills/`, `skills-lock.json`, `LICENSE` and `.gitignore`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`, and `git diff --no-index --stat .agents/skills .claude/skills` for a change to the skills, which prints nothing when the folders are the same. No application build, formatting or test suite is needed. |
+| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/` outside `docs/samples/`, Markdown, `LICENSE` and `.gitignore`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`. No application build, formatting or test suite is needed. |
 | A page in `docs/` (outside `docs/agents/`) or `README.md` containing or removing a C# example fence, or a generated `docs/reference/winshell*.md` page | Lint, then `pwsh scripts/check.ps1 -Tier Docs`. This builds the samples and checks the generated reference, without unrelated tests or windows. |
 | Only tooling: `scripts/` and `tests/Scripts/`, except the files that [count as code](#how-checks-are-selected) | `Invoke-Pester -Path tests/Scripts`, and `pwsh -NoProfile scripts/format.ps1 -VerifyNoChanges`. Windows PowerShell 5.1 also runs `tests/Scripts/Install.Tests.ps1`, as the `installer` job does for every such change. |
 | Only workflows: `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | Lint, `pwsh -NoProfile scripts/format.ps1 -VerifyNoChanges`, then `Invoke-Pester -Path tests/Scripts`. |
@@ -265,12 +197,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | `pwsh scripts/publish-release.ps1 -Tag v1.2.3 -PackageDirectory <packages> -Repository enpaze/winshell` | Normally called by CI: uploads the six required files to an existing draft, verifies GitHub's digests, then publishes it. Requires an authenticated `gh`. Refuses an incomplete published release, never replaces an existing asset, and leaves a failed upload/verification as a draft. Use only for an approved release. |
 | `pwsh scripts/install.ps1` | Installs the portable build for the current user from a GitHub release. See [The install scripts](#the-install-scripts). |
 | `pwsh scripts/uninstall.ps1` | Removes that install. See [The install scripts](#the-install-scripts). |
-| `pwsh scripts/pr-rules.ps1 -Title <title> -Body <body> -Path <file>` | What the `pr-rules` job runs, given a file of changed paths. It prints each problem and exits 1. |
-| `pwsh scripts/pr-screenshot.ps1 <png>` | Publishes a `winshell inspect` screenshot on the `pr-screenshots` branch, which never merges, and prints the Markdown to paste into a PR. |
 | `pwsh scripts/ci-changes.ps1 -Files <json> [-MaxFiles <limit>]` | Classifies GitHub changed-file JSON from the checkout root and prints the flags `ci.yml` and `package.yml` use. PR file lists have a 3000-file limit; push comparisons have a 300-file limit. CI fetches this input; local contributors normally choose the checks above directly. |
-| `npx -y skills@<version> check` | Lists the skills in `.agents/skills` that have a newer version, changing nothing. `<version>` is `skills.version` in `scripts/tool-pins.psd1`. See [Agent skills](#agent-skills). |
-| `npx -y skills@<version> update [<name>] -p` | Writes the newer version of that skill, or of every skill, into `.agents/skills` and `.claude/skills`, for review in `git diff`. `<version>` is the same pin. |
-| `pwsh scripts/update-skills.ps1 -BodyPath <file>` | What the `skills` job runs: takes the newer skills from each source whose newest commit has waited out the quiet days in `scripts/tool-pins.psd1`, and writes the pull request body, naming each skill that changed and the commits its source gained. Requires an authenticated `gh` and the history of `skills-lock.json`. On Windows the skills tool crashes as it exits, after it has updated the skills, so the script stops there and writes no body; the job runs it on Linux. |
 
 ### The full check
 
@@ -363,13 +290,10 @@ The Package workflow uploads both scripts next to the zip.
 
 ### Required checks
 
-The single required test check, `ci`, collects suite, installer compatibility and quality results. The ruleset also requires `actionlint`, `pr-title` and `pr-rules`.
+The `ci` check collects suite, installer compatibility and quality results.
 
 - `ci` fails if quality, installer compatibility or any shard fails or is cancelled; intentionally skipped jobs are allowed.
 - `ci` runs lychee offline over the repo's Markdown, so a link to a file or a heading that isn't there fails the required check even when no build is needed.
-- `ci` compares `.agents/skills` with `.claude/skills`, so a pull request that changes a file in `.agents/skills` or `.claude/skills` and not in the other fails the required check, whatever else it changes.
-- `pr-title` checks the pull request title.
-- `pr-rules` checks that each type of change carries its proof, as "PR description" in `CONTRIBUTING.md` lists.
 - The Package workflow runs the `-Tier Package` deployment validation on PRs that `scripts/ci-changes.ps1` flags `package`; it is not required. Leave `scripts/package.ps1` and arm64 to CI.
 - CodeQL uses GitHub's separately managed default setup; its security-analysis triggers are independent of the CI workflow's file selection.
 
@@ -379,7 +303,7 @@ The `changes` job selects checks for PRs and pushes to `main`. Each kind of chan
 
 | Kind | Paths | What runs |
 | --- | --- | --- |
-| Prose | Markdown, `docs/` outside `docs/samples/`, `.github/ISSUE_TEMPLATE/`, `.agents/skills/`, `.claude/skills/`, `skills-lock.json`, `LICENSE` and `.gitignore` | The link check and the skills copy check in `quality`, and `DocsTests` when a page has C# examples or is generated reference |
+| Prose | Markdown, `docs/` outside `docs/samples/`, `.github/ISSUE_TEMPLATE/`, `LICENSE` and `.gitignore` | The link check in `quality`, and `DocsTests` when a page has C# examples or is generated reference |
 | Tooling | `scripts/` and `tests/Scripts/`, except the files that count as code | The formatting check and the PowerShell suites in `quality`, and `installer` |
 | Workflows | `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | `actionlint`, and the formatting check and the PowerShell suites in `quality` |
 | Packaging | `packaging/`, except the files that count as code | The Package workflow |
@@ -401,11 +325,8 @@ The `changes` job selects checks for PRs and pushes to `main`. Each kind of chan
 | --- | --- | --- |
 | `installer` | PRs and pushes to `main` that change `scripts/`, `tests/Scripts/`, `ci.yml` or `.github/actions/`. | Windows PowerShell 5.1 runs `tests/Scripts/Install.Tests.ps1` with the Pester version in `scripts/tool-pins.psd1` against temporary profiles and releases served on loopback. PowerShell 7 tooling suites run once in `quality`. |
 | `tests (1/5)` through `tests (5/5)` | Non-draft PRs and pushes to `main` that change code, as [How checks are selected](#how-checks-are-selected) says, in `ci.yml`. Results feed the one required `ci` check. | `pwsh scripts/check.ps1` for the tests that open no windows, and [A windowed test](#a-windowed-test) for the rest. See [Test shards](#test-shards). |
-| `close-fixed-issues` | Every merged pull request, in `close-fixed-issues.yml`. Not required. | Nothing to run. Once the merge commit is on `main`, it closes each issue the pull request fixes that GitHub left open, with a comment naming the pull request. |
-| `pr-size` | Every pull request, from `pr-size.yml` on the base branch. Not required. | Nothing to run. It labels the pull request `size:XS` to `size:XL`, as "PR description" in `CONTRIBUTING.md` says. |
 | `trim-caches` | Every push to `main`, after `ci`, in `ci.yml` | Nothing to run. It deletes all but the two newest CodeQL databases of each language from the Actions cache, which would otherwise pass the 10 GB GitHub keeps. |
-| `skills` | Every Monday, and by hand, in `skills.yml`. Not required. | `pwsh scripts/update-skills.ps1 -BodyPath <file>`. The job then commits only `.agents/skills`, `.claude/skills` and `skills-lock.json`, and opens or updates the `build/update-skills` pull request with the `RELEASE_PLEASE_TOKEN` secret, so its checks run. See [Agent skills](#agent-skills). |
-| `links` | Pushes to `main` that change docs or Markdown, and every Monday, in `links.yml` | lychee, the version in `scripts/tool-pins.psd1`, over `docs/**/*.md`, `README.md`, `CONTRIBUTING.md`, `GLOSSARY.md` and `.github/*.md`, excluding `docs/agents`. |
+| `links` | Pushes to `main` that change docs or Markdown, and every Monday, in `links.yml` | lychee, the version in `scripts/tool-pins.psd1`, over `docs/**/*.md`, `README.md`, `GLOSSARY.md` and `.github/*.md`, excluding `docs/agents`. |
 | `actionlint` | PRs and pushes to `main` that change workflows, actions, `.github/dependabot.yml` or `scripts/tool-pins.psd1`, in `ci.yml` | actionlint on `.github/workflows`, then zizmor on `.github`. |
 | `package` | PRs and pushes to `main` that `scripts/ci-changes.ps1` flags `package`, pushes to `main` that change code, and releases, in `package.yml`. Not required. | `pwsh scripts/package.ps1`. It publishes both architectures and needs the Windows SDK for the MSIX check. The workflow's `publish` job builds each architecture on its own runner, `windows-2025` and `windows-11-arm`, and `package` packs both. The `arm64` job then runs that zip's `winshell.exe --version` on `windows-11-arm`. |
 
@@ -426,18 +347,12 @@ CI calls `Get-TestRun -Shard <1..5>` and `Invoke-TestRun -Shard <1..5>` from `sc
 - Jobs that build keep NuGet packages on the runner's work drive, where they restore several times faster than on the system drive.
 - The `windows-2025` workers run Windows Server 2025, build 26100, not Windows 11, so a native test that passes on your PC can fail there. One known difference: Windows Graphics Capture refuses to capture a tool window by itself there (`CreateForWindow` fails with `E_INVALIDARG`), and Windows 11 build 26200 captures one.
 
-### Merging
-
-`main` takes squash merges of pull requests. `gh pr merge <number> --squash --auto` merges one once its required checks pass. A pull request need not be up to date with `main`, so its checks ran on its branch and not on what lands; the push to `main` selects checks again for the merged change.
-
-The short `pr-title` and `pr-rules` workflows finish every run, including successive PR edits. They have no concurrency cancellation: a cancelled required check can block a pull request even after a newer passing run. The main CI workflow cancels superseded runs on each branch. To recover an already cancelled metadata check, open its Actions run and choose **Re-run all jobs**, or run `gh run rerun <run-id>`. Only **Merged** confirms the change is on `main`.
-
 ## Docs
 
 The docs are plain Markdown, read on GitHub or in an editor. `docs/agents/` is for agents working on this repo.
 
 - **A new reference page** goes into the list in `docs/reference/index.md`.
-- **Links between pages** are relative `.md` links, also to files outside `docs/`, such as `../CONTRIBUTING.md`. The `ci` job runs lychee offline over every Markdown file, with `--include-fragments`, and fails on a link to a file or a heading that isn't there.
+- **Links between pages** are relative `.md` links, also to files outside `docs/`, such as `../GLOSSARY.md`. The `ci` job runs lychee offline over every Markdown file, with `--include-fragments`, and fails on a link to a file or a heading that isn't there.
 - **C# examples** in a `csharp` code block are checked by `DocsTests`: each one is text from a file the build compiles. Those files are `tests/Winshell.Shell.Tests/GuideSamples.cs`, which the test project builds, the template's `.cs` files in `templates/winshell`, which `scripts/build-template.ps1` builds, and the message-widget sample `docs/samples/message-widget/Message.cs`, which the solution builds.
 - **The reference** in `docs/reference/` has a page per namespace of the `Winshell` package (the public types of `Winshell.Shell`, `Winshell.Services` and `Winshell.Core`), `winshell.md` for `Winshell` and `winshell-<namespace>.md` for the others, starting with `# <namespace>` and an intro written by hand. `dotnet run scripts/generate-reference.cs` writes the rest, a `## Type` section for each public type with its members, from the `///` comments, and `DocsTests` fails when a page is not what it writes.
 - **Links to other sites** are checked by `links.yml`, on `main` and every Monday. That job isn't part of `check.ps1`.
@@ -622,9 +537,7 @@ To submit a release:
 
 ```text
 .
-├── .agents/skills/                  # The agent skills; see Agent skills
-├── .claude/skills/                  # A copy of them, where Claude Code reads them
-├── .github/                         # CI, issue and PR templates, Dependabot
+├── .github/                         # CI, issue templates, Dependabot
 ├── docs/
 │   ├── adr/                         # Architecture decision records
 │   ├── agents/                      # How agents work on this repo
@@ -661,6 +574,5 @@ To submit a release:
 │   └── Directory.Build.props        # What every test project shares
 ├── winshell.slnx                    # The solution the check builds
 ├── Directory.Build.targets          # Turns unsafe code off outside Winshell.Native and WinUI projects
-├── CONTRIBUTING.md                  # Test rules, branch names, PR titles and descriptions
 └── GLOSSARY.md                      # The words this repo uses
 ```

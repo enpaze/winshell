@@ -22,12 +22,6 @@
     zizmor = @{
         version = '1.31.1'
     }
-    # quietDays is how long a skill source's newest commit must have waited, as dependabot.yml waits a week,
-    # so a compromised commit is usually caught first.
-    skills = @{
-        version = '1.7.6'
-        quietDays = 7
-    }
     pester = @{
         version = '5.6.1'
         sha256 = '37b3749f69accead67c366d81508977f62afc7cbb9c4db88c3a255a1f0b20da5'
