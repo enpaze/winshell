@@ -14,22 +14,6 @@ Always build code cleanly, modularly, and with proper architecture and separatio
 
 Scripts are PowerShell 7; `scripts/install.ps1` and `scripts/uninstall.ps1` also run on Windows PowerShell 5.1. [Project structure](docs/development.md#project-structure) maps the folders.
 
-## Models and effort
-
-Take the model and effort for a subagent or a delegate from this table. Each job lists its models in order: use the first, and use the next only when the one before it is unavailable or its usage is used up.
-
-| Job | First | Then | Then | Then |
-| --- | --- | --- | --- | --- |
-| Most work: leading a spec or building a ticket | Claude Opus 5.5 (medium) | GPT 6.1 Sol (medium) | Grok 4.7 Fast (high) | |
-| A well-scoped everyday ticket: a bug fix, a docs change, a feature built against a clear spec | Claude Sonnet 5.5 (high) | GPT 6.1 Terra (high) | Grok 4.7 Fast (high) | |
-| A side task for a larger model: a search, a lookup, classifying or extracting | Claude Haiku 5.5 (high) | GPT 6.1 Terra (medium) | Grok 4.7 Fast (high) | |
-| A hard ticket: a migration, a performance fix, a change across several layers | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) | |
-| The hardest work, or a long unattended run | Claude Opus 5.5 (high) | GPT 6.1 Sol (xhigh) | Grok 4.7 Fast (high) | |
-
-- A clear spec alone does not make a ticket a Sonnet ticket: a migration can be fully specified and still need Opus.
-- The lead picks the row when it delegates. A ticket carries no model label.
-- An agent that moves past the first model says in its report which model ran, and why the ones before it did not.
-
 ## Domain language
 
 Name domain concepts with the words of [GLOSSARY.md](GLOSSARY.md): see [domain docs](docs/agents/domain.md).
