@@ -244,7 +244,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <OutputType>Library</OutputType>
-                <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+                <TargetFramework>net11.0-windows10.0.22621.0</TargetFramework>
                 <Nullable>enable</Nullable>
                 <ImplicitUsings>enable</ImplicitUsings>
                 <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

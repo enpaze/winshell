@@ -1,0 +1,4 @@
+# Test projects are never trimmed or published, so CsWinRT's check that a collection expression has a concrete type
+# for a trimmed WinRT app does not apply to them.
+[*.cs]
+dotnet_diagnostic.CsWinRT1032.severity = none

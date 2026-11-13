@@ -51,9 +51,9 @@ public sealed class DoctorTests : IDisposable
     [Fact]
     public void DotNet_says_where_the_runtime_comes_from()
     {
-        Assert.Equal(new DoctorCheck("dotnet", ".NET", CheckStatus.Pass, ".NET 10.0.1, built into Winshell"),
-            DotNet(new Version(10, 0, 1), ".NET 10.0.1", true));
-        Assert.Equal(CheckStatus.Fail, DotNet(new Version(9, 0), ".NET 9.0.0", false).Status);
+        Assert.Equal(new DoctorCheck("dotnet", ".NET", CheckStatus.Pass, ".NET 11.0.1, built into Winshell"),
+            DotNet(new Version(11, 0, 1), ".NET 11.0.1", true));
+        Assert.Equal(CheckStatus.Fail, DotNet(new Version(10, 0), ".NET 10.0.0", false).Status);
     }
 
     // Folders

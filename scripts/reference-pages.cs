@@ -441,6 +441,6 @@ internal static partial class ReferencePages
             return Atoms(element);
         if (type.IsGenericType)
             return type.GetGenericArguments().SelectMany(Atoms);
-        return [type];
+        return (Type[])[type];
     }
 }

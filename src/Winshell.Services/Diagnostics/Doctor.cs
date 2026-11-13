@@ -225,9 +225,9 @@ public static class Doctor
     internal static DoctorCheck DotNet(Version version, string description, bool selfContained)
     {
         var how = selfContained ? "built into Winshell" : "installed on this PC";
-        if (version.Major < 10)
+        if (version.Major < 11)
             return new DoctorCheck("dotnet", ".NET", CheckStatus.Fail, $"{description}, {how}",
-                "Winshell needs .NET 10. Install the .NET 10 runtime, or use a Winshell release, which brings its own.");
+                "Winshell needs .NET 11. Install the .NET 11 runtime, or use a Winshell release, which brings its own.");
         return new DoctorCheck("dotnet", ".NET", CheckStatus.Pass, $"{description}, {how}");
     }
 

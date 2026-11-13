@@ -84,7 +84,6 @@ MapVirtualKey
 SetCursorPos
 
 GetStdHandle
-SetHandleInformation
 GetFileType
 GetConsoleWindow
 TaskDialogIndirect

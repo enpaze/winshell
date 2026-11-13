@@ -42,7 +42,7 @@ public sealed partial class DevCommandTests : IDisposable
                                                                   <Import Project="{props}" />
                                                                   <PropertyGroup>
                                                                     <OutputType>WinExe</OutputType>
-                                                                    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+                                                                    <TargetFramework>net11.0-windows10.0.22621.0</TargetFramework>
                                                                     <ImplicitUsings>enable</ImplicitUsings>
                                                                     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
                                                                     <SelfContained>true</SelfContained>

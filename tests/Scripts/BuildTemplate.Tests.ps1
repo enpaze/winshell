@@ -11,10 +11,10 @@ Describe 'Compiling template sources against the current libraries' {
         foreach ($path in @('scripts/build-template.ps1', '.editorconfig', 'global.json', 'Directory.Build.props', 'Directory.Build.targets')) {
             Copy-Item -LiteralPath (Join-Path $script:Repository $path) -Destination (Join-Path $script:Fixture $path)
         }
-        [IO.File]::WriteAllText((Join-Path $script:Fixture 'src/Winshell.Shell/Winshell.Shell.csproj'), '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        [IO.File]::WriteAllText((Join-Path $script:Fixture 'src/Winshell.Shell/Winshell.Shell.csproj'), '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
         [IO.File]::WriteAllText((Join-Path $script:Fixture 'src/Winshell.Shell/Api.cs'), "namespace Winshell;`n`npublic static class Api`n{`n    public static string Message => `"current`";`n}`n")
         $script:Project = Join-Path $script:Fixture 'templates/winshell/MyShell.csproj'
-        [IO.File]::WriteAllText($script:Project, '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><PackageReference Include="Winshell" Version="__WINSHELL_VERSION__" /></ItemGroup></Project>')
+        [IO.File]::WriteAllText($script:Project, '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><PackageReference Include="Winshell" Version="__WINSHELL_VERSION__" /></ItemGroup></Project>')
         git -C $script:Fixture init --quiet
         if ($LASTEXITCODE -ne 0) { throw 'Could not initialize fixture repository.' }
         git -C $script:Fixture add .

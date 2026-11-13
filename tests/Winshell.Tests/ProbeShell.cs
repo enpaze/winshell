@@ -165,7 +165,7 @@ internal static class ProbeShell
                   <Import Project="{props}" />
                   <PropertyGroup>
                     <OutputType>WinExe</OutputType>
-                    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+                    <TargetFramework>net11.0-windows10.0.22621.0</TargetFramework>
                     <Nullable>enable</Nullable>
                     <ImplicitUsings>enable</ImplicitUsings>
                     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>

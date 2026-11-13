@@ -7,7 +7,7 @@ How to build, check and release Winshell. The [architecture rules](architecture.
 - Git
 - PowerShell 7
 - Pester, the version named in [`scripts/tool-pins.psd1`](../scripts/tool-pins.psd1), for the PowerShell tooling tests
-- .NET 10 SDK
+- .NET 11 SDK
 - The Windows SDK, for `makeappx.exe`, only to run `scripts/package.ps1`
 - GitHub CLI (`gh`), only when publishing a draft release outside GitHub Actions
 
@@ -29,7 +29,7 @@ pwsh scripts/check.ps1
 
 ## Build from source
 
-You need Git and the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0):
+You need Git and the [.NET 11 SDK](https://dotnet.microsoft.com/download/dotnet/11.0):
 
 ```powershell
 git clone https://github.com/enpaze/winshell.git

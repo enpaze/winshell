@@ -1048,7 +1048,7 @@ internal static class WidgetCommand
     }
 
     /// <summary><see cref="ConfigurationProject.Run"/>, with the variables git and dotnet need so they do not prompt.</summary>
-    internal static CommandResult Invoke(string file, IReadOnlyList<string> arguments, string folder)
+    internal static CommandResult Invoke(string file, string[] arguments, string folder)
     {
         return ConfigurationProject.Run(file, arguments, folder, QuietTools);
     }
