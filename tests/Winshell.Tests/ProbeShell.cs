@@ -309,7 +309,9 @@ internal static class ProbeShell
                   if (config is null || !File.Exists(Path.Combine(config, "{{HangMarker}}")))
                       return;
                   var child = Process.Start(new ProcessStartInfo("ping", "-n 120 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true })!;
-                  File.WriteAllText(Path.Combine(config, "child.pid"), child.Id.ToString());
+                  // Moved into place whole, so a test that sees the file can read it.
+                  File.WriteAllText(Path.Combine(config, "child.pid.tmp"), child.Id.ToString());
+                  File.Move(Path.Combine(config, "child.pid.tmp"), Path.Combine(config, "child.pid"));
                   AppDomain.CurrentDomain.ProcessExit += (_, _) => Thread.Sleep(Timeout.Infinite);
               }
 
