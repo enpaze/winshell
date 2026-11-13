@@ -651,7 +651,7 @@ public sealed class WidgetCommandTests : IDisposable
                                          <Project Sdk="Microsoft.NET.Sdk">
                                            <PropertyGroup>
                                              <OutputType>Exe</OutputType>
-                                             <TargetFramework>net10.0</TargetFramework>
+                                             <TargetFramework>net11.0</TargetFramework>
                                              <ImplicitUsings>enable</ImplicitUsings>
                                              <Nullable>enable</Nullable>
                                              <NuGetAudit>false</NuGetAudit>
@@ -672,7 +672,7 @@ public sealed class WidgetCommandTests : IDisposable
         return $"""
                 <Project Sdk="Microsoft.NET.Sdk">
                   <PropertyGroup>
-                    <TargetFramework>net10.0</TargetFramework>
+                    <TargetFramework>net11.0</TargetFramework>
                     <ImplicitUsings>enable</ImplicitUsings>
                     <Nullable>enable</Nullable>
                     <NuGetAudit>false</NuGetAudit>
@@ -808,7 +808,7 @@ public sealed class WidgetCommandTests : IDisposable
         WriteEntry(zip, $"{id}.nuspec", nuspec);
         WriteEntry(zip, "[Content_Types].xml", contentTypes);
         WriteEntry(zip, "_rels/.rels", rels);
-        WriteEntry(zip, "lib/net10.0/_._", "");
+        WriteEntry(zip, "lib/net11.0/_._", "");
     }
 
     private static void WriteEntry(ZipArchive zip, string name, string text)

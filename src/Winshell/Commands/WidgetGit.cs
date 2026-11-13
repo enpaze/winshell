@@ -11,7 +11,7 @@ internal static class WidgetGit
     internal const string NeedsGitToUpdate = "Updating a widget needs git, from https://git-scm.com/download/win.";
 
     /// <summary>Git, with <c>protocol.file.allow=always</c>, using the command's quiet tool variables.</summary>
-    internal static CommandResult Run(string git, IReadOnlyList<string> arguments, string folder)
+    internal static CommandResult Run(string git, string[] arguments, string folder)
     {
         return WidgetCommand.Invoke(git, ["-c", "protocol.file.allow=always", .. arguments], folder);
     }

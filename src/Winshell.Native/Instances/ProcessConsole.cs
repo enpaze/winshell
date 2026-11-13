@@ -44,13 +44,6 @@ internal static class ProcessConsole
         };
     }
 
-    /// <summary>Stops processes started from now on from inheriting <paramref name="stream"/>, when it has a handle.</summary>
-    internal static void KeepFromChildren(StandardStream stream)
-    {
-        if (Handle(stream) is { } handle)
-            _ = PInvoke.SetHandleInformation(handle, (uint)HANDLE_FLAGS.HANDLE_FLAG_INHERIT, 0);
-    }
-
     /// <summary>Null when the process has no such handle (0) or Windows could not say (-1).</summary>
     private static HANDLE? Handle(StandardStream stream)
     {

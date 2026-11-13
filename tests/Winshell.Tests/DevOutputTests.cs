@@ -41,7 +41,7 @@ public sealed class DevOutputTests
     [Fact]
     public void A_compile_error_in_a_full_build_loses_its_project_and_comes_once()
     {
-        const string line = Broken + @" [C:\Shells\Mine\Mine.csproj::TargetFramework=net10.0-windows10.0.22621.0]";
+        const string line = Broken + @" [C:\Shells\Mine\Mine.csproj::TargetFramework=net11.0-windows10.0.22621.0]";
 
         Assert.Equal(Shown, _output.Read("  " + line));
         Assert.Null(_output.Read("  " + line));

@@ -191,7 +191,7 @@ public sealed class ConfigurationProjectTests : IDisposable
 
         var dev = project.InstancesOf(ConfigurationBuild.Dev, [
             Instance("run", Path.Combine(folder, "bin", "shell", "Bar.exe")),
-            Instance("dev", Path.Combine(folder, "bin", "Debug", "net10.0-windows", "Bar.exe")),
+            Instance("dev", Path.Combine(folder, "bin", "Debug", "net11.0-windows", "Bar.exe")),
             Instance("other", Path.Combine(folder + "2", "bin", "Debug", "Bar.exe"))
         ]);
 
@@ -505,7 +505,7 @@ public sealed class ConfigurationProjectTests : IDisposable
         var file = Project("Bar.csproj");
         var project = Found(file);
         var output =
-            $"{Path.Combine(project.Folder, "Bar.cs")}(1,1): error CS1002: ; expected [{file}::TargetFramework=net10.0-windows10.0.22621.0]";
+            $"{Path.Combine(project.Folder, "Bar.cs")}(1,1): error CS1002: ; expected [{file}::TargetFramework=net11.0-windows10.0.22621.0]";
 
         var why = project.Prepare(false, (_, _, _) => new CommandResult(1, output));
 
@@ -538,7 +538,7 @@ public sealed class ConfigurationProjectTests : IDisposable
                             <Project Sdk="Microsoft.NET.Sdk">
                               <PropertyGroup>
                                 <OutputType>Exe</OutputType>
-                                <TargetFramework>net10.0</TargetFramework>
+                                <TargetFramework>net11.0</TargetFramework>
                                 <AssemblyName>Mine</AssemblyName>
                               </PropertyGroup>
                             </Project>

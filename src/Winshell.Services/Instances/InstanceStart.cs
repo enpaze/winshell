@@ -147,12 +147,15 @@ internal static class InstanceStart
     {
         try
         {
-            // A child gets a copy of every handle that can be inherited, so a shell left behind would hold its caller's
-            // pipes open until it exits, and out=$(winshell run -d) would wait that long.
-            ProcessConsole.KeepFromChildren(StandardStream.Input);
-            ProcessConsole.KeepFromChildren(StandardStream.Output);
-            ProcessConsole.KeepFromChildren(StandardStream.Error);
-            using var child = Process.Start(DetachedStart(program, arguments));
+            // A shell left behind with any of its caller's handles would hold the caller's pipes open until it exits, and
+            // out=$(winshell run -d) would wait that long. It inherits none: its standard streams go nowhere.
+            using var none = File.OpenNullHandle();
+            var start = DetachedStart(program, arguments);
+            start.InheritedHandles = [];
+            start.StandardInputHandle = none;
+            start.StandardOutputHandle = none;
+            start.StandardErrorHandle = none;
+            using var child = Process.Start(start);
             return null;
         }
         catch (Exception e) when (e is Win32Exception or InvalidOperationException)

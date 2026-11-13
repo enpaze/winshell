@@ -492,7 +492,7 @@ The project is a WinUI library. In this repository it builds against Winshell's 
        these props. See docs/configuration.md. -->
   <Import Project="..\..\..\src\Winshell.Package\buildTransitive\Winshell.props" />
   <PropertyGroup>
-    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+    <TargetFramework>net11.0-windows10.0.22621.0</TargetFramework>
     <RootNamespace>MessageWidget</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
