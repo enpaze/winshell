@@ -143,6 +143,8 @@ internal static class ProbeShell
         info.ArgumentList.Add("-o");
         info.ArgumentList.Add(Path.Combine(folder, "bin", "shell"));
         info.ArgumentList.Add("--nologo");
+        // A build server this build starts would keep its output open, and the run waits for that output to end.
+        info.ArgumentList.Add("--disable-build-servers");
         ChildProcess.Run(info, TimeSpan.FromMinutes(10)).AssertExitCode(0);
         Assert.True(File.Exists(program), $"The probe built, but {program} is not there.");
         return program;
