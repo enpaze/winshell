@@ -13,13 +13,13 @@ Its section of the preferences file, named after Name, holds `edge`, `start`, `c
 | Member | Type | Description |
 | --- | --- | --- |
 | `Bar()` | constructor | A bar on the top edge with no widgets. Make it on the shell's thread. |
-| `Center` | IReadOnlyList of [Placement](#placement), init | The widgets in the middle. |
+| `Center` | ImmutableArray of [Placement](#placement), init | The widgets in the middle. |
 | `Edge` | [Edges](#edges), init | The edge the bar runs along: one of Edges.Top, Bottom, Left and Right. |
-| `End` | IReadOnlyList of [Placement](#placement), init | The widgets at the end: the right, or the bottom on a side bar. |
+| `End` | ImmutableArray of [Placement](#placement), init | The widgets at the end: the right, or the bottom on a side bar. |
 | `Name` | string, init | The bar's name, which names its section of the preferences file. Give each bar of a shell its own. |
 | `Padding` | double?, init | The space between the areas and each end of the bar, along its length, in logical pixels: at the left and right of a top or bottom bar, and at the top and bottom of a side bar. Null takes the style's padding, or none when the style sets no padding. |
 | `Reserve` | bool, init | Whether the bar reserves its edge, so maximized windows stop short of it. False lays it over them. |
-| `Start` | IReadOnlyList of [Placement](#placement), init | The widgets at the start: the left, or the top on a side bar. A plain string names a widget with no settings. |
+| `Start` | ImmutableArray of [Placement](#placement), init | The widgets at the start: the left, or the top on a side bar. A plain string names a widget with no settings. |
 | `Style` | [ShellStyle](#shellstyle)?, init | The bar's own style, which wins over Shell.Style, or null for the shell's. |
 | `Thickness` | double?, init | The height of a top or bottom bar, or the width of a side bar, in logical pixels. Null takes the style's slot size. |
 | `Dispose()` | void | Removes the bar from every screen, and stops following the screens, the file and the style. |
@@ -65,7 +65,7 @@ Surface and WidgetArea as elements, so a component can write them into its tree.
 | Member | Type | Description |
 | --- | --- | --- |
 | `Surface(Element? content = null, Thickness padding = default, [ShellStyle](#shellstyle)? style = null)` | Element, static | A surface showing content in style, or the shell's style when that is null. |
-| `WidgetArea(string name = "", IReadOnlyList of [Placement](#placement)? defaults = null, Orientation orientation = Orientation.Horizontal, [ShellStyle](#shellstyle)? style = null)` | Element, static | A widget area. name selects its section of the preferences file, and defaults shows until that section has a list. An empty name uses the defaults only. |
+| `WidgetArea(string name = "", ImmutableArray of [Placement](#placement)? defaults = null, Orientation orientation = Orientation.Horizontal, [ShellStyle](#shellstyle)? style = null)` | Element, static | A widget area. name selects its section of the preferences file, and defaults shows until that section has a list. An empty name uses the defaults only. |
 
 ## FloatingWindow
 
@@ -207,8 +207,8 @@ One entry in a widget area. Several placements may name the same widget. A strin
 | `Settings` | IReadOnlyDictionary of string, object?, init | This placement's settings, or null for no settings. Widgets should treat nested values as read-only too. |
 | `Widget` | string, init | The case-sensitive name registered with Widgets.Register. |
 | `Check(object value)` | string, static | Why value is not a list of placement tables, or `""` when each table names a widget. A placement table is `{ widget, ...settings }`: `widget` is the widget's name, and every other key is one setting. A list of tables that misses a name is `must name a widget in each of its tables`. Any other value is `must be a list of tables that each name a widget`. |
-| `Format(IReadOnlyList of [Placement](#placement) placements)` | IReadOnlyList of IReadOnlyDictionary of string, object, static | The tables a preferences file writes for placements. Each is `{ widget, ...settings }`, with `widget` first. A setting named `widget` is left out, so the placement's own name is the one written. |
-| `Parse(object tables)` | IReadOnlyList of [Placement](#placement), static | The placements in a list of tables Check accepted, in that order. `widget` names each one and the other keys are its settings. A table with no other keys still has empty settings, which is not the null of a placement written with no settings in code. Throws ArgumentException when the value is not a list of tables that each name a widget. |
+| `Format(ImmutableArray of [Placement](#placement) placements)` | IReadOnlyList of IReadOnlyDictionary of string, object, static | The tables a preferences file writes for placements. Each is `{ widget, ...settings }`, with `widget` first. A setting named `widget` is left out, so the placement's own name is the one written. |
+| `Parse(object tables)` | ImmutableArray of [Placement](#placement), static | The placements in a list of tables Check accepted, in that order. `widget` names each one and the other keys are its settings. A table with no other keys still has empty settings, which is not the null of a placement written with no settings in code. Throws ArgumentException when the value is not a list of tables that each name a widget. |
 
 ## PopupWindow
 
@@ -470,8 +470,8 @@ What a WidgetArea shows. Name selects the area's section of the preferences file
 
 | Member | Type | Description |
 | --- | --- | --- |
-| `WidgetAreaProps(string Name = "", IReadOnlyList of [Placement](#placement)? Defaults = null, Orientation Orientation = Orientation.Horizontal, [ShellStyle](#shellstyle)? Style = null)` | constructor |  |
-| `Defaults` | IReadOnlyList of [Placement](#placement)?, init | The author's ordered placements. A missing list is none. |
+| `WidgetAreaProps(string Name = "", ImmutableArray of [Placement](#placement)? Defaults = null, Orientation Orientation = Orientation.Horizontal, [ShellStyle](#shellstyle)? Style = null)` | constructor |  |
+| `Defaults` | ImmutableArray of [Placement](#placement)?, init | The author's ordered placements. A missing list is none. |
 | `Name` | string, init | The section, or `""` to use only Defaults. |
 | `Orientation` | Orientation, init | The direction the placements run. |
 | `Style` | [ShellStyle](#shellstyle)?, init | This area's own style, which wins over the shell's, or null for the shell's. |

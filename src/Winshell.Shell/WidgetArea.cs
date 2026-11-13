@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.UI.Reactor;
@@ -19,7 +20,7 @@ namespace Winshell;
 /// <param name="Style">This area's own style, which wins over the shell's, or null for the shell's.</param>
 public sealed record WidgetAreaProps(
     string Name = "",
-    IReadOnlyList<Placement>? Defaults = null,
+    ImmutableArray<Placement>? Defaults = null,
     Orientation Orientation = Orientation.Horizontal,
     ShellStyle? Style = null);
 
@@ -42,7 +43,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         var names = UseRef<string[]?>(null);
         var generation = UseRef(0);
         var window = UseRef<ShellWindow?>(null);
-        var defaultsRef = UseRef<IReadOnlyList<Placement>>(defaults);
+        var defaultsRef = UseRef<ImmutableArray<Placement>>(defaults);
         var styleRef = UseRef<ShellStyle?>(props.Style);
         var anchor = UseRef<PopupAnchor?>(null);
         var slot = UseRef<SectionStore?>(null);
@@ -90,7 +91,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
 
         var placements = store.Snapshot;
         var listed = names.Current;
-        if (listed is null || listed.Length != placements.Count ||
+        if (listed is null || listed.Length != placements.Length ||
             !listed.Zip(placements).All(pair => pair.First == pair.Second.Widget))
         {
             names.Current = placements.Select(placement => placement.Widget).ToArray();
@@ -98,8 +99,8 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         }
 
         var shown = contexts.Current;
-        var slots = new Element[placements.Count];
-        for (var i = 0; i < placements.Count; i++)
+        var slots = new Element[placements.Length];
+        for (var i = 0; i < placements.Length; i++)
         {
             var placement = placements[i];
             var settings = placement.Settings ?? EmptySettings;
@@ -120,8 +121,8 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
                 .WithKey($"{i}:{placement.Widget}:{generation.Current}");
         }
 
-        if (shown.Count > placements.Count)
-            shown.RemoveRange(placements.Count, shown.Count - placements.Count);
+        if (shown.Count > placements.Length)
+            shown.RemoveRange(placements.Length, shown.Count - placements.Length);
 
         var stack = props.Orientation == Orientation.Vertical ? VStack(0, slots) : HStack(0, slots);
         return stack.OnMount(element =>
@@ -203,12 +204,12 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
     /// <summary>The area's section, read while the component renders and released when the name changes or it unmounts.</summary>
     private sealed class SectionStore : IDisposable
     {
-        private readonly Func<IReadOnlyList<Placement>> _defaults;
+        private readonly Func<ImmutableArray<Placement>> _defaults;
         private readonly AreaPreferences? _section;
-        private IReadOnlyList<Placement> _shown;
+        private ImmutableArray<Placement> _shown;
         private bool _disposed;
 
-        public SectionStore(string name, Func<IReadOnlyList<Placement>> defaults)
+        public SectionStore(string name, Func<ImmutableArray<Placement>> defaults)
         {
             Name = name;
             _defaults = defaults;
@@ -219,7 +220,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
 
         public string Name { get; }
 
-        public IReadOnlyList<Placement> Snapshot => _shown;
+        public ImmutableArray<Placement> Snapshot => _shown;
 
         /// <summary>The author's list, when the file has none. A file list keeps the screen as it is.</summary>
         public void NoteDefaults()
@@ -263,11 +264,11 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             _section?.Dispose();
         }
 
-        private static bool Same(IReadOnlyList<Placement> left, IReadOnlyList<Placement> right)
+        private static bool Same(ImmutableArray<Placement> left, ImmutableArray<Placement> right)
         {
-            if (left.Count != right.Count)
+            if (left.Length != right.Length)
                 return false;
-            for (var i = 0; i < left.Count; i++)
+            for (var i = 0; i < left.Length; i++)
             {
                 if (left[i].Widget != right[i].Widget || !TomlDocument.Same(left[i].Settings, right[i].Settings))
                     return false;
@@ -278,7 +279,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
     }
 
     /// <summary>A named area's section: the <c>widgets</c> list that replaces its defaults while the file has it.</summary>
-    private sealed class AreaPreferences(string name, Func<IReadOnlyList<Placement>> defaults)
+    private sealed class AreaPreferences(string name, Func<ImmutableArray<Placement>> defaults)
         : Preferences(name, (_, value) => Placement.Check(value))
     {
         [TomlComment(
@@ -291,7 +292,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         }
 
         /// <summary>The list as placements, or null when the file has none.</summary>
-        public IReadOnlyList<Placement>? Placements => Widgets is { } rows ? Placement.Parse(rows) : null;
+        public ImmutableArray<Placement>? Placements => Widgets is { } rows ? Placement.Parse(rows) : null;
 
         /// <summary>A missing file shows the area's defaults, which are what the list replaces.</summary>
         internal override object? Commented(TomlKey key) => Placement.Format(defaults());

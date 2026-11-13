@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -27,7 +28,7 @@ public static class Elements
     /// A widget area. <paramref name="name"/> selects its section of the preferences file, and
     /// <paramref name="defaults"/> shows until that section has a list. An empty name uses the defaults only.
     /// </summary>
-    public static Element WidgetArea(string name = "", IReadOnlyList<Placement>? defaults = null,
+    public static Element WidgetArea(string name = "", ImmutableArray<Placement>? defaults = null,
         Orientation orientation = Orientation.Horizontal, ShellStyle? style = null) =>
         Component<WidgetArea, WidgetAreaProps>(new WidgetAreaProps(name, defaults, orientation, style));
 }

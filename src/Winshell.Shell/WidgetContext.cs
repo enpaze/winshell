@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -33,25 +34,22 @@ public sealed record Placement(string Widget, IReadOnlyDictionary<string, object
     /// </summary>
     /// <param name="tables">A value <see cref="Check"/> returned <c>""</c> for.</param>
     /// <exception cref="ArgumentException">The value is not a list of tables that each name a widget.</exception>
-    public static IReadOnlyList<Placement> Parse(object tables)
+    public static ImmutableArray<Placement> Parse(object tables)
     {
         ArgumentNullException.ThrowIfNull(tables);
         if (Tables(tables) is not { } rows)
             throw new ArgumentException(NotAList, nameof(tables));
         if (!rows.All(NamesWidget))
             throw new ArgumentException(MissingName, nameof(tables));
-        return rows.Select(Read).ToArray();
+        return [.. rows.Select(Read)];
     }
 
     /// <summary>
     /// The tables a preferences file writes for <paramref name="placements"/>. Each is <c>{ widget, ...settings }</c>,
     /// with <c>widget</c> first. A setting named <c>widget</c> is left out, so the placement's own name is the one written.
     /// </summary>
-    public static IReadOnlyList<IReadOnlyDictionary<string, object?>> Format(IReadOnlyList<Placement> placements)
-    {
-        ArgumentNullException.ThrowIfNull(placements);
-        return placements.Select(Write).ToArray();
-    }
+    public static IReadOnlyList<IReadOnlyDictionary<string, object?>> Format(ImmutableArray<Placement> placements) =>
+        placements.Select(Write).ToArray();
 
     private static Placement Read(IReadOnlyDictionary<string, object?> table) =>
         new((string)table["widget"]!,
