@@ -46,6 +46,20 @@ _Avoid_: toast, popup, flyout
 A text file Winshell writes on this PC when the shell itself fails: where, the exception, and the end of the log. A project that did not build is a build error, not a crash.
 _Avoid_: dump, telemetry
 
+## What an author builds
+
+**Primitive**:
+A public part of a shell that stands on its own: a window, a widget area, a service, or a screen.
+_Avoid_: layer, base
+
+**Building block**:
+A public part of a shell set on primitives, such as the windows on each screen, a component's preferences, the shell style, or `shell.Open`.
+_Avoid_: layer, helper
+
+**Composition**:
+A public arrangement of building blocks for one common desktop, such as a bar. It uses only the public API a shell author has.
+_Avoid_: layer, layout, theme
+
 ## What it shows
 
 **Window**:
@@ -219,3 +233,13 @@ _Avoid_: permission, consent, recent activity
 **Namespace**:
 A named group of the public API, such as `Winshell.Media`.
 _Avoid_: module, package, library
+
+## Winshell and Winland
+
+**Sibling**:
+The other product, in its own repo. Winshell and Winland are each other's sibling. A sibling is built, tested, documented, and released the same way, and it does a different job.
+_Avoid_: monorepo, platform, shared framework, shared package
+
+**Layer**:
+A project in the dependency order. Native is the lowest layer. The exe composes the layers and is not one of them.
+_Avoid_: tier, ring
