@@ -8,7 +8,7 @@ internal static class IpcCommand
         Overview = """
                           winshell ipc show [-j]              list IPC targets
                           winshell ipc call <target> <function> [args...]
-                          winshell ipc prop get <target> <property>
+                          winshell ipc get <target> <property>
                           winshell ipc wait <target> <signal>
                           winshell ipc listen <target> <signal>
                    """,
@@ -17,7 +17,7 @@ internal static class IpcCommand
                   show [-j]                             list IPC targets. -j prints JSON
                   call <target> <function> [args...]    call a function and print the result
                   call notice dismiss                   close Winshell's own notice
-                  prop get <target> <property>          print a property
+                  get <target> <property>               print a property
                   wait <target> <signal>                wait for one signal
                   listen <target> <signal>              print each signal until Ctrl+C
                   Words after the function name are arguments, even when they start with -.
@@ -36,14 +36,7 @@ internal static class IpcCommand
                 RawAfter = true,
                 Run = Call
             },
-            new CommandEntry
-            {
-                Name = IpcOps.Prop,
-                MinWords = 3,
-                FirstWord = "get",
-                Missing = "\"get\", a target and a property",
-                Run = Prop
-            },
+            new CommandEntry { Name = "get", MinWords = 2, Missing = "a target and a property", Run = Get },
             new CommandEntry { Name = IpcOps.Wait, MinWords = 2, Missing = "a target and a signal", Run = Wait },
             new CommandEntry { Name = IpcOps.Listen, MinWords = 2, Missing = "a target and a signal", Run = Listen }
         ]
@@ -60,10 +53,10 @@ internal static class IpcCommand
         return Send(parsed, IpcRequest.ForCall(args[1], args[2], args.Skip(3).ToList()));
     }
 
-    private static Task<int> Prop(Invocation parsed)
+    private static Task<int> Get(Invocation parsed)
     {
         var args = parsed.Positional;
-        return Send(parsed, IpcRequest.ForProp(args[2], args[3]));
+        return Send(parsed, IpcRequest.ForProp(args[1], args[2]));
     }
 
     private static Task<int> Wait(Invocation parsed)

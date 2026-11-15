@@ -54,7 +54,7 @@ public sealed class ShellIpc
             t => t.Functions);
     }
 
-    /// <summary>Lets <c>winshell ipc prop get</c> read a value. Dispose the result to take it away.</summary>
+    /// <summary>Lets <c>winshell ipc get</c> read a value. Dispose the result to take it away.</summary>
     /// <exception cref="ArgumentException"><typeparamref name="T"/> is a type IPC can't pass.</exception>
     public IDisposable Property<T>(string target, string property, Func<T> read)
     {

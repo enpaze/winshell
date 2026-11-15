@@ -13,7 +13,7 @@ Usage: winshell run [options]              start a shell
        winshell log [-f] [-t N] [file]     print an instance's log
        winshell ipc show [-j]              list IPC targets
        winshell ipc call <target> <function> [args...]
-       winshell ipc prop get <target> <property>
+       winshell ipc get <target> <property>
        winshell ipc wait <target> <signal>
        winshell ipc listen <target> <signal>
        winshell inspect tree | screenshot <file> | record <file.mp4> --for <time>

@@ -27,9 +27,6 @@ internal sealed record CommandEntry
     /// <summary>The most words that may follow a subcommand. Null means a spare word is kept.</summary>
     public int? MaxWords { get; init; }
 
-    /// <summary>The word that must come first after a subcommand, such as <c>prop</c>'s <c>get</c>.</summary>
-    public string? FirstWord { get; init; }
-
     /// <summary>What a subcommand names when its words are missing.</summary>
     public string? Missing { get; init; }
 

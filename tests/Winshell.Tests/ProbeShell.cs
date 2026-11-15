@@ -9,9 +9,9 @@ namespace Winshell.Tests;
 /// A real program, shell id <c>probe</c> unless a test names another, built once into <c>bin\shell</c>. Tests of
 /// instances start it, so they hold no taskbar, no screen edge and no window unless a test puts
 /// <see cref="HideTaskbarMarker"/> or <see cref="WindowMarker"/> in its config folder. Its <c>probe.note</c> function,
-/// which takes a string, is there for <c>winshell ipc</c> to list. A class that starts it has the
-/// <see cref="ProbeBuild"/> fixture. Nothing changes that build once it is made: a test that edits and rebuilds a probe
-/// builds one of its own with <see cref="Build"/>.
+/// which takes a string, is there for <c>winshell ipc</c> to list, and its <c>probe.name</c> property for it to read.
+/// A class that starts it has the <see cref="ProbeBuild"/> fixture. Nothing changes that build once it is made: a test
+/// that edits and rebuilds a probe builds one of its own with <see cref="Build"/>.
 /// </summary>
 internal static class ProbeShell
 {
@@ -237,6 +237,7 @@ internal static class ProbeShell
               public override void Start(Shell shell)
               {
                   shell.Ipc.Handle("probe", "note", (string text) => { });
+                  shell.Ipc.Property("probe", "name", () => "probe");
                   var config = Environment.GetEnvironmentVariable("WINSHELL_CONFIG_DIR");
                   // A test that puts {{CrashMarker}} there gets a shell that crashes as it starts, once.
                   if (config is not null && File.Exists(Path.Combine(config, "{{CrashMarker}}")))

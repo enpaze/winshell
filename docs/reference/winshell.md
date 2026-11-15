@@ -347,7 +347,7 @@ What `winshell ipc` reaches in a C# configuration: functions, properties and sig
 | Member | Type | Description |
 | --- | --- | --- |
 | `Handle(string target, string function, Delegate handler)` | IDisposable | Lets `winshell ipc call` run handler, such as `(string page) => Open(page)`. Dispose the result to take it away. A later handler for the same function replaces this one. Throws ArgumentException when the handler takes or returns a type IPC can't pass. |
-| `Property<T>(string target, string property, Func of T read)` | IDisposable | Lets `winshell ipc prop get` read a value. Dispose the result to take it away. Throws ArgumentException when T is a type IPC can't pass. |
+| `Property<T>(string target, string property, Func of T read)` | IDisposable | Lets `winshell ipc get` read a value. Dispose the result to take it away. Throws ArgumentException when T is a type IPC can't pass. |
 | `Signal(string target, string signal)` | [IpcSignal](#ipcsignal) | A signal `winshell ipc wait` and `listen` can follow. |
 
 ## ShellOptions
