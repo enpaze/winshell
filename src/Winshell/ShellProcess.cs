@@ -18,6 +18,8 @@ internal sealed partial class ShellProcess : IShellChild
 
     public Task<int> Exited { get; }
 
+    public int Pid => _process.Id;
+
     public ExitIntent Intent => _supervision.Intent;
 
     /// <summary>Starts the shell, or says why it did not start and returns null. A dialog can offer <paramref name="folder"/>.</summary>

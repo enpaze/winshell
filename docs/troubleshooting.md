@@ -47,7 +47,7 @@ A notice says the configuration did not build, with the compiler's lines:
 
 Winshell does not hide or replace Explorer's taskbar unless your shell does, and it never restarts Explorer. A panel that reserves the bottom of the screen stacks with Explorer's taskbar. To leave Explorer's taskbar where it is and only get it out of the way, turn on **Automatically hide the taskbar** in Windows Settings > Personalization > Taskbar.
 
-To make your shell the only bar, set `shell.ExplorerTaskbar.Hidden = true`. Winshell then hides Explorer's taskbar window and releases the screen edge it reserved. It puts both back when it exits: quitting, Ctrl+C, `winshell kill`, or a crash. A crash that skips Winshell's own exit is caught by `winshell run`, which [puts the taskbar back](reference/command-line.md#crashes) and starts the shell again.
+To make your shell the only bar, set `shell.ExplorerTaskbar.Hidden = true`. Winshell then hides Explorer's taskbar window and releases the screen edge it reserved. It puts both back when it exits: quitting, Ctrl+C, `winshell kill`, or a crash. A shell that is replaced leaves the taskbar hidden for the next shell, which puts it back when that one exits. A crash that skips Winshell's own exit is caught by `winshell run`, which [puts the taskbar back](reference/command-line.md#crashes) and starts the shell again.
 
 Windows keeps a few hotkeys for its own taskbar while Explorer runs, such as `Win+T`, `Win+S`, `Win+A`, `Win+N`, and `Win+1` through `Win+9`.
 

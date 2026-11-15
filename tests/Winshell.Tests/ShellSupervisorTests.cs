@@ -231,7 +231,8 @@ public sealed partial class ShellSupervisorTests
 
     private Task<int> Supervise(CancellationToken stop)
     {
-        var supervisor = new ShellSupervisor(_shells.Start, () => _shells.TaskbarHidden, _shells.Restore, _time);
+        var supervisor = new ShellSupervisor(_shells.Start, () => _shells.TaskbarHidden, (_, hidden) => hidden,
+            _shells.Restore, _time);
         return Task.Run(() => supervisor.RunAsync(stop), TestContext.Current.CancellationToken);
     }
 
@@ -333,6 +334,8 @@ public sealed partial class ShellSupervisorTests
         private readonly TaskCompletionSource<int> _exit = new();
 
         public Task<int> Exited => _exit.Task;
+
+        public int Pid => 0;
 
         public ExitIntent Intent { get; private set; }
 

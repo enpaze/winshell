@@ -10,6 +10,7 @@ namespace Winshell.Tests;
 /// <c>winshell run</c> supervises the probe as a configuration's program. The probe hides Explorer's real taskbar when a
 /// test asks, so that test takes the taskbar from the desktop it runs on, and puts it back however it ends.
 /// </summary>
+[Collection(ExplorerTaskbarCollection.Name)]
 public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();

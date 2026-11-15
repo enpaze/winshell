@@ -1,6 +1,13 @@
 namespace Winshell;
 
 /// <summary>
+/// Whether a failed child must leave Explorer's taskbar hidden. <paramref name="childPid"/> is that child.
+/// <paramref name="hiddenAtStart"/> is whether a taskbar window was already hidden before the child started.
+/// True leaves the taskbar hidden.
+/// </summary>
+internal delegate bool LeaveTaskbar(int childPid, bool hiddenAtStart);
+
+/// <summary>
 /// Runs a shell in a child process and starts it again when it crashes. Exit code 0 is a stop that was asked for, such
 /// as <c>winshell kill</c>, a reload that handed over to a new process, Ctrl+C, or a duplicate that left.
 /// <see cref="InstanceStart.CouldNotStart"/> is a shell that could not start and said why, which a new start would only
@@ -10,14 +17,15 @@ namespace Winshell;
 /// starts again at once, however it exits, and counts its crashes from none, as the first did.
 /// </summary>
 /// <remarks>
-/// A shell that exits 0 has put Explorer's taskbar back itself. After any other exit, the taskbar comes back if none of
-/// its windows was hidden when that child started: a crashed shell cannot put it back, and the next child must find it
-/// as Explorer has it, or it would keep a hidden taskbar hidden when it quits. A taskbar that another shell had hidden
-/// stays hidden, and so does one a clean exit could only take from the shell that hid it since.
+/// A shell that exits 0 has put Explorer's taskbar back, or left the record of what it hid for the shell that
+/// replaces it. After any other exit, the supervisor puts that record back when this child owned it or its owner has
+/// gone. A record left for the next shell stays hidden. A taskbar that was already hidden when the child started,
+/// and that this start did not record, stays hidden. Recovery deletes a record it puts back.
 /// </remarks>
 internal sealed class ShellSupervisor(
     Func<IShellChild?> start,
     Func<bool> taskbarHidden,
+    LeaveTaskbar leaveTaskbar,
     Action restoreTaskbar,
     TimeProvider time)
 {
@@ -40,14 +48,14 @@ internal sealed class ShellSupervisor(
         {
             var hidden = taskbarHidden();
             var started = time.GetTimestamp();
-            var exit = (Code: InstanceStart.CouldNotStart, Intent: ExitIntent.None);
+            var exit = (Code: InstanceStart.CouldNotStart, Intent: ExitIntent.None, Pid: 0);
             try
             {
                 exit = await RunOnceAsync(stop);
             }
             finally
             {
-                if (!hidden && exit.Code != 0)
+                if (exit.Code != 0 && !leaveTaskbar(exit.Pid, hidden))
                     restoreTaskbar();
             }
 
@@ -90,11 +98,11 @@ internal sealed class ShellSupervisor(
     /// One child, to its exit. <see cref="InstanceStart.CouldNotStart"/> when it did not start, and the start has
     /// said why.
     /// </summary>
-    private async Task<(int Code, ExitIntent Intent)> RunOnceAsync(CancellationToken stop)
+    private async Task<(int Code, ExitIntent Intent, int Pid)> RunOnceAsync(CancellationToken stop)
     {
         using var child = start();
         if (child is null)
-            return (InstanceStart.CouldNotStart, ExitIntent.None);
+            return (InstanceStart.CouldNotStart, ExitIntent.None, 0);
         int code;
         try
         {
@@ -106,6 +114,6 @@ internal sealed class ShellSupervisor(
             code = await child.Exited;
         }
 
-        return (code, child.Intent);
+        return (code, child.Intent, child.Pid);
     }
 }

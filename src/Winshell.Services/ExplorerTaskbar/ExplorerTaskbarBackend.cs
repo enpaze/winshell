@@ -11,6 +11,7 @@ namespace Winshell.ExplorerTaskbar;
 internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
 {
     private readonly Lock _gate = new();
+    private readonly Log _log;
     private readonly List<ExplorerTaskbarWindow.Saved> _saved = [];
     private bool _active;
     private bool _disposed;
@@ -19,6 +20,7 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
     /// <summary>Starts hearing Explorer make taskbar windows, on <paramref name="loop"/>'s thread.</summary>
     internal ExplorerTaskbarBackend(IEventLoop loop, Log log)
     {
+        _log = log;
         // The watch gets its messages on the thread that makes it.
         loop.Post(() =>
         {
@@ -41,22 +43,34 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
     public void Hide()
     {
         _active = true;
+        if (_saved.Count == 0)
+            _saved.AddRange(ExplorerTaskbarLease.Windows(ShellLocations.Current));
         _saved.RemoveAll(s => !ExplorerTaskbarWindow.IsExplorerTaskbar(s.Hwnd));
         var (windows, autohide) = ExplorerTaskbarWindow.Find();
         foreach (var (hwnd, primary) in windows)
-            if (_saved.All(s => s.Hwnd != hwnd))
+        {
+            var adopted = _saved.FirstOrDefault(saved => saved.Hwnd == hwnd);
+            if (adopted is null)
                 Take(hwnd, primary, autohide);
+            else if (!PInvoke.IsWindowVisible((HWND)hwnd))
+                KeepHidden(adopted);
+            else
+                TakeOver(adopted, hwnd, primary, autohide);
+        }
+
+        RecordLease();
     }
 
     public void Restore()
     {
-        if (!_active)
+        if (!_active && _saved.Count == 0)
             return;
         for (var i = _saved.Count - 1; i >= 0; i--)
             ExplorerTaskbarWindow.PutBack(_saved[i]);
 
         _saved.Clear();
         _active = false;
+        ExplorerTaskbarLease.Forget(ShellLocations.Current);
     }
 
     public void Dispose()
@@ -78,5 +92,46 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
         if (saved.Reserves)
             saved.Removed = ExplorerTaskbarWindow.Remove(hwnd);
         PInvoke.ShowWindow((HWND)hwnd, SHOW_WINDOW_CMD.SW_HIDE);
+    }
+
+    /// <summary>
+    /// Hides a window the previous shell already hid, and keeps the visibility that shell recorded. Taking it again
+    /// would remember the window as hidden, and putting it back would leave it hidden.
+    /// </summary>
+    private static void KeepHidden(ExplorerTaskbarWindow.Saved saved)
+    {
+        if (!PInvoke.IsWindow((HWND)saved.Hwnd))
+            return;
+        if (saved.Reserves && !saved.Removed)
+            saved.Removed = ExplorerTaskbarWindow.Remove(saved.Hwnd);
+        PInvoke.ShowWindow((HWND)saved.Hwnd, SHOW_WINDOW_CMD.SW_HIDE);
+    }
+
+    /// <summary>
+    /// Hides a window the previous shell recorded that is visible again, and keeps that it was visible before any
+    /// shell hid it.
+    /// </summary>
+    private void TakeOver(ExplorerTaskbarWindow.Saved adopted, nint hwnd, bool primary, bool autohide)
+    {
+        var wasVisible = adopted.WasVisible;
+        _saved.Remove(adopted);
+        Take(hwnd, primary, autohide);
+        var taken = _saved.LastOrDefault(saved => saved.Hwnd == hwnd);
+        if (taken is not null)
+            taken.WasVisible = wasVisible || taken.WasVisible;
+    }
+
+    private void RecordLease()
+    {
+        var locations = ShellLocations.Current;
+        if (_saved.Count == 0)
+        {
+            ExplorerTaskbarLease.Forget(locations);
+            return;
+        }
+
+        if (!ExplorerTaskbarLease.Write(locations, Environment.ProcessId, _saved))
+            _log.Warn("explorer-taskbar",
+                "Could not record the hidden taskbar, so the next shell may show it in between.");
     }
 }

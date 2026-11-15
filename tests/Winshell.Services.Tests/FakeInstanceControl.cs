@@ -12,6 +12,11 @@ internal sealed class FakeInstanceControl : IInstanceControl
 
     public int Quits { get; private set; }
 
+    public int Yields { get; private set; }
+
+    /// <summary>What <see cref="Yield"/> does after it is counted. A test uses it to end the process that was asked.</summary>
+    public Action? OnYield { get; set; }
+
     public string? BuildError { get; private set; }
 
     public string? BuildProject { get; private set; }
@@ -27,6 +32,12 @@ internal sealed class FakeInstanceControl : IInstanceControl
     public void Quit()
     {
         Quits++;
+    }
+
+    public void Yield()
+    {
+        Yields++;
+        OnYield?.Invoke();
     }
 
     public void ShowBuildError(string error, string projectFile)

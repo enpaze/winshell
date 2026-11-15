@@ -4,6 +4,7 @@ using System.Runtime.ExceptionServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using WinRT;
+using Winshell.ExplorerTaskbar;
 
 namespace Winshell;
 
@@ -243,9 +244,10 @@ public sealed partial class Shell : IDisposable
     /// Runs a configuration until the shell quits, on this thread, as a Winshell instance: <c>winshell list</c>, <c>log</c>,
     /// <c>kill</c>, <c>reload</c> and <c>ipc</c> reach it. Call it from <c>Main</c>, marked <c>[STAThread]</c>. The program
     /// takes <c>--no-duplicate</c> and <c>-d</c> on its command line. <c>--no-duplicate</c> exits at once when its shell
-    /// id is already running. <c>-d</c> starts this program again and returns, so the caller does not wait, and that
-    /// start keeps <c>--after</c>. <typeparamref name="T"/> is a <see cref="ShellConfiguration"/> with a public
-    /// parameterless constructor.
+    /// id is already running. A shell already running in this local folder is asked to quit first. One that does not
+    /// quit stays, and this start says why and exits with code 1. <c>-d</c> starts this program again and returns, so
+    /// the caller does not wait, and that start keeps <c>--after</c>. <typeparamref name="T"/> is a
+    /// <see cref="ShellConfiguration"/> with a public parameterless constructor.
     /// </summary>
     public static void Run<T>(ShellOptions? options = null)
         where T : ShellConfiguration, new()
@@ -303,10 +305,15 @@ public sealed partial class Shell : IDisposable
                     };
                     configuration.Start(shell);
                     shell.ConfigurationStarted();
+                    shell.ReleaseUnclaimedTaskbar();
                     ShellInstance.Quietly(() => shell.Notices.ShowPrevious(ShellInstance.ExitState));
                 }
                 catch (Exception e) when (e is not OutOfMemoryException)
                 {
+                    if (shell is null)
+                        ExplorerTaskbarLease.ReleaseUnclaimed();
+                    else
+                        shell.ReleaseUnclaimedTaskbar();
                     instance.ReportFatal(e);
                     failed = e;
                     // Windows go first: WinUI crashes on the way out with any still open.
@@ -391,6 +398,23 @@ public sealed partial class Shell : IDisposable
     }
 
     /// <summary>
+    /// Puts back a taskbar a replaced shell left hidden, when this shell is not hiding it. A live owner that is
+    /// not this process keeps it.
+    /// </summary>
+    private void ReleaseUnclaimedTaskbar()
+    {
+        if (_explorerTaskbar is { Hidden: true })
+            return;
+        ExplorerTaskbarLease.ReleaseUnclaimed();
+    }
+
+    /// <summary>Leaves Explorer's taskbar hidden for the shell that replaces this one. Does nothing when this shell never hid it.</summary>
+    private void Yield()
+    {
+        _explorerTaskbar?.Yield();
+    }
+
+    /// <summary>
     /// Gives back what a crash would leave held: Explorer's taskbar and every panel's app bar. A crash skips
     /// <see cref="Dispose"/> and can be on any thread, so this uses only calls that are safe from any thread.
     /// </summary>
@@ -449,6 +473,11 @@ public sealed partial class Shell : IDisposable
         public void Quit()
         {
             shell.Quit();
+        }
+
+        public void Yield()
+        {
+            shell.Yield();
         }
 
         public void ShowBuildError(string error, string projectFile)

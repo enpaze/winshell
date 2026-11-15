@@ -186,6 +186,20 @@ public sealed class ShellInstanceTests
     }
 
     [Fact]
+    public async Task A_yield_reaches_a_shell_and_then_quits_it()
+    {
+        var control = new FakeInstanceControl();
+        var (pipe, loop, server) = Serve(control);
+        using var _ = server;
+
+        var response = await Pumping(loop, () => Ask(pipe, IpcRequest.ForYield()));
+
+        Assert.True(response.Ok);
+        Assert.Equal(1, control.Yields);
+        await Wait.UntilAsync(() => control.Quits == 1, "the quit after the yield", () => loop.RunDue());
+    }
+
+    [Fact]
     public async Task A_reload_that_worked_quits_the_shell_once_the_client_has_its_answer()
     {
         var control = new FakeInstanceControl();
@@ -324,6 +338,21 @@ public sealed class ShellInstanceTests
         Assert.True(JsonSerializer.Deserialize(line!, IpcJson.Default.IpcResponse)!.Ok);
         loop.RunDue();
         Assert.Equal(1, control.Quits);
+    }
+
+    [Fact]
+    public async Task A_client_of_another_release_can_still_yield_the_shell()
+    {
+        var control = new FakeInstanceControl();
+        var (pipe, loop, server) = Serve(control);
+        using var _ = server;
+        var other = ProductVersion.Current.Major == 9 ? "1.0.0" : "9.9.9";
+
+        var line = await Pumping(loop, () => AskRaw(pipe, $$"""{"op":"yield","winshell":"{{other}}"}"""));
+
+        Assert.True(JsonSerializer.Deserialize(line!, IpcJson.Default.IpcResponse)!.Ok);
+        Assert.Equal(1, control.Yields);
+        await Wait.UntilAsync(() => control.Quits == 1, "the quit after the yield", () => loop.RunDue());
     }
 
     [Fact]

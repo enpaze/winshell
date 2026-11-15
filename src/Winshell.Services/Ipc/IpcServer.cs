@@ -327,6 +327,7 @@ internal sealed class IpcServer : IDisposable
                 ipc.Call(request.Target ?? "", request.Name ?? "", request.Args ?? [])),
             IpcOps.Prop => new IpcResponse(true, ipc.GetProperty(request.Target ?? "", request.Name ?? "")),
             IpcOps.Kill => Kill(),
+            IpcOps.Yield => Yield(),
             IpcOps.Reload => Reload(request),
             IpcOps.Build => Build(request),
             IpcOps.Inspect => new IpcResponse(true,
@@ -346,6 +347,17 @@ internal sealed class IpcServer : IDisposable
 
     private IpcResponse Kill()
     {
+        _loop.Post(_control.Quit);
+        return new IpcResponse(true);
+    }
+
+    /// <summary>
+    /// The taskbar is handed over before the answer is sent, and the quit runs after it, as <see cref="Kill"/> does.
+    /// A shell that restored while the answer was in flight would show the taskbar in between.
+    /// </summary>
+    private IpcResponse Yield()
+    {
+        _control.Yield();
         _loop.Post(_control.Quit);
         return new IpcResponse(true);
     }
