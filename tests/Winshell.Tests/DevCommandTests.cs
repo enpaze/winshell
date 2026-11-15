@@ -335,18 +335,6 @@ public sealed partial class DevCommandTests : IDisposable
     }
 
     [Fact]
-    public void A_downloaded_project_never_reaches_a_build()
-    {
-        File.WriteAllText(Path.Combine(Project, "Dev.csproj") + ":Zone.Identifier", "[ZoneTransfer]\r\nZoneId=3\r\n");
-
-        var result = WinshellCli.Run(["dev", "-p", Project], Folders);
-
-        result.AssertExitCode(1);
-        Assert.Contains("Dev.csproj", result.Error, StringComparison.Ordinal);
-        Assert.False(Directory.Exists(Path.Combine(Project, "obj")), "dotnet ran on a downloaded project.");
-    }
-
-    [Fact]
     public void With_no_project_it_says_how_to_make_one()
     {
         var result = WinshellCli.Run(["dev"], Folders);

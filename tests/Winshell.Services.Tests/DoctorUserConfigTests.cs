@@ -147,25 +147,6 @@ public sealed class DoctorUserConfigTests : IDisposable
         Assert.StartsWith(preferences + ": could not be read:", problem, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void A_downloaded_project_does_not_read_its_user_files()
-    {
-        var config = Path.Combine(_dir, "downloaded");
-        Directory.CreateDirectory(config);
-        var project = Path.Combine(config, "Mine.csproj");
-        File.WriteAllText(project, "<Project Sdk=\"Microsoft.NET.Sdk\" />");
-        File.WriteAllText(project + ":Zone.Identifier", "[ZoneTransfer]\r\nZoneId=3\r\n");
-        Preferences(config, "root", "colorScheme =\n");
-
-        var checks = Run(Context(config, Path.Combine(_dir, "local"), project));
-
-        var downloaded = checks.Single(c => c.Id == "downloaded");
-        Assert.Equal(CheckStatus.Fail, downloaded.Status);
-        Assert.Contains("was downloaded from the internet", downloaded.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("root.toml", checks.Single(c => c.Id == "project").Message,
-            StringComparison.Ordinal);
-    }
-
     /// <summary>Writes the preferences file of the shell <paramref name="id"/> in <paramref name="config"/> and returns its path.</summary>
     private static string Preferences(string config, string id, string text)
     {

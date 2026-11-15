@@ -9,7 +9,7 @@ public sealed partial class DoctorCommandTests : IDisposable
 {
     private static readonly string[] Ids =
     [
-        "windows", "dotnet", "project", "downloaded", "built", "build",
+        "windows", "dotnet", "project", "built", "build",
         "folders", "appBars", "dpi", "signIn", "notifications", "instances", "crashes"
     ];
 

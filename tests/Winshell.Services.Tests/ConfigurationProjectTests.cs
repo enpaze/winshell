@@ -381,46 +381,16 @@ public sealed class ConfigurationProjectTests : IDisposable
     [InlineData("Directory.Build.props", 3)]
     [InlineData("Directory.Build.targets", 3)]
     [InlineData("Bar.csproj", 4)]
-    public void A_downloaded_project_never_reaches_a_build(string name, int zone)
+    public void A_downloaded_project_builds_like_any_other(string name, int zone)
     {
         var project = Found(Project("Bar.csproj"));
         var marked = Path.Combine(_root, name);
         File.AppendAllText(marked, "");
         File.WriteAllText(marked + ":Zone.Identifier", $"[ZoneTransfer]\r\nZoneId={zone}\r\n");
 
-        var refusal = project.Prepare(false, Builds);
-
-        Assert.StartsWith($"{marked}: {name} was downloaded", refusal, StringComparison.Ordinal);
-        Assert.Empty(_commands);
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
-    public void A_project_from_this_pc_or_the_intranet_can_be_prepared(int zone)
-    {
-        var file = Project("Bar.csproj");
-        var project = Found(file);
-        Built(project, new DateTime(2027, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        File.WriteAllText(file + ":Zone.Identifier", $"[ZoneTransfer]\r\nZoneId={zone}\r\n");
-
-        Assert.False(ZoneIdentifier.IsDownloaded(file));
         Assert.Null(project.Prepare(false, Builds));
-        Assert.Empty(_commands);
-    }
 
-    [Fact]
-    public void A_project_without_a_zone_can_be_prepared()
-    {
-        var file = Project("Bar.csproj");
-        var project = Found(file);
-        Built(project, new DateTime(2027, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-
-        Assert.False(ZoneIdentifier.IsDownloaded(file));
-        Assert.False(ZoneIdentifier.IsDownloaded(Path.Combine(_root, "missing.csproj")));
-        Assert.Null(project.Prepare(false, Builds));
-        Assert.Empty(_commands);
+        Assert.StartsWith("dotnet build ", Assert.Single(_commands), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -463,6 +433,8 @@ public sealed class ConfigurationProjectTests : IDisposable
     public void A_project_whose_folder_cannot_be_listed_is_a_reason_not_a_crash()
     {
         var project = Found(Project(Path.Combine("Locked", "Bar.csproj")));
+        // With a program built, whether to build again is decided by listing the folder.
+        Built(project, Long);
         var folder = new DirectoryInfo(project.Folder);
         var deny = new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!, FileSystemRights.ListDirectory,
             AccessControlType.Deny);

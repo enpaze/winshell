@@ -37,12 +37,6 @@ internal static class DevCommand
             return 1;
         }
 
-        if (project.Blocked() is { } blocked)
-        {
-            await Console.Error.WriteLineAsync(blocked);
-            return 1;
-        }
-
         return await DevSession.Run(project);
     }
 }
