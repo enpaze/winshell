@@ -92,7 +92,7 @@ jobs:
         shell: pwsh
         run: ./scripts/check.ps1 -Tier Docs
   tests:
-    name: tests (${{ matrix.shard }}/5)
+    name: tests (${{ matrix.shard }}/4)
     needs: changes
     if: ${{ !cancelled() && github.event.pull_request.draft != true && needs.changes.outputs.code != 'false' }}
     runs-on: windows-2025
@@ -100,7 +100,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5]
+        shard: [1, 2, 3, 4]
     env:
       TEST_SHARD: ${{ matrix.shard }}
     steps:

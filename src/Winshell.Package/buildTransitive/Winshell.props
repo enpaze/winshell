@@ -18,15 +18,6 @@
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
   </PropertyGroup>
 
-  <!-- Installed widgets live in widgets.props beside the project: ProjectReference and WinshellWidget items. This
-       file is read before the project body, so the default stays conditional and -p:WinshellWidgetsFile replaces it.
-       The path must be absolute, since a relative Exists resolves against this file's own folder. Items imported
-       here still reach the build. -->
-  <PropertyGroup>
-    <WinshellWidgetsFile Condition="'$(WinshellWidgetsFile)' == ''">$(MSBuildProjectDirectory)\widgets.props</WinshellWidgetsFile>
-  </PropertyGroup>
-  <Import Project="$(WinshellWidgetsFile)" Condition="Exists('$(WinshellWidgetsFile)')" />
-
   <!-- A WinshellWidget item names a widget and the component type the build registers for it. WinUI compiles once before
        CoreCompile, so the file has to exist before PrepareForBuild; a later target misses that pass. An inline task
        does what plain MSBuild cannot: compare names case-sensitively (item batching ignores case), escape a name that

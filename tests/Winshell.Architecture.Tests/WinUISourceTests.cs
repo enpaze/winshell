@@ -97,15 +97,12 @@ public class WinUISourceTests
         return setting;
     }
 
-    // $(WinshellWidgetsFile) is the widgets file beside the project when the property is empty, which is how
-    // Winshell.props imports it. Anything else with a '$' is a path this guard cannot open.
+    // A path that still has a '$' after these is one this guard cannot open.
     private static string? ResolveImport(string project, string fileDirectory, string projectDirectory)
     {
         var expanded = project
             .Replace("$(MSBuildThisFileDirectory)", WithSeparator(fileDirectory), StringComparison.OrdinalIgnoreCase)
-            .Replace("$(MSBuildProjectDirectory)", projectDirectory, StringComparison.OrdinalIgnoreCase)
-            .Replace("$(WinshellWidgetsFile)", Path.Combine(projectDirectory, "widgets.props"),
-                StringComparison.OrdinalIgnoreCase);
+            .Replace("$(MSBuildProjectDirectory)", projectDirectory, StringComparison.OrdinalIgnoreCase);
         if (expanded.Contains('$'))
             return null;
 

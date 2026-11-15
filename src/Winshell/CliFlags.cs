@@ -46,10 +46,6 @@ internal static class CliFlags
 
     public static readonly CommandOption Right = CommandOption.Flag(new CommandWord("--right"));
 
-    public static readonly CommandOption Project = CommandOption.Value(new CommandWord("--project"));
-
-    public static readonly CommandOption Yes = CommandOption.Flag(new CommandWord("--yes"));
-
     public static readonly CommandOption NoColor = CommandOption.Flag(new CommandWord("--no-color"));
 
     /// <summary>What every command takes: verbose, help and version.</summary>

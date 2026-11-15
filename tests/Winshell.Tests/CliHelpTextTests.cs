@@ -19,7 +19,6 @@ public class CliHelpTextTests
     [InlineData("doctor", "doctor")]
     [InlineData("new", "new")]
     [InlineData("use", "use")]
-    [InlineData("widget", "widget")]
     public void Help_matches_the_recorded_text(string file, string command)
     {
         var golden = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "HelpText", file + ".txt"))

@@ -25,12 +25,6 @@ Usage: winshell run [options]              start a shell
                                            check this PC's setup for Winshell
        winshell new [<name>] [-p <folder>] list the examples, or copy one to start from
        winshell use [<name>]               choose the config sign-in starts, and switch to it
-       winshell widget install <source>[@ref] [--yes]
-                                           install widgets from a GitHub repository
-       winshell widget list                list the widgets a configuration has
-       winshell widget remove <name>       remove an installed widget
-       winshell widget update [<name>] [--yes]
-                                           move installed widgets to the ref's new commit
        winshell help [command]             print this summary, or that command's help
 
 Config selection:

@@ -168,7 +168,6 @@ winshell use                  # lists the configurations, with * before the chos
 - `winshell use` builds the configuration first when it needs a build, so the next sign-in can start it. A build that fails changes nothing.
 - The choice is the name in `chosen.txt` in the config folder.
 - Choosing a configuration never changes its shell id, so its data, its state, its widgets and where they are placed stay its own through every switch.
-- `winshell widget` with no `-c` acts on the chosen one.
 
 ## The program
 
@@ -483,7 +482,7 @@ A widget reads the alert color from the style. With none set, `context.Style` is
 
 A widget other people use can be a class library. [samples/message-widget](samples/message-widget) is one, and the solution builds it: a component that shows one line of text, with one `text` setting. It is a sample for this guide, not a widget Winshell ships. A configuration references the library and registers the component the way [Widgets](#widgets) does, with the type `MessageWidget.Message`.
 
-The project is a WinUI library. In this repository it builds against Winshell's source. A library lists a `WinshellWidget` item whose `Type` is the component, so [`winshell widget install`](#installed-widgets) can register it. This sample lists none: the configuration registers `MessageWidget.Message` itself, as [Widgets](#widgets) shows.
+The project is a WinUI library. In this repository it builds against Winshell's source. The configuration that references the library registers `MessageWidget.Message` itself, as [Widgets](#widgets) shows.
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -511,7 +510,7 @@ That import and the project reference are how this repository builds the sample,
 </ItemGroup>
 ```
 
-`0.7.0` stands in for the release you built the widget against. A shell on an older release refuses the install, and the message names both versions. The package is not on nuget.org. A release keeps it in a `packages` folder beside `winshell.exe`, and `winshell new` writes a `nuget.config` that adds that folder. Installing a widget restores the library with the configuration's package sources, so the library needs no `nuget.config` of its own.
+`0.7.0` stands in for the release you built the widget against. The package is not on nuget.org. A release keeps it in a `packages` folder beside `winshell.exe`, and `winshell new` writes a `nuget.config` that adds that folder.
 
 The component takes the shell's [style](#style), because a plain text block does. There is no XAML file. `Render` reads the placement as `Props`:
 
@@ -573,68 +572,6 @@ public sealed class Message : Component<WidgetContext>
 [StylePopup](reference/winshell.md#widgetcontext) wraps content for a [PopupWindow](reference/winshell.md#popupwindow). Assign the result to the popup's `Content`. The wrapper loads the area's style and follows its changes. The effect disposes the popup when the component goes, and a press disposes the previous one first.
 
 [ShellWindow.Of](reference/winshell.md#shellwindow) is null until the text is in a window. `OnMount` reads the screen then, or from `Loaded` when the text is not in a window yet. Null is the primary screen.
-
-## Installed widgets
-
-Installed widgets live in `widgets.props`, beside the project file. When that file exists, the build imports it, so `dotnet build`, Visual Studio and `winshell run` include the same widgets. The file is the only record of an install:
-
-- `winshell widget install` writes it.
-- `winshell widget list` reads it.
-- `winshell widget update` moves an installed source to a newer commit.
-- `winshell widget remove` rewrites it.
-
-Install, list, remove and update take `-c` and `-p`. Install and update need `git` and the .NET SDK, and say so when either is missing.
-
-### The widgets file
-
-An empty `<Project />` means nothing is installed. The template ignores the file, and so does the Omarchy example, so an install stays out of the shell's source. With one source installed, it reads:
-
-```xml
-<Project>
-  <ItemGroup>
-    <ProjectReference Include="C:\Users\me\AppData\Local\winshell\widgets\someone\clock-widget\0123abc...\ClockWidget.csproj">
-      <WinshellSource>github.com/someone/clock-widget</WinshellSource>
-      <WinshellRef>v1.2</WinshellRef>
-      <WinshellCommit>0123abc...</WinshellCommit>
-      <UndefineProperties>WinshellWidgetsFile</UndefineProperties>
-    </ProjectReference>
-    <WinshellWidget Include="clock" Type="ClockWidget.Clock">
-      <WinshellSource>github.com/someone/clock-widget</WinshellSource>
-    </WinshellWidget>
-  </ItemGroup>
-</Project>
-```
-
-- `Include` on the project reference is the project inside a clone of one commit.
-- `WinshellSource` is the repository, `WinshellRef` is the branch, tag or commit that was asked for, and `WinshellCommit` is the commit that was cloned.
-- `UndefineProperties` names `WinshellWidgetsFile`, so that global property does not flow into the referenced project and the library does not import this file and reference itself.
-- Each `WinshellWidget` item follows the reference it came from.
-
-Set `WinshellWidgetsFile` to an absolute path to import a different file: `dotnet build -p:WinshellWidgetsFile=...`. A relative path is resolved from the folder that contains `Winshell.props`, not from the project. The default is `widgets.props` in the project directory.
-
-### Install
-
-`winshell widget install github.com/someone/clock-widget@v1.2` resolves that ref to a commit and clones it under `%LOCALAPPDATA%\winshell\widgets\someone\clock-widget\<commit>`, or under `WINSHELL_LOCAL_DIR` when that is set. A `file://` URL or a folder is cloned the same way, under `widgets\local`.
-
-- **Which project.** With no `--project`, the repository must contain one project that lists `WinshellWidget` items; otherwise the command names the projects and installs nothing.
-- **It asks first.** It prints the repository, the commit and the widget names, warns that building runs the repository's code and MSBuild targets in a program that starts at sign-in, and asks. `--yes` skips the question. Declining changes nothing.
-- **What it refuses.** A widget whose `Winshell` package reference needs a newer version than the configuration's is refused before that build, and the message names both versions. A widget name already installed from another source is refused, and so is a source that is already installed.
-- **The staged build.** Installing builds the configuration against a staged copy, with `-p:WinshellWidgetsFile` set to that copy's absolute path, into a scratch folder. `widgets.props` is replaced only when that build succeeds. A failed build leaves the previous file and the previous program, and prints the build errors. The next `winshell run` or `reload` builds as usual.
-
-### List and remove
-
-`winshell widget list` prints each widget's name, source, ref and commit. It reads an empty file as nothing installed.
-
-`winshell widget remove <name>` drops that source's project reference and its widget items. `<name>` is a widget name or the source. Removing the last source leaves an empty `<Project />`. That file is newer than the program, so the next `winshell run` rebuilds and the shell no longer constructs the removed widget.
-
-### Update
-
-`winshell widget update [<name>]` fetches the recorded ref of every installed source, or of the source `<name>` selects.
-
-- A ref that still names the recorded commit prints `<source> is up to date at <commit>.`
-- Otherwise the command prints the old and new commit, the commits `git log --oneline` lists between them, and the widget names that would be added or dropped, then the same warning as install, and asks. `--yes` skips the question. Declining prints `Nothing was updated.` and leaves that source as it is.
-- The version check and the staged build are install's: a widget that needs a newer Winshell is refused before the build, and a failed build leaves the previous commit, `widgets.props` and the program.
-- Older commits stay in the cache.
 
 ## A service
 

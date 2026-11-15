@@ -307,7 +307,7 @@ The `changes` job selects checks for PRs and pushes to `main`. Each kind of chan
 | Tooling | `scripts/` and `tests/Scripts/`, except the files that count as code | The formatting check and the PowerShell suites in `quality`, and `installer` |
 | Workflows | `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | `actionlint`, and the formatting check and the PowerShell suites in `quality` |
 | Packaging | `packaging/`, except the files that count as code | The Package workflow |
-| Code | Everything else | The five .NET suite shards, which build their own projects, the formatting check and the PowerShell suites, and the jobs that read the file |
+| Code | Everything else | The four .NET suite shards, which build their own projects, the formatting check and the PowerShell suites, and the jobs that read the file |
 
 - A path no row names is code, and so is every path of an empty or cut-off file list.
 - The suite's own machinery is code, because a change to it could break the shards: `scripts/lib/`, `scripts/build-template.ps1`, `scripts/generate-reference.cs`, `scripts/reference-pages.cs`, `scripts/render-logo.cs`, `.github/workflows/ci.yml` and `.github/actions/`. A change under `.github/actions/` also selects the workflow checks, which is why `actionlint` runs for it.
@@ -324,7 +324,7 @@ The `changes` job selects checks for PRs and pushes to `main`. Each kind of chan
 | Job | When it runs | How to run it locally |
 | --- | --- | --- |
 | `installer` | PRs and pushes to `main` that change `scripts/`, `tests/Scripts/`, `ci.yml` or `.github/actions/`. | Windows PowerShell 5.1 runs `tests/Scripts/Install.Tests.ps1` with the Pester version in `scripts/tool-pins.psd1` against temporary profiles and releases served on loopback. PowerShell 7 tooling suites run once in `quality`. |
-| `tests (1/5)` through `tests (5/5)` | Non-draft PRs and pushes to `main` that change code, as [How checks are selected](#how-checks-are-selected) says, in `ci.yml`. Results feed the one required `ci` check. | `pwsh scripts/check.ps1` for the tests that open no windows, and [A windowed test](#a-windowed-test) for the rest. See [Test shards](#test-shards). |
+| `tests (1/4)` through `tests (4/4)` | Non-draft PRs and pushes to `main` that change code, as [How checks are selected](#how-checks-are-selected) says, in `ci.yml`. Results feed the one required `ci` check. | `pwsh scripts/check.ps1` for the tests that open no windows, and [A windowed test](#a-windowed-test) for the rest. See [Test shards](#test-shards). |
 | `trim-caches` | Every push to `main`, after `ci`, in `ci.yml` | Nothing to run. It deletes all but the two newest CodeQL databases of each language from the Actions cache, which would otherwise pass the 10 GB GitHub keeps. |
 | `links` | Pushes to `main` that change docs or Markdown, and every Monday, in `links.yml` | lychee, the version in `scripts/tool-pins.psd1`, over `docs/**/*.md`, `README.md`, `GLOSSARY.md` and `.github/*.md`, excluding `docs/agents`. |
 | `actionlint` | PRs and pushes to `main` that change workflows, actions, `.github/dependabot.yml` or `scripts/tool-pins.psd1`, in `ci.yml` | actionlint on `.github/workflows`, then zizmor on `.github`. |
@@ -332,10 +332,10 @@ The `changes` job selects checks for PRs and pushes to `main`. Each kind of chan
 
 ### Test shards
 
-CI calls `Get-TestRun -Shard <1..5>` and `Invoke-TestRun -Shard <1..5>` from `scripts/lib/Tests.ps1`:
+CI calls `Get-TestRun -Shard <1..4>` and `Invoke-TestRun -Shard <1..4>` from `scripts/lib/Tests.ps1`:
 
 - Together they run every test project, the category `Window` included, so they don't watch for windows as the full check does.
-- CLI, Shell and Services use the first three workers. Other test projects share the fourth, and CLI widget tests use the fifth.
+- CLI, Shell and Services use the first three workers. Other test projects share the fourth.
 - New projects join the fourth, and new CLI classes join the first.
 - Shard 2 also compiles the template against source libraries, the solution's projects under `examples/` and `docs/samples/`, and the reference generator as a program, sharing the Shell libraries it already builds.
 - Each worker prints its ten slowest tests.
@@ -364,7 +364,7 @@ A running shell reads these. None is needed to build or test.
 | Variable | What it does |
 | --- | --- |
 | `WINSHELL_CONFIG_DIR` | Folder named configs are loaded from, instead of `%APPDATA%\winshell`. |
-| `WINSHELL_LOCAL_DIR` | Folder used instead of `%LOCALAPPDATA%\winshell` for cache, state, data, instance logs, crash reports and clones of installed widgets. A child process inherits it. |
+| `WINSHELL_LOCAL_DIR` | Folder used instead of `%LOCALAPPDATA%\winshell` for cache, state, data, instance logs and crash reports. A child process inherits it. |
 
 ### Installer
 
