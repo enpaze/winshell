@@ -5,7 +5,7 @@ name: Package
 # scripts/install.ps1 and scripts/uninstall.ps1, copied from the tagged commit.
 #
 # Every pull request and push to main starts it. Its changes job builds a change that scripts/ci-changes.ps1 flags package,
-# and also a push to main that it flags code. Those runs also run the packed template tests (Category=Package),
+# and also a push to main that it flags code. Those runs also run the packed starter tests (Category=Package),
 # so a new project that cannot restore shows before a release.
 on:
   pull_request:
@@ -111,8 +111,8 @@ jobs:
           overwrite: true
           retention-days: 1
 
-  templates:
-    # Packs the library and the template, builds a shell from it and runs it. Not for a release, because these tests
+  starter:
+    # Packs the library, creates the starter with winshell new, builds it and runs it. Not for a release, because these tests
     # open windows. A change that bumps a pin in Directory.Packages.props, or a library project file, shows here if a
     # new project can no longer restore.
     needs: changes

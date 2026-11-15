@@ -2,7 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Winshell.Services\Winshell.Services.csproj" />
     <!-- The CLI that lists and kills the shell, built but not copied: winshell.exe sits beside the winshell.dll its
-         build reports. The shell itself is the program a template builds. -->
+         build reports. The shell itself is the program the starter project builds. -->
     <ProjectReference Include="..\..\src\Winshell\Winshell.csproj" ReferenceOutputAssembly="false" OutputItemType="WinshellCliAssembly" />
   </ItemGroup>
   <Target Name="NameWinshellCli" AfterTargets="ResolveProjectReferences" BeforeTargets="GetAssemblyAttributes">

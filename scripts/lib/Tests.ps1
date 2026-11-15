@@ -3,7 +3,7 @@ $script:Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $script:TrxNamespace = 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'
 
 # What a run builds, the test projects it runs one after another, and a filter. Docs builds the guide samples and checks
-# the generated reference; Package packs the template and runs a shell from it. CompileTemplateSamplesReferenceAndLogo is
+# the generated reference; Package packs the library and runs the starter created by winshell new. CompileTemplateSamplesReferenceAndLogo is
 # true on the shard that also compiles the template, the samples, the reference program and the logo. Each test project
 # writes one results file, so ProjectCount is how many to expect.
 function Get-TestRun {

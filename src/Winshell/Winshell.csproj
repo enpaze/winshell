@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- The WinUI host settings a configuration gets from the template package. -->
+  <!-- The WinUI host settings a configuration gets from the Winshell library package. -->
   <Import Project="..\Winshell.Package\buildTransitive\Winshell.props" />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -50,11 +50,11 @@
     <ProjectReference Include="..\Winshell.Shell\Winshell.Shell.csproj" />
     <InternalsVisibleTo Include="Winshell.Tests" />
   </ItemGroup>
-  <!-- What winshell new copies: the dotnet new starter, and each folder under examples, by glob, so a new example needs
+  <!-- What winshell new copies: the starter, and each folder under examples, by glob, so a new example needs
        no change here. Example.cs reads them as new/<name>/<path>. -->
   <ItemGroup>
     <EmbeddedResource Include="..\..\templates\winshell\**"
-                      Exclude="..\..\templates\winshell\.template.config\**;..\..\templates\winshell\**\bin\**;..\..\templates\winshell\**\obj\**"
+                      Exclude="..\..\templates\winshell\**\bin\**;..\..\templates\winshell\**\obj\**"
                       LogicalName="new/starter/%(RecursiveDir)%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\examples\*\**"
                       Exclude="..\..\examples\**\bin\**;..\..\examples\**\obj\**"
