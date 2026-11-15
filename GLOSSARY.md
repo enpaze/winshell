@@ -1,35 +1,45 @@
 # Winshell
 
-Winshell is a toolkit for writing a Windows 11 shell. It ships no shell of its own. A configuration is a .NET project that builds into one program and describes the windows it shows.
+Winshell is a toolkit for writing a Windows 11 shell. It ships no shell of its own. A shell is a .NET project an author writes, which builds into one program and describes the windows it shows.
+
+## The people
+
+**Author**:
+The person who writes a shell.
+_Avoid_: developer, user
+
+**User**:
+The person a shell runs for, who changes it through its preferences file. An author is the user of their own shell.
+_Avoid_: end user, customer
 
 ## The shell
 
 **Shell**:
-The desktop shell one configuration describes, running as one process.
-_Avoid_: app, host, session
+The desktop shell an author writes: a .NET project that builds into one program. One shell runs at a time in a Windows session.
+_Avoid_: configuration, config (that is Debug or Release in .NET), app, host, session
 
-**Configuration**:
-The .NET project that defines a shell, built into one program.
-_Avoid_: theme, skin, script
+**Shell project**:
+The source of a shell, where it must be told apart from the running program.
+_Avoid_: configuration, config, theme, skin, script
 
-**Shell id**:
-The name that identifies a configuration across runs.
-_Avoid_: instance id, path
+**Shell name**:
+The name that identifies a shell across runs.
+_Avoid_: shell id, instance id, path
+
+**Chosen shell**:
+The shell a user chose to use: a built copy that starts when they sign in, and stays as it is until they choose again.
+_Avoid_: installed shell, default shell, shell in use, current shell
 
 **Instance**:
-One running process of a shell. A reload replaces it. The CLI lists, logs, and kills instances.
+One running process of a shell.
 _Avoid_: generation, session
 
 **Windows session**:
 The signed-in Windows user session the shell runs in. The shell can ask Windows to lock it, sign out, restart, shut the PC down, sleep, or hibernate. Windows locks and unlocks the session and shows its own prompts.
 _Avoid_: logon session, user session
 
-**Reload**:
-Building the configuration and replacing the running instance with the result.
-_Avoid_: restart, refresh, generation
-
 **Notice**:
-Winshell's own window, drawn like a Windows 11 notification, for a configuration that did not build or a failure Winshell reports. It is Winshell's, not the configuration's.
+Winshell's own window, drawn like a Windows 11 notification, for a shell project that did not build or a failure Winshell reports. It is Winshell's, not the shell's.
 _Avoid_: toast, popup, flyout
 
 **Crash report**:
@@ -71,7 +81,7 @@ The live image of an app window the taskbar shows over its button.
 _Avoid_: thumbnail (that is the DWM API it uses), peek
 
 **Preferences**:
-The choices a user makes for one shell: its configuration's own, and each section's.
+The choices a user makes for one shell: the shell's own, and each section's.
 _Avoid_: settings (that is Windows Settings)
 
 **Preferences file**:
@@ -107,11 +117,11 @@ A piece of UI described in C#, which renders controls and renders again when its
 _Avoid_: view
 
 **Widget**:
-A piece of UI a widget area creates by name from a placement's settings. It can come from the configuration, an example, or a separate project; it is not the Windows 11 Widgets board.
+A piece of UI a widget area creates by name from a placement's settings. It can come from the shell project, an example, or a separate project; it is not the Windows 11 Widgets board.
 _Avoid_: module, applet, plugin
 
 **Widget area**:
-A component a shell author puts anywhere in a window. It shows its placements in order, in one orientation, and styles them.
+A component an author puts anywhere in a window. It shows its placements in order, in one orientation, and styles them.
 _Avoid_: slot, zone, control
 
 **Surface**:
@@ -201,7 +211,7 @@ The image Windows draws on the desktop, how that image is fitted, and the color 
 _Avoid_: background, desktop background, backdrop
 
 **Privacy use**:
-An app Windows reports as using the microphone, the camera, or location right now. A desktop app has the program's path. The shell's own microphone meter is one of these apps, and it is marked so a configuration can tell it is this shell.
+An app Windows reports as using the microphone, the camera, or location right now. A desktop app has the program's path. The shell's own microphone meter is one of these apps, and it is marked so a shell can tell it is its own.
 _Avoid_: permission, consent, recent activity
 
 ## The language
