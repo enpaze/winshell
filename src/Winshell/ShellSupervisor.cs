@@ -10,14 +10,15 @@ namespace Winshell;
 /// starts again at once, however it exits, and counts its crashes from none, as the first did.
 /// </summary>
 /// <remarks>
-/// A shell that exits 0 has put Explorer's taskbar back itself. After any other exit, the taskbar comes back if none of
-/// its windows was hidden when that child started: a crashed shell cannot put it back, and the next child must find it
-/// as Explorer has it, or it would keep a hidden taskbar hidden when it quits. A taskbar that another shell had hidden
-/// stays hidden, and so does one a clean exit could only take from the shell that hid it since.
+/// A shell that exits 0 has put Explorer's taskbar back, or left a lease for the shell that replaces it. After any
+/// other exit, the supervisor puts that lease back when this child owned it, had been handed it, or its owner has
+/// gone. A taskbar that was already hidden when the child started, and that this start did not take a lease for,
+/// stays hidden. Recovery deletes the lease, so the next child does not inherit it.
 /// </remarks>
 internal sealed class ShellSupervisor(
     Func<IShellChild?> start,
     Func<bool> taskbarHidden,
+    Func<int, bool, bool> leaveTaskbar,
     Action restoreTaskbar,
     TimeProvider time)
 {
@@ -40,14 +41,14 @@ internal sealed class ShellSupervisor(
         {
             var hidden = taskbarHidden();
             var started = time.GetTimestamp();
-            var exit = (Code: InstanceStart.CouldNotStart, Intent: ExitIntent.None);
+            var exit = (Code: InstanceStart.CouldNotStart, Intent: ExitIntent.None, Pid: 0);
             try
             {
                 exit = await RunOnceAsync(stop);
             }
             finally
             {
-                if (!hidden && exit.Code != 0)
+                if (exit.Code != 0 && !leaveTaskbar(exit.Pid, hidden))
                     restoreTaskbar();
             }
 
@@ -90,11 +91,11 @@ internal sealed class ShellSupervisor(
     /// One child, to its exit. <see cref="InstanceStart.CouldNotStart"/> when it did not start, and the start has
     /// said why.
     /// </summary>
-    private async Task<(int Code, ExitIntent Intent)> RunOnceAsync(CancellationToken stop)
+    private async Task<(int Code, ExitIntent Intent, int Pid)> RunOnceAsync(CancellationToken stop)
     {
         using var child = start();
         if (child is null)
-            return (InstanceStart.CouldNotStart, ExitIntent.None);
+            return (InstanceStart.CouldNotStart, ExitIntent.None, 0);
         int code;
         try
         {
@@ -106,6 +107,6 @@ internal sealed class ShellSupervisor(
             code = await child.Exited;
         }
 
-        return (code, child.Intent);
+        return (code, child.Intent, child.Pid);
     }
 }

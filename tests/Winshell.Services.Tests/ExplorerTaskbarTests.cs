@@ -156,4 +156,19 @@ public class ExplorerTaskbarTests
         Assert.Equal(2, fake.Restores);
         Assert.False(taskbar.Hidden);
     }
+
+    [Fact]
+    public void Yielding_leaves_it_hidden_when_the_shell_exits()
+    {
+        var fake = new Fake();
+        var taskbar = Service(fake);
+
+        taskbar.Hidden = true;
+        taskbar.Yield();
+        taskbar.Dispose();
+
+        Assert.Equal(1, fake.Hides);
+        Assert.Equal(0, fake.Restores);
+        Assert.True(taskbar.Hidden);
+    }
 }

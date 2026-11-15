@@ -7,12 +7,13 @@ namespace Winshell.Tests;
 
 /// <summary>
 /// Runs several winshell instances at once, as separate processes, and checks that they keep apart: each has its own
-/// id, pipe and log, each answers for itself, and one that crashes or has a broken config leaves the others running.
+/// local folder, id, pipe and log, each answers for itself, and one that crashes leaves the others running. A second
+/// shell in one folder would replace the first, so each of these has a folder of its own.
 /// </summary>
 public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
-    private readonly List<Process> _started = [];
+    private readonly List<(Process Process, string Local)> _started = [];
 
     // The instances' own local folder, so the list holds only what this test started and the user's is left alone.
     private string Local => Path.Combine(_dir, "local");
@@ -32,11 +33,13 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
     [Fact]
     public void Instances_keep_apart_and_outlive_one_that_crashes()
     {
-        // Two start with one shell id, and the third is another shell.
-        var a = Start(Config("a"));
-        var b = Start(Config("b"));
-        var c = Start(Config("c"), "other");
-        var infos = new[] { a, b, c }.Select(Info).ToList();
+        // Two start with one shell id, and the third is another shell. Each local folder keeps them from replacing
+        // one another.
+        var locals = new[] { Path.Combine(_dir, "local-a"), Path.Combine(_dir, "local-b"), Path.Combine(_dir, "local-c") };
+        var a = Start(Config("a"), locals[0]);
+        var b = Start(Config("b"), locals[1]);
+        var c = Start(Config("c"), locals[2], "other");
+        var infos = new[] { Info(a, locals[0]), Info(b, locals[1]), Info(c, locals[2]) };
 
         Assert.Equal(3, infos.Select(i => i.GetProperty("id").GetString()).Distinct().Count());
         Assert.Equal(3, infos.Select(i => i.GetProperty("pipe").GetString()).Distinct().Count());
@@ -44,17 +47,17 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
         Assert.Equal("probe", infos[0].GetProperty("shellId").GetString());
         Assert.Equal("probe", infos[1].GetProperty("shellId").GetString());
         Assert.Equal("other", infos[2].GetProperty("shellId").GetString());
-        Assert.Equal(0, Show(a));
-        Assert.Equal(0, Show(b));
-        Assert.Equal(0, Show(c));
+        Assert.Equal(0, Show(a, locals[0]));
+        Assert.Equal(0, Show(b, locals[1]));
+        Assert.Equal(0, Show(c, locals[2]));
 
         // B dies without cleaning up, as a crash would leave it.
         b.Kill();
         b.WaitForExit();
 
-        Assert.Equal(0, Show(a));
-        Assert.Equal(0, Show(c));
-        Assert.DoesNotContain(Listed(), i => i.GetProperty("pid").GetInt32() == b.Id);
+        Assert.Equal(0, Show(a, locals[0]));
+        Assert.Equal(0, Show(c, locals[2]));
+        Assert.DoesNotContain(Listed(locals[1]), i => i.GetProperty("pid").GetInt32() == b.Id);
     }
 
     /// <summary>
@@ -86,42 +89,42 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
             ProcessStart = 1
         });
 
-        var rows = Listed().Where(i => i.GetProperty("pid").GetInt32() == process.Id).ToList();
+        var rows = Listed(Local).Where(i => i.GetProperty("pid").GetInt32() == process.Id).ToList();
         Assert.Single(rows);
         Assert.Equal(liveId, rows[0].GetProperty("id").GetString());
     }
 
-    private Process Start(string configDir, string? shellId = null)
+    private Process Start(string configDir, string local, string? shellId = null)
     {
-        var process = ProbeShell.Start(configDir, Local, shellId);
-        _started.Add(process);
+        var process = ProbeShell.Start(configDir, local, shellId);
+        _started.Add((process, local));
         return process;
     }
 
-    private JsonElement Info(Process process)
+    private JsonElement Info(Process process, string local)
     {
-        return Listed().Single(i => i.GetProperty("pid").GetInt32() == process.Id);
+        return Listed(local).Single(i => i.GetProperty("pid").GetInt32() == process.Id);
     }
 
-    private List<JsonElement> Listed()
+    private List<JsonElement> Listed(string local)
     {
-        using var json = JsonDocument.Parse(Winshell("list", "--json"));
+        using var json = JsonDocument.Parse(Winshell(local, "list", "--json"));
         return json.RootElement.EnumerateArray().Select(e => e.Clone()).ToList();
     }
 
-    private int Show(Process process)
+    private int Show(Process process, string local)
     {
         var result = WinshellCli.Run(["ipc", "--pid", process.Id.ToString(CultureInfo.InvariantCulture), "show"],
-            ("WINSHELL_LOCAL_DIR", Local));
+            ("WINSHELL_LOCAL_DIR", local));
         result.AssertExitCode(0);
         return result.Code;
     }
 
     /// <summary>Runs the winshell CLI and returns what it printed.</summary>
-    private string Winshell(params string[] args)
+    private string Winshell(string local, params string[] args)
     {
 #pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
-        var result = WinshellCli.Run(args, ("WINSHELL_LOCAL_DIR", Local));
+        var result = WinshellCli.Run(args, ("WINSHELL_LOCAL_DIR", local));
 #pragma warning restore CsWinRT1030
         result.AssertExitCode(0);
         return result.Output;
@@ -130,13 +133,13 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
     public void Dispose()
     {
         // Only the instances this test started, by their process ids: asked to quit, then ended if they do not.
-        foreach (var process in _started)
+        foreach (var (process, local) in _started)
         {
             if (!process.HasExited)
             {
                 try
                 {
-                    Winshell("kill", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
+                    Winshell(local, "kill", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
                 }
                 catch (XunitException)
                 {

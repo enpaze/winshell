@@ -211,6 +211,8 @@ internal static partial class ShellExit
 
     private static string EventName(ExitIntent intent, int pid)
     {
-        return intent == ExitIntent.Stop ? $@"Local\winshell-stop-asked-{pid}" : $@"Local\winshell-reload-asked-{pid}";
+        return intent == ExitIntent.Stop
+            ? SupervisionStop.EventName(pid)
+            : $@"Local\winshell-reload-asked-{pid}";
     }
 }

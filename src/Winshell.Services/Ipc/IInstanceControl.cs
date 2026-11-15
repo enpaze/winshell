@@ -17,6 +17,12 @@ internal interface IInstanceControl
     void Quit();
 
     /// <summary>
+    /// Leaves Explorer's taskbar hidden for the shell that is replacing this one. The caller then
+    /// <see cref="Quit"/>s, once the client has the answer.
+    /// </summary>
+    void Yield();
+
+    /// <summary>
     /// Shows the notice for a configuration that did not build, and the shell keeps running. An empty <paramref name="error"/>
     /// says the project built: that closes the build-error notice of <paramref name="projectFile"/>, and no other.
     /// </summary>

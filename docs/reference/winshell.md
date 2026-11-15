@@ -282,7 +282,7 @@ The running shell: its screens and services. There is one in a process. Each ser
 | `Cpu` | [CpuService](winshell-cpu.md#cpuservice), read-only | How busy the processors are, measured only while something listens. |
 | `Current` | [Shell](#shell), static, read-only | The shell of this process. Reading it before Run has started it throws. |
 | `DataDir` | string, read-only | This shell's data folder, which exists once read. |
-| `ExplorerTaskbar` | [ExplorerTaskbarService](winshell-explorertaskbar.md#explorertaskbarservice), read-only | Whether Explorer's taskbar is hidden. Winshell shows it again when it exits. |
+| `ExplorerTaskbar` | [ExplorerTaskbarService](winshell-explorertaskbar.md#explorertaskbarservice), read-only | Whether Explorer's taskbar is hidden. Winshell shows it again when this shell exits, unless it gave way to the shell that replaces it. |
 | `Ipc` | [ShellIpc](#shellipc), read-only | What `winshell ipc` reaches in this shell. |
 | `IsDark` | bool, read-only | Whether windows are dark. ColorScheme overrides Windows mode, and ColorScheme.System follows it. |
 | `JumpLists` | [JumpListService](winshell-apps.md#jumplistservice), read-only | The recent and frequent documents of an app, as its jump list shows them. |
@@ -321,7 +321,7 @@ The running shell: its screens and services. There is one in a process. Each ser
 | `Open(string target)` | void | Opens a Settings page, an app or a URL as Windows would, such as `ms-settings:sound`, `https://example.com` or an app's path: a URI or a path, not a command line. It opens off the loop, so a slow app does not hold up the shell. What Windows can't start, such as a path that is not there, is logged, not thrown. A scheme no app handles shows Windows' own app picker. |
 | `Quit()` | void | Ends the shell. Its windows close and Run returns. Something that fails to stop is logged and reported, and the shell ends anyway. |
 | `Reload()` | bool | Replaces this instance with a new process of the same program, which takes over once this one has gone. False when that process did not start: the shell then keeps running. |
-| `Run<T>([ShellOptions](#shelloptions)? options = null)` | void, static | Runs a configuration until the shell quits, on this thread, as a Winshell instance: `winshell list`, `log`, `kill`, `reload` and `ipc` reach it. Call it from `Main`, marked `[STAThread]`. The program takes `--no-duplicate` and `-d` on its command line. `--no-duplicate` exits at once when its shell id is already running. `-d` starts this program again and returns, so the caller does not wait, and that start keeps `--after`. T is a ShellConfiguration with a public parameterless constructor. |
+| `Run<T>([ShellOptions](#shelloptions)? options = null)` | void, static | Runs a configuration until the shell quits, on this thread, as a Winshell instance: `winshell list`, `log`, `kill`, `reload` and `ipc` reach it. Call it from `Main`, marked `[STAThread]`. The program takes `--no-duplicate` and `-d` on its command line. `--no-duplicate` exits at once when its shell id is already running. A shell already running in this local folder is asked to quit first. One that does not quit stays, and this start says why and exits with code 1. `-d` starts this program again and returns, so the caller does not wait, and that start keeps `--after`. T is a ShellConfiguration with a public parameterless constructor. |
 | `StatePath(string path)` | string | A path in StateDir. |
 
 ## ShellConfiguration

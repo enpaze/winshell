@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Pipes;
@@ -289,6 +290,120 @@ public sealed class InstanceStartTests
         }
 
         Assert.DoesNotContain("AFTER-CLOSE", File.ReadAllText(instance.LogPath), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_running_shell_quits_before_the_next_one_starts()
+    {
+        using var other = Hold("running", out var control, out var loop, out var server, out var id);
+        using var stop = new CancellationTokenSource();
+        var pump = Pump(loop, stop.Token);
+        var hosted = false;
+        try
+        {
+            control.OnYield = () =>
+            {
+                try
+                {
+                    if (!other.HasExited)
+                        other.Kill(true);
+                }
+                catch (Exception e) when (e is InvalidOperationException or Win32Exception)
+                {
+                }
+            };
+
+            var result = Start(Launch(ShellId(), Program, ["--no-duplicate"]), _ => hosted = other.HasExited);
+
+            Assert.True(hosted);
+            Assert.Equal(0, result.Code);
+            Assert.True(other.HasExited);
+            Assert.Equal(1, control.Yields);
+        }
+        finally
+        {
+            stop.Cancel();
+            pump.Join(TimeSpan.FromSeconds(2));
+            server.Dispose();
+            Forget(id);
+        }
+    }
+
+    [Fact]
+    public void A_shell_that_does_not_quit_stays_and_the_start_says_why()
+    {
+        using var other = Hold("running", out var control, out var loop, out var server, out var id);
+        using var stop = new CancellationTokenSource();
+        var pump = Pump(loop, stop.Token);
+        var hosted = false;
+        try
+        {
+            var result = Start(Launch(ShellId(), Program, []), _ => hosted = true);
+
+            Assert.False(hosted);
+            Assert.False(other.HasExited);
+            Assert.Equal(InstanceStart.CouldNotStart, result.Code);
+            Assert.Contains(result.Error, line => line.Contains("running", StringComparison.Ordinal) &&
+                                                   line.Contains("did not quit", StringComparison.Ordinal));
+        }
+        finally
+        {
+            stop.Cancel();
+            pump.Join(TimeSpan.FromSeconds(2));
+            server.Dispose();
+            if (!other.HasExited)
+                other.Kill(true);
+            Forget(id);
+        }
+    }
+
+    /// <summary>A process listed as a shell, with a pipe this test serves, so a start can ask it to quit.</summary>
+    private static Process Hold(string shellId, out FakeInstanceControl control, out EventQueue loop, out IpcServer server,
+        out string id)
+    {
+        var process = Process.Start(new ProcessStartInfo(ComSpec(), "/d /c ping -n 30 127.0.0.1")
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        })!;
+        control = new FakeInstanceControl();
+        var pipe = "winshell-test-" + Guid.NewGuid().ToString("N");
+        loop = new EventQueue();
+        server = new IpcServer(IpcServer.OpenFirst(pipe), pipe, loop, Log.Default, control);
+        id = Instances.NewId();
+        var locations = ShellLocations.Current;
+        locations.Instances.Write(new InstanceInfo(id, process.Id, shellId, process.StartInfo.FileName!,
+            DateTime.Now, pipe, Path.Combine(locations.Instances.DirOf(id), "log.txt"),
+            process.StartTime.ToUniversalTime().Ticks, ProcessName: process.ProcessName));
+        return process;
+    }
+
+    private static Thread Pump(EventQueue loop, CancellationToken stop)
+    {
+        var pump = new Thread(() =>
+        {
+            while (!stop.IsCancellationRequested)
+            {
+                loop.RunDue();
+                Thread.Sleep(10);
+            }
+        })
+        { IsBackground = true };
+        pump.Start();
+        return pump;
+    }
+
+    private static void Forget(string id)
+    {
+        try
+        {
+            Directory.Delete(ShellLocations.Current.Instances.DirOf(id), true);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+        }
     }
 
     private static string ComSpec()

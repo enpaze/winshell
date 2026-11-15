@@ -59,8 +59,9 @@ internal sealed class InstanceSession
 }
 
 /// <summary>
-/// Becomes this process's instance, or leaves for a stated reason. The order is fixed: detach, wait for the shell
-/// this one replaces, claim against a duplicate, open the log, open the pipe, then the host. The host calls
+/// Becomes this process's instance, or leaves for a stated reason. The order is fixed: detach, wait for a shell
+/// this one reloads, claim against a duplicate of this shell id, ask any other shell in this folder to quit and
+/// take its place, open the log, open the pipe, then the host. The host calls
 /// <see cref="InstanceSession.Serve"/> once its shell exists. A pipe that cannot open is abandoned. Anything that
 /// opened the pipe is closed, including a host that failed.
 /// </summary>
@@ -74,8 +75,9 @@ internal static class InstanceStart
 
     /// <summary>
     /// Runs the start and returns this process's exit code: 0, or <see cref="CouldNotStart"/> once the failure is
-    /// reported. <paramref name="host"/> is called only when this process is the instance. A duplicate returns 0
-    /// without a message.
+    /// reported. <paramref name="host"/> is called only when this process is the instance. A duplicate of this shell
+    /// id returns 0 without a message. Another shell in this folder is asked to quit first, and one that does not
+    /// quit stays: this start says why and returns <see cref="CouldNotStart"/>.
     /// </summary>
     public static int Run(InstanceLaunch launch, Action<InstanceSession> host)
     {
@@ -99,6 +101,12 @@ internal static class InstanceStart
             : default;
         if (arguments.NoDuplicate && !duplicate.Acquired)
             return 0;
+
+        // One shell in this folder. Another that is running is asked to quit, and this one waits until it has.
+        // A --no-duplicate start of this same id returned above, so that shell is not replaced.
+        using var oneShell = ShellReplacement.Claim(locations, arguments.After, out var blocked);
+        if (blocked is not null)
+            return Reported(blocked);
 
         var instance = ShellInstance.Open(identity.ShellId, launch.Program, launch.Log, arguments.Verbose);
         launch.Prepare?.Invoke(instance);

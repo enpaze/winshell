@@ -91,7 +91,7 @@ public sealed partial class Shell
     /// <summary>How busy the processors are, measured only while something listens.</summary>
     public CpuService Cpu => _cpu ??= new CpuService(Loop);
 
-    /// <summary>Whether Explorer's taskbar is hidden. Winshell shows it again when it exits.</summary>
+    /// <summary>Whether Explorer's taskbar is hidden. Winshell shows it again when this shell exits, unless it gave way to the shell that replaces it.</summary>
     public ExplorerTaskbarService ExplorerTaskbar => _explorerTaskbar ??= new ExplorerTaskbarService(Loop, Log);
 
     /// <summary>The recent and frequent documents of an app, as its jump list shows them.</summary>

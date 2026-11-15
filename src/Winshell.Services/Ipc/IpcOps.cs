@@ -16,17 +16,18 @@ internal static class IpcOps
     public const string Wait = "wait";
     public const string Listen = "listen";
     public const string Kill = "kill";
+    public const string Yield = "yield";
     public const string Reload = "reload";
     public const string Build = "build";
     public const string Inspect = "inspect";
 
     /// <summary>
-    /// Whether a shell and a winshell of different releases refuse <paramref name="op"/>. Kill is left out: an update can
-    /// change winshell under a running shell, and it must still be possible to stop it.
+    /// Whether a shell and a winshell of different releases refuse <paramref name="op"/>. Kill and yield are left out:
+    /// an update can change winshell under a running shell, and it must still be possible to stop it or replace it.
     /// </summary>
     public static bool ChecksRelease(string op)
     {
-        return op != Kill;
+        return op is not (Kill or Yield);
     }
 }
 
@@ -62,6 +63,12 @@ internal sealed partial record IpcRequest
     public static IpcRequest ForKill()
     {
         return new IpcRequest(IpcOps.Kill);
+    }
+
+    /// <summary>Asks the shell to quit without putting Explorer's taskbar back, so the shell that replaces it can.</summary>
+    public static IpcRequest ForYield()
+    {
+        return new IpcRequest(IpcOps.Yield);
     }
 
     /// <summary>A reload. A <paramref name="program"/> is the one a handover starts, and none keeps the program this shell runs.</summary>

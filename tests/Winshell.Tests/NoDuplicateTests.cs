@@ -6,8 +6,9 @@ using System.Text.Json;
 namespace Winshell.Tests;
 
 /// <summary>
-/// <c>--no-duplicate</c> holds a per-shell-id mutex for the life of the shell, so a second start exits
-/// even when the first has not written instance.json yet. Two programs with different shell ids both stay.
+/// <c>--no-duplicate</c> holds a per-shell-id mutex for the life of the shell, so a second start of that
+/// id exits even when the first has not written instance.json yet. A different shell id replaces the one
+/// that is running.
 /// </summary>
 public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>
 {
@@ -36,8 +37,10 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
         Assert.False(first.HasExited);
 
         var second = Start(true, "other");
-        Assert.False(first.HasExited);
+        Assert.True(first.HasExited);
+        Assert.Equal(0, first.ExitCode);
         Assert.False(second.HasExited);
+        Assert.Equal("other", Assert.Single(Running()).ShellId);
         AssertHeld("other");
     }
 
