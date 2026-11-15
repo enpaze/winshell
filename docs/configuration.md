@@ -89,7 +89,7 @@ public sealed class Battery : Component<WidgetContext>
 
 ### Register the widgets
 
-`Start` registers each component under the name the bar places. A `WinshellWidget` item does the same for a component from a library, as [Widgets](#widgets) describes.
+`Start` registers each component under the name the bar places. Register a component from a referenced library the same way, as [Widgets](#widgets) describes.
 
 `Program.cs` starts the shell, and you won't need to change it.
 
@@ -328,19 +328,7 @@ public sealed class Dock : Component
 
 ## Widgets
 
-A [widget area](reference/winshell.md#widgetarea) is a component. A window mounts the component that renders it, and the same element can sit inside a surface. List widgets in your configuration's project, next to their project or package references:
-
-```xml
-<ItemGroup>
-  <WinshellWidget Include="message" Type="MyShell.MessageWidget" />
-</ItemGroup>
-```
-
-- `Include` is the case-sensitive placement name.
-- `Type` is the C# type name of a `Component<WidgetContext>` with a public parameterless constructor.
-- The build generates `Widgets.Register<T>` calls that run before `Main`, without reflection. Names are escaped for C# automatically.
-- A missing type, a type that is not a C# type name, a type that is not such a component, and a duplicate name fail the build, and the error names the widget.
-- Call `Widgets.Register<T>` yourself for a component the project defines, as the starter does.
+A [widget area](reference/winshell.md#widgetarea) is a component. A window mounts the component that renders it, and the same element can sit inside a surface. In `Start`, register each widget under the case-sensitive name the area places. Use `Widgets.Register<T>` for your project's components and those from a referenced project or package alike. The component needs a public parameterless constructor.
 
 A widget is a `Component<WidgetContext>`. `Render` reads `Props.Shell`, `Props.Window`, `Props.Settings` and `Props.Orientation`.
 
@@ -356,13 +344,13 @@ public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetCont
 }
 ```
 
-The build writes registration code only for an executable, an `OutputType` of `Exe` or `WinExe`. A [widget library](#write-a-widget) can list `WinshellWidget` items so `dotnet msbuild -getItem:WinshellWidget` can read them, and that library does not register the widgets. The configuration that references the library does. Registering one name from both fails when the shell starts.
+For a [widget library](#write-a-widget), add a project or package reference and register its component in the shell's `Start`, such as `Widgets.Register<MessageWidget.Message>("message")`. A name registered twice fails when the shell starts.
 
 ### Move a configuration
 
 This release registers only component widgets. Three things move, and nothing reads the old shape.
 
-A widget was a control whose constructor took a `WidgetContext` and built its elements there. It is a `Component<WidgetContext>` whose `Render` returns those elements, registered with `Widgets.Register<T>` or a `WinshellWidget` item whose `Type` is that component. `Props` is the old constructor argument: `Props.Shell`, `Props.Settings` and `Props.Orientation`, and `Props.Window` for the shell window the area is in.
+A widget was a control whose constructor took a `WidgetContext` and built its elements there. It is a `Component<WidgetContext>` whose `Render` returns those elements, registered with `Widgets.Register<T>`. `Props` is the old constructor argument: `Props.Shell`, `Props.Settings` and `Props.Orientation`, and `Props.Window` for the shell window the area is in.
 
 A Watch block read services and then wrote the controls. That read moves into `Render`. `UseObservable` or `UseObservableTree` names the service, and the elements `Render` returns already show what it holds. The [battery](#a-battery) is that shape: it reads `Props.Shell.Power.DisplayDevice` and returns a text block, collapsed when no battery is present.
 
