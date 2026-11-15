@@ -129,7 +129,7 @@ cd winshell
 pwsh scripts/pack.ps1
 ```
 
-`scripts/pack.ps1` writes the `Winshell` package and the `dotnet new` template to `artifacts\packages`, and `<version>` is the release in their names. Then make the project beside the clone, and tell NuGet where the `Winshell` package is:
+`scripts/pack.ps1` writes the `Winshell` library package to `artifacts\packages`. Then make the project beside the clone, and tell NuGet where the `Winshell` package is:
 
 ```powershell
 cd ..
@@ -139,8 +139,6 @@ dotnet new nugetconfig
 dotnet nuget add source ..\winshell\artifacts\packages --name winshell --configfile nuget.config
 winshell run --path .
 ```
-
-`dotnet new install .\winshell\artifacts\packages\Winshell.Templates.<version>.nupkg`, then `dotnet new winshell -n MyShell`, makes the same starter.
 
 ## Where a configuration lives
 

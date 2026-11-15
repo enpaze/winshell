@@ -12,7 +12,7 @@ using Microsoft.Win32;
 namespace Winshell.Package.Tests;
 
 /// <summary>
-/// Packs the library and the template, builds a shell from it the way a start does, and runs it. This is slow, and the main
+/// Packs the library, creates the starter with winshell new, builds it and runs it. This is slow, and the main
 /// test stage leaves <c>Category=Package</c> out.
 /// </summary>
 [Trait("Category", "Package")]
@@ -41,7 +41,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     }
 
     [Fact(Timeout = PatienceMs)]
-    public void The_template_takes_WindowsAppSDK_from_the_Winshell_package()
+    public void The_starter_takes_WindowsAppSDK_from_the_Winshell_package()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         // A version of its own here would drift from Directory.Packages.props and fail restore with NU1605.
@@ -50,7 +50,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     }
 
     [Fact(Timeout = PatienceMs)]
-    public void Packing_and_creating_the_template_leaves_the_user_PATH_as_it_was()
+    public void Packing_and_creating_the_starter_leaves_the_user_PATH_as_it_was()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         Assert.Equal(templates.UserPathBefore, PackedTemplates.UserPath());
@@ -61,7 +61,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         using var folder = new TempFolder();
-        var projectFile = CopyTemplate(folder.Path);
+        var projectFile = CopyStarter(folder.Path);
         var document = XDocument.Load(projectFile);
         document.Root!.Add(new XElement("ItemGroup",
             new XElement("WinshellWidget", new XAttribute("Include", "unused"),
@@ -84,7 +84,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         File.Copy(Path.Combine(Repo.Root, "global.json"), Path.Combine(root.Path, "global.json"));
         var shellDir = Path.Combine(root.Path, "shell");
         Directory.CreateDirectory(shellDir);
-        var projectFile = CopyTemplate(shellDir);
+        var projectFile = CopyStarter(shellDir);
         var libDir = Path.Combine(root.Path, "lib");
         Directory.CreateDirectory(libDir);
         File.Copy(Path.Combine(shellDir, "nuget.config"), Path.Combine(libDir, "nuget.config"));
@@ -129,7 +129,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             using Winshell;
             using static Microsoft.UI.Reactor.Factories;
 
-            namespace PackedShell;
+            namespace MyShell;
 
             public sealed class Placements : Component
             {
@@ -166,7 +166,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         });
     }
 
-    private string CopyTemplate(string folder)
+    private string CopyStarter(string folder)
     {
         foreach (var file in Directory.GetFiles(Path.GetDirectoryName(templates.SmallProject)!))
             File.Copy(file, Path.Combine(folder, Path.GetFileName(file)));
@@ -283,7 +283,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     }
 }
 
-/// <summary>One pack and one copy of the template, shared by the tests that use it.</summary>
+/// <summary>One library pack and one starter created by winshell new, shared by the tests that use them.</summary>
 // xUnit constructs this fixture through IClassFixture; the test project never calls new.
 public sealed class PackedTemplates : IDisposable
 {
@@ -309,15 +309,8 @@ public sealed class PackedTemplates : IDisposable
 
         var library = Path.Combine(packages, $"Winshell.{Version}.nupkg");
         AssertPackage(library, Version);
-        var templates = Path.Combine(packages, $"Winshell.Templates.{Version}.nupkg");
-        Assert.True(File.Exists(templates), $"No template package at {templates}");
-
-        // A hive of the run's own keeps the templates out of the developer's. A DOTNET_CLI_HOME of its own would too, but
-        // the SDK's first run in a new home appends that home's tools folder to the user PATH.
-        var hive = Path.Combine(_work, "hive");
-        var install = DotnetNew(hive, "install", templates);
-        install.AssertExitCode(0);
-        SmallProject = Instantiate(hive, packages, "winshell");
+        Assert.Equal([library], Directory.GetFiles(packages, "*.nupkg"));
+        SmallProject = Instantiate(packages);
     }
 
     public string Version { get; }
@@ -351,12 +344,17 @@ public sealed class PackedTemplates : IDisposable
             }
     }
 
-    private string Instantiate(string hive, string packages, string template)
+    private string Instantiate(string packages)
     {
-        var folder = Path.Combine(_work, template);
-        var created = DotnetNew(hive, template, "-n", "PackedShell", "-o", folder);
+        var folder = Path.Combine(_work, "starter");
+        var created = WinshellCli.Run(["new", "starter", "-p", folder]);
         created.AssertExitCode(0);
         var project = Assert.Single(Directory.GetFiles(folder, "*.csproj"));
+        // The CLI copies this release's starter. Only the package version changes so NuGet cannot reuse an old test pack.
+        var document = XDocument.Load(project);
+        document.Descendants("PackageReference").Single(reference =>
+            reference.Attribute("Include")!.Value == "Winshell").SetAttributeValue("Version", Version);
+        document.Save(project);
         File.WriteAllText(Path.Combine(folder, "nuget.config"), $"""
                                                                  <?xml version="1.0" encoding="utf-8"?>
                                                                  <configuration>
@@ -368,17 +366,6 @@ public sealed class PackedTemplates : IDisposable
                                                                  </configuration>
                                                                  """);
         return project;
-    }
-
-    private static ChildProcess DotnetNew(string hive, params string[] args)
-    {
-        var start = new ProcessStartInfo("dotnet");
-        start.ArgumentList.Add("new");
-        foreach (var arg in args)
-            start.ArgumentList.Add(arg);
-        start.ArgumentList.Add("--debug:custom-hive");
-        start.ArgumentList.Add(hive);
-        return ChildProcess.Run(start, TimeSpan.FromMinutes(5));
     }
 
     private static void AssertPackage(string nupkg, string version)

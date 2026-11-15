@@ -93,7 +93,7 @@ public sealed partial class NewCommandTests : IDisposable
     }
 
     [Fact]
-    public void The_starter_gets_this_release_and_leaves_its_dotnet_new_settings_behind()
+    public void The_starter_gets_this_release_in_the_requested_folder()
     {
         var target = Path.Combine(_root.Path, "else where");
 
@@ -105,7 +105,6 @@ public sealed partial class NewCommandTests : IDisposable
         var package =
             Assert.Single(XDocument.Load(Path.Combine(target, "MyShell.csproj")).Descendants("PackageReference"));
         Assert.Equal(Version, (string?)package.Attribute("Version"));
-        Assert.False(Directory.Exists(Path.Combine(target, ".template.config")));
         Assert.False(Directory.Exists(ConfigRoot));
     }
 

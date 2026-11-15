@@ -13,9 +13,6 @@
   <Folder Name="/docs/">
     <Project Path="docs/samples/message-widget/MessageWidget.csproj" />
   </Folder>
-  <Folder Name="/templates/">
-    <Project Path="templates/Winshell.Templates.csproj" />
-  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Winshell.Architecture.Tests/Winshell.Architecture.Tests.csproj" />
     <Project Path="tests/Winshell.Core.Tests/Winshell.Core.Tests.csproj" />

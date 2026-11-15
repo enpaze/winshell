@@ -6,7 +6,7 @@ using System.Xml.Linq;
 namespace Winshell;
 
 /// <summary>
-/// A configuration <c>winshell new</c> can copy: the <c>dotnet new</c> starter, or a folder under <c>examples</c>. Each
+/// A configuration <c>winshell new</c> can copy: the starter, or a folder under <c>examples</c>. Each
 /// is built into winshell.exe, so it is always this release's.
 /// </summary>
 internal sealed class Example

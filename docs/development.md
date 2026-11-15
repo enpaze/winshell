@@ -78,7 +78,7 @@ dotnet run --project src/Winshell -- kill -i <id>
 
 - The original template project keeps its package reference and version placeholder.
 - The full local check runs this command. CI runs it with the Shell suite's build, along with the solution's example and documentation sample projects and the reference generator's program entry point. All remain required through `ci`.
-- Packed-template and live UI validation remain separate checks.
+- Validation against the packed library and live UI validation remain separate checks.
 
 ## Run one test
 
@@ -117,7 +117,7 @@ windowrule = ignore, exe:(winshell|winshellw|Winshell\..*Tests|Probe|Dev)\.exe
 
 `winshell inspect` is how to verify a visual change. It reads a running shell from inside, so its `tree`, `screenshot`, `record`, `click` and `hover` need no mouse and no keyboard, and they do not move the user's pointer or focus.
 
-Winshell has no shell of its own, so run one that shows the change: a project made with `dotnet new winshell`, as the [configuration guide](configuration.md#create-one) shows, with the change in it. A test can start the probe shell in `tests/Winshell.Tests/ProbeShell.cs` instead. Run it under "Live UI with Winland running", with private `WINSHELL_CONFIG_DIR` and `WINSHELL_LOCAL_DIR`, and pass `--pid`:
+Winshell has no shell of its own, so run one that shows the change: a project made with `winshell new starter`, as the [configuration guide](configuration.md#create-one) shows, with the change in it. A test can start the probe shell in `tests/Winshell.Tests/ProbeShell.cs` instead. Run it under "Live UI with Winland running", with private `WINSHELL_CONFIG_DIR` and `WINSHELL_LOCAL_DIR`, and pass `--pid`:
 
 ```powershell
 winshell run -d -p .\MyShell                                  # build and start the shell
@@ -192,7 +192,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | `pwsh -NoProfile scripts/build-template.ps1` | Compiles the template against the current source libraries. See [The template build](#the-template-build). |
 | `dotnet run scripts/generate-reference.cs` | Builds `Winshell.Shell`, `Winshell.Services` and `Winshell.Core`, then writes `docs/reference/winshell*.md` from their public types and `///` comments. Each page keeps what is above its `<!-- generated below -->` line. Commit the pages after changing a public member; `DocsTests` fails when a page is not what this writes. |
 | `dotnet run scripts/render-logo.cs` | Renders `packaging/logo.svg` into the package's PNGs (the manifest sizes, their scale-125, scale-150, and scale-200 variants, and the unplated target sizes), the Store listing's PNG, and `packaging/winshell.ico`. Commit them after changing the logo. |
-| `pwsh scripts/pack.ps1` | Packs the `Winshell` library and the `Winshell.Templates` package. See [Pack the library and the template](#pack-the-library-and-the-template). |
+| `pwsh scripts/pack.ps1` | Packs the `Winshell` library. See [Pack the library](#pack-the-library). |
 | `pwsh scripts/package.ps1` | Builds what a release ships, then checks it. See [Package a release](#package-a-release). |
 | `pwsh scripts/publish-release.ps1 -Tag v1.2.3 -PackageDirectory <packages> -Repository enpaze/winshell` | Normally called by CI: uploads the six required files to an existing draft, verifies GitHub's digests, then publishes it. Requires an authenticated `gh`. Refuses an incomplete published release, never replaces an existing asset, and leaves a failed upload/verification as a draft. Use only for an approved release. |
 | `pwsh scripts/install.ps1` | Installs the portable build for the current user from a GitHub release. See [The install scripts](#the-install-scripts). |
@@ -209,7 +209,7 @@ It opens no windows, so any number of agents can run it at once, one per worktre
 | --- | --- |
 | `-Tier Tests` | The default. |
 | `-Tier Docs` | Selects only `DocsTests`. |
-| `-Tier Package` | Selects only the packed shell deployment tests (`Category=Package`), which the default leaves out: it packs the library and the template, builds a shell from it and runs it. |
+| `-Tier Package` | Selects only the packed shell deployment tests (`Category=Package`), which the default leaves out: it packs the library, creates the starter with `winshell new`, builds it and runs it. |
 | `-Seed <seed>` | Replays the randomized .NET test order. |
 | `-NoBuild` | Uses an existing solution build. Template and reference-program compilation still run. |
 
@@ -232,14 +232,13 @@ Install the lychee, actionlint and zizmor versions named in [`scripts/tool-pins.
 - [actionlint](https://github.com/rhysd/actionlint/releases): extract the Windows archive for the pinned version and add the folder containing `actionlint.exe`.
 - [zizmor](https://github.com/zizmorcore/zizmor/releases): `uv tool install zizmor==<version>`, using the version in that file, then `uv tool update-shell` if its executable folder is not on PATH. This setup command needs [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
-### Pack the library and the template
+### Pack the library
 
-`pwsh scripts/pack.ps1` packs the `Winshell` library a configuration references, and the `Winshell.Templates` package, into `artifacts/packages/`.
+`pwsh scripts/pack.ps1` packs the `Winshell` library a shell project references into `artifacts/packages/`.
 
 - **The library** carries `Winshell.Native`, `Winshell.Core`, `Winshell.Services` and `Winshell.Shell`, and depends on `Microsoft.WindowsAppSDK.WinUI`, `Microsoft.WindowsAppSDK.Foundation`, `Microsoft.WindowsAppSDK.Runtime` and `Microsoft.UI.Reactor` at the versions in `Directory.Packages.props`. Runtime is pinned to the same Windows App SDK version as WinUI: Reactor's minimum is older, and that older package rejects a newer WinUI. CsWin32 generates Native's declarations at build time and is not a package consumer dependency.
-- **The template package** is `dotnet new winshell`, the starter: a bar with a clock and a battery. The template references only `Winshell` and gets WindowsAppSDK through it.
-- **Neither package is published to a feed.** `scripts/package.ps1` puts the library in each release.
-- The Package workflow runs the `Category=Package` tests, which call `scripts/pack.ps1`.
+- **The library is not published to a feed.** `scripts/package.ps1` puts the library in each release.
+- The Package workflow runs the `Category=Package` tests, which call `scripts/pack.ps1`, create the starter with `winshell new` and build and run it against that library.
 - `-Out` chooses the folder, and `-Version` overrides the release from `.release-please-manifest.json`.
 
 ### Package a release
@@ -554,7 +553,7 @@ To submit a release:
 │   ├── signpath/                    # The artifact configuration SignPath signs releases with
 │   └── store/                       # The Store listing text and its app tile
 ├── scripts/                         # Check, test, pack, package, install and release scripts; docs/development.md lists them
-├── templates/                       # dotnet new winshell
+├── templates/                       # Starter sources copied by winshell new
 ├── src/
 │   ├── Winshell/                    # winshell.exe: the CLI, which builds and supervises a configuration
 │   ├── Winshell.Native/             # Win32/COM declarations, unsafe interop and the safe operations over them
@@ -568,7 +567,7 @@ To submit a release:
 │   ├── Winshell.Services.Tests/     # The services; only the category Window opens a window
 │   ├── Winshell.Shell.Tests/        # A real shell and the event-loop contract; only the category Window opens a window
 │   ├── Winshell.Tests/              # Runs winshell.exe instances side by side; only the category Window opens a window
-│   ├── Winshell.Package.Tests/      # Packs the template and runs its shell; Category=Package, left out of the main run
+│   ├── Winshell.Package.Tests/      # Packs the library and runs the starter from winshell new; Category=Package, left out of the main run
 │   ├── Scripts/                     # PowerShell tooling tests and their fixtures
 │   ├── TestSupport/                 # Source files every test project links instead of copying
 │   └── Directory.Build.props        # What every test project shares

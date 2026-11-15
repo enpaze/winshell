@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <!-- Windows 11 22H2 is the oldest Windows Winshell runs on. SupportedOSPlatformVersion defaults to this platform
-         version. A project that targets another framework, as the template package does, sets its own. -->
+         version. -->
     <TargetFramework>net11.0-windows10.0.22621.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

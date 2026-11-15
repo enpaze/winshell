@@ -60,4 +60,4 @@ Not for pasting. Registry virtualization stays off because the shell reads the u
 ## Images
 
 - App tile icon (300×300): `packaging/store/logo-300.png`
-- Screenshots: at least one desktop screenshot, 1366×768 or larger, PNG. Take them of a shell made with `dotnet new winshell` on a real desktop.
+- Screenshots: at least one desktop screenshot, 1366×768 or larger, PNG. Take them of a shell made with `winshell new starter` on a real desktop.
