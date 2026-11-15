@@ -7,20 +7,10 @@ using System.Xml.Linq;
 namespace Winshell;
 
 /// <summary>
-/// What a command printed and how it ended. <see cref="Output"/> is both streams, in the order they arrived.
-/// <see cref="StandardOutput"/> and <see cref="Error"/> keep them apart for a tool whose stdout is data.
+/// What a command printed and how it ended. <see cref="Output"/> is both streams, in the order they arrived. When the
+/// program could not be started, it is <see cref="ConfigurationProject.NeedsSdk"/>.
 /// </summary>
-internal sealed record CommandResult(int ExitCode, string Output)
-{
-    /// <summary>Standard output alone. It is also part of <see cref="Output"/>.</summary>
-    public string StandardOutput { get; init; } = "";
-
-    /// <summary>Standard error alone. It is also part of <see cref="Output"/>.</summary>
-    public string Error { get; init; } = "";
-
-    /// <summary>The program could not be started. <see cref="Output"/> is then <see cref="ConfigurationProject.NeedsSdk"/>.</summary>
-    public bool Missing { get; init; }
-}
+internal sealed record CommandResult(int ExitCode, string Output);
 
 /// <summary>Runs a program in a folder and waits for it. Tests replace this, so most of them build nothing.</summary>
 internal delegate CommandResult RunProcess(string file, IReadOnlyList<string> arguments, string folder);
@@ -355,16 +345,6 @@ internal sealed partial class ConfigurationProject
     /// </summary>
     public static CommandResult Run(string file, IReadOnlyList<string> arguments, string folder)
     {
-        return Run(file, arguments, folder, null);
-    }
-
-    /// <summary>
-    /// Runs a program as <see cref="Run(string, IReadOnlyList{string}, string)"/> does.
-    /// <paramref name="environment"/> replaces variables for this run, so a caller can keep git and dotnet from prompting.
-    /// </summary>
-    public static CommandResult Run(string file, IReadOnlyList<string> arguments, string folder,
-        IReadOnlyDictionary<string, string>? environment)
-    {
         var start = new ProcessStartInfo(file)
         {
             WorkingDirectory = folder,
@@ -373,29 +353,18 @@ internal sealed partial class ConfigurationProject
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
-        if (environment is not null)
-        {
-            foreach (var (key, value) in environment)
-                start.Environment[key] = value;
-        }
-
         foreach (var argument in arguments)
             start.ArgumentList.Add(argument);
         var lines = new List<string>();
-        var output = new List<string>();
-        var error = new List<string>();
         var gate = new object();
 
-        Thread Read(StreamReader stream, List<string> into)
+        Thread Read(StreamReader stream)
         {
             var reader = new Thread(() =>
                 {
                     while (stream.ReadLine() is { } line)
                         lock (gate)
-                        {
                             lines.Add(line);
-                            into.Add(line);
-                        }
                 })
             { IsBackground = true };
             reader.Start();
@@ -406,7 +375,7 @@ internal sealed partial class ConfigurationProject
         {
             // Not disposed: a reader may still be waiting on a stream that a build server holds.
             var process = Process.Start(start)!;
-            Thread[] readers = [Read(process.StandardOutput, output), Read(process.StandardError, error)];
+            Thread[] readers = [Read(process.StandardOutput), Read(process.StandardError)];
             if (!process.WaitForExit(BuildLimit))
             {
                 process.Kill(true);
@@ -417,62 +386,32 @@ internal sealed partial class ConfigurationProject
             foreach (var reader in readers)
                 reader.Join(StreamLimit);
             lock (gate)
-            {
-                return new CommandResult(process.ExitCode, string.Join('\n', lines))
-                {
-                    StandardOutput = string.Join('\n', output),
-                    Error = string.Join('\n', error)
-                };
-            }
+                return new CommandResult(process.ExitCode, string.Join('\n', lines));
         }
         catch (Win32Exception)
         {
-            return new CommandResult(-1, NeedsSdk) { Missing = true };
+            return new CommandResult(-1, NeedsSdk);
         }
     }
 
-    /// <summary>
-    /// Builds the project. <paramref name="output"/> replaces the usual folder, and a running program is left where it
-    /// is. <paramref name="widgetsFile"/> is passed as <paramref name="widgetsProperty"/>, and that build does not
-    /// restore: the caller restored against an empty record first, so a restore would hand the staged file to the
-    /// widget library.
-    /// </summary>
-    internal string? Build(RunProcess run, string? output = null, string? widgetsProperty = null,
-        string? widgetsFile = null)
+    /// <summary>Builds the project into its output folder, or beside it while the program there is running.</summary>
+    private string? Build(RunProcess run)
     {
-        string destination;
-        string? parked = null;
-        if (output is null)
+        // A running program keeps its files open. Windows will not replace those, and a build then waits on them
+        // until it gives up. Renaming the folder lets the build write the new program. A WinUI program also keeps the
+        // folder itself open, so the rename fails and the build goes in the folder beside it.
+        var destination = OutputFolder;
+        var parked = Park(destination);
+        if (parked is null && Directory.Exists(destination))
         {
-            // A running program keeps its files open. Windows will not replace those, and a build then waits on them
-            // until it gives up. Renaming the folder lets the build write the new program. A WinUI program also keeps the
-            // folder itself open, so the rename fails and the build goes in the folder beside it.
-            destination = OutputFolder;
+            destination = BesideFolder;
             parked = Park(destination);
             if (parked is null && Directory.Exists(destination))
-            {
-                destination = BesideFolder;
-                parked = Park(destination);
-                if (parked is null && Directory.Exists(destination))
-                    return $"{Name} is running, and the build could not write a new program beside it.";
-            }
-        }
-        else
-        {
-            destination = output;
+                return $"{Name} is running, and the build could not write a new program beside it.";
         }
 
-        List<string> arguments = ["build", ProjectFile, "-c", "Release", "-o", destination];
-        if (widgetsProperty is not null && widgetsFile is not null)
-        {
-            arguments.Add("-p:" + widgetsProperty + "=" + widgetsFile);
-            arguments.Add("--no-restore");
-        }
-
-        arguments.Add("--nologo");
-        arguments.Add("-v");
-        arguments.Add("q");
-        var result = run("dotnet", arguments, Folder);
+        var result = run("dotnet", ["build", ProjectFile, "-c", "Release", "-o", destination, "--nologo", "-v", "q"],
+            Folder);
         if (result.ExitCode == 0)
         {
             QuietDelete(parked);

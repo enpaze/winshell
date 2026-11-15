@@ -89,7 +89,6 @@ internal static class CliParser
         Share(DoctorCommand.Entry),
         Share(NewCommand.Entry),
         Share(UseCommand.Entry),
-        Share(WidgetCommand.Entry),
         Share(HelpEntry)
     ];
 

@@ -7,7 +7,7 @@ $script:TrxNamespace = 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'
 # true on the shard that also compiles the template, the samples, the reference program and the logo. Each test project
 # writes one results file, so ProjectCount is how many to expect.
 function Get-TestRun {
-    param([ValidateSet('Tests', 'Docs', 'Package')][string] $Tier = 'Tests', [ValidateRange(0, 5)][int] $Shard = 0)
+    param([ValidateSet('Tests', 'Docs', 'Package')][string] $Tier = 'Tests', [ValidateRange(0, 4)][int] $Shard = 0)
     $run = switch ($Tier) {
         'Docs' { @{ Project = 'tests\Winshell.Shell.Tests'; Filter = 'FullyQualifiedName~Winshell.ShellTests.DocsTests' } }
         'Package' { @{ Project = 'tests\Winshell.Package.Tests'; Filter = 'Category=Package' } }
@@ -24,7 +24,7 @@ function Get-TestRun {
             # A new test project automatically joins that worker instead of silently disappearing from CI.
             $run.Projects = @($projects | Where-Object {
                 $owner = switch ([IO.Path]::GetFileNameWithoutExtension($_)) {
-                    'Winshell.Tests' { if ($Shard -eq 5) { 5 } else { 1 } }
+                    'Winshell.Tests' { 1 }
                     'Winshell.Shell.Tests' { 2 }
                     'Winshell.Services.Tests' { 3 }
                     default { 4 }
@@ -33,10 +33,6 @@ function Get-TestRun {
             })
             if ($run.Projects.Count -eq 0) { throw "Test shard $Shard has no projects." }
             $run.ProjectCount = $run.Projects.Count
-            # A new CLI class stays on the first worker. Tests in the category Widget run real git and builds;
-            # keep them off the desktop that dev and reload use to compile their shells.
-            if ($Shard -eq 1) { $run.Filter += '&Category!=Widget' }
-            if ($Shard -eq 5) { $run.Filter += '&Category=Widget' }
             # The Shell tests already build the Shell libraries. CI asks this instead of naming the shard.
             $run.CompileTemplateSamplesReferenceAndLogo = @($run.Projects | Where-Object {
                 [IO.Path]::GetFileNameWithoutExtension($_) -eq 'Winshell.Shell.Tests'
@@ -106,7 +102,7 @@ function Invoke-TestRun {
     param(
         [ValidateSet('Tests', 'Docs', 'Package')][string] $Tier = 'Tests',
         [int] $Seed = 0,
-        [ValidateRange(0, 5)][int] $Shard = 0,
+        [ValidateRange(0, 4)][int] $Shard = 0,
         [string] $ResultsDirectory
     )
     if ($Seed -eq 0) { $Seed = Get-Random -Minimum 1 -Maximum ([int]::MaxValue) }

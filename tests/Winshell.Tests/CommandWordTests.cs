@@ -12,6 +12,7 @@ public class CommandWordTests
     [InlineData("-v foo bar", "foo")]
     [InlineData("msg notes add", "msg")]
     [InlineData("foo --help", "foo")]
+    [InlineData("widget install enpaze/widgets", "widget")]
     public void An_unknown_command_is_named_even_with_words_after_it(string line, string word)
     {
         var e = Assert.Throws<ArgumentException>(() => CliParser.Parse(line.Split(' ')));

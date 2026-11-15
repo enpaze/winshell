@@ -64,28 +64,22 @@ Describe 'Choosing tests' {
             $routed = @(foreach ($shard in 1..4) { (Get-TestRun -Shard $shard).Projects })
             ($routed | Sort-Object) | Should -Be ($script:Projects | Sort-Object)
             (Get-TestRun -Shard 4).ProjectCount | Should -Be 2
-            (Get-TestRun -Shard 5).Projects | Should -Be @('tests/Winshell.Tests/Winshell.Tests.csproj')
-            foreach ($shard in 1..5) { (Get-TestRun -Shard $shard).Filter | Should -Not -Match 'Category!=Window' }
+            (Get-TestRun -Shard 1).Projects | Should -Be @('tests/Winshell.Tests/Winshell.Tests.csproj')
+            foreach ($shard in 1..4) { (Get-TestRun -Shard $shard).Filter | Should -Not -Match 'Category!=Window' }
+            { Get-TestRun -Shard 5 } | Should -Throw
         } finally { $script:Root = $root }
     }
 
-    # The category is on the class before the filter selects it, so those tests stay on the fifth shard.
-    It 'keeps widget tests on the fifth shard by category and compiles the template, samples, reference and logo with the Shell worker' {
+    It 'gives every shard the same filter and compiles the template, samples, reference and logo with the Shell worker' {
         $root = $script:Root
         $script:Root = $TestDrive
         try {
             Set-WinshellSolution
-            (Get-TestRun -Shard 1).Filter | Should -Be 'Category!=Package&Category!=Widget'
-            (Get-TestRun -Shard 5).Filter | Should -Be 'Category!=Package&Category=Widget'
-            foreach ($shard in 2..4) { (Get-TestRun -Shard $shard).Filter | Should -Be 'Category!=Package' }
+            foreach ($shard in 1..4) { (Get-TestRun -Shard $shard).Filter | Should -Be 'Category!=Package' }
             (Get-TestRun -Shard 2).CompileTemplateSamplesReferenceAndLogo | Should -BeTrue
-            foreach ($shard in @(0, 1, 3, 4, 5)) { (Get-TestRun -Shard $shard).CompileTemplateSamplesReferenceAndLogo | Should -BeFalse }
+            foreach ($shard in @(0, 1, 3, 4)) { (Get-TestRun -Shard $shard).CompileTemplateSamplesReferenceAndLogo | Should -BeFalse }
         } finally { $script:Root = $root }
 
-        $tests = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../Winshell.Tests/WidgetCommandTests.cs')
-        $tests | Should -Match '\[Trait\("Category", "Widget"\)\]'
-        $runner = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../scripts/lib/Tests.ps1')
-        $runner | Should -Not -Match 'WidgetCommandTests'
         $ci = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../.github/workflows/ci.yml')
         $ci | Should -Match '\$testRun\.CompileTemplateSamplesReferenceAndLogo'
         $ci | Should -Not -Match "TEST_SHARD -eq '2'"
