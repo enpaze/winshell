@@ -6,7 +6,7 @@ namespace Winshell;
 /// The control pipe's ops: each one's name, the shape of its arguments, and whether it must reach a shell of another
 /// release. The requests are built here and read here, so the CLI that sends one and the shell that handles it cannot
 /// disagree. <c>call</c>, <c>show</c>, <c>prop</c>, <c>wait</c> and <c>listen</c> pass through what a user types, so
-/// the module gives them a name and a request, and no more.
+/// the module gives them a name and a request, and no more. A user types <c>prop</c> as <c>ipc get</c>.
 /// </summary>
 internal static class IpcOps
 {

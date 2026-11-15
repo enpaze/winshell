@@ -242,8 +242,7 @@ internal static class CliParser
             throw new ArgumentException(
                 $"Unknown {command.Name} command \"{name}\". Run winshell {command.Name} --help.");
         var words = positional.Count - 1;
-        var wrongWord = match.FirstWord is { } required && (words < 1 || positional[1] != required);
-        if (wrongWord || words < match.MinWords)
+        if (words < match.MinWords)
             throw new ArgumentException($"winshell {command.Name} {name} needs {match.Missing}.");
         if (match.MaxWords is int most && words > most)
             throw Unexpected(positional[most + 1]);

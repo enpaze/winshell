@@ -23,6 +23,7 @@ public class CommandWordTests
     [Theory]
     [InlineData("ipc bogus", "Unknown ipc command \"bogus\". Run winshell ipc --help.")]
     [InlineData("ipc bogus target func", "Unknown ipc command \"bogus\". Run winshell ipc --help.")]
+    [InlineData("ipc prop get notes count", "Unknown ipc command \"prop\". Run winshell ipc --help.")]
     [InlineData("inspect bogus", "Unknown inspect command \"bogus\". Run winshell inspect --help.")]
     public void An_unknown_subcommand_is_named(string line, string message)
     {
@@ -36,9 +37,8 @@ public class CommandWordTests
     [InlineData("inspect", "winshell inspect needs a command. Run winshell inspect --help.")]
     [InlineData("ipc call", "winshell ipc call needs a target and a function.")]
     [InlineData("ipc call notes", "winshell ipc call needs a target and a function.")]
-    [InlineData("ipc prop notes", "winshell ipc prop needs \"get\", a target and a property.")]
-    [InlineData("ipc prop get notes", "winshell ipc prop needs \"get\", a target and a property.")]
-    [InlineData("ipc prop set notes count", "winshell ipc prop needs \"get\", a target and a property.")]
+    [InlineData("ipc get", "winshell ipc get needs a target and a property.")]
+    [InlineData("ipc get notes", "winshell ipc get needs a target and a property.")]
     [InlineData("ipc wait notes", "winshell ipc wait needs a target and a signal.")]
     [InlineData("ipc listen", "winshell ipc listen needs a target and a signal.")]
     [InlineData("inspect screenshot", "winshell inspect screenshot needs a file.")]
@@ -55,7 +55,7 @@ public class CommandWordTests
     [Theory]
     [InlineData("ipc show")]
     [InlineData("ipc call notes add")]
-    [InlineData("ipc prop get notes count")]
+    [InlineData("ipc get notes count")]
     [InlineData("ipc listen notes changed")]
     [InlineData("inspect tree")]
     [InlineData("inspect screenshot out.png")]

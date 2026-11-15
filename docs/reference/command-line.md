@@ -16,7 +16,7 @@ winshell dev [-c <name> | -p <path>]
 winshell log [-f] [-t N] [file]     print an instance's log
 winshell ipc show [-j]              list IPC targets
 winshell ipc call <target> <function> [args...]
-winshell ipc prop get <target> <property>
+winshell ipc get <target> <property>
 winshell ipc wait <target> <signal>
 winshell ipc listen <target> <signal>
 winshell inspect tree | screenshot <file> | record <file.mp4> --for <time>
@@ -88,7 +88,7 @@ Any other option is an error, and exits with code 2. An option winshell does not
 | `winshell log` | Prints an instance's log. `-i`, `--pid`, `-p` and `-c` can also name a stopped instance. With no selector and no instance running, it prints the log of the newest stopped one and says so on stderr. A selector that matches nothing is an error. `-t`, `--tail <n>` prints the last `n` lines; `-f`, `--follow` keeps printing new lines until you press Ctrl+C. `winshell log <file>` prints that file. |
 | `winshell ipc show` | Lists the instance's IPC targets with their functions, properties and signals. `-j`, `--json` prints that list as JSON. The shape is under [JSON](#json). |
 | `winshell ipc call <target> <function> [args...]` | Calls a function registered with [`ShellIpc.Handle`](winshell.md#shellipc) and prints what it returns. |
-| `winshell ipc prop get <target> <property>` | Prints a property registered with `ShellIpc.Property`. |
+| `winshell ipc get <target> <property>` | Prints a property registered with `ShellIpc.Property`. |
 | `winshell ipc wait <target> <signal>` | Waits for a signal once and prints its first argument. |
 | `winshell ipc listen <target> <signal>` | Prints the first argument of each signal until you press Ctrl+C. |
 | `winshell inspect tree` | Prints each open window of an instance as JSON: its kind, place and size, and its live XAML tree, with each element's type, `x:Name`, automation id and name, position in the window, size and what it holds, such as `text`, `value`, `on`, `checked` or `selectedIndex`. What the window's open flyouts and menus show is under `popups`, each placed from its own corner. A password is left out. |
@@ -151,7 +151,7 @@ The array does not include `processStart` or `exitedAt`. Those stay in `instance
 | --- | --- |
 | `target` | The target name. |
 | `functions` | The functions `ipc call` can reach. Each has `name`, `parameters` and `returns`. |
-| `properties` | The properties `ipc prop get` can read. Each has `name` and `type`. |
+| `properties` | The properties `ipc get` can read. Each has `name` and `type`. |
 | `signals` | The signals registered on the target. Each has `name` and `parameters`. |
 
 A parameter has `name` and `type`. `type` is null when the signal's parameter was declared without one.
