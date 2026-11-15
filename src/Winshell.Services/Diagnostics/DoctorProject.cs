@@ -5,7 +5,7 @@ internal static class DoctorProject
 {
     /// <summary>
     /// The checks of a project the caller found, or of none and <paramref name="problem"/>, why there is not one:
-    /// whether it was found, whether a file the build would run was downloaded, whether its program has been built,
+    /// whether it was found, whether its program has been built,
     /// and whether a build is needed. Nothing here runs MSBuild.
     /// </summary>
     internal static IReadOnlyList<DoctorCheck> Configuration(ConfigurationProject? project, string? problem)
@@ -13,7 +13,6 @@ internal static class DoctorProject
         return
         [
             Doctor.Guard("project", "Project", () => Project(project, problem)),
-            Doctor.Guard("downloaded", "Downloaded", () => Downloaded(project)),
             Doctor.Guard("built", "Built", () => Built(project)),
             Doctor.Guard("build", "Build", () => BuildNeeded(project))
         ];
@@ -29,18 +28,6 @@ internal static class DoctorProject
                 "No configuration project, so winshell run starts nothing.",
                 "Run winshell new to make one.");
         return new DoctorCheck("project", "Project", CheckStatus.Pass, project.ProjectFile);
-    }
-
-    private static DoctorCheck Downloaded(ConfigurationProject? project)
-    {
-        if (project is null)
-            return new DoctorCheck("downloaded", "Downloaded", CheckStatus.Pass, "No configuration project to check.");
-        if (project.Downloaded() is { } file)
-            return new DoctorCheck("downloaded", "Downloaded", CheckStatus.Fail,
-                $"{file} was downloaded from the internet, so Winshell does not build it. It would run as you.",
-                "If you trust it, unblock it: right-click it > Properties > Unblock, or run Unblock-File. Then save it, or start Winshell again.");
-        return new DoctorCheck("downloaded", "Downloaded", CheckStatus.Pass,
-            "Nothing the build would run was downloaded.");
     }
 
     private static DoctorCheck Built(ConfigurationProject? project)

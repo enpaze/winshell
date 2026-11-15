@@ -29,7 +29,7 @@ public sealed class DoctorConfigurationTests : IDisposable
     {
         var checks = Checks(Path.Combine(_root, "missing"));
 
-        Assert.Equal(["project", "downloaded", "built", "build"], checks.Select(c => c.Id));
+        Assert.Equal(["project", "built", "build"], checks.Select(c => c.Id));
         Assert.Equal(CheckStatus.Warn, checks[0].Status);
         Assert.Equal("No configuration project, so winshell run starts nothing.", checks[0].Message);
         Assert.Equal("Run winshell new to make one.", checks[0].Fix);
@@ -60,14 +60,12 @@ public sealed class DoctorConfigurationTests : IDisposable
 
         Assert.Equal(CheckStatus.Pass, checks[0].Status);
         Assert.Equal(file, checks[0].Message);
-        Assert.Equal(CheckStatus.Pass, checks[1].Status);
-        Assert.Equal("Nothing the build would run was downloaded.", checks[1].Message);
-        Assert.Equal(CheckStatus.Fail, checks[2].Status);
-        Assert.Equal("Mine has not been built.", checks[2].Message);
-        Assert.Equal("Run winshell run once to build it.", checks[2].Fix);
-        Assert.Equal(CheckStatus.Pass, checks[3].Status);
-        Assert.Equal("Nothing to compare until Mine is built.", checks[3].Message);
-        Assert.Null(checks[3].Fix);
+        Assert.Equal(CheckStatus.Fail, checks[1].Status);
+        Assert.Equal("Mine has not been built.", checks[1].Message);
+        Assert.Equal("Run winshell run once to build it.", checks[1].Fix);
+        Assert.Equal(CheckStatus.Pass, checks[2].Status);
+        Assert.Equal("Nothing to compare until Mine is built.", checks[2].Message);
+        Assert.Null(checks[2].Fix);
         Assert.Equal(before, Entries());
     }
 
@@ -83,36 +81,17 @@ public sealed class DoctorConfigurationTests : IDisposable
         File.SetLastWriteTimeUtc(program, Long.AddMinutes(1));
 
         var built = Checks(_root);
+        Assert.Equal(CheckStatus.Pass, built[1].Status);
+        Assert.Equal(program, built[1].Message);
         Assert.Equal(CheckStatus.Pass, built[2].Status);
-        Assert.Equal(program, built[2].Message);
-        Assert.Equal(CheckStatus.Pass, built[3].Status);
-        Assert.Equal("Mine is up to date.", built[3].Message);
+        Assert.Equal("Mine is up to date.", built[2].Message);
 
         var source = Project("Views\\Mine.xaml");
         File.SetLastWriteTimeUtc(source, Long.AddMinutes(2));
         var stale = Checks(_root);
-        Assert.Equal(CheckStatus.Pass, stale[2].Status);
-        Assert.Equal(CheckStatus.Warn, stale[3].Status);
-        Assert.Equal("A file in Mine is newer than the program.", stale[3].Message);
-    }
-
-    [Theory]
-    [InlineData("Mine.csproj")]
-    [InlineData("Directory.Build.props")]
-    public void A_downloaded_file_the_build_would_run_fails_and_is_not_built(string name)
-    {
-        Project("Mine.csproj");
-        var marked = Path.Combine(_root, name);
-        File.AppendAllText(marked, "");
-        File.WriteAllText(marked + ":Zone.Identifier", "[ZoneTransfer]\r\nZoneId=3\r\n");
-        var before = Entries();
-
-        var downloaded = Assert.Single(Checks(_root), c => c.Id == "downloaded");
-
-        Assert.Equal(CheckStatus.Fail, downloaded.Status);
-        Assert.StartsWith(marked + " was downloaded from the internet", downloaded.Message, StringComparison.Ordinal);
-        Assert.Contains("Unblock-File", downloaded.Fix, StringComparison.Ordinal);
-        Assert.Equal(before, Entries());
+        Assert.Equal(CheckStatus.Pass, stale[1].Status);
+        Assert.Equal(CheckStatus.Warn, stale[2].Status);
+        Assert.Equal("A file in Mine is newer than the program.", stale[2].Message);
     }
 
     /// <summary>

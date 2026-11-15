@@ -27,8 +27,7 @@ internal enum ConfigurationBuild
 
 /// <summary>
 /// A configuration on disk: the .NET project that defines a shell, and the program it builds into. Nothing here runs
-/// MSBuild outside a build, so <c>doctor</c> and a start with <c>--no-build</c> read the project as data. Building runs
-/// the project's own code, so a downloaded project is refused first.
+/// MSBuild outside a build, so <c>doctor</c> and a start with <c>--no-build</c> read the project as data.
 /// </summary>
 internal sealed partial class ConfigurationProject
 {
@@ -298,8 +297,6 @@ internal sealed partial class ConfigurationProject
     {
         try
         {
-            if (Blocked() is { } blocked)
-                return blocked;
             if (noBuild)
                 return File.Exists(Program) ? null : $"{Name} has not been built. Run winshell run once to build it.";
             return NeedsBuild() ? Build(run) : null;
@@ -318,24 +315,6 @@ internal sealed partial class ConfigurationProject
             return true;
         var built = File.GetLastWriteTimeUtc(program);
         return Sources(Folder).Any(source => File.GetLastWriteTimeUtc(source) > built);
-    }
-
-    /// <summary>
-    /// The first file MSBuild would run that came from the internet, or null. Beside the project that means its props
-    /// and targets as well, which run as much as the project does.
-    /// </summary>
-    public string? Downloaded()
-    {
-        return Directory.EnumerateFiles(Folder)
-            .Where(file => Path.GetExtension(file).ToUpperInvariant() is ".CSPROJ" or ".PROPS" or ".TARGETS")
-            .Order(StringComparer.Ordinal)
-            .FirstOrDefault(ZoneIdentifier.IsDownloaded);
-    }
-
-    /// <summary>What a person sees when <see cref="Downloaded"/> finds a file, or null when it finds none.</summary>
-    public string? Blocked()
-    {
-        return Downloaded() is { } file ? $"{file}: {ZoneIdentifier.Blocked(file)}" : null;
     }
 
     /// <summary>

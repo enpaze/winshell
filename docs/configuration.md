@@ -117,7 +117,6 @@ Change `{time:t}` in `Clock.cs` to `{time:T}` and save it, and the clock shows t
 When Winshell runs a configuration:
 
 - **Building.** Winshell builds to `bin\shell` in the project folder when a source is newer, then starts that program. `--no-build` runs the program the last build left, and does not build. A failed build does not start the last good build.
-- **A downloaded project is refused before any build.** Winshell looks for a `Zone.Identifier` stream on the `.csproj` and on `.props` and `.targets` beside it. Unblock the file (right-click > Properties > Unblock, or `Unblock-File`) if you trust it. `git clone` writes no zone, so it is not caught.
 - **A `winshell` and a shell of different releases refuse each other**, except `kill`. The message names both releases.
 
 ### From a clone

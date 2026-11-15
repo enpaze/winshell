@@ -23,7 +23,6 @@ Logs are in `%LOCALAPPDATA%\winshell\run\<instance id>\log.txt`. A shell that ex
 | `<name> did not build.` and `NU1101: Unable to find package Winshell` | The `Winshell` package is not published yet. Pack it and add a package source for it, as [Create one](configuration.md#create-one) shows. |
 | `<name> has not been built. Run winshell run once to build it.` | `--no-build` found no program in `bin\shell`. |
 | `Building a configuration needs the .NET SDK…` | A build needs the SDK. `--no-build` of a program that is already built does not. |
-| A file `was downloaded from the internet` | The `.csproj`, or a `.props` or `.targets` beside it, has a `Zone.Identifier` stream. Unblock it if you trust it. Nothing is built until then. |
 | Nothing, and it exits at once | There is no configuration, so there is nothing to run: make one as the [configuration guide](configuration.md#create-one) shows. Or `--no-duplicate` found this shell id already running, or a second start overlapped the first. `winshell list` shows the one that is running. |
 | `This shell is Winshell … and this winshell is …` | The CLI and the shell are different releases. Use the `winshell` that matches, or build the shell with this one. `kill` still works. |
 | `Unknown command "<name>". Run winshell --help.` | The first word isn't a command. Options start with `-`. |
