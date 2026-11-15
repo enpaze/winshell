@@ -57,167 +57,27 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     }
 
     [Fact(Timeout = PatienceMs)]
-    public void Widget_items_appear_for_each_name_including_case_and_escapes()
+    public void A_widget_item_is_ignored_and_generates_no_registration()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         using var folder = new TempFolder();
         var projectFile = CopyTemplate(folder.Path);
         var document = XDocument.Load(projectFile);
         document.Root!.Add(new XElement("ItemGroup",
-            new XElement("WinshellWidget", new XAttribute("Include", "first"),
-                new XAttribute("Type", "global::PackedShell.FirstWidget")),
-            new XElement("WinshellWidget", new XAttribute("Include", "First"),
-                new XAttribute("Type", "PackedShell.CapitalWidget")),
-            new XElement("WinshellWidget", new XAttribute("Include", "quote\"slash\\semi%3Bline%0Aend"),
-                new XAttribute("Type", "PackedShell.SecondWidget"))));
+            new XElement("WinshellWidget", new XAttribute("Include", "unused"),
+                new XAttribute("Type", "Missing.Widget()"))));
         document.Save(projectFile);
-        File.WriteAllText(Path.Combine(folder.Path, "AppShell.cs"), """
-            using Microsoft.UI.Reactor.Core;
-            using Microsoft.UI.Reactor.Hosting;
-            using Microsoft.UI.Xaml.Controls;
-            using Winshell;
-            using static Microsoft.UI.Reactor.Factories;
-            namespace PackedShell;
-            public sealed class Placements : Component
-            {
-                public override Element Render() =>
-                    Component<WidgetArea, WidgetAreaProps>(new WidgetAreaProps(Defaults:
-                    [
-                        new("first", new Dictionary<string, object> { ["value"] = "one" }),
-                        new("First", new Dictionary<string, object> { ["value"] = "three" }),
-                        new("quote\"slash\\semi;line\nend", new Dictionary<string, object> { ["value"] = "two" })
-                    ]));
-            }
-            public sealed class AppShell : ShellConfiguration
-            {
-                public override void Start(Shell shell)
-                {
-                    var host = new ReactorHostControl { ComponentFactory = () => new Placements() };
-                    var window = new PanelWindow { Width = 250, Height = 80, Content = host, Visible = true };
-                    window.Closed += host.Dispose;
-                }
-            }
-            public sealed class FirstWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
-            {
-                public override Microsoft.UI.Reactor.Core.Element Render() =>
-                    Microsoft.UI.Reactor.Factories.TextBlock("first:" + (string)Props.Settings["value"]);
-            }
-            public sealed class CapitalWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
-            {
-                public override Microsoft.UI.Reactor.Core.Element Render() =>
-                    Microsoft.UI.Reactor.Factories.TextBlock("First:" + (string)Props.Settings["value"]);
-            }
-            public sealed class SecondWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
-            {
-                public override Microsoft.UI.Reactor.Core.Element Render() =>
-                    Microsoft.UI.Reactor.Factories.TextBlock("second:" + (string)Props.Settings["value"]);
-            }
-            """);
-        var project = ConfigurationProject.Find(projectFile, null, folder.Path, out var error);
-        Assert.Null(error);
-        var why = project!.Prepare(false, ConfigurationProject.Run);
-        Assert.True(why is null, why);
-        var generated = Assert.Single(Directory.GetFiles(Path.Combine(folder.Path, "obj"),
-            "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
-        var written = File.GetLastWriteTimeUtc(generated);
-        var unchanged = ConfigurationProject.Run(
-            "dotnet", ["build", projectFile, "-c", "Release", "-warnaserror", "--nologo"], folder.Path);
-        Assert.True(unchanged.ExitCode == 0, unchanged.Output);
-        Assert.Equal(generated, Assert.Single(Directory.GetFiles(Path.Combine(folder.Path, "obj"),
-            "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories)));
-        Assert.Equal(written, File.GetLastWriteTimeUtc(generated));
 
-        Run(projectFile, (pid, environment) =>
-        {
-            ChildProcess? tree = null;
-            Wait.Until(() =>
-            {
-                tree = WinshellCli.Run(["inspect", "--pid", pid, "tree"], environment);
-                return tree.Code == 0 && tree.Output.Contains("second:two", StringComparison.Ordinal);
-            }, "the generated widget factories to populate the window");
-            Assert.Contains("first:one", tree!.Output, StringComparison.Ordinal);
-            Assert.Contains("First:three", tree.Output, StringComparison.Ordinal);
-            Assert.Contains("second:two", tree.Output, StringComparison.Ordinal);
-        });
-    }
-
-    [Theory(Timeout = PatienceMs)]
-    [InlineData("", false, "Type is required")]
-    [InlineData("PackedShell.FirstWidget", true, "duplicated")]
-    [InlineData("Bad.Type()", false, "must be a C# type name")]
-    [InlineData("Missing.Widget", false, "error CS")]
-    public void A_bad_widget_item_fails_the_build_and_names_the_item(string type, bool duplicate, string diagnostic)
-    {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        using var folder = new TempFolder();
-        var project = CopyTemplate(folder.Path);
-        var document = XDocument.Load(project);
-        var items = new XElement("ItemGroup",
-            new XElement("WinshellWidget", new XAttribute("Include", "bad-widget"), new XAttribute("Type", type)));
-        if (duplicate)
-            items.Add(new XElement(items.Elements().Single()));
-        document.Root!.Add(items);
-        document.Save(project);
-        var result = ConfigurationProject.Run("dotnet", ["build", project, "-warnaserror", "--nologo"], folder.Path);
-        Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains(diagnostic, result.Output, StringComparison.Ordinal);
-        if (diagnostic.StartsWith("error CS", StringComparison.Ordinal))
-        {
-            // The compiler cites the generated file. That line carries the item name and the type.
-            var generated = Assert.Single(Directory.GetFiles(Path.Combine(folder.Path, "obj"),
-                "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
-            var source = File.ReadAllText(generated);
-            Assert.Contains("WinshellWidgetRegistration.g.cs", result.Output, StringComparison.Ordinal);
-            Assert.Contains("\"bad-widget\"", source, StringComparison.Ordinal);
-            Assert.Contains(type, source, StringComparison.Ordinal);
-        }
-        else
-        {
-            Assert.Contains("bad-widget", result.Output, StringComparison.Ordinal);
-        }
-    }
-
-    [Fact(Timeout = PatienceMs)]
-    public void A_widget_item_builds_inside_a_git_repository()
-    {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        using var folder = new TempFolder();
-        var projectFile = CopyTemplate(folder.Path);
-        var document = XDocument.Load(projectFile);
-        document.Root!.Add(new XElement("ItemGroup",
-            new XElement("WinshellWidget", new XAttribute("Include", "repo-clock"),
-                new XAttribute("Type", "PackedShell.ClockWidget"))));
-        document.Save(projectFile);
-        File.WriteAllText(Path.Combine(folder.Path, "AppShell.cs"), """
-            using Microsoft.UI.Xaml.Controls;
-            using Winshell;
-            namespace PackedShell;
-            public sealed class AppShell : ShellConfiguration
-            {
-                public override void Start(Shell shell) { }
-            }
-            public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
-            {
-                public override Microsoft.UI.Reactor.Core.Element Render() =>
-                    Microsoft.UI.Reactor.Factories.TextBlock("clock");
-            }
-            """);
-        // SourceLink embeds the registration file when a repository ignores it, which is how a .NET checkout treats
-        // obj/. The other widget builds use a temp folder that is not a repository, so they never reach that failure.
-        File.WriteAllText(Path.Combine(folder.Path, ".gitignore"), "bin/\nobj/\n");
-        var git = ConfigurationProject.Run("git", ["init"], folder.Path);
-        Assert.True(git.ExitCode == 0, git.Output);
         var built = ConfigurationProject.Run(
             "dotnet", ["build", projectFile, "-c", "Release", "-warnaserror", "--nologo"], folder.Path);
+
         Assert.True(built.ExitCode == 0, built.Output);
-        var registration = File.ReadAllText(Assert.Single(Directory.GetFiles(Path.Combine(folder.Path, "obj"),
-            "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories)));
-        Assert.Contains("\"repo-clock\"", registration, StringComparison.Ordinal);
-        Assert.Contains("PackedShell.ClockWidget", registration, StringComparison.Ordinal);
+        Assert.Empty(Directory.GetFiles(Path.Combine(folder.Path, "obj"),
+            "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
     }
 
     [Fact(Timeout = PatienceMs)]
-    public void A_library_widget_the_project_lists_shows_in_an_area()
+    public void A_library_widget_registered_in_code_shows_in_an_area()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         using var root = new TempFolder();
@@ -244,9 +104,6 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
               <ItemGroup>
                 <PackageReference Include="Winshell" Version="{{version}}" />
               </ItemGroup>
-              <ItemGroup>
-                <WinshellWidget Include="library-clock" Type="WidgetLib.ClockWidget" />
-              </ItemGroup>
             </Project>
             """);
         File.WriteAllText(Path.Combine(libDir, "ClockWidget.cs"), """
@@ -263,9 +120,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             """);
         var shell = XDocument.Load(projectFile);
         shell.Root!.Add(new XElement("ItemGroup",
-            new XElement("ProjectReference", new XAttribute("Include", @"..\lib\WidgetLib.csproj")),
-            new XElement("WinshellWidget", new XAttribute("Include", "library-clock"),
-                new XAttribute("Type", "WidgetLib.ClockWidget"))));
+            new XElement("ProjectReference", new XAttribute("Include", @"..\lib\WidgetLib.csproj"))));
         shell.Save(projectFile);
         File.WriteAllText(Path.Combine(shellDir, "AppShell.cs"), """
             using Microsoft.UI.Reactor.Core;
@@ -287,6 +142,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             {
                 public override void Start(Shell shell)
                 {
+                    Widgets.Register<WidgetLib.ClockWidget>("library-clock");
                     var host = new ReactorHostControl { ComponentFactory = () => new Placements() };
                     var window = new PanelWindow { Width = 250, Height = 80, Content = host, Visible = true };
                     window.Closed += host.Dispose;
@@ -297,7 +153,6 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         var library = ConfigurationProject.Run(
             "dotnet", ["build", libProject, "-warnaserror", "--nologo"], libDir);
         Assert.True(library.ExitCode == 0, library.Output);
-        Assert.Empty(Directory.GetFiles(libDir, "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
 
         Run(projectFile, (pid, environment) =>
         {
@@ -309,11 +164,6 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             }, "the library's widget to populate the window");
             Assert.Contains("library:one", tree!.Output, StringComparison.Ordinal);
         });
-        var registration = File.ReadAllText(Assert.Single(Directory.GetFiles(
-            Path.Combine(shellDir, "obj"), "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories)));
-        Assert.Contains("\"library-clock\"", registration, StringComparison.Ordinal);
-        Assert.Contains("WidgetLib.ClockWidget", registration, StringComparison.Ordinal);
-        Assert.Empty(Directory.GetFiles(libDir, "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
     }
 
     private string CopyTemplate(string folder)
