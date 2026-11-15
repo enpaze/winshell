@@ -10,14 +10,14 @@ namespace Winshell;
 /// </summary>
 internal readonly struct DuplicateHold : IDisposable
 {
-    private readonly Mutex? _mutex;
+    private readonly HeldMutex _held;
 
-    private DuplicateHold(Mutex mutex)
+    private DuplicateHold(HeldMutex held)
     {
-        _mutex = mutex;
+        _held = held;
     }
 
-    public bool Acquired => _mutex is not null;
+    public bool Acquired => _held.Acquired;
 
     /// <summary>
     /// The mutex for a configuration's program, which is one shell by its shell id, wherever it was built. An id means
@@ -36,40 +36,22 @@ internal readonly struct DuplicateHold : IDisposable
     /// <summary>Claims the mutex of <paramref name="shellId"/>, unless a running instance already has that shell id.</summary>
     public static DuplicateHold TryClaim(ShellLocations locations, string shellId)
     {
-        var mutex = new Mutex(false, ShellMutexName(locations, shellId));
-        bool mine;
-        try
-        {
-            mine = mutex.WaitOne(0);
-        }
-        catch (AbandonedMutexException)
-        {
-            // The previous shell crashed while it held this. The wait succeeded and this start owns it.
-            mine = true;
-        }
-
-        if (!mine)
-        {
-            mutex.Dispose();
+        var held = HeldMutex.TryClaim(ShellMutexName(locations, shellId));
+        if (!held.Acquired)
             return default;
-        }
 
         if (locations.Instances.List(false)
             .Any(i => string.Equals(i.Info.ShellId, shellId, StringComparison.OrdinalIgnoreCase)))
         {
-            mutex.ReleaseMutex();
-            mutex.Dispose();
+            held.Dispose();
             return default;
         }
 
-        return new DuplicateHold(mutex);
+        return new DuplicateHold(held);
     }
 
     public void Dispose()
     {
-        if (_mutex is null)
-            return;
-        _mutex.ReleaseMutex();
-        _mutex.Dispose();
+        _held.Dispose();
     }
 }

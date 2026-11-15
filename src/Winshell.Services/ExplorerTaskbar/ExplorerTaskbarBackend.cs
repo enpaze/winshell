@@ -58,7 +58,7 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
                 TakeOver(adopted, hwnd, primary, autohide);
         }
 
-        Remember();
+        RecordLease();
     }
 
     public void Restore()
@@ -121,7 +121,7 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
             taken.WasVisible = wasVisible || taken.WasVisible;
     }
 
-    private void Remember()
+    private void RecordLease()
     {
         var locations = ShellLocations.Current;
         if (_saved.Count == 0)

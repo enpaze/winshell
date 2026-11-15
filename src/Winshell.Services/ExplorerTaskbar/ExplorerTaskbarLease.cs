@@ -1,5 +1,3 @@
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Winshell.Native;
@@ -37,7 +35,7 @@ internal static partial class ExplorerTaskbarLease
     {
         if (!TryRead(locations, out var lease))
             return hiddenAtStart;
-        if (lease.Owner == childPid || lease.Owner == 0 || !Alive(lease.Owner))
+        if (lease.Owner == childPid || lease.Owner == 0 || !Instances.ProcessAlive(lease.Owner))
             return false;
         return true;
     }
@@ -69,7 +67,7 @@ internal static partial class ExplorerTaskbarLease
     {
         if (!TryRead(locations, out var lease))
             return;
-        if (lease.Owner != 0 && lease.Owner != Environment.ProcessId && Alive(lease.Owner))
+        if (lease.Owner != 0 && lease.Owner != Environment.ProcessId && Instances.ProcessAlive(lease.Owner))
             return;
         Restore(locations, lease);
     }
@@ -168,21 +166,6 @@ internal static partial class ExplorerTaskbarLease
     private static string PathFor(ShellLocations locations)
     {
         return Path.Combine(locations.LocalRoot, FileName);
-    }
-
-    private static bool Alive(int pid)
-    {
-        if (pid == 0)
-            return false;
-        try
-        {
-            using var process = Process.GetProcessById(pid);
-            return !process.HasExited;
-        }
-        catch (Exception e) when (e is ArgumentException or InvalidOperationException or Win32Exception)
-        {
-            return false;
-        }
     }
 
     private static TaskbarWindowState FromSaved(ExplorerTaskbarWindow.Saved saved)

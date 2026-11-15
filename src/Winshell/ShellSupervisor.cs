@@ -1,6 +1,13 @@
 namespace Winshell;
 
 /// <summary>
+/// Whether a failed child must leave Explorer's taskbar hidden. <paramref name="childPid"/> is that child.
+/// <paramref name="hiddenAtStart"/> is whether a taskbar window was already hidden before the child started.
+/// True leaves the taskbar hidden.
+/// </summary>
+internal delegate bool LeaveTaskbar(int childPid, bool hiddenAtStart);
+
+/// <summary>
 /// Runs a shell in a child process and starts it again when it crashes. Exit code 0 is a stop that was asked for, such
 /// as <c>winshell kill</c>, a reload that handed over to a new process, Ctrl+C, or a duplicate that left.
 /// <see cref="InstanceStart.CouldNotStart"/> is a shell that could not start and said why, which a new start would only
@@ -10,15 +17,15 @@ namespace Winshell;
 /// starts again at once, however it exits, and counts its crashes from none, as the first did.
 /// </summary>
 /// <remarks>
-/// A shell that exits 0 has put Explorer's taskbar back, or left a lease for the shell that replaces it. After any
-/// other exit, the supervisor puts that lease back when this child owned it, had been handed it, or its owner has
-/// gone. A taskbar that was already hidden when the child started, and that this start did not take a lease for,
-/// stays hidden. Recovery deletes the lease, so the next child does not inherit it.
+/// A shell that exits 0 has put Explorer's taskbar back, or left the record of what it hid for the shell that
+/// replaces it. After any other exit, the supervisor puts that record back when this child owned it, had been handed
+/// it, or its owner has gone. A taskbar that was already hidden when the child started, and that this start did not
+/// record, stays hidden. Recovery deletes the record, so the next child does not inherit it.
 /// </remarks>
 internal sealed class ShellSupervisor(
     Func<IShellChild?> start,
     Func<bool> taskbarHidden,
-    Func<int, bool, bool> leaveTaskbar,
+    LeaveTaskbar leaveTaskbar,
     Action restoreTaskbar,
     TimeProvider time)
 {

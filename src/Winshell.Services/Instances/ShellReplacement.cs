@@ -5,7 +5,7 @@ namespace Winshell;
 
 /// <summary>
 /// Makes this process the one shell in its local folder. A shell that is already running there is asked to quit,
-/// and this one waits until it has. One that does not quit stays, and the start says why. The session mutex is held
+/// and this one waits until it has. One that does not quit stays, and the start says why. The one-shell hold is kept
 /// until this shell exits, so a start that has not published yet still counts.
 /// </summary>
 internal static class ShellReplacement
@@ -17,11 +17,11 @@ internal static class ShellReplacement
     private static readonly TimeSpan StartLimit = TimeSpan.FromSeconds(20);
 
     /// <summary>
-    /// The session, once every other shell has quit. <paramref name="blocked"/> is why this one must not start, and
-    /// the session then owns nothing. <paramref name="leaving"/> is a process this start is already taking over
+    /// The hold, once every other shell has quit. <paramref name="blocked"/> is why this one must not start, and
+    /// the hold then owns nothing. <paramref name="leaving"/> is a process this start is already taking over
     /// from, which is not asked again.
     /// </summary>
-    internal static SessionHold Claim(ShellLocations locations, int? leaving, out string? blocked)
+    internal static OneShellHold Claim(ShellLocations locations, int? leaving, out string? blocked)
     {
         var started = TimeProvider.System.GetTimestamp();
         while (true)
@@ -38,7 +38,7 @@ internal static class ShellReplacement
             if (Others(locations, leaving).Count > 0)
                 continue;
 
-            var hold = SessionHold.TryClaim(locations);
+            var hold = OneShellHold.TryClaim(locations);
             if (hold.Acquired)
             {
                 if (Others(locations, leaving).Count == 0)
@@ -53,7 +53,7 @@ internal static class ShellReplacement
 
             // A reload's previous process can still be letting go. It was already waited on, and it is not a reason
             // to refuse this start.
-            if (leaving is int pid && Running(pid))
+            if (leaving is int pid && Instances.ProcessAlive(pid))
             {
                 blocked = null;
                 return default;
@@ -145,16 +145,4 @@ internal static class ShellReplacement
         }
     }
 
-    private static bool Running(int pid)
-    {
-        try
-        {
-            using var process = Process.GetProcessById(pid);
-            return !process.HasExited;
-        }
-        catch (Exception e) when (e is ArgumentException or InvalidOperationException or Win32Exception)
-        {
-            return false;
-        }
-    }
 }

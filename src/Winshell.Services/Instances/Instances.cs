@@ -113,6 +113,24 @@ internal sealed class Instances(string folder)
     }
 
     /// <summary>
+    /// Whether a process with <paramref name="pid"/> is still running. A process that cannot be opened counts as gone.
+    /// </summary>
+    internal static bool ProcessAlive(int pid)
+    {
+        if (pid <= 0)
+            return false;
+        try
+        {
+            using var process = Process.GetProcessById(pid);
+            return !process.HasExited;
+        }
+        catch (Exception e) when (e is ArgumentException or InvalidOperationException or Win32Exception)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
     /// The instance has not exited and its process id still names the process that wrote it. A killed instance leaves
     /// its file for a day, and Windows can give that process id to the next shell.
     /// </summary>
