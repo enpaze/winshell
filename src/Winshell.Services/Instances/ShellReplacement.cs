@@ -107,6 +107,10 @@ internal static class ShellReplacement
         if (Exited(process))
             return null;
 
+        // The shell is still running, so a later crash must start it again.
+        if (!process.HasExited)
+            SupervisionStop.Withdraw(info.Pid);
+
         var why = reply switch
         {
             IpcFailure failure => failure.Sentence(info.Id),

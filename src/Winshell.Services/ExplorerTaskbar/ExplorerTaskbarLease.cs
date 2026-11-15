@@ -21,9 +21,9 @@ internal static partial class ExplorerTaskbarLease
     }
 
     /// <summary>
-    /// True when a crash of <paramref name="childPid"/> must leave the taskbar hidden.
-    /// <paramref name="hiddenAtStart"/> is whether a window was already hidden before that child started, which
-    /// belongs to another shell when this folder has no lease for the child.
+    /// True when a crash of <paramref name="childPid"/> must leave the taskbar hidden, including when that child
+    /// gave way to the shell that replaces it. <paramref name="hiddenAtStart"/> is whether a window was already
+    /// hidden before that child started, which belongs to another shell when this folder has no lease for the child.
     /// </summary>
     internal static bool LeaveHidden(int childPid, bool hiddenAtStart)
     {
@@ -35,7 +35,10 @@ internal static partial class ExplorerTaskbarLease
     {
         if (!TryRead(locations, out var lease))
             return hiddenAtStart;
-        if (lease.Owner == childPid || lease.Owner == 0 || !Instances.ProcessAlive(lease.Owner))
+        // No owner means the child gave way. The next shell puts the taskbar back.
+        if (lease.Owner == 0)
+            return true;
+        if (lease.Owner == childPid || !Instances.ProcessAlive(lease.Owner))
             return false;
         return true;
     }

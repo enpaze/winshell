@@ -18,9 +18,9 @@ internal delegate bool LeaveTaskbar(int childPid, bool hiddenAtStart);
 /// </summary>
 /// <remarks>
 /// A shell that exits 0 has put Explorer's taskbar back, or left the record of what it hid for the shell that
-/// replaces it. After any other exit, the supervisor puts that record back when this child owned it, had been handed
-/// it, or its owner has gone. A taskbar that was already hidden when the child started, and that this start did not
-/// record, stays hidden. Recovery deletes the record, so the next child does not inherit it.
+/// replaces it. After any other exit, the supervisor puts that record back when this child owned it or its owner has
+/// gone. A record left for the next shell stays hidden. A taskbar that was already hidden when the child started,
+/// and that this start did not record, stays hidden. Recovery deletes a record it puts back.
 /// </remarks>
 internal sealed class ShellSupervisor(
     Func<IShellChild?> start,

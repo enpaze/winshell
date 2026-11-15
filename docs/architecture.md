@@ -90,7 +90,7 @@ On the supervised path, the supervisor starts the last build at once, whatever t
 The supervisor owns Explorer taskbar recovery independently of the child. Recovery must run even if the shell cannot execute its cleanup.
 
 - **Restore the taskbar** after a child exits without its own cleanup, before waiting or respawning, after a launch failure, and when supervision stops. The record of the hidden taskbar the child left is the state to put back.
-- **Leave it** after a clean exit: the shell restored the taskbar, or left that record for the shell that replaces it. Also leave it when the taskbar was already hidden when a child started and no record names this start.
+- **Leave it** after a clean exit, and when a shell that gave way exits with any code: the record names no owner, so the next shell puts the taskbar back. Also leave it when the taskbar was already hidden when a child started and no record names this start.
 - **A new child acquires its own taskbar state.** Recovery deletes the record when it restores. A shell that replaces another adopts the record, so the taskbar stays hidden while the first shell quits and the next one starts, and comes back when the new shell exits.
 - **Verify recovery** across crashes, repeated failures and intentional shutdown.
 

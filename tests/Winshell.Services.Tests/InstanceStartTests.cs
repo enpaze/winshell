@@ -296,6 +296,7 @@ public sealed class InstanceStartTests
     public void A_running_shell_quits_before_the_next_one_starts()
     {
         using var other = Hold("running", out var control, out var loop, out var server, out var id);
+        using var asked = new EventWaitHandle(false, EventResetMode.ManualReset, SupervisionStop.EventName(other.Id));
         using var stop = new CancellationTokenSource();
         var pump = Pump(loop, stop.Token);
         var hosted = false;
@@ -319,6 +320,7 @@ public sealed class InstanceStartTests
             Assert.Equal(0, result.Code);
             Assert.True(other.HasExited);
             Assert.Equal(1, control.Yields);
+            Assert.True(asked.WaitOne(0));
         }
         finally
         {
@@ -333,6 +335,7 @@ public sealed class InstanceStartTests
     public void A_shell_that_does_not_quit_stays_and_the_start_says_why()
     {
         using var other = Hold("running", out var control, out var loop, out var server, out var id);
+        using var asked = new EventWaitHandle(false, EventResetMode.ManualReset, SupervisionStop.EventName(other.Id));
         using var stop = new CancellationTokenSource();
         var pump = Pump(loop, stop.Token);
         var hosted = false;
@@ -343,6 +346,7 @@ public sealed class InstanceStartTests
             Assert.False(hosted);
             Assert.False(other.HasExited);
             Assert.Equal(InstanceStart.CouldNotStart, result.Code);
+            Assert.False(asked.WaitOne(0));
             Assert.Contains(result.Error, line => line.Contains("running", StringComparison.Ordinal) &&
                                                    line.Contains("did not quit", StringComparison.Ordinal));
         }

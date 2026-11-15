@@ -73,7 +73,7 @@ public sealed class ExplorerTaskbarLeaseTests : IDisposable
             Assert.True(ExplorerTaskbarLease.Exists(locations));
 
             ExplorerTaskbarLease.HandOff(locations);
-            Assert.False(ExplorerTaskbarLease.LeaveHidden(locations, owner.Id, false));
+            Assert.True(ExplorerTaskbarLease.LeaveHidden(locations, owner.Id, false));
             ExplorerTaskbarLease.ReleaseUnclaimed(locations);
             Assert.False(ExplorerTaskbarLease.Exists(locations));
         }

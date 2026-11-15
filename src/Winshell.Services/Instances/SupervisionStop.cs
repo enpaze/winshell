@@ -3,6 +3,7 @@ namespace Winshell;
 /// <summary>
 /// The event a supervisor reads to learn that its shell was asked to stop. The supervisor creates it. A start that
 /// replaces the shell sets it, so a crash on the way out still ends supervision instead of starting the shell again.
+/// A shell that stays running has the mark taken back, so a later crash starts it again.
 /// </summary>
 internal static class SupervisionStop
 {
@@ -19,5 +20,14 @@ internal static class SupervisionStop
             return;
         using (handle)
             handle.Set();
+    }
+
+    /// <summary>Forgets a stop the shell did not take. A later crash of that process starts the shell again.</summary>
+    internal static void Withdraw(int pid)
+    {
+        if (!EventWaitHandle.TryOpenExisting(EventName(pid), out var handle))
+            return;
+        using (handle)
+            handle.Reset();
     }
 }
