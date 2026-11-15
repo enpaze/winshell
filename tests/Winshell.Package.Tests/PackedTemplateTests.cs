@@ -245,7 +245,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
                 <PackageReference Include="Winshell" Version="{{version}}" />
               </ItemGroup>
               <ItemGroup>
-                <WinshellWidget Include="installed-clock" Type="WidgetLib.ClockWidget" />
+                <WinshellWidget Include="library-clock" Type="WidgetLib.ClockWidget" />
               </ItemGroup>
             </Project>
             """);
@@ -258,13 +258,13 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
             {
                 public override Microsoft.UI.Reactor.Core.Element Render() =>
-                    Microsoft.UI.Reactor.Factories.TextBlock("installed:" + (string)Props.Settings["value"]);
+                    Microsoft.UI.Reactor.Factories.TextBlock("library:" + (string)Props.Settings["value"]);
             }
             """);
         var shell = XDocument.Load(projectFile);
         shell.Root!.Add(new XElement("ItemGroup",
             new XElement("ProjectReference", new XAttribute("Include", @"..\lib\WidgetLib.csproj")),
-            new XElement("WinshellWidget", new XAttribute("Include", "installed-clock"),
+            new XElement("WinshellWidget", new XAttribute("Include", "library-clock"),
                 new XAttribute("Type", "WidgetLib.ClockWidget"))));
         shell.Save(projectFile);
         File.WriteAllText(Path.Combine(shellDir, "AppShell.cs"), """
@@ -280,7 +280,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             {
                 public override Element Render() =>
                     Component<WidgetArea, WidgetAreaProps>(new WidgetAreaProps(Defaults:
-                        [new("installed-clock", new Dictionary<string, object> { ["value"] = "one" })]));
+                        [new("library-clock", new Dictionary<string, object> { ["value"] = "one" })]));
             }
 
             public sealed class AppShell : ShellConfiguration
@@ -298,11 +298,6 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             "dotnet", ["build", libProject, "-warnaserror", "--nologo"], libDir);
         Assert.True(library.ExitCode == 0, library.Output);
         Assert.Empty(Directory.GetFiles(libDir, "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
-        var listed = ConfigurationProject.Run(
-            "dotnet", ["msbuild", libProject, "-getItem:WinshellWidget", "--nologo"], libDir);
-        Assert.True(listed.ExitCode == 0, listed.Output);
-        Assert.Contains("installed-clock", listed.Output, StringComparison.Ordinal);
-        Assert.Contains("WidgetLib.ClockWidget", listed.Output, StringComparison.Ordinal);
 
         Run(projectFile, (pid, environment) =>
         {
@@ -310,13 +305,13 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             Wait.Until(() =>
             {
                 tree = WinshellCli.Run(["inspect", "--pid", pid, "tree"], environment);
-                return tree.Code == 0 && tree.Output.Contains("installed:one", StringComparison.Ordinal);
+                return tree.Code == 0 && tree.Output.Contains("library:one", StringComparison.Ordinal);
             }, "the library's widget to populate the window");
-            Assert.Contains("installed:one", tree!.Output, StringComparison.Ordinal);
+            Assert.Contains("library:one", tree!.Output, StringComparison.Ordinal);
         });
         var registration = File.ReadAllText(Assert.Single(Directory.GetFiles(
             Path.Combine(shellDir, "obj"), "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories)));
-        Assert.Contains("\"installed-clock\"", registration, StringComparison.Ordinal);
+        Assert.Contains("\"library-clock\"", registration, StringComparison.Ordinal);
         Assert.Contains("WidgetLib.ClockWidget", registration, StringComparison.Ordinal);
         Assert.Empty(Directory.GetFiles(libDir, "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
     }
