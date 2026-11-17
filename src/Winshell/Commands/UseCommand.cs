@@ -1,9 +1,5 @@
 namespace Winshell.Commands;
 
-/// <summary>
-/// <c>winshell use</c>: the configuration a run with no <c>-p</c> or <c>-c</c> starts, which is what sign-in and the
-/// Start tile run. Choosing one also switches to it, so two shells never compete for the taskbar and the screen edges.
-/// </summary>
 internal static class UseCommand
 {
     internal static readonly CommandEntry Entry = new()
@@ -44,10 +40,6 @@ internal static class UseCommand
         return await SwitchAsync(project, name, locations.Instances);
     }
 
-    /// <summary>
-    /// Builds the configuration <paramref name="name"/> when it needs a build, so the next sign-in can start it, then
-    /// records it. Null, with why, when it is not there or did not build; the earlier choice stays.
-    /// </summary>
     internal static ConfigurationProject? Choose(string name, string root, RunProcess run, out string? error)
     {
         var project = ConfigurationProject.Find(null, name, root, out error);
@@ -63,10 +55,6 @@ internal static class UseCommand
         return project;
     }
 
-    /// <summary>
-    /// Lists the configurations in <paramref name="root"/>, with <c>*</c> before the one a bare run starts. When it would
-    /// start none, as with several and none chosen, none has one.
-    /// </summary>
     private static int List(string root)
     {
         var names = ConfigurationProject.Names(root);
@@ -86,10 +74,6 @@ internal static class UseCommand
         return 0;
     }
 
-    /// <summary>
-    /// Stops every running shell but <paramref name="project"/>'s, each until it has exited, then starts the chosen one
-    /// in the background as <c>winshell run</c> would. With nothing running, nothing starts.
-    /// </summary>
     private static async Task<int> SwitchAsync(ConfigurationProject project, string name, Instances instances)
     {
         var running = instances.List(false).Select(row => row.Info).ToList();
@@ -98,7 +82,6 @@ internal static class UseCommand
         var others = running.Except(own).ToList();
         foreach (var info in others)
         {
-            // Its supervisor must not start it again.
             var quit = await ShellExit.QuitAsync(info, ExitIntent.Stop, ShellExit.Patience.Interactive,
                 ShellExit.Ending.Never);
             if (!quit.Exited)
@@ -115,7 +98,6 @@ internal static class UseCommand
 
         if (others.Count == 0 || own.Count > 0)
             return 0;
-        // The build is done, so the background run does not build again.
         string[] start =
         [
             CommandWords.Run, CommandWords.NoBuild.Long, CommandWords.NoDuplicate.Long, CommandWords.Config.Long, name

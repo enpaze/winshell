@@ -2,19 +2,11 @@ using Winshell.Native;
 
 namespace Winshell.Input;
 
-/// <summary>
-/// The <see cref="IHotkeyBackend"/> Windows provides. Registered chords belong to a message-only window made on the
-/// loop's thread, which receives <c>WM_HOTKEY</c> there and exists only while a chord is registered. The hook is
-/// <see cref="LowLevelKeyboard"/>.
-/// </summary>
-/// <param name="loop">The loop the chords are registered on.</param>
-/// <param name="failed">Gets each exception a Windows callback throws.</param>
 internal sealed class HotkeyBackend(IEventLoop loop, Action<Exception> failed) : IHotkeyBackend
 {
     private const int ErrorAlreadyRegistered = 1409;
     private const uint ModNoRepeat = 0x4000;
 
-    // RegisterHotKey takes application ids from 0x0000 to 0xBFFF.
     private const int LastId = 0xBFFF;
 
     private readonly Dictionary<OsChord, int> _ids = [];
@@ -27,7 +19,6 @@ internal sealed class HotkeyBackend(IEventLoop loop, Action<Exception> failed) :
 
     public HotkeyClaim Register(HotkeyChord chord)
     {
-        // ProbeId is reserved: KeyInput borrows it to ask whether a chord is free.
         if (_nextId == KeyInput.ProbeId)
             _nextId++;
         if (_nextId > LastId)
@@ -66,7 +57,6 @@ internal sealed class HotkeyBackend(IEventLoop loop, Action<Exception> failed) :
         IDisposable? hook = null;
         hook = LowLevelKeyboard.Start(key => onKey(key.VirtualKey, key.Up), failed, () => loop.Post(() =>
         {
-            // The lost callback must see the hook Start returns; that assignment follows this lambda.
             var current = hook;
             if (current is null || !ReferenceEquals(_hook, current))
                 return;

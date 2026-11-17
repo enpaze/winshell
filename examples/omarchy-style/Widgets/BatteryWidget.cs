@@ -6,7 +6,6 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
-/// <summary>The battery, when the PC has one.</summary>
 public sealed class BatteryWidget : Component<WidgetContext>
 {
     public override Element Render()

@@ -36,7 +36,6 @@ internal static class ReloadCommand
 
         if (ShellExit.IsSupervised(info.Pid))
         {
-            // Its supervisor starts the last build and owns it, so the shell only quits. Without a project there is none.
             if (project is null)
             {
                 await Console.Error.WriteLineAsync(
@@ -44,7 +43,6 @@ internal static class ReloadCommand
                 return 1;
             }
 
-            // One that accepted the quit and hangs on its way out is ended, as a reload asked for the new one.
             var quit = await ShellExit.QuitAsync(info, ExitIntent.Reload, ShellExit.Patience.Interactive,
                 ShellExit.Ending.IfAccepted);
             if (!quit.Exited)
@@ -57,8 +55,6 @@ internal static class ReloadCommand
             return 0;
         }
 
-        // Any other shell hands over to a process it starts itself. A handover starts the program the build left, which is
-        // not always the one this instance runs.
         var answer = await InstanceCall.AskAsync(info, IpcRequest.ForReload(project?.Program));
         if (Failure(info, answer) is { } refusal)
         {

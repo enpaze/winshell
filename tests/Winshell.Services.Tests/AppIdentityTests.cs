@@ -4,7 +4,6 @@ using Winshell.Windows;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>A window, a tray icon and a Start entry name one program the same way.</summary>
 public sealed class AppIdentityTests
 {
     [Fact]
@@ -63,14 +62,12 @@ public sealed class AppIdentityTests
             Assert.Equal("Demo", icon.AppName);
             Assert.Equal(program, demo.Icon);
             Assert.Equal(program, window.Icon);
-            // A tray icon publishes no icon path. For a desktop program the executable is that path.
             Assert.Equal(program, icon.Executable);
 
             Assert.Equal(packagedId, packaged.AppId);
             Assert.Equal(packagedId, packagedWindow.AppId);
             Assert.Equal(@"shell:AppsFolder\" + packagedId, packaged.Icon);
             Assert.Equal(@"shell:AppsFolder\" + packagedId, packagedWindow.Icon);
-            // A Start shortcut can carry a packaged id and no program. The icon still comes from that id.
             var carried = Publish(new AppRecord(
                 "Calculator", "Calculator", "", notesLink, "", "", "", packagedId, "", false, false));
             Assert.Equal(packagedId, carried.AppId);

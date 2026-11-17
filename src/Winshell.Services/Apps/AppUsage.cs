@@ -2,7 +2,6 @@ using Microsoft.Win32;
 
 namespace Winshell.Apps;
 
-/// <summary>How often and how recently Windows has run an app. <see cref="LastUsedUnixMilliseconds"/> is 0 when unknown.</summary>
 internal readonly record struct AppUsage(int RunCount, long LastUsedUnixMilliseconds)
 {
     public static AppUsage Merge(AppUsage left, AppUsage right)
@@ -11,7 +10,6 @@ internal readonly record struct AppUsage(int RunCount, long LastUsedUnixMillisec
             Math.Max(left.LastUsedUnixMilliseconds, right.LastUsedUnixMilliseconds));
     }
 
-    /// <summary>The usage recorded for an app's id, target, shortcut, or program name. Keys are matched ignoring case.</summary>
     public static AppUsage Lookup(IReadOnlyDictionary<string, AppUsage> usage, AppRecord app)
     {
         var best = default(AppUsage);
@@ -32,17 +30,11 @@ internal readonly record struct AppUsage(int RunCount, long LastUsedUnixMillisec
     }
 }
 
-/// <summary>
-/// Recent and frequent use as Windows records it: FeatureUsage launch and switch counts, and UserAssist run count
-/// and last run. The higher of the two FeatureUsage counts is kept, so a launch is not added to a switch. A registry
-/// key that can't be read throws, and the catalog keeps the usage it read last.
-/// </summary>
 internal static class AppUsageReader
 {
     private const string FeatureUsage = @"Software\Microsoft\Windows\CurrentVersion\Explorer\FeatureUsage";
     private const string UserAssist = @"Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist";
 
-    /// <param name="now">A last use more than two days after this is a bad value, and is left out.</param>
     public static Dictionary<string, AppUsage> Read(DateTimeOffset now)
     {
         var launches = ReadCounts(FeatureUsage + @"\AppLaunch");

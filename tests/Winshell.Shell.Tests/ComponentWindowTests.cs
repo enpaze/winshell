@@ -7,7 +7,6 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
-/// <summary>A panel shows a Reactor component, and the component renders again when a service object it observes changes.</summary>
 [Trait("Category", "Window")]
 public sealed class ComponentWindowTests
 {
@@ -100,7 +99,6 @@ public sealed class ComponentWindowTests
         }
     }
 
-    /// <summary>A service object: the base every service exposes, with one property a component can observe.</summary>
     private sealed class Level : ObservableObject
     {
         public string Text
@@ -126,10 +124,6 @@ public sealed class ComponentWindowTests
         }
     }
 
-    /// <summary>
-    /// A service object whose only observable property is the list. The getter does not report a read, so the
-    /// component renders again only when the list itself raises for an item.
-    /// </summary>
     private sealed class Listed : ObservableObject
     {
         public Listed()
@@ -140,7 +134,6 @@ public sealed class ComponentWindowTests
         public ObservableList<Entry> Items { get; } = new();
     }
 
-    /// <summary>One item of <see cref="Listed"/>.</summary>
     private sealed class Entry : ObservableObject
     {
         public string Label

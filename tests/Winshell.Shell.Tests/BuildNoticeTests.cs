@@ -1,6 +1,5 @@
 namespace Winshell.ShellTests;
 
-/// <summary>A configuration that builds closes the build-error notice of its own project, and nothing else.</summary>
 public sealed partial class BuildNoticeTests : IDisposable
 {
     private const string Mine = @"C:\mine\Mine.csproj";

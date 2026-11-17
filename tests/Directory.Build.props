@@ -1,7 +1,6 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
-  <!-- What every test project shares. An xUnit v3 test project is a program of its own. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
   </PropertyGroup>

@@ -7,10 +7,6 @@ using ThreadState = System.Threading.ThreadState;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// Becoming an instance in this process: a duplicate, a detach that cannot start, a pipe that cannot open, and a
-/// clean start. The local folder is <c>WINSHELL_LOCAL_DIR</c>. The mutex and the pipes are the real ones.
-/// </summary>
 [Collection(InstanceRunCollection.Name)]
 public sealed class InstanceStartTests
 {
@@ -27,10 +23,6 @@ public sealed class InstanceStartTests
         return new InstanceLaunch(program, args, shellId, null, null, null, new Log(), prepare);
     }
 
-    /// <summary>
-    /// The start's exit code, and the lines of standard error, where a failed start says why. Other tests in this
-    /// process may write there too, so a test looks for its line among them.
-    /// </summary>
     private static (int Code, string[] Error) Start(InstanceLaunch launch, Action<InstanceSession> host)
     {
         var error = new StringWriter();
@@ -58,8 +50,6 @@ public sealed class InstanceStartTests
     [Fact]
     public async Task A_duplicate_exits_before_the_shell_exists()
     {
-        // A mutex is owned by the thread that waited, and a second wait on that thread succeeds. The shell that
-        // already has this id is another thread, which is what a second process is too.
         var shellId = ShellId();
         using var taken = new ManualResetEventSlim();
         using var release = new ManualResetEventSlim();
@@ -67,7 +57,6 @@ public sealed class InstanceStartTests
             {
                 using var mutex = new Mutex(false, DuplicateHold.ShellMutexName(ShellLocations.Current, shellId));
                 mutex.WaitOne();
-                // Joined before this method disposes the handles.
                 taken.Set();
                 release.Wait();
                 mutex.ReleaseMutex();
@@ -113,7 +102,6 @@ public sealed class InstanceStartTests
             UseShellExecute = false,
             CreateNoWindow = true
         })!;
-        // HasExited is read before this method disposes the process.
         Wait.Until(() => gone.HasExited, "the previous process to exit");
         var hosted = false;
 
@@ -135,7 +123,6 @@ public sealed class InstanceStartTests
         {
             UseShellExecute = false,
             RedirectStandardInput = true,
-            // The pause prompt must not prefix a JSON message on xUnit's protocol stdout.
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true
@@ -147,7 +134,6 @@ public sealed class InstanceStartTests
             {
                 try
                 {
-                    // The start is joined before this method disposes the process and the event.
                     code = Start(Launch(ShellId(), Program,
                         ["--after", replaced.Id.ToString(CultureInfo.InvariantCulture)]), session =>
                     {
@@ -170,7 +156,6 @@ public sealed class InstanceStartTests
             Assert.False(started.IsSet);
 
             replaced.StandardInput.Close();
-            // Both are read before this method disposes the process and the event.
             await Wait.UntilAsync(() => replaced.HasExited, "the replaced process to exit");
             await Wait.UntilAsync(() => started.IsSet, "the shell to start");
             await Join(thread);
@@ -185,7 +170,6 @@ public sealed class InstanceStartTests
                 if (!replaced.HasExited)
                     replaced.Kill(true);
             }
-            // Kill throws when the process has already exited between the check and the call.
             catch (Exception)
             {
             }
@@ -209,8 +193,6 @@ public sealed class InstanceStartTests
         var hosted = false;
         try
         {
-            // Prepare runs after the instance exists and before the pipe opens, which is also when a shell wires
-            // crash release. The names it will try are held here, so this start cannot take one.
             var result = Start(Launch(ShellId(), Program, [], instance =>
             {
                 id = instance.Id;
@@ -254,10 +236,6 @@ public sealed class InstanceStartTests
         Assert.StartsWith("winshell-", closed.Pipe, StringComparison.Ordinal);
     }
 
-    /// <summary>
-    /// A host that throws is still a crash: the fatal line is in the log, and the log is closed, so a line after the
-    /// start does not land. The exception leaves the start, so a supervisor still treats it as a crash to restart.
-    /// </summary>
     [Fact]
     public void A_host_that_throws_records_the_crash_and_then_closes_the_log()
     {
@@ -361,7 +339,6 @@ public sealed class InstanceStartTests
         }
     }
 
-    /// <summary>A process listed as a shell, with a pipe this test serves, so a start can ask it to quit.</summary>
     private static Process Hold(string shellId, out FakeInstanceControl control, out EventQueue loop, out IpcServer server,
         out string id)
     {

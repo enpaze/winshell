@@ -5,11 +5,6 @@ namespace Winshell.Session;
 
 internal sealed class SessionBackend : ISessionBackend
 {
-    /// <summary>
-    /// "Automatically save my restartable apps and restart them when I sign back in", under Sign-in options.
-    /// Off is the default, including when <c>RestartApps</c> has never been written. Shutdown UX reads the same value
-    /// before it asks Windows; the shutdown call itself does not.
-    /// </summary>
     private const string RestartAppsKey = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon";
 
     public bool Lock()
@@ -60,7 +55,6 @@ internal sealed class SessionBackend : ISessionBackend
         }
     }
 
-    /// <summary>True only when the user has turned restart-apps on. A missing value, or a read Windows refuses, is off.</summary>
     private static bool RestartApps()
     {
         try

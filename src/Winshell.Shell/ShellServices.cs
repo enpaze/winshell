@@ -18,7 +18,6 @@ using Winshell.Winland;
 
 namespace Winshell;
 
-// The shell's services. Shell's summary is in Shell.cs.
 public sealed partial class Shell
 {
     private AppsService? _apps;
@@ -39,7 +38,6 @@ public sealed partial class Shell
     private VirtualDesktopsService? _virtualDesktops;
     private WallpaperService? _wallpaper;
 
-    // Assigning either one records the edge on the stop list. The public getters stay ordinary.
     private WindowListService? _windows
     {
         get;
@@ -60,15 +58,8 @@ public sealed partial class Shell
         }
     }
 
-    /// <summary>The one edge from Winland to the window list. Null until both have been created.</summary>
     private IDisposable? _winlandToWindowList;
 
-    /// <summary>
-    /// The services this shell created, in the order they stop. A null entry was not created. Winland reads the
-    /// window list, which reads the virtual desktops, so those three stop in that order, and the edge between Winland
-    /// and the window list stops between them. Explorer's taskbar may go before or after the tray: its restore moves
-    /// the tray out of the way itself.
-    /// </summary>
     private IDisposable?[] ServicesInStopOrder =>
     [
         _winland, _winlandToWindowList, _windows, _virtualDesktops, _apps, _audio, _bluetooth, _brightness, _cpu,
@@ -76,88 +67,61 @@ public sealed partial class Shell
         _keyboardLayouts, _wallpaper
     ];
 
-    /// <summary>The apps Start lists.</summary>
     public AppsService Apps => _apps ??= new AppsService(Loop, Log);
 
-    /// <summary>Playback and recording devices, and the audio sessions on them.</summary>
     public AudioService Audio => _audio ??= new AudioService(Loop, Log);
 
-    /// <summary>The Bluetooth adapter and the paired and nearby devices.</summary>
     public BluetoothService Bluetooth => _bluetooth ??= new BluetoothService(Loop, Log);
 
-    /// <summary>The brightness of the connected monitors that report one.</summary>
     public BrightnessService Brightness => _brightness ??= new BrightnessService(Loop, Log, Platform.Screens);
 
-    /// <summary>How busy the processors are, measured only while something listens.</summary>
     public CpuService Cpu => _cpu ??= new CpuService(Loop);
 
-    /// <summary>Whether Explorer's taskbar is hidden. Winshell shows it again when this shell exits, unless it gave way to the shell that replaces it.</summary>
     public ExplorerTaskbarService ExplorerTaskbar => _explorerTaskbar ??= new ExplorerTaskbarService(Loop, Log);
 
-    /// <summary>The recent and frequent documents of an app, as its jump list shows them.</summary>
     public JumpListService JumpLists => field ??= new JumpListService();
 
-    /// <summary>The installed keyboard layouts, and the one the foreground window is using. Read only while something listens.</summary>
     public KeyboardLayoutService KeyboardLayouts => _keyboardLayouts ??= new KeyboardLayoutService(Loop);
 
-    /// <summary>The media sessions Windows lets the shell see and control.</summary>
     public MediaService Media => _media ??= new MediaService(Loop, Log);
 
-    /// <summary>The network adapters, connection profiles, radios and connectivity.</summary>
     public NetworkingService Networking => _networking ??= new NetworkingService(Loop, Log);
 
-    /// <summary>Windows Notification Center. Reading this never prompts for access.</summary>
     public NotificationListener Notifications => _notifications ??= new NotificationListener(Loop, Log);
 
-    /// <summary>The batteries of this PC.</summary>
     public PowerService Power => _power ??= new PowerService(Loop, Log);
 
-    /// <summary>The Windows power mode: best power efficiency, balanced, best performance, or unknown.</summary>
     public PowerModeService PowerMode => _powerMode ??= new PowerModeService(Loop, Log);
 
-    /// <summary>Which apps are using the microphone, the camera or location. Read only while something listens.</summary>
     public PrivacyService Privacy => _privacy ??= new PrivacyService(Loop, Log);
 
-    /// <summary>The documents in the user's Recent folder, found by name.</summary>
     public RecentDocuments RecentDocuments =>
         field ??= new RecentDocuments(Environment.GetFolderPath(Environment.SpecialFolder.Recent));
 
-    /// <summary>The Windows session: locking it, and what state it is in.</summary>
     public SessionService Session => field ??= new SessionService(Log);
 
-    /// <summary>Whether this shell runs when the user signs in.</summary>
     public StartupService Startup => field ??= StartupService.ForThisProcess(Log);
 
-    /// <summary>The notification area. Only one running instance in the Windows session owns it.</summary>
     public SystemTray SystemTray => _systemTray ??= new SystemTray(Loop, Log);
 
-    /// <summary>The virtual desktops Task View shows.</summary>
     public VirtualDesktopsService VirtualDesktops => _virtualDesktops ??= new VirtualDesktopsService(Loop, Log);
 
-    /// <summary>The desktop wallpaper: each screen's image, the fit and the background color.</summary>
     public WallpaperService Wallpaper => _wallpaper ??= new WallpaperService(Loop, Log);
 
-    /// <summary>The app windows the taskbar and Alt+Tab list.</summary>
     public WindowListService WindowList => _windows ??= new WindowListService(Loop, Log, VirtualDesktops);
 
-    /// <summary>
-    /// The Winland window manager's Monitors, Workspaces and windows. The lists are empty while it is not running.
-    /// </summary>
     public WinlandService Winland => _winland ??= new WinlandService(Loop, Log);
 
-    /// <summary>A hotkey that works anywhere in Windows. Set its <see cref="Hotkey.Sequence"/>, and dispose it to give the keys back.</summary>
     public Hotkey NewHotkey()
     {
         return new Hotkey(Loop, Log, _hotkeys ??= new HotkeyRegistrar(Loop, Log));
     }
 
-    /// <summary>Tells when the person has not used the PC for a while. Input this process sent does not count.</summary>
     public IdleMonitor NewIdleMonitor()
     {
         return new IdleMonitor(Loop, Log, () => KeepAwake.AnyActive);
     }
 
-    /// <summary>Winland resolves its windows from the window list once both are in use. Neither is made for the other.</summary>
     private void Connect()
     {
         if (_winland is not { } winland || _windows is not { } windows)

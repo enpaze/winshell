@@ -7,31 +7,18 @@ using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winshell.Native;
 
-/// <summary>One installed keyboard layout: the id Windows stores, its ISO language code, and the name Windows shows.</summary>
 internal readonly record struct LayoutFacts(string Id, string Language, string Name);
 
-/// <summary>The installed layouts, in the order Windows cycles them, and the foreground window's layout id.</summary>
 internal readonly record struct LayoutCensus(IReadOnlyList<LayoutFacts> Layouts, string? CurrentId);
 
-/// <summary>
-/// The keyboard layouts Windows has loaded, and a switch that reaches the foreground window. A layout change is
-/// announced only to the focused window, so a reading asks the foreground thread which layout it has. Switching posts
-/// <c>WM_INPUTLANGCHANGEREQUEST</c> to that window: its <c>DefWindowProc</c> activates the layout on its thread.
-/// <c>ActivateKeyboardLayout</c> would change this thread, and <c>LoadKeyboardLayout</c> does nothing unless this
-/// process owns the focus, and it can load a layout that is not installed.
-/// </summary>
 internal sealed unsafe class KeyboardLayouts
 {
-    /// <summary><c>WM_INPUTLANGCHANGEREQUEST</c>.</summary>
     private const uint InputLanguageRequest = 0x0050;
 
-    /// <summary><c>LOCALE_SISO639LANGNAME</c>, the two-letter language code, such as en.</summary>
     private const uint Iso639LanguageName = 0x00000059;
 
-    /// <summary><c>LOCALE_SISO639LANGNAME2</c>, the three-letter language code, such as eng.</summary>
     private const uint Iso639LanguageName2 = 0x00000067;
 
-    /// <summary><c>LOCALE_NAME_MAX_LENGTH</c>.</summary>
     private const int LocaleNameCapacity = 85;
 
     private const string LayoutsKey = @"SYSTEM\CurrentControlSet\Control\Keyboard Layouts";
@@ -40,7 +27,6 @@ internal sealed unsafe class KeyboardLayouts
     private readonly Dictionary<ushort, string> _languages = new();
     private Dictionary<ushort, string>? _klidByLayoutId;
 
-    /// <summary>The loaded layouts and the foreground thread's layout. Does not change either.</summary>
     internal LayoutCensus Read()
     {
         var handles = Handles();
@@ -57,7 +43,6 @@ internal sealed unsafe class KeyboardLayouts
         return new LayoutCensus(layouts, current == 0 ? null : IdOf(current));
     }
 
-    /// <summary>Posts a request that the focused window use <paramref name="id"/>. Returns whether it was posted.</summary>
     internal bool Use(string id)
     {
         if (id.Length == 0)
@@ -73,10 +58,6 @@ internal sealed unsafe class KeyboardLayouts
         return false;
     }
 
-    /// <summary>
-    /// The layout handle of the foreground thread. <c>GetKeyboardLayout(0)</c> is this thread, so a shell window that
-    /// is not the foreground would become the answer.
-    /// </summary>
     private static nint Foreground()
     {
         var window = PInvoke.GetForegroundWindow();
@@ -86,7 +67,6 @@ internal sealed unsafe class KeyboardLayouts
         return thread == 0 ? 0 : (nint)PInvoke.GetKeyboardLayout(thread).Value;
     }
 
-    /// <summary>The window with the keyboard focus on the foreground thread, or the foreground window when it has none.</summary>
     private static nint Focused()
     {
         var info = new GUITHREADINFO { cbSize = (uint)sizeof(GUITHREADINFO) };
@@ -104,8 +84,6 @@ internal sealed unsafe class KeyboardLayouts
     private LayoutFacts Describe(nint handle)
     {
         var id = IdOf(handle);
-        // The label follows the layout's own language, the low word of its KLID. The low word of the HKL is the input
-        // language, which can be English while the keyboard is Swedish.
         return new LayoutFacts(id, LanguageOf(id), NameOf(id));
     }
 
@@ -117,12 +95,6 @@ internal sealed unsafe class KeyboardLayouts
             : "";
     }
 
-    /// <summary>
-    /// The KLID, such as 00000409. <c>GetKeyboardLayoutName</c> reports it for the calling thread only, which would
-    /// mean activating each layout here. When the high word's top bits are <c>0xF</c>, its low 12 bits are the
-    /// <c>Layout Id</c> to find under the keyboard layouts key. Otherwise the KLID is the high word when that word is
-    /// set, and the low word when it is not.
-    /// </summary>
     private string IdOf(nint handle)
     {
         var bits = Bits(handle);
@@ -179,7 +151,6 @@ internal sealed unsafe class KeyboardLayouts
         return resolved.Length > 0 ? resolved : text;
     }
 
-    /// <summary>Resolves a <c>Layout Display Name</c> such as <c>@%SystemRoot%\system32\input.dll,-5000</c>.</summary>
     private static string Indirect(string text)
     {
         if (text[0] != '@')

@@ -3,7 +3,6 @@ using Windows.Win32.UI.HiDpi;
 
 namespace Winshell.Native;
 
-/// <summary>The DPI awareness of the calling thread.</summary>
 internal static class ThreadDpi
 {
     internal static bool IsPerMonitorV2()

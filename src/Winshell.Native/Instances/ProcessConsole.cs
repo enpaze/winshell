@@ -12,30 +12,24 @@ internal enum StandardStream
     Error
 }
 
-/// <summary>Where a standard stream goes.</summary>
 internal enum StreamTarget
 {
-    /// <summary>No handle, a character device such as a console, or something Windows does not name.</summary>
     Other,
     File,
     Pipe
 }
 
-/// <summary>This process's console window and standard handles.</summary>
 internal static class ProcessConsole
 {
-    /// <summary>The console window, or 0 when no console is attached.</summary>
     internal static nint Window()
     {
         return PInvoke.GetConsoleWindow();
     }
 
-    /// <summary>Where <paramref name="stream"/> goes. A file or pipe on another computer is a file or pipe.</summary>
     internal static StreamTarget Target(StandardStream stream)
     {
         if (Handle(stream) is not { } handle)
             return StreamTarget.Other;
-        // FILE_TYPE_REMOTE is the bit GetFileType sets for a remote disk. CsWin32's enum has no [Flags].
         return (PInvoke.GetFileType(handle) & ~FILE_TYPE.FILE_TYPE_REMOTE) switch
         {
             FILE_TYPE.FILE_TYPE_DISK => StreamTarget.File,
@@ -44,7 +38,6 @@ internal static class ProcessConsole
         };
     }
 
-    /// <summary>Null when the process has no such handle (0) or Windows could not say (-1).</summary>
     private static HANDLE? Handle(StandardStream stream)
     {
         var handle = PInvoke.GetStdHandle(stream switch

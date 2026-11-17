@@ -1,9 +1,5 @@
 namespace Winshell.Tests;
 
-/// <summary>
-/// What <c>winshell inspect</c>'s real input commands read from the command line, and what they refuse before any
-/// instance is called. These stay inside <see cref="CliParser"/> so a live instance on this PC is never called.
-/// </summary>
 public class InspectInputOptionTests
 {
     private static Invocation Parse(params string[] args)

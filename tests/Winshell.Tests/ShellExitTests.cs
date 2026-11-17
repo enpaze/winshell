@@ -4,15 +4,10 @@ using System.Text;
 
 namespace Winshell.Tests;
 
-/// <summary>
-/// Ending a shell under <c>winshell run</c>, with what its supervisor reads when it exits. The test is the shell and its
-/// supervisor: it serves the control pipe here for a process of its own, which it ends when the shell would exit.
-/// </summary>
 public sealed partial class ShellExitTests : IDisposable
 {
     private readonly string _pipe = "winshell-test-" + Guid.NewGuid().ToString("N");
 
-    // cmd waits on its open input. Its banner stays out of this process's output, which carries xUnit's results.
     private readonly Process _process = Process.Start(
         new ProcessStartInfo("cmd.exe")
         {
@@ -24,7 +19,6 @@ public sealed partial class ShellExitTests : IDisposable
 
     private readonly ShellExit.Supervision _supervision;
 
-    /// <summary>Waits as long as the test does, so only the shell's exit ends a quit.</summary>
     private static readonly ShellExit.Patience Patient = new(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
 
     public ShellExitTests()
@@ -37,7 +31,6 @@ public sealed partial class ShellExitTests : IDisposable
         _pipe, "log.txt",
         _process.StartTime.ToUniversalTime().Ticks, ProcessName: _process.ProcessName);
 
-    /// <summary>A shell posts its quit before it answers, so it can exit before its answer is written.</summary>
     [Fact]
     public async Task A_shell_that_exits_before_it_answers_keeps_its_reload()
     {
@@ -46,7 +39,7 @@ public sealed partial class ShellExitTests : IDisposable
         var quit = ShellExit.QuitAsync(Instance, ExitIntent.Reload, Patient, ShellExit.Ending.Never);
         await asked;
 
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         await ExitAsync(pipe);
 #pragma warning restore CsWinRT1030
 
@@ -54,7 +47,6 @@ public sealed partial class ShellExitTests : IDisposable
         Assert.Equal(ExitIntent.Reload, _supervision.Intent);
     }
 
-    /// <summary><c>winshell kill</c> and <c>winshell reload</c> both asked before the shell quit.</summary>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -70,7 +62,7 @@ public sealed partial class ShellExitTests : IDisposable
         var secondQuit = ShellExit.QuitAsync(Instance, second, Patient, ShellExit.Ending.Never);
         await secondAsked;
 
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         await ExitAsync(firstPipe, secondPipe);
 #pragma warning restore CsWinRT1030
 
@@ -79,7 +71,6 @@ public sealed partial class ShellExitTests : IDisposable
         Assert.Equal(ExitIntent.Stop, _supervision.Intent);
     }
 
-    /// <summary>Takes one request and leaves it unanswered.</summary>
     private static async Task ReadRequest(NamedPipeServerStream pipe)
     {
         await pipe.WaitForConnectionAsync(TestContext.Current.CancellationToken);
@@ -87,7 +78,6 @@ public sealed partial class ShellExitTests : IDisposable
         await reader.ReadLineAsync(TestContext.Current.CancellationToken);
     }
 
-    /// <summary>The shell exits without answering, as one that quit before its answer was written.</summary>
     private async Task ExitAsync(params NamedPipeServerStream[] pipes)
     {
         _process.Kill();

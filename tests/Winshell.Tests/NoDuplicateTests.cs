@@ -5,11 +5,6 @@ using System.Text.Json;
 
 namespace Winshell.Tests;
 
-/// <summary>
-/// <c>--no-duplicate</c> holds a per-shell-id mutex for the life of the shell, so a second start of that
-/// id exits even when the first has not written instance.json yet. A different shell id replaces the one
-/// that is running.
-/// </summary>
 public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
@@ -107,8 +102,6 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
     private async Task AssertExitedQuietly(Process process)
     {
         Wait.Until(() => process.HasExited, "the duplicate to exit");
-        // WaitForExit with no timeout finishes the redirected output. It takes no token, so the wait does, on a
-        // thread of its own: the call blocks in Windows.
         await OwnThread.Run(process.WaitForExit).WaitAsync(TestContext.Current.CancellationToken);
         ChildProcess.Exited("The probe", process, _printed[process.Id]).AssertExitCode(0);
         Assert.Equal("", _printed[process.Id].ToString());
@@ -155,7 +148,7 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
 
     private ChildProcess Run(params string[] args)
     {
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         return WinshellCli.Run(args, ("WINSHELL_CONFIG_DIR", _config), ("WINSHELL_LOCAL_DIR", _local));
 #pragma warning restore CsWinRT1030
     }
@@ -180,7 +173,6 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
                     if (!process.HasExited)
                         process.Kill(true);
                 }
-                // The process can exit between the check and Kill.
                 catch (Exception)
                 {
                 }

@@ -270,7 +270,6 @@ public sealed class ConfigurationProjectTests : IDisposable
         File.SetLastWriteTimeUtc(file, Long);
         var project = Found(file);
         Built(project, Long);
-        // Opening the file here stops the rename. A running program does not: its mapping still lets the folder move.
         File.Copy(Path.Combine(Environment.SystemDirectory, "cmd.exe"), project.Program, true);
         File.SetLastWriteTimeUtc(project.Program, Long);
         File.WriteAllText(Project("Program.cs"), "class Program {}");
@@ -293,7 +292,6 @@ public sealed class ConfigurationProjectTests : IDisposable
             var reason = project.Prepare(false,
                 (_, _, _) => new CommandResult(1, "error CS1002: ; expected [Bar.csproj]"));
 
-            // Whether the folder moved or the build went beside it is the build's business. This is what must hold after either.
             Assert.Contains("error CS1002", reason, StringComparison.Ordinal);
             Assert.True(File.Exists(project.Program));
             Assert.False(Directory.Exists(project.OutputFolder + ".previous"));
@@ -339,7 +337,6 @@ public sealed class ConfigurationProjectTests : IDisposable
         File.SetLastWriteTimeUtc(beside, Long.AddMinutes(1));
         Assert.Equal(beside, project.Program);
 
-        // The second reload: the old program has exited, so the build replaces bin\shell and leaves shell.next behind.
         File.WriteAllText(Project("Program.cs"), "class Program {}");
         File.SetLastWriteTimeUtc(Path.Combine(project.Folder, "Program.cs"), DateTime.UtcNow.AddMinutes(-1));
         Assert.Null(project.Prepare(false, BuildsInto));
@@ -428,12 +425,10 @@ public sealed class ConfigurationProjectTests : IDisposable
             "CSC : error CsWinRT1028: Class 'Bar' should be partial.", why);
     }
 
-    /// <summary><c>winshell run</c> and <c>winshell reload</c> say why, rather than end on the exception.</summary>
     [Fact]
     public void A_project_whose_folder_cannot_be_listed_is_a_reason_not_a_crash()
     {
         var project = Found(Project(Path.Combine("Locked", "Bar.csproj")));
-        // With a program built, whether to build again is decided by listing the folder.
         Built(project, Long);
         var folder = new DirectoryInfo(project.Folder);
         var deny = new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!, FileSystemRights.ListDirectory,
@@ -512,8 +507,6 @@ public sealed class ConfigurationProjectTests : IDisposable
     [Fact]
     public async Task What_a_program_prints_arrives_with_its_exit_on_a_busy_pool()
     {
-        // Hold every thread the pool has, and more than it can add meanwhile. Starting processes until it runs out takes
-        // a burst so large that Windows refuses some of them.
         using var busy = new ManualResetEventSlim();
         var held = Enumerable.Range(0, ThreadPool.ThreadCount + Environment.ProcessorCount * 2)
             .Select(_ => Task.Run(busy.Wait)).ToArray();
@@ -532,8 +525,6 @@ public sealed class ConfigurationProjectTests : IDisposable
     [Fact]
     public async Task A_server_that_outlives_its_build_does_not_hold_up_the_result()
     {
-        // The server outlives the wait below, so a Run that waited for it to close its output would not be done in time.
-        // It keeps the folder as its working folder past the test, so the startup prune deletes the folder.
         var folder = Directory.CreateDirectory(TempFolder.NewPath()).FullName;
         var run = Task.Run(() =>
             ConfigurationProject.Run("cmd", ["/c", "start /b ping -n 60 127.0.0.1 >nul & echo built"], folder));

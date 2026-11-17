@@ -3,7 +3,6 @@ using System.Globalization;
 
 namespace Winshell.Tests;
 
-/// <summary><c>winshell kill</c> waits until the instance's process has exited.</summary>
 public sealed partial class KillWaitTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
@@ -37,7 +36,7 @@ public sealed partial class KillWaitTests : IDisposable, IClassFixture<ProbeBuil
 
     private ChildProcess Run(params string[] args)
     {
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         return WinshellCli.Run(args, ("WINSHELL_LOCAL_DIR", Path.Combine(_dir, "local")),
             ("WINSHELL_CONFIG_DIR", Path.Combine(_dir, "config")));
 #pragma warning restore CsWinRT1030
@@ -53,7 +52,6 @@ public sealed partial class KillWaitTests : IDisposable, IClassFixture<ProbeBuil
                 {
                     process.Kill(true);
                 }
-                // The process can exit between the check and Kill.
                 catch (Exception)
                 {
                 }

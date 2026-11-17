@@ -3,7 +3,6 @@ using Windows.UI;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>A C# registration checks declared types and an exact argument count, and does not evaluate text.</summary>
 public sealed class ShellIpcTests
 {
     private readonly List<string> _warnings = [];
@@ -108,7 +107,6 @@ public sealed class ShellIpcTests
     public void A_color_that_is_not_hex_is_refused()
     {
         var ipc = Ipc();
-        // The refusal names this parameter: "Argument color is not a color".
         ipc.Handle("t", "paint", (Color color) => { });
 
         Assert.Equal("Argument color is not a color: 12.",
@@ -162,7 +160,6 @@ public sealed class ShellIpcTests
     public void Show_lists_targets_in_order_with_their_declared_types()
     {
         var ipc = Ipc();
-        // Show lists the names page and tab; the body only returns the result.
         ipc.Handle("settings", "open", (string page, int tab) => true);
         ipc.Property("settings", "page", () => "home");
         ipc.Signal("settings", "changed");

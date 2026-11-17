@@ -1,6 +1,5 @@
 namespace Winshell.Diagnostics;
 
-/// <summary>The doctor's check of the crash reports Winshell wrote in the last 7 days.</summary>
 internal static class DoctorCrashes
 {
     internal static DoctorCheck CrashesIn(CrashList folder, DateTime nowUtc)

@@ -1,8 +1,5 @@
 namespace Winshell.Audio;
 
-/// <summary>
-/// The devices and sessions Windows has. <see cref="AudioService"/> owns its graph.
-/// </summary>
 internal interface IAudioBackend : IDisposable
 {
     IReadOnlyList<AudioGraphNode> Nodes { get; }

@@ -15,16 +15,12 @@ public sealed class CpuServiceTests
     public void Usage_is_the_busy_share_of_the_time_since_the_last_reading()
     {
         var loop = new ManualEventLoop();
-        // Since boot: idle 9000, kernel 12000 (idle included), user 3000.
         var backend = new FakeCpuBackend(
             new CpuTimes(9000, 12000, 3000),
-            // 1000 more ticks: 300 idle, 500 kernel, 500 user, so 70 % busy.
             new CpuTimes(9300, 12500, 3500),
-            // 1000 more ticks: 750 idle, 900 kernel, 100 user, so 25 % busy.
             new CpuTimes(10050, 13400, 3600));
         using var cpu = new CpuService(loop, backend);
         List<(string? Name, double Usage)> heard = [];
-        // The handler runs on Advance, before the service is disposed, and records the usage from that event.
         cpu.PropertyChanged += (_, e) => heard.Add((e.PropertyName, cpu.Usage));
         Assert.Equal(0, cpu.Usage);
 
@@ -81,7 +77,6 @@ public sealed class CpuServiceTests
         Assert.Null(loop.NextDue);
         Assert.Equal(0, cpu.Usage);
 
-        // Listening again measures from a new reading, not across the stretch nobody listened.
         cpu.PropertyChanged += Ignore;
         Assert.Equal(0, cpu.Usage);
         loop.Advance(Interval);
@@ -89,7 +84,6 @@ public sealed class CpuServiceTests
         Assert.Equal(50, cpu.Usage);
     }
 
-    /// <summary>Hands out the readings in turn, then keeps adding 1000 ticks, half of them idle.</summary>
     private sealed class FakeCpuBackend(params CpuTimes?[] readings) : ICpuBackend
     {
         public int Reads { get; private set; }

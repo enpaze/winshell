@@ -4,11 +4,6 @@ using System.Text;
 
 namespace Winshell.TestSupport;
 
-// Each test project compiles this file, so a use in another project is invisible here.
-/// <summary>
-/// Runs winshell.exe to its end. A test project that copies the CLI has it beside the tests. One that only builds it
-/// names it in a <c>WinshellCli</c> assembly metadata attribute.
-/// </summary>
 internal static class WinshellCli
 {
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(60);
@@ -34,7 +29,6 @@ internal static class WinshellCli
         return info;
     }
 
-    /// <summary>The exit code and what it printed. Fails the test if it does not exit.</summary>
     internal static ChildProcess Run(IEnumerable<string> args, params (string Name, string Value)[] environment)
     {
         Assert.True(File.Exists(Exe), $"No CLI at {Exe}");

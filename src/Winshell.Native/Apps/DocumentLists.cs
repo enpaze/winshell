@@ -4,22 +4,12 @@ using Windows.Win32.System.Com;
 
 namespace Winshell.Native;
 
-/// <summary>
-/// Another app's recent and frequent documents through <c>IApplicationDocumentLists</c>. It calls <c>SetAppID</c>
-/// and <c>GetList</c> only; it does not launch a destination or write the list. The class is in-process and needs
-/// an STA thread. Its items are the shared <see cref="IShellItem"/> and <see cref="IShellLinkW"/> wrappers, so the
-/// list interfaces are runtime-callable wrappers too rather than CsWin32 structs.
-/// </summary>
 internal static class DocumentLists
 {
     private static readonly Guid Clsid = new("86bec222-30f2-47e0-9f25-60d11cd75c28");
     private const uint Recent = 0;
     private const uint Frequent = 1;
 
-    /// <summary>
-    /// Up to <paramref name="perCategory"/> names from each list. A list that cannot be read is null, and both are
-    /// null when the app's lists cannot be opened.
-    /// </summary>
     internal static (IReadOnlyList<string>? Recent, IReadOnlyList<string>? Frequent) Read(string appUserModelId,
         int perCategory)
     {
@@ -65,7 +55,6 @@ internal static class DocumentLists
         }
     }
 
-    /// <summary>The name the jump list shows. A shell link that is not a shell item contributes its file name.</summary>
     private static string? NameAt(IObjectArray array, uint index, Guid itemId, Guid linkId)
     {
         if (array.GetAt(index, in itemId, out var item) >= 0)

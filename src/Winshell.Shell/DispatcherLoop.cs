@@ -2,15 +2,12 @@ using Microsoft.UI.Dispatching;
 
 namespace Winshell;
 
-/// <summary>The WinUI thread as an event loop. What posted work or a timer throws is logged, and the loop goes on.</summary>
 internal sealed partial class DispatcherLoop(DispatcherQueue queue, Log log) : IEventLoop
 {
-    // Each timer stays reachable from here: one nothing else holds is collected and never fires.
     private readonly HashSet<DispatcherQueueTimer> _timers = [];
 
     public TimeProvider Time => TimeProvider.System;
 
-    /// <summary>Raised with what posted work or a timer threw, after it is logged.</summary>
     public event Action<Exception>? Failed;
 
     public void Post(Action action)
@@ -52,7 +49,7 @@ internal sealed partial class DispatcherLoop(DispatcherQueue queue, Log log) : I
         {
             action();
         }
-#pragma warning disable CA1031 // Work that fails is reported and the shell keeps going.
+#pragma warning disable CA1031
         catch (Exception e)
 #pragma warning restore CA1031
         {

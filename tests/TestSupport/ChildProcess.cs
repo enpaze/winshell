@@ -3,17 +3,10 @@ using System.Text;
 
 namespace Winshell.TestSupport;
 
-/// <summary>
-/// How a process the test started ended, and what it printed. A test checks the exit code with
-/// <see cref="AssertExitCode"/> and an empty standard error with <see cref="AssertNoError"/>, so a wrong one fails with
-/// the output that says why.
-/// </summary>
 internal sealed record ChildProcess(int Code, string Output, string Error)
 {
-    /// <summary>What ran, as a failure names it: the program's file name and its arguments.</summary>
     private string Command { get; init; } = "The process";
 
-    /// <summary>Runs <paramref name="info"/> to its end. Fails the test if it does not exit within <paramref name="patience"/>.</summary>
     internal static ChildProcess Run(ProcessStartInfo info, TimeSpan patience)
     {
         info.UseShellExecute = false;
@@ -22,8 +15,6 @@ internal sealed record ChildProcess(int Code, string Output, string Error)
         info.RedirectStandardError = true;
         var what = string.Join(' ', [Path.GetFileName(info.FileName), .. info.ArgumentList]);
         using var process = Process.Start(info)!;
-        // Threads of their own: a full pipe stops the program, and a busy pool would leave the pipe full.
-        // They join before this using disposes the process, and they capture the readers so they do not capture it.
         var output = "";
         var error = "";
         var stdout = process.StandardOutput;
@@ -45,8 +36,6 @@ internal sealed record ChildProcess(int Code, string Output, string Error)
         return new ChildProcess(process.ExitCode, output, error) { Command = what };
     }
 
-    // Each test project compiles this file, so a use in another project is invisible here.
-    /// <summary>Runs <paramref name="file"/> with <paramref name="args"/> to its end, within a minute.</summary>
     internal static ChildProcess Run(string file, params string[] args)
     {
         var info = new ProcessStartInfo(file);
@@ -55,10 +44,6 @@ internal sealed record ChildProcess(int Code, string Output, string Error)
         return Run(info, TimeSpan.FromMinutes(1));
     }
 
-    /// <summary>
-    /// How <paramref name="process"/> ended, for a process the test read as it ran: <paramref name="printed"/> holds both
-    /// its streams, written under its own lock, as far as they have been read.
-    /// </summary>
     internal static ChildProcess Exited(string command, Process process, StringBuilder printed)
     {
         lock (printed)
@@ -67,17 +52,12 @@ internal sealed record ChildProcess(int Code, string Output, string Error)
         }
     }
 
-    /// <summary>
-    /// Fails the test, showing all the process printed, unless its standard error is empty. An equality assertion would cut
-    /// a long error short, and the end of it is often the part that says why.
-    /// </summary>
     internal void AssertNoError()
     {
         if (Error.Length > 0)
             Assert.Fail($"{Command} wrote to its standard error.\nError:\n{Error}\nOutput:\n{Output}");
     }
 
-    /// <summary>Fails the test, showing what the process printed, unless it exited with <paramref name="expected"/>.</summary>
     internal void AssertExitCode(int expected)
     {
         if (Code != expected)

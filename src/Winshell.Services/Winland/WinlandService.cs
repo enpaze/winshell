@@ -5,11 +5,6 @@ using static Winshell.Winland.WinlandProtocol;
 
 namespace Winshell.Winland;
 
-/// <summary>
-/// Winland's state. It reads it with <c>j/</c> queries and keeps it current from the event stream, updating the same
-/// objects for each event. Winland adds the Monitor to every event that names a Workspace, and it is used to tell
-/// same-numbered Workspaces apart. While Winland is not running the lists are empty; they fill when it starts.
-/// </summary>
 public sealed class WinlandService : ObservableObject, IDisposable
 {
     private readonly IEventLoop _loop;
@@ -28,7 +23,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
     private bool _monitorsRequested;
     private bool _disposed;
 
-    // Bumped when the connection is lost, so replies to an older connection's requests are dropped.
     private int _generation;
 
     internal WinlandService(IEventLoop loop, Log log, IWinlandBackend? backend = null)
@@ -41,46 +35,28 @@ public sealed class WinlandService : ObservableObject, IDisposable
             RefreshAll();
     }
 
-    /// <summary>Emitted for every line of the event stream, after the objects are updated.</summary>
     public event Action<WinlandEvent>? RawEvent;
 
-    /// <summary>The Monitors, by id.</summary>
     public ObservableList<WinlandMonitor> Monitors { get => Read(field); } = [];
 
-    /// <summary>The Workspaces, by id, then by Monitor where two have the same number.</summary>
     public ObservableList<WinlandWorkspace> Workspaces { get => Read(field); } = [];
 
-    /// <summary>The windows Winland manages, in the order they were first reported.</summary>
     public ObservableList<WinlandWindow> Windows { get => Read(field); } = [];
 
-    /// <summary>The Monitor that has the focus, or null while Winland is not running or has not said.</summary>
     public WinlandMonitor? FocusedMonitor => Read(_focusedMonitor);
 
-    /// <summary>The Workspace shown on <see cref="FocusedMonitor"/>, or null.</summary>
     public WinlandWorkspace? FocusedWorkspace => Read(_focusedWorkspace);
 
-    /// <summary>The window that has the focus in Winland, or null when none does.</summary>
     public WinlandWindow? ActiveWindow => Read(_activeWindow);
 
-    /// <summary>Winland's pipe. It takes requests and, after an <c>events</c> request, streams events.</summary>
     public string PipePath => Read(_backend).PipePath;
 
-    /// <summary>The process that answers on the pipe, or 0 while none does.</summary>
     public int ProcessId => Read(_backend).ProcessId;
 
-    /// <summary>
-    /// The full path of the config Winland read, as its <c>files</c> request reports it. Null while no Winland answers,
-    /// and for a Winland too old to answer <c>files</c>.
-    /// </summary>
     public string? ConfigPath => Read(_configPath);
 
-    /// <summary>
-    /// The full path of the log Winland writes now, as its <c>files</c> request reports it. Null while it writes none:
-    /// <c>debug:disable_logs</c> is true, or it runs elevated.
-    /// </summary>
     public string? LogPath => Read(_logPath);
 
-    /// <summary>Resolves windows from this list. Null clears them. The list is not created just to answer a window.</summary>
     internal void Attach(WindowListService? windows)
     {
         if (ReferenceEquals(_windows, windows))
@@ -105,31 +81,26 @@ public sealed class WinlandService : ObservableObject, IDisposable
             window.NotifyWindow();
     }
 
-    /// <summary>Sends <c>dispatch</c> and the request to Winland. A failure is logged.</summary>
     public void Dispatch(string request)
     {
         Send("dispatch " + request);
     }
 
-    /// <summary>Asks Winland to read its config again, as <c>winland reload</c> does. A failure is logged.</summary>
     public void Reload()
     {
         Send("reload");
     }
 
-    /// <summary>Asks Winland for its Monitors again. Updates the listed ones and removes those it no longer reports.</summary>
     public void RefreshMonitors()
     {
         RefreshMonitors(false);
     }
 
-    /// <summary>Asks Winland for its Workspaces again and updates the listed ones.</summary>
     public void RefreshWorkspaces()
     {
         RefreshWorkspaces(false);
     }
 
-    /// <summary>Asks Winland for its windows again, adding new ones and updating titles and Workspaces.</summary>
     public void RefreshWindows()
     {
         Ask(_windowQuery, "j/clients", false, (json, _) =>
@@ -149,10 +120,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
         });
     }
 
-    /// <summary>
-    /// The Monitor of a screen, matched by its <c>\\.\DISPLAYn</c> name. Before Winland's first Monitor list arrives, it
-    /// adds a Monitor for the screen that the list fills in later; after it, null when Winland reports no such Monitor.
-    /// </summary>
     public WinlandMonitor? MonitorFor(ScreenInfo? screen)
     {
         if (screen is null)
@@ -161,7 +128,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
         return monitor ?? (_monitorsRequested ? null : FindMonitor(screen.Id, true));
     }
 
-    /// <summary>Sends a request whose reply should be <c>ok</c>, and warns otherwise.</summary>
     internal void Send(string request)
     {
         Request(request, reply =>
@@ -172,8 +138,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
                 _log.Warn("winland", $"\"{request}\" failed with error {reply.Trim()}");
         });
     }
-
-    // Connection
 
     private void OnConnectionChanged(bool connected)
     {
@@ -216,7 +180,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
         RefreshWorkspaces(true);
         RefreshWindows();
         RefreshFiles();
-        // Events only name the active window when the focus moves; asking once shows it before then.
         Request("j/activewindow", reply =>
         {
             if (_activeWindow is null && ParseJson(reply) is { ValueKind: JsonValueKind.Object } json)
@@ -224,7 +187,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
         });
     }
 
-    /// <summary>Winland went away: everything it reported is gone.</summary>
     private void Reset()
     {
         _generation++;
@@ -242,7 +204,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
         Recompute();
     }
 
-    /// <summary>Asks Winland which config it read and which log it writes. An error reply, as from a Winland without <c>files</c>, leaves both null.</summary>
     private void RefreshFiles()
     {
         Request("j/files", reply =>
@@ -286,11 +247,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
         }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 
-    /// <summary>
-    /// Sends a query whose reply is a JSON array, one of its kind at a time. A request while one is in flight asks once
-    /// more when the reply lands, with <paramref name="canCreate"/> if any of those requests had it, so no request is
-    /// lost and the last reply is never older than the last request.
-    /// </summary>
     private void Ask(QueryState query, string command, bool canCreate, Action<JsonElement, bool> apply)
     {
         if (query.Reading)
@@ -316,11 +272,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
         });
     }
 
-    /// <summary>
-    /// Asks a query again 1 s after it got no answer while the event stream is up, and returns whether it will. Winland
-    /// has no busy reply: a request it cannot take now times out and comes back null. While the stream is up Winland is
-    /// running, so asking again fills the lists once it answers.
-    /// </summary>
     private bool RetryIfConnected(string? reply, Action retry)
     {
         if (reply is not null || !_backend.IsConnected)
@@ -395,7 +346,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
                                     ?? _workspaceList.FirstOrDefault(w => w.Name == moved.Name && w.Monitor != monitor)
                                     ?? FindWorkspace(moved.Name, moved.Monitor, true, moved.Id)!;
                     workspace.SetMonitor(monitor);
-                    // The Workspace's number can change on its new Monitor, and the Monitors' shown Workspaces with it.
                     RefreshWorkspaces(false);
                     RefreshMonitors(false);
                     break;
@@ -440,11 +390,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
                 break;
         }
     }
-
-    // Queries. With canCreate the reply is Winland's whole state, as on connecting: Monitors and Workspaces it lists
-    // are added and Workspaces it leaves out are removed. Without it, as when an event asks, the reply only updates
-    // what events have announced, so a reply sent before an event cannot bring back what the event removed. Monitors
-    // a reply leaves out are removed either way.
 
     private void RefreshMonitors(bool canCreate)
     {
@@ -519,8 +464,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
                 RemoveWorkspace(workspace);
     }
 
-    // Lookups
-
     private WinlandMonitor? FindMonitor(string name, bool create, int id = -1)
     {
         var monitor = _monitorList.FirstOrDefault(m => m.Name == name);
@@ -532,10 +475,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
         return monitor;
     }
 
-    /// <summary>
-    /// A Workspace by its name and the Monitor it is on. A special workspace belongs to no Monitor and is found by
-    /// its name alone; without a Monitor name, the one on the focused Monitor is preferred.
-    /// </summary>
     private WinlandWorkspace? FindWorkspace(string name, string monitorName, bool create, int? id = null)
     {
         if (name.Length == 0)
@@ -602,14 +541,9 @@ public sealed class WinlandService : ObservableObject, IDisposable
             workspace.SetMonitor(null);
     }
 
-    /// <summary>
-    /// Brings the collections and every derived property up to date after a change: the focused Workspace, which
-    /// Workspaces are active and focused, which Client is activated and on which Monitor, and urgency.
-    /// </summary>
     private void Recompute()
     {
         Follow(Monitors, _monitorList.OrderBy(m => m.Id));
-        // Sorted by id, and by Monitor where Winland repeats a number.
         Follow(Workspaces, _workspaceList.OrderBy(w => w.Id).ThenBy(w => w.Monitor?.Id ?? int.MaxValue));
         Follow(Windows, _windowList);
 
@@ -658,7 +592,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
         Set(ref _activeWindow, window, nameof(ActiveWindow));
     }
 
-    /// <summary>Stops following Winland: the lists no longer change. The process keeps its one connection to Winland's pipe.</summary>
     public void Dispose()
     {
         if (_disposed)
@@ -668,12 +601,10 @@ public sealed class WinlandService : ObservableObject, IDisposable
         _listening.Dispose();
     }
 
-    /// <summary>One kind of query: whether one is in flight, and whether a request since wants it again.</summary>
     private sealed class QueryState
     {
         public bool Reading { get; set; }
 
-        /// <summary>Null when no request came during the read; otherwise whether one of them had canCreate.</summary>
         public bool? Again { get; set; }
     }
 }

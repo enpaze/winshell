@@ -3,7 +3,6 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>Carries out <see cref="PanelEdge"/>'s answers on the monitors, Explorer's app bar, and the panel's window.</summary>
 internal sealed class HostPanelDesktop(HostWindow host, ShellPlatform platform) : IPanelDesktop
 {
     public PanelMonitor? Find(string id)
@@ -43,10 +42,8 @@ internal sealed class HostPanelDesktop(HostWindow host, ShellPlatform platform) 
 
     public void Move(RECT rect, bool topmost, double scale)
     {
-        // UpdateSize runs inside the move and divides by this. A DPI change during the move keeps it too.
         host.Placement.Scale = scale;
         host.Placement.SetExStyle((uint)WINDOW_EX_STYLE.WS_EX_TOPMOST, topmost);
-        // HWND_NOTOPMOST would put it above every window that is not topmost, so over the fullscreen app.
         var after = topmost ? HWND.HWND_TOPMOST : HWND.HWND_BOTTOM;
         host.Placement.Move(rect, after,
             (SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_NOOWNERZORDER));

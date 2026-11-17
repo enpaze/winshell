@@ -6,7 +6,6 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
-/// <summary>The default playback device: headphones, or a speaker by volume.</summary>
 public sealed class AudioWidget : Component<WidgetContext>
 {
     public override Element Render()

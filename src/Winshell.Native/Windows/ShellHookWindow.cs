@@ -3,13 +3,8 @@ using Windows.Win32.Foundation;
 
 namespace Winshell.Native;
 
-/// <summary>
-/// A message-only window that gets the shell hook messages Explorer's taskbar gets, for the process. Windows calls
-/// the handler on the thread that started it.
-/// </summary>
 internal static class ShellHookWindow
 {
-    /// <summary><c>HSHELL_FLASH</c>: a window flashed to ask for attention.</summary>
     internal const nint Flash = (nint)(PInvoke.HSHELL_REDRAW | PInvoke.HSHELL_HIGHBIT);
 
     private const string ClassName = "WinshellShellHook";
@@ -18,11 +13,6 @@ internal static class ShellHookWindow
     private static uint _message;
     private static Action<nint, nint>? _received;
 
-    /// <summary>
-    /// Creates the window and calls <paramref name="received"/> with each message's code and window. Call it once.
-    /// False when Windows refused the window or the registration. A refused window is destroyed.
-    /// <paramref name="received"/> cannot throw: a handler's failure was already reported before it returns.
-    /// </summary>
     internal static bool Start(Action<nint, nint> received)
     {
         _received = received;

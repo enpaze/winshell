@@ -8,18 +8,8 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>
-/// The real input behind <c>winshell inspect</c>'s <c>focus</c>, <c>point</c>, <c>leave</c>, <c>press</c>,
-/// <c>scroll</c> and <c>key</c>, so <c>PointerEntered</c>, pressed looks and focus rectangles run. It sends nothing
-/// while someone uses the PC, no mouse event where another window is on top, and one command at a time. The mouse moves through
-/// <c>SendInput</c>, and the cursor goes back afterwards by way of a spot in the same window off the element, so the
-/// element sees the pointer leave: putting the cursor back alone raises no <c>PointerExited</c>. Keys and the wheel are
-/// posted to the window's input site, which reaches that window only. <c>point</c> leaves the cursor on the element
-/// until <c>leave</c>, the next of these commands, <see cref="HoldLimit"/>, or the user moving the mouse.
-/// </summary>
 internal sealed partial class RealInput(IEventLoop loop) : IDisposable
 {
-    /// <summary>How long <c>point</c> keeps the cursor when nothing gives it back.</summary>
     private static readonly TimeSpan HoldLimit = TimeSpan.FromSeconds(30);
 
     private const int Escape = 0x1B;
@@ -30,39 +20,24 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
     private const int Ctrl = 0x11;
     private const int Alt = 0x12;
 
-    /// <summary>
-    /// How long a command waits for the element to see the pointer or the key. Past this it stops, rather than sending
-    /// again.
-    /// </summary>
     private static readonly TimeSpan Arrival = TimeSpan.FromSeconds(2);
 
-    /// <summary>
-    /// How long the first move is given to raise the pointer event before one more goes a pixel aside. The event ends
-    /// the wait. A second move sent sooner is coalesced into the first, and a window that has just opened can miss
-    /// that one move.
-    /// </summary>
     private static readonly TimeSpan MissedMove = TimeSpan.FromMilliseconds(200);
 
     private Hold? _hold;
     private bool _busy;
 
-    /// <summary>Where the cursor goes back to while a command has it away, and where that command put it.</summary>
     private (POINT Back, POINT At)? _away;
 
-    /// <summary>What became of the cursor when it went back.</summary>
     private enum Given
     {
-        /// <summary>It is back, and the element saw the pointer leave.</summary>
         Back,
 
-        /// <summary>It is back, but the element may not have seen the pointer leave.</summary>
         BackStillHovered,
 
-        /// <summary>The user moved it, so it stays where they put it.</summary>
         Taken
     }
 
-    /// <summary>Moves the cursor onto the element and leaves it there.</summary>
     public async Task<string> Point(FrameworkElement element, string name)
     {
         using var turn = Turn();
@@ -94,7 +69,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         };
     }
 
-    /// <summary>A left or right button's press and release on the element.</summary>
     public async Task<string> Press(FrameworkElement element, string name, bool right)
     {
         using var turn = Turn();
@@ -109,7 +83,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
             RefuseAt(target, landed);
             if (!IsAt(landed))
                 throw new IpcException("The mouse moved, so nothing more was sent.");
-            // The press carries its own move to the checked point, so it can't land where the cursor went since.
             using var released = new Sighting(element, UIElement.PointerReleasedEvent);
             Sent(PointerInput.Press(landed, right));
             if (!await SeenWithin(released.Seen, Arrival))
@@ -125,11 +98,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         return (right ? $"Right-pressed {name}" : $"Pressed {name}") + Afterwards(given);
     }
 
-    /// <summary>
-    /// Turns the wheel over the element: a positive number of steps scrolls down. The mouse comes onto the element as for
-    /// a press, but the notches are posted to its window: the wheel <c>SendInput</c> sends doesn't reach a WinUI window,
-    /// and a posted one does once the window has seen the mouse come.
-    /// </summary>
     public async Task<string> Scroll(FrameworkElement element, string name, int steps)
     {
         using var turn = Turn();
@@ -161,7 +129,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         return $"Scrolled {name} {(steps > 0 ? "down" : "up")} {Math.Abs(steps)}" + Afterwards(given);
     }
 
-    /// <summary>Presses Tab in the element's window until keyboard focus is on the element or in it.</summary>
     public async Task<string> Focus(FrameworkElement element, string name)
     {
         using var turn = Turn();
@@ -175,7 +142,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
             var focused = FocusManager.GetFocusedElement(root);
             if (focused is UIElement { FocusState: FocusState.Keyboard } shown && Holds(element, shown))
                 return tabs == 1 ? $"Focused {name} with 1 Tab" : $"Focused {name} with {tabs} Tabs";
-            // Back at the first element Tab reached: it went all the way round.
             if (tabs > 1 && ReferenceEquals(focused, first))
                 break;
             if (tabs == 1)
@@ -188,12 +154,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
             $"Tab went round without reaching {name}. Keyboard focus reaches an enabled control with IsTabStop, such as a button, and not a panel or text.");
     }
 
-    /// <summary>
-    /// Each chord in turn. A plain key is posted to the window, in front or not. A chord with Ctrl, Alt or Shift goes
-    /// through the real keyboard, which only the window in front receives, so it needs the window to be in front. A
-    /// chord that Windows or another program takes before the window in front, such as Alt+Tab or a registered
-    /// hotkey, is refused.
-    /// </summary>
     public async Task<string> Key(ShellWindow shown, string keys)
     {
         using var turn = Turn();
@@ -236,10 +196,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         return $"Pressed {sequence.Text}";
     }
 
-    /// <summary>
-    /// A cursor a command or a <c>point</c> has away goes back as the shell ends, with no time to step off the element
-    /// first.
-    /// </summary>
     public void Dispose()
     {
         var hold = _hold;
@@ -252,10 +208,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         _away = null;
     }
 
-    /// <summary>
-    /// A chord that doesn't reach the window in front: Windows' own, such as Ctrl+Esc, which opens Start, Alt+Tab and
-    /// Ctrl+Shift+Esc, or a hotkey a program registered, this one included.
-    /// </summary>
     private static bool Taken(HotkeyChord chord)
     {
         var alt = (chord.Modifiers & HotkeyModifiers.Alt) != 0;
@@ -266,7 +218,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
                !KeyInput.Unclaimed((uint)chord.Modifiers, chord.VirtualKey);
     }
 
-    /// <summary>What a command adds when the cursor didn't simply go back.</summary>
     private static string Afterwards(Given given)
     {
         return given switch
@@ -277,7 +228,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         };
     }
 
-    /// <summary>One real input command at a time: two at once would each move the cursor, and lose where it was.</summary>
     private Turned Turn()
     {
         if (_busy)
@@ -318,7 +268,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
             : throw new IpcException("That window has no input site to take keys and the wheel.");
     }
 
-    /// <summary>The window's root, which sees a key wherever focus is inside it.</summary>
     private static UIElement KeyTarget(ShellWindow shown)
     {
         return shown.Content?.XamlRoot?.Content as UIElement
@@ -330,7 +279,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         return PointerInput.Cursor() ?? throw new IpcException("Windows won't say where the cursor is.");
     }
 
-    /// <summary>Whether the cursor is where this left it. A move <c>SendInput</c> scales can land a pixel to the side.</summary>
     private static bool IsAt(POINT point)
     {
         return PointerInput.Cursor() is { } now && Near(now, point);
@@ -341,7 +289,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         return Math.Abs(one.X - other.X) <= 1 && Math.Abs(one.Y - other.Y) <= 1;
     }
 
-    /// <summary>A window of the target's: its own, or a flyout's or menu's, which is owned by the window it opened from.</summary>
     private static bool Ours(nint root, nint window)
     {
         return root == window || (nint)PInvoke.GetWindow((HWND)root, GET_WINDOW_CMD.GW_OWNER) == window;
@@ -357,10 +304,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
             : null;
     }
 
-    /// <summary>
-    /// The element's window, and the middle of the element on the screen in physical pixels. The element must be what
-    /// XAML finds at that point: one clipped away, covered by another element, or not hit-testable takes no pointer.
-    /// </summary>
     private static Target Aim(FrameworkElement element, string name)
     {
         var window = WindowOf(element);
@@ -379,11 +322,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         return new Target(element, name, window, at);
     }
 
-    /// <summary>
-    /// Moves the real mouse onto the element and waits until the element sees it come. Says where the cursor landed.
-    /// When that first move raises nothing, one more goes a pixel to the side. When the element never sees either, or a
-    /// check fails, the cursor goes <paramref name="back"/>.
-    /// </summary>
     private async Task<POINT> Arrive(Target target, POINT back)
     {
         var at = target.At;
@@ -424,13 +362,11 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         }
     }
 
-    /// <summary>Puts the cursor at <paramref name="back"/>, and keeps the time, so the move isn't taken for the user's.</summary>
     private static void PutBack(POINT back)
     {
         PointerInput.MoveTo(back, asMouse: false);
     }
 
-    /// <summary>Whether <paramref name="seen"/> finished within <paramref name="limit"/>.</summary>
     private async Task<bool> SeenWithin(Task seen, TimeSpan limit)
     {
         try
@@ -444,9 +380,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         }
     }
 
-    /// <summary>
-    /// The button's pressed look is applied on a later dispatcher turn. Wait for that turn before the cursor moves.
-    /// </summary>
     private static async Task LetPressedLookApply()
     {
         var queue = DispatcherQueue.GetForCurrentThread();
@@ -458,7 +391,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         await done.Task;
     }
 
-    /// <summary>Posts Tab and waits up to a second for keyboard focus to move. False when it didn't.</summary>
     private async Task<bool> Tabbed(nint site)
     {
         var moved = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -481,7 +413,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         }
     }
 
-    /// <summary>What every pointer event checks first: nobody is using the PC, and the window is on top at the point.</summary>
     private static void RefuseAt(Target target, POINT at)
     {
         RefuseWhileUsed();
@@ -490,7 +421,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
                 $"Another window is over {target.Name} at ({at.X}, {at.Y}), and real input there would reach it. Nothing was sent.");
     }
 
-    /// <summary>Refuses while someone uses the PC, or when Windows won't say whether anyone does.</summary>
     private static void RefuseWhileUsed()
     {
         switch (SentInput.UsedWithinQuiet())
@@ -509,10 +439,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
             throw new IpcException("Windows took none or only part of the input.");
     }
 
-    /// <summary>
-    /// Gives the cursor back, unless the user has taken it: it is no longer where this left it. It first moves to a spot
-    /// in the same window off the element, so the element sees the pointer leave.
-    /// </summary>
     private async Task<Given> GiveBack(Target target, POINT back, POINT left)
     {
         if (!IsAt(left))
@@ -536,7 +462,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
             }
             catch (IpcException)
             {
-                // The user came back, or a window came over the spot. The cursor still goes back, and nothing else moves.
             }
         }
 
@@ -547,11 +472,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         return stepped ? Given.Back : Given.BackStillHovered;
     }
 
-    /// <summary>
-    /// A spot in the target's window, on top there, where XAML finds something other than the element. Best is one
-    /// where it finds nothing, or only what holds the element, which has the pointer already: there no other control
-    /// gets a hover it would keep.
-    /// </summary>
     private static POINT? Off(Target target)
     {
         if (target.Element.XamlRoot is not { Content: { } content } root)
@@ -575,7 +495,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         return other;
     }
 
-    /// <summary>Ends a <c>point</c>, and says what became of the cursor, or null when nothing was held.</summary>
     private async Task<Given?> Release()
     {
         if (_hold is not { } hold)
@@ -592,10 +511,8 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         await Release();
     }
 
-    /// <summary>A held cursor goes back after <see cref="HoldLimit"/>.</summary>
     private void ExpireIfHeld(Hold hold)
     {
-        // A command that is running ends the hold itself.
         if (!ReferenceEquals(_hold, hold) || _busy)
             return;
         if (!IsAt(hold.At))
@@ -607,7 +524,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         _ = Expire();
     }
 
-    /// <summary>The user moved the held cursor, so it stays where they put it.</summary>
     private void Moved(Hold hold)
     {
         if (!ReferenceEquals(_hold, hold) || _busy || IsAt(hold.At))
@@ -615,7 +531,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         Drop(hold);
     }
 
-    /// <summary>Forgets a hold without moving the cursor. The unhook waits, because a pointer handler may be the caller.</summary>
     private void Drop(Hold hold)
     {
         _hold = null;
@@ -625,7 +540,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         loop.Post(() => motion?.Dispose());
     }
 
-    /// <summary>An element to aim at, its window, and its middle on the screen.</summary>
     private sealed record Target(FrameworkElement Element, string Name, nint Window, POINT At);
 
     private sealed record Hold(Target Target, POINT Back, POINT At)
@@ -643,9 +557,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         }
     }
 
-    /// <summary>
-    /// Whether an element raised one of some pointer or key events, handled or not, while this is undisposed.
-    /// </summary>
     private sealed partial class Sighting : IDisposable
     {
         private readonly UIElement _element;
@@ -659,9 +570,6 @@ internal sealed partial class RealInput(IEventLoop loop) : IDisposable
         {
         }
 
-        /// <param name="element">The element that raises <paramref name="events"/>.</param>
-        /// <param name="each">Called on every event, including once <see cref="Seen"/> has completed. Null completes <see cref="Seen"/> only.</param>
-        /// <param name="events">Pointer or key events, handled or not.</param>
         public Sighting(UIElement element, Action? each, params RoutedEvent[] events)
         {
             _element = element;

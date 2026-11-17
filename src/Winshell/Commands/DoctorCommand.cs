@@ -22,7 +22,6 @@ internal static class DoctorCommand
         Run = static parsed => Task.FromResult(Execute(parsed))
     };
 
-    /// <summary>winshell doctor: checks this PC's setup, prints a line each, and fails when a check fails. It never builds.</summary>
     internal static int Execute(Invocation parsed)
     {
         var checks = Doctor.Run(new DoctorContext(ShellLocations.Current, parsed.Text(CliFlags.Path),

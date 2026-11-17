@@ -13,10 +13,8 @@ using Winshell.Windows;
 
 namespace Winshell;
 
-/// <summary>What every native window of one process shares: the screens, the theme, and the clicks that close popups.</summary>
 internal sealed partial class ShellPlatform : IDisposable
 {
-    /// <summary>The accent followed when Windows' cannot be read: its default blue.</summary>
     private const string DefaultAccent = "#0078D4";
 
     private readonly List<HostWindow> _windows = [];
@@ -39,8 +37,6 @@ internal sealed partial class ShellPlatform : IDisposable
         ReadTheme();
         _uiSettings = new UISettings();
         _uiSettings.ColorValuesChanged += OnColorValuesChanged;
-        // Display and settings broadcasts reach only top-level windows. One hidden window hears them for the shell,
-        // whether or not it has a window of its own.
         _broadcasts = NativeWindow.TryCreate("WinshellSystemChanges", (uint)WINDOW_STYLE.WS_POPUP,
             (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW,
             OnBroadcast, e => Log.Warn("shell", e.Message), false);
@@ -48,7 +44,6 @@ internal sealed partial class ShellPlatform : IDisposable
             Log.Warn("shell",
                 "Could not make a window for system broadcasts; screen and theme changes will not be seen");
         OutsideClicks = new OutsideClicks(this);
-        // Explorer tells only the app bars that reserve an edge about a fullscreen app, so this reads it from the foreground window.
         _fullscreenApps = new FullscreenApps(loop, log);
         _fullscreenApps.Changed += WorkAreaMayHaveChanged;
     }
@@ -61,13 +56,10 @@ internal sealed partial class ShellPlatform : IDisposable
 
     internal OutsideClicks OutsideClicks { get; }
 
-    /// <summary>The native windows that exist now.</summary>
     internal IReadOnlyList<HostWindow> Windows => _windows;
 
-    /// <summary>Whether windows are dark. <see cref="ColorScheme"/> overrides Windows mode, and <see cref="ColorScheme.System"/> follows it.</summary>
     public bool IsDark => DarkFor(_scheme, _windowsDark);
 
-    /// <summary>Whether <paramref name="scheme"/> is dark, with Windows in <paramref name="windowsDark"/>.</summary>
     internal static bool DarkFor(ColorScheme scheme, bool windowsDark)
     {
         return scheme switch
@@ -80,7 +72,6 @@ internal sealed partial class ShellPlatform : IDisposable
 
     public bool IsHighContrast { get; private set; }
 
-    /// <summary>The color scheme every window follows.</summary>
     internal ColorScheme ColorScheme
     {
         get => _scheme;
@@ -95,7 +86,6 @@ internal sealed partial class ShellPlatform : IDisposable
         }
     }
 
-    /// <summary>The accent every window follows, as <c>#RRGGBB</c>, or <c>""</c> to follow Windows.</summary>
     internal string AccentColor
     {
         get => _accent;
@@ -109,7 +99,6 @@ internal sealed partial class ShellPlatform : IDisposable
         }
     }
 
-    /// <summary>The accent Windows is using, as <c>#RRGGBB</c>. A failure follows the default blue.</summary>
     internal string SystemAccent
     {
         get
@@ -146,8 +135,6 @@ internal sealed partial class ShellPlatform : IDisposable
         _windows.Remove(window);
     }
 
-    // Screens and the work area
-
     private nint? OnBroadcast(WindowMessage message)
     {
         if (_systemChanges.Add(SystemChanges.From(message.Id, message.WParam)))
@@ -162,7 +149,6 @@ internal sealed partial class ShellPlatform : IDisposable
             return;
         Screens.Sync(next, s => s.Id, s => s.Id, s => s, (_, _) => { });
         for (var i = 0; i < next.Count; i++)
-            // The indexer raises a change on every assignment, so an equal record stays where it is.
             if (Screens[i] != next[i])
                 Screens[i] = next[i];
         WorkAreaMayHaveChanged();
@@ -179,20 +165,12 @@ internal sealed partial class ShellPlatform : IDisposable
             ReadTheme();
     }
 
-    /// <summary>
-    /// Reads the monitors again soon, once a burst of display messages settles: a monitor was plugged in or out, or
-    /// its resolution or scale changed. Panels are placed again only if something changed.
-    /// </summary>
     internal void ScreensMayHaveChanged()
     {
         _screenRefresh?.Dispose();
         _screenRefresh = Loop.Schedule(TimeSpan.FromMilliseconds(200), RefreshScreens);
     }
 
-    /// <summary>
-    /// Places every panel again soon. Explorer moves the work area some time after an app bar changes, and
-    /// panels that respect other bars' zones follow it.
-    /// </summary>
     internal void WorkAreaMayHaveChanged()
     {
         _relayout?.Dispose();
@@ -205,15 +183,10 @@ internal sealed partial class ShellPlatform : IDisposable
         });
     }
 
-    // Fullscreen apps
-
-    /// <summary>Whether another app is fullscreen on a screen, so panels there step back as the taskbar does.</summary>
     internal bool FullscreenOn(string screenId)
     {
         return _fullscreenApps.On(screenId);
     }
-
-    // Theme
 
     private void OnColorValuesChanged(UISettings sender, object args)
     {
@@ -245,11 +218,6 @@ internal sealed partial class ShellPlatform : IDisposable
             ThemeChanged?.Invoke();
     }
 
-    /// <summary>
-    /// The brushes that carry the accent, with the shade each takes in dark and in light. Every control's resource is
-    /// this same object, so a new color reaches what is already on screen, where a new <c>SystemAccentColor</c> reaches
-    /// only brushes not made yet. The contrast dictionary is not here: a contrast theme keeps the colors Windows gave it.
-    /// </summary>
     private static readonly (string Key, Func<AccentShades, Color> Dark, Func<AccentShades, Color> Light)[]
         AccentBrushes =
         [
@@ -266,7 +234,6 @@ internal sealed partial class ShellPlatform : IDisposable
             ("SystemFillColorAttentionBrush", s => s.Light2, s => s.Accent)
         ];
 
-    /// <summary>Paints the accent brushes. They are Windows's own until an accent is picked, and painted from then on.</summary>
     private void ApplyAccent()
     {
         if (Application.Current?.Resources.MergedDictionaries.OfType<XamlControlsResources>().FirstOrDefault() is not
@@ -289,7 +256,6 @@ internal sealed partial class ShellPlatform : IDisposable
         }
     }
 
-    /// <summary>The shades Windows made for its accent. A failure follows the default blue.</summary>
     private AccentShades WindowsShades()
     {
         try
@@ -312,10 +278,6 @@ internal sealed partial class ShellPlatform : IDisposable
         return shades;
     }
 
-    /// <summary>
-    /// Whether Windows mode is dark, from the Personalize values, where <c>0</c> is dark. A missing Windows-mode value
-    /// follows app mode, and a missing pair is light.
-    /// </summary>
     private static bool WindowsModeDark(object? systemValue, object? appsValue)
     {
         return systemValue is int systemLight ? systemLight == 0 : appsValue is 0;
@@ -337,7 +299,6 @@ internal sealed partial class ShellPlatform : IDisposable
         }
         finally
         {
-            // Last, since a window lets go of its grab as it goes.
             OutsideClicks.Dispose();
         }
     }

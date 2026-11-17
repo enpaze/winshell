@@ -1,39 +1,18 @@
 namespace Winshell;
 
-/// <summary>What the control pipe does to the shell it serves. Every member runs on the shell's thread.</summary>
 internal interface IInstanceControl
 {
-    /// <summary>The shell's IPC targets now. A reload can replace them.</summary>
     ShellIpc Ipc { get; }
 
-    /// <summary>
-    /// Reloads the shell. <paramref name="program"/> is the build to start when the running one kept its folder, and
-    /// null starts this program again. Null when it worked, or else why not, for the client. A reload that worked is
-    /// followed by <see cref="Quit"/> once the client has that answer.
-    /// </summary>
     string? Reload(string? program);
 
-    /// <summary>Ends the shell.</summary>
     void Quit();
 
-    /// <summary>
-    /// Leaves Explorer's taskbar hidden for the shell that is replacing this one. The caller then
-    /// <see cref="Quit"/>s, once the client has the answer.
-    /// </summary>
     void Yield();
 
-    /// <summary>
-    /// Shows the notice for a configuration that did not build, and the shell keeps running. An empty <paramref name="error"/>
-    /// says the project built: that closes the build-error notice of <paramref name="projectFile"/>, and no other.
-    /// </summary>
     void ShowBuildError(string error, string projectFile);
 
-    /// <summary>
-    /// Closes whichever of Winshell's own notices is showing, for <c>winshell ipc call notice dismiss</c>. That call is
-    /// not a target the configuration registered, so it works when the configuration registered nothing.
-    /// </summary>
     void DismissNotice();
 
-    /// <summary>What <c>winshell inspect</c> asked of the shell, and the text it prints. <see cref="IpcException"/> is a failed request.</summary>
     Task<string> Inspect(string command, IReadOnlyList<string> args);
 }

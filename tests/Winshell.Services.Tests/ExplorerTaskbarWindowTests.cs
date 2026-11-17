@@ -2,10 +2,6 @@ using Winshell.Native;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// Which edge a window sits on. Doctor and the Explorer taskbar both ask <see cref="ExplorerTaskbarWindow.EdgeOf"/>,
-/// so a bar on a screen is the same edge for both.
-/// </summary>
 public class ExplorerTaskbarWindowTests
 {
     private static readonly RECT Screen = new() { left = 0, top = 0, right = 1920, bottom = 1080 };
@@ -17,7 +13,6 @@ public class ExplorerTaskbarWindowTests
         Assert.Equal(AppBarEdge.Top, ExplorerTaskbarWindow.EdgeOf(Bar(0, 0, 1920, 40), Screen));
         Assert.Equal(AppBarEdge.Left, ExplorerTaskbarWindow.EdgeOf(Bar(0, 0, 48, 1080), Screen));
         Assert.Equal(AppBarEdge.Right, ExplorerTaskbarWindow.EdgeOf(Bar(1872, 0, 48, 1080), Screen));
-        // Filling the screen is as close to the top as to the bottom. The taskbar keeps the bottom.
         Assert.Equal(AppBarEdge.Bottom, ExplorerTaskbarWindow.EdgeOf(Screen, Screen));
     }
 

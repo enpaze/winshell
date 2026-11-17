@@ -3,7 +3,6 @@ using System.Text.Json;
 
 namespace Winshell.Tests;
 
-/// <summary>Starting a shell is <c>winshell run</c>, and a bare <c>winshell</c> prints help.</summary>
 public class CliRunCommandTests
 {
     [Fact]
@@ -27,7 +26,6 @@ public class CliRunCommandTests
         Assert.Contains("No .csproj", result.Error, StringComparison.Ordinal);
     }
 
-    /// <summary>The sign-in entry passes <c>--no-build --no-duplicate</c>, and the Start tile <c>--no-duplicate</c>.</summary>
     [Theory]
     [InlineData("run")]
     [InlineData("--no-build --no-duplicate")]
@@ -41,7 +39,7 @@ public class CliRunCommandTests
         Directory.CreateDirectory(local);
         try
         {
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
             var result = WinshellCli.Run(args.Split(' '), ("WINSHELL_CONFIG_DIR", config),
                 ("WINSHELL_LOCAL_DIR", local));
 #pragma warning restore CsWinRT1030
@@ -64,7 +62,6 @@ public class CliRunCommandTests
         var root = TempFolder.NewPath();
         try
         {
-            // A project that cannot build: a run that reaches the build exits 1. Its shell runs from shell.next.
             var project = Path.Combine(root, "MyProject");
             Directory.CreateDirectory(project);
             File.WriteAllText(Path.Combine(project, "Bar.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
@@ -100,7 +97,7 @@ public class CliRunCommandTests
 
     private static ChildProcess Run(string[] args)
     {
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         return WinshellCli.Run(
             args,
             ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));

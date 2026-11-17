@@ -4,10 +4,6 @@ using Windows.Media.Control;
 
 namespace Winshell.Media;
 
-/// <summary>
-/// Windows' object behind one <see cref="SmtcSession"/>. Its events arrive on other threads; what they report is read
-/// there and posted to the UI thread, where the session takes it in.
-/// </summary>
 internal sealed class SmtcSessionLink(
     IEventLoop loop,
     Log log,
@@ -37,7 +33,6 @@ internal sealed class SmtcSessionLink(
         OnMediaPropertiesChanged(_session, null);
     }
 
-    /// <summary>Follows the new object Windows returned for this same session, without dropping the read in progress.</summary>
     public void Retarget(GlobalSystemMediaTransportControlsSession session)
     {
         if (ReferenceEquals(_session, session))
@@ -57,7 +52,6 @@ internal sealed class SmtcSessionLink(
         Unhook();
     }
 
-    /// <summary>Sends a command. Windows' events bring the result; a refusal is logged.</summary>
     public void Send(string what, Func<GlobalSystemMediaTransportControlsSession, IAsyncOperation<bool>> command)
     {
         _ = Await();
@@ -69,7 +63,7 @@ internal sealed class SmtcSessionLink(
                 if (!await command(_session).AsTask().ConfigureAwait(false))
                     loop.Post(() => log.Warn("media", $"{_target?.AppName} did not accept {what}"));
             }
-#pragma warning disable CA1031 // A closed session fails with COMException or ObjectDisposedException; nobody awaits this.
+#pragma warning disable CA1031
             catch (Exception e)
 #pragma warning restore CA1031
             {
@@ -80,8 +74,6 @@ internal sealed class SmtcSessionLink(
 
     private void Hook()
     {
-        // Kept on the link. The WinRT projection does not root an event delegate, so a collected
-        // one stops title, art, and timeline updates with no error.
         _mediaChanged ??= OnMediaPropertiesChanged;
         _playbackChanged ??= OnPlaybackInfoChanged;
         _timelineChanged ??= OnTimelinePropertiesChanged;
@@ -114,13 +106,12 @@ internal sealed class SmtcSessionLink(
                 if (properties is not null)
                     loop.Post(() => ApplyMedia(properties, request));
             }
-#pragma warning disable CA1031 // A closed session fails with COMException or ObjectDisposedException; nobody awaits this.
+#pragma warning disable CA1031
             catch (Exception e)
 #pragma warning restore CA1031
             {
                 loop.Post(() =>
                 {
-                    // Windows throws COMException for a session whose app closed mid-read; anything else is worth a line.
                     if (e is not COMException)
                         log.Warn("media", $"Cannot read {_target?.AppName}'s track: {e.Message}");
                     if (!_released)
@@ -147,7 +138,6 @@ internal sealed class SmtcSessionLink(
             var info = sender.GetPlaybackInfo();
             loop.Post(() => ApplyPlayback(info));
         }
-        // Windows throws COMException for a session whose app has closed. The next SessionsChanged lists without it.
         catch (COMException)
         {
         }
@@ -169,7 +159,6 @@ internal sealed class SmtcSessionLink(
             var received = loop.Time.GetUtcNow();
             loop.Post(() => ApplyTimeline(timeline, received));
         }
-        // Windows throws COMException for a session whose app has closed. The next SessionsChanged lists without it.
         catch (COMException)
         {
         }

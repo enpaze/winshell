@@ -1,11 +1,4 @@
 #!/usr/bin/env dotnet
-// Writes the reference pages, docs/reference/winshell*.md: a page per namespace of the Winshell package, from the
-// public types of Winshell.Shell, Winshell.Services and Winshell.Core and their /// comments. A page keeps what is
-// above its marker line, and this writes everything below it. Run it after changing a public member, and commit the
-// pages it writes. The page writer is reference-pages.cs, which has no entry point of its own; the shebang
-// marks this file as the one dotnet run starts.
-//
-//   dotnet run scripts/generate-reference.cs
 
 #:property PublishAot=false
 #:property RuntimeIdentifier=$(NETCoreSdkRuntimeIdentifier)

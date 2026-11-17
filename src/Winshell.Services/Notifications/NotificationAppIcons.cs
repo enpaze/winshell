@@ -1,18 +1,10 @@
 namespace Winshell.Notifications;
 
-/// <summary>
-/// Reads app logos Windows hands over as image data and claims them in the <see cref="TempImageStore"/>. A failure is
-/// logged at most once per app.
-/// </summary>
 internal sealed class NotificationAppIcons(IEventLoop loop, Log log, CancellationToken stop)
 {
     private readonly HashSet<string> _logged = [];
     private readonly Lock _gate = new();
 
-    /// <summary>
-    /// Reads <paramref name="appKey"/>'s logo off the UI thread and posts its claimed url to <paramref name="landed"/>,
-    /// or "" when Windows gives none or the read fails. Whoever hears a url releases it once.
-    /// </summary>
     public void Read(string appKey, string label, IAppLogoSource source, Action<string> landed)
     {
         _ = LandAsync(OwnThread.Run(() => Claim(appKey, label, source)), landed);
@@ -40,7 +32,7 @@ internal sealed class NotificationAppIcons(IEventLoop loop, Log log, Cancellatio
         {
             return "";
         }
-#pragma warning disable CA1031 // One app's logo must not stop the read, or the notifications beside it.
+#pragma warning disable CA1031
         catch (Exception e)
 #pragma warning restore CA1031
         {

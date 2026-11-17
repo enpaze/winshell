@@ -1,6 +1,5 @@
 namespace Winshell.Services.Tests;
 
-/// <summary>Physical size becomes millimeters, and a monitor with no size stays at 0.</summary>
 public class MonitorSizeTests
 {
     [Fact]

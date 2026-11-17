@@ -2,31 +2,23 @@ using Windows.Networking.Connectivity;
 
 namespace Winshell.Network;
 
-/// <summary>
-/// The Wi-Fi facts a scan and a saved profile share: security, the profile id and strength. Both the backend and the
-/// profile XML call this, so the two readings cannot grow a second map.
-/// </summary>
 internal static class WifiFields
 {
-    /// <summary>The adapter's id and the profile's name, joined by a colon.</summary>
     public static string Id(Guid adapter, string profileName)
     {
         return adapter + ":" + profileName;
     }
 
-    /// <summary>Signal bars are 0 to 5. Null when Windows reports none.</summary>
     public static double? Bars(byte? bars)
     {
         return bars is { } value ? value / 5.0 : null;
     }
 
-    /// <summary>RSSI in dBm, on the same 0 to 1 scale as <see cref="Bars"/>.</summary>
     public static double Rssi(double rssiInDbm)
     {
         return Math.Clamp(2 * (rssiInDbm + 100), 0, 100) / 100;
     }
 
-    /// <summary>WinRT security settings. Null settings are unknown.</summary>
     public static WifiSecurityType Security(NetworkSecuritySettings? settings)
     {
         return settings is null
@@ -34,7 +26,6 @@ internal static class WifiFields
             : Security(settings.NetworkAuthenticationType, settings.NetworkEncryptionType);
     }
 
-    /// <summary>A scan's authentication and encryption, read through the profile-XML map.</summary>
     public static WifiSecurityType Security(NetworkAuthenticationType authentication, NetworkEncryptionType encryption)
     {
         var (auth, cipher) = authentication switch
@@ -55,7 +46,6 @@ internal static class WifiFields
         return auth is null ? WifiSecurityType.Unknown : Security(auth, cipher);
     }
 
-    /// <summary>Profile-XML authentication and encryption. Encryption matters for open networks, which can be WEP.</summary>
     public static WifiSecurityType Security(string? authentication, string? encryption)
     {
         var auth = authentication ?? "";

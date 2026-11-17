@@ -4,10 +4,6 @@ using Winshell.Native;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// The taskbar lease is one file in a local folder. These tests use a folder of their own and never the process's,
-/// and the window they record is not a taskbar, so putting it back changes nothing on screen.
-/// </summary>
 public sealed class ExplorerTaskbarLeaseTests : IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();

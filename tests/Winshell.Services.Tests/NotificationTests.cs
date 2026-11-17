@@ -5,7 +5,6 @@ using Winshell.Notifications;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>Notifications over a fake backend: no toast is read from Windows, and none is dismissed.</summary>
 public sealed class NotificationTests
 {
     private static readonly DateTimeOffset Noon = new(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
@@ -29,7 +28,6 @@ public sealed class NotificationTests
         return changes;
     }
 
-    /// <summary>A listener whose first read has landed, so what a test applies or reads comes after it.</summary>
     private static async Task<NotificationListener> ListenerAsync(FakeBackend backend, ManualEventLoop? loop = null)
     {
         loop ??= new ManualEventLoop();
@@ -75,7 +73,6 @@ public sealed class NotificationTests
     {
         using var listener = await ListenerAsync(new FakeBackend());
         var seen = new List<(uint Id, int Count, int Groups)>();
-        // The handler reads the listener while Apply is raising the event, before the method disposes it.
         listener.NotificationAdded += n => seen.Add((n.Id, listener.Notifications.Count, listener.Groups.Count));
 
         listener.Apply(Snapshot(Toast(1)));
@@ -104,7 +101,6 @@ public sealed class NotificationTests
         ], changes);
         changes.Clear();
 
-        // Both restrict, so this only changes the mode.
         listener.Apply(Snapshot() with { Mode = NotificationMode.PriorityOnly, Focus = NotificationState.On });
         Assert.Equal([nameof(NotificationListener.NotificationMode)], changes);
     }
@@ -239,7 +235,6 @@ public sealed class NotificationTests
         Assert.False(listener.ClearAll());
     }
 
-    /// <summary>Windows gives a shell no way to activate another app's notification, so the type does not offer it.</summary>
     [Fact]
     public void A_notification_has_no_way_to_invoke_it()
     {
@@ -324,7 +319,6 @@ public sealed class NotificationTests
         loop.Process();
 
         Assert.Equal("", notification.AppIcon);
-        // The late read let go of its claim, so one more claim's release is the last.
         var url = TempImageStore.Shared.Claim(new MemoryStream(png), TestContext.Current.CancellationToken);
         Assert.NotNull(url);
         TempImageStore.Shared.Release(url);
@@ -439,17 +433,14 @@ public sealed class NotificationTests
 
         public Exception? AccessError { get; init; }
 
-        /// <summary>The id of the toast that cannot be dismissed.</summary>
         public uint Refuse { get; init; }
 
-        /// <summary>Runs as a toast's content is read, on the thread that reads it.</summary>
         public Action? ToastRead { get; init; }
 
         public List<uint> Dismissed { get; } = [];
 
         public List<(string AppId, string Xml, string Tag, string Group)> Shown { get; } = [];
 
-        /// <summary>What the last shown toast calls when Windows rejects it later.</summary>
         public Action<string>? Reject { get; private set; }
 
         public Task<NotificationAccessStatus> RequestAccessAsync()

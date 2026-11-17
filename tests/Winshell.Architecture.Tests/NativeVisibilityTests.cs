@@ -3,10 +3,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Winshell.Architecture.Tests;
 
-/// <summary>
-/// CsWin32 is the Win32 declaration set. <c>Win32.cs</c> keeps <c>POINT</c> and the words of a window message, which
-/// CsWin32 does not generate, and declares no native method of its own.
-/// </summary>
 public class NativeVisibilityTests
 {
     [Fact]
@@ -25,7 +21,6 @@ public class NativeVisibilityTests
         Assert.Empty(imports);
     }
 
-    // An attribute can be written qualified, or with its Attribute suffix.
     private static string Bare(string name)
     {
         var last = name[(name.LastIndexOf('.') + 1)..];

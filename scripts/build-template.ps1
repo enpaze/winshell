@@ -1,5 +1,4 @@
 #requires -Version 7.0
-# Compiles template sources against the current libraries without changing the distributed project.
 [CmdletBinding()]
 param()
 
@@ -22,7 +21,6 @@ try {
         [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination)) | Out-Null
         [IO.File]::Copy($source, $destination)
     }
-    # Apply the repository's style, analyzer and unsafe-code policy to template compilation too.
     foreach ($name in @('.editorconfig', 'global.json', 'Directory.Build.props', 'Directory.Build.targets')) {
         Copy-Item -LiteralPath (Join-Path $root $name) -Destination (Join-Path $session $name)
     }

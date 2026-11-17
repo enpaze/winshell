@@ -2,9 +2,6 @@ using Winshell.Power;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// Holds real power requests for an instant and always clears them. Which requests Windows lists needs admin to read, so these check what the shell reads, <c>AnyActive</c>, and that Windows accepted each request: a refusal is logged.
-/// </summary>
 public sealed class KeepAwakeTests
 {
     private readonly List<string> _warnings = [];

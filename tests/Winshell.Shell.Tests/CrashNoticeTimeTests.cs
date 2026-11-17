@@ -1,6 +1,5 @@
 namespace Winshell.ShellTests;
 
-/// <summary>A crash notice stays as long as the person asked Windows to keep notifications up, and never less.</summary>
 public class CrashNoticeTimeTests
 {
     [Theory]

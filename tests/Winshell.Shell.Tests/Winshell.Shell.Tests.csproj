@@ -1,12 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- These tests host real WinUI windows, so they run with the settings a configuration gets. -->
   <Import Project="..\..\src\Winshell.Package\buildTransitive\Winshell.props" />
   <PropertyGroup>
     <RootNamespace>Winshell.ShellTests</RootNamespace>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
   </PropertyGroup>
-  <!-- DocsTests compiles the page writer. That file has no entry point, so this build needs no switch. -->
   <ItemGroup>
     <Compile Include="..\..\scripts\reference-pages.cs" Link="ReferencePages.cs" />
   </ItemGroup>

@@ -7,11 +7,6 @@ namespace Winshell.Native;
 
 internal static class RegistryChange
 {
-    /// <summary>
-    /// Asks Windows to set <paramref name="signal"/> once when a key is added, removed or renamed, or a value is
-    /// written, anywhere under <paramref name="key"/>. The request outlives the thread that made it. False when
-    /// Windows refused it.
-    /// </summary>
     internal static bool Notify(SafeRegistryHandle key, SafeWaitHandle signal)
     {
         var keyAdded = false;

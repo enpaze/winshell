@@ -3,13 +3,8 @@ using System.Reflection;
 
 namespace Winshell;
 
-/// <summary>
-/// The Winshell release a build reports. The number is the assembly informational version,
-/// which the build stamps from the release-please manifest.
-/// </summary>
 internal sealed class ProductVersion
 {
-    /// <summary>This assembly's release.</summary>
     public static ProductVersion Current { get; } = Parse(
         typeof(ProductVersion).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion);
@@ -28,10 +23,8 @@ internal sealed class ProductVersion
 
     public int Patch { get; }
 
-    /// <summary>The informational version text this was parsed from, or <c>0.0.0</c> when it was missing.</summary>
     public string Text { get; }
 
-    /// <summary>Reads major.minor.patch from an informational version, ignoring a prerelease and build id.</summary>
     public static ProductVersion Parse(string? informational)
     {
         var text = string.IsNullOrWhiteSpace(informational) ? "0.0.0" : informational.Trim();

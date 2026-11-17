@@ -1,5 +1,4 @@
 #requires -Version 7.0
-# Formats handwritten C# files without loading projects, restoring packages or building.
 [CmdletBinding()]
 param([switch] $VerifyNoChanges)
 
@@ -15,7 +14,6 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Could not enumerate C# sources with Git.' }
     $sources = @($paths | Where-Object { $_ -like '*.cs' -and [IO.File]::Exists((Join-Path $root $_)) })
     if ($sources.Count -eq 0) { throw 'No C# sources were found.' }
-    # stdin avoids Windows' command-line length limit. Git excludes ignored build outputs and includes new source files.
     $sources | dotnet format whitespace . --folder --include - @options
     $formatExit = $LASTEXITCODE
 }

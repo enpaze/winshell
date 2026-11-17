@@ -54,14 +54,6 @@ internal sealed record BluetoothSnapshot(
     public static readonly BluetoothSnapshot Initial = new(false, null, []);
 }
 
-/// <summary>
-/// Reads only Windows adapter and enumeration properties. In particular, reading state never opens
-/// BluetoothDevice/BluetoothLEDevice or GATT handles, which can prompt or affect a device connection.
-/// Discoverable and incoming-connection state come from BluetoothIsDiscoverable and BluetoothIsConnectable.
-/// The device icon is the class and appearance on that same enumeration.
-/// Each shell generation owns and stops its own nearby-device watchers.
-/// </summary>
-/// <param name="time">Times how long a battery level is kept.</param>
 internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
 {
     private const string AddressKey = "System.Devices.Aep.DeviceAddress";
@@ -96,11 +88,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
 
     public event Action? Changed;
 
-    /// <summary>
-    /// Watches the adapters, the paired devices (their connection included) and the radio. Reading stays the one way to
-    /// learn the state: a change only says that it is time to read. Discoverable and incoming-connection state and the
-    /// battery level have no event, so the service reads on a timer as well.
-    /// </summary>
     public void StartWatching()
     {
         lock (_lock)
@@ -153,7 +140,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
         RaiseChanged();
     }
 
-    // Radio instances are new on every read, so the one watched stays until the adapter changes or watching stops.
     private void WatchRadio(string adapterId, Radio? radio)
     {
         Radio? previous;
@@ -198,8 +184,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
             }
             catch (Exception e) when (WindowsFailure.IsExpected(e))
             {
-                // The state is then Unknown, as BluetoothAdapterState documents. The snapshot carries the failure
-                // once; a throw would drop the adapter, and a log line would repeat with the 30-second read.
                 radioError = e.Message;
             }
 
@@ -240,7 +224,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
             var result = new List<BluetoothDeviceInfo>();
             foreach (var device in devicesByKey)
             {
-                // Windows' cached device property only: do not query the remote Battery GATT service.
                 var battery = device is { Connected: true, Container: { } container }
                     ? await ReadBatteryAsync(container, cancellation).ConfigureAwait(false)
                     : null;
@@ -256,7 +239,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
         }
     }
 
-    /// <summary>Windows stores a Bluetooth address as six bytes in a ulong, high byte first.</summary>
     internal static string FormatAddress(ulong address)
     {
         Span<byte> bytes = stackalloc byte[6];
@@ -343,10 +325,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
         return level;
     }
 
-    /// <summary>
-    /// Asks Windows to change discovery. Null when a radio already reports <paramref name="discoverable"/> or the call changes one.
-    /// The call can block, so it runs on its own thread. Tests use a fake and do not call this.
-    /// </summary>
     public Task<string?> SetDiscoverableAsync(bool discoverable)
     {
         lock (_lock)
@@ -362,11 +340,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
         });
     }
 
-    /// <summary>
-    /// Asks Windows to change incoming connections, which Winshell exposes as pairable.
-    /// Null when a radio already reports <paramref name="pairable"/> or the call changes one.
-    /// The call can block, so it runs on its own thread. Tests use a fake and do not call this.
-    /// </summary>
     public Task<string?> SetPairableAsync(bool pairable)
     {
         lock (_lock)
@@ -409,7 +382,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
     {
         var watcher =
             DeviceInformation.CreateWatcher(selector, EndpointProperties, DeviceInformationKind.AssociationEndpoint);
-        // DeviceInformation.Update needs its original object; keep it local to this watcher.
         var entries = new Dictionary<string, DeviceInformation>(StringComparer.Ordinal);
         watcher.Added += (_, info) =>
         {
@@ -453,7 +425,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
 
             RaiseChanged();
         };
-        // Discovering is true from here, and an empty neighbourhood adds nothing else to read.
         watcher.EnumerationCompleted += (_, _) => RaiseChanged();
         watcher.Stopped += (_, _) =>
         {
@@ -517,8 +488,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
         {
             if (info.Pairing.IsPaired) return null;
             if (!info.Pairing.CanPair) return "Windows reports that this device cannot be paired.";
-            // Start consent on the caller's UI thread. The watcher defers updates to this object
-            // until the WinRT pairing operation has finished, including cancellation or failure.
             var result = await info.Pairing.PairAsync().AsTask(cancellation).ConfigureAwait(false);
             return PairingError(result.Status);
         }
@@ -564,7 +533,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
             : status.ToString();
     }
 
-    /// <summary>Requests a Bluetooth audio driver connection change. Other device types reconnect through Windows.</summary>
     public async Task<bool> SetAudioConnectionAsync(Guid container, bool connect)
     {
         var aqs =
@@ -587,7 +555,6 @@ internal sealed class BluetoothBackend(TimeProvider time) : IBluetoothBackend
         StopDiscovery();
     }
 
-    /// <summary>A watcher whose every change, after the first enumeration or not, only says it is time to read.</summary>
     private sealed class ChangeWatcher : IDisposable
     {
         private readonly DeviceWatcher _watcher;

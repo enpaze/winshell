@@ -3,7 +3,6 @@ using Winshell.Session;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>The Windows session and sign-in, each over a fake. Nothing here changes this PC.</summary>
 public sealed class SessionServiceTests
 {
     private readonly List<string> _warnings = [];

@@ -1,6 +1,5 @@
 namespace Winshell.Network;
 
-/// <summary>One network adapter. Each one is a <see cref="WifiDevice"/> or a <see cref="WiredDevice"/>.</summary>
 public abstract class NetworkDevice : ObservableObject
 {
     private NetworkDeviceInfo _info;
@@ -22,28 +21,18 @@ public abstract class NetworkDevice : ObservableObject
 
     internal bool Removed { get; private set; }
 
-    /// <summary>The adapter's interface GUID. <see cref="NetworkProfile.AdapterId"/> matches it.</summary>
     public string Id => Read(_info).Id.ToString();
 
-    /// <summary>Whether the adapter is Wi-Fi or wired.</summary>
     public DeviceType Type => Read(_info).Type;
 
-    /// <summary>The adapter's connection name, such as <c>Wi-Fi</c> or <c>Ethernet 2</c>.</summary>
     public string Name => Read(_info).Name;
 
-    /// <summary>For Wi-Fi, the networks of the last scan and the connected network, connected first, then strongest first.</summary>
     public ObservableList<Network> Networks { get => Read(field); } = [];
 
-    /// <summary>The MAC address, as six uppercase hex pairs joined by colons.</summary>
     public string Address => Read(_info).Address;
 
-    /// <summary>Whether the adapter is connected.</summary>
     public bool Connected => Read(_info).State == ConnectionState.Connected;
 
-    /// <summary>
-    /// The adapter's connection state. A wired adapter is only <see cref="ConnectionState.Connected"/> or
-    /// <see cref="ConnectionState.Disconnected"/>.
-    /// </summary>
     public ConnectionState State => Read(_info).State;
 
     internal virtual void Update(NetworkDeviceInfo info)

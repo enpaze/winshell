@@ -1,9 +1,5 @@
 namespace Winshell.Bluetooth;
 
-/// <summary>
-/// The default Windows Bluetooth adapter. Setting <see cref="Enabled"/> asks Windows to change its radio.
-/// Setting <see cref="Discoverable"/> or <see cref="Pairable"/> asks Windows to change discovery or incoming connections.
-/// </summary>
 public sealed class BluetoothAdapter : ObservableObject
 {
     private readonly BluetoothService _service;
@@ -16,55 +12,34 @@ public sealed class BluetoothAdapter : ObservableObject
         _info = info;
     }
 
-    /// <summary>A radio, discoverable or incoming-connection change failed, with the same text as <see cref="Error"/>.</summary>
     public event Action<string>? OperationFailed;
 
-    /// <summary>The adapter's Windows device id.</summary>
     public string Id => Read(_info).Id;
 
-    /// <summary>The adapter's name as Windows gives it, or <c>Bluetooth</c> when it gives none.</summary>
     public string Name => Read(_info).Name;
 
-    /// <summary>The adapter's Bluetooth address, such as <c>00:1A:7D:DA:71:13</c>.</summary>
     public string Address => Read(_info).Address;
 
-    /// <summary>The state of the adapter's radio.</summary>
     public BluetoothAdapterState State => Read(_info).State;
 
-    /// <summary>
-    /// Whether the radio is on: <see cref="State"/> is <see cref="BluetoothAdapterState.On"/>. Setting it asks
-    /// Windows to turn the radio on or off; the value changes when a later read sees the radio did.
-    /// </summary>
     public bool Enabled
     {
         get => Read(_info).State == BluetoothAdapterState.On;
         set => _ = _service.SetAdapterEnabledAsync(this, value);
     }
 
-    /// <summary>
-    /// Whether other devices can find this PC. Setting it to true also turns on <see cref="Pairable"/>. The value
-    /// changes when a later read sees Windows did.
-    /// </summary>
     public bool Discoverable
     {
         get => Read(_info).Discoverable;
         set => _ = _service.SetDiscoverableAsync(this, value);
     }
 
-    /// <summary>
-    /// Whether Windows accepts incoming connections. Setting it to false also turns off <see cref="Discoverable"/>. The
-    /// value changes when a later read sees Windows did.
-    /// </summary>
     public bool Pairable
     {
         get => Read(_info).Pairable;
         set => _ = _service.SetPairableAsync(this, value);
     }
 
-    /// <summary>
-    /// Why the last radio, discoverable or incoming-connection change failed. Empty after one succeeds, and when the
-    /// adapter's state changes.
-    /// </summary>
     public string Error => Read(_error);
 
     internal bool ReportsOn => _info.State == BluetoothAdapterState.On;

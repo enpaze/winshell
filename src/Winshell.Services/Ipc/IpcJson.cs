@@ -29,23 +29,16 @@ internal sealed record IpcResponse(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     string? Winshell = null);
 
-/// <summary>
-/// What <c>winshell inspect record</c> captures, carried on the control pipe beside <see cref="IpcRequest"/>: a
-/// window's handle, or 0 and a screen's id, and the refresh rate of the screen it shows on. The shell writes it and
-/// the CLI reads it.
-/// </summary>
 internal sealed record InspectRecordTarget(
     [property: JsonPropertyName("window")] long Window,
     [property: JsonPropertyName("screen")] string Screen,
     [property: JsonPropertyName("refreshRate")] int RefreshRate)
 {
-    /// <summary>The value the shell puts on the control pipe.</summary>
     public string Write()
     {
         return JsonSerializer.Serialize(this, IpcJson.Default.InspectRecordTarget);
     }
 
-    /// <summary>The target the CLI reads back from that value.</summary>
     public static InspectRecordTarget Read(string json)
     {
         return JsonSerializer.Deserialize(json, IpcJson.Default.InspectRecordTarget)
@@ -58,7 +51,6 @@ internal sealed record InspectRecordTarget(
 [JsonSerializable(typeof(InspectRecordTarget))]
 internal sealed partial class IpcJson : JsonSerializerContext;
 
-/// <summary>The target list on the control pipe when <c>ipc show</c> asks for JSON. The CLI prints it.</summary>
 [JsonSerializable(typeof(List<IpcTargetView>))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal sealed partial class IpcShowJson : JsonSerializerContext;

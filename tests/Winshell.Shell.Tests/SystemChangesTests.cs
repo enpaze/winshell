@@ -2,7 +2,6 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-/// <summary>One change in Windows can send several broadcasts. The shell follows that change once.</summary>
 public class SystemChangesTests
 {
     [Fact]

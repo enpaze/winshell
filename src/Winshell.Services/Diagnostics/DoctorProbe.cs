@@ -6,11 +6,6 @@ using Winshell.Native;
 
 namespace Winshell.Diagnostics;
 
-/// <summary>
-/// Reads what <see cref="Doctor"/> checks from this PC. Everything here only reads: the registry, files, windows,
-/// screens and processes. <see cref="CanWrite"/> makes one empty file and removes it again. A configuration project is
-/// not read here: <see cref="DoctorProject.Configuration"/> reads the project file itself.
-/// </summary>
 internal static class DoctorProbe
 {
     private const string CurrentVersionKey = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion";
@@ -38,10 +33,6 @@ internal static class DoctorProbe
         return CurrentVersionValue("DisplayVersion") as string;
     }
 
-    /// <summary>
-    /// Whether transparency effects are off: <c>EnableTransparency</c> is 0. Anything else, including a missing or
-    /// unreadable value, is left unmentioned.
-    /// </summary>
     public static bool TransparencyEffectsOff()
     {
         try
@@ -61,7 +52,6 @@ internal static class DoctorProbe
         return key?.GetValue(name);
     }
 
-    /// <summary>Whether .NET came with Winshell: then its own files sit next to Winshell's, or are bundled into it.</summary>
     public static bool SelfContained(string exePath)
     {
         var runtime = Path.GetDirectoryName(typeof(object).Assembly.Location);
@@ -70,11 +60,6 @@ internal static class DoctorProbe
                    StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>
-    /// Why the preferences file of <paramref name="project"/>'s shell, <c>preferences\&lt;shell id&gt;.toml</c> in the
-    /// config folder, cannot be loaded, or null when it is missing or loads. The shell id is the one its program has
-    /// when it does not set <c>ShellOptions.ShellId</c>, which only running the program could tell.
-    /// </summary>
     public static string? PreferencesProblem(ShellLocations locations, ConfigurationProject project)
     {
         if (string.IsNullOrEmpty(locations.ConfigRoot))
@@ -83,7 +68,6 @@ internal static class DoctorProbe
         return UserFileProblem(Path.Combine(locations.ConfigRoot, "preferences", id + ".toml"));
     }
 
-    /// <summary>Why this file cannot be loaded, or null when it is missing or loads.</summary>
     private static string? UserFileProblem(string path)
     {
         var load = TomlDocument.Load(path);
@@ -95,10 +79,6 @@ internal static class DoctorProbe
         };
     }
 
-    /// <summary>
-    /// Whether this account can write a folder, or the folder Winshell would make it in when it is not there yet.
-    /// Makes one empty file there, which is deleted as it closes.
-    /// </summary>
     public static bool CanWrite(string folder)
     {
         var dir = new DirectoryInfo(folder);
@@ -118,10 +98,6 @@ internal static class DoctorProbe
         }
     }
 
-    /// <summary>
-    /// Whether a process runs as administrator. A process this account may not even ask is one: a non-elevated
-    /// account can always read the token of its own non-elevated processes.
-    /// </summary>
     public static bool IsElevated(int pid)
     {
         return ProcessElevation.TryRead((uint)pid, out var tokenDenied) ??
@@ -136,10 +112,6 @@ internal static class DoctorProbe
             .ToList();
     }
 
-    /// <summary>
-    /// The visible top-level windows that are not minimized or cloaked: where an app bar would be. Explorer keeps
-    /// cloaked windows along the edges for touch input, which are not drawn and reserve nothing.
-    /// </summary>
     public static IReadOnlyList<DoctorScreens.WindowFacts> EdgeWindows()
     {
         var result = new List<DoctorScreens.WindowFacts>();
@@ -169,7 +141,6 @@ internal static class DoctorProbe
         }
     }
 
-    /// <summary>The compatibility settings Windows keeps for this executable, for this user and for the PC.</summary>
     public static IReadOnlyList<string> CompatibilityLayers(string exePath)
     {
         var full = Path.GetFullPath(exePath);

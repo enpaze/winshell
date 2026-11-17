@@ -1,6 +1,5 @@
 namespace Winshell.Tests;
 
-/// <summary><c>--help</c> after a command prints that command's usage and does not run it.</summary>
 public class CliHelpTests
 {
     [Theory]
@@ -29,7 +28,7 @@ public class CliHelpTests
 
     private static ChildProcess Run(string[] args)
     {
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         return WinshellCli.Run(
             args,
             ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));

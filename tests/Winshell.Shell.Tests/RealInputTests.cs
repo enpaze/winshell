@@ -6,32 +6,17 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-/// <summary>
-/// <c>winshell inspect</c>'s real input commands against a real panel: each raises the WinUI event or look a person's
-/// mouse or keyboard would, and the cursor ends where it started. Each test first waits for the PC to be left alone, as
-/// the commands require. It skips, saying why, only when someone is still using the PC after that, or moves the mouse
-/// while it runs. Nothing else in this assembly runs beside these tests, so none of its input gets in the way.
-/// </summary>
 [Collection(nameof(RealInputTests))]
 [Trait("Category", "Window")]
 public sealed class RealInputTests
 {
     private static readonly TimeSpan Limit = TimeSpan.FromSeconds(10);
 
-    /// <summary>
-    /// How long a test waits for the PC to be left alone. The input of what ran just before, such as another test
-    /// project's focus takeover, is over in seconds.
-    /// </summary>
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(15);
 
-    /// <summary>
-    /// Waits until no one has used the PC within the commands' 3 seconds, by their own rule, or <see cref="Patience"/>
-    /// passes. Windows can't say which program input came from, so another test process's input is waited out.
-    /// </summary>
     private static void Quiet()
     {
         var started = TimeProvider.System.GetTimestamp();
-        // The wait ends itself at Patience; Wait's own limit is only past that, so it never fails the test first.
         Wait.Until(() => !Used(out _) || TimeProvider.System.GetElapsedTime(started) > Patience,
             "the PC to be left alone", Patience + Patience);
         if (Used(out var idle))
@@ -41,7 +26,6 @@ public sealed class RealInputTests
 
     private static bool Used(out uint idle)
     {
-        // When Windows won't say, the commands refuse, so this counts as used. The age is the same answer.
         var seconds = SentInput.SecondsSinceLastUse();
         idle = (uint)((seconds ?? 0) * 1000);
         return SentInput.UsedWithinQuiet() is null or true;
@@ -49,7 +33,6 @@ public sealed class RealInputTests
 
     private static PanelWindow Panel(FrameworkElement content)
     {
-        // Away from the top left, where other tests' panels and the probe's go.
         return new PanelWindow
         {
             Anchors = Edges.Bottom | Edges.Right,
@@ -63,7 +46,6 @@ public sealed class RealInputTests
 
     private static Border Spot()
     {
-        // Smaller than the panel, so the panel has room off it.
         return new Border
         {
             Name = "Spot",
@@ -92,7 +74,6 @@ public sealed class RealInputTests
         }
     }
 
-    /// <summary>What the shell said when it refused, or empty when it sent the input.</summary>
     private static async Task<string> Refused(Shell shell, string command, params string[] args)
     {
         try
@@ -106,7 +87,6 @@ public sealed class RealInputTests
         }
     }
 
-    /// <summary>A panel never takes activation, so the app in front is another one's.</summary>
     private static void Behind(PanelWindow panel)
     {
         Assert.NotEqual(panel.Host!.Handle, TopLevelWindows.RootOf(PInvoke.GetForegroundWindow()));
@@ -180,7 +160,6 @@ public sealed class RealInputTests
             await Send(shell, "press", "Go");
             await Signal(clicked);
 
-            // Snapshot on the UI thread before closing the panel can raise more state changes.
             return (states.ToArray(), clicks, before, Cursor());
         });
 
@@ -327,7 +306,6 @@ public sealed class RealInputTests
         Quiet();
         var message = await ShellFixture.On(async shell =>
         {
-            // As a tray's overflow is before it slides out: the button has its size, in a slot of none.
             var hidden = new Button { Name = "Hidden", Content = "Hidden", Width = 80 };
             var clip = new Grid { Width = 0, HorizontalAlignment = HorizontalAlignment.Left };
             clip.Children.Add(hidden);

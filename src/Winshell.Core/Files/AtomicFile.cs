@@ -6,38 +6,15 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>Whether <see cref="AtomicFile.Save"/> replaced the file, or left a hand save that landed first.</summary>
 internal enum AtomicSave
 {
-    /// <summary>The file holds the text this save wrote.</summary>
     Saved,
 
-    /// <summary>The file changed after it was read, and it was not the text being saved, so it was left alone.</summary>
     HandSaveWon
 }
 
-/// <summary>
-/// How a text file is saved. <see cref="Save"/> follows a link, creates the folder, drops a stale temp file, and
-/// replaces the file only when a hand save did not land first. A temporary file goes down beside it and is flushed
-/// to disk, then replaces it, so a crash leaves the old file or the new one. A symbolic link stays a link, and a
-/// hard link is written in place. <see cref="FollowLink"/> is separate: a watch uses it to find the file it follows.
-/// </summary>
 internal static class AtomicFile
 {
-    /// <summary>
-    /// Puts <paramref name="text"/> at <paramref name="path"/>. A symbolic link is followed so the link stays a link,
-    /// a hard link is written in place, the folder is created, and a temp file left by a process that is gone is
-    /// removed. The destination is read again before it is replaced. When that text is neither
-    /// <paramref name="expectedOnDisk"/> nor <paramref name="text"/>, a hand save landed and the file is left alone.
-    /// A lock while replacing is tried again.
-    /// </summary>
-    /// <param name="path">The file. The folder need not exist yet.</param>
-    /// <param name="text">What the file should hold.</param>
-    /// <param name="bom">Whether the file starts with a UTF-8 byte order mark.</param>
-    /// <param name="expectedOnDisk">
-    /// The text last read from the file, or null when it was missing. The comparison is the UTF-8 text with a byte
-    /// order mark stripped.
-    /// </param>
     public static AtomicSave Save(string path, string text, bool bom, string? expectedOnDisk)
     {
         var destination = SaveTarget(path, out var hardLink);
@@ -49,10 +26,6 @@ internal static class AtomicFile
         return written ? AtomicSave.Saved : AtomicSave.HandSaveWon;
     }
 
-    /// <summary>
-    /// A hand save landed during this write when the destination changed after the write started and is not the
-    /// text about to be put down. <paramref name="diskAtStart"/> null means the file was missing.
-    /// </summary>
     private static bool HandSaveWins(string? onDisk, string? diskAtStart, string incoming)
     {
         return onDisk is not null
@@ -60,12 +33,10 @@ internal static class AtomicFile
                && !string.Equals(onDisk, incoming, StringComparison.Ordinal);
     }
 
-    /// <summary>The destination as UTF-8 text, or null when it is missing or cannot be read.</summary>
     private static string? ReadText(string path)
     {
         try
         {
-            // Share the file so a save can replace it while this read is open.
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
                 FileShare.ReadWrite | FileShare.Delete);
             using var reader = new StreamReader(stream, Encoding.UTF8, true);
@@ -78,11 +49,6 @@ internal static class AtomicFile
         }
     }
 
-    /// <summary>
-    /// Puts <paramref name="text"/> at <paramref name="destination"/>, through a temporary file unless
-    /// <paramref name="inPlace"/>. <paramref name="handSaved"/> is asked last, and when it says yes the destination is
-    /// left alone and this returns false.
-    /// </summary>
     private static bool Write(string destination, string text, bool bom, bool inPlace, Func<bool> handSaved)
     {
         if (inPlace)
@@ -104,8 +70,6 @@ internal static class AtomicFile
         }
         finally
         {
-            // A hand save or a failed replace leaves the temp. A failure to delete it is dropped: throwing here would
-            // replace the save's own outcome, and the next process's DeleteStaleTemps removes what is left.
             try
             {
                 if (File.Exists(temp))
@@ -119,7 +83,6 @@ internal static class AtomicFile
 
     private static void WriteText(string path, string text, bool bom)
     {
-        // A power loss after WriteAllText can leave an empty file.
         var encoding = new UTF8Encoding(bom);
         using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read);
         using (var writer = new StreamWriter(stream, encoding, leaveOpen: true))
@@ -131,12 +94,6 @@ internal static class AtomicFile
         stream.Flush(true);
     }
 
-    /// <summary>
-    /// Replaces <paramref name="path"/> with <paramref name="temp"/>. Antivirus and indexers often hold the new file
-    /// for a moment, so a lock is tried again for a few hundred milliseconds. The wait blocks the caller, which may be
-    /// the loop: a write still on its way when a section or the preferences file is disposed must land before the
-    /// process ends.
-    /// </summary>
     private static void MoveReplacing(string temp, string path)
     {
         int[] delays = [25, 50, 100, 200];
@@ -152,10 +109,6 @@ internal static class AtomicFile
             }
     }
 
-    /// <summary>
-    /// Removes <c>path.tmp-*</c> left by a process that is no longer running. A save names its temp
-    /// <c>pid-guid</c>, and a live process keeps its file.
-    /// </summary>
     private static void DeleteStaleTemps(string path)
     {
         var full = Path.GetFullPath(path);
@@ -175,7 +128,6 @@ internal static class AtomicFile
                 && int.TryParse(suffix.AsSpan(0, dash), NumberStyles.None, CultureInfo.InvariantCulture, out var pid)
                 && ProcessIsRunning(pid))
                 continue;
-            // A temp another process still holds is left for the next save to try again. It never stops this one.
             try
             {
                 File.Delete(candidate);
@@ -197,20 +149,13 @@ internal static class AtomicFile
         }
         catch (Exception e) when (e is ArgumentException or InvalidOperationException or Win32Exception)
         {
-            // ArgumentException is "no process with that id". Anything else means the id could not be checked.
             return e is not ArgumentException;
         }
     }
 
-    /// <summary>
-    /// The path a watch should use. A symbolic link is followed to its final target.
-    /// A normal file is not opened. Counting hard links happens only when a save chooses how to write.
-    /// A path that is not there yet is returned unchanged.
-    /// </summary>
     public static string FollowLink(string path)
     {
         var full = Path.GetFullPath(path);
-        // FindFirstFile reports the link itself. GetAttributes follows it, so it cannot tell a link from its target.
         if (FileLinks.TryReparsePoint(full, out var reparse) && !reparse)
             return full;
         try
@@ -221,17 +166,11 @@ internal static class AtomicFile
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            // A link Windows can't follow, such as a loop or a target this user can't read, is used as it is.
         }
 
         return full;
     }
 
-    /// <summary>
-    /// The file a save should change. A symbolic link is followed to its final target, so the link stays a link.
-    /// A hard link is the same path, and <paramref name="hardLink"/> is true so the save writes in place.
-    /// A path that is not there yet is returned unchanged.
-    /// </summary>
     private static string SaveTarget(string path, out bool hardLink)
     {
         hardLink = false;

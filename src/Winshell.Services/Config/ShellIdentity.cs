@@ -3,29 +3,15 @@ using System.Text;
 
 namespace Winshell;
 
-/// <summary>The id that names a shell across runs, and the folders named after it.</summary>
 internal sealed record ShellIdentity(string ShellId, string DataDir, string StateDir, string CacheDir)
 {
-    /// <summary>
-    /// The default folders an earlier Winshell named after a hash of the program, each with the folder it moves to.
-    /// Empty when the id or the folder is given, or when the id is still that hash.
-    /// </summary>
     private IReadOnlyList<(string From, string To)> Earlier { get; init; } = [];
 
-    /// <summary>The identity of a shell defined by <paramref name="program"/>.</summary>
-    /// <param name="program">A full path. A relative folder is in its project when the program is in <c>bin\shell</c> or <c>bin\shell.next</c>, and next to the program otherwise.</param>
-    /// <param name="locations">The folders: configurations in <see cref="ShellLocations.ConfigRoot"/>, which can be empty when there is none, and the named folders under its local root.</param>
-    /// <param name="shellId">The id it asks for. Null names it after where it is.</param>
-    /// <param name="dataDir">Another data folder. Null is the one named after the id. <paramref name="stateDir"/> and <paramref name="cacheDir"/> are the same.</param>
-    /// <param name="stateDir">Another state folder.</param>
-    /// <param name="cacheDir">Another cache folder.</param>
     public static ShellIdentity Resolve(string program, ShellLocations locations, string? shellId, string? dataDir,
         string? stateDir, string? cacheDir)
     {
         var id = shellId ?? DefaultId(program, locations.ConfigRoot);
         var earlier = shellId is null ? Hashed(program) : id;
-        // A rebuild deletes bin\shell, so a relative folder of a program there is in the project. Anywhere else it
-        // stays next to the program.
         var relativeTo = ConfigurationProject.FolderOf(program) ?? Path.GetDirectoryName(program)!;
         var moves = new List<(string, string)>();
 
@@ -43,11 +29,6 @@ internal sealed record ShellIdentity(string ShellId, string DataDir, string Stat
         { Earlier = moves };
     }
 
-    /// <summary>
-    /// A configuration in the config folder is named after its project folder: <c>root</c> for the folder itself, or the
-    /// <c>-c</c> name. Moving the config folder, or switching between <c>-p</c> and <c>-c</c>, keeps its data and state.
-    /// Any other shell has only its path, hashed.
-    /// </summary>
     private static string DefaultId(string program, string configRoot)
     {
         if (configRoot.Length > 0 && ConfigurationProject.FolderOf(program) is { } folder)
@@ -62,18 +43,12 @@ internal sealed record ShellIdentity(string ShellId, string DataDir, string Stat
         return Hashed(program);
     }
 
-    /// <summary>The program's path, hashed. A program a reload built beside the running one is the same program.</summary>
     private static string Hashed(string program)
     {
         var path = ConfigurationProject.InOutputFolder(program) ?? program;
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(path.ToLowerInvariant())))[..32];
     }
 
-    /// <summary>
-    /// Moves each folder an earlier Winshell kept under the hashed id to where this id keeps it, when that is not there
-    /// yet, so a configuration in the config folder keeps its data, state and cache. Nothing is deleted. A folder that
-    /// cannot move, because a file in it is open, stays where it is.
-    /// </summary>
     public void CarryOver(Log log)
     {
         foreach (var (from, to) in Earlier)
@@ -92,16 +67,11 @@ internal sealed record ShellIdentity(string ShellId, string DataDir, string Stat
         }
     }
 
-    /// <summary>
-    /// A given folder is relative to <paramref name="relativeTo"/>, and <c>%NAME%</c> is expanded.
-    /// <c>$BASE</c> is the folder Winshell would have used for that kind of data.
-    /// </summary>
     private static string? Expand(string? folder, string baseDir, string relativeTo)
     {
         if (folder is null)
             return null;
         var text = Environment.ExpandEnvironmentVariables(folder.Replace("$BASE", baseDir, StringComparison.Ordinal));
-        // An empty folder fails in GetFullPath, and does not read as the folder a relative path is in.
         if (text.Length == 0)
             return Path.GetFullPath(text);
         if (!Path.IsPathRooted(text))

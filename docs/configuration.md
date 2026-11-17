@@ -26,7 +26,6 @@ public sealed class AppShell : ShellConfiguration
 {
     public override void Start(Shell shell)
     {
-        // "clock" and "battery" are the names these components are registered under.
         Widgets.Register<Clock>("clock");
         Widgets.Register<Battery>("battery");
         _ = new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] };
@@ -46,7 +45,6 @@ public sealed class Clock : Component<WidgetContext>
     public override Element Render()
     {
         var (time, setTime) = UseState(DateTime.Now);
-        // UseObservable follows a service. The time is not one, so a timer renders the clock again each second.
         UseEffect(() =>
         {
             var timer = DispatcherQueue.GetForCurrentThread().CreateTimer();
@@ -55,7 +53,6 @@ public sealed class Clock : Component<WidgetContext>
             timer.Start();
             return () => timer.Stop();
         }, false);
-        // The name is how inspect and Narrator tell this text from any other. The text itself is only the time.
         return TextBlock($"{time:t}").AutomationName("Clock");
     }
 }

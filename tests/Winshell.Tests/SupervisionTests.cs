@@ -6,17 +6,12 @@ using System.Text.RegularExpressions;
 
 namespace Winshell.Tests;
 
-/// <summary>
-/// <c>winshell run</c> supervises the probe as a configuration's program. The probe hides Explorer's real taskbar when a
-/// test asks, so that test takes the taskbar from the desktop it runs on, and puts it back however it ends.
-/// </summary>
 [Collection(ExplorerTaskbarCollection.Name)]
 public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<Process> _started = [];
     private readonly StringBuilder _printed = new();
-    // Whether Explorer's taskbar was hidden when a test that hides it began, and null in any other test.
     private bool? _taskbarHidden;
 
     public SupervisionTests()
@@ -34,7 +29,6 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
     [GeneratedRegex(@"^Log: (?<path>.+), last \d+ lines\r?$", RegexOptions.Multiline)]
     private static partial Regex LogLine();
 
-    // The probe's program is <project>\bin\shell\<name>.exe.
     private static string Project =>
         Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(ProbeShell.Program)))!;
 
@@ -43,7 +37,6 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
     {
         var run = Supervise();
         using var process = Process.GetProcessById(NextShell(0));
-        // Opened while it runs, so its exit code can still be read once it has exited.
         _ = process.SafeHandle;
         var pid = process.Id.ToString(CultureInfo.InvariantCulture);
 
@@ -67,24 +60,16 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         killed.AssertNoError();
         Assert.StartsWith("Killed ", killed.Output, StringComparison.Ordinal);
         Assert.True(process.HasExited);
-        // The shell writes to the supervisor's output, so what it printed is there.
         ChildProcess.Exited("The probe", process, _printed).AssertExitCode(0);
         Assert.Empty(Listed());
-        // A kill was asked for, so winshell run ends with the shell and does not start it again.
         Wait.Until(() => run.HasExited, "winshell run to end with its shell");
         ChildProcess.Exited("winshell run", run, _printed).AssertExitCode(0);
 
-        // A clean exit keeps the record, marked exited, so the log can still be found.
         var stopped = Cli("log");
         stopped.AssertExitCode(0);
         Assert.Contains("Showing the log of stopped instance", stopped.Error, StringComparison.Ordinal);
     }
 
-    /// <summary>
-    /// A configuration that crashes as it starts: one fatal report, written before the log closes, and reporting it again
-    /// as the process ends throws nothing. A shell that could not start is not started again. The report goes to the
-    /// test's own local folder, never to the user's crash folder.
-    /// </summary>
     [Fact]
     public void A_crash_as_the_shell_starts_writes_one_report_and_leaves_no_running_instance()
     {
@@ -100,15 +85,12 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         Assert.Contains("The probe was asked to crash as it started.", report, StringComparison.Ordinal);
         Assert.Contains("Shell ID: \"probe\"", result.Error + result.Output, StringComparison.Ordinal);
         Assert.DoesNotContain("ObjectDisposedException", result.Error + result.Output, StringComparison.Ordinal);
-        // The crash and its report are in the log, written before the log file closed.
         var logged = File.ReadAllText(LogLine().Match(report).Groups["path"].Value);
         Assert.Contains("FATAL: Winshell crashed: System.InvalidOperationException", logged, StringComparison.Ordinal);
         Assert.Contains("Wrote a crash report to", logged, StringComparison.Ordinal);
         Assert.Empty(Listed());
-        // The next start would show this report in a notice, which is a window.
         Directory.Delete(Path.Combine(_dir, "local", "crashes"), true);
 
-        // Its shell id is free again, with no mutex or record left behind.
         var next = ProbeShell.Launch(Path.Combine(_dir, "config"), Path.Combine(_dir, "local"), ["--no-duplicate"]);
         _started.Add(next);
         Assert.Equal(next.Id, NextShell(0));
@@ -128,7 +110,6 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         Wait.Until(() => !File.Exists(marker), "the shell to hide the taskbar");
         Assert.True(ExplorerTaskbarRecovery.AnyHidden());
 
-        // Ended without its cleanup, as a crash would end it.
         using (var crashed = Process.GetProcessById(first))
         {
             crashed.Kill();
@@ -137,12 +118,10 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
 
         NextShell(first);
 
-        // The taskbar came back before the second shell started, and that shell found no file telling it to hide it.
         Assert.False(ExplorerTaskbarRecovery.AnyHidden());
         Assert.False(run.HasExited);
     }
 
-    /// <summary>A forced kill ends a shell that did not quit when asked. Its supervisor takes that for a stop, not a crash.</summary>
     [Fact]
     public void A_forced_kill_of_a_hung_shell_ends_supervision()
     {
@@ -158,7 +137,6 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
 
             killed.AssertExitCode(0);
             Wait.Until(() => run.HasExited, "winshell run to end with its shell");
-            // The exit code of the end --force gave it.
             ChildProcess.Exited("winshell run", run, _printed).AssertExitCode(-1);
             Assert.Empty(Listed());
         }
@@ -169,7 +147,6 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         }
     }
 
-    /// <summary>Starts <c>winshell run</c> on the probe's last build.</summary>
     private Process Supervise()
     {
         var info = WinshellCli.StartInfo(["run", "--no-build", "-p", Project]);
@@ -178,7 +155,6 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         var run = Process.Start(info)!;
         _started.Add(run);
 
-        // Read the output so the supervisor never blocks on a full pipe, and keep it for a wrong exit code to show.
         void Print(object sender, DataReceivedEventArgs e)
         {
             if (e.Data is not null)
@@ -195,7 +171,6 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         return run;
     }
 
-    /// <summary>The process id of the shell <c>winshell list</c> shows once it is another than <paramref name="previous"/>.</summary>
     private int NextShell(int previous)
     {
         var pid = 0;
@@ -217,7 +192,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
 
     private ChildProcess Cli(params string[] args)
     {
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         return WinshellCli.Run(args, Folders);
 #pragma warning restore CsWinRT1030
     }
@@ -235,7 +210,6 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
             run.Dispose();
         }
 
-        // A test that failed can leave the taskbar its probe hid. One that another program hid stays hidden.
         if (_taskbarHidden == false)
             ExplorerTaskbarRecovery.RestoreHidden();
         try

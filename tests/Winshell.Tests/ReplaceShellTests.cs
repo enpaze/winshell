@@ -4,10 +4,6 @@ using System.Text;
 
 namespace Winshell.Tests;
 
-/// <summary>
-/// Starting a shell replaces the one already running in that local folder. The probes share a folder when the test
-/// is about replacement, and the taskbar test hides Explorer's real taskbar, so it puts that back however it ends.
-/// </summary>
 [Collection(ExplorerTaskbarCollection.Name)]
 public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
 {
@@ -80,7 +76,6 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
         {
             if (!ExplorerTaskbarRecovery.AnyHidden())
                 flashed = true;
-            // Published is before the hide. The marker is deleted once this shell has hidden the taskbar too.
             ready = !File.Exists(markerB) && Running(local).Any(info => info.Pid == second.Id);
             if (second.HasExited || (ready && first.HasExited))
                 break;
@@ -93,7 +88,7 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
         Assert.False(flashed, "Explorer's taskbar was shown while the shell was replaced.");
         Assert.True(ExplorerTaskbarRecovery.AnyHidden());
 
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         var killed = WinshellCli.Run(["kill", "--pid", second.Id.ToString(CultureInfo.InvariantCulture)],
             ("WINSHELL_LOCAL_DIR", local), ("WINSHELL_CONFIG_DIR", secondConfig));
 #pragma warning restore CsWinRT1030

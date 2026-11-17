@@ -10,24 +10,13 @@ internal sealed record PowerModeSnapshot(bool Ready, PowerModeLevel Mode, Effect
 
 internal interface IPowerModeBackend : IDisposable
 {
-    /// <summary>Windows reported a change, or a write changed something. Raised on any thread.</summary>
     event Action? Changed;
 
-    /// <summary>Reads the power mode. The first read starts watching Windows until the backend is disposed.</summary>
     Task<PowerModeSnapshot> ReadAsync(CancellationToken cancellation);
 
-    /// <summary>
-    /// Sets the slider for the supply in use: DC while on battery, AC otherwise. Returns the Windows error, or 0. This
-    /// changes the power mode, not the power plan. <paramref name="mode"/> is a slider position; the service checks.
-    /// </summary>
     uint Set(PowerModeLevel mode);
 }
 
-/// <summary>
-/// The Windows power mode (Settings, System, Power). The slider is the public user-configured AC or DC
-/// mode. The effective mode is what Windows is applying, including energy saver and game mode.
-/// </summary>
-/// <param name="log">Where a failed power mode callback is reported.</param>
 internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
 {
     private int _effective = (int)EffectivePowerMode.Unknown;
@@ -45,7 +34,6 @@ internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
         if (!_watching)
         {
             _watching = true;
-            // Windows calls back once at once with the effective mode, then on each change.
             if (!PowerMode.ListenEffective(mode =>
                 {
                     Volatile.Write(ref _effective, mode);
@@ -73,19 +61,11 @@ internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
         _watching = false;
     }
 
-    /// <summary>
-    /// The slider after a read. A failed read is unknown, including when the GUID came back empty. An empty GUID on
-    /// success is Balanced, which is what Windows writes for that position.
-    /// </summary>
     internal static PowerModeLevel LevelFrom(uint error, Guid guid)
     {
         return error == 0 ? FromGuid(guid) : PowerModeLevel.Unknown;
     }
 
-    /// <summary>
-    /// The slider GUID Windows returned. The deprecated performance GUID is best performance, and a write never sends
-    /// it. Anything else, including an empty GUID, is Balanced.
-    /// </summary>
     internal static PowerModeLevel FromGuid(Guid guid)
     {
         if (guid == PowerMode.BestEfficiency)
@@ -105,10 +85,6 @@ internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
         };
     }
 
-    /// <summary>
-    /// The effective mode Windows reported. No report yet is <see cref="EffectivePowerMode.Unknown"/>. A value this
-    /// enum does not name stays Balanced.
-    /// </summary>
     internal static EffectivePowerMode EffectiveFrom(int mode)
     {
         var value = (EffectivePowerMode)mode;

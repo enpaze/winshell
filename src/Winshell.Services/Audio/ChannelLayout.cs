@@ -1,11 +1,9 @@
 namespace Winshell.Audio;
 
-/// <summary>Maps a Windows speaker mask onto <see cref="AudioChannel"/> values.</summary>
 internal static class ChannelLayout
 {
     private const int SpeakerBits = 18;
 
-    /// <summary>The channels of a device from its WAVEFORMATEXTENSIBLE, or a guess from the channel count.</summary>
     public static AudioChannel[] FromFormat(byte[]? format, int count)
     {
         if (format is { Length: >= 24 } && BitConverter.ToUInt16(format, 0) == 0xFFFE)

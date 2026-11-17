@@ -3,9 +3,6 @@ using System.Globalization;
 
 namespace Winshell.Tests;
 
-/// <summary>
-/// <c>winshell ipc call notice dismiss</c> closes whichever notice is showing, and it takes no arguments.
-/// </summary>
 public sealed partial class NoticeDismissIpcTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
@@ -38,7 +35,7 @@ public sealed partial class NoticeDismissIpcTests : IDisposable, IClassFixture<P
 
     private ChildProcess Run(params string[] args)
     {
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         return WinshellCli.Run(args, ("WINSHELL_LOCAL_DIR", Path.Combine(_dir, "local")),
             ("WINSHELL_CONFIG_DIR", Path.Combine(_dir, "config")));
 #pragma warning restore CsWinRT1030

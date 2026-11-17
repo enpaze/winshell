@@ -4,7 +4,6 @@ using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winshell.Native;
 
-/// <summary>Whether a contrast theme is on.</summary>
 internal static unsafe class ContrastTheme
 {
     internal static bool IsOn()

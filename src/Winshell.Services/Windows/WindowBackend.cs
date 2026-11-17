@@ -3,10 +3,6 @@ using Winshell.Native;
 
 namespace Winshell.Windows;
 
-/// <summary>
-/// What Windows says about a window that the taskbar's rule uses. A window that is not visible reports only
-/// <see cref="Exists"/>: its title is not read, so every other fact is false.
-/// </summary>
 internal readonly record struct TaskbarWindowFacts(
     bool Exists,
     bool Visible,
@@ -19,10 +15,6 @@ internal readonly record struct TaskbarWindowFacts(
     bool HasTitle,
     bool Cloaked);
 
-/// <summary>
-/// One read of a window. <see cref="AppUserModelId"/> is the id the window set, read every time.
-/// <see cref="PackageAppId"/> and <see cref="Executable"/> are null when they were not read.
-/// </summary>
 internal sealed record WindowRead(
     string Title,
     bool Maximized,
@@ -33,78 +25,34 @@ internal sealed record WindowRead(
     string? PackageAppId,
     string? Executable);
 
-/// <summary>
-/// The other programs' windows in Win32, for a <see cref="WindowListService"/>. Tests use a stand-in, so no real
-/// window is read or moved. The shell uses <see cref="WindowBackend"/>.
-/// </summary>
 internal interface IWindowBackend
 {
-    /// <summary>
-    /// Calls <paramref name="handler"/> with each WinEvent the hooks see, until disposed: its type, window, object id
-    /// and child id. Each hook calls it on the thread that set it, so <see cref="WatchForeground"/> and
-    /// <see cref="Start"/> are called on one thread.
-    /// </summary>
-    /// <param name="handler">Gets the events.</param>
-    /// <param name="failed">Gets each exception <paramref name="handler"/> throws.</param>
     IDisposable ListenWinEvents(Action<uint, nint, int, int> handler, Action<Exception> failed);
 
-    /// <summary>
-    /// Calls <paramref name="handler"/> with each window that flashes to ask for attention, until disposed, on the
-    /// thread that called <see cref="Start"/>.
-    /// </summary>
-    /// <param name="handler">Gets the window.</param>
-    /// <param name="failed">Gets each exception <paramref name="handler"/> throws.</param>
     IDisposable ListenFlashes(Action<nint> handler, Action<Exception> failed);
 
-    /// <summary>The window that has the foreground. Zero when none.</summary>
     nint Foreground { get; }
 
-    /// <summary>
-    /// Sets the hooks for every WinEvent the window list reads, and for flashes, once. The thread must pump messages.
-    /// </summary>
-    /// <returns>What Windows refused, for the caller to report. Empty when every hook is set, or was already.</returns>
     IReadOnlyList<string> Start();
 
-    /// <summary>
-    /// Sets the hooks for a new foreground and for windows that move or resize, once, without the rest
-    /// <see cref="Start"/> sets. The thread must pump messages.
-    /// </summary>
-    /// <returns>What Windows refused, for the caller to report. Empty when every hook is set, or was already.</returns>
     IReadOnlyList<string> WatchForeground();
 
-    /// <summary>
-    /// The monitors the foreground window covers, as a fullscreen game or video does. None when the foreground is the
-    /// desktop, which covers every monitor, or a tool window, as panels and popups are.
-    /// </summary>
     IReadOnlySet<string> FullscreenScreens();
 
-    /// <summary>The top-level windows, in z-order.</summary>
     IReadOnlyList<nint> TopLevel();
 
-    /// <summary>The window that owns this one. Zero when none.</summary>
     nint OwnerOf(nint hwnd);
 
-    /// <summary>The top-level window this window is in, or the window itself.</summary>
     nint RootOf(nint hwnd);
 
-    /// <summary>
-    /// The facts the taskbar's rule uses to decide whether this window gets a button. A window that is not visible is
-    /// reported as such without reading its title.
-    /// </summary>
     TaskbarWindowFacts TaskbarFacts(nint hwnd);
 
-    /// <summary>
-    /// Reads a window. The process package is read only when <paramref name="package"/> is true and
-    /// the window set no id. The program path is read only when <paramref name="executable"/> is true.
-    /// </summary>
     WindowRead Read(nint hwnd, bool package, bool executable);
 
-    /// <summary>The connected monitor with this device name, or null.</summary>
     ScreenInfo? Screen(string deviceName);
 
     string DesktopId(nint hwnd);
 
-    /// <summary>Moves the window to that desktop. False, with why, when Windows refuses.</summary>
     bool MoveToDesktop(nint hwnd, Guid desktop, out string problem);
 
     void Activate(nint hwnd);
@@ -118,10 +66,6 @@ internal interface IWindowBackend
     void MoveToMonitor(nint hwnd, string deviceName);
 }
 
-/// <summary>
-/// The windows through Win32. The WinEvent hooks and the shell hook window are set on the UI thread and stay for the
-/// process, the same way the desktop switch hook does. Which desktop a window is on uses the supported desktop API.
-/// </summary>
 internal sealed class WindowBackend : IWindowBackend
 {
     public static WindowBackend Shared { get; } = new();
@@ -198,8 +142,6 @@ internal sealed class WindowBackend : IWindowBackend
         Hook(refused, PInvoke.EVENT_OBJECT_CREATE, PInvoke.EVENT_OBJECT_HIDE);
         Hook(refused, PInvoke.EVENT_OBJECT_NAMECHANGE, PInvoke.EVENT_OBJECT_NAMECHANGE);
         Hook(refused, PInvoke.EVENT_OBJECT_CLOAKED, PInvoke.EVENT_OBJECT_UNCLOAKED);
-        // The shell hook messages Explorer's taskbar gets. Only HSHELL_FLASH is read: WinEvents say nothing when a
-        // window flashes.
         if (!ShellHookWindow.Start(OnShellHook))
             refused.Add("RegisterShellHookWindow failed; windows that flash will not show that they want attention");
         return refused;
@@ -225,8 +167,6 @@ internal sealed class WindowBackend : IWindowBackend
 
     public TaskbarWindowFacts TaskbarFacts(nint hwnd)
     {
-        // Asking a window of this process for its title sends it a message with no timeout. A hidden one can belong to a
-        // thread waiting for this one, as SystemEvents does while it raises an event, and neither would ever go on.
         if (!PInvoke.IsWindowVisible((HWND)hwnd))
             return new TaskbarWindowFacts(PInvoke.IsWindow((HWND)hwnd), false, false, false, false, false, false, false, false,
                 false);
@@ -254,7 +194,6 @@ internal sealed class WindowBackend : IWindowBackend
                          WindowRules.CoversMonitor(PInvoke.GetWindowLongPtr((HWND)hwnd, WINDOW_LONG_PTR_INDEX.GWL_STYLE), rect,
                              monitor.Bounds);
 
-        // The property can arrive after the window is first shown, so it is read every time.
         var property = AppUserModelIds.OfWindow(hwnd);
         string? packageAppId = null;
         if (property.Length == 0 && package)
@@ -267,7 +206,6 @@ internal sealed class WindowBackend : IWindowBackend
             packageAppId, executable ? ExePath(hwnd) : null);
     }
 
-    /// <summary>The full path of the program that owns a window, or empty when it cannot be read.</summary>
     private static string ExePath(nint hwnd)
     {
         PInvoke.GetWindowThreadProcessId((HWND)hwnd, out var pid);
@@ -289,11 +227,6 @@ internal sealed class WindowBackend : IWindowBackend
         return screens;
     }
 
-    /// <summary>
-    /// Moves a window onto the monitor with this device name. <see cref="WindowOnScreen"/> keeps its logical size
-    /// and its offset in the work area, and a maximized window is maximized again on the monitor it lands on. The
-    /// shell is per-monitor aware, so the rectangle and the placement use the same pixels.
-    /// </summary>
     public void MoveToMonitor(nint hwnd, string deviceName)
     {
         if (deviceName.Length == 0 || !PInvoke.IsWindow((HWND)hwnd))
@@ -321,7 +254,6 @@ internal sealed class WindowBackend : IWindowBackend
             TopLevelWindows.Move(hwnd, place.Screen);
     }
 
-    /// <summary>Brings a window to the front and focuses it.</summary>
     public void Activate(nint hwnd)
     {
         if (PInvoke.IsIconic((HWND)hwnd))
@@ -329,7 +261,6 @@ internal sealed class WindowBackend : IWindowBackend
         Focus.Take(hwnd);
     }
 
-    /// <summary>Asks the window to close, as its close button does.</summary>
     public void Close(nint hwnd)
     {
         TopLevelWindows.Close(hwnd);

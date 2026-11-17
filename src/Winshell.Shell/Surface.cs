@@ -7,23 +7,10 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
-/// <summary>
-/// What a <see cref="Surface"/> shows. <see cref="Content"/> is one element, often a <see cref="WidgetArea"/>, and it
-/// stays loaded when the style changes. A null <see cref="Style"/> follows <see cref="Shell.Style"/>.
-/// </summary>
-/// <param name="Content">What the surface holds, or null for nothing.</param>
-/// <param name="Padding">The space around <paramref name="Content"/>, in logical pixels.</param>
-/// <param name="Style">The surface's own style, which wins over the shell's, or null for the shell's.</param>
 public sealed record SurfaceProps(Element? Content = null, Thickness Padding = default, ShellStyle? Style = null);
 
-/// <summary>
-/// Paints the style's <c>ShellBackgroundBrush</c> behind its content in the window's theme, as plain controls take
-/// theirs, so a switch between light and dark while the shell runs reaches it. A bar's window shows one of these as
-/// its tree, with the bar's areas inside it.
-/// </summary>
 public sealed class Surface : Component<SurfaceProps>
 {
-    /// <summary>The background under the content. The content is not keyed, so a new style leaves it loaded.</summary>
     public override Element Render()
     {
         var props = Props;
@@ -68,7 +55,6 @@ public sealed class Surface : Component<SurfaceProps>
                 element.ActualThemeChanged += (_, _) => Paint(element);
             });
 
-        // The brush is the one the style dictionary already loaded. A theme switch reads it again.
         void Paint(FrameworkElement element)
         {
             StyleHost.Show(element, shown.Current);

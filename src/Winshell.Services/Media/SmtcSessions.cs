@@ -4,10 +4,6 @@ using Winshell.Apps;
 
 namespace Winshell.Media;
 
-/// <summary>
-/// The media sessions Windows shows in its media flyout (the Global System Media Transport Controls), one per
-/// app that plays media. It lives on the UI thread; Windows' events arrive on other threads and are posted to it.
-/// </summary>
 internal sealed class SmtcSessions : IMediaBackend
 {
     private readonly IEventLoop _loop;
@@ -41,7 +37,6 @@ internal sealed class SmtcSessions : IMediaBackend
 
     public event Action<SmtcSession>? SessionRemoved;
 
-    /// <summary>Stops asking Windows and releases every session.</summary>
     public void Dispose()
     {
         _poll.Dispose();
@@ -51,7 +46,6 @@ internal sealed class SmtcSessions : IMediaBackend
         _sessions.Clear();
     }
 
-    /// <summary>The projection does not root the delegate. A collected handler never hears a later session.</summary>
     private void Subscribe(GlobalSystemMediaTransportControlsSessionManager manager)
     {
         if (ReferenceEquals(_manager, manager))
@@ -71,8 +65,6 @@ internal sealed class SmtcSessions : IMediaBackend
 
     private void Read(IReadOnlyList<GlobalSystemMediaTransportControlsSession> current)
     {
-        // GetSessions returns a new object for a session that is already held, so reference equality
-        // drops it and starts again. That cancels the read of its title and art. Match the app id instead.
         var incoming = new List<GlobalSystemMediaTransportControlsSession>();
         var ids = new List<string>();
         foreach (var session in current)
@@ -113,10 +105,6 @@ internal sealed class SmtcSessions : IMediaBackend
         }
     }
 
-    /// <summary>
-    /// Incoming index to held index, or -1 when that incoming session is new. The same app id pairs in
-    /// list order, because one app can have more than one session and Windows does not give them an id.
-    /// </summary>
     internal static int[] Pair(IReadOnlyList<string> heldAppIds, IReadOnlyList<string> incomingAppIds)
     {
         var pair = new int[incomingAppIds.Count];

@@ -1,8 +1,5 @@
 namespace Winshell.Core.Tests;
 
-/// <summary>
-/// The budgets for a TOML file. The numbers are the production limits; a file past one is as large as the limit.
-/// </summary>
 public sealed class TomlLimitsTests
 {
     private const int Megabyte = 1024 * 1024;
@@ -48,7 +45,6 @@ public sealed class TomlLimitsTests
     [Fact]
     public void The_limit_counts_bytes_and_not_characters()
     {
-        // Fewer characters than the limit, more bytes: each é is two UTF-8 bytes.
         var text = "name = \"" + new string('é', Megabyte / 2) + "\"\n";
 
         Assert.True(text.Length < Megabyte);

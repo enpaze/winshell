@@ -2,11 +2,6 @@ using Winshell.Native;
 
 namespace Winshell.Apps;
 
-/// <summary>
-/// One app the Start menu lists: a shortcut or a packaged app. <see cref="Path"/> is the shortcut file, or
-/// <c>shell:AppsFolder\&lt;id&gt;</c> for a packaged app. <see cref="Folder"/> is the Start menu folders the shortcut is
-/// in, joined with <c>/</c>.
-/// </summary>
 internal sealed record AppRecord(
     string Id,
     string Name,
@@ -22,13 +17,11 @@ internal sealed record AppRecord(
 {
     public IReadOnlyList<string> Folders => Folder.Length == 0 ? [] : Folder.Split('/');
 
-    /// <summary>The target and its arguments, or Explorer opening a shortcut whose target is gone.</summary>
     public string CommandLine => Target.Length > 0
         ? Winshell.CommandLine.Join(Target, Arguments)
         : Winshell.CommandLine.Join("explorer.exe", Winshell.CommandLine.Quote(Path));
 }
 
-/// <summary>How <c>Apps.search</c> scores a query. A higher band always beats a lower one; usage stays inside a band.</summary>
 internal static class AppRank
 {
     private const int Exact = 1_000_000;
@@ -41,7 +34,6 @@ internal static class AppRank
     private const int Target = 100_000;
     private const int Folder = 80_000;
 
-    /// <summary>Zero when the query matches nothing on the app. Usage is added on top and cannot cross a band.</summary>
     public static int Score(string query, AppRecord app, AppUsage usage, long nowUnixMilliseconds)
     {
         var text = query.Trim();
@@ -136,10 +128,6 @@ internal static class AppRank
         return new string(letters.ToArray());
     }
 
-    /// <summary>
-    /// The query is a subsequence that starts on a word and skips at most as many letters as the query has.
-    /// That catches "notpad" for Notepad and rejects a sparse match.
-    /// </summary>
     private static bool FuzzyMatch(string query, string name, out int skipped)
     {
         skipped = 0;
@@ -176,13 +164,8 @@ internal static class AppRank
     }
 }
 
-/// <summary>Builds the Start menu index and answers find, search, recent, and frequent.</summary>
 internal static class AppIndex
 {
-    /// <summary>
-    /// The shortcuts of one Programs folder. A folder that is gone has none; one that can't be read throws. A subfolder
-    /// that can't be read is left out.
-    /// </summary>
     public static List<AppRecord> Shortcuts(string folder)
     {
         if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
@@ -199,7 +182,6 @@ internal static class AppIndex
         return apps;
     }
 
-    /// <summary>A packaged app, or null when Windows did not give it an id and a name.</summary>
     public static AppRecord? Packaged(string? appUserModelId, string? name, string? description)
     {
         var id = (appUserModelId ?? "").Trim();
@@ -213,11 +195,6 @@ internal static class AppIndex
         return new AppRecord(id, display, (description ?? "").Trim(), path, path, "", "", id, "", false, true);
     }
 
-    /// <summary>
-    /// Shortcuts first, then packaged apps. A shortcut whose app id is a packaged app is dropped, so the app is
-    /// listed once and launches by its AppUserModelID. Of two shortcuts with the same id, the later one is kept, so
-    /// the user's folder, read after the common one, wins.
-    /// </summary>
     public static List<AppRecord> Combine(IEnumerable<AppRecord> shortcuts, IEnumerable<AppRecord> packaged)
     {
         var packages = packaged.Where(app => app.Id.Length > 0).ToList();
@@ -298,7 +275,6 @@ internal static class AppIndex
     {
         try
         {
-            // IgnoreInaccessible also passes over the folder itself, so open it on its own first.
             using (Directory.EnumerateFileSystemEntries(folder).GetEnumerator())
             {
             }

@@ -8,15 +8,10 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
-/// <summary>
-/// The day and time, such as <c>Saturday 20:25</c>, in the Windows regional format. An optional <c>timezone</c> setting
-/// names another zone, such as <c>UTC</c>. A side bar shows the hours above the minutes. The tooltip is the date.
-/// </summary>
 public sealed class ClockWidget : Component<WidgetContext>
 {
     public override Element Render()
     {
-        // The time is not a service. A timer renders again when the shown minute changes, so an open tooltip stays open.
         var (tick, setTick) = UseState(0);
         var seen = UseRef("");
         var generation = UseRef(0);

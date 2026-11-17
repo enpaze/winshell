@@ -7,27 +7,15 @@ using Windows.Win32.System.WinRT;
 
 namespace Winshell.Native;
 
-/// <summary>A virtual desktop: its id, and the name the user gave it or empty.</summary>
 internal readonly record struct VirtualDesktopEntry(Guid Id, string Name);
 
-/// <summary>
-/// The virtual desktops through Explorer's internal manager, reached through the immersive shell. Its method table
-/// changes between Windows builds, so <see cref="VirtualDesktopBuilds"/> refuses a build it does not know before
-/// any slot is called. Each call takes the manager fresh and releases every object before it returns. A failed
-/// step goes no further and says what failed.
-/// </summary>
 internal static class ImmersiveDesktops
 {
     private static readonly Guid ImmersiveShellClass = new("C2F03A33-21F5-47FA-B4BB-156362A2F239");
     private static readonly Guid InternalService = new("C5E0CDCA-7B6E-41B2-9FC4-D93975CC467B");
 
-    /// <summary>More desktops than this is a broken answer, not a list to read.</summary>
     private const uint MaxDesktops = 128;
 
-    /// <summary>
-    /// Every desktop in order, and the current one. <paramref name="error"/> starts with <c>unavailable:</c> when the
-    /// manager cannot be reached, and with <c>failed:</c> when it gave a broken answer.
-    /// </summary>
     internal static bool TryRead(out IReadOnlyList<VirtualDesktopEntry> desktops, out Guid current, out string error)
     {
         desktops = [];
@@ -107,7 +95,6 @@ internal static class ImmersiveDesktops
         }
     }
 
-    /// <summary>Switches to the desktop with that id. <paramref name="problem"/> says why not, after the method's name.</summary>
     internal static bool SwitchTo(Guid id, out string problem)
     {
         if (!TryInternal(out var manager, out var error))
@@ -142,7 +129,6 @@ internal static class ImmersiveDesktops
         }
     }
 
-    /// <summary>Adds a desktop and returns its id, or null. <paramref name="problem"/> says why not, after the method's name.</summary>
     internal static Guid? Create(out string problem)
     {
         if (!TryInternal(out var manager, out var error))
@@ -184,10 +170,6 @@ internal static class ImmersiveDesktops
         }
     }
 
-    /// <summary>
-    /// Removes the desktop <paramref name="id"/>, moving its windows to <paramref name="fallback"/>.
-    /// <paramref name="problem"/> says why not, after the method's name.
-    /// </summary>
     internal static bool Remove(Guid id, Guid fallback, out string problem)
     {
         if (!TryInternal(out var manager, out var error))
@@ -272,7 +254,6 @@ internal static class ImmersiveDesktops
         }
     }
 
-    /// <summary>The desktop with that id, as an <c>IVirtualDesktop</c> pointer with one reference the caller releases.</summary>
     private static bool TryFind(IVirtualDesktopManagerInternal manager, Guid id, out nint pointer)
     {
         pointer = 0;
@@ -297,10 +278,6 @@ internal static class ImmersiveDesktops
         }
     }
 
-    /// <summary>
-    /// Every desktop in the manager's list, in order, for the caller to <see cref="Release(List{IVirtualDesktop}?)"/>.
-    /// Null when the list cannot be read, and <paramref name="error"/> says why.
-    /// </summary>
     private static List<IVirtualDesktop>? Desktops(IVirtualDesktopManagerInternal manager, out string error)
     {
         var hr = manager.GetDesktops(out var arrayPointer);

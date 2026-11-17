@@ -6,22 +6,12 @@ using Windows.Win32.System.Diagnostics.ToolHelp;
 
 namespace Winshell.Native;
 
-/// <summary>
-/// The full path of a process image. <c>QueryFullProcessImageNameW</c> reports
-/// <c>ERROR_INSUFFICIENT_BUFFER</c> and the required size when the first buffer is short, so a path past 1024
-/// characters is read on a second call, up to the Win32 limit.
-/// </summary>
 internal static class ProcessImage
 {
-    /// <summary>Characters, including the terminating null, that a Win32 path can hold.</summary>
     private const int MaxCharacters = 32_767;
 
     private const int FirstCapacity = 1024;
 
-    /// <summary>
-    /// The image of the nearest ancestor of this process that <paramref name="matches"/>, walking from its parent, or
-    /// null when none within eight parents does.
-    /// </summary>
     internal static string? Ancestor(Func<string, bool> matches)
     {
         try
@@ -45,7 +35,6 @@ internal static class ProcessImage
         }
     }
 
-    /// <summary>The image path, or null when the process cannot be opened or the name cannot be read.</summary>
     internal static string? TryRead(uint processId)
     {
         using var process = ProcessHandle.Open(processId);
@@ -53,7 +42,6 @@ internal static class ProcessImage
         return process.IsOpen ? TextBuffer.Read(FirstCapacity, MaxCharacters, buffer => Query(handle, buffer)) : null;
     }
 
-    /// <summary>The parent process id, or null when the snapshot cannot be read or the process is not in it.</summary>
     internal static uint? ParentOf(uint processId)
     {
         var snapshot = PInvoke.CreateToolhelp32Snapshot(CREATE_TOOLHELP_SNAPSHOT_FLAGS.TH32CS_SNAPPROCESS, 0);

@@ -2,7 +2,6 @@ using Winshell.Notifications;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>A toast change refreshes at once, and disposing the listener stops the watch.</summary>
 public sealed class NotificationWatchTests
 {
     [Fact]
@@ -51,7 +50,6 @@ public sealed class NotificationWatchTests
             return Task.FromResult<IReadOnlyList<ListedToast>>([]);
         }
 
-        /// <summary>The same stamp every time, so only the toast change makes the second read due.</summary>
         public string ToastStamp()
         {
             return "unchanged";

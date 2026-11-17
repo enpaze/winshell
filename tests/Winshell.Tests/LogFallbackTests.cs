@@ -2,10 +2,6 @@ using System.Text.Json;
 
 namespace Winshell.Tests;
 
-/// <summary>
-/// <c>log</c> may show a stopped instance, and a selector never adopts a different one. The instances are folders
-/// <see cref="Instances.List"/> reads, so this does not start a shell.
-/// </summary>
 public sealed partial class LogFallbackTests : IDisposable
 {
     private const string StoppedId = "abc123stopped";
@@ -56,7 +52,6 @@ public sealed partial class LogFallbackTests : IDisposable
         Directory.CreateDirectory(project);
         File.WriteAllText(Path.Combine(project, "Bar.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
         var program = Path.Combine(project, "bin", "shell.next", "Bar.exe");
-        // Older than the other stopped instance, so only -p can choose it. A missing selector shows the newer log.
         Write("besideabc", program, int.MaxValue - 2, DateTime.Now.AddHours(-2));
 
         var choice = Ask("log", "-p", project);

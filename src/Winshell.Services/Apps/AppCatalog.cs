@@ -8,7 +8,6 @@ using Winshell.Native;
 
 namespace Winshell.Apps;
 
-/// <summary>The apps and the usage from one read.</summary>
 internal sealed class AppSnapshot(
     IReadOnlyList<AppRecord> entries,
     IReadOnlyDictionary<string, AppUsage> usage)
@@ -21,15 +20,6 @@ internal sealed class AppSnapshot(
     public IReadOnlyDictionary<string, AppUsage> Usage { get; } = usage;
 }
 
-/// <summary>
-/// The Start menu of some Programs folders and the installed packages, and how its apps open. Each read reads each
-/// folder, the packages and the usage; one that fails keeps what the last good one found, and is warned once until it
-/// reads again.
-/// </summary>
-/// <param name="log">Where failed reads are reported.</param>
-/// <param name="folders">The Programs folders, the common one first: <see cref="ProgramsFolders"/>.</param>
-/// <param name="packaged">Reads the packaged apps: <see cref="PackagedApps.Read"/>.</param>
-/// <param name="usage">Reads the usage: <see cref="AppUsageReader.Read"/>.</param>
 internal sealed class AppCatalog(
     Log log,
     IReadOnlyList<string> folders,
@@ -63,7 +53,6 @@ internal sealed class AppCatalog(
     private readonly Source<IReadOnlyDictionary<string, AppUsage>> _usage =
         new(log, "Could not read how often apps are used", usage, AppSnapshot.Empty.Usage);
 
-    /// <summary>Raised on any thread when a Programs folder or the installed packages changed.</summary>
     public event Action? Changed;
 
     public void Start()
@@ -90,7 +79,6 @@ internal sealed class AppCatalog(
         }
     }
 
-    /// <summary>Reads on its own thread: PackageManager and the shortcut files can block.</summary>
     public Task<AppSnapshot> ReadAsync()
     {
         return OwnThread.Run(Read);
@@ -119,7 +107,6 @@ internal sealed class AppCatalog(
 
     private void Arm(string folder)
     {
-        // FileSystemWatcher delivers on a pool worker. A busy pool can hold a change, and the read behind it, forever.
         var watch = DirectoryWatch.Start(
             folder,
             DirectoryWatch.FileChanges | DirectoryWatch.NameChanges,
@@ -148,10 +135,6 @@ internal sealed class AppCatalog(
         Changed?.Invoke();
     }
 
-    /// <summary>
-    /// A watch ends when its folder goes away or its buffer overflows, and reports nothing after that. A read arms it
-    /// again first, so that read sees whatever the old watch missed. A folder still missing waits for a later read.
-    /// </summary>
     private void RearmLost()
     {
         string[] lost;
@@ -192,7 +175,6 @@ internal sealed class AppCatalog(
     private AppSnapshot Read()
     {
         RearmLost();
-        // The user's folder comes after the common one, so Combine keeps its shortcut of an id both have.
         var shortcuts = _shortcuts.SelectMany(folder => folder.Read()).ToList();
         return new AppSnapshot(AppIndex.Combine(shortcuts, _packaged.Read()), _usage.Read());
     }
@@ -201,9 +183,6 @@ internal sealed class AppCatalog(
     {
         try
         {
-            // dotnet watch puts this process in a kill-on-close job and does not allow breakaway, so a
-            // ShellExecute from here would end the app when the dev session rebuilds or exits. Explorer is
-            // already running outside that job and opens the shortcut, including its Start in folder.
             var explorer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe");
             var start = new ProcessStartInfo(explorer, $"\"{path}\"")
             { UseShellExecute = false, CreateNoWindow = true };
@@ -218,10 +197,8 @@ internal sealed class AppCatalog(
         }
     }
 
-    /// <summary>Activates on its own STA thread, which <see cref="AppActivation"/> requires, and returns at once.</summary>
     public Task<string?> ActivateAsync(string appUserModelId, string arguments)
     {
-        // Continuations run on this thread, so the launch posts its outcome without waiting for a pool worker.
         var done = new TaskCompletionSource<string?>();
         var thread = new Thread(() =>
         {
@@ -248,7 +225,6 @@ internal sealed class AppCatalog(
         return AppIdentity.OpenAppsFolder(appUserModelId);
     }
 
-    /// <summary>One source of a read, and what its last good read found.</summary>
     private sealed class Source<T>(Log log, string what, Func<T> read, T empty)
     {
         private readonly MonitorWarning _warning = new(log, "apps", what);
@@ -272,10 +248,8 @@ internal sealed class AppCatalog(
     }
 }
 
-/// <summary>Packaged and unpackaged apps Windows shows in Start, from PackageManager.</summary>
 internal static class PackagedApps
 {
-    /// <summary>Every app of the current user's packages. A package that fails to answer is left out and logged.</summary>
     public static IReadOnlyList<AppRecord> Read(Log log)
     {
         var result = new List<AppRecord>();
@@ -292,7 +266,6 @@ internal static class PackagedApps
             catch (Exception e) when (e is COMException or UnauthorizedAccessException or ArgumentException
                                           or FileNotFoundException or IOException or InvalidOperationException)
             {
-                // A package being installed or removed can fail to answer; the next read reads it again.
                 log.Warn("apps", $"Skipped a package that did not answer: {e.Message}");
             }
 

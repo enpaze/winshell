@@ -2,7 +2,6 @@ using Winshell.Windows;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>Which screens another app is fullscreen on, over a fake backend, so no real window is read.</summary>
 public sealed class FullscreenAppsTests
 {
     private readonly ManualEventLoop _loop = new();

@@ -4,14 +4,8 @@ using Winshell.Native;
 
 namespace Winshell.Tray;
 
-/// <summary>Windows' choice for one icon: shown in the taskbar, or in the hidden icons flyout.</summary>
 internal sealed record TrayIconSetting(Guid Guid, string ExecutablePath, uint? Id, bool Promoted);
 
-/// <summary>
-/// The per-icon choice in Settings, under Taskbar, Other system tray icons. Explorer keeps it in
-/// <c>HKCU\Control Panel\NotifyIconSettings</c>, one key per icon it has seen: the icon's GUID, or its program and
-/// id, and <c>IsPromoted</c> when it is shown in the taskbar. Explorer writes the key when an icon first appears.
-/// </summary>
 internal static class TrayIconSettings
 {
     private const string KeyPath = @"Control Panel\NotifyIconSettings";
@@ -40,10 +34,6 @@ internal static class TrayIconSettings
         return settings;
     }
 
-    /// <summary>
-    /// Whether the icon belongs in the hidden icons flyout. An icon Windows has no choice for yet is hidden, as
-    /// Windows 11 does with a new icon.
-    /// </summary>
     public static bool InOverflow(IEnumerable<TrayIconSetting> settings, Guid guid, string program, uint id)
     {
         foreach (var s in settings)
@@ -59,7 +49,6 @@ internal static class TrayIconSettings
         return true;
     }
 
-    /// <summary>Calls back on the loop when Explorer changes any icon's choice, until disposed.</summary>
     public static IDisposable Watch(IEventLoop loop, Action changed)
     {
         return new Watcher(loop, changed);
@@ -96,7 +85,6 @@ internal static class TrayIconSettings
             if (_disposed)
                 return;
             Arm();
-            // Explorer writes several values for one change; read them once it is done.
             _settle?.Dispose();
             _settle = _loop.Schedule(TimeSpan.FromMilliseconds(100), () =>
             {

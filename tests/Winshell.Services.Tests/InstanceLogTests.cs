@@ -1,9 +1,5 @@
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// The instance log rolls instead of growing without limit, a warning is on disk at once, and an ordinary line a
-/// moment later.
-/// </summary>
 public sealed class InstanceLogTests : IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
@@ -37,16 +33,11 @@ public sealed class InstanceLogTests : IDisposable
         Assert.DoesNotContain("pad-0-", kept, StringComparison.Ordinal);
     }
 
-    /// <summary>
-    /// <c>winshell log -f</c> holds the log open while the shell rolls it, and gets every line: the one written just
-    /// before the roll, which only <c>log.1.txt</c> has, and the one after.
-    /// </summary>
     [Fact]
     public async Task A_follower_reads_on_after_the_log_rolls()
     {
         var path = Path.Combine(_dir, "log.txt");
         var cancel = TestContext.Current.CancellationToken;
-        // 20 bytes: the second line passes the cap, so the third rolls the file.
         using var log = new InstanceLog(path, 20, new FakeTimeProvider());
         log.Write(LogLevel.Warn, "first-line");
         await using var stream = InstanceLog.OpenToRead(path);
@@ -55,7 +46,6 @@ public sealed class InstanceLogTests : IDisposable
         await using var lines = InstanceLog.Follow(reader, cancel: cancel).GetAsyncEnumerator(cancel);
 
         log.Write(LogLevel.Warn, "second-line");
-        // Shorter than what the follower has read: between two reads a shell writes far less than the real cap.
         log.Write(LogLevel.Warn, "third");
 
         Assert.Equal("first-line\nsecond-line\n", Read(Path.Combine(_dir, "log.1.txt")));
@@ -65,10 +55,6 @@ public sealed class InstanceLogTests : IDisposable
         Assert.Equal("third", lines.Current);
     }
 
-    /// <summary>
-    /// Nothing new is in the file yet, so following waits on the clock. One tick short of the wait, the next line is
-    /// still unread. The tick after it arrives.
-    /// </summary>
     [Fact]
     public async Task A_follower_waits_on_the_clock_for_the_next_line()
     {
@@ -104,7 +90,6 @@ public sealed class InstanceLogTests : IDisposable
         time.Advance(TimeSpan.FromMilliseconds(500));
         Assert.Contains("first", Read(path), StringComparison.Ordinal);
 
-        // Nothing was left to write, so the timer stopped. The next line starts it again.
         log.Write(LogLevel.Info, "second");
         time.Advance(TimeSpan.FromMilliseconds(500));
         Assert.Contains("second", Read(path), StringComparison.Ordinal);
@@ -119,12 +104,10 @@ public sealed class InstanceLogTests : IDisposable
         using var log = new InstanceLog(path, 10, time);
         log.Write(LogLevel.Warn, "fills-the-file-past-the-cap");
 
-        // Move the file the log holds aside and keep a new one at its path open, so the roll can neither copy nor reopen it.
         File.Move(path, Path.Combine(_dir, "aside.txt"));
         using (new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
         {
             log.Write(LogLevel.Info, "lost-with-the-failed-roll");
-            // The timer's flush runs here, on this thread, and fails.
             time.Advance(delay);
         }
 
@@ -153,7 +136,6 @@ public sealed class InstanceLogTests : IDisposable
         }
     }
 
-    /// <summary>A fake clock that tells when following waits for another line.</summary>
     private sealed class Clock() : FakeTimeProvider(new DateTimeOffset(2026, 11, 5, 12, 0, 0, TimeSpan.Zero))
     {
         private readonly SemaphoreSlim _waits = new(0);
@@ -161,7 +143,6 @@ public sealed class InstanceLogTests : IDisposable
         public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
         {
             var timer = base.CreateTimer(callback, state, dueTime, period);
-            // The log's own flush timer is created idle. Only a wait for the next line counts.
             if (dueTime != Timeout.InfiniteTimeSpan)
                 _waits.Release();
             return timer;

@@ -3,7 +3,6 @@ using Winshell.Windows;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>Explorer's desktops, read through the method table for this build of Windows.</summary>
 public sealed class VirtualDesktopBackendTests
 {
     [Fact]
@@ -22,8 +21,6 @@ public sealed class VirtualDesktopBackendTests
     public void This_machine_reads_its_desktops_when_the_table_is_known()
     {
         var read = VirtualDesktopBackend.Shared.TryRead(out var desktops, out var current, out var error);
-        // "unavailable:" is a build outside the table, or a PC without Explorer's desktops.
-        // Any other failure is a wrong method table.
         if (!read)
         {
             Assert.StartsWith("unavailable:", error, StringComparison.Ordinal);

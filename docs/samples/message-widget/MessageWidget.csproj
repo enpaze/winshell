@@ -1,7 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- In this repository the sample builds against Winshell's source, so the check builds it. A library you publish
-       drops this import and the ProjectReference and references the Winshell package instead. The package imports
-       these props. See docs/configuration.md. -->
   <Import Project="..\..\..\src\Winshell.Package\buildTransitive\Winshell.props" />
   <PropertyGroup>
     <TargetFramework>net11.0-windows10.0.22621.0</TargetFramework>

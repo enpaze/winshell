@@ -1,10 +1,5 @@
 namespace Winshell;
 
-/// <summary>
-/// Follows one file that may not exist yet, and calls back on the loop when it may have changed. A folder that is
-/// missing is watched from the nearest one that exists, and each folder created under it moves the watch one step
-/// closer. Nothing is called after <see cref="Dispose"/>.
-/// </summary>
 internal sealed class FileWatch : IDisposable
 {
     private readonly string _path;
@@ -14,12 +9,6 @@ internal sealed class FileWatch : IDisposable
     private int _generation;
     private bool _disposed;
 
-    /// <summary>
-    /// Starts watching <paramref name="path"/>, calling <paramref name="changed"/> on <paramref name="loop"/>.
-    /// </summary>
-    /// <param name="path">The file to follow. A symbolic link is followed to its target.</param>
-    /// <param name="loop">The loop <paramref name="changed"/> is called on.</param>
-    /// <param name="changed">Called when the file may have changed. Read the file again to see whether it did.</param>
     public FileWatch(string path, IEventLoop loop, Action changed)
     {
         _path = path;
@@ -44,7 +33,6 @@ internal sealed class FileWatch : IDisposable
         if (dir is null)
             return;
         var generation = ++_generation;
-        // Read on the loop, after the event. Reading here would hold the file during a replace.
         Action arrived = parent ? () => Rewatch(generation) : Report;
         _watch = DirectoryWatch.Start(dir, parent ? DirectoryWatch.NameChanges : DirectoryWatch.FileChanges,
             changedName =>
@@ -52,8 +40,6 @@ internal sealed class FileWatch : IDisposable
                 if (changedName.Equals(name, StringComparison.OrdinalIgnoreCase))
                     _loop.Post(arrived);
             }, () => _loop.Post(() => Lost(generation)));
-        // The list was taken after the watch was queued. A parent step moves down only when that name is a
-        // folder: the list also has files, and a file with the folder's name would rewatch on every pass.
         if (_watch is not null && Listed(_watch, name) &&
             (parent ? Directory.Exists(Path.Combine(dir, name)) : reportExistingFile))
             _loop.Post(arrived);
@@ -64,7 +50,6 @@ internal sealed class FileWatch : IDisposable
 
     private void Lost(int generation) => Rewatch(generation, readFile: true);
 
-    /// <summary>Watches again after a watched folder appeared or the watch ended.</summary>
     private void Rewatch(int generation, bool readFile = false)
     {
         if (_disposed || generation != _generation)
@@ -72,7 +57,6 @@ internal sealed class FileWatch : IDisposable
         _watch?.Dispose();
         _watch = null;
         Watch(reportExistingFile: true);
-        // After the new watch is queued, so a delete in this gap is in that watch or in this read.
         if (readFile && !_disposed)
             _changed();
     }
@@ -83,7 +67,6 @@ internal sealed class FileWatch : IDisposable
             _changed();
     }
 
-    /// <summary>Stops watching the file.</summary>
     public void Dispose()
     {
         _disposed = true;

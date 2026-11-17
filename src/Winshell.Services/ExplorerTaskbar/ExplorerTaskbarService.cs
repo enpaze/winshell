@@ -1,10 +1,5 @@
 namespace Winshell.ExplorerTaskbar;
 
-/// <summary>
-/// Hides Explorer's taskbar for a shell that draws its own. Winshell shows it again when the shell exits, however it
-/// exits, unless the shell is giving way to one that replaces it: that shell puts it back. While it is hidden, a
-/// taskbar window Explorer makes is hidden too.
-/// </summary>
 public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
 {
     private readonly Lock _gate = new();
@@ -14,10 +9,6 @@ public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
     private bool _hidden;
     private bool _yielded;
 
-    /// <summary>
-    /// <paramref name="backend"/> is the Windows adapter, or a fake in a test. Left out, the real adapter is made the
-    /// first time the taskbar is hidden, so leaving it shown never looks at Explorer's windows.
-    /// </summary>
     internal ExplorerTaskbarService(IEventLoop loop, Log log, IExplorerTaskbarBackend? backend = null)
     {
         _loop = loop;
@@ -26,7 +17,6 @@ public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
             _backend = Listen(backend);
     }
 
-    /// <summary>Whether Explorer's taskbar is hidden and its screen edge is released.</summary>
     public bool Hidden
     {
         get
@@ -48,11 +38,6 @@ public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Puts back what this shell hid. Does nothing otherwise, and does nothing after <see cref="Yield"/>: the next
-    /// shell puts it back. Safe from any thread, and it reports no change: a crash can call it, and the process is
-    /// already ending.
-    /// </summary>
     internal void Restore()
     {
         lock (_gate)
@@ -64,10 +49,6 @@ public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Leaves Explorer's taskbar hidden for the shell that replaces this one. <see cref="Restore"/> and disposal then
-    /// leave it as it is, and the lease names no owner.
-    /// </summary>
     internal void Yield()
     {
         lock (_gate)
@@ -75,7 +56,6 @@ public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
         ExplorerTaskbarLease.HandOff();
     }
 
-    /// <summary>Shows Explorer's taskbar again when this shell had hidden it, unless it gave way to the shell that replaces it.</summary>
     public void Dispose()
     {
         Restore();
@@ -115,7 +95,6 @@ public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Takes a taskbar window Explorer made since the taskbar was hidden. Does nothing unless it is hidden.</summary>
     private void Rehide()
     {
         lock (_gate)

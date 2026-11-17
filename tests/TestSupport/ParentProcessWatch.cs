@@ -4,11 +4,6 @@ using static Winshell.Native.ProcessImage;
 
 namespace Winshell.TestSupport;
 
-/// <summary>
-/// Ends a test program when the process that started it is gone. xUnit v3 runs tests in a program of its own under
-/// testhost. A hang timeout that names no dump type kills only testhost, and the hung program then holds the pipe
-/// that <c>dotnet test</c> writes to, so a run piped to anything never ends.
-/// </summary>
 internal static class ParentProcessWatch
 {
     [ModuleInitializer]

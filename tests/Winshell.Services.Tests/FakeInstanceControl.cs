@@ -1,11 +1,9 @@
 namespace Winshell.Services.Tests;
 
-/// <summary>A shell behind the control pipe that only counts what it was asked.</summary>
 internal sealed class FakeInstanceControl : IInstanceControl
 {
     public string? ReloadError { get; init; }
 
-    /// <summary>What <see cref="Inspect"/> throws, or null to answer with the command.</summary>
     public Exception? InspectFailure { get; init; }
 
     public int Reloads { get; private set; }
@@ -14,7 +12,6 @@ internal sealed class FakeInstanceControl : IInstanceControl
 
     public int Yields { get; private set; }
 
-    /// <summary>What <see cref="Yield"/> does after it is counted. A test uses it to end the process that was asked.</summary>
     public Action? OnYield { get; set; }
 
     public string? BuildError { get; private set; }

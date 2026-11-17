@@ -19,7 +19,6 @@ public sealed partial class PanelReloadTests
             Built++;
         }
 
-        // The compiler closure in this method is the edit the closure test reloads.
         public Func<int> Counter()
         {
             var seen = Built;
@@ -40,7 +39,6 @@ public sealed partial class PanelReloadTests
 
     private sealed partial class Takes(int size) : Grid
     {
-        // Nothing reads this. The constructor argument is what stops a reload from replacing the content.
         public int Size { get; } = size;
     }
 
@@ -141,7 +139,6 @@ public sealed partial class PanelReloadTests
 
     private sealed partial class NestedRoot : Grid
     {
-        // PanelReload rebuilds the panel by invoking this constructor through reflection.
         public NestedRoot()
         {
         }
@@ -254,7 +251,6 @@ public sealed partial class PanelReloadTests
 
             PanelReload.Apply(shell, [typeof(EditedWidget)]);
 
-            // Read before the area is disposed, which disposes its widgets.
             await Wait.UntilAsync(() => Search<EditedWidget>(host) is { } next && !ReferenceEquals(next, widget),
                 "the area to make the edited widget again");
             return (ReferenceEquals(panel.Content, view), widget.Disposed, widget, Find<EditedWidget>(host));
@@ -313,7 +309,6 @@ public sealed partial class PanelReloadTests
         Assert.True(Assert.IsType<EditedWidget>(before[1]).Disposed);
         Assert.NotSame(before[1], Assert.IsType<EditedWidget>(after[1]));
 
-        // The unchanged text and the edited widget, in that order.
         static List<UIElement> Shows(PanelWindow bar)
         {
             var found = new List<UIElement>();
@@ -347,7 +342,6 @@ public sealed partial class PanelReloadTests
         return null;
     }
 
-    /// <summary>Renders <see cref="EditedWidget"/>, and disposes it when the area drops the placement.</summary>
     private sealed class EditedHost : Component<WidgetContext>
     {
         public override Element Render()
@@ -358,7 +352,6 @@ public sealed partial class PanelReloadTests
         }
     }
 
-    /// <summary>The placement a reload must leave alone.</summary>
     private sealed class UnchangedHost : Component<WidgetContext>
     {
         public override Element Render() => XamlHost(() => new TextBlock { Text = "unchanged" });

@@ -1,9 +1,5 @@
 namespace Winshell.ShellTests;
 
-/// <summary>
-/// A placement table is <c>{ widget, ...settings }</c>. <see cref="Placement"/> reads and writes that table, which a
-/// bar and a widget area both store as a list.
-/// </summary>
 public class PlacementTableTests
 {
     [Fact]

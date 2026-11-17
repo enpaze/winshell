@@ -80,7 +80,6 @@ internal static class IpcCommand
         if (request.Op != IpcOps.Listen)
             return await InstanceCall.PrintAsync(info, request);
 
-        // A listen prints each signal, and ends without a value when the shell quits.
         await foreach (var reply in IpcClient.Request(info.Pipe, request))
             if (InstanceCall.Print(InstanceCall.Answer.Of(reply, info.Id)) != 0)
                 return 1;
@@ -88,7 +87,6 @@ internal static class IpcCommand
         return 0;
     }
 
-    /// <summary>The pipe carries the target list. This prints it the way <c>list --json</c> prints.</summary>
     private static async Task<int> PrintShowJson(InstanceInfo info, IpcRequest request)
     {
         var answer = await InstanceCall.AskAsync(info, request);

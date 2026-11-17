@@ -2,7 +2,6 @@ using Winshell.Power;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>A Windows state a test sets by hand. A push says it changed, and a read returns the last push.</summary>
 internal class FakeSource<T>(T initial)
     where T : class
 {

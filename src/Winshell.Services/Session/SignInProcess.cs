@@ -1,12 +1,7 @@
 namespace Winshell.Session;
 
-/// <summary>
-/// Sign-in for this process. Packaged versus the Run key is decided here, so doctor and
-/// <see cref="StartupService"/> do not each decide it.
-/// </summary>
 internal static class SignInProcess
 {
-    /// <summary>The registry this process can write, or null when it cannot register.</summary>
     internal static IStartupRegistry? Registry(Log log)
     {
         return Choose<IStartupRegistry?>(
@@ -26,7 +21,6 @@ internal static class SignInProcess
         }
     }
 
-    /// <summary>The sign-in answer for this process. Doctor prints it.</summary>
     internal static SignInVerdict Read(string processPath, string configRoot, Func<string, bool> exists,
         Func<string, string> resolve, string? projectFile, Log? log = null)
     {

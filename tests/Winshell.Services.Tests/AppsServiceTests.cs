@@ -3,10 +3,6 @@ using Winshell.Apps;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// The Start menu's list over a fake backend, which supplies the reads and the launch outcomes, so nothing reads this
-/// PC's Start menu and nothing is launched. Jump lists and recent documents read the test's own reader and folder.
-/// </summary>
 public sealed class AppsServiceTests : IDisposable
 {
     private readonly string _folder =
@@ -33,7 +29,6 @@ public sealed class AppsServiceTests : IDisposable
         return AppIndex.Packaged($"{name}!App", name, "")! with { Hidden = hidden };
     }
 
-    /// <summary>A shortcut as a scan of a Programs folder lists it.</summary>
     private static AppRecord Shortcut(string name)
     {
         return new AppRecord(
@@ -46,7 +41,6 @@ public sealed class AppsServiceTests : IDisposable
         return rows.ToDictionary(row => row.Id, row => row.Usage, StringComparer.OrdinalIgnoreCase);
     }
 
-    /// <summary>A service over a backend whose first read finds <paramref name="apps"/>, in name order as a read lists them.</summary>
     private AppsService Start(IReadOnlyList<AppRecord> apps, Dictionary<string, AppUsage>? usage = null)
     {
         _backend.Snapshot = new AppSnapshot(apps, usage ?? Usage());
@@ -55,7 +49,6 @@ public sealed class AppsServiceTests : IDisposable
         return service;
     }
 
-    /// <summary>A change the backend reports, read once it has been quiet for a second.</summary>
     private void Change(IReadOnlyList<AppRecord> apps, Dictionary<string, AppUsage>? usage = null)
     {
         _backend.Show(new AppSnapshot(apps, usage ?? Usage()));
@@ -89,7 +82,6 @@ public sealed class AppsServiceTests : IDisposable
         var names = new List<string?>();
         apps.PropertyChanged += (_, e) => names.Add(e.PropertyName);
 
-        // A hidden app changes none of the lists, but ById and Find answer with it.
         Change([App("Alpha"), App("Uninstall", true)]);
         Assert.Contains("Entries", names);
         Assert.Equal("Uninstall", apps.Find("uninstall")?.Name);
@@ -117,7 +109,6 @@ public sealed class AppsServiceTests : IDisposable
         Assert.Empty(apps.Frequent);
         Assert.Null(apps.ById("Beta!App"));
 
-        // A launch from the entry that left is not counted when the app comes back.
         beta.Launch();
         _loop.Process();
         Change([App("Alpha"), App("Beta")], usage);
@@ -161,20 +152,16 @@ public sealed class AppsServiceTests : IDisposable
     {
         using var apps = Start([App("Alpha")]);
         var entry = apps.ById("Alpha!App")!;
-        // Like the real backend's, its continuations run on the thread that completes it.
         var activation = new TaskCompletionSource<string?>();
         _backend.Activation = activation.Task;
         var posts = 0;
-        // The woken callback increments posts while the test reads it; the test only sets the initial zero.
         _loop.Woken += () => Interlocked.Increment(ref posts);
 
-        // Activation is still running. A launch that waited for it would never finish, and nothing reaches the loop yet.
         await Task.Run(entry.Launch, TestContext.Current.CancellationToken)
             .WaitAsync(TestContext.Current.CancellationToken);
         Assert.Equal(["activate Alpha!App"], _backend.Opened);
         Assert.Equal(0, Volatile.Read(ref posts));
 
-        // The outcome is posted to the loop, so nothing has happened yet.
         activation.SetResult("not registered");
         Assert.Equal(1, Volatile.Read(ref posts));
         Assert.Empty(_warnings);
@@ -340,15 +327,12 @@ public sealed class AppsServiceTests : IDisposable
         }
     }
 
-    /// <summary>Supplies the reads and the launch outcomes. It opens nothing and records what it was asked to open.</summary>
     private sealed class FakeBackend : IAppsBackend
     {
         public event Action? Changed;
 
-        /// <summary>What a read finds.</summary>
         public AppSnapshot Snapshot { get; set; } = AppSnapshot.Empty;
 
-        /// <summary>What a read throws instead, when set.</summary>
         public Exception? Failure { get; set; }
 
         public Task<string?> Activation { get; set; } = Task.FromResult<string?>(null);

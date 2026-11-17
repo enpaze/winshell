@@ -6,13 +6,10 @@ using Windows.Win32.Graphics.Gdi;
 
 namespace Winshell.Native;
 
-/// <summary>A monitor's device name, such as <c>\\.\DISPLAY1</c>, and its rectangles in physical pixels.</summary>
 internal readonly record struct MonitorInfo(string Device, RECT Bounds, RECT Work, bool IsPrimary);
 
-/// <summary>Reads the connected monitors from Windows.</summary>
 internal static unsafe class Monitors
 {
-    /// <summary>The handle of every connected monitor, in the order Windows lists them.</summary>
     internal static List<nint> List()
     {
         return Callback.Collect(context => PInvoke.EnumDisplayMonitors(default, (RECT*)null, &Collect, context));
@@ -24,7 +21,6 @@ internal static unsafe class Monitors
         return (BOOL)Callback.Collected(context, monitor);
     }
 
-    /// <summary>The monitor's device name and rectangles. False once the monitor is gone.</summary>
     internal static bool TryRead(nint monitor, out MonitorInfo info)
     {
         var mi = new MONITORINFOEXW { monitorInfo = { cbSize = (uint)sizeof(MONITORINFOEXW) } };
@@ -39,7 +35,6 @@ internal static unsafe class Monitors
         return true;
     }
 
-    /// <summary>The display device's current refresh rate in hertz, or null when Windows does not say.</summary>
     internal static uint? RefreshRate(string device)
     {
         var mode = new DEVMODEW { dmSize = (ushort)sizeof(DEVMODEW) };
@@ -48,7 +43,6 @@ internal static unsafe class Monitors
             : null;
     }
 
-    /// <summary>A fixed character buffer up to its first null, never past its capacity.</summary>
     internal static string Text(char* buffer, int capacity)
     {
         var text = new ReadOnlySpan<char>(buffer, capacity);

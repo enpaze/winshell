@@ -4,9 +4,6 @@ using static Winshell.Diagnostics.DoctorCrashes;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// A crash folder that cannot be read warns, and a fatal report is named. These tests cover that evidence.
-/// </summary>
 public sealed class DoctorEvidenceTests : IDisposable
 {
     private readonly string _dir =

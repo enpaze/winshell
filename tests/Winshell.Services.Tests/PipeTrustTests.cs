@@ -115,7 +115,6 @@ public class PipeTrustTests
             _ => "refused for the test");
         for (var i = 0; i < 20; i++)
         {
-            // A refused client and one that hangs up at once both close their instance quickly.
             if (i % 2 == 0)
             {
                 await Ask(name, """{"op":"show"}""");

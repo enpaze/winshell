@@ -2,7 +2,6 @@ using Winshell.Native;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>A pre-start failure is a dialog only when nobody can read it, and the dialog opens the folder to fix.</summary>
 public class StartupErrorTests
 {
     [Theory]

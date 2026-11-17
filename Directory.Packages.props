@@ -1,19 +1,16 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <!-- A package another one brings in is pinned here too, so the graph has one version of each. -->
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- scripts/render-logo.cs draws the logo. The shell does not reference these. -->
     <PackageVersion Include="SkiaSharp" Version="4.154.0" />
     <PackageVersion Include="Svg.Skia" Version="5.2.3" />
     <PackageVersion Include="Tomlyn" Version="2.10.1" />
     <PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.367" />
     <PackageVersion Include="Microsoft.WindowsAppSDK.WinUI" Version="2.6.5" />
     <PackageVersion Include="Microsoft.WindowsAppSDK.Foundation" Version="2.6.5" />
-    <!-- Reactor's floor is Runtime 2.2.0, and that package rejects a newer WinUI. This is WinUI's pin. -->
     <PackageVersion Include="Microsoft.WindowsAppSDK.Runtime" Version="2.6.5" />
     <PackageVersion Include="Microsoft.UI.Reactor" Version="0.1.0-preview.17" />
     <PackageVersion Include="Vortice.Direct3D11" Version="3.8.3" />
@@ -27,7 +24,6 @@
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
   </ItemGroup>
 
-  <!-- Build-only, in every project. -->
   <ItemGroup>
     <GlobalPackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="18.12.1" />
   </ItemGroup>

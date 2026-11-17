@@ -1,9 +1,5 @@
 namespace Winshell.Apps;
 
-/// <summary>
-/// Reads the recent and frequent documents Windows will give for an app. It does not open them, pin them, or
-/// change the list.
-/// </summary>
 public sealed class JumpListService
 {
     private readonly IJumpListBackend _backend;
@@ -14,10 +10,6 @@ public sealed class JumpListService
         _backend = backend ?? new WindowsJumpListBackend();
     }
 
-    /// <summary>
-    /// The recent and frequent documents for an AppUserModelID. A blank id is not read. The same object is returned
-    /// for an id, with its properties updated from the latest read.
-    /// </summary>
     public AppJumpList ForApp(string appId)
     {
         if (!_byId.TryGetValue(appId, out var list))
@@ -36,7 +28,6 @@ public sealed class JumpListService
     }
 }
 
-/// <summary>One read of an app's jump list.</summary>
 public sealed class AppJumpList : ObservableObject
 {
     private bool _available;
@@ -46,10 +37,8 @@ public sealed class AppJumpList : ObservableObject
     {
     }
 
-    /// <summary>False when the recent and frequent lists cannot be read.</summary>
     public bool Available => Read(_available);
 
-    /// <summary>Document names, recent first. Empty when the list cannot be read, or when it was read and has none.</summary>
     public IReadOnlyList<string> Destinations => Read(_destinations);
 
     internal void Apply(bool available, IReadOnlyList<string> destinations)

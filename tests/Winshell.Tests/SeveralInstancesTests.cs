@@ -1,9 +1,5 @@
 namespace Winshell.Tests;
 
-/// <summary>
-/// With several instances and no selector, kill, log and ipc must not pick one. The choice is pure so this
-/// test does not start a shell.
-/// </summary>
 public class SeveralInstancesTests
 {
     [Fact]

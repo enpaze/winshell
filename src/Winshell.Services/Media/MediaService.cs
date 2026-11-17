@@ -2,7 +2,6 @@ using Windows.Media.Control;
 
 namespace Winshell.Media;
 
-/// <summary>The media sessions Windows shows in the media controls, one for each app that plays media.</summary>
 public sealed class MediaService : ObservableObject, IDisposable
 {
     private readonly IMediaBackend _sessions;
@@ -25,7 +24,6 @@ public sealed class MediaService : ObservableObject, IDisposable
         _sessions.SessionRemoved += Refresh;
     }
 
-    /// <summary>One session for each app in the Windows media controls. Empty when no app plays media.</summary>
     public ObservableList<MediaSession> Sessions { get => Read(field); } = [];
 
     private void Refresh(SmtcSession? _)
@@ -34,7 +32,6 @@ public sealed class MediaService : ObservableObject, IDisposable
             static (_, _) => { }, s => s.Detach());
     }
 
-    /// <summary>Stops following the Windows media sessions. The ones in <see cref="Sessions"/> stop updating.</summary>
     public void Dispose()
     {
         _sessions.SessionAdded -= Refresh;

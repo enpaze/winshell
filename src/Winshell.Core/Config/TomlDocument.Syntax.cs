@@ -7,13 +7,10 @@ using Tomlyn.Syntax;
 
 namespace Winshell;
 
-// Tomlyn is named only in this type.
 internal sealed partial class TomlDocument
 {
-    /// <summary>1 MiB. A TOML file stops past this.</summary>
     private const int MaxTextBytes = 1024 * 1024;
 
-    /// <summary>Null when <paramref name="bytes"/> is within <paramref name="maxBytes"/>.</summary>
     private static string? FileBytes(long bytes, int maxBytes)
     {
         return bytes > maxBytes
@@ -21,13 +18,11 @@ internal sealed partial class TomlDocument
             : null;
     }
 
-    /// <summary>Tomlyn's <c>Message</c> drops the span. The span's line and column are 0-based.</summary>
     private static (string Message, int Line, int Column) Locate(DiagnosticMessage diagnostic)
     {
         return (diagnostic.Message, diagnostic.Span.Start.Line + 1, diagnostic.Span.Start.Column + 1);
     }
 
-    /// <summary><c>path[line:column]</c> of where <paramref name="document"/> first defines a top-level key, or <c>path</c>.</summary>
     private static string KeyAt(string where, DocumentSyntax document, string key)
     {
         var owned = FindOwned(document, key);
@@ -37,10 +32,6 @@ internal sealed partial class TomlDocument
         return string.Create(CultureInfo.InvariantCulture, $"{where}[{start.Line + 1}:{start.Column + 1}]");
     }
 
-    /// <summary>
-    /// <c>path[line:column]</c> of <paramref name="key"/> under the header of the table <paramref name="table"/>, or
-    /// where that table is when the key is written another way, or the path when neither is in the file.
-    /// </summary>
     private static string KeyAt(string where, DocumentSyntax document, string table, string key)
     {
         foreach (var header in FindOwned(document, table).Tables)
@@ -50,10 +41,6 @@ internal sealed partial class TomlDocument
         return KeyAt(where, document, table);
     }
 
-    /// <summary>
-    /// Whether <paramref name="text"/> loads. On failure <paramref name="line"/> is 1-based, or 0 when the error has
-    /// no position: a file past 1 MiB, or nesting past 64 levels, which makes Tomlyn throw and is not applied.
-    /// </summary>
     private static bool TryLoad(string text, out DocumentSyntax document, out TomlTable table, out string message,
         out int line, out int column)
     {
@@ -115,16 +102,6 @@ internal sealed partial class TomlDocument
             table.Items.GetChild(index - 1)!.Comma = null;
     }
 
-    // The trivia after an array item is its comment and line break, then the blank and comment lines above what follows
-    // and its indentation: the next item, or the closing bracket. The open bracket's trivia is the same before the first
-    // item. A document loads only without errors, so an array has its brackets and every item its value, and an item
-    // followed by another has a comma.
-
-    /// <summary>
-    /// Takes out an array's last item with its lines: the comment lines above it and its own comment. What is left ends
-    /// the array as that item did: with or without a comma, then the comment lines and the bracket that followed it. An
-    /// array left empty with no comment is <c>[]</c>.
-    /// </summary>
     private static void RemoveLastItem(ArraySyntax array)
     {
         var items = array.Items;
@@ -152,10 +129,6 @@ internal sealed partial class TomlDocument
         }
     }
 
-    /// <summary>
-    /// Adds an item at the end of an array: on a line of its own, indented the same, when the last item starts its own
-    /// line, and after it on its line otherwise. What followed the last item follows the new one.
-    /// </summary>
     private static void AppendItem(ArraySyntax array, ValueSyntax value)
     {
         var items = array.Items;
@@ -207,10 +180,6 @@ internal sealed partial class TomlDocument
         return item.Comma is { } comma ? comma.TrailingTrivia : LastToken(item.Value!).TrailingTrivia;
     }
 
-    /// <summary>
-    /// What follows an item that had <paramref name="own"/> after it once the item after it, which had
-    /// <paramref name="end"/>, is gone: its own comment and line break, then what followed that item's line.
-    /// </summary>
     private static List<SyntaxTrivia> Ended(List<SyntaxTrivia>? own, List<SyntaxTrivia> end)
     {
         var endLine = end.FindIndex(t => t.Kind == TokenKind.NewLine);
@@ -248,7 +217,6 @@ internal sealed partial class TomlDocument
         Append(document, fresh, newline);
     }
 
-    // A header comment, or a comment above the first table, belongs above the first key we add.
     private static List<SyntaxTrivia> StealPreamble(DocumentSyntax document)
     {
         if (document.TrailingTrivia is { Count: > 0 } trailing)
@@ -286,10 +254,6 @@ internal sealed partial class TomlDocument
         fresh.EndOfLineToken.TrailingTrivia = after;
     }
 
-    /// <summary>
-    /// Adds a key at the end of a table. When another table follows, the blank line above it and the comments under
-    /// that line, which are about the next table, follow the new key. The comments above that blank line stay above it.
-    /// </summary>
     private static void AddKey(DocumentSyntax document, TableSyntaxBase table, KeyValueSyntax fresh, string newline)
     {
         var items = table.Items;
@@ -306,10 +270,6 @@ internal sealed partial class TomlDocument
         end.TrailingTrivia = after[..split];
     }
 
-    /// <summary>
-    /// Where the part of the trivia after a line that belongs to what follows starts: the last blank line, and the
-    /// comment lines under it. With no blank line, all of it does.
-    /// </summary>
     private static int NextStarts(List<SyntaxTrivia> trivia)
     {
         List<int> starts = [0];
@@ -330,8 +290,6 @@ internal sealed partial class TomlDocument
         return fresh;
     }
 
-    // What follows the last key, such as the blank line and comment before a table, follows the key added after it.
-    // A comment above the key stays too. Returns what is left to keep when no key is left in the list, or null.
     private static List<SyntaxTrivia>? Remove(SyntaxList<KeyValueSyntax> list, KeyValueSyntax kv, string newline)
     {
         var above = kv.LeadingTrivia;
@@ -364,7 +322,6 @@ internal sealed partial class TomlDocument
         return kept;
     }
 
-    /// <summary>Takes out a top-level key. What is left to keep after the last one goes above the first table, or ends the file.</summary>
     private static void RemoveKey(DocumentSyntax document, KeyValueSyntax kv, string newline)
     {
         if (Remove(document.KeyValues, kv, newline) is not { } kept)
@@ -380,10 +337,6 @@ internal sealed partial class TomlDocument
         }
     }
 
-    /// <summary>
-    /// Takes out a table. The comment above it stays, and so do the comments after it, which Tomlyn keeps on its last
-    /// line: above the next table, or at the end of the file.
-    /// </summary>
     private static void RemoveTable(DocumentSyntax document, TableSyntaxBase table)
     {
         var index = 0;
@@ -419,7 +372,6 @@ internal sealed partial class TomlDocument
         }
     }
 
-    /// <summary>The trivia after the line above the table at <paramref name="index"/>, or null when nothing is above it.</summary>
     private static List<SyntaxTrivia>? Above(DocumentSyntax document, int index)
     {
         if (index > 0)
@@ -429,7 +381,6 @@ internal sealed partial class TomlDocument
         return null;
     }
 
-    /// <summary>Whether trivia after a line ends in a blank line. Nothing, the start of the file, counts as one.</summary>
     private static bool EndsBlank(List<SyntaxTrivia>? trivia)
     {
         if (trivia is null)
@@ -523,7 +474,6 @@ internal sealed partial class TomlDocument
                     return nested;
         }
 
-        // A comment-only file has its newline in trivia, not on a key.
         if (TriviaNewline(document.TrailingTrivia) is { } trailing)
             return trailing;
         return "\n";
@@ -580,7 +530,6 @@ internal sealed partial class TomlDocument
         node.Token.Text = value ? "true" : "false";
     }
 
-    /// <summary>A key as TOML: bare when it can be, quoted otherwise.</summary>
     public static string Key(string key)
     {
         return key.Length > 0 && key.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-') ? key : Quote(key);
@@ -603,7 +552,6 @@ internal sealed partial class TomlDocument
         return quoted.Append('"').ToString();
     }
 
-    /// <summary>Everything in a document that defines one key: its assignments, and its tables or array of tables.</summary>
     private sealed class Owned
     {
         public List<KeyValueSyntax> KeyValues { get; } = [];

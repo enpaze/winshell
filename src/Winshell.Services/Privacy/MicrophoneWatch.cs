@@ -5,12 +5,6 @@ using Winshell.Native;
 
 namespace Winshell.Privacy;
 
-/// <summary>
-/// The recording streams that are open. Windows' consent store is not updated for every one of them, including the
-/// stream the shell opens to meter a microphone. Armed only while <see cref="Start"/> is in effect. Call
-/// <see cref="Start"/>, <see cref="Stop"/>, <see cref="Read"/> and <see cref="Dispose"/> on one thread; callbacks only
-/// ask for another read.
-/// </summary>
 internal sealed class MicrophoneWatch : IDisposable
 {
     private readonly Log _log;
@@ -106,7 +100,6 @@ internal sealed class MicrophoneWatch : IDisposable
         }
     }
 
-    /// <summary>Takes ownership of <paramref name="device"/> whatever happens.</summary>
     private void Open(IMMDevice device)
     {
         IAudioSessionManager2? manager = null;

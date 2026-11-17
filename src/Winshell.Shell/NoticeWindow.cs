@@ -7,11 +7,6 @@ using Microsoft.UI.Xaml.Media;
 
 namespace Winshell;
 
-/// <summary>
-/// A notice, drawn like a Windows 11 notification: bottom right of the main screen, above the taskbar, on Acrylic. It does
-/// not take the keyboard when it appears. A click on it does, and then Tab moves between its buttons and Escape closes
-/// it. Pointing at it, or having the keyboard, holds a timed notice open. <see cref="NoticeComponent"/> draws it.
-/// </summary>
 internal sealed partial class NoticeWindow : IDisposable
 {
     private readonly IEventLoop _loop;
@@ -34,7 +29,6 @@ internal sealed partial class NoticeWindow : IDisposable
             Anchors = Edges.Bottom | Edges.Right,
             Margins = new Thickness(0, 0, 12, 12),
             Width = NoticeComponent.Width,
-            // Hidden until the notice is in the tree and has a height.
             Height = 1,
             AboveWindows = true,
             Focusable = true,
@@ -44,8 +38,6 @@ internal sealed partial class NoticeWindow : IDisposable
         };
         _host = new ReactorHostControl
         {
-            // A null background is not a hit target, so the padding would not count as inside the notice.
-            // Transparent is not paint: the acrylic shows through.
             Background = new SolidColorBrush(Colors.Transparent),
             Props = new NoticeProps(notice, act, dismiss),
             ComponentFactory = () => new NoticeComponent()
@@ -80,7 +72,6 @@ internal sealed partial class NoticeWindow : IDisposable
         _host.LayoutUpdated += OnLaidOut;
     }
 
-    /// <summary>Sizes the window from the notice once it is in the tree and a layout has given it a height.</summary>
     private void OnLaidOut(object? sender, object e)
     {
         if (_host.Content is not FrameworkElement content)
@@ -106,7 +97,6 @@ internal sealed partial class NoticeWindow : IDisposable
 
     private void SizeFrom(FrameworkElement content)
     {
-        // Desired height collapses to the hidden window. The laid-out height is the notice.
         if (!content.IsLoaded)
             return;
         var height = Math.Ceiling(Math.Max(content.ActualHeight, content.DesiredSize.Height));
@@ -131,7 +121,6 @@ internal sealed partial class NoticeWindow : IDisposable
         Hold();
     }
 
-    /// <summary>Runs the time down while no one is at the notice, from the start each time they leave.</summary>
     private void Hold()
     {
         _timer?.Dispose();

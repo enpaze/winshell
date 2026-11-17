@@ -4,7 +4,6 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
-/// <summary>A surface on screen, in its style's background. <see cref="BarTests"/> reads it in light and dark.</summary>
 [Trait("Category", "Window")]
 public sealed class SurfaceTests
 {

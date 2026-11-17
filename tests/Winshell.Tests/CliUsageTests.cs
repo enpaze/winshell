@@ -1,6 +1,5 @@
 namespace Winshell.Tests;
 
-/// <summary>A whole-number <c>--pid</c> that is no instance exits 1, and the largest <c>--tail</c> prints the file.</summary>
 public class CliUsageTests
 {
     [Fact]
@@ -29,7 +28,7 @@ public class CliUsageTests
 
     private static ChildProcess Run(string[] args)
     {
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         return WinshellCli.Run(
             args,
             ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));

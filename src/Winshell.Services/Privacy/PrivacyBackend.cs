@@ -14,7 +14,6 @@ internal enum PrivacyCapability
     Location
 }
 
-/// <summary>One app Windows has a consent record for, whether or not it is using the capability now.</summary>
 internal readonly record struct ConsentRecord(
     PrivacyCapability Capability,
     bool Packaged,
@@ -23,10 +22,8 @@ internal readonly record struct ConsentRecord(
     ulong Stopped,
     string DisplayName);
 
-/// <summary>A process with a recording stream open. <see cref="PackageFamilyName"/> is empty for a desktop program.</summary>
 internal readonly record struct MicrophoneCapture(string Name, string Path, string PackageFamilyName, bool ThisProgram);
 
-/// <summary>What Windows reports right now, plus who this program is, so the service can mark its own use.</summary>
 internal sealed record PrivacySnapshot(
     IReadOnlyList<ConsentRecord> Consent,
     IReadOnlyList<MicrophoneCapture> Captures,
@@ -35,30 +32,15 @@ internal sealed record PrivacySnapshot(
 
 internal interface IPrivacyBackend : IDisposable
 {
-    /// <summary>Windows reported a change. Raised on any thread, and possibly several times for one change.</summary>
     event Action? Changed;
 
-    /// <summary>Starts watching. Does nothing the second time.</summary>
     void Start();
 
-    /// <summary>Stops watching. A later <see cref="Start"/> watches again.</summary>
     void Stop();
 
-    /// <summary>Reads the consent store and the open recording streams.</summary>
     PrivacySnapshot Read();
 }
 
-/// <summary>
-/// Where Windows records capability use, and the recording streams it no longer always writes there.
-/// The consent store is <c>CapabilityAccessManager\ConsentStore</c>: packaged apps are subkeys of
-/// <c>microphone</c>, <c>webcam</c> and <c>location</c>, and desktop apps are under <c>NonPackaged</c>
-/// (a path with <c>#</c> for <c>\</c>, or a file name under <c>Executables</c>). An app is in use when its
-/// <c>LastUsedTimeStart</c> is later than <c>LastUsedTimeStop</c>. No supported API lists those apps.
-/// <c>AppCapability</c> only answers whether this process may use a capability.
-/// A change to the store signals <c>RegNotifyChangeKeyValue</c> on each capability key, including its subkeys.
-/// On current Windows a recording stream does not update that store, so open capture sessions are read too, and a
-/// session being created or changing state signals the same way. Neither watch is armed until <see cref="Start"/>.
-/// </summary>
 internal sealed class PrivacyBackend : IPrivacyBackend
 {
     private const string Store = @"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore";

@@ -1,7 +1,5 @@
 name: Links
 
-# Links to other sites, on main and every Monday, since a site can move a page without a change here. Links between
-# pages are the ci job's. This one runs apart from pull requests, so a site that is down for a moment can't fail one.
 on:
   push:
     branches:
@@ -22,11 +20,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      # The lychee release archive, checked against its SHA-256 before it runs, so a replaced release asset can't
-      # see the token. Dependabot does not see a raw download.
       - name: Install lychee
         shell: pwsh
         run: |
@@ -46,7 +42,6 @@ jobs:
             "LYCHEE_MAX_RETRIES=$($pins.lychee.maxRetries)"
             "LYCHEE_RETRY_WAIT_SECONDS=$($pins.lychee.retryWaitSeconds)"
           ) | Add-Content -Path $env:GITHUB_ENV
-      # A rate-limited link (429) is retried after the pin's wait, and fails if it stays limited.
       - name: Check links
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

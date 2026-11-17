@@ -6,13 +6,6 @@ using Xunit.v3;
 
 namespace Winshell.TestSupport;
 
-/// <summary>
-/// Cancels <c>TestContext.Current.CancellationToken</c> when a test has run for two minutes, so a test that passes the
-/// token to what it waits on fails by itself and the run goes on. A <c>Timeout</c> longer than that is the limit instead,
-/// which is how the packed-shell test outlasts the usual deadline. xUnit has no default for <c>Timeout</c>, and a class
-/// derived from <c>FactAttribute</c> hides its tests from the xUnit analyzers. A test blocked in something that takes no
-/// token runs on until the run's hang timeout, unless it sets <c>Timeout</c> itself.
-/// </summary>
 [AttributeUsage(AttributeTargets.Assembly)]
 internal sealed class TestDeadlineAttribute : BeforeAfterTestAttribute
 {

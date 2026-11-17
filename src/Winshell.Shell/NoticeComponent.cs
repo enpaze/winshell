@@ -8,12 +8,10 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
-/// <summary>What the notice shows, and the two things a person can do with it.</summary>
 internal sealed record NoticeProps(Notice Notice, Action Act, Action Dismiss);
 
 internal sealed class NoticeComponent : Component<NoticeProps>
 {
-    /// <summary>How wide the notice is, as a Windows 11 notification is.</summary>
     internal const double Width = 364;
 
     public override Element Render()
@@ -61,7 +59,6 @@ internal sealed class NoticeComponent : Component<NoticeProps>
             })
             .OnMount(element =>
             {
-                // The peer can announce once the notice is in the tree.
                 void Announce() => FrameworkElementAutomationPeer.CreatePeerForElement(element)?.RaiseNotificationEvent(
                     AutomationNotificationKind.Other, AutomationNotificationProcessing.ImportantAll, announcement,
                     "WinshellNotice");

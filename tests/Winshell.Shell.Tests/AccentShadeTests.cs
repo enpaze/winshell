@@ -37,7 +37,6 @@ public sealed class AccentShadeTests
             return (before, after, brush.Color);
         });
 
-        // Which theme's brush this resource is follows the app mode of the machine.
         Assert.True(AccentShades.TryFrom("#D13438", out var shades));
         Assert.Contains(picked, new[] { shades.Light2, shades.Dark1 });
         Assert.Equal(windows, followed);

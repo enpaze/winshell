@@ -53,7 +53,6 @@ public class TrayProtocolTests
             "Backup", 2, guid));
         Assert.NotNull(call);
         Assert.Equal(TrayProtocol.Modify, call.Message);
-        // Handles sign-extend, as Windows does for 32-bit handle values.
         Assert.Equal(unchecked((int)0x80001234), call.Window);
         Assert.Equal(9u, call.Id);
         Assert.Equal(0x8001u, call.CallbackMessage);
@@ -71,7 +70,6 @@ public class TrayProtocolTests
     [Fact]
     public void A_structure_from_an_older_app_reads_what_it_sent()
     {
-        // NOTIFYICONDATAW_V1 ends after a 64-character tip; the GUID flag cannot point past it.
         var call = TrayProtocol.Read(TrayCall.Build(TrayProtocol.Add, 0x100, 1,
             TrayProtocol.NIF_TIP | TrayProtocol.NIF_GUID,
             tip: "Old app", guid: Guid.NewGuid(), size: 24 + 64 * 2));
@@ -99,7 +97,6 @@ public class TrayProtocolTests
     }
 }
 
-/// <summary>Builds the bytes Shell32 sends for a <c>Shell_NotifyIcon</c> call, from the SDK's field offsets.</summary>
 internal static class TrayCall
 {
     public static byte[] Build(

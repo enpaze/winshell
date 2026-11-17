@@ -2,7 +2,6 @@ using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>The icon table over plain <c>Shell_NotifyIcon</c> calls. No window, no app, no registry.</summary>
 public sealed class TrayIconsTests
 {
     private const string Program = @"C:\Apps\sync.exe";
@@ -22,7 +21,6 @@ public sealed class TrayIconsTests
         var guid = Guid.NewGuid();
 
         _icons.Apply(Call(TrayProtocol.Add, TrayProtocol.NIF_GUID, guid: guid));
-        // NIM_SETVERSION and later changes often leave the GUID flag off.
         _icons.Apply(Call(TrayProtocol.SetVersion) with { TimeoutOrVersion = TrayProtocol.Version4 });
         _icons.Apply(Call(TrayProtocol.Modify, TrayProtocol.NIF_TIP) with { Tip = "Synced" });
 
@@ -84,7 +82,6 @@ public sealed class TrayIconsTests
             Info = "Done",
             InfoFlags = 1
         });
-        // An empty text takes the balloon down.
         _icons.Apply(Call(TrayProtocol.Modify, TrayProtocol.NIF_INFO) with { InfoTitle = "Backup", Info = "" });
 
         Assert.Equal(("Backup", "Done", 1u), Assert.Single(balloons));
@@ -97,7 +94,6 @@ public sealed class TrayIconsTests
         _icons.Apply(Call(TrayProtocol.Add, id: 2));
         var changed = new List<uint>();
         _icons.Changed += icon => changed.Add(icon.Id);
-        // Windows has no choice for either yet, so both start in the flyout.
         Assert.All(_icons.Icons, icon => Assert.True(icon.Overflow));
 
         List<TrayIconSetting> promoted = [new(Guid.Empty, Program, 1, true)];
@@ -112,7 +108,6 @@ public sealed class TrayIconsTests
     [Fact]
     public void Only_nim_setversion_sets_the_version()
     {
-        // A balloon timeout of 4 is not interface version 4.
         _icons.Apply(Call(TrayProtocol.Add, TrayProtocol.NIF_INFO) with
         {
             Info = "Hi",

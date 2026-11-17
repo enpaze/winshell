@@ -1,9 +1,5 @@
 namespace Winshell.Tests;
 
-/// <summary>
-/// What <c>winshell inspect record</c> reads from its command line, and what it refuses before any instance is called.
-/// These stay inside <see cref="CliParser"/> so a live instance on this PC is never called.
-/// </summary>
 public class InspectRecordOptionTests
 {
     private static Invocation Parse(string line)

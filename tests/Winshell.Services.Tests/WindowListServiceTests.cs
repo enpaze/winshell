@@ -3,7 +3,6 @@ using Winshell.Windows;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>The window list over a fake backend, so no real window is read, moved or closed.</summary>
 public sealed class WindowListServiceTests
 {
     private const string Terminal = "Microsoft.WindowsTerminal_8wekyb3d8bbwe!App";
@@ -146,7 +145,6 @@ public sealed class WindowListServiceTests
         var window = list.Windows[0];
         Assert.Same(window, list.ActiveWindow);
         var stillListed = true;
-        // Closed runs while Process pumps the list, before the list is disposed.
         window.Closed += (_, _) => stillListed = list.Windows.Contains(window);
 
         _windows.Foreground = 0;

@@ -3,10 +3,6 @@ using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// The tray's policy over a fake backend, on a real event queue with a fake clock. Nothing here changes the real
-/// notification area; one test asks Explorer's taskbar whether it auto-hides.
-/// </summary>
 public sealed class SystemTrayTests
 {
     private const nint App = 0x100;
@@ -134,7 +130,6 @@ public sealed class SystemTrayTests
     {
         using var tray = Tray();
         _backend.Send(Call(TrayProtocol.Add, TrayProtocol.NIF_MESSAGE) with { CallbackMessage = 0x8001 });
-        // From version 4 on, each callback carries the point.
         _backend.Send(Call(TrayProtocol.SetVersion) with { TimeoutOrVersion = TrayProtocol.Version4 });
         var item = tray.Items[0];
 
@@ -157,7 +152,6 @@ public sealed class SystemTrayTests
         ], clicks.Select(Clicked));
     }
 
-    /// <summary>The mouse messages a click sent the app, and the point the first one carried.</summary>
     private string Clicked(Action click)
     {
         _backend.Notified.Clear();
@@ -176,7 +170,6 @@ public sealed class SystemTrayTests
         Assert.All(_backend.Notified, sent => Assert.Equal(0x8001u, sent.Message));
         Assert.NotEmpty(_backend.Notified);
 
-        // WM_CLOSE: any app could name it for any window, and a click would close that window.
         _backend.Send(Call(TrayProtocol.Modify, TrayProtocol.NIF_MESSAGE) with { CallbackMessage = 0x0010 });
         _backend.Notified.Clear();
         tray.Items[0].Click();
@@ -226,7 +219,6 @@ public sealed class SystemTrayTests
 
         Assert.Same(sharp, item.IconAt(32));
         Assert.Same(image, item.IconAt(16));
-        // A resource that can't be drawn at that size leaves the app's own bitmap.
         Assert.Same(image, item.IconAt(48));
     }
 
@@ -274,7 +266,6 @@ public sealed class SystemTrayTests
     {
         using var tray = Tray();
         _backend.Send(Add());
-        // The app ended without removing its icon.
         _backend.Windows.Remove(App);
 
         _loop.Advance(TimeSpan.FromSeconds(29));
@@ -300,12 +291,10 @@ public sealed class SystemTrayTests
         using var tray = Tray();
         Assert.Equal(1, Broadcasts);
 
-        // Its own broadcast comes back to it, and Explorer's taskbar is the one it already answered.
         _backend.SignalTaskbarCreated();
         _loop.Advance(TimeSpan.FromSeconds(2));
         Assert.Equal(1, Broadcasts);
 
-        // Explorer ends, and a new one makes a new taskbar and asks apps to add their icons.
         _backend.Explorer = 0;
         _loop.Advance(TimeSpan.FromSeconds(1));
         _backend.Explorer = 0x600;
@@ -314,7 +303,6 @@ public sealed class SystemTrayTests
         _loop.Advance(TimeSpan.FromSeconds(1));
         Assert.Equal(2, Broadcasts);
 
-        // That answer comes back too, and is not answered.
         _backend.SignalTaskbarCreated();
         _loop.Advance(TimeSpan.FromSeconds(2));
         Assert.Equal(2, Broadcasts);
@@ -353,7 +341,6 @@ public sealed class SystemTrayTests
         Assert.Single(tray.Items);
         Assert.Equal(0, ready);
         Assert.False(_backend.IsOpen);
-        // The window went first, then apps were asked to add their icons to whichever taskbar window is first now.
         Assert.Equal(["close", "broadcast", "dispose"], _backend.Calls);
     }
 

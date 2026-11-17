@@ -6,7 +6,6 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
-/// <summary>Bluetooth: off, on, or the names of the devices connected to it. Hidden with no adapter.</summary>
 public sealed class BluetoothWidget : Component<WidgetContext>
 {
     public override Element Render()

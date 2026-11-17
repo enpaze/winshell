@@ -3,7 +3,6 @@ using WIN32_ERROR = Windows.Win32.Foundation.WIN32_ERROR;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>The process package id over a fake <c>GetApplicationUserModelId</c>. No process is opened.</summary>
 public class WindowAppIdTests
 {
     private const string Terminal = "Microsoft.WindowsTerminal_8wekyb3d8bbwe!App";

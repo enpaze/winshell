@@ -1,5 +1,4 @@
 #requires -Version 7.0
-# Builds, formats, and tests by default. -Lint checks Markdown and workflows without building.
 [CmdletBinding(DefaultParameterSetName = 'Tests')]
 param(
     [Parameter(ParameterSetName = 'Tests')]
@@ -62,7 +61,6 @@ try {
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         & (Join-Path $PSScriptRoot 'build-template.ps1')
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        # The reference program and the logo program, as dotnet run builds them.
         dotnet build scripts/generate-reference.cs --nologo
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         dotnet build scripts/render-logo.cs --nologo
@@ -71,9 +69,7 @@ try {
     $exit = Invoke-TestRun -Tier $Tier -Seed $Seed
     if ($exit -ne 0) { exit $exit }
     if ($full) {
-        # -CI writes testResults.xml into the checkout; inspect the result instead.
         $result = & {
-            # Pester suites control their own strict mode, independently of this command.
             Set-StrictMode -Off
             Invoke-Pester -Path 'tests/Scripts' -PassThru
         }

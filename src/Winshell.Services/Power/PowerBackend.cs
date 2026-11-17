@@ -8,7 +8,6 @@ using WinBatteryReport = Windows.Devices.Power.BatteryReport;
 
 namespace Winshell.Power;
 
-/// <summary>One power device, read from Windows.</summary>
 internal sealed record PowerDeviceInfo(
     string DeviceId,
     string Model,
@@ -25,7 +24,6 @@ internal sealed record PowerDeviceInfo(
     double HealthPercentage,
     bool HealthSupported)
 {
-    /// <summary>What a PC with no battery reports.</summary>
     public static readonly PowerDeviceInfo NoBattery = new("", "", PowerDeviceType.Unknown, false, false,
         PowerDeviceState.Unknown, 0, 0, 0, 0, 0, 0, 0, false);
 }
@@ -38,26 +36,17 @@ internal sealed record PowerSnapshot(
 
 internal interface IPowerBackend : IDisposable
 {
-    /// <summary>Windows reported a change to a battery or the power supply. Raised on any thread.</summary>
     event Action? Changed;
 
-    /// <summary>Reads the batteries. The first read starts watching Windows until the backend is disposed.</summary>
     Task<PowerSnapshot> ReadAsync(CancellationToken cancellation);
 }
 
-/// <summary>
-/// The batteries of this PC. The display device is Windows' aggregate battery; the devices are each
-/// battery Windows enumerates. Windows tells about changes through the batteries' ReportUpdated and the
-/// PowerManager events.
-/// </summary>
-/// <param name="log">Where a battery Windows cannot open is reported.</param>
 internal sealed class PowerBackend(Log log) : IPowerBackend
 {
     private readonly Lock _batteriesLock = new();
 
     private readonly Dictionary<string, (WinBattery Battery, string Name)> _batteries = new(StringComparer.Ordinal);
 
-    // Held so the objects whose events this listens to stay alive.
     private WinBattery? _aggregate;
     private DeviceWatcher? _watcher;
 
@@ -77,14 +66,12 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
         PowerManager.RemainingChargePercentChanged += OnPowerChanged;
         PowerManager.RemainingDischargeTimeChanged += OnPowerChanged;
 
-        // Each battery, kept up to date as batteries come and go.
         _watcher = DeviceInformation.CreateWatcher(WinBattery.GetDeviceSelector());
         _watcher.Added += OnBatteryAdded;
         _watcher.Removed += OnBatteryRemoved;
         _watcher.Start();
     }
 
-    /// <summary>Stops watching Windows.</summary>
     public void Dispose()
     {
         if (_aggregate is null)
@@ -147,7 +134,6 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
                 return;
             lock (_batteriesLock)
             {
-                // A battery found as the backend stops is not watched.
                 if (!ReferenceEquals(watcher, _watcher))
                     return;
                 battery.ReportUpdated += OnReportUpdated;
@@ -156,7 +142,7 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
 
             Changed?.Invoke();
         }
-#pragma warning disable CA1031 // Nobody awaits this. A battery Windows cannot open is logged and left out.
+#pragma warning disable CA1031
         catch (Exception e)
 #pragma warning restore CA1031
         {
@@ -183,10 +169,6 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
         return new PowerSnapshot(true, display, devices, OnBattery());
     }
 
-    /// <summary>
-    /// What Windows reported about the battery: the no-battery flag, the <c>GetSystemPowerStatus</c> fallback when the
-    /// battery API has nothing to say, and the aggregate report.
-    /// </summary>
     private static PowerDeviceInfo ReadDisplay()
     {
         var (hasStatus, status, noSystemBattery) = SystemPower();
@@ -203,7 +185,6 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
         PowerDeviceInfo device;
         if (report is null || report.Status == BatteryStatus.NotPresent)
         {
-            // GetSystemPowerStatus is the fallback when the battery API has nothing to say.
             if (!hasStatus || noSystemBattery || status.BatteryLifePercent == 255)
                 device = PowerDeviceInfo.NoBattery;
             else
@@ -243,19 +224,12 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
         return device;
     }
 
-    /// <summary>
-    /// <c>GetSystemPowerStatus</c>. Bit 128 of <c>BatteryFlag</c> means there is no system battery.
-    /// </summary>
     private static (bool HasStatus, SYSTEM_POWER_STATUS Status, bool NoSystemBattery) SystemPower()
     {
         var hasStatus = PInvoke.GetSystemPowerStatus(out var status);
         return (hasStatus, status, hasStatus && (status.BatteryFlag & 128) != 0);
     }
 
-    /// <summary>
-    /// Whether the PC runs on its battery: it has one, and no power supply is plugged in. The power supply status
-    /// decides, and the AC line when that does not answer.
-    /// </summary>
     internal static bool OnBattery()
     {
         var (hasStatus, status, noSystemBattery) = SystemPower();
@@ -271,7 +245,6 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
         }
     }
 
-    /// <summary>A battery report. Capacities are watt-hours and the charge rate is watts.</summary>
     private static PowerDeviceInfo Describe(WinBatteryReport report, string nativePath, string model,
         double? timeToEmptyHint)
     {
@@ -300,7 +273,6 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
         {
             BatteryStatus.Charging => PowerDeviceState.Charging,
             BatteryStatus.Discharging => percentage <= 0 ? PowerDeviceState.Empty : PowerDeviceState.Discharging,
-            // Idle: on line power and not charging, either full or held below full.
             BatteryStatus.Idle => percentage >= 0.99 ? PowerDeviceState.FullyCharged : PowerDeviceState.NotCharging,
             _ => PowerDeviceState.Unknown
         };
@@ -318,10 +290,6 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
             Math.Round(timeToEmpty), Math.Round(timeToFull), health, healthSupported);
     }
 
-    /// <summary>
-    /// Full charge over design capacity, from 0 to 100, and whether Windows reported both. A full charge of zero is
-    /// supported and reads as 0. A missing or negative capacity, or a design capacity of zero, is not supported.
-    /// </summary>
     internal static (double Percentage, bool Supported) Health(int? fullChargeMilliwattHours,
         int? designCapacityMilliwattHours)
     {

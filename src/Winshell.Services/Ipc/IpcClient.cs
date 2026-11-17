@@ -5,15 +5,8 @@ using System.Text.Json;
 
 namespace Winshell;
 
-/// <summary>Why a request has no answer from the shell.</summary>
-/// <param name="Reason">The sentence that says why, without the instance.</param>
-/// <param name="Rejected">
-/// True when this winshell rejected the shell: its owner, its integrity, its protocol or its release. False when the
-/// pipe could not be reached or the connection timed out, and <paramref name="Reason"/> is that failure's message.
-/// </param>
 internal readonly record struct IpcFailure(string Reason, bool Rejected)
 {
-    /// <summary>The sentence for the user, naming the instance. A rejection is not reported as unreachable.</summary>
     public string Sentence(string instanceId)
     {
         return Rejected
@@ -22,20 +15,12 @@ internal readonly record struct IpcFailure(string Reason, bool Rejected)
     }
 }
 
-/// <summary>One answer from a shell, or the reason this winshell has none. A shell that refuses is an answer.</summary>
 internal union IpcReply(IpcResponse, IpcFailure);
 
-/// <summary>The side of the control pipe that sends a request to a running instance.</summary>
 internal static class IpcClient
 {
-    /// <summary>How long a request waits for the shell's pipe to accept the connection.</summary>
     internal static readonly TimeSpan ConnectLimit = TimeSpan.FromSeconds(3);
 
-    /// <summary>
-    /// Sends one request and returns each answer. A pipe that cannot be reached, a connection that times out, and a
-    /// shell this winshell rejects come back as one reply with a failure, and then the stream ends. Cancelling
-    /// <paramref name="cancel"/> is not a failure.
-    /// </summary>
     public static async IAsyncEnumerable<IpcReply> Request(string pipe, IpcRequest request,
         [EnumeratorCancellation] CancellationToken cancel = default)
     {
@@ -46,8 +31,6 @@ internal static class IpcClient
             yield break;
         }
 
-        // Not CurrentUserOnly: that compares the pipe's owner with the token's default owner, which differs when
-        // one side is elevated. ServerRefusal checks the owner against the user instead.
         await using var client = connected.Client!;
         if (PipeTrust.ServerRefusal(client) is { } refusal)
         {
@@ -56,8 +39,6 @@ internal static class IpcClient
         }
 
         using var reader = new StreamReader(client, Encoding.UTF8);
-        // Written straight to the pipe, with no writer to flush on the way out: a shell that closed its end without
-        // answering would make that flush throw, and the instance would look unreachable.
         var sent = JsonSerializer.Serialize(
             request with { Protocol = IpcProtocol.Current, Winshell = ProductVersion.Current.Text },
             IpcJson.Default.IpcRequest);
@@ -81,7 +62,6 @@ internal static class IpcClient
             var response = JsonSerializer.Deserialize(read.Line, IpcJson.Default.IpcResponse);
             if (response is null)
                 continue;
-            // A failed response is already a sentence for the user, whichever side wrote it.
             if (response.Ok && IpcProtocol.ShellRefusal(response.Protocol) is { } mismatch)
             {
                 yield return new IpcFailure(mismatch, true);

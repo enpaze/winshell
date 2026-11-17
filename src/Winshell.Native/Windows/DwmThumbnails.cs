@@ -4,13 +4,8 @@ using Windows.Win32.Graphics.Dwm;
 
 namespace Winshell.Native;
 
-/// <summary>
-/// DWM's live previews of one window drawn into another. A thumbnail handle belongs to whoever registered it, which
-/// unregisters it once.
-/// </summary>
 internal static class DwmThumbnails
 {
-    /// <summary>Draws <paramref name="source"/> into <paramref name="destination"/>. The handle, or 0 when DWM refused.</summary>
     internal static nint Register(nint destination, nint source)
     {
         return PInvoke.DwmRegisterThumbnail((HWND)destination, (HWND)source, out var thumbnail).Succeeded
@@ -18,7 +13,6 @@ internal static class DwmThumbnails
             : 0;
     }
 
-    /// <summary>The source window's size in pixels. False when DWM does not say.</summary>
     internal static bool TrySourceSize(nint thumbnail, out int width, out int height)
     {
         var ok = PInvoke.DwmQueryThumbnailSourceSize(thumbnail, out var size).Succeeded;
@@ -26,7 +20,6 @@ internal static class DwmThumbnails
         return ok;
     }
 
-    /// <summary>Where the thumbnail draws, which part of the source, how opaque, and whether it shows at all.</summary>
     internal static bool Update(nint thumbnail, RECT destination, RECT source, byte opacity, bool visible)
     {
         var properties = new DWM_THUMBNAIL_PROPERTIES

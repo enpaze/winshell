@@ -6,34 +6,22 @@ using Windows.Win32.Storage.FileSystem;
 
 namespace Winshell.Native;
 
-/// <summary>What a <see cref="DirectoryChanges"/> reports.</summary>
 [Flags]
 internal enum DirectoryChange : uint
 {
-    /// <summary>A file was created, deleted or renamed.</summary>
     FileName = FILE_NOTIFY_CHANGE.FILE_NOTIFY_CHANGE_FILE_NAME,
 
-    /// <summary>A folder was created, deleted or renamed.</summary>
     FolderName = FILE_NOTIFY_CHANGE.FILE_NOTIFY_CHANGE_DIR_NAME,
 
-    /// <summary>A file's size changed.</summary>
     Size = FILE_NOTIFY_CHANGE.FILE_NOTIFY_CHANGE_SIZE,
 
-    /// <summary>A file's last write time changed.</summary>
     LastWrite = FILE_NOTIFY_CHANGE.FILE_NOTIFY_CHANGE_LAST_WRITE
 }
 
-/// <summary>
-/// One folder opened for overlapped <c>ReadDirectoryChangesW</c>, with its buffer and completion event. Windows
-/// cancels a read when the thread that made it ends, so one thread makes every <see cref="Read"/> and
-/// <see cref="Wait"/>. <see cref="Cancel"/> may come from any thread. Dispose only after the reading thread has
-/// stopped: an outstanding read writes into the buffer.
-/// </summary>
 internal sealed unsafe class DirectoryChanges : IDisposable
 {
     private const int BufferSize = 16 * 1024;
 
-    // NextEntryOffset, Action and FileNameLength come before the name.
     private const int HeaderSize = 3 * sizeof(uint);
 
     private readonly SafeFileHandle _handle;
@@ -55,8 +43,6 @@ internal sealed unsafe class DirectoryChanges : IDisposable
         _overlapped->EventHandle = _completed.SafeWaitHandle.DangerousGetHandle();
     }
 
-    /// <summary>Opens <paramref name="path"/>, or returns null when the folder can't be opened.</summary>
-    /// <param name="subtree">Also report changes in folders under <paramref name="path"/>.</param>
     internal static DirectoryChanges? Open(string path, DirectoryChange filter, bool subtree)
     {
         var handle = new SafeFileHandle(PInvoke.CreateFile(path, (uint)FILE_ACCESS_RIGHTS.FILE_LIST_DIRECTORY,
@@ -73,17 +59,12 @@ internal sealed unsafe class DirectoryChanges : IDisposable
         return new DirectoryChanges(handle, filter, subtree);
     }
 
-    /// <summary>Starts the next read. False when the folder can no longer be read.</summary>
     internal bool Read()
     {
         return PInvoke.ReadDirectoryChanges(Handle, _buffer, BufferSize, _subtree, (FILE_NOTIFY_CHANGE)_filter, null,
             _overlapped, null);
     }
 
-    /// <summary>
-    /// Waits for the read to finish and adds the name of each thing that changed, relative to the folder, to
-    /// <paramref name="names"/>. False when that read produced no names. <see cref="Cancel"/> makes it return.
-    /// </summary>
     internal bool Wait(List<string> names)
     {
         uint returned;
@@ -105,7 +86,6 @@ internal sealed unsafe class DirectoryChanges : IDisposable
         return true;
     }
 
-    /// <summary>Cancels the outstanding read, so <see cref="Wait"/> returns.</summary>
     internal void Cancel()
     {
         PInvoke.CancelIoEx(Handle, null);

@@ -2,10 +2,6 @@ using Winshell.Commands;
 
 namespace Winshell.Tests;
 
-/// <summary>
-/// <c>-d</c> before <c>--</c> is the daemonize flag. As the value of <c>-c</c> or <c>-p</c> it names the config or the
-/// path, and the background child keeps that value.
-/// </summary>
 public class DaemonChildTests
 {
     [Theory]

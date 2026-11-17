@@ -18,13 +18,6 @@ using Windows.Foundation;
 
 namespace Winshell;
 
-/// <summary>
-/// <c>winshell inspect</c>: what is on screen, seen from inside the shell. It reads the live XAML tree. <c>click</c> and
-/// <c>hover</c> act through the same automation peers Narrator uses, so they reach no input queue; <c>focus</c>,
-/// <c>point</c>, <c>leave</c>, <c>press</c>, <c>scroll</c> and <c>key</c> send real input through
-/// <see cref="RealInput"/>. A window is named by the component it shows, or by its content's type, or its place in
-/// <see cref="Tree"/>'s list. For a recording it only names what to capture.
-/// </summary>
 internal static class Inspector
 {
     private const byte DarkBack = 32;
@@ -55,7 +48,6 @@ internal static class Inspector
         };
     }
 
-    /// <summary>Premultiplied BGRA over a solid color, opaque.</summary>
     internal static byte[] Flattened(byte[] bgra, byte back)
     {
         for (var i = 0; i < bgra.Length; i += 4)
@@ -74,7 +66,6 @@ internal static class Inspector
         return [.. shell.Platform.Windows.Where(host => host.Placement.IsVisible).Select(host => host.Client)];
     }
 
-    /// <summary>The windows open now, each with its content's tree, as JSON.</summary>
     private static string Tree(Shell shell)
     {
         using var stream = new MemoryStream();
@@ -94,7 +85,6 @@ internal static class Inspector
                 json.WriteNumber("height", window.ActualHeight);
                 if (window.Content is { } content)
                 {
-                    // The element keyboard focus is on, in this window or in a popup it opened.
                     var focused = content.XamlRoot is { } xamlRoot ? FocusManager.GetFocusedElement(xamlRoot) : null;
                     json.WritePropertyName("content");
                     Write(json, content, content, focused);
@@ -152,7 +142,6 @@ internal static class Inspector
         json.WriteEndObject();
     }
 
-    /// <summary>What an element shows and holds. A PasswordBox has no case here on purpose.</summary>
     private static void Values(Utf8JsonWriter json, DependencyObject element)
     {
         switch (element)
@@ -195,7 +184,6 @@ internal static class Inspector
                ?? throw new IpcException($"No open window shows {name}.");
     }
 
-    /// <summary>The one element <paramref name="name"/> names. When it names more, acting on the first would act on a guess.</summary>
     private static FrameworkElement Find(Shell shell, string command, string name, IReadOnlyList<string> window)
     {
         var windows = Windows(shell);
@@ -233,11 +221,6 @@ internal static class Inspector
         ]);
     }
 
-    /// <summary>
-    /// What a window is called. A Reactor host would otherwise be <c>ReactorHostControl</c> for every component, so
-    /// the name is the component's class. Reactor reports that class namespace-qualified, nested types joined by a
-    /// dot or a plus, with generic arguments in angle brackets.
-    /// </summary>
     private static string ContentName(UIElement content)
     {
         if (content is ReactorHostControl host)
@@ -278,7 +261,6 @@ internal static class Inspector
         return text;
     }
 
-    /// <summary>What the open popups of a window show, such as a flyout or a menu, which its content's tree does not hold.</summary>
     private static List<UIElement> Popups(UIElement content)
     {
         if (content.XamlRoot is not { } root)
@@ -290,10 +272,6 @@ internal static class Inspector
         return open;
     }
 
-    /// <summary>
-    /// A window's root, which spans the window, or what an open popup shows when its type is the one named, such as
-    /// <c>MenuFlyoutPresenter</c>.
-    /// </summary>
     private static UIElement Shown(Shell shell, IReadOnlyList<string> named)
     {
         if (named is [var name, ..] && Windows(shell).Select(open => open.Content).OfType<UIElement>()
@@ -303,11 +281,6 @@ internal static class Inspector
         return Window(shell, named).Content?.XamlRoot?.Content ?? throw new IpcException("That window is empty.");
     }
 
-    /// <summary>
-    /// Each element the name names. The search does not go into one it found: a button and the card it holds, both
-    /// labelled with the setting's title, are one thing to click. Nor into a collapsed one, which Narrator cannot reach
-    /// either: a tile shown one way and kept collapsed the other is one thing to click.
-    /// </summary>
     private static void Find(DependencyObject element, string name, Action<FrameworkElement> found)
     {
         if (element is UIElement { Visibility: Visibility.Collapsed })
@@ -324,7 +297,6 @@ internal static class Inspector
             Find(VisualTreeHelper.GetChild(element, i), name, found);
     }
 
-    /// <summary>What Narrator does to activate an element. A disabled control refuses it, as it refuses a click.</summary>
     private static string Click(FrameworkElement element, string name)
     {
         ShellWindow.Of(element)?.Host?.Messages.Press();
@@ -349,10 +321,6 @@ internal static class Inspector
         return $"Clicked {name}";
     }
 
-    /// <summary>
-    /// Puts a control in the look it has under a pointer. A pointer event can't be raised from code, so a handler of
-    /// <c>PointerEntered</c> does not run. Only a pointer, or a method of your own, does that.
-    /// </summary>
     private static string Hover(FrameworkElement element, string name)
     {
         if (element is Control control && VisualStateManager.GoToState(control, "PointerOver", false))
@@ -360,11 +328,6 @@ internal static class Inspector
         throw new IpcException($"{name} is a {element.GetType().Name}, which has no hover look.");
     }
 
-    /// <summary>
-    /// What <c>winshell inspect record</c> captures: a window's handle, or 0 and a screen's id, and the refresh rate of
-    /// the screen it shows on. A window is named as for a screenshot; <c>--screen n</c> names a screen by its place in
-    /// <see cref="Shell.Screens"/>. The command line records it, so encoding never slows the shell it watches.
-    /// </summary>
     private static string RecordTarget(Shell shell, IReadOnlyList<string> args)
     {
         var screens = shell.Screens;
@@ -391,16 +354,8 @@ internal static class Inspector
         return new InspectRecordTarget((long)handle, screen.Id, screen.RefreshRate).Write();
     }
 
-    /// <summary>
-    /// A window, or an open popup, as a PNG. The system draws a backdrop, so a capture has none, and text made for a
-    /// dark one would be white on nothing. So it goes on the plain color of the theme, which is what makes the picture
-    /// readable.
-    /// </summary>
     private static async Task<string> Screenshot(UIElement shown, string file, bool dark)
     {
-        // A render leaves out what nothing draws at the edges, such as a margin. A clear background draws there, so the
-        // picture of a window is the window's size.
-        // RenderTargetBitmap draws a tooltip as nothing, but draws the root of its template.
         if (shown is ToolTip && VisualTreeHelper.GetChildrenCount(shown) > 0 &&
             VisualTreeHelper.GetChild(shown, 0) is UIElement root)
             shown = root;

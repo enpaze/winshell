@@ -8,11 +8,6 @@ using Winshell.Native;
 
 namespace Winshell.Audio;
 
-/// <summary>
-/// An app's audio session on one device: a playback stream on a speaker, a recording stream on a microphone.
-/// Windows gives a session one volume, so every channel shows that volume, and setting the channels sets it to
-/// their average.
-/// </summary>
 internal sealed class SessionNode : AudioGraphNode
 {
     private readonly AudioGraph _graph;
@@ -37,7 +32,6 @@ internal sealed class SessionNode : AudioGraphNode
         Channels = endpoint.Channels;
         control.GetProcessId(out _processId);
         IsSystem = control.IsSystemSoundsSession() == 0;
-        // QueryInterface: the session object implements ISimpleAudioVolume, and no type inherits both.
         _volume = (ISimpleAudioVolume)control;
         ReadProperties();
         ReadVolume();
@@ -51,11 +45,9 @@ internal sealed class SessionNode : AudioGraphNode
 
     public string InstanceId { get; }
 
-    /// <summary>The session of Windows' own sounds, not of an app.</summary>
     public bool IsSystem { get; }
 
     public override IAudioMeterInformation? Meter =>
-        // QueryInterface: the session object implements IAudioMeterInformation, and no type inherits both.
         _released || _control is not Native.IAudioMeterInformation meter ? null : new WindowsAudioMeter(meter);
 
     public override void SetVolumes(IReadOnlyList<float> volumes)
@@ -76,7 +68,6 @@ internal sealed class SessionNode : AudioGraphNode
         ReadVolume();
     }
 
-    /// <summary>Removes the session when its app exits, since Windows keeps it while anyone holds it.</summary>
     public void Watch()
     {
         if (_processId == 0)
@@ -92,7 +83,6 @@ internal sealed class SessionNode : AudioGraphNode
         }
         catch (Exception e) when (e is ArgumentException or InvalidOperationException or Win32Exception)
         {
-            // The process is gone, or cannot be watched; the session's own state still removes it.
             _process = null;
         }
     }
@@ -119,11 +109,9 @@ internal sealed class SessionNode : AudioGraphNode
         {
         }
 
-        // The volume and the meter are this same object.
         Winshell.Native.Com.Release(_control);
     }
 
-    /// <summary>Drops the exit callback before the process is disposed, so a late exit is not delivered.</summary>
     internal static void StopWatching(Process process, EventHandler handler)
     {
         process.EnableRaisingEvents = false;
@@ -141,7 +129,6 @@ internal sealed class SessionNode : AudioGraphNode
     {
         var system = IsSystem;
         _control.GetDisplayName(out var displayName);
-        // A null COM string marshals as null despite the non-null out parameter.
         displayName = CoreAudio.LoadIndirectString(displayName ?? "");
         var path = _processId == 0 ? null : ProcessImage.TryRead(_processId);
         var binary = path is null ? "" : Path.GetFileName(path);
@@ -158,7 +145,6 @@ internal sealed class SessionNode : AudioGraphNode
             [AudioProperty.FriendlyName] = Description,
             [AudioProperty.Flow] = Endpoint.IsPlayback ? "playback" : "recording",
             [AudioProperty.AppName] = appName,
-            // The program's own icon: IconImage and Shell.iconPath accept a program's path.
             [AudioProperty.Icon] = system ? "audio-volume-high" : path ?? "",
             [AudioProperty.ProcessId] = _processId.ToString(CultureInfo.InvariantCulture),
             [AudioProperty.ProcessName] = binary

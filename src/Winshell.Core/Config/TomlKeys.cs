@@ -4,19 +4,12 @@ using System.Reflection;
 
 namespace Winshell;
 
-/// <summary>
-/// The TOML keys of an object: one per public read-write property, the key being the property's name with a lowercase
-/// first letter. It loads a table read from a file into those properties.
-/// </summary>
 internal sealed class TomlKeys
 {
     private readonly object _owner;
     private readonly Func<string, object, string>? _check;
     private readonly Action<string> _warn;
 
-    /// <param name="owner">The object whose properties are the keys.</param>
-    /// <param name="check">Returns why a value read for a key is refused, or <c>""</c>.</param>
-    /// <param name="warn">Takes a warning about a value that was left, or a key that may be misspelled.</param>
     public TomlKeys(object owner, Func<string, object, string>? check, Action<string> warn)
     {
         _owner = owner;
@@ -31,13 +24,10 @@ internal sealed class TomlKeys
         ];
     }
 
-    /// <summary>The keys, in the order the type declares them.</summary>
     public IReadOnlyList<TomlKey> All { get; }
 
-    /// <summary>Whether <see cref="Apply"/> is setting properties, so a change it makes is not taken for an assignment.</summary>
     public bool Loading { get; private set; }
 
-    /// <summary>The key of the property named <paramref name="property"/>, or null when it is not one.</summary>
     public TomlKey? Of(string? property)
     {
         foreach (var key in All)
@@ -46,14 +36,6 @@ internal sealed class TomlKeys
         return null;
     }
 
-    /// <summary>
-    /// Loads <paramref name="values"/> into the properties. One that does not fit its property, or is refused, is
-    /// reported and left. So is a name no key reads that looks like a misspelling of one.
-    /// </summary>
-    /// <param name="values">The table read from the file.</param>
-    /// <param name="where">Says where a name of <paramref name="values"/> is in the file, as <c>path[line:column]</c>.</param>
-    /// <param name="keep">Keys left as they are, such as ones assigned and not written yet.</param>
-    /// <param name="defaults">What a key <paramref name="values"/> does not have goes back to.</param>
     public void Apply(IReadOnlyDictionary<string, object?> values, Func<string, string> where,
         IReadOnlySet<TomlKey>? keep, IReadOnlyDictionary<TomlKey, object?> defaults)
     {
@@ -89,7 +71,6 @@ internal sealed class TomlKeys
         }
     }
 
-    /// <summary>The key <paramref name="name"/> may be a misspelling of: one that differs in case or in a letter or two.</summary>
     private string? Nearest(string name)
     {
         var best = (Name: (string?)null, Distance: 3);
@@ -103,7 +84,6 @@ internal sealed class TomlKeys
         return best.Name;
     }
 
-    /// <summary>The fewest letters to add, remove or change to turn one word into the other.</summary>
     private static int Distance(string a, string b)
     {
         var previous = Enumerable.Range(0, b.Length + 1).ToArray();
@@ -125,7 +105,6 @@ internal sealed class TomlKeys
         _warn($"{where}: {key.Name} {reason}, so it was left unchanged");
     }
 
-    /// <summary>What a property of <paramref name="type"/> takes, for a warning about a value it does not.</summary>
     private static string Expected(Type type)
     {
         var target = Nullable.GetUnderlyingType(type) ?? type;
@@ -160,7 +139,6 @@ internal sealed class TomlKeys
             : "tables";
     }
 
-    /// <summary>A value read from the file, as TOML, cut short past 100 characters.</summary>
     private static string Shown(object value)
     {
         var text = TomlDocument.Format(value) ?? "";
@@ -213,7 +191,6 @@ internal sealed class TomlKeys
     }
 }
 
-/// <summary>One key: a property and the comment written above it when the file does not have it yet.</summary>
 internal sealed class TomlKey(PropertyInfo property)
 {
     public PropertyInfo Property { get; } = property;
@@ -222,7 +199,6 @@ internal sealed class TomlKey(PropertyInfo property)
 
     public string? Comment { get; } = property.GetCustomAttribute<TomlCommentAttribute>()?.Text;
 
-    /// <summary>The property's value on <paramref name="owner"/>.</summary>
     public object? Value(object owner)
     {
         return Property.GetValue(owner);

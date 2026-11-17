@@ -2,17 +2,12 @@ using Windows.Foundation;
 
 namespace Winshell;
 
-/// <summary>A frameless window placed next to another window.</summary>
 public sealed partial class PopupWindow : ShellWindow
 {
     private Rect _rect = new(0, 0, 100, 100);
     private bool _grabFocus;
     private PopupPlacer? _placer;
 
-    /// <summary>
-    /// A hidden popup of the running shell, 100 by 100 at the virtual desktop's origin until
-    /// <see cref="PopupWindow.Rect"/> is set.
-    /// </summary>
     public PopupWindow()
         : this(Shell.Current)
     {
@@ -25,7 +20,6 @@ public sealed partial class PopupWindow : ShellWindow
 
     private protected override WindowKind Kind => WindowKind.Popup;
 
-    /// <summary>Where the popup sits, in logical pixels on the virtual desktop.</summary>
     public Rect Rect
     {
         get => _rect;
@@ -36,7 +30,6 @@ public sealed partial class PopupWindow : ShellWindow
         }
     }
 
-    /// <summary>Takes the keyboard while shown. Focus does nothing unless this is set. A click outside the popup and its open flyouts, or Esc, then dismisses it.</summary>
     public bool GrabFocus
     {
         get => _grabFocus;
@@ -47,7 +40,6 @@ public sealed partial class PopupWindow : ShellWindow
         }
     }
 
-    /// <summary>A click outside the popup and its open flyouts, or Esc, dismissed it. It is hidden.</summary>
     public event Action? Dismissed;
 
     internal override IWindowPlacer CreatePlacer(HostWindow host, ShellPlatform platform)

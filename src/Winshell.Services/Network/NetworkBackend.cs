@@ -18,7 +18,6 @@ internal sealed record NetworkInfo(
     WifiSecurityType Security,
     IReadOnlyList<WifiProfileInfo>? SavedProfiles = null);
 
-/// <summary>A saved WLAN profile with the key left out. <see cref="Hidden"/> is the profile's nonBroadcast flag.</summary>
 internal sealed record WifiProfileInfo(
     string Id,
     string Name,
@@ -70,12 +69,6 @@ internal sealed record NetworkSnapshot(
         Wifi.Map(WifiRadioState.On, WifiRadioState.Off, WifiRadioState.Disabled, WifiRadioState.Unknown);
 }
 
-/// <summary>
-/// The network adapters of this PC. Wired and Wi-Fi adapters come from System.Net and iphlpapi; Wi-Fi
-/// networks from WinRT's WiFiAdapter, which needs the location permission for desktop apps; saved
-/// networks and connection states from wlanapi; connectivity from WinRT's NetworkInformation.
-/// </summary>
-/// <param name="log">Where a failed Wi-Fi callback is reported. A radio Windows will not list is the snapshot's error.</param>
 internal sealed class NetworkBackend(Log log) : INetworkBackend
 {
     private readonly Lock _lock = new();
@@ -96,12 +89,10 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         WinNetworkInformation.NetworkStatusChanged += OnNetworkStatusChanged;
         NetworkChange.NetworkAddressChanged += OnNetworkChanged;
         NetworkChange.NetworkAvailabilityChanged += OnNetworkChanged;
-        // False means no listener was stored. Address and status changes above still run.
         if (!Wlan.Listen(Refresh, e => log.Warn("network", e.Message)))
             return;
     }
 
-    /// <summary>Stops watching Windows and lets go of the radios.</summary>
     public void Dispose()
     {
         if (_watching)
@@ -136,19 +127,13 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         Refresh();
     }
 
-    /// <summary>
-    /// Whether a read must reread the Wi-Fi radios and adapters: the first read, and each read whose set of
-    /// Wi-Fi device ids differs from the last. A USB adapter plugged in or out changes that set.
-    /// </summary>
     internal static bool WifiDevicesChanged(IReadOnlySet<Guid>? known, IReadOnlySet<Guid> now)
     {
         return known is null || !known.SetEquals(now);
     }
 
-    /// <summary>Rereads the Wi-Fi radios, and the adapters when access is allowed, and moves the radio handlers to the new radios.</summary>
     private async Task ReloadWifiAsync()
     {
-        // Reading radio state needs no control permission and must never prompt on import.
         List<Radio> radios = [];
         string? radioError = null;
         try
@@ -227,18 +212,12 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         }
     }
 
-    /// <summary>
-    /// Maps the ULONG from <c>wlan_intf_opcode_current_operation_mode</c>. Extensible station is
-    /// <c>Station</c> and extensible AP is <c>AccessPoint</c>. Windows 11 does not report an ad-hoc
-    /// BSS, and nothing reports 802.11s, so <c>AdHoc</c> and <c>Mesh</c> are never returned.
-    /// Null and every other operation mode are <c>Unknown</c>.
-    /// </summary>
     internal static WifiDeviceMode MapDeviceMode(uint? operationMode)
     {
         return operationMode switch
         {
-            0x00000004 => WifiDeviceMode.Station, // windot11.h DOT11_OPERATION_MODE_EXTENSIBLE_STATION
-            0x00000008 => WifiDeviceMode.AccessPoint, // windot11.h DOT11_OPERATION_MODE_EXTENSIBLE_AP
+            0x00000004 => WifiDeviceMode.Station,
+            0x00000008 => WifiDeviceMode.AccessPoint,
             _ => WifiDeviceMode.Unknown
         };
     }
@@ -297,7 +276,6 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
             };
             if (type == DeviceType.None || !Guid.TryParse(nic.Id, out var id))
                 continue;
-            // Hyper-V switches, VPNs, Wi-Fi Direct and filter drivers are not devices a shell shows.
             if (IpHelper.GetInterface(id) is not { HardwareInterface: true } row)
                 continue;
             if (type == DeviceType.Wired && nic.Description.Contains("Bluetooth", StringComparison.OrdinalIgnoreCase))
@@ -383,7 +361,6 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         return connections.WifiNetworks(id, deviceState, scanned, saved);
     }
 
-    /// <summary>Reads each saved profile without asking for its key. A profile that cannot be read is kept, with <see cref="WifiProfileInfo.Loaded"/> false.</summary>
     private List<WifiProfileInfo> ReadSavedProfiles(Guid id)
     {
         var saved = new List<WifiProfileInfo>();
@@ -413,12 +390,9 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
     {
         if (!profile.IsWlanConnectionProfile)
             return null;
-        // Unlike scan/BSSID access, reading the connected SSID does not request location consent.
         var ssid = profile.WlanConnectionProfileDetails?.GetConnectedSsid();
         return string.IsNullOrEmpty(ssid) ? profile.ProfileName : ssid;
     }
-
-    // Actions. Each returns an error message, or null when Windows did what was asked.
 
     private WiFiAdapter? Adapter(Guid id)
     {
@@ -428,7 +402,6 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         }
     }
 
-    /// <summary>Connects a Wi-Fi device to a network by its SSID, with a PSK or the saved credentials.</summary>
     public async Task<ConnectionFailReason?> ConnectAsync(Guid device, string ssid, string? psk)
     {
         var adapter = Adapter(device);
@@ -459,7 +432,6 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         };
     }
 
-    /// <summary>Fails for an adapter Windows gave no access to, which includes every wired one.</summary>
     public Task<string?> DisconnectAsync(Guid device)
     {
         return Task.Run<string?>(() =>
@@ -487,13 +459,11 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         return ChangeProfile(() => WifiProfileEdit.ClearPassword(device, profileName));
     }
 
-    /// <summary>Connects in profile mode. The call returns when Windows accepts the request, and the snapshot that follows reports the association.</summary>
     public Task<string?> ConnectProfileAsync(Guid device, string profileName, bool hidden)
     {
         return CallWlan(() => Wlan.ConnectProfile(device, profileName, hidden));
     }
 
-    /// <summary>Makes a WLAN call off the calling thread, since it blocks until Windows answers.</summary>
     private Task<string?> CallWlan(Func<uint> call)
     {
         return Task.Run(() =>
@@ -574,8 +544,6 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         };
     }
 
-    // Windows exposes no public WinRT aggregate airplane-mode API. Read the system's persisted
-    // RadioManagement flag when present; never infer it from individual radios (which can be overridden).
     internal static AirplaneModeState MapAirplaneMode(object? value)
     {
         return value switch

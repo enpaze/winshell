@@ -8,41 +8,22 @@ using Winshell.ExplorerTaskbar;
 
 namespace Winshell;
 
-/// <summary>What a configuration sets before its shell starts.</summary>
 public sealed record ShellOptions
 {
-    /// <summary>
-    /// The name that identifies this configuration across runs. It names its data, state and cache folders. Without
-    /// it, a program in the config folder is named after its folder, and one anywhere else after its path.
-    /// </summary>
     public string? ShellId { get; init; }
 
-    /// <summary>
-    /// Another folder for <see cref="Shell.DataDir"/>. A relative path is in the configuration's project folder, so a
-    /// rebuild of <c>bin\shell</c> leaves it, and a program a reload built in <c>bin\shell.next</c> uses that same
-    /// folder. A program in neither resolves a relative path next to itself. <c>%NAME%</c> expands, and <c>$BASE</c>
-    /// is the folder above <c>by-shell</c>, such as <c>%LOCALAPPDATA%\winshell\data</c>.
-    /// </summary>
     public string? DataDir { get; init; }
 
-    /// <summary>Another folder for <see cref="Shell.StateDir"/>, read as <see cref="DataDir"/> is.</summary>
     public string? StateDir { get; init; }
 
-    /// <summary>Another folder for <see cref="Shell.CacheDir"/>, read as <see cref="DataDir"/> is.</summary>
     public string? CacheDir { get; init; }
 }
 
-/// <summary>A configuration: the program that defines a shell. <see cref="Start"/> makes its windows.</summary>
 public abstract class ShellConfiguration
 {
-    /// <summary>Runs once, on the shell's thread, after WinUI has started.</summary>
     public abstract void Start(Shell shell);
 }
 
-/// <summary>
-/// The running shell: its screens and services. There is one in a process. Each service is made the first time it is
-/// read, so a service a configuration does not use costs nothing and asks Windows for nothing.
-/// </summary>
 public sealed partial class Shell : IDisposable
 {
     private static Shell? _current;
@@ -76,25 +57,17 @@ public sealed partial class Shell : IDisposable
         StartToolTipStyle();
     }
 
-    /// <summary>
-    /// The project folder <c>winshell dev</c> runs. A shell started with it shows a preferences file that does not read.
-    /// </summary>
     internal const string DevProjectVariable = "WINSHELL_DEV_PROJECT";
 
-    /// <summary>The shell of this process, or null before <see cref="Run{T}"/> has started it.</summary>
     internal static Shell? Running => _current;
 
-    /// <summary>The shell of this process. Reading it before <see cref="Run{T}"/> has started it throws.</summary>
     public static Shell Current =>
         _current ?? throw new InvalidOperationException("The shell has not started. Call Shell.Run first.");
 
-    /// <summary>The shell's thread. Post work from other threads to it before touching windows or services.</summary>
     public IEventLoop Loop { get; }
 
-    /// <summary>This instance's log, which <c>winshell log</c> shows.</summary>
     public Log Log { get; }
 
-    /// <summary>The options the configuration passed to <see cref="Run{T}"/>.</summary>
     public ShellOptions Options { get; }
 
     internal ShellPlatform Platform { get; }
@@ -102,13 +75,8 @@ public sealed partial class Shell : IDisposable
     private PreferencesFile? _preferencesFile;
     private bool _configurationStarted;
 
-    /// <summary>The user's preferences for this shell, <c>preferences\&lt;shell id&gt;.toml</c> in <see cref="ConfigRoot"/>.</summary>
     internal PreferencesFile PreferencesFile => OpenPreferences();
 
-    /// <summary>
-    /// Opens the preferences file on first use. Once <see cref="ShellConfiguration.Start"/> has returned, it is written
-    /// on the next turn.
-    /// </summary>
     private PreferencesFile OpenPreferences()
     {
         if (_preferencesFile is null)
@@ -121,10 +89,6 @@ public sealed partial class Shell : IDisposable
         return _preferencesFile;
     }
 
-    /// <summary>
-    /// <see cref="ShellConfiguration.Start"/> has returned. The preferences file, if one is open, is written on the
-    /// next turn, after a section Start already posted. One opened later is written the same way.
-    /// </summary>
     private void ConfigurationStarted()
     {
         if (_configurationStarted)
@@ -133,92 +97,66 @@ public sealed partial class Shell : IDisposable
         _preferencesFile?.StartReturned();
     }
 
-    /// <summary>The real input of <c>winshell inspect</c>, made by its first command. It gives a held cursor back on dispose.</summary>
     internal RealInput Input => _input ??= new RealInput(Loop);
 
-    /// <summary>Winshell's own notices.</summary>
     internal ShellNotices Notices { get; }
 
-    /// <summary>The Winshell release this program is built on.</summary>
     public static string Version => ProductVersion.Current.Text;
 
-    /// <summary>The name that identifies this configuration across runs.</summary>
     public string ShellId => _identity.ShellId;
 
-    /// <summary>What <c>winshell ipc</c> reaches in this shell.</summary>
     public ShellIpc Ipc { get; }
 
-    /// <summary>The folder of this configuration's program, where its own files are.</summary>
     public string ConfigDir => Path.GetDirectoryName(Environment.ProcessPath)!;
 
-    /// <summary>The config folder: <c>%APPDATA%\winshell</c>, or <c>WINSHELL_CONFIG_DIR</c> when it is set.</summary>
     public string ConfigRoot => ShellLocations.Current.ConfigRoot;
 
-    /// <summary>This instance's log file, or empty when it writes none.</summary>
     public string LogPath { get; }
 
-    /// <summary>This shell's data folder, which exists once read.</summary>
     public string DataDir => Ensure(_identity.DataDir);
 
-    /// <summary>This shell's state folder, which exists once read.</summary>
     public string StateDir => Ensure(_identity.StateDir);
 
-    /// <summary>This shell's cache folder, which exists once read.</summary>
     public string CacheDir => Ensure(_identity.CacheDir);
 
-    /// <summary>The connected screens. The primary screen comes first.</summary>
     public ObservableList<ScreenInfo> Screens => Platform.Screens;
 
-    /// <summary>Whether windows are dark. <see cref="ColorScheme"/> overrides Windows mode, and <see cref="ColorScheme.System"/> follows it.</summary>
     public bool IsDark => Platform.IsDark;
 
-    /// <summary>The color scheme every window follows.</summary>
     public ColorScheme ColorScheme
     {
         get => Platform.ColorScheme;
         set => Platform.ColorScheme = value;
     }
 
-    /// <summary>The accent every window follows, as <c>#RRGGBB</c>, or <c>""</c> to follow Windows.</summary>
     public string AccentColor
     {
         get => Platform.AccentColor;
         set => Platform.AccentColor = value;
     }
 
-    /// <summary>The accent Windows is using, as <c>#RRGGBB</c>.</summary>
     public string SystemAccent => Platform.SystemAccent;
 
-    /// <summary>A path in <see cref="ConfigDir"/>.</summary>
     public string ConfigPath(string path)
     {
         return Path.Combine(ConfigDir, path);
     }
 
-    /// <summary>A path in <see cref="DataDir"/>.</summary>
     public string DataPath(string path)
     {
         return Path.Combine(DataDir, path);
     }
 
-    /// <summary>A path in <see cref="StateDir"/>.</summary>
     public string StatePath(string path)
     {
         return Path.Combine(StateDir, path);
     }
 
-    /// <summary>A path in <see cref="CacheDir"/>.</summary>
     public string CachePath(string path)
     {
         return Path.Combine(CacheDir, path);
     }
 
-    /// <summary>
-    /// Opens a Settings page, an app or a URL as Windows would, such as <c>ms-settings:sound</c>,
-    /// <c>https://example.com</c> or an app's path: a URI or a path, not a command line. It opens off the loop, so a
-    /// slow app does not hold up the shell. What Windows can't start, such as a path that is not there, is logged, not
-    /// thrown. A scheme no app handles shows Windows' own app picker.
-    /// </summary>
     public void Open(string target)
     {
         _ = Task.Run(() =>
@@ -240,15 +178,6 @@ public sealed partial class Shell : IDisposable
         return dir;
     }
 
-    /// <summary>
-    /// Runs a configuration until the shell quits, on this thread, as a Winshell instance: <c>winshell list</c>, <c>log</c>,
-    /// <c>kill</c>, <c>reload</c> and <c>ipc</c> reach it. Call it from <c>Main</c>, marked <c>[STAThread]</c>. The program
-    /// takes <c>--no-duplicate</c> and <c>-d</c> on its command line. <c>--no-duplicate</c> exits at once when its shell
-    /// id is already running. A shell already running in this local folder is asked to quit first. One that does not
-    /// quit stays, and this start says why and exits with code 1. <c>-d</c> starts this program again and returns, so
-    /// the caller does not wait, and that start keeps <c>--after</c>. <typeparamref name="T"/> is a
-    /// <see cref="ShellConfiguration"/> with a public parameterless constructor.
-    /// </summary>
     public static void Run<T>(ShellOptions? options = null)
         where T : ShellConfiguration, new()
     {
@@ -267,12 +196,10 @@ public sealed partial class Shell : IDisposable
                 Log.Default,
                 instance => instance.Crashing = () => _current?.ReleaseForCrash()),
             session => RunHost(configuration, options, session));
-        // Only a start that failed sets it, so an exit code the configuration set itself still reaches the supervisor.
         if (code != 0)
             Environment.ExitCode = code;
     }
 
-    /// <summary>The WinUI host. <see cref="InstanceStart"/> calls it once this process owns its pipe.</summary>
     private static void RunHost(ShellConfiguration configuration, ShellOptions options, InstanceSession session)
     {
         var instance = session.Instance;
@@ -285,7 +212,6 @@ public sealed partial class Shell : IDisposable
             var application = new ShellApplication(() =>
             {
                 Shell? shell = null;
-                // Thrown from here it would cross into WinUI, which ends the process with nothing reported.
                 try
                 {
                     var loop = new DispatcherLoop(queue, session.Log);
@@ -297,7 +223,6 @@ public sealed partial class Shell : IDisposable
                         shell.Notices.FollowFileErrors();
 
                     session.Serve(loop, new Control(shell));
-                    // winshell.exe is a console program: Ctrl+C would end it with no Dispose, so it quits instead.
                     Console.CancelKeyPress += (_, e) =>
                     {
                         e.Cancel = true;
@@ -316,7 +241,6 @@ public sealed partial class Shell : IDisposable
                         shell.ReleaseUnclaimedTaskbar();
                     instance.ReportFatal(e);
                     failed = e;
-                    // Windows go first: WinUI crashes on the way out with any still open.
                     queue.TryEnqueue(() =>
                     {
                         ShellInstance.Quietly(() => shell?.Dispose());
@@ -335,10 +259,6 @@ public sealed partial class Shell : IDisposable
             session.Failure = failed;
     }
 
-    /// <summary>
-    /// Replaces this instance with a new process of the same program, which takes over once this one has gone.
-    /// False when that process did not start: the shell then keeps running.
-    /// </summary>
     public bool Reload()
     {
         if (StartNext() is not null)
@@ -347,10 +267,6 @@ public sealed partial class Shell : IDisposable
         return true;
     }
 
-    /// <summary>
-    /// Starts the process that takes over from this one, once. <paramref name="program"/> is that process when a build
-    /// wrote it beside this one; null starts this program again. Null when it started, or else why not.
-    /// </summary>
     private string? StartNext(string? program = null)
     {
         if (_nextStarted)
@@ -374,10 +290,6 @@ public sealed partial class Shell : IDisposable
         }
     }
 
-    /// <summary>
-    /// Ends the shell. Its windows close and <see cref="Run{T}"/> returns. Something that fails to stop is logged and
-    /// reported, and the shell ends anyway.
-    /// </summary>
     public void Quit()
     {
         try
@@ -386,7 +298,6 @@ public sealed partial class Shell : IDisposable
         }
         catch (Exception e) when (e is not OutOfMemoryException)
         {
-            // Thrown on, it would reach the loop, which reports the shell as still running.
             Log.Error("shell", e.ToString());
             _instance.Reported(_instance.Crashes.WriteOnce("teardown", e, "Winshell",
                 "Something in Winshell did not stop cleanly. Winshell exited anyway."));
@@ -397,10 +308,6 @@ public sealed partial class Shell : IDisposable
         }
     }
 
-    /// <summary>
-    /// Puts back a taskbar a replaced shell left hidden, when this shell is not hiding it. A live owner that is
-    /// not this process keeps it.
-    /// </summary>
     private void ReleaseUnclaimedTaskbar()
     {
         if (_explorerTaskbar is { Hidden: true })
@@ -408,39 +315,25 @@ public sealed partial class Shell : IDisposable
         ExplorerTaskbarLease.ReleaseUnclaimed();
     }
 
-    /// <summary>Leaves Explorer's taskbar hidden for the shell that replaces this one. Does nothing when this shell never hid it.</summary>
     private void Yield()
     {
         _explorerTaskbar?.Yield();
     }
 
-    /// <summary>
-    /// Gives back what a crash would leave held: Explorer's taskbar and every panel's app bar. A crash skips
-    /// <see cref="Dispose"/> and can be on any thread, so this uses only calls that are safe from any thread.
-    /// </summary>
     private void ReleaseForCrash()
     {
         _explorerTaskbar?.Restore();
         PanelEdge.ReleaseAll();
     }
 
-    /// <summary>
-    /// Closes Winshell's notices, stops the services, and closes every window. One that throws doesn't stop the rest:
-    /// its exception is thrown once all have stopped. <see cref="Quit"/> does this and also ends the shell.
-    /// </summary>
     public void Dispose()
     {
         if (_disposed)
             return;
         _disposed = true;
-        // The platform goes last, closing every window that is left.
         DisposeEach((IDisposable?[])[_input, _preferencesFile, Notices, .. ServicesInStopOrder, Platform]);
     }
 
-    /// <summary>
-    /// Disposes each part in order. One that throws doesn't stop the rest; its exception is thrown once all are
-    /// disposed, or an <see cref="AggregateException"/> when several threw.
-    /// </summary>
     internal static void DisposeEach(IEnumerable<IDisposable?> parts)
     {
         List<Exception> failures = [];
@@ -460,7 +353,6 @@ public sealed partial class Shell : IDisposable
             throw new AggregateException(failures);
     }
 
-    /// <summary>The control pipe's way into this shell. A reload ends the process, so that waits for the client's answer.</summary>
     private sealed class Control(Shell shell) : IInstanceControl
     {
         public ShellIpc Ipc => shell.Ipc;

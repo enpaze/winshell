@@ -231,7 +231,6 @@ public sealed class NetworkingServiceTests
         using var session = new Session(NetworkSnapshot.Initial);
         var completion = new TaskCompletionSource();
         session.Backend.AccessTask = completion.Task;
-        // The handler runs while the test still holds the session, before the method disposes it.
         var failed = Failures(h => session.Service.OperationFailed += h);
 
         var request = session.Service.RequestAccessAsync();
@@ -461,7 +460,6 @@ public sealed class NetworkingServiceTests
         var network = session.Network;
         var device = session.Device;
         var profile = session.Profile;
-        // A bug, not a failure Windows reports. The shell reports the task that failed; the action still ends.
         var bug = new NullReferenceException("A bug");
         session.Backend.Failure = bug;
         session.Backend.AutoException = bug;
@@ -659,7 +657,6 @@ public sealed class NetworkingServiceTests
         return property.PropertyType == typeof(ObservableList<Winshell.Network.Network>);
     }
 
-    // Inherited methods too, so a command on Network still counts as a command of a wired network.
     private static IEnumerable<string> WifiCommands(Type type)
     {
         return type.GetMethods(BindingFlags.Instance | BindingFlags.Public)
@@ -742,7 +739,6 @@ public sealed class NetworkingServiceTests
 
         public bool Disposed { get; private set; }
 
-        /// <summary>Makes <paramref name="snapshot"/> what Windows reports, and says it changed.</summary>
         public void Publish(NetworkSnapshot snapshot)
         {
             Current = snapshot;
@@ -755,7 +751,6 @@ public sealed class NetworkingServiceTests
             return Failure is { } e ? Task.FromException(e) : AccessTask;
         }
 
-        /// <summary>Reads the radios of the current snapshot again, as Windows would.</summary>
         public Task<NetworkSnapshot> ReadAsync(CancellationToken cancellation)
         {
             Current = Current with { Wifi = RadioReading.Read(Current.Wifi.Radios) };

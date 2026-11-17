@@ -44,7 +44,6 @@ public sealed class MediaSessionRefreshTests
         Assert.Equal(2, requests);
         Assert.False(next.Closed);
 
-        // Windows can still answer the retired request. That must not read it, close it again, or start another request.
         pending.NotifyCompletion(AsyncStatus.Completed);
         loop.Advance(TimeSpan.FromSeconds(2));
 
@@ -67,7 +66,6 @@ public sealed class MediaSessionRefreshTests
         loop.Advance(TimeSpan.FromSeconds(29));
         Assert.Empty(warnings);
 
-        // Three timeouts: 30 s, then 60 s, then 120 s.
         loop.Advance(TimeSpan.FromSeconds(1 + 2 + 60 + 2 + 120));
 
         var warning = Assert.Single(warnings);
@@ -90,12 +88,11 @@ public sealed class MediaSessionRefreshTests
 
         loop.Advance(TimeSpan.FromSeconds(11028));
 
-        // Each gap is a wait for the request, then the two seconds before the next one.
         Assert.Equal<int[]>([32, 62, 122, 242, 482, 962, 1922, 3602, 3602],
             [.. starts.Zip(starts.Skip(1), (a, b) => (int)(b - a).TotalSeconds)]);
 
         var answered = loop.Now;
-        last!.Finish(AsyncStatus.Error); // The factory has run, so last is the pending request.
+        last!.Finish(AsyncStatus.Error);
         loop.Advance(TimeSpan.FromSeconds(34));
 
         Assert.Equal([answered + TimeSpan.FromSeconds(2), answered + TimeSpan.FromSeconds(34)], starts[^2..]);
@@ -205,7 +202,6 @@ public sealed class MediaSessionRefreshTests
 
         public bool Closed => CloseCount > 0;
 
-        // A completed request can lose its broker before its result is read.
         public GlobalSystemMediaTransportControlsSessionManager GetResults()
         {
             throw ErrorCode;

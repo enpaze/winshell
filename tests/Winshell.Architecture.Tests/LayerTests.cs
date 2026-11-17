@@ -3,10 +3,8 @@ using System.Xml.Linq;
 
 namespace Winshell.Architecture.Tests;
 
-/// <summary>The production layers depend only downward, as docs/architecture.md decides.</summary>
 public class LayerTests
 {
-    // From the top down. A layer may use any layer below it, and none above it.
     private static readonly string[] Layers =
         ["Winshell.Shell", "Winshell.Services", "Winshell.Core", "Winshell.Native"];
 
@@ -23,8 +21,6 @@ public class LayerTests
         Assert.Empty(upward);
     }
 
-    // A <Reference> to a built DLL, or a package reference to the Winshell package, reaches a higher layer without a
-    // project reference.
     [Fact]
     public void An_assembly_references_only_layers_below_it()
     {

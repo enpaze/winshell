@@ -3,7 +3,6 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>Where and how a panel sits on its screen.</summary>
 internal sealed record PanelPlacement(
     ScreenInfo? Screen,
     Edges Anchors,
@@ -17,12 +16,6 @@ internal sealed record PanelPlacement(
     double ReservedSize,
     bool AboveWindows);
 
-/// <summary>
-/// Where a panel sits and which edge of its screen it holds. It chooses the screen, whether to cover it or reserve an
-/// edge or follow the work area, and whether a fullscreen app puts it behind. Explorer's notices about that edge come
-/// here too. A placement that arrives after the panel is gone reserves nothing: an app bar with no window is one
-/// nothing can remove.
-/// </summary>
 internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
 {
     private static readonly uint Message = PInvoke.WM_APP + 1;
@@ -42,7 +35,6 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
         Place();
     }
 
-    /// <summary>A hidden panel holds no edge, so a panel about to show places again to take it.</summary>
     public void Show()
     {
         _visible = true;
@@ -61,21 +53,18 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
         Remove();
     }
 
-    /// <summary>A panel only changes DPI on its own when its monitor's scale changes: place it again from its logical size.</summary>
     public void OnDpiChanged(RECT suggested, bool placing)
     {
         if (!placing)
             desktop.Post(Place);
     }
 
-    /// <summary>A shown panel follows the work area, which other bars move.</summary>
     public void OnWorkAreaChanged()
     {
         if (_visible)
             Place();
     }
 
-    /// <summary>Puts the panel on its screen: the screen, the reservation and the z-order.</summary>
     private void Place()
     {
         if (_released || _placement is not { } p)
@@ -106,7 +95,6 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
         desktop.Move(rect, p.AboveWindows && !desktop.FullscreenOn(found.Id), scale);
     }
 
-    /// <summary>Gives the edge back. A panel that holds none changes nothing.</summary>
     private void Remove()
     {
         if (!_registered)
@@ -119,7 +107,6 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
         desktop.WorkAreaMayHaveChanged();
     }
 
-    /// <summary>Gives every edge back. Safe from any thread, so a crash on one can.</summary>
     internal static void ReleaseAll()
     {
         foreach (var pair in Held)
@@ -127,13 +114,11 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
                 pair.Key.Remove();
     }
 
-    /// <summary>Handles Explorer's notices to the app bar. Returns null for any other message.</summary>
     public nint? OnMessage(WindowMessage message)
     {
         var (msg, wParam) = (message.Id, message.WParam);
         if (msg == TaskbarWindows.Created)
         {
-            // Explorer restarted and forgot every app bar.
             Remove();
             desktop.Post(Place);
             return 0;
@@ -143,9 +128,6 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
             return null;
         if (AppBars.PositionChanged(wParam))
         {
-            // A burst of these places the panel once. Explorer does not send one notice per own request,
-            // so each may be another bar. A short grant is asked for once more, and that same rectangle
-            // sends no notice.
             _reservation.NoteExternalChange();
             if (!_placePosted)
             {
@@ -161,7 +143,6 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
         return 0;
     }
 
-    /// <summary>The edge a panel with these anchors reserves: the one it spans, or none for a corner or the whole screen.</summary>
     private static Edges? EdgeFor(Edges anchors)
     {
         var horizontal = anchors.HasFlag(Edges.Left) ^ anchors.HasFlag(Edges.Right);
@@ -173,7 +154,6 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
         return null;
     }
 
-    /// <summary>The strip of <paramref name="offered"/> that is <paramref name="thickness"/> pixels deep along an edge.</summary>
     private static RECT Strip(Edges edge, int thickness, RECT offered)
     {
         return edge switch
@@ -185,7 +165,6 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
         };
     }
 
-    /// <summary>The monitor, starting at the edge the app bar got and as long as its grant along that edge.</summary>
     private static RECT Area(Edges edge, RECT granted, RECT monitor)
     {
         return edge switch
@@ -197,7 +176,6 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
         };
     }
 
-    /// <summary>Where a panel sits inside an area of its monitor, in physical pixels: anchored edges stick to the area, margins and size scale.</summary>
     private static RECT Anchor(RECT area, PanelPlacement p, double scale)
     {
         var ml = (int)Math.Round(p.MarginLeft * scale);
@@ -225,7 +203,6 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
         return (start + (length - size) / 2, size);
     }
 
-    /// <summary>Reserves <paramref name="thickness"/> pixels along an edge of a monitor. Returns the area the panel lays out in.</summary>
     private RECT Reserve(Edges edge, int thickness, RECT monitor)
     {
         var side = Side(edge);
@@ -233,7 +210,6 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
         {
             _registered = desktop.Register(Message);
             if (!_registered)
-                // No app bar host, as when Explorer is not running: keep the window where the zone would be.
                 return monitor;
             Held[desktop] = 0;
         }

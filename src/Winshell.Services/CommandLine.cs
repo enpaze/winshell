@@ -5,10 +5,6 @@ using WindowsCommand = Winshell.Native.CommandLine;
 
 namespace Winshell;
 
-/// <summary>
-/// A Winshell command line. Parsing, quoting and the sign-in policy live here, so the sign-in entry, a shell's
-/// reload and an app launch cannot each grow their own.
-/// </summary>
 internal sealed class CommandLine
 {
     private const string ConsoleHost = "conhost.exe";
@@ -21,12 +17,10 @@ internal sealed class CommandLine
 
     public IReadOnlyList<string> Arguments => _arguments;
 
-    /// <summary>The arguments of a Windows command line. A blank line has none: <c>CommandLineToArgvW</c> would return this program's path for one.</summary>
     public static CommandLine Parse(string command) => new(WindowsCommand.Split(command));
 
     public static CommandLine Parse(IEnumerable<string> arguments) => new(arguments.ToArray());
 
-    /// <summary>Quotes an argument the way <c>CommandLineToArgvW</c> reads it back.</summary>
     public static string Quote(string argument)
     {
         if (argument.Length > 0 && !argument.Any(static c => c is ' ' or '\t' or '"'))
@@ -50,26 +44,18 @@ internal sealed class CommandLine
         return written.ToString();
     }
 
-    /// <summary>A program and arguments Windows will parse. <paramref name="arguments"/> is already a command line.</summary>
     public static string Join(string program, string arguments)
     {
         var quoted = Quote(program);
         return arguments.Length == 0 ? quoted : quoted + " " + arguments;
     }
 
-    /// <summary>What <paramref name="command"/> starts. A blank command starts nothing.</summary>
     public static SignInEntry.SignInLaunch ReadSignIn(string command) => Parse(command).ReadSignIn();
 
-    /// <summary>The command a sign-in runs for <paramref name="exe"/> with <paramref name="arguments"/>.</summary>
     public static string ForSignIn(string exe, IEnumerable<string> arguments) => Parse(arguments).ForSignIn(exe);
 
-    /// <summary>What a configuration's program reads from <paramref name="arguments"/>.</summary>
     public static ShellArguments ReadProgram(IEnumerable<string> arguments) => Parse(arguments).ReadProgram();
 
-    /// <summary>
-    /// The words <c>winshell run</c> gives a configuration's program. <paramref name="rest"/> is the <c>--</c> and the
-    /// words after it.
-    /// </summary>
     public static IReadOnlyList<string> ProgramArguments(bool noDuplicate, bool verbose, IEnumerable<string> rest)
     {
         var words = new List<string>();
@@ -115,16 +101,6 @@ internal sealed class CommandLine
         return new SignInEntry.SignInLaunch(program, path, name);
     }
 
-    /// <summary>
-    /// The command a sign-in runs: this line's arguments with <paramref name="exe"/>, under a console host that has no
-    /// window. <c>winshell.exe</c> is a console program, so started on its own it would open a console or Windows
-    /// Terminal at every sign-in. Start launches <c>winshellw.exe</c>; that name is written as the <c>winshell.exe</c>
-    /// beside it, so the Start menu and the installer describe one entry. <c>--no-duplicate</c> keeps a second sign-in
-    /// entry from starting a second shell, and <c>--daemonize</c> is left out because the console host already runs it
-    /// in the background. <c>--no-build</c> runs the configuration's last build, so signing in never depends on the SDK
-    /// or on a broken edit. A <c>--path</c> is made absolute, since a sign-in does not start in this working directory.
-    /// The <c>--</c> and the words after it are the program's, and stay last as they are.
-    /// </summary>
     public string ForSignIn(string exe)
     {
         var end = Array.IndexOf(_arguments, CommandWords.End);
@@ -197,7 +173,6 @@ internal sealed class CommandLine
         return new ShellArguments(after, noDuplicate, daemonize, kept, detached, verbose);
     }
 
-    /// <summary>Whether these arguments are <paramref name="other"/>'s, reading <c>winshellw.exe</c> as <c>winshell.exe</c>.</summary>
     public bool SameArguments(CommandLine other)
     {
         return _arguments.Select(WinshellHost.ConsoleOf).SequenceEqual(

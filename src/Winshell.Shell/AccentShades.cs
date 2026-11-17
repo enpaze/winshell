@@ -3,10 +3,6 @@ using Windows.UI;
 
 namespace Winshell;
 
-/// <summary>
-/// The lighter and darker shades of an accent Winshell picked. Windows does not say how it makes them, so each keeps
-/// the hue and saturation and moves the lightness as far as the default blue's shades do.
-/// </summary>
 internal readonly record struct AccentShades(
     Color Accent,
     Color Light1,
@@ -67,7 +63,6 @@ internal readonly record struct AccentShades(
         var min = Math.Min(r, Math.Min(g, b));
         var d = max - min;
         var l = (max + min) / 2;
-        // max is one of these channels, so asking which one it was is exact.
         var h = d == 0 ? -1 : max == r ? ((g - b) / d % 6 + 6) % 6 : max == g ? (b - r) / d + 2 : (r - g) / d + 4;
         var s = d == 0 ? 0 : d / (1 - Math.Abs(2 * l - 1));
         return (h < 0 ? -1 : h / 6, s, l);

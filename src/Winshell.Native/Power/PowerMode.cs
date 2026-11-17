@@ -5,27 +5,19 @@ using Windows.Win32.System.Power;
 
 namespace Winshell.Native;
 
-/// <summary>
-/// The Windows power mode: the slider the user sets for each power supply, and the effective mode Windows applies.
-/// A Windows without the power mode reports <c>ERROR_PROC_NOT_FOUND</c>.
-/// </summary>
 internal static unsafe class PowerMode
 {
     private const uint ProcedureNotFound = 127;
 
-    /// <summary><c>GUID_POWER_MODE_BEST_EFFICIENCY</c>.</summary>
     internal static readonly Guid BestEfficiency = new("961cc777-2547-4f9d-8174-7d86181b8a7a");
 
-    /// <summary><c>GUID_POWER_MODE_BEST_PERFORMANCE</c>.</summary>
     internal static readonly Guid BestPerformance = new("ded574b5-45a0-4f42-8737-46345c09c238");
 
-    /// <summary><c>GUID_POWER_MODE_PERFORMANCE</c>, which Windows documents as deprecated.</summary>
     internal static readonly Guid DeprecatedPerformance = new("3af9b8d9-7c97-431d-ad78-34a8bfea439f");
 
     private static Action<int>? _effectiveChanged;
     private static void* _effectiveRegistration;
 
-    /// <summary>The mode set for battery or mains power. Returns a Windows error, or 0.</summary>
     internal static uint GetUserConfigured(bool battery, out Guid mode)
     {
         try
@@ -41,7 +33,6 @@ internal static unsafe class PowerMode
         }
     }
 
-    /// <summary>Sets the mode for battery or mains power. Returns a Windows error, or 0.</summary>
     internal static uint SetUserConfigured(bool battery, Guid mode)
     {
         try
@@ -56,16 +47,9 @@ internal static unsafe class PowerMode
         }
     }
 
-    /// <summary>
-    /// Calls <paramref name="changed"/> on a Windows thread with the effective mode, once right away and then on each
-    /// change, until <see cref="StopListeningEffective"/>, and hands <paramref name="failed"/> each exception it throws.
-    /// The process has one listener: a later call replaces it. Returns false, and stores no listener, when this build
-    /// of Windows has no such call.
-    /// </summary>
     internal static bool ListenEffective(Action<int> changed, Action<Exception> failed)
     {
         StopListeningEffective();
-        // The first report arrives inside the register call, so the listener has to be in place before it.
         _effectiveChanged = mode => Callback.Run(failed, () => changed(mode));
         try
         {
@@ -81,7 +65,6 @@ internal static unsafe class PowerMode
         }
     }
 
-    /// <summary>Stops the calls <see cref="ListenEffective"/> started. A call Windows had already begun may still finish.</summary>
     internal static void StopListeningEffective()
     {
         _effectiveChanged = null;

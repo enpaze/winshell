@@ -2,10 +2,6 @@ using Winshell.Diagnostics;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// The configuration-project checks read the project file as data. They never build. Every file is under a temp
-/// folder this class creates.
-/// </summary>
 public sealed class DoctorConfigurationTests : IDisposable
 {
     private readonly string _root = TempFolder.NewPath();
@@ -94,10 +90,6 @@ public sealed class DoctorConfigurationTests : IDisposable
         Assert.Equal("A file in Mine is newer than the program.", stale[2].Message);
     }
 
-    /// <summary>
-    /// The checks <c>winshell doctor</c> with no <c>-p</c> or <c>-c</c> runs for a config folder, found as
-    /// <see cref="Doctor"/> finds them. Doctor.Run would also read this PC's screens, registry and processes.
-    /// </summary>
     private static IReadOnlyList<DoctorCheck> Checks(string configRoot)
     {
         var project = ConfigurationProject.Find(null, null, configRoot, out var problem);

@@ -6,30 +6,13 @@ using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winshell.Native;
 
-/// <summary>A key as the low-level keyboard hook sees it.</summary>
 internal readonly record struct HookedKey(int VirtualKey, bool Up);
 
-/// <summary>
-/// The process's one low-level keyboard hook, on a thread of its own. A second call does nothing until the first hook
-/// is disposed: Windows calls one static procedure, so the process keeps one. Keys this process injected with
-/// <see cref="KeyInput.Tap"/> pass the hook without reaching its handler.
-/// </summary>
 internal static unsafe class LowLevelKeyboard
 {
     private static readonly Lock Gate = new();
     private static Slot? _owner;
 
-    /// <summary>
-    /// Installs the hook. Null when one is already installed or Windows refused it. Disposing the result removes it.
-    /// </summary>
-    /// <param name="onKey">
-    /// Runs on the hook thread with each key, and returns true to swallow it. Its exception lets the key through.
-    /// </param>
-    /// <param name="failed">Gets each exception <paramref name="onKey"/> throws, on the hook thread.</param>
-    /// <param name="lost">
-    /// Runs on the hook thread when that thread ends without the hook being disposed. Windows can also remove the
-    /// hook and leave the thread running, and then this does not run.
-    /// </param>
     internal static IDisposable? Start(Func<HookedKey, bool> onKey, Action<Exception> failed, Action? lost = null)
     {
         var slot = new Slot(onKey, failed, lost);
@@ -40,7 +23,6 @@ internal static unsafe class LowLevelKeyboard
             Volatile.Write(ref _owner, slot);
         }
 
-        // The procedure can run before Start returns. Do not hold the gate while waiting for the thread.
         var thread = HookThread.Start(WINDOWS_HOOK_ID.WH_KEYBOARD_LL, &Proc, "Winshell keyboard hook",
             () => OnLost(slot));
         lock (Gate)
@@ -76,7 +58,6 @@ internal static unsafe class LowLevelKeyboard
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
     private static LRESULT Proc(int code, WPARAM wParam, LPARAM lParam)
     {
-        // The hook procedure reads the slot without Gate, so a key cannot wait on the lock.
         if (code >= 0 && lParam.Value != 0 && Volatile.Read(ref _owner) is { } owner)
         {
             var info = (KBDLLHOOKSTRUCT*)lParam.Value;

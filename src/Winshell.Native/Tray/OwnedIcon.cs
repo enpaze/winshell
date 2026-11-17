@@ -4,7 +4,6 @@ using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winshell.Native;
 
-/// <summary>An icon this process made, destroyed when disposed.</summary>
 internal sealed class OwnedIcon : IDisposable
 {
     private OwnedIcon(nint handle)
@@ -12,14 +11,8 @@ internal sealed class OwnedIcon : IDisposable
         Handle = handle;
     }
 
-    /// <summary>The icon handle, or 0 once disposed.</summary>
     internal nint Handle { get; private set; }
 
-    /// <summary>
-    /// Loads an icon from a program's or library's resources at a size in pixels. Windows picks the image in the icon
-    /// group closest to the size, and scales it only if none matches. The library is only mapped as data, and only
-    /// while the icon loads. Null when the module or the resource is gone.
-    /// </summary>
     internal static unsafe OwnedIcon? Load(string module, ushort id, string name, int size)
     {
         var library = PInvoke.LoadLibraryEx(module,

@@ -3,13 +3,8 @@ using System.Diagnostics;
 
 namespace Winshell.Apps;
 
-/// <summary>
-/// The Start menu's shortcuts and packaged apps. <see cref="Find"/> finds the app of a window, and
-/// <see cref="Search"/> ranks a typed query.
-/// </summary>
 public sealed class AppsService : ObservableObject, IDisposable
 {
-    // Installers write many files at once, so a read waits until they have been quiet this long.
     private static readonly TimeSpan Debounce = TimeSpan.FromSeconds(1);
 
     private readonly IEventLoop _loop;
@@ -38,41 +33,30 @@ public sealed class AppsService : ObservableObject, IDisposable
         _reader.Request();
     }
 
-    /// <summary>The apps that are shown in Start, by name.</summary>
     public ObservableList<AppEntry> Apps { get => Read(field); } = [];
 
-    /// <summary>Visible apps Windows has a last-used time for, newest first.</summary>
     public ObservableList<AppEntry> Recent { get => Read(field); } = [];
 
-    /// <summary>Visible apps with a use count, most used first.</summary>
     public ObservableList<AppEntry> Frequent { get => Read(field); } = [];
 
-    // What ById, Find and Search answer from. It changes with the lists.
     private IReadOnlyList<AppRecord> Entries => Read(_entries);
 
-    /// <summary>An entry by its id: a shortcut's path under Programs, or a packaged app's AppUserModelID. Includes hidden entries.</summary>
     public AppEntry? ById(string id)
     {
         return Read(_byId, nameof(Entries)).GetValueOrDefault(id);
     }
 
-    /// <summary>Finds an app by id, then by the app id a window carries, then by display name. Includes hidden entries.</summary>
     public AppEntry? Find(string name)
     {
         return AppIndex.Find(Entries, name) is { } found ? _byId[found.Id] : null;
     }
 
-    /// <summary>Visible apps the query matches, best first. A blank query matches nothing.</summary>
     public IReadOnlyList<AppEntry> Search(string query)
     {
         return AppIndex.Search(Entries, query, UsageFor, _loop.Time.GetUtcNow().ToUnixTimeMilliseconds())
             .Select(entry => _byId[entry.Id]).ToList();
     }
 
-    /// <summary>
-    /// The description of the program at <paramref name="path"/>, as Task Manager shows it. Null when the file has
-    /// none or cannot be read.
-    /// </summary>
     public static string? ProgramDescription(string path)
     {
         try
@@ -81,9 +65,6 @@ public sealed class AppsService : ObservableObject, IDisposable
                 ? description
                 : null;
         }
-        // A missing file already had no description. An invalid path, a denied read, or an IO error now
-        // does too, so each caller keeps its file-name fallback: an audio session and a tray icon used to
-        // throw, a media lookup used to stop and log, and a privacy use used to log once.
         catch (Exception e) when (e is FileNotFoundException or IOException or UnauthorizedAccessException
                                       or ArgumentException)
         {
@@ -91,20 +72,11 @@ public sealed class AppsService : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// The name to show for an app until <see cref="DisplayName"/> finds a better one: the program's name without
-    /// <c>.exe</c>, or else the id.
-    /// </summary>
     public static string FallbackName(string appId)
     {
         return AppIdentity.FallbackName(appId);
     }
 
-    /// <summary>
-    /// The name Windows shows for the app behind a media session: the name Start shows for its AppUserModelID, or
-    /// else the running program's <see cref="ProgramDescription"/>, or else <see cref="FallbackName"/>. It asks the
-    /// shell and can scan processes, so call it off the UI thread.
-    /// </summary>
     public static string DisplayName(string appId)
     {
         return AppDisplayName.Find(appId);
@@ -174,7 +146,6 @@ public sealed class AppsService : ObservableObject, IDisposable
         return usage;
     }
 
-    /// <summary>Stops following changes to the Start menu and the installed apps.</summary>
     public void Dispose()
     {
         if (_disposed)
@@ -186,7 +157,6 @@ public sealed class AppsService : ObservableObject, IDisposable
     }
 }
 
-/// <summary>One app of the Start menu.</summary>
 public sealed class AppEntry : ObservableObject
 {
     private readonly IEventLoop _loop;
@@ -207,57 +177,34 @@ public sealed class AppEntry : ObservableObject
 
     internal Action<AppRecord>? Launched { get; set; }
 
-    /// <summary>A shortcut's path under Programs, such as <c>Accessories/Notepad</c>, or a packaged app's AppUserModelID.</summary>
     public string Id { get => Read(field); }
 
-    /// <summary>
-    /// The name Start shows: the shortcut's file name without <c>.lnk</c>, or the packaged app's display name.
-    /// </summary>
     public string Name => Read(_entry).Name;
 
-    /// <summary>The shortcut's comment, or the packaged app's description. May be empty.</summary>
     public string Description => Read(_entry).Description;
 
-    /// <summary>
-    /// A path an icon is read from: <c>shell:AppsFolder\&lt;id&gt;</c> when the id is packaged, or the program's file.
-    /// A shortcut with no program and no packaged id keeps its own file.
-    /// </summary>
     public string Icon => IconOf(Read(_entry));
 
-    /// <summary>The program the shortcut opens, or <c>shell:AppsFolder\&lt;id&gt;</c> for a packaged app.</summary>
     public string Target => Read(_entry).Target;
 
-    /// <summary>The shortcut's arguments. Empty for a packaged app.</summary>
     public string Arguments => Read(_entry).Arguments;
 
-    /// <summary>A command line that describes how the app is opened.</summary>
     public string CommandLine => Read(_entry).CommandLine;
 
-    /// <summary>The shortcut's Start in folder.</summary>
     public string StartIn => Read(_entry).StartIn;
 
-    /// <summary>The AppUserModelID the app's windows carry, or its program's name in lower case.</summary>
     public string AppId => Read(_entry).AppId;
 
-    /// <summary>The Start menu folders the shortcut is in. Empty for a packaged app.</summary>
     public IReadOnlyList<string> Folders => Read(_entry).Folders;
 
-    /// <summary>True for an uninstaller or a document shortcut. Hidden apps stay out of <c>Apps</c>, <c>Search</c>, <c>Recent</c> and <c>Frequent</c>.</summary>
     public bool Hidden => Read(_entry).Hidden;
 
-    /// <summary>True when the app came from PackageManager.</summary>
     public bool Packaged => Read(_entry).Packaged;
 
-    /// <summary>How many times Windows, or <see cref="Launch"/>, has run the app.</summary>
     public int RunCount => Read(_usage).RunCount;
 
-    /// <summary>When the app was last used, in Unix milliseconds, or 0 when Windows has no record.</summary>
     public long LastUsed => Read(_usage).LastUsedUnixMilliseconds;
 
-    /// <summary>
-    /// Opens the app as the Start menu does, through its shortcut or its AppUserModelID. A packaged app starts in
-    /// the background, so this returns before it is up.
-    /// </summary>
     public void Launch()
     {
         var entry = _entry;
@@ -276,7 +223,6 @@ public sealed class AppEntry : ObservableObject
             return;
         }
 
-        // Activation returns once the app is up, so its outcome, and the Apps folder when it failed, run on the loop.
         _ = _backend.ActivateAsync(entry.Id, entry.Arguments).ContinueWith(activated =>
         {
             var error = activated.Result;
@@ -318,7 +264,6 @@ public sealed class AppEntry : ObservableObject
         Changed(oldUsage.LastUsedUnixMilliseconds != usage.LastUsedUnixMilliseconds, nameof(LastUsed));
     }
 
-    /// <summary>The entry's id, as <c>AppEntry(&lt;id&gt;)</c>, for logs.</summary>
     public override string ToString()
     {
         return $"AppEntry({Id})";

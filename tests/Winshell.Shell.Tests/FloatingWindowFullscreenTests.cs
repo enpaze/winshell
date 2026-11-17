@@ -4,10 +4,6 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-/// <summary>
-/// Fullscreen uses a real window for a moment, then puts it back. When the work area is the whole monitor
-/// (the taskbar hides itself), covering the monitor is the whole check: the window's rectangle is the monitor.
-/// </summary>
 [Trait("Category", "Window")]
 public sealed class FloatingWindowFullscreenTests
 {
@@ -326,7 +322,6 @@ public sealed class FloatingWindowFullscreenTests
         Assert.InRange(rect.right, bounds.right - 1, bounds.right + 1);
         Assert.InRange(rect.bottom, bounds.bottom - 1, bounds.bottom + 1);
         Assert.Equal(0u, Style(hwnd) & (uint)(WINDOW_STYLE.WS_CAPTION | WINDOW_STYLE.WS_THICKFRAME));
-        // A taskbar that is showing makes the work area smaller. The window then extends past it.
         if ((monitor.Work.left, monitor.Work.top, monitor.Work.right, monitor.Work.bottom) !=
             (monitor.Bounds.left, monitor.Bounds.top, monitor.Bounds.right, monitor.Bounds.bottom))
             Assert.True(

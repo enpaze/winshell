@@ -5,7 +5,6 @@ namespace Winshell.Native;
 
 internal static class OsVersion
 {
-    /// <summary>The build Windows reports from <c>RtlGetVersion</c>, which a manifest cannot change. Null when it fails.</summary>
     internal static unsafe uint? Build()
     {
         var info = new OSVERSIONINFOW { dwOSVersionInfoSize = (uint)sizeof(OSVERSIONINFOW) };

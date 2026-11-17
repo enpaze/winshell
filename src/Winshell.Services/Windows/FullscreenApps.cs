@@ -2,10 +2,6 @@ using Winshell.Native;
 
 namespace Winshell.Windows;
 
-/// <summary>
-/// The screens another app is fullscreen on, read from the foreground window. It shares the window list's hooks
-/// without making the list.
-/// </summary>
 internal sealed class FullscreenApps : IDisposable
 {
     private readonly IEventLoop _loop;
@@ -15,7 +11,6 @@ internal sealed class FullscreenApps : IDisposable
     private bool _readPosted;
     private bool _disposed;
 
-    /// <summary>Starts watching the foreground. Call it on the event loop's thread.</summary>
     internal FullscreenApps(IEventLoop loop, Log log, IWindowBackend? backend = null)
     {
         _loop = loop;
@@ -26,10 +21,8 @@ internal sealed class FullscreenApps : IDisposable
         _screens = _backend.FullscreenScreens();
     }
 
-    /// <summary>The screens changed. Raised on the event loop.</summary>
     public event Action? Changed;
 
-    /// <summary>Whether another app is fullscreen on the screen with this id.</summary>
     public bool On(string screenId)
     {
         return _screens.Contains(screenId);
@@ -39,7 +32,6 @@ internal sealed class FullscreenApps : IDisposable
     {
         if (hwnd == 0 || !WindowRules.IsWindowObject(idObject, idChild))
             return;
-        // A move or resize is sent for every window, so only the foreground one can change the answer.
         var foreground = eventType == PInvoke.EVENT_SYSTEM_FOREGROUND
                          || (eventType == PInvoke.EVENT_OBJECT_LOCATIONCHANGE && hwnd == _backend.Foreground);
         if (!foreground || _readPosted)

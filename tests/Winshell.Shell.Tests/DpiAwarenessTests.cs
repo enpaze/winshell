@@ -2,10 +2,6 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-/// <summary>
-/// A configuration is per-monitor v2 DPI aware. This project imports <c>Winshell.props</c>, the settings every
-/// configuration is built with, so this process is that program.
-/// </summary>
 public sealed class DpiAwarenessTests
 {
     [Fact]

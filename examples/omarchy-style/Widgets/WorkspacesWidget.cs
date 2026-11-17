@@ -9,10 +9,6 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
-/// <summary>
-/// Winland's workspaces on this widget's own screen: 1 to 5 always, and any other that exists. An empty one is dimmed,
-/// the shown one is the tiling glyph, and a click shows one. A side bar stacks them.
-/// </summary>
 public sealed class WorkspacesWidget : Component<WidgetContext>
 {
     public override Element Render()
@@ -24,7 +20,6 @@ public sealed class WorkspacesWidget : Component<WidgetContext>
 
     private sealed record WorkspacesProps(ShellWindow Window, WidgetContext Context);
 
-    /// <summary>The workspace buttons, once the bar's window is known.</summary>
     private sealed class Workspaces : Component<WorkspacesProps>
     {
         public override Element Render()
@@ -32,7 +27,6 @@ public sealed class WorkspacesWidget : Component<WidgetContext>
             var window = UseObservable(Props.Window);
             var winland = UseObservableTree(Props.Context.Shell.Winland);
             var vertical = Props.Context.Orientation == Orientation.Vertical;
-            // None before Winland is running, or once it reports no monitor for this screen.
             var monitor = winland.ProcessId > 0 ? winland.MonitorFor(window.Screen) : null;
             if (monitor is null)
                 return TextBlock("").IsVisible(false);

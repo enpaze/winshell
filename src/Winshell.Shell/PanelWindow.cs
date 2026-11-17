@@ -2,7 +2,6 @@ using Microsoft.UI.Xaml;
 
 namespace Winshell;
 
-/// <summary>A window anchored to an edge of a screen. It can reserve that edge.</summary>
 public sealed partial class PanelWindow : ShellWindow
 {
     private Edges _anchors;
@@ -13,7 +12,6 @@ public sealed partial class PanelWindow : ShellWindow
     private bool _focusable;
     private PanelEdge? _edge;
 
-    /// <summary>A hidden panel of the running shell, anchored to no edge until <see cref="Anchors"/> is set.</summary>
     public PanelWindow()
         : this(Shell.Current)
     {
@@ -26,7 +24,6 @@ public sealed partial class PanelWindow : ShellWindow
 
     private protected override WindowKind Kind => WindowKind.Panel;
 
-    /// <summary>The edges the panel sticks to. Two opposite edges stretch it across the screen.</summary>
     public Edges Anchors
     {
         get => _anchors;
@@ -37,9 +34,6 @@ public sealed partial class PanelWindow : ShellWindow
         }
     }
 
-    /// <summary>
-    /// The gap, in logical pixels, between the panel and each edge it is anchored to. Other edges' margins are unused.
-    /// </summary>
     public Thickness Margins
     {
         get => _margins;
@@ -50,7 +44,6 @@ public sealed partial class PanelWindow : ShellWindow
         }
     }
 
-    /// <summary>How much of its edge the panel reserves, in logical pixels, so maximized windows stay out of it.</summary>
     public double ReservedSize
     {
         get => _reservedSize;
@@ -61,7 +54,6 @@ public sealed partial class PanelWindow : ShellWindow
         }
     }
 
-    /// <summary>Lays the panel out on the whole screen, over the taskbar and other bars, and reserves nothing. False keeps it in the work area.</summary>
     public bool CoversScreen
     {
         get => _coversScreen;
@@ -72,7 +64,6 @@ public sealed partial class PanelWindow : ShellWindow
         }
     }
 
-    /// <summary>Stays above normal windows. False puts it below them, as a wallpaper is.</summary>
     public bool AboveWindows
     {
         get => _aboveWindows;
@@ -83,7 +74,6 @@ public sealed partial class PanelWindow : ShellWindow
         }
     }
 
-    /// <summary>Whether the panel can take the keyboard. A panel that cannot never takes activation from the app in front.</summary>
     public bool Focusable
     {
         get => _focusable;

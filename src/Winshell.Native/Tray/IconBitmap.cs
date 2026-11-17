@@ -4,13 +4,10 @@ using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winshell.Native;
 
-/// <summary>Draws icons into straight-alpha BGRA pixels, and reads the resource an icon was loaded from.</summary>
 internal static unsafe class IconBitmap
 {
-    /// <summary>The module an icon was loaded from, and its resource: a numeric id, or a name when the id is 0.</summary>
     internal readonly record struct Source(string Module, ushort Id, string Name);
 
-    /// <summary>Where Windows says the icon was loaded from, or null for an icon handle it does not know.</summary>
     internal static Source? SourceOf(nint icon)
     {
         var info = new ICONINFOEXW { cbSize = (uint)sizeof(ICONINFOEXW) };
@@ -20,10 +17,6 @@ internal static unsafe class IconBitmap
         return new Source(info.szModName.ToString(), info.wResID, info.szResName.ToString());
     }
 
-    /// <summary>
-    /// Draws an icon into <paramref name="size"/> by <paramref name="size"/> pixels, or at its own size, between 16
-    /// and 256, when <paramref name="size"/> is 0 or less. Null when the icon cannot be drawn.
-    /// </summary>
     internal static (int Size, byte[] Bgra)? Draw(nint icon, int size)
     {
         ICONINFO info;
@@ -84,7 +77,6 @@ internal static unsafe class IconBitmap
 
             if (!hasAlpha)
             {
-                // An old icon: draw its mask, which is black where the icon is opaque.
                 var mask = new uint[size * size];
                 PInvoke.DrawIconEx(dc, 0, 0, icon, size, size, 0, default, DI_FLAGS.DI_MASK);
                 pixels.CopyTo(mask);

@@ -2,10 +2,6 @@ using System.Collections.Immutable;
 
 namespace Winshell;
 
-/// <summary>
-/// One read of a command line: which command, the words left over, and the flags that command set. A flag another
-/// command takes is not a field here.
-/// </summary>
 internal sealed class Invocation
 {
     private readonly Dictionary<CommandOption, object?> _values;
@@ -38,7 +34,6 @@ internal sealed class Invocation
 
     public bool ShowVersion { get; }
 
-    /// <summary>A line with no command word whose flags are all ones <c>run</c> takes.</summary>
     public bool ShellStartAllowed { get; }
 
     public bool Verbose { get; }
@@ -47,7 +42,6 @@ internal sealed class Invocation
 
     public ImmutableArray<string> Positional { get; }
 
-    /// <summary>The <c>--</c> and everything after it. Those words belong to the configuration's program.</summary>
     public ImmutableArray<string> Rest { get; }
 
     public bool IsSet(CommandOption option)

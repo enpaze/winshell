@@ -1,12 +1,7 @@
 namespace Winshell.ShellTests;
 
-/// <summary>
-/// Which windows take the keyboard, and what each kind does as a result, against a stand-in for the native window.
-/// What a real window does with those answers is covered by the native window tests.
-/// </summary>
 public class WindowFocusTests
 {
-    /// <summary>A native window that records what changed on it, in order. Asking for what it already has changes nothing.</summary>
     private sealed class FakeWindow : IFocusEffects
     {
         private bool? _activation;
@@ -45,7 +40,6 @@ public class WindowFocusTests
             Effects.Add(on ? "grab clicks" : "release clicks");
         }
 
-        /// <summary>What changed since the last call.</summary>
         public string[] Drain()
         {
             var seen = Effects.ToArray();
@@ -85,7 +79,6 @@ public class WindowFocusTests
         focus.Show();
         focus.TakeKeyboard();
 
-        // Even a focusable panel is shown without taking activation; it takes the keyboard when asked.
         Assert.Equal(
             takes ? [activation, "show without activating", "keyboard"] : [activation, "show without activating"],
             window.Drain());

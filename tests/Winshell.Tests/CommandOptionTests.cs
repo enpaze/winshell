@@ -2,10 +2,6 @@ using System.Globalization;
 
 namespace Winshell.Tests;
 
-/// <summary>
-/// A command takes the options it names, and refuses the rest, so an option never does nothing. These stay inside
-/// <see cref="CliParser"/> so a live instance on this PC is never called.
-/// </summary>
 public class CommandOptionTests
 {
     [Theory]
@@ -29,7 +25,6 @@ public class CommandOptionTests
         Assert.Equal(message, e.Message);
     }
 
-    // '' stands for an empty argument.
     [Theory]
     [InlineData("run -p missing --pth", "Unknown option \"--pth\".")]
     [InlineData("run -p missing --log-times", "Unknown option \"--log-times\".")]
@@ -111,7 +106,6 @@ public class CommandOptionTests
     public void Every_command_takes_verbose()
     {
         Assert.All(CliParser.Entries, entry => Assert.True(entry.Accepts(CliFlags.Verbose)));
-        // The flag is shared, so one parse shows that reading it sets verbose. ipc's own tests cover where -v counts.
         Assert.True(CliParser.Parse(["run", "-v"]).Verbose);
     }
 

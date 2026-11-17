@@ -4,33 +4,18 @@ using Windows.Media.Control;
 
 namespace Winshell.Media;
 
-/// <summary>
-/// Asks Windows for its media session manager over and over, and hands each one it gets to <c>read</c> on the UI
-/// thread: a manager requested on another thread can keep returning an empty list. Each pending request holds a
-/// native thread, so only one is out at a time, until it completes or times out.
-/// </summary>
 internal sealed class SessionManagerPoll(
     IEventLoop loop,
     Log log,
     Func<IAsyncOperation<GlobalSystemMediaTransportControlsSessionManager>> request,
     Action<GlobalSystemMediaTransportControlsSessionManager> read) : IDisposable
 {
-    /// <summary>SessionsChanged can miss a session, so a completed read is followed by another after this delay.</summary>
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(2);
 
-    /// <summary>A request still pending after this long is cancelled and replaced, so a broker that stopped answering and recovered is asked again.</summary>
     private static readonly TimeSpan FirstRequestTimeout = TimeSpan.FromSeconds(30);
 
-    /// <summary>
-    /// Cancelling a hung request does not free the native thread it holds, so each timeout doubles the next wait, up to
-    /// this. A broker that never answers then costs a thread an hour, not one every half minute.
-    /// </summary>
     private static readonly TimeSpan LongestRequestTimeout = TimeSpan.FromHours(1);
 
-    /// <summary>
-    /// Logged once when a request times out, so a broker that stopped answering does not look like nothing playing. The
-    /// broker is Windows' Now Playing Session Manager service; every app's request hangs while it is stuck.
-    /// </summary>
     private const string NotAnswering =
         "Windows' media session service (Now Playing Session Manager) is not answering, so no media session can be listed. Signing out, or restarting that service, brings it back.";
 
@@ -42,7 +27,6 @@ internal sealed class SessionManagerPoll(
     private bool _refreshRequested;
     private bool _disposed;
 
-    /// <summary>Asks Windows now, or once the request that is out finishes. Changes while it is out share that one follow-up.</summary>
     public void Refresh()
     {
         if (_disposed)
@@ -79,7 +63,6 @@ internal sealed class SessionManagerPoll(
         Retire(operation);
     }
 
-    /// <summary>Stops asking: the request that is out is cancelled and closed, and no other starts.</summary>
     public void Dispose()
     {
         _disposed = true;
@@ -100,7 +83,6 @@ internal sealed class SessionManagerPoll(
             _warning.Failed(e);
         }
 
-        // A hung broker may never deliver Completed after Cancel, so retire the request here; its late callback is ignored.
         Complete(operation, AsyncStatus.Canceled);
     }
 

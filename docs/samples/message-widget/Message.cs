@@ -7,11 +7,6 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace MessageWidget;
 
-/// <summary>
-/// One line of text from the placement's <c>text</c> setting. A vertical area is refused. A plain text block takes
-/// the shell's style. A press opens that text in a popup styled by the area, and once loaded the tooltip names the
-/// screen.
-/// </summary>
 public sealed class Message : Component<WidgetContext>
 {
     public override Element Render()

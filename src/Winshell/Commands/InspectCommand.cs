@@ -6,7 +6,6 @@ namespace Winshell.Commands;
 
 internal static class InspectCommand
 {
-    /// <summary>The most wheel notches one <c>inspect scroll</c> turns.</summary>
     private const int MaxSteps = 100;
 
     private static readonly CommandEntry Screenshot = new()
@@ -107,7 +106,6 @@ internal static class InspectCommand
         return await InstanceCall.PrintAsync(info, IpcRequest.ForInspect(args[0], args.Skip(1).ToList()));
     }
 
-    /// <summary>The shell writes the file, so a relative path must mean what it means here.</summary>
     private static async Task<int> ScreenshotAsync(Invocation parsed)
     {
         if (!TrySelect(parsed, out var info, out var code))
@@ -133,9 +131,6 @@ internal static class InspectCommand
         return selected is not null;
     }
 
-    /// <summary>
-    /// <c>inspect record</c> needs a time and an MP4, and records a window or a screen, not both.
-    /// </summary>
     private static void CheckRecord(Invocation parsed)
     {
         if (parsed.Time(CliFlags.For) is null)
@@ -156,7 +151,6 @@ internal static class InspectCommand
                 $"winshell inspect scroll needs a number of steps from 1 to {MaxSteps}, or -1 to -{MaxSteps} to scroll up.");
     }
 
-    /// <summary>Keys <c>inspect key</c> can press: chords as a hotkey writes them, without the Windows key.</summary>
     private static void CheckKeys(Invocation parsed)
     {
         var keys = parsed.Positional[1];
@@ -167,10 +161,6 @@ internal static class InspectCommand
                 $"winshell inspect key does not press {win.Text}: Windows itself takes the Windows key, not the shell.");
     }
 
-    /// <summary>
-    /// The shell names the window or screen, and this process records it, so the encoding never slows the shell it
-    /// watches.
-    /// </summary>
     private static async Task<int> RecordAsync(Invocation parsed)
     {
         if (!TrySelect(parsed, out var info, out var code))

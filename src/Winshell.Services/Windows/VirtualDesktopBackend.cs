@@ -5,38 +5,25 @@ using Winshell.Native;
 
 namespace Winshell.Windows;
 
-/// <summary>Reads and changes virtual desktops. Tests use a stand-in; the shell uses <see cref="VirtualDesktopBackend"/>.</summary>
 internal interface IVirtualDesktopBackend
 {
     DesktopContract Contract { get; }
 
-    /// <summary>
-    /// Calls <paramref name="handler"/> each time Windows switches virtual desktop, until disposed, on the thread that
-    /// first called <see cref="StartWatching"/>.
-    /// </summary>
-    /// <param name="handler">Runs for each switch.</param>
-    /// <param name="failed">Gets each exception <paramref name="handler"/> throws.</param>
     IDisposable ListenSwitched(Action handler, Action<Exception> failed);
 
-    /// <summary>Starts calling the switch handlers. False when Windows will not report a switch.</summary>
     bool StartWatching();
 
-    /// <summary>Changes when a desktop is added or removed. Reading it makes no call into Explorer.</summary>
     string ListStamp { get; }
 
     bool TryRead(out IReadOnlyList<DesktopRecord> desktops, out Guid current, out string error);
 
-    /// <summary>Switches to the desktop. False, with why, when it did not.</summary>
     bool SwitchTo(Guid id, out string problem);
 
-    /// <summary>Adds a desktop. Null, with why, when it was not added.</summary>
     Guid? Create(out string problem);
 
-    /// <summary>Removes the desktop, moving its windows to <paramref name="fallback"/>. False, with why, when it did not.</summary>
     bool Remove(Guid id, Guid fallback, out string problem);
 }
 
-/// <summary>The build Windows reports, from <c>RtlGetVersion</c> rather than the version a manifest can change.</summary>
 internal readonly record struct WindowsVersion(uint Build, uint Update)
 {
     public override string ToString()
@@ -72,14 +59,6 @@ internal readonly record struct WindowsVersion(uint Build, uint Update)
     }
 }
 
-/// <summary>
-/// The virtual desktops through Explorer's internal manager, on a known build. The internal table gained
-/// <c>SwitchDesktopAndMoveForegroundView</c> in Windows 11 24H2; 23H2 uses the same interface id and different
-/// slots. <see cref="VirtualDesktopBuilds"/> refuses every other build before a slot is called, and
-/// <see cref="DesktopContract"/> reports that to the shell. A failed read never calls create, switch or remove.
-/// Which desktop a window is on is <see cref="WindowDesktop"/>'s. The switch hook stays for the process, the same
-/// way the window list's hooks do.
-/// </summary>
 internal sealed class VirtualDesktopBackend : IVirtualDesktopBackend
 {
     public static VirtualDesktopBackend Shared { get; } = new();

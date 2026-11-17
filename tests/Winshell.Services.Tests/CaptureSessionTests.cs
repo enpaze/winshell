@@ -6,7 +6,6 @@ using Winshell.Windows;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>Capture over a fake backend: no frame is read from Windows, and the clipboard is left alone.</summary>
 public sealed class CaptureSessionTests
 {
     private static readonly CaptureTarget Screen = new(0, "display");
@@ -271,7 +270,6 @@ public sealed class CaptureSessionTests
             }
             catch (IOException)
             {
-                // The indexer can still have the new file open after this process has closed it.
             }
         }
     }
@@ -283,7 +281,6 @@ public sealed class CaptureSessionTests
         var backend = new FakeCapture { Next = Red() };
         using var session = new CaptureSession(loop, () => backend);
         session.Target = Screen;
-        // A window that is gone: Windows refuses to open the clipboard for it, so the clipboard is left alone.
         var gone = NativeWindow.OfClass("STATIC", "", 0, 0, 0, 0, 0, HWND.HWND_MESSAGE, 0);
         Assert.NotEqual(0, gone);
         Assert.True(PInvoke.DestroyWindow((HWND)gone));

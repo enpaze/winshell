@@ -2,13 +2,8 @@ using Winshell.Native;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// A callback Windows makes hands its handler's exception to the reporter its caller gave, and Windows gets the
-/// callback's default answer. Shown through a message-only window, which nothing else in the session can find.
-/// </summary>
 public sealed class CallbackTests : IDisposable
 {
-    // WM_QUERYOPEN: DefWindowProc answers it with TRUE, so the default answer is not 0.
     private const uint Probe = 0x0013;
     private readonly List<NativeWindow> _windows = [];
 

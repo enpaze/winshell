@@ -9,14 +9,8 @@ using Winshell.Windows;
 
 namespace Winshell;
 
-/// <summary>
-/// A live preview of an app window, drawn by DWM into the shell window that holds this element. The image is in
-/// physical pixels relative to that window, and it is painted over the XAML, so nothing can overlap it. It follows
-/// this element's layout and the shell window moving, and it lets go of the preview when it leaves the tree.
-/// </summary>
 public sealed partial class WindowThumbnail : FrameworkElement
 {
-    /// <summary>The app window to preview, from <see cref="WindowListService.Windows"/>. Null shows nothing.</summary>
     public static readonly DependencyProperty WindowProperty = DependencyProperty.Register(
         nameof(Window),
         typeof(AppWindow),
@@ -25,10 +19,6 @@ public sealed partial class WindowThumbnail : FrameworkElement
             (sender, args) =>
                 ((WindowThumbnail)sender).OnWindowChanged((AppWindow?)args.OldValue, (AppWindow?)args.NewValue)));
 
-    /// <summary>
-    /// While true, Windows shows <see cref="Window"/> at full size and hides the others. It stays off when the user
-    /// turned peek off, and it ends when this element unloads or the window goes.
-    /// </summary>
     public static readonly DependencyProperty PeekProperty = DependencyProperty.Register(
         nameof(Peek),
         typeof(bool),
@@ -42,9 +32,6 @@ public sealed partial class WindowThumbnail : FrameworkElement
     private RECT _insets;
     private ThumbnailPaint _applied;
 
-    /// <summary>
-    /// A thumbnail with no window, which shows nothing. It takes no clicks, and screen readers skip it.
-    /// </summary>
     public WindowThumbnail()
     {
         _shell = new ShellWindowSubscription(OnShellChanged);
@@ -55,24 +42,18 @@ public sealed partial class WindowThumbnail : FrameworkElement
         SizeChanged += (_, _) => UpdateThumbnail();
     }
 
-    /// <summary>The app window to preview, from <see cref="WindowListService.Windows"/>. Null shows nothing.</summary>
     public AppWindow? Window
     {
         get => (AppWindow?)GetValue(WindowProperty);
         set => SetValue(WindowProperty, value);
     }
 
-    /// <summary>
-    /// While true, Windows shows <see cref="Window"/> at full size and hides the others. It stays off when the user
-    /// turned peek off, and it ends when this element unloads or the window goes.
-    /// </summary>
     public bool Peek
     {
         get => (bool)GetValue(PeekProperty);
         set => SetValue(PeekProperty, value);
     }
 
-    /// <summary>A move inside the shell window does not change the size, and the preview still has to follow.</summary>
     protected override Size ArrangeOverride(Size finalSize)
     {
         var size = base.ArrangeOverride(finalSize);
@@ -98,7 +79,6 @@ public sealed partial class WindowThumbnail : FrameworkElement
 
     private void OnWindowChanged(AppWindow? previous, AppWindow? next)
     {
-        // Only while loaded. A thumbnail that has left the tree must not keep the window alive.
         if (IsLoaded)
         {
             WatchClosed(previous, false);
@@ -128,8 +108,6 @@ public sealed partial class WindowThumbnail : FrameworkElement
 
     private void OnShellChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // The destination rect is relative to the shell window, and a move or a scale change puts this element
-        // somewhere else in that window.
         if (e.PropertyName is nameof(ShellWindow.Origin) or nameof(ShellWindow.Scale) or nameof(ShellWindow.ActualWidth)
             or nameof(ShellWindow.ActualHeight))
             UpdateThumbnail();
@@ -185,7 +163,6 @@ public sealed partial class WindowThumbnail : FrameworkElement
             _applied = paint;
     }
 
-    /// <summary>The window without its invisible resize borders. A minimized window keeps the borders it had while shown.</summary>
     private RECT SourceRect(nint hwnd, int width, int height)
     {
         if (!PInvoke.IsIconic((HWND)hwnd) && PInvoke.GetWindowRect((HWND)hwnd, out var window)
@@ -266,10 +243,6 @@ public sealed partial class WindowThumbnail : FrameworkElement
         _applied = default;
     }
 
-    /// <summary>
-    /// The part of a window a preview shows, relative to the window's corner: its visible frame, without the
-    /// invisible borders Windows puts around it for resizing. The whole window when the frame is unknown.
-    /// </summary>
     internal static RECT PreviewSource(RECT window, RECT frame)
     {
         var whole = new RECT(0, 0, Math.Max(0, window.Width), Math.Max(0, window.Height));
@@ -282,10 +255,6 @@ public sealed partial class WindowThumbnail : FrameworkElement
         return right - left <= 0 || bottom - top <= 0 ? whole : new RECT(left, top, right, bottom);
     }
 
-    /// <summary>
-    /// Where a preview of a source this many pixels in size goes in a box: as large as fits without being enlarged,
-    /// keeping its shape, and centered. Empty when either has no area.
-    /// </summary>
     internal static RECT FitPreview(RECT box, int sourceWidth, int sourceHeight)
     {
         if (box.Width <= 0 || box.Height <= 0 || sourceWidth <= 0 || sourceHeight <= 0)

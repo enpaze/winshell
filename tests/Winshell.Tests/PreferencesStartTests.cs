@@ -2,10 +2,6 @@ using System.Diagnostics;
 
 namespace Winshell.Tests;
 
-/// <summary>
-/// The preferences file is written when <see cref="ShellConfiguration.Start"/> returns, including a section that was
-/// posted during Start. The probe opens no window.
-/// </summary>
 public sealed class PreferencesStartTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
@@ -21,8 +17,6 @@ public sealed class PreferencesStartTests : IDisposable, IClassFixture<ProbeBuil
         _started = ProbeShell.Start(config, Path.Combine(_dir, "local"), shellId);
 
         var report = Path.Combine(config, "preferences-report.txt");
-        // The probe moves the report into place once it is whole. Antivirus can still hold it a moment, so a read
-        // that is refused is not done yet.
         string? said = null;
         Wait.Until(() => (said = Read(report)) is not null,
             "the probe to report the preferences file written when Start returns");

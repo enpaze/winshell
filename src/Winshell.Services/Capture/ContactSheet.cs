@@ -1,16 +1,7 @@
 namespace Winshell.Capture;
 
-/// <summary>Where a contact sheet puts its frames: cells in rows, each a thumbnail over its label.</summary>
-/// <param name="Columns">Cells in a row.</param>
-/// <param name="Rows">Rows of cells.</param>
-/// <param name="ThumbWidth">The widest a thumbnail is, in pixels.</param>
-/// <param name="ThumbHeight">The tallest a thumbnail is, in pixels.</param>
-/// <param name="CellWidth">A cell's width: its thumbnail, or its label when that is wider.</param>
-/// <param name="Width">The sheet's width in pixels.</param>
-/// <param name="Height">The sheet's height in pixels.</param>
 internal sealed record SheetLayout(
     int Columns,
-    // The grid's shape includes the row count. Equality uses it, and Height is built from it.
     int Rows,
     int ThumbWidth,
     int ThumbHeight,
@@ -18,7 +9,6 @@ internal sealed record SheetLayout(
     int Width,
     int Height)
 {
-    /// <summary>The top-left corner of cell <paramref name="index"/>, counted from 0 in reading order.</summary>
     public (int X, int Y) Cell(int index)
     {
         return (ContactSheet.Gap + index % Columns * (CellWidth + ContactSheet.Gap),
@@ -26,25 +16,17 @@ internal sealed record SheetLayout(
     }
 }
 
-/// <summary>
-/// One picture of a recording's frames, in a numbered grid in the order they were captured. Under each frame is its
-/// number, from 1, and its timestamp in milliseconds, which is also its file's name.
-/// </summary>
 internal static class ContactSheet
 {
     internal const int Gap = 8;
     internal const int LabelHeight = GlyphHeight * Scale + 6;
 
-    // A thumbnail holds at most this many pixels, and is never wider than MaxThumbWidth, so a frame of a whole
-    // screen and one of a thin bar both stay readable.
     private const int ThumbPixels = 320 * 200;
 
     private const int MaxThumbWidth = 1280;
 
-    // A long recording gets smaller thumbnails, so the thumbnails together hold about this many pixels at most.
     private const int SheetPixels = 24_000_000;
 
-    // Wide enough for a label up to "#9999 999999 ms", 16 minutes in.
     private const int MinCellWidth = 15 * (GlyphWidth + 1) * Scale;
 
     private const int GlyphWidth = 5;
@@ -53,11 +35,6 @@ internal static class ContactSheet
     private const byte Back = 32;
     private const byte Ink = 224;
 
-    /// <summary>
-    /// The grid for <paramref name="count"/> frames of <paramref name="width"/> by <paramref name="height"/> pixels:
-    /// thumbnails no bigger than the frames, smaller when there are thousands, in about as many columns as rows make a
-    /// square sheet.
-    /// </summary>
     public static SheetLayout Layout(int count, int width, int height)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
@@ -76,10 +53,6 @@ internal static class ContactSheet
             Gap + columns * (cellWidth + Gap), Gap + rows * (cellHeight + Gap));
     }
 
-    /// <summary>
-    /// The sheet for <paramref name="frames"/>, each with the time it was captured after the recording started. The
-    /// grid comes from the first frame's size. A frame of another size is fitted into its cell.
-    /// </summary>
     public static PixelImage Render(IReadOnlyList<(PixelImage Frame, TimeSpan At)> frames)
     {
         ArgumentOutOfRangeException.ThrowIfZero(frames.Count);
@@ -104,26 +77,17 @@ internal static class ContactSheet
         return new PixelImage(layout.Width, layout.Height, sheet);
     }
 
-    /// <summary>The whole milliseconds of <paramref name="at"/>: a frame's number in its file name and on the sheet.</summary>
     public static long Milliseconds(TimeSpan at)
     {
         return at.Ticks / TimeSpan.TicksPerMillisecond;
     }
 
-    /// <summary>
-    /// <paramref name="image"/> shrunk to fit within a thumbnail of the sheet <see cref="Layout"/> gives frames of its
-    /// size, so a recording can keep a small copy of each frame instead of the frame.
-    /// </summary>
     public static PixelImage Thumbnail(PixelImage image)
     {
         var layout = Layout(1, image.Width, image.Height);
         return Scaled(image, layout.ThumbWidth, layout.ThumbHeight);
     }
 
-    /// <summary>
-    /// <paramref name="image"/> at <paramref name="width"/> by <paramref name="height"/>, no bigger than it is. Each
-    /// pixel is the average of the pixels it covers.
-    /// </summary>
     private static PixelImage Scaled(PixelImage image, int width, int height)
     {
         width = Math.Min(width, image.Width);
@@ -163,7 +127,6 @@ internal static class ContactSheet
         return new PixelImage(width, height, scaled, image.Premultiplied);
     }
 
-    /// <summary>Draws <paramref name="image"/> over the opaque sheet at <paramref name="x"/>, <paramref name="y"/>.</summary>
     private static void Draw(byte[] sheet, int sheetWidth, PixelImage image, int x, int y)
     {
         var pixels = image.Bgra;
@@ -203,7 +166,6 @@ internal static class ContactSheet
         }
     }
 
-    /// <summary>The letters a label uses, five pixels wide and seven high, a row at a time.</summary>
     private static readonly Dictionary<char, string[]> Glyphs = new()
     {
         [' '] = [".....", ".....", ".....", ".....", ".....", ".....", "....."],

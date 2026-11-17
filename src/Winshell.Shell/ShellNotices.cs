@@ -4,17 +4,13 @@ namespace Winshell;
 
 internal enum NoticeKind
 {
-    /// <summary>The configuration did not build. It stays until it is fixed or dismissed.</summary>
     BuildError,
 
-    /// <summary>A preferences file does not read, under <c>winshell dev</c>. It stays until the file is fixed.</summary>
     ConfigError,
 
-    /// <summary>Something failed and Winshell wrote a crash report. It goes away by itself.</summary>
     Crash
 }
 
-/// <summary>What a notice says, and the file its button opens. A zero <paramref name="Timeout"/> keeps it until it is dismissed.</summary>
 internal sealed record Notice(
     NoticeKind Kind,
     string Title,
@@ -25,16 +21,8 @@ internal sealed record Notice(
     string Target,
     TimeSpan Timeout);
 
-/// <summary>
-/// Winshell's own notices: a configuration that did not build, and something that failed. The host shows them, so they
-/// appear whatever the configuration is doing. One shows at a time, and a new one replaces it, except that a failure does
-/// not replace a build error, which is what the user can fix. A notice does not take the keyboard;
-/// <c>winshell ipc call notice dismiss</c> closes whichever one is showing. Nothing is sent anywhere: the button opens a
-/// file on this PC, and never runs one.
-/// </summary>
 internal sealed partial class ShellNotices : IDisposable
 {
-    /// <summary>How long a crash notice stays, as a long Windows notification does.</summary>
     public static readonly TimeSpan CrashTimeout = TimeSpan.FromSeconds(25);
 
     private const int QunsBusy = 2, QunsFullScreen = 3, QunsPresentation = 4, QunsQuietTime = 6;
@@ -48,12 +36,6 @@ internal sealed partial class ShellNotices : IDisposable
     private IDisposable? _window;
     private bool _disposed;
 
-    /// <param name="loop">The shell's loop. Notices show and close on it, whatever thread wrote the report.</param>
-    /// <param name="log">Where each notice, and a notice that could not be shown, is written.</param>
-    /// <param name="crashes">The crash reports. One the shell survives shows a notice.</param>
-    /// <param name="show">Shows a notice, given what its button does and what closing it does. Disposing takes it away.</param>
-    /// <param name="open">Opens the file the notice names, with the verb it was given. Null is Windows' own verb.</param>
-    /// <param name="isQuiet">Whether Windows is holding notifications back. A failure waits for it, and goes to the log.</param>
     public ShellNotices(IEventLoop loop, Log log, CrashReports crashes, Func<Notice, Action, Action, IDisposable> show,
         Action<string, string?> open, Func<bool> isQuiet)
     {
@@ -66,28 +48,23 @@ internal sealed partial class ShellNotices : IDisposable
         crashes.Written += OnReport;
     }
 
-    /// <summary>The notice showing now, or null.</summary>
     public Notice? Current { get; private set; }
 
-    /// <summary>A full-screen app, a presentation, a busy state or quiet hours, the states in which Windows holds a toast back.</summary>
     internal static bool QuietState(int state)
     {
         return state is QunsBusy or QunsFullScreen or QunsPresentation or QunsQuietTime;
     }
 
-    /// <summary>Whether Windows is holding notifications back, as it reports it now.</summary>
     internal static bool WindowsIsQuiet()
     {
         return PInvoke.SHQueryUserNotificationState(out var state).Succeeded && QuietState((int)state);
     }
 
-    /// <summary>How long a crash notice stays for someone who asked Windows to keep notifications up. A shorter setting doesn't shorten it.</summary>
     internal static TimeSpan CrashTimeoutFor(uint messageSeconds)
     {
         return TimeSpan.FromSeconds(Math.Max(CrashTimeout.TotalSeconds, messageSeconds));
     }
 
-    /// <summary>The notice for a configuration that did not build, while the last one that did keeps running.</summary>
     public static Notice ForBuildError(string error, string projectFile)
     {
         return new Notice(
@@ -101,7 +78,6 @@ internal sealed partial class ShellNotices : IDisposable
             TimeSpan.Zero);
     }
 
-    /// <summary>The notice for a file that does not read, while what came from it before keeps working.</summary>
     private static Notice ForConfigError(string error, string file)
     {
         return new Notice(
@@ -115,7 +91,6 @@ internal sealed partial class ShellNotices : IDisposable
             TimeSpan.Zero);
     }
 
-    /// <summary>Shows a file's error, or takes it away once the file reads again.</summary>
     public void ShowConfigError(string file, string error)
     {
         if (error.Length > 0)
@@ -124,10 +99,6 @@ internal sealed partial class ShellNotices : IDisposable
             Hide();
     }
 
-    /// <summary>
-    /// Shows why a project did not build, or, given no error, takes away the notice of that project's last failed build.
-    /// A build that works leaves any other notice alone.
-    /// </summary>
     public void ShowBuildError(string error, string projectFile)
     {
         if (error.Length > 0)
@@ -136,7 +107,6 @@ internal sealed partial class ShellNotices : IDisposable
             Hide();
     }
 
-    /// <summary>The notice for something that failed: what failed, what Winshell did, and the report.</summary>
     public static Notice ForCrash(CrashReport report, TimeSpan timeout)
     {
         return ForCrash(report.Subject.Length > 0 ? report.Subject : "a window", report.Recovery, report.Path, timeout);
@@ -149,7 +119,6 @@ internal sealed partial class ShellNotices : IDisposable
             reportPath, timeout);
     }
 
-    /// <summary>Shows a notice in place of the one showing. The notice is what reports problems, so one it has itself goes to the log.</summary>
     public void Show(Notice notice)
     {
         if (_disposed)
@@ -168,7 +137,6 @@ internal sealed partial class ShellNotices : IDisposable
         }
     }
 
-    /// <summary>Closes the notice showing, if any.</summary>
     public void Hide()
     {
         Current = null;
@@ -176,7 +144,6 @@ internal sealed partial class ShellNotices : IDisposable
         _window = null;
     }
 
-    /// <summary>Says once that Winshell closed the last time it ran, when it left a report no one has seen.</summary>
     public void ShowPrevious(string stateFile)
     {
         if (CrashReports.Find(_crashes.Folder, stateFile) is not { } closed)
@@ -187,7 +154,6 @@ internal sealed partial class ShellNotices : IDisposable
         _loop.Post(() => Show(notice));
     }
 
-    /// <summary>Shows each file written to the log that does not read, until it reads again.</summary>
     public void FollowFileErrors()
     {
         _log.FileErrorChanged += ShowConfigError;
@@ -207,13 +173,10 @@ internal sealed partial class ShellNotices : IDisposable
     {
         if (Current is not { } notice)
             return;
-        // A crash report opens with whatever Windows opens it with. Anything else, including a text log, asks for
-        // edit, so opening a script does not run it.
         _open(notice.Target, notice.Kind == NoticeKind.Crash ? null : "edit");
         _loop.Post(Hide);
     }
 
-    // A report can be written on any thread, and a process that is ending has no time to show one.
     private void OnReport(CrashReport report)
     {
         if (report.Fatal || report.Recovery.Length == 0)

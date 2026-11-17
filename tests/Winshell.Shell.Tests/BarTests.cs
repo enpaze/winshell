@@ -9,13 +9,6 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
-/// <summary>
-/// A bar on every screen, from its properties, its section of the preferences file and each screen's row. The screens
-/// are made up and added to the shell's own list, as <see cref="ScreenWindowsTests"/> does. A panel on a screen
-/// Windows doesn't have is placed on the primary screen, so no bar here reserves its edge: that would move the real
-/// work area, and the platform would read the screens again, at a time no test can wait for, and drop the made-up ones
-/// of whichever test runs then.
-/// </summary>
 [Trait("Category", "Window")]
 public sealed class BarTests
 {
@@ -178,7 +171,6 @@ public sealed class BarTests
                 File.Delete(path);
             try
             {
-                // The bar makes its section on the next turn. A section made now can write the file first.
                 using var first = new Reader();
                 using var bar = new Bar { Name = name, Edge = Edges.Left, Reserve = false, End = [widget] };
                 await Wait.UntilAsync(
@@ -383,14 +375,12 @@ public sealed class BarTests
                 Assert.Equal(0, start.Y, 0.5);
                 Assert.Equal(0, end.Y, 0.5);
 
-                // The built-in style's ShellPadding.
                 (start, end) = await Ends(Assert.Single(bars, window => !window.Anchors.HasFlag(Edges.Right)));
                 Assert.Equal(4, start.Y, 0.5);
                 Assert.Equal(4, end.Y, 0.5);
                 Assert.Equal(0, start.X, 0.5);
                 Assert.Equal(0, end.X, 0.5);
 
-                // A style with no ShellPadding gives a bar none.
                 (start, end) =
                     await Ends(Assert.Single(bars, window => window.Anchors == (Edges.Bottom | Edges.Left | Edges.Right)));
                 Assert.Equal(0, start.X, 0.5);
@@ -405,7 +395,6 @@ public sealed class BarTests
         });
     }
 
-    /// <summary>Completes on the turn after the ones already posted, such as a new bar's first.</summary>
     private static Task NextTurn(Shell shell)
     {
         var turn = new TaskCompletionSource();
@@ -413,7 +402,6 @@ public sealed class BarTests
         return turn.Task;
     }
 
-    /// <summary>Saves the preferences file and reads it now, rather than waiting for the file watch.</summary>
     private static async Task Save(Shell shell, string path, string text)
     {
         File.WriteAllText(path, text);
@@ -421,7 +409,6 @@ public sealed class BarTests
         await NextTurn(shell);
     }
 
-    /// <summary>Waits for a screen's bar to be replaced, and returns the new one.</summary>
     private static async Task<PanelWindow> Replaced(Shell shell, ScreenInfo screen, PanelWindow old)
     {
         await Until(shell, screen, () => BarsOn(shell, screen) is [var only] && only != old,
@@ -429,7 +416,6 @@ public sealed class BarTests
         return Assert.Single(BarsOn(shell, screen));
     }
 
-    /// <summary>Waits for <paramref name="done"/>, and fails at once when the platform has dropped the made-up screen.</summary>
     private static Task Until(Shell shell, ScreenInfo screen, Func<bool> done, string what)
     {
         return Wait.UntilAsync(() =>
@@ -444,7 +430,6 @@ public sealed class BarTests
         return [.. shell.Platform.Windows.Select(host => host.Client).OfType<PanelWindow>().Where(window => window.Screen == screen)];
     }
 
-    /// <summary>The start, center and end areas, in that order: the stacks that lay out what each one shows.</summary>
     private static async Task<List<StackPanel>> AreasOf(PanelWindow bar)
     {
         var host = Assert.IsType<ReactorHostControl>(bar.Content);
@@ -481,10 +466,6 @@ public sealed class BarTests
         }
     }
 
-    /// <summary>
-    /// How far the start area's first corner is from the bar's, and the end area's last corner from the bar's, once
-    /// the bar is laid out.
-    /// </summary>
     private static async Task<(Point Start, Point End)> Ends(PanelWindow bar)
     {
         var host = Assert.IsType<ReactorHostControl>(bar.Content);
@@ -494,7 +475,6 @@ public sealed class BarTests
         return (start, new Point(host.ActualWidth - last.X, host.ActualHeight - last.Y));
     }
 
-    /// <summary>The color behind what <paramref name="root"/> holds: the first background in its tree.</summary>
     internal static global::Windows.UI.Color? BackgroundOf(DependencyObject root)
     {
         return (First(root) as SolidColorBrush)?.Color;
@@ -512,7 +492,6 @@ public sealed class BarTests
         }
     }
 
-    /// <summary>The text of each widget the test widget made in <paramref name="bar"/> that is still in it.</summary>
     private static List<string> TextsOn(List<TextBlock> made, PanelWindow bar)
     {
         var shown = new HashSet<TextBlock>();
@@ -528,7 +507,6 @@ public sealed class BarTests
         }
     }
 
-    /// <summary>A widget registered under a new name that shows its <c>text</c> setting, and keeps what it makes.</summary>
     private static string Widget(out List<TextBlock> made)
     {
         var name = Guid.NewGuid().ToString();
@@ -537,7 +515,6 @@ public sealed class BarTests
         return name;
     }
 
-    /// <summary>A text block of the placement's <c>text</c> setting, or empty when it has none.</summary>
     private sealed class TextSettingWidget : Component<WidgetContext>
     {
         public static List<TextBlock> Views = [];
@@ -550,7 +527,6 @@ public sealed class BarTests
         });
     }
 
-    /// <summary>Holds a count the test changes. A new instance starts again at zero.</summary>
     private sealed class CountingWidget : Component<WidgetContext>
     {
         public static List<TextBlock> Views = [];
@@ -592,7 +568,6 @@ public sealed class BarTests
         }
     }
 
-    /// <summary>A bar's section with one widget at the start, and a row for the tall screen on <paramref name="tallEdge"/>.</summary>
     private static string Section(string name, string widget, string edge, string tallEdge, string text)
     {
         return $$"""
@@ -609,7 +584,6 @@ public sealed class BarTests
             """;
     }
 
-    /// <summary>A bar's section with one widget at the start.</summary>
     private static string Lists(string name, string widget, string text)
     {
         return $$"""
@@ -619,6 +593,5 @@ public sealed class BarTests
             """;
     }
 
-    /// <summary>A section with no keys, made to read the file.</summary>
     private sealed partial class Reader() : Preferences("reader");
 }

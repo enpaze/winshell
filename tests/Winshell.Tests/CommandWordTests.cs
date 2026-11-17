@@ -1,10 +1,5 @@
 namespace Winshell.Tests;
 
-/// <summary>
-/// A word winshell does not know as a command, or as the first word of <c>ipc</c> or <c>inspect</c>, is named in the
-/// error, whatever follows it, and a command without the words it needs names them. These stay inside
-/// <see cref="CliParser"/> so a live instance on this PC is never called.
-/// </summary>
 public class CommandWordTests
 {
     [Theory]

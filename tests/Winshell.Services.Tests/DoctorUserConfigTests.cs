@@ -3,11 +3,6 @@ using static Winshell.Diagnostics.Doctor;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// The project check reads the shell's preferences file, <c>preferences\&lt;shell id&gt;.toml</c> in the config folder,
-/// and the Windows check mentions transparency and a contrast theme. Neither adds a check. Every file is under a temp
-/// folder this class creates.
-/// </summary>
 public sealed class DoctorUserConfigTests : IDisposable
 {
     private readonly string _dir =
@@ -38,7 +33,6 @@ public sealed class DoctorUserConfigTests : IDisposable
         Assert.Equal(status, plain.Status);
         Assert.Equal(plain.Status, both.Status);
         Assert.Equal(plain.Fix, both.Fix);
-        // Passing false for both flags is the proof that the defaults leave the message unchanged.
         Assert.Equal(plain.Message, Doctor.Windows(build, revision, version, server, false, false).Message);
         Assert.StartsWith(plain.Message + ". ", both.Message, StringComparison.Ordinal);
         Assert.Contains("Transparency effects are off, so Mica and Acrylic look flat.", both.Message,
@@ -56,7 +50,6 @@ public sealed class DoctorUserConfigTests : IDisposable
         var config = Path.Combine(_dir, "config");
         Directory.CreateDirectory(config);
         File.WriteAllText(Path.Combine(config, "Mine.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
-        // The project in the config folder itself is the shell "root".
         var preferences = Preferences(config, "root", "# mine\ncolorScheme =\n");
         var local = Path.Combine(_dir, "local");
 
@@ -147,7 +140,6 @@ public sealed class DoctorUserConfigTests : IDisposable
         Assert.StartsWith(preferences + ": could not be read:", problem, StringComparison.Ordinal);
     }
 
-    /// <summary>Writes the preferences file of the shell <paramref name="id"/> in <paramref name="config"/> and returns its path.</summary>
     private static string Preferences(string config, string id, string text)
     {
         var path = Path.Combine(config, "preferences", id + ".toml");
@@ -169,7 +161,6 @@ public sealed class DoctorUserConfigTests : IDisposable
         return new DoctorContext(new ShellLocations(config, local), path, null);
     }
 
-    /// <summary>The path <see cref="Doctor.Run"/> prints: the user's local folder is <c>%LOCALAPPDATA%</c>.</summary>
     private static string Printed(string path)
     {
         return path.Replace(

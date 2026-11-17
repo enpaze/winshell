@@ -5,10 +5,6 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
-/// <summary>
-/// The shell's preferences file, <c>preferences\&lt;shell id&gt;.toml</c>: the configuration's own keys before the first
-/// section, and a section for each component.
-/// </summary>
 public sealed class PreferencesTests
 {
     private sealed partial class Own : Preferences
@@ -55,7 +51,6 @@ public sealed class PreferencesTests
         return changes;
     }
 
-    /// <summary>Completes on the turn after the ones already posted, such as the write an assignment posted.</summary>
     private static Task NextTurn(Shell shell)
     {
         var turn = new TaskCompletionSource();
@@ -63,10 +58,6 @@ public sealed class PreferencesTests
         return turn.Task;
     }
 
-    /// <summary>
-    /// Runs <paramref name="test"/> on the shell's thread with a new section name and the preferences file holding
-    /// <paramref name="text"/> of it, and deletes the file after.
-    /// </summary>
     private static Task WithFile(Func<string, string> text, Func<Shell, string, string, Task> test)
     {
         return ShellFixture.On(async shell =>
@@ -92,7 +83,6 @@ public sealed class PreferencesTests
         });
     }
 
-    /// <summary>The paths and errors <paramref name="shell"/>'s log hears about a file it stops or starts reading.</summary>
     private static List<(string Path, string Error)> FileErrors(Shell shell, out Action stop)
     {
         var heard = new List<(string Path, string Error)>();
@@ -162,7 +152,6 @@ public sealed class PreferencesTests
                 top.Size = 40;
                 own.Clock24 = true;
 
-                // Written on a later turn of the loop.
                 Assert.Equal($"# mine\nclock24 = false\n\n[{bar}]\n# the edge\nedge = \"left\"\nother = 1\n",
                     File.ReadAllText(path));
                 await NextTurn(shell);
@@ -231,7 +220,6 @@ public sealed class PreferencesTests
                     $"# mine\nclock24 = true\n\n[{bar}]\n\n# top, bottom, left or right.\n# edge = \"top\"\n\n# size = 32\n",
                     File.ReadAllText(path));
 
-                // Taken out by hand, the section stays out: the check that names the unknown section adds nothing.
                 var logLength = ShellFixture.ReadLog(shell).Length;
                 var unknown = "unknown" + Guid.NewGuid().ToString("N");
                 var edited = $"# mine\nclock24 = false\n\n[{unknown}]\n";
@@ -256,7 +244,6 @@ public sealed class PreferencesTests
         await ShellFixture.On(async shell =>
         {
             var path = PathOf(shell);
-            // An earlier test may have written it. On a fresh machine there is no folder yet either.
             if (File.Exists(path))
                 File.Delete(path);
             var bar = "bar" + Guid.NewGuid().ToString("N");
@@ -278,7 +265,6 @@ public sealed class PreferencesTests
                     }), new(widget)]
                 });
                 using var empty = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = name + "empty" });
-                // An area renders on its own turn, so the first write can land before its section. The file then gains it.
                 await Wait.UntilAsync(
                     () => File.Exists(path) &&
                           File.ReadAllText(path).Contains($"[{name}empty]", StringComparison.Ordinal),
@@ -288,10 +274,8 @@ public sealed class PreferencesTests
                 Assert.All(text.Split('\n').Where(line => line.Length > 0),
                     line => Assert.True(line.StartsWith('#') || line.StartsWith('['), line));
                 Assert.Contains("# Show 13:00 rather than 1:00 PM.\n# clock24 = false\n", text, StringComparison.Ordinal);
-                // A key with no default has nothing to show.
                 Assert.DoesNotContain("note", text, StringComparison.Ordinal);
                 Assert.Contains("# top, bottom, left or right.\n# edge = \"top\"\n", text, StringComparison.Ordinal);
-                // The last line of each block after the file's own comment is a key, commented out.
                 var uncommented = string.Join("\n\n", text.Split("\n\n").Skip(1).Select(block =>
                 {
                     var lines = block.TrimEnd('\n').Split('\n');
@@ -346,7 +330,6 @@ public sealed class PreferencesTests
                 Assert.True(File.Exists(path), "the missing file was not written on the turn after its section was made");
                 Assert.Contains("# clock24 = false", File.ReadAllText(path), StringComparison.Ordinal);
 
-                // The section posted for that same next turn is written on the turn after it is made.
                 await NextTurn(shell);
                 Assert.Contains($"[{name}]", File.ReadAllText(path), StringComparison.Ordinal);
             }
@@ -374,7 +357,6 @@ public sealed class PreferencesTests
             await NextTurn(shell);
             Assert.Equal($"[{bar}]\nedge = 3\nsize = 5\n", File.ReadAllText(path));
 
-            // The watch hears the write on another thread. Let it run, then read on the loop.
             Wait.ForNothingToHappen(TimeSpan.FromMilliseconds(200));
             await NextTurn(shell);
             var warning = $"{path}[2:1]: edge should be a string, not 3, so it was left unchanged";
@@ -395,7 +377,6 @@ public sealed class PreferencesTests
             Assert.Equal("top", top.Edge);
 
             top.Size = 40;
-            // The rest of the save lands after the assignment and before its write.
             File.WriteAllText(path, $"[{bar}]\nedge = \"left\" # kept\nsize = 9\n\n[other]\nkept = true\n");
             await NextTurn(shell);
 
@@ -414,7 +395,6 @@ public sealed class PreferencesTests
             var logLength = ShellFixture.ReadLog(shell).Length;
             using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
             {
-                // Made while the file is held, it reads the file and cannot.
                 using var second = new BarPreferences(bar);
                 Assert.Equal(("left", "left"), (first.Edge, second.Edge));
 
@@ -562,7 +542,6 @@ public sealed class PreferencesTests
                 await NextTurn(shell);
                 Assert.Equal(oversized, File.ReadAllBytes(path));
 
-                // The text it read before the file grew.
                 File.WriteAllText(path, text);
                 await Wait.UntilAsync(() => heard.Count > 1, "the file back under the limit to be read");
                 Assert.Equal((path, ""), heard[1]);
@@ -591,7 +570,6 @@ public sealed class PreferencesTests
         });
     }
 
-    /// <summary>A placement the missing-file test names, so the area can write that name into the defaults.</summary>
     private sealed class DefaultWidget : Component<WidgetContext>
     {
         public override Element Render() => TextBlock("default");

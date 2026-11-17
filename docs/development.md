@@ -62,6 +62,7 @@ dotnet run --project src/Winshell -- kill -i <id>
 
 - **C# whitespace** follows `.editorconfig` and the SDK formatter. Run `pwsh -NoProfile scripts/format.ps1` to apply formatting, or add `-VerifyNoChanges` to check without editing source files. The full local check and CI run verification; commits have no formatting hook.
 - **Code style and analyzers** are the build's. Builds enforce code-style and Roslyn analyzer warnings through `EnforceCodeStyleInBuild` and warnings as errors.
+- **No comments.** Code, scripts, workflows and build files carry no comments. See [No comments](#no-comments).
 - **Names.** Test methods use sentences with underscores for spaces. Windows interop declarations keep the Windows spelling, such as `ABE_BOTTOM`, `POINT` and `SHAppBarMessage`; Winshell's own names use PascalCase.
 
 ### What the formatter covers
@@ -71,6 +72,16 @@ dotnet run --project src/Winshell -- kill -i <id>
 - Git supplies the existing tracked and untracked C# files under `src/`, `tests/`, `examples/`, `templates/` and `docs/samples/`, plus `scripts/generate-reference.cs`, `scripts/reference-pages.cs`, `scripts/render-logo.cs` and the C# under `scripts/lib/`. Ignored build outputs are excluded.
 - Other standalone C# scripts are not formatted.
 - Verification leaves source files, project references and the Git index unchanged. It fails on formatting drift or tool errors.
+
+### No comments
+
+`scripts/comments.ps1` removes every comment from the files Git tracks or would add, and `-VerifyNoChanges` lists each one as `path:line` and fails. The `comments` job in CI runs the check. It requires Git, .NET and PowerShell 7.
+
+- **C#** files and the `csharp` fences in Markdown are read with Roslyn, through `scripts/comments.cs`. That includes `///` comments. Directives such as `#pragma` are code.
+- **PowerShell** is read with its own tokenizer. `#requires` lines stay.
+- **YAML** comments go, including the comments in `run:` scripts. `# zizmor: ignore[...]` and `# yaml-language-server:` stay.
+- **MSBuild and XML** files lose `<!-- -->` comments. `.editorconfig`, `.gitignore` and `.gitattributes` lose their comment lines.
+- Prose is not checked: Markdown outside `csharp` fences, and text files.
 
 ### The template build
 
@@ -170,7 +181,7 @@ Choose checks for the complete change, including renamed and deleted files.
 Some changes need more than checks:
 
 - A new or changed windowed test: run it on purpose, as [A windowed test](#a-windowed-test) describes, and see it fail before the change and pass after it.
-- A changed public member of `Winshell.Shell`, `Winshell.Services` or `Winshell.Core`: update its `///` comment, run `dotnet run scripts/generate-reference.cs`, and commit the pages it writes.
+- A changed public member of `Winshell.Shell`, `Winshell.Services` or `Winshell.Core`: run `dotnet run scripts/generate-reference.cs`, and commit the pages it writes.
 - An added or changed command, prerequisite, environment variable or top-level folder: update this page or its [project structure](#project-structure).
 
 Pages that still contain C# fences get the targeted documentation checks even when the edit changes only their prose. Deleting the last fence or a whole example page also needs those checks. The existing documentation tests own this contract; no application tests are needed just for wording changes.
@@ -189,8 +200,9 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | `pwsh -NoProfile scripts/check.ps1 -Lint` | Checks Markdown links and workflows, without building. See [Lint](#lint). |
 | `Invoke-Pester -Path tests/Scripts/<Name>.Tests.ps1` | Runs one of the PowerShell suites `check.ps1` runs, each named after the script or tooling it tests. None changes the checkout or GitHub. Requires the Pester version in `scripts/tool-pins.psd1` and PowerShell 7; `Install.Tests.ps1` also runs on Windows PowerShell 5.1. |
 | `pwsh -NoProfile scripts/format.ps1 [-VerifyNoChanges]` | Formats handwritten C# files, or verifies them. See [What the formatter covers](#what-the-formatter-covers). |
+| `pwsh -NoProfile scripts/comments.ps1 [-VerifyNoChanges]` | Removes code comments, or lists each one and fails. See [No comments](#no-comments). |
 | `pwsh -NoProfile scripts/build-template.ps1` | Compiles the template against the current source libraries. See [The template build](#the-template-build). |
-| `dotnet run scripts/generate-reference.cs` | Builds `Winshell.Shell`, `Winshell.Services` and `Winshell.Core`, then writes `docs/reference/winshell*.md` from their public types and `///` comments. Each page keeps what is above its `<!-- generated below -->` line. Commit the pages after changing a public member; `DocsTests` fails when a page is not what this writes. |
+| `dotnet run scripts/generate-reference.cs` | Builds `Winshell.Shell`, `Winshell.Services` and `Winshell.Core`, then writes `docs/reference/winshell*.md` from their public types. Each page keeps what is above its `<!-- generated below -->` line. Commit the pages after changing a public member; `DocsTests` fails when a page is not what this writes. |
 | `dotnet run scripts/render-logo.cs` | Renders `packaging/logo.svg` into the package's PNGs (the manifest sizes, their scale-125, scale-150, and scale-200 variants, and the unplated target sizes), the Store listing's PNG, and `packaging/winshell.ico`. Commit them after changing the logo. |
 | `pwsh scripts/pack.ps1` | Packs the `Winshell` library. See [Pack the library](#pack-the-library). |
 | `pwsh scripts/package.ps1` | Builds what a release ships, then checks it. See [Package a release](#package-a-release). |
@@ -324,6 +336,7 @@ The `changes` job selects checks for PRs and pushes to `main`. Each kind of chan
 | --- | --- | --- |
 | `installer` | PRs and pushes to `main` that change `scripts/`, `tests/Scripts/`, `ci.yml` or `.github/actions/`. | Windows PowerShell 5.1 runs `tests/Scripts/Install.Tests.ps1` with the Pester version in `scripts/tool-pins.psd1` against temporary profiles and releases served on loopback. PowerShell 7 tooling suites run once in `quality`. |
 | `tests (1/4)` through `tests (4/4)` | Non-draft PRs and pushes to `main` that change code, as [How checks are selected](#how-checks-are-selected) says, in `ci.yml`. Results feed the one required `ci` check. | `pwsh scripts/check.ps1` for the tests that open no windows, and [A windowed test](#a-windowed-test) for the rest. See [Test shards](#test-shards). |
+| `comments` | Every non-draft PR and push to `main`, in `ci.yml`. Its result feeds the required `ci` check. | `pwsh -NoProfile scripts/comments.ps1 -VerifyNoChanges`. See [No comments](#no-comments). |
 | `trim-caches` | Every push to `main`, after `ci`, in `ci.yml` | Nothing to run. It deletes all but the two newest CodeQL databases of each language from the Actions cache, which would otherwise pass the 10 GB GitHub keeps. |
 | `links` | Pushes to `main` that change docs or Markdown, and every Monday, in `links.yml` | lychee, the version in `scripts/tool-pins.psd1`, over `docs/**/*.md`, `README.md`, `GLOSSARY.md` and `.github/*.md`, excluding `docs/agents`. |
 | `actionlint` | PRs and pushes to `main` that change workflows, actions, `.github/dependabot.yml` or `scripts/tool-pins.psd1`, in `ci.yml` | actionlint on `.github/workflows`, then zizmor on `.github`. |
@@ -353,7 +366,7 @@ The docs are plain Markdown, read on GitHub or in an editor. `docs/agents/` is f
 - **A new reference page** goes into the list in `docs/reference/index.md`.
 - **Links between pages** are relative `.md` links, also to files outside `docs/`, such as `../GLOSSARY.md`. The `ci` job runs lychee offline over every Markdown file, with `--include-fragments`, and fails on a link to a file or a heading that isn't there.
 - **C# examples** in a `csharp` code block are checked by `DocsTests`: each one is text from a file the build compiles. Those files are `tests/Winshell.Shell.Tests/GuideSamples.cs`, which the test project builds, the template's `.cs` files in `templates/winshell`, which `scripts/build-template.ps1` builds, and the message-widget sample `docs/samples/message-widget/Message.cs`, which the solution builds.
-- **The reference** in `docs/reference/` has a page per namespace of the `Winshell` package (the public types of `Winshell.Shell`, `Winshell.Services` and `Winshell.Core`), `winshell.md` for `Winshell` and `winshell-<namespace>.md` for the others, starting with `# <namespace>` and an intro written by hand. `dotnet run scripts/generate-reference.cs` writes the rest, a `## Type` section for each public type with its members, from the `///` comments, and `DocsTests` fails when a page is not what it writes.
+- **The reference** in `docs/reference/` has a page per namespace of the `Winshell` package (the public types of `Winshell.Shell`, `Winshell.Services` and `Winshell.Core`), `winshell.md` for `Winshell` and `winshell-<namespace>.md` for the others, starting with `# <namespace>` and an intro written by hand. `dotnet run scripts/generate-reference.cs` writes the rest, a `## Type` section for each public type with its members, and `DocsTests` fails when a page is not what it writes.
 - **Links to other sites** are checked by `links.yml`, on `main` and every Monday. That job isn't part of `check.ps1`.
 
 ## Environment variables

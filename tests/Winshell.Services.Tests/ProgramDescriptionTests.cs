@@ -3,14 +3,12 @@ using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>The program description is the file description. A tray icon shows that same description.</summary>
 public sealed class ProgramDescriptionTests
 {
     [Fact]
     public void The_program_description_is_the_file_description()
     {
         var path = typeof(AppsService).Assembly.Location;
-        // The project sets no description, so the file description is the assembly name.
         Assert.Equal("Winshell.Services", AppsService.ProgramDescription(path));
     }
 

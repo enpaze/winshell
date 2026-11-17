@@ -8,44 +8,24 @@ using Windows.UI;
 
 namespace Winshell;
 
-/// <summary>
-/// The look of a shell, a bar or a widget area: background, foreground, alert color, font, slot size and padding.
-/// Winshell writes it into the resources plain controls read. Null, on the shell, is the built-in style, which follows
-/// Windows' colors in light, in dark and in a contrast theme.
-/// </summary>
 public sealed record ShellStyle
 {
-    /// <summary>Behind a surface, such as a bar, and a popup.</summary>
     public required Color Background { get; init; }
 
-    /// <summary>Text, and a glyph that takes its color from the control that holds it.</summary>
     public required Color Foreground { get; init; }
 
-    /// <summary>
-    /// Something that needs attention, such as a network with no internet. A widget reads it from
-    /// <see cref="WidgetContext.Style"/>.
-    /// </summary>
     public required Color Alert { get; init; }
 
-    /// <summary>Text. The built-in style uses Segoe UI Variable, then Segoe UI.</summary>
     public FontFamily FontFamily { get; init; } = new("Segoe UI Variable Text,Segoe UI");
 
-    /// <summary>Text, in logical pixels. The built-in style uses 14.</summary>
     public double FontSize { get; init; } = 14;
 
-    /// <summary>One button, and the thickness of a bar, in logical pixels. The built-in style uses 32.</summary>
     public double SlotSize { get; init; } = 32;
 
-    /// <summary>The space at each end of a bar, in logical pixels. Null gives a bar none. The built-in style uses 4.</summary>
     public double? Padding { get; init; } = 4;
 
-    /// <summary>
-    /// The built-in style paints with Windows' theme brushes. A custom style paints with <see cref="Background"/>,
-    /// <see cref="Foreground"/> and <see cref="Alert"/>.
-    /// </summary>
     internal bool ThemeColors { get; init; }
 
-    /// <summary>The built-in style. <see cref="Shell.Style"/> stays null for it.</summary>
     internal static ShellStyle BuiltIn { get; } = new()
     {
         Background = default,
@@ -54,7 +34,6 @@ public sealed record ShellStyle
         ThemeColors = true
     };
 
-    /// <summary>The resource dictionary a widget area, surface and styled popup merge.</summary>
     internal string ToXaml()
     {
         var colors = ThemeColors
@@ -83,7 +62,6 @@ public sealed record ShellStyle
 
     private static string Number(double value) => value.ToString(CultureInfo.InvariantCulture);
 
-    // The colors a contrast theme uses, in place of the style's own, so the shell stays readable.
     private const string Contrast = """
             <ResourceDictionary x:Key="HighContrast">
               <SolidColorBrush x:Key="ShellBackgroundBrush" Color="{ThemeResource SystemColorWindowColor}" />
@@ -92,7 +70,6 @@ public sealed record ShellStyle
             </ResourceDictionary>
         """;
 
-    // The same implicit styles for every style, so a button, a line, an icon and a tooltip match the shell.
     private const string Controls = """
           <Style TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
@@ -161,22 +138,10 @@ public sealed record ShellStyle
         """;
 }
 
-// The shell's style. Shell's summary is in Shell.cs.
 public sealed partial class Shell
 {
-    /// <summary>
-    /// The style's <c>ToolTip</c> entry, merged into the app's resources: WinUI opens a tooltip in a popup of its own
-    /// and looks for its implicit style only there. Merged, so a tooltip style the configuration puts in the app's
-    /// resources wins over it.
-    /// </summary>
     private readonly ResourceDictionary _toolTipStyle = [];
 
-    /// <summary>
-    /// The style of every widget area, <see cref="Surface"/>, styled popup and tooltip, or null for the built-in
-    /// style, which follows Windows' colors, Segoe UI and Segoe Fluent Icons. Set it on the shell's thread. A new
-    /// value reaches what is already on screen, and the next tooltip that opens. A bar's, an area's or a surface's own
-    /// style wins over it, except for tooltips.
-    /// </summary>
     public ShellStyle? Style
     {
         get;
@@ -189,20 +154,14 @@ public sealed partial class Shell
         }
     }
 
-    /// <summary>
-    /// Raised on the shell's thread after <see cref="Style"/> is set, so what reads the style outside a widget area, such
-    /// as the thickness of a <see cref="Bar"/>, can read it again.
-    /// </summary>
     public event Action? StyleChanged;
 
-    /// <summary>Starts every tooltip in the shell on the built-in style.</summary>
     private void StartToolTipStyle()
     {
         Application.Current.Resources.MergedDictionaries.Add(_toolTipStyle);
         StyleToolTips(LoadStyle(null));
     }
 
-    /// <summary>Gives tooltips a style's <c>ToolTip</c> entry, or WinUI's look when it has none.</summary>
     private void StyleToolTips(ResourceDictionary style)
     {
         _toolTipStyle.Clear();
@@ -210,10 +169,8 @@ public sealed partial class Shell
             _toolTipStyle[typeof(ToolTip)] = toolTip;
     }
 
-    /// <summary>A fresh dictionary of a style, or of the built-in style for null.</summary>
     internal static ResourceDictionary LoadStyle(ShellStyle? style) =>
         (ResourceDictionary)XamlReader.Load(DictionaryXaml(style));
 
-    /// <summary>The XAML of one resolved style. Null is the built-in style.</summary>
     internal static string DictionaryXaml(ShellStyle? style) => (style ?? ShellStyle.BuiltIn).ToXaml();
 }

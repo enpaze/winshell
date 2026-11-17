@@ -100,7 +100,6 @@ Describe 'Packing a zip' {
 }
 
 Describe 'The release version a build stamps' {
-    # The version Directory.Build.props stamps, from a copy of that file beside $Manifest. -Missing leaves the file absent.
     BeforeAll {
         function Get-StampedVersion {
             param([string] $Manifest, [switch] $Missing)
@@ -180,7 +179,6 @@ Describe 'The product name' {
         $filled | Should -Match 'TaskId="Winshell"'
     }
 
-    # install.ps1 is fetched on its own and can't read Get-ProductName, so its shortcut keeps a literal this test ties.
     It 'is the installer''s shortcut description, and the product SignPath is given' {
         $install = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../scripts/install.ps1')
         ([regex]::Match($install, '\$link\.Description = ''([^'']*)''').Groups[1].Value) | Should -Be (Get-ProductName)

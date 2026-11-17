@@ -1,17 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <!-- The referenced winshell.exe carries the Windows App SDK, so this program inherits it. The check wants an
-         architecture, and the exe stays beside the tests. The startup types stay in winshell.exe: compiling them again
-         here clashes with the ones that assembly already exposes. -->
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <WindowsAppSdkUndockedRegFreeWinRTInitialize>false</WindowsAppSdkUndockedRegFreeWinRTInitialize>
     <WindowsAppSdkAutoInitialize>false</WindowsAppSdkAutoInitialize>
   </PropertyGroup>
   <ItemGroup>
-    <!-- The tests run winshell.exe itself, as separate processes. -->
     <ProjectReference Include="..\..\src\Winshell\Winshell.csproj" />
-    <!-- Help recorded from the command line before each command owned its own text. -->
     <Content Include="HelpText\*.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

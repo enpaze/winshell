@@ -173,7 +173,6 @@ public sealed class PowerServiceTests
 
         Assert.Equal(100, monitor.Brightness);
         Assert.Equal(100, await written.Task.WaitAsync(TestContext.Current.CancellationToken));
-        // The writes ending ask for a read.
         await Wait.UntilAsync(() => source.Reads == 2, "the write to end");
         source.Push(new BrightnessSnapshot(true, [Monitor(60)]));
         loop.Process();

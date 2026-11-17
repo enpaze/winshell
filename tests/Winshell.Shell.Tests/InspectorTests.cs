@@ -381,7 +381,6 @@ public sealed partial class InspectorTests : IDisposable
 
             var tree = await Inspector.Run(shell, "tree", []);
             var shot = await Inspector.Run(shell, "screenshot", [file, "MenuFlyoutPresenter"]);
-            // The item's own Click runs, as a pointer's would.
             await Inspector.Run(shell, "click", ["reload"]);
             await clicked.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             return (tree, shot);
@@ -437,7 +436,6 @@ public sealed partial class InspectorTests : IDisposable
     [Fact]
     public void A_screenshot_goes_on_a_solid_color_so_text_for_a_dark_backdrop_can_be_read()
     {
-        // Clear, half white as premultiplied, and solid white.
         byte[] pixels = [0, 0, 0, 0, 128, 128, 128, 128, 255, 255, 255, 255];
 
         var flat = Inspector.Flattened(pixels, 32);

@@ -4,14 +4,8 @@ using System.Text;
 
 namespace Winshell;
 
-/// <summary>
-/// The next start's look at the crash folder. A fatal report newer than the last clean exit is shown once.
-/// The record is TOML in the state folder: <c>clean</c> is the last exit that was not a crash, and <c>shown</c>
-/// is the report already shown.
-/// </summary>
 internal sealed partial class CrashReports
 {
-    /// <summary>The newest crash report that says Winshell closed, when it has not been shown and it is newer than the last clean exit.</summary>
     public static CrashRecord? Find(string crashFolder, string stateFile)
     {
         try
@@ -34,26 +28,18 @@ internal sealed partial class CrashReports
         }
     }
 
-    /// <summary>Records an exit that was not a crash.</summary>
     public static void MarkClean(string stateFile, DateTimeOffset when)
     {
         Update(stateFile, when, null);
     }
 
-    /// <summary>Records that <paramref name="reportPath"/> was shown, so the next start does not show it again.</summary>
     public static void MarkShown(string stateFile, string reportPath)
     {
         Update(stateFile, null, reportPath);
     }
 
-    /// <summary>
-    /// Sets what is given and keeps the rest. Instances share the record, so one writer at a time holds it from the
-    /// read to the write, and no mark is lost to another instance's save.
-    /// </summary>
     private static void Update(string stateFile, DateTimeOffset? clean, string? shown)
     {
-        // A mutex name has a fixed limit, so the path is hashed. A symbolic link uses its target, and the
-        // comparison ignores case, so those names wait on one writer.
         var name = @"Local\winshell-exit-" + Convert.ToHexString(SHA256.HashData(
             Encoding.UTF8.GetBytes(AtomicFile.FollowLink(stateFile).ToUpperInvariant())));
         using var mutex = new Mutex(false, name);
@@ -67,11 +53,9 @@ internal sealed partial class CrashReports
             }
             catch (AbandonedMutexException)
             {
-                // The writer that owned this exited before it let go. This writer owns it now.
                 acquired = true;
             }
 
-            // Every writer holds the mutex, so no other one can change the record between this read and write.
             var state = ReadState(stateFile);
             Put(stateFile, clean ?? state.Clean, shown ?? state.Shown, state.Text);
         }
@@ -111,14 +95,12 @@ internal sealed partial class CrashReports
 
     private static void Put(string stateFile, DateTimeOffset? clean, string? shown, string? expected)
     {
-        // Edit the file that is there. A file that is not TOML is replaced with the record alone.
         if (expected is null || !TomlDocument.TryParse(stateFile, expected, out var document, out _))
             document = TomlDocument.Empty(stateFile);
         if (clean is { } when)
             document.Set("clean", when.ToString("o", CultureInfo.InvariantCulture));
         if (shown is { Length: > 0 })
             document.Set("shown", shown);
-        // File.WriteAllText writes UTF-8 without a byte order mark. Keep that.
         AtomicFile.Save(stateFile, document.ToString(), false, expected);
     }
 }

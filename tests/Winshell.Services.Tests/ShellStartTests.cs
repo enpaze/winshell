@@ -2,7 +2,6 @@ using System.Diagnostics;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>What a start reads before it is a shell: its command line, its id, and its folders.</summary>
 public sealed class ShellStartTests
 {
     private static readonly ShellLocations Locations = new(@"C:\config", @"C:\local");
@@ -87,7 +86,6 @@ public sealed class ShellStartTests
     {
         var one = IdOf(@"C:\shells\mine\bin\shell\Mine.exe");
 
-        // The id an earlier Winshell gave it, so its folders stay where they are.
         Assert.Equal("cea0f30d0e45e5a6bf33f1d21c3e6351", one);
         Assert.Equal(one, IdOf(@"C:\shells\mine\bin\shell.next\Mine.exe"));
         Assert.Equal(one, IdOf(@"C:\SHELLS\MINE\BIN\SHELL\MINE.EXE"));
@@ -100,7 +98,6 @@ public sealed class ShellStartTests
         using var temp = new TempFolder();
         var locations = new ShellLocations(Path.Combine(temp.Path, "config"), Path.Combine(temp.Path, "local"));
         var program = Path.Combine(locations.ConfigRoot, "bar", "bin", "shell", "Bar.exe");
-        // Before a configuration was named after its folder, its program's path named it, as it does with no config folder.
         var earlier = ShellIdentity.Resolve(program, locations with { ConfigRoot = "" }, null, null, null, null);
         Directory.CreateDirectory(earlier.DataDir);
         File.WriteAllText(Path.Combine(earlier.DataDir, "kept.txt"), "data");
@@ -175,7 +172,6 @@ public sealed class ShellStartTests
         Assert.Equal(@"C:\shells\mine\state", reloaded.StateDir);
         Assert.Equal(@"C:\shells\mine\cache", reloaded.CacheDir);
 
-        // A program that is not in bin\shell or bin\shell.next keeps the folder beside itself.
         var loose = ShellIdentity.Resolve(@"C:\shells\mine\bin\Debug\Mine.exe", Locations, "id", "data", null, null);
 
         Assert.Equal(@"C:\shells\mine\bin\Debug\data", loose.DataDir);

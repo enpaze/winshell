@@ -2,10 +2,6 @@ using System.Collections.Specialized;
 
 namespace Winshell.Power;
 
-/// <summary>
-/// One monitor's brightness. The setter shows the new value at once and writes the panel in the background;
-/// the next read after the writes end replaces it.
-/// </summary>
 public sealed class BrightnessMonitor : ObservableObject
 {
     private readonly BrightnessWriter _writer;
@@ -19,28 +15,16 @@ public sealed class BrightnessMonitor : ObservableObject
         _log = log;
     }
 
-    /// <summary>
-    /// The name Windows knows the monitor by: a WMI instance name for a built-in panel, a display name like
-    /// <c>\\.\DISPLAY1</c> for an external monitor.
-    /// </summary>
     public string DeviceName => Read(_info).DeviceName;
 
-    /// <summary>The monitor's model name, or its Windows device name when the monitor reports no model.</summary>
     public string Name => Read(_info).Name;
 
-    /// <summary>Whether the monitor is a built-in panel or an external monitor.</summary>
     public BrightnessConnection Connection => Read(_info).Connection;
 
-    /// <summary>The lowest brightness the monitor accepts.</summary>
     public int Minimum => Read(_info).Minimum;
 
-    /// <summary>The highest brightness the monitor accepts, often 100.</summary>
     public int Maximum => Read(_info).Maximum;
 
-    /// <summary>
-    /// The brightness, from <see cref="Minimum"/> to <see cref="Maximum"/>. A value set outside that range is clamped
-    /// to it. A write Windows refuses is logged, and the next read shows the brightness the monitor has.
-    /// </summary>
     public int Brightness
     {
         get => Read(_requested) ?? _info.Current;
@@ -73,7 +57,6 @@ public sealed class BrightnessMonitor : ObservableObject
     }
 }
 
-/// <summary>The brightness of the connected monitors that report one.</summary>
 public sealed class BrightnessService : ObservableObject, IDisposable
 {
     private readonly IBrightnessBackend _backend;
@@ -83,13 +66,6 @@ public sealed class BrightnessService : ObservableObject, IDisposable
     private readonly Log _log;
     private bool _ready;
 
-    /// <param name="loop">The loop readings are applied on.</param>
-    /// <param name="log">Where a failed read or write is reported.</param>
-    /// <param name="screens">
-    /// The shell's screens. When a monitor comes, goes or changes mode, the monitors are read again. A work area alone
-    /// moves with every panel and app bar, and reads nothing.
-    /// </param>
-    /// <param name="backend">Windows, or a fake in tests.</param>
     internal BrightnessService(IEventLoop loop, Log log, INotifyCollectionChanged screens,
         IBrightnessBackend? backend = null)
     {
@@ -98,17 +74,14 @@ public sealed class BrightnessService : ObservableObject, IDisposable
         _backend = backend ?? new BrightnessBackend(log);
         _reader = new StateReader<BrightnessSnapshot>(_backend.ReadAsync, Apply, loop,
             new MonitorWarning(log, "power"));
-        // A monitor's read after its writes end shows what it took.
         _writer = new BrightnessWriter(_backend.Set, log, _reader.Request);
         _backend.Changed += _reader.Request;
         _screens.CollectionChanged += OnScreensChanged;
         _reader.Request();
     }
 
-    /// <summary>The connected monitors whose brightness Windows can read. Empty until <see cref="Ready"/>.</summary>
     public ObservableList<BrightnessMonitor> Monitors { get => Read(field); } = [];
 
-    /// <summary>Whether the first read of the monitors has finished.</summary>
     public bool Ready => Read(_ready);
 
     private void Apply(BrightnessSnapshot snapshot)
@@ -130,8 +103,6 @@ public sealed class BrightnessService : ObservableObject, IDisposable
             _reader.Request();
     }
 
-    // True when the only difference is the work area. Every other field is named, so a new ScreenInfo field is not
-    // folded in by record equality.
     private static bool WorkAreaOnly(ScreenInfo old, ScreenInfo now)
     {
         return old.Id == now.Id
@@ -147,7 +118,6 @@ public sealed class BrightnessService : ObservableObject, IDisposable
                && old.IsPrimary == now.IsPrimary;
     }
 
-    /// <summary>Stops following brightness changes.</summary>
     public void Dispose()
     {
         _screens.CollectionChanged -= OnScreensChanged;

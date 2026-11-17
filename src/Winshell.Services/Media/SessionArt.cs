@@ -2,23 +2,14 @@ using Windows.Storage.Streams;
 
 namespace Winshell.Media;
 
-/// <summary>
-/// One session's track art, read from the thumbnail Windows gives into the <see cref="TempImageStore"/>. Only the
-/// newest read is shown; each url it stops showing is released. Lives on the UI thread.
-/// </summary>
-/// <param name="loop">Where a finished read is applied.</param>
-/// <param name="missed">Runs with the reason when art cannot be read, once until art arrives again.</param>
-/// <param name="changed">Runs when <see cref="Url"/> changes.</param>
 internal sealed class SessionArt(IEventLoop loop, Action<string> missed, Action changed)
 {
     private readonly NewestRead _read = new();
     private bool _missLogged;
     private bool _released;
 
-    /// <summary>A <c>file:///</c> url of the art, or empty.</summary>
     public string Url { get; private set; } = "";
 
-    /// <summary>A read is running. Starting another drops its result.</summary>
     public bool Loading => _read.Running;
 
     public void Load(IRandomAccessStreamReference? thumbnail)
@@ -50,7 +41,7 @@ internal sealed class SessionArt(IEventLoop loop, Action<string> missed, Action 
                 else
                     loop.Post(() => Set(url, request));
             }
-#pragma warning disable CA1031 // A closed session fails with COMException or ObjectDisposedException; nobody awaits this.
+#pragma warning disable CA1031
             catch (Exception e)
 #pragma warning restore CA1031
             {

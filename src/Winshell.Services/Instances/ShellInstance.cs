@@ -3,13 +3,6 @@ using System.IO.Pipes;
 
 namespace Winshell;
 
-/// <summary>
-/// What makes a process a Winshell instance, in <c>winshell.exe</c> and in a configuration's own program alike: its
-/// folder and log, its crash reports, its control pipe, and the record <c>winshell list</c> finds it by.
-/// <see cref="InstanceStart"/> calls <see cref="Open"/>, <see cref="OpenPipe"/>, <see cref="Listen"/> and
-/// <see cref="Publish"/> in that order. A start whose pipe failed ends with <see cref="Abandon"/>, and anything else
-/// with <see cref="Close"/>.
-/// </summary>
 internal sealed class ShellInstance
 {
     private readonly InstanceLog _file;
@@ -44,28 +37,18 @@ internal sealed class ShellInstance
 
     public CrashReports Crashes { get; }
 
-    /// <summary>The control pipe's name. It differs from the id's only when that name was taken.</summary>
     public string Pipe { get; private set; }
 
-    /// <summary>The record of the last clean exit, which <see cref="CrashReports"/> reads.</summary>
     public static string ExitState => Path.Combine(ShellLocations.Current.StateRoot, "last-exit.toml");
 
-    /// <summary>Runs first when a crash on another thread is ending the process, which skips every <c>finally</c>.</summary>
     public Action? Crashing { get; set; }
 
-    /// <summary>
-    /// Makes this process's folder and log, and reports crashes from here on. <paramref name="log"/> writes to that
-    /// log from now on, and keeps Debug lines when <paramref name="verbose"/>. <paramref name="configPath"/> is what
-    /// <c>winshell list</c> shows as the configuration.
-    /// </summary>
     public static ShellInstance Open(string shellId, string configPath, Log log, bool verbose = false)
     {
         var locations = ShellLocations.Current;
         locations.Instances.Clean();
         var instance = new ShellInstance(locations, Instances.NewId(), shellId, configPath, log);
         log.WriteTo(instance.WriteLine, verbose ? LogLevel.Debug : LogLevel.Info);
-        // A crash is reported in a crash report that outlives the log, and in the instance's log, where
-        // winshell log finds it, before the process ends. Failures the shell survives get a report each too.
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
             Quietly(() => instance.Crashing?.Invoke());
@@ -84,10 +67,6 @@ internal sealed class ShellInstance
         return instance;
     }
 
-    /// <summary>
-    /// Opens the control pipe. Null when it opened, or else why not, which is also logged. A start that failed goes on
-    /// to <see cref="Abandon"/>.
-    /// </summary>
     public string? OpenPipe()
     {
         var pipe = Pipe;
@@ -107,17 +86,14 @@ internal sealed class ShellInstance
         return null;
     }
 
-    /// <summary>Starts serving the pipe <see cref="OpenPipe"/> opened, on <paramref name="loop"/>.</summary>
     public void Listen(IEventLoop loop, IInstanceControl control)
     {
         _server = new IpcServer(_listening!, Pipe, loop, Log, control);
         _listening = null;
     }
 
-    /// <summary>Writes the record, after which <c>winshell list</c> shows this process.</summary>
     public void Publish()
     {
-        // What the startup logged lands first, so a listed shell always has a log to show.
         _file.Flush();
         using var process = Process.GetCurrentProcess();
         _instances.Write(new InstanceInfo(
@@ -132,11 +108,6 @@ internal sealed class ShellInstance
             ProcessName: process.ProcessName));
     }
 
-    /// <summary>
-    /// Writes one fatal report, then one fatal line, while the log is still open. The report comes first because
-    /// logging can fail as the process ends. The same exception is recorded once.
-    /// </summary>
-    /// <returns>False. The exception is still the caller's, and a second call for the same one does nothing.</returns>
     public bool ReportFatal(Exception error)
     {
         if (ReferenceEquals(_fatal, error))
@@ -148,21 +119,18 @@ internal sealed class ShellInstance
         return false;
     }
 
-    /// <summary>Says in the log where a report went.</summary>
     public void Reported(CrashReport? report)
     {
         if (report is not null)
             Quietly(() => Log.Info("shell", $"Wrote a crash report to \"{report.Path}\""));
     }
 
-    /// <summary>Records a clean exit, unless this run crashed. The next start looks at it.</summary>
     public void MarkCleanExit()
     {
         if (_fatal is null)
             Quietly(() => CrashReports.MarkClean(ExitState, TimeProvider.System.GetLocalNow()));
     }
 
-    /// <summary>Stops the pipe, marks the record exited and closes the log. The folder stays for <c>winshell log</c>.</summary>
     public void Close()
     {
         _server?.Dispose();
@@ -172,7 +140,6 @@ internal sealed class ShellInstance
         _file.Dispose();
     }
 
-    /// <summary>Takes back a start that never published, so nothing of it stays behind.</summary>
     public void Abandon()
     {
         _listening?.Dispose();
@@ -187,7 +154,6 @@ internal sealed class ShellInstance
         }
     }
 
-    /// <summary>Runs what reports a crash; that must not throw a second exception over the first.</summary>
     internal static void Quietly(Action action)
     {
         try
@@ -199,10 +165,6 @@ internal sealed class ShellInstance
         }
     }
 
-    /// <summary>
-    /// Adds one line to the file. The file outlives the run and crash reports copy its end, so this is where secrets
-    /// are taken out. Its time is the process's real time. Once the file is closed, a line goes to the console only.
-    /// </summary>
     private void WriteLine(LogLevel level, string line)
     {
         try
@@ -212,7 +174,6 @@ internal sealed class ShellInstance
         }
         catch (IOException)
         {
-            // The disk refused the line. That must not fail the code that logged it, and the console still has it.
         }
     }
 }

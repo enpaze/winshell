@@ -71,14 +71,10 @@ Describe 'Selecting CI checks from GitHub changed files' {
         $output | Should -Contain 'docs=true'
     }
 
-    # Flags lists the flags a path sets, and every other flag is false: code runs the test shards, powershell the formatting
-    # check and the PowerShell suites in quality, scripts the installer job, workflows actionlint, and package the Package
-    # workflow.
     It '<Path> selects <Flags>' -ForEach @(
         @{ Path = 'LICENSE'; Flags = 'none' },
         @{ Path = '.gitignore'; Flags = 'none' },
         @{ Path = 'scripts/uninstall.ps1'; Flags = 'powershell scripts' },
-        # The actionlint job and the Package workflow install the tools this file names.
         @{ Path = 'scripts/tool-pins.psd1'; Flags = 'powershell scripts workflows package' },
         @{ Path = 'tests/Scripts/Install.Tests.ps1'; Flags = 'powershell scripts' },
         @{ Path = '.github/workflows/links.yml'; Flags = 'powershell workflows' },
@@ -86,11 +82,9 @@ Describe 'Selecting CI checks from GitHub changed files' {
         @{ Path = '.github/workflows/package.yml'; Flags = 'powershell workflows package' },
         @{ Path = 'packaging/msix/AppxManifest.xml'; Flags = 'package' },
         @{ Path = 'packaging/signpath/artifact-configuration.xml'; Flags = 'package' },
-        # The suite reads these, so they are code although their folders are not.
         @{ Path = 'scripts/install.ps1'; Flags = 'code powershell scripts' },
         @{ Path = 'packaging/winshell.ico'; Flags = 'code powershell package' },
         @{ Path = 'packaging/msix/Assets/StoreLogo.png'; Flags = 'code powershell package' },
-        # The suite's own machinery.
         @{ Path = 'scripts/lib/Tests.ps1'; Flags = 'code powershell scripts package' },
         @{ Path = 'scripts/build-template.ps1'; Flags = 'code powershell scripts' },
         @{ Path = 'scripts/generate-reference.cs'; Flags = 'code powershell scripts' },
@@ -98,7 +92,6 @@ Describe 'Selecting CI checks from GitHub changed files' {
         @{ Path = 'scripts/render-logo.cs'; Flags = 'code powershell scripts' },
         @{ Path = '.github/workflows/ci.yml'; Flags = 'code powershell scripts workflows' },
         @{ Path = '.github/actions/prepare/action.yml'; Flags = 'code powershell scripts workflows package' },
-        # Everything else.
         @{ Path = 'src/Winshell.Shell/BuiltInStyle.xaml'; Flags = 'code powershell' },
         @{ Path = 'tests/Winshell.Tests/AppIconTests.cs'; Flags = 'code powershell' },
         @{ Path = 'examples/omarchy-style/TokyoNight.xaml'; Flags = 'code powershell' },

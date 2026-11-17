@@ -5,7 +5,6 @@ using Winshell.Windows;
 
 namespace Winshell;
 
-/// <summary>A normal window's settings.</summary>
 internal sealed record FloatingPlacement(
     ScreenInfo? Screen,
     string Title,
@@ -19,7 +18,6 @@ internal sealed record FloatingPlacement(
     HostWindow? Owner,
     bool StateRequested);
 
-/// <summary>How a floating window sits on its screen: framed at a size, minimized, maximized or fullscreen.</summary>
 internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : IWindowPlacer
 {
     private FloatingPlacement? _placement;
@@ -31,7 +29,6 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
 
     private nint Handle => host.Handle;
 
-    /// <summary>A normal window's frame, in the taskbar.</summary>
     public (uint Style, uint ExStyle) Styles => (
         (uint)(WINDOW_STYLE.WS_OVERLAPPEDWINDOW | WINDOW_STYLE.WS_CLIPCHILDREN),
         (uint)(WINDOW_EX_STYLE.WS_EX_NOREDIRECTIONBITMAP | WINDOW_EX_STYLE.WS_EX_APPWINDOW));
@@ -78,7 +75,6 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
                 ApplyFrame(placement);
             }
 
-            // Showing or restoring the owner can put it above the windows it owns. Put those back above it.
             if (!PInvoke.IsIconic((HWND)Handle))
                 OwnedWindows.Raise(Handle, platform.Windows);
             ReportState();
@@ -94,7 +90,6 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
         switch (message.Id)
         {
             case PInvoke.WM_SIZE or PInvoke.WM_MOVE:
-                // The user may have maximized, minimized or restored it. A move the window makes itself reports once done.
                 if (!host.Placement.Placing && !host.Released && !_applying)
                     ReportState();
                 return null;
@@ -113,24 +108,20 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
     {
         if (_fullscreen)
         {
-            // The suggested rect is the old logical size. A fullscreen window keeps covering the monitor.
             if (!placing)
                 FillMonitor();
         }
         else
         {
-            // The user dragged it to another monitor, or that monitor's scale changed: Windows' rect keeps the logical size.
             PInvoke.SetWindowPos((HWND)Handle, HWND.HWND_TOP, suggested.left, suggested.top, suggested.Width, suggested.Height,
                 (SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE));
         }
     }
 
-    /// <summary>Sets the window's track sizes. Returns null to leave Windows' defaults.</summary>
     private nint? OnGetMinMaxInfo(ref MINMAXINFO info)
     {
         if (_fullscreen && Handle != 0)
         {
-            // The default maximum is the work area, which would stop the window short of the taskbar.
             if (Screens.Of(Handle)?.Bounds is not { Width: > 0, Height: > 0 } bounds)
                 return null;
             info.ptMaxPosition.X = bounds.left;
@@ -275,7 +266,6 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
         if (saved.Maximized)
             return SHOW_WINDOW_CMD.SW_SHOWMAXIMIZED;
         var show = saved.HasPlacement ? saved.Placement.showCmd : 0;
-        // A window that was never shown has no show command. Leaving fullscreen while it is visible shows it.
         return show == 0 ? SHOW_WINDOW_CMD.SW_SHOWNORMAL : show;
     }
 
@@ -341,7 +331,6 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
         if (Handle == 0)
             return;
         var current = (uint)PInvoke.GetWindowLongPtr((HWND)Handle, WINDOW_LONG_PTR_INDEX.GWL_STYLE);
-        // Showing and hiding go through ShowWindow. A frame change keeps whichever of those the window is in.
         if ((current & (uint)WINDOW_STYLE.WS_VISIBLE) != 0)
             style |= (uint)WINDOW_STYLE.WS_VISIBLE;
         else
@@ -381,7 +370,6 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
         var fullscreen = ReadsFullscreen();
         _fullscreen = fullscreen;
         host.Client.OnFullscreenChanged(fullscreen);
-        // A fullscreen window covers the monitor, not the work area, so it is not the framed maximized state.
         host.Client.OnStateChanged(PInvoke.IsZoomed((HWND)Handle) && !fullscreen, PInvoke.IsIconic((HWND)Handle));
     }
 

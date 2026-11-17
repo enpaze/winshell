@@ -9,16 +9,10 @@ using Color = global::Windows.UI.Color;
 
 namespace Winshell.ShellTests;
 
-/// <summary>
-/// The C# samples in <c>docs/</c> and the README. <see cref="DocsTests"/> requires each <c>csharp</c> fence to appear
-/// in this file. Nothing here runs, and none of it opens a window.
-/// </summary>
-// Guide samples. DocsTests matches their text; the suite does not call them.
 public static class GuideSamples
 {
     private static IDisposable? _registration;
 
-    /// <summary>Call this from <c>Main</c>, marked <c>[STAThread]</c>.</summary>
     public static void RunTheShell()
     {
         Shell.Run<AppShell>(new ShellOptions { ShellId = "MyShell" });
@@ -54,7 +48,6 @@ public static class GuideSamples
 
     public static void ANote(Shell shell)
     {
-        // The registration stays for the life of the shell. The call below is a docs sample.
         _registration =
             shell.Ipc.Handle("notes", "hello", (string name) => "hi " + name);
         _ = _registration;
@@ -195,7 +188,6 @@ public sealed class ClockLabel : Microsoft.UI.Reactor.Core.Component
     }
 }
 
-/// <summary>The smallest shell: one panel.</summary>
 public sealed class AppShell : ShellConfiguration
 {
     public override void Start(Shell shell)
@@ -205,7 +197,6 @@ public sealed class AppShell : ShellConfiguration
     }
 }
 
-// The configuration guide's samples: DocsTests matches this text, and the suite never passes them across the WinRT ABI.
 #pragma warning disable CsWinRT1028
 public sealed class ShellPreferences : Preferences
 {

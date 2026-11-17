@@ -10,22 +10,18 @@ using Xunit.v3;
 
 namespace Winshell.ShellTests;
 
-/// <summary>One shell for the whole test run, on a thread of its own. WinUI starts once in a process.</summary>
 internal static class ShellFixture
 {
     private static readonly TaskCompletionSource<Shell> Ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private static readonly Lazy<Thread> UiThread = new(StartThread);
 
-    // One test uses the shell at a time. An action that awaits still owns its windows, and the shell is shared.
     private static readonly SemaphoreSlim OneAction = new(1, 1);
     private static readonly AsyncLocal<int> Depth = new();
 
-    // The windows each test's turns on the shell left open, by name, for NoWindowLeftOpen to report once it ends.
     private static readonly ConcurrentDictionary<string, List<string>> Left = new();
 
     private static Thread StartThread()
     {
-        // This process becomes an instance, and it must not join the user's own.
         Environment.SetEnvironmentVariable("WINSHELL_LOCAL_DIR",
             TempFolder.NewPath());
         Environment.SetEnvironmentVariable("WINSHELL_CONFIG_DIR",
@@ -46,17 +42,12 @@ internal static class ShellFixture
         return Ready.Task;
     }
 
-    /// <summary>Runs <paramref name="action"/> on the shell's thread and returns what it returned.</summary>
     public static Task<T> On<T>(Func<Shell, Task<T>> action)
     {
         return Gate(async () =>
             await OnThread(await Current().WaitAsync(TestContext.Current.CancellationToken), action));
     }
 
-    /// <summary>
-    /// Keeps every other shell action out until <paramref name="action"/> finishes. A test that opens a window from the
-    /// control pipe, rather than from <see cref="On{T}(Func{Shell, T})"/>, holds this across that window's whole life.
-    /// </summary>
     public static Task Hold(Func<Task> action)
     {
         return Gate(async () =>
@@ -97,10 +88,6 @@ internal static class ShellFixture
         return On(shell => Task.FromResult(action(shell)));
     }
 
-    /// <summary>
-    /// Closes the windows a turn opened and left open, before the next turn can see them, and keeps their names for
-    /// <see cref="NoWindowLeftOpenAttribute"/>.
-    /// </summary>
     private static async Task CloseLeft(Shell shell, List<HostWindow> before)
     {
         try
@@ -118,7 +105,6 @@ internal static class ShellFixture
         }
         catch (OperationCanceledException)
         {
-            // The test ran out of time, which already fails it.
         }
     }
 
@@ -135,7 +121,7 @@ internal static class ShellFixture
         {
             done.SetResult(await action(shell));
         }
-#pragma warning disable CA1031 // It fails the test that asked.
+#pragma warning disable CA1031
         catch (Exception e)
 #pragma warning restore CA1031
         {
@@ -143,10 +129,6 @@ internal static class ShellFixture
         }
     }
 
-    /// <summary>
-    /// Completes once the element has a size, which comes after it loads. A host renders its component on the
-    /// dispatcher after that, so this also waits until that render has finished.
-    /// </summary>
     public static async Task LaidOut(FrameworkElement element)
     {
         if (element.ActualWidth <= 0)
@@ -159,12 +141,10 @@ internal static class ShellFixture
         if (element is ReactorHostControl host)
         {
             await host.WaitForIdleAsync();
-            // The component is mounted after the host's first layout, so the children get a pass of their own.
             host.UpdateLayout();
         }
     }
 
-    /// <summary>What the shell has logged so far.</summary>
     public static string ReadLog(Shell shell)
     {
         using var stream = InstanceLog.OpenToRead(shell.LogPath);
@@ -172,13 +152,11 @@ internal static class ShellFixture
         return reader.ReadToEnd();
     }
 
-    /// <summary>The names of the windows <paramref name="test"/>'s turns on the shell left open.</summary>
     internal static List<string> LeftOpenBy(IXunitTest test)
     {
         return Left.TryRemove(test.UniqueID, out var names) ? names : [];
     }
 
-    /// <summary>A window as a failure names it: its type, its title or the name of what it shows, and what it shows.</summary>
     private static string Describe(HostWindow window)
     {
         var content = window.Client.Content;
@@ -196,11 +174,6 @@ internal static class ShellFixture
     }
 }
 
-/// <summary>
-/// Fails a test whose turn on the shell left a window open, and names the window. The shell is one for the whole run, so
-/// a window left open would fail the next test that counts the shell's windows. Each turn holds the shell to itself, and
-/// the windows new when it ends are closed then, before another turn can see them.
-/// </summary>
 [AttributeUsage(AttributeTargets.Assembly)]
 internal sealed class NoWindowLeftOpenAttribute : BeforeAfterTestAttribute
 {

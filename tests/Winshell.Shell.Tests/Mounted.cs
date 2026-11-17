@@ -5,7 +5,6 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
-/// <summary>The props a mounted component is rendering, and the bump that asks it to render them again.</summary>
 internal sealed class PropsBox<T>
 {
     public T Value = default!;
@@ -19,10 +18,6 @@ internal sealed class PropsBox<T>
     }
 }
 
-/// <summary>
-/// A host showing <typeparamref name="TComponent"/> with props a test can replace. Mounting starts the tree at once,
-/// so a test that never opens a window still renders, and one that does can put <see cref="Host"/> in the window.
-/// </summary>
 internal sealed class Mounted<TComponent, TProps> : IDisposable
     where TComponent : Component<TProps>, new()
 {

@@ -1,6 +1,5 @@
 namespace Winshell.Tests;
 
-/// <summary>The CLI reads configurations from <c>WINSHELL_CONFIG_DIR</c>. Every path is under a temp folder this class creates.</summary>
 public sealed partial class ConfigPathTests : IDisposable
 {
     private readonly string _root =
@@ -29,7 +28,7 @@ public sealed partial class ConfigPathTests : IDisposable
 
     private static ChildProcess Run(string configDir, params string[] args)
     {
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         return WinshellCli.Run(args, (ShellLocations.ConfigVariable, configDir));
 #pragma warning restore CsWinRT1030
     }

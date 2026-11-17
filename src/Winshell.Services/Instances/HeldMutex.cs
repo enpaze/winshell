@@ -1,9 +1,5 @@
 namespace Winshell;
 
-/// <summary>
-/// A named local mutex owned by this thread until disposed. A failed claim owns nothing. A mutex a crashed owner
-/// abandoned is claimed.
-/// </summary>
 internal readonly struct HeldMutex : IDisposable
 {
     private readonly Mutex? _mutex;
@@ -15,7 +11,6 @@ internal readonly struct HeldMutex : IDisposable
 
     public bool Acquired => _mutex is not null;
 
-    /// <summary>Claims <paramref name="name"/>, or owns nothing when another owner holds it.</summary>
     public static HeldMutex TryClaim(string name)
     {
         var mutex = new Mutex(false, name);
@@ -26,7 +21,6 @@ internal readonly struct HeldMutex : IDisposable
         }
         catch (AbandonedMutexException)
         {
-            // The previous owner crashed while it held this. The wait succeeded and this caller owns it.
             mine = true;
         }
 

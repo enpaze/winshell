@@ -3,7 +3,6 @@ using Windows.Media.Control;
 
 namespace Winshell.Media;
 
-/// <summary>What Windows reports about a session's playback.</summary>
 internal sealed record SmtcPlayback(GlobalSystemMediaTransportControlsSessionPlaybackStatus Status)
 {
     public double Rate { get; init; } = 1;
@@ -30,7 +29,6 @@ internal sealed record SmtcPlayback(GlobalSystemMediaTransportControlsSessionPla
 
     public MediaLoopState LoopState { get; init; }
 
-    /// <summary>What Windows reports about playback, including the controls the app allows.</summary>
     public static SmtcPlayback From(GlobalSystemMediaTransportControlsSessionPlaybackInfo info)
     {
         var controls = info.Controls;
@@ -51,7 +49,6 @@ internal sealed record SmtcPlayback(GlobalSystemMediaTransportControlsSessionPla
         };
     }
 
-    /// <summary>Windows' repeat mode as a <see cref="MediaLoopState"/>. No mode, or one Windows adds later, repeats nothing.</summary>
     public static MediaLoopState LoopOf(MediaPlaybackAutoRepeatMode? mode)
     {
         return mode switch
@@ -62,7 +59,6 @@ internal sealed record SmtcPlayback(GlobalSystemMediaTransportControlsSessionPla
         };
     }
 
-    /// <summary>The repeat mode to ask Windows for.</summary>
     public static MediaPlaybackAutoRepeatMode ModeOf(MediaLoopState state)
     {
         return state switch

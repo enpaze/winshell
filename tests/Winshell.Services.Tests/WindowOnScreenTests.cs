@@ -4,7 +4,6 @@ namespace Winshell.Services.Tests;
 
 public sealed class WindowOnScreenTests
 {
-    // Primary work area starts 48px down. The scaled screen has no taskbar, so its work area is the whole screen.
     private static readonly RECT PrimaryMonitor = new(0, 0, 1920, 1080);
     private static readonly RECT PrimaryWork = new(0, 48, 1920, 1080);
     private static readonly MonitorFrame Primary = Monitor(PrimaryMonitor, PrimaryWork, 1).Frame;
@@ -15,8 +14,6 @@ public sealed class WindowOnScreenTests
     [Fact]
     public void A_window_keeps_its_logical_size_and_work_area_offset_across_scales()
     {
-        // 100px into the work area. Under a 48px top bar that is screen (100, 148), and the placement stores (100, 100).
-        // Placing the workspace rectangle as if it were already in screen pixels would land 72px too high.
         var shown = new RECT(100, 148, 500, 448);
         var restored = new RECT(100, 100, 500, 400);
         var window = new WindowToMove(shown, restored, true, false, false, false);
@@ -43,7 +40,6 @@ public sealed class WindowOnScreenTests
         Assert.Equal(new RECT(2070, 150, 2670, 600), zoomed.Screen);
         Assert.Equal(zoomed, iconic);
 
-        // A tool window's placement is already in screen pixels, so the work-area gap is not added.
         var tool = maximized with { ToolWindow = true };
         Assert.True(WindowOnScreen.TryMove(tool, Primary, Scaled, PrimaryMonitor, PrimaryWork, out var toolPlace));
         Assert.Equal(new RECT(2070, 78, 2670, 528), toolPlace.Screen);
@@ -53,8 +49,6 @@ public sealed class WindowOnScreenTests
     [Fact]
     public void A_restored_window_moves_by_the_rectangle_it_shows()
     {
-        // The shown rectangle is 30px right and 12px below the workspace rectangle plus the 48px work-area gap.
-        // The move follows what is showing, and the stored rectangle keeps that same gap.
         var shown = new RECT(130, 160, 530, 460);
         var restored = new RECT(100, 100, 500, 400);
         var window = new WindowToMove(shown, restored, true, false, false, false);

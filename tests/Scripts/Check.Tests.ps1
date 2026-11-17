@@ -1,7 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot '../../scripts/lib/Tests.ps1')
 
-    # Writes a results file like dotnet test does. Rows are "Class.Method=Outcome", or "Class.Method=NotExecuted:reason".
     function Write-Trx {
         param([string] $Directory, [string[]] $Rows, [switch] $Crashed, [switch] $NoAbortText)
         New-Item -ItemType Directory -Force -Path $Directory | Out-Null
@@ -35,7 +34,6 @@ BeforeAll {
 
 Describe 'Choosing tests' {
     BeforeAll {
-        # A solution with the CLI, Shell, Services and Core projects, and a project added later.
         function Set-WinshellSolution {
             $script:Projects = @('Winshell.Tests', 'Winshell.Shell.Tests', 'Winshell.Services.Tests', 'Winshell.Core.Tests', 'New.Tests') |
                 ForEach-Object { "tests/$_/$_.csproj" }
@@ -130,7 +128,6 @@ Describe 'Reading test results' {
 
 Describe 'Running the suite' {
     BeforeAll {
-        # A solution of this many test projects, which each write one results file.
         function Set-Solution([int] $Projects) {
             $paths = (1..$Projects | ForEach-Object { "<Project Path=`"tests/T$_.Tests/T$_.Tests.csproj`" />" }) -join ''
             Set-Content -LiteralPath (Join-Path $TestDrive 'winshell.slnx') -Value "<Solution>$paths</Solution>"
@@ -145,7 +142,6 @@ Describe 'Running the suite' {
         Set-Solution 1
         $script:Exit = 0
         $script:Rows = @('Ns.Class.Good=Passed')
-        # A project that writes no results file, as after a test host crash.
         $script:Silent = $null
         Mock Invoke-DotnetTest {
             $script:WrittenResults = $ResultsDirectory
@@ -169,7 +165,6 @@ Describe 'Running the suite' {
         $parent = Join-Path $TestDrive "retained-$Outcome"
         Invoke-TestRun -Seed 7 -ResultsDirectory $parent | Should -Be $Exit
         @(Get-ChildItem -LiteralPath $parent -Filter '*.trx' -Recurse) | Should -HaveCount 1
-        # Reusing that folder must not let the previous complete run hide a missing test project.
         Set-Solution 2
         $script:Silent = 'tests/T2.Tests/T2.Tests.csproj'
         $script:Rows = @('Ns.Class.Good=Passed')
@@ -224,7 +219,6 @@ Describe 'Running the suite' {
         Should -Invoke Write-Host -ParameterFilter { $Object -match 'check\.ps1 -Tier Tests -Seed 7' }
     }
 
-    # A shard runs windowed tests, which check.ps1 leaves out.
     It 'prints how to play back a shard with dotnet test' {
         Mock Write-Host { }
         Invoke-TestRun -Seed 7 -Shard 4 | Should -Be 0
@@ -234,9 +228,6 @@ Describe 'Running the suite' {
 
     Context 'watching for windows' {
         BeforeAll {
-            # A program that shows a window, makes a hidden, a message-only and a cloaked one, or shows one cloaked and
-            # then uncloaks it. Each is a 1x1 tool window off screen that never takes the foreground, so a run of this
-            # suite shows nothing on the desktop. It writes the Signal file once done, and waits to be stopped.
             $script:Program = Join-Path $TestDrive 'window.ps1'
             Set-Content -LiteralPath $script:Program -Value @'
 param([ValidateSet('Shown', 'Unseen', 'Uncloaked')][string] $Kind, [string] $Signal)
@@ -274,7 +265,6 @@ switch ($Kind) {
 New-Item -ItemType File -Path $Signal | Out-Null
 Start-Sleep -Seconds 120
 '@
-            # Starts the program and returns once it has made its windows. The test stops it.
             function Start-Program([string] $Kind) {
                 $signal = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
                 $script:Started += @(Start-Process pwsh -NoNewWindow -PassThru -ArgumentList '-NoProfile', '-File', $script:Program, '-Kind', $Kind, '-Signal', $signal)
@@ -316,7 +306,6 @@ Start-Sleep -Seconds 120
             Should -Invoke Write-Host -Times 0 -ParameterFilter { $Object -match 'showed a window' }
         }
 
-        # CI's shards run the windowed tests.
         It 'passes a shard whose test showed a window' {
             $script:Kind = 'Shown'
             Invoke-TestRun -Shard 4 | Should -Be 0
@@ -326,7 +315,6 @@ Start-Sleep -Seconds 120
             $signals = Join-Path $TestDrive 'signals'
             New-Item -ItemType Directory -Path $signals | Out-Null
             Write-Trx -Directory $signals -Rows @('Ns.Class.Good=Passed')
-            # The run is a process of its own, so this test's process, and the program it starts, are no part of it.
             $job = Join-Path $TestDrive 'run.ps1'
             Set-Content -LiteralPath $job -Value @'
 param($tests, $folder, $signals)
@@ -363,8 +351,6 @@ Describe 'Check command' {
         $script:ProjectCount = (Get-TestRun).ProjectCount
         $script:PesterVersion = (Import-PowerShellDataFile (Join-Path $PSScriptRoot '../../scripts/tool-pins.psd1')).pester.version
 
-        # pwsh prepends the user module folder to an inherited PSModulePath at startup, where a developer's real Pester
-        # lives. Setting the path inside the child, after startup, leaves only the stub visible.
         function Invoke-Check {
             param([hashtable] $Arguments = @{})
             pwsh -NoProfile -Command {
@@ -474,7 +460,6 @@ function Invoke-Pester {
         $calls[1] | Should -Match "^dotnet test \S*\\$([regex]::Escape($Project)) --no-build "
     }
 
-    # A filter that matches nothing, after a renamed namespace or category, ends here.
     It 'fails a <Tier> run that ran no tests' -ForEach @(
         @{ Tier = 'Docs' }
         @{ Tier = 'Package' }

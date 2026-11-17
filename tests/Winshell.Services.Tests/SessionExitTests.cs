@@ -23,8 +23,6 @@ public class SessionExitTests
         process.Exited += handler;
 
         SessionNode.StopWatching(process, handler);
-        // End it here. On a busy runner ping -n 2 was still alive when the 8 second wait gave up, so the
-        // callback check never ran. Killing is the exit the callback must ignore.
         try
         {
             process.Kill(true);

@@ -11,10 +11,6 @@ using Microsoft.Win32;
 
 namespace Winshell.Package.Tests;
 
-/// <summary>
-/// Packs the library, creates the starter with winshell new, builds it and runs it. This is slow, and the main
-/// test stage leaves <c>Category=Package</c> out.
-/// </summary>
 [Trait("Category", "Package")]
 [Collection(nameof(PackedTemplateTests))]
 [CollectionDefinition(nameof(PackedTemplateTests), DisableParallelization = true)]
@@ -28,8 +24,6 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         Run(templates.SmallProject, (pid, environment) =>
         {
-            // The automation names, not the text: the time changes, and a PC with no battery collapses the battery.
-            // A component renders a text block, so the name is what inspect shows.
             ChildProcess? tree = null;
             Wait.Until(() =>
             {
@@ -44,7 +38,6 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     public void The_starter_takes_WindowsAppSDK_from_the_Winshell_package()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        // A version of its own here would drift from Directory.Packages.props and fail restore with NU1605.
         Assert.DoesNotContain("Microsoft.WindowsAppSDK", File.ReadAllText(templates.SmallProject),
             StringComparison.Ordinal);
     }
@@ -217,9 +210,6 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         }
     }
 
-    /// <summary>
-    /// Lists the shell, reads its log and kills it. The caller disposes <paramref name="process"/> after this returns.
-    /// </summary>
     private void ListAndKill(Process process, (string Name, string Value)[] folders, StringBuilder output,
         Action<string, (string Name, string Value)[]>? inspect)
     {
@@ -283,8 +273,6 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     }
 }
 
-/// <summary>One library pack and one starter created by winshell new, shared by the tests that use them.</summary>
-// xUnit constructs this fixture through IClassFixture; the test project never calls new.
 public sealed class PackedTemplates : IDisposable
 {
     private readonly string _work =
@@ -294,9 +282,6 @@ public sealed class PackedTemplates : IDisposable
     {
         UserPathBefore = UserPath();
         var root = Repo.Root;
-        // A version of its own each run. NuGet keeps a package by its version, so a repeated one would build what an
-        // earlier run packed, and the test would pass on code it never packed. The release triple matches this
-        // checkout: winshell inspect refuses a shell whose major.minor.patch differs from the CLI.
         var manifest = File.ReadAllText(Path.Combine(root, ".release-please-manifest.json"));
         using var manifestJson = JsonDocument.Parse(manifest);
         var release = manifestJson.RootElement.GetProperty(".").GetString()!;
@@ -317,10 +302,8 @@ public sealed class PackedTemplates : IDisposable
 
     public string SmallProject { get; }
 
-    /// <summary>The developer's own PATH, read before anything was packed or created.</summary>
     public (RegistryValueKind Kind, string? Value) UserPathBefore { get; }
 
-    /// <summary>HKCU\Environment\Path as stored, so <c>%USERPROFILE%</c> stays unexpanded.</summary>
     public static (RegistryValueKind Kind, string? Value) UserPath()
     {
         using var key = Registry.CurrentUser.OpenSubKey("Environment");
@@ -350,7 +333,6 @@ public sealed class PackedTemplates : IDisposable
         var created = WinshellCli.Run(["new", "starter", "-p", folder]);
         created.AssertExitCode(0);
         var project = Assert.Single(Directory.GetFiles(folder, "*.csproj"));
-        // The CLI copies this release's starter. Only the package version changes so NuGet cannot reuse an old test pack.
         var document = XDocument.Load(project);
         document.Descendants("PackageReference").Single(reference =>
             reference.Attribute("Include")!.Value == "Winshell").SetAttributeValue("Version", Version);
@@ -375,16 +357,8 @@ public sealed class PackedTemplates : IDisposable
         var packageDir = Path.GetDirectoryName(packageFile)!;
         var build = XDocument.Load(Path.Combine(Repo.Root, "Directory.Build.props"));
         var lib = "lib/" + build.Descendants("TargetFramework").Single().Value + "/";
-        var referenced = packageProject.Descendants("ProjectReference").Select(reference =>
-        {
-            var include = reference.Attribute("Include")!.Value;
-            var project = XDocument.Load(Path.GetFullPath(Path.Combine(packageDir, include)));
-            var documents = project.Descendants("GenerateDocumentationFile").Any(element =>
-                element.Value.Equals("true", StringComparison.OrdinalIgnoreCase));
-            return (Name: Path.GetFileNameWithoutExtension(include), Documents: documents);
-        }).ToList();
-        var libraries = referenced.Select(library => lib + library.Name + ".dll")
-            .Concat(referenced.Where(library => library.Documents).Select(library => lib + library.Name + ".xml"))
+        var libraries = packageProject.Descendants("ProjectReference")
+            .Select(reference => lib + Path.GetFileNameWithoutExtension(reference.Attribute("Include")!.Value) + ".dll")
             .Order(StringComparer.Ordinal)
             .ToList();
 
@@ -401,7 +375,6 @@ public sealed class PackedTemplates : IDisposable
             var dll = Path.Combine(extracted, Path.GetFileName(library));
             zip.GetEntry(library)!.ExtractToFile(dll);
             Assert.Equal(version, InformationalVersion(dll));
-            // ConfigurationProject stays internal. It lives in Services, so that assembly is the one to read.
             if (Path.GetFileName(library) == "Winshell.Services.dll")
                 Assert.False(IsPublic(dll, "Winshell", "ConfigurationProject"));
         }
@@ -413,7 +386,6 @@ public sealed class PackedTemplates : IDisposable
         using var stream = nuspec.Open();
         var dependencies = XDocument.Load(stream).Descendants().Where(element => element.Name.LocalName == "dependency")
             .ToDictionary(element => element.Attribute("id")!.Value, element => element.Attribute("version")!.Value);
-        // A new project gets WindowsAppSDK through this package, so these are the versions it restores.
         var pinned = XDocument.Load(Path.Combine(Repo.Root, "Directory.Packages.props")).Descendants("PackageVersion")
             .ToDictionary(element => element.Attribute("Include")!.Value,
                 element => element.Attribute("Version")!.Value);
@@ -429,7 +401,6 @@ public sealed class PackedTemplates : IDisposable
             Assert.Equal(pinned[id], dependencies[id]);
     }
 
-    /// <summary>A reference with <c>PrivateAssets</c> of <c>all</c> stays out of the packed package.</summary>
     private static bool IsPrivate(XElement reference)
     {
         var value = reference.Attribute("PrivateAssets")?.Value

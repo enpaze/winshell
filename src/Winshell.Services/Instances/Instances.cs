@@ -5,7 +5,6 @@ using System.Text.Json.Serialization;
 
 namespace Winshell;
 
-/// <summary>What a running instance writes about itself, so the CLI can find and reach it.</summary>
 internal sealed record InstanceInfo(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("pid")] int Pid,
@@ -17,13 +16,10 @@ internal sealed record InstanceInfo(
     DateTime LaunchTime,
     [property: JsonPropertyName("pipe")] string Pipe,
     [property: JsonPropertyName("log")] string Log,
-    // UTC ticks of Process.StartTime. Windows reuses process ids, so the pid alone is not this process.
     [property: JsonPropertyName("processStart")]
     long ProcessStart = 0,
-    // Set when the shell exits cleanly. The folder stays so `winshell log` can still find it.
     [property: JsonPropertyName("exitedAt")]
     DateTime? ExitedAt = null,
-    // The process's name, since a configuration's program can have any.
     [property: JsonPropertyName("processName")]
     string? ProcessName = null);
 
@@ -32,10 +28,6 @@ internal sealed record InstanceInfo(
 [JsonSourceGenerationOptions(WriteIndented = true)]
 internal sealed partial class InstanceJson : JsonSerializerContext;
 
-/// <summary>
-/// The instances in one folder, <see cref="ShellLocations.RunRoot"/>, each in a folder of its own that holds its
-/// record, <see cref="RecordName"/>, and its log, <see cref="InstanceLog.FileName"/>.
-/// </summary>
 internal sealed class Instances(string folder)
 {
     private const string RecordName = "instance.json";
@@ -58,10 +50,6 @@ internal sealed class Instances(string folder)
             JsonSerializer.Serialize(info, InstanceJson.Default.InstanceInfo));
     }
 
-    /// <summary>
-    /// A clean exit keeps <c>instance.json</c>, marked with <see cref="InstanceInfo.ExitedAt"/>, so the log
-    /// can still be found. <see cref="Clean"/> deletes the folder once it is a day old.
-    /// </summary>
     public void Remove(string id)
     {
         if (Read(DirOf(id)) is not { ExitedAt: null } info)
@@ -75,7 +63,6 @@ internal sealed class Instances(string folder)
         }
     }
 
-    /// <summary>Every instance that wrote its file, newest first. Dead ones are skipped unless asked for.</summary>
     public List<(InstanceInfo Info, bool Alive)> List(bool includeDead)
     {
         var result = new List<(InstanceInfo Info, bool Alive)>();
@@ -90,15 +77,12 @@ internal sealed class Instances(string folder)
                 result.Add((info, alive));
         }
 
-        // Two files can name one live process when it opened two instances, or when this user cannot read its start
-        // time. The newest is its own.
         return result.Where(row => !row.Alive)
             .Concat(result.Where(row => row.Alive).GroupBy(row => row.Info.Pid)
                 .Select(group => group.MaxBy(row => row.Info.LaunchTime)))
             .OrderByDescending(row => row.Info.LaunchTime).ToList();
     }
 
-    /// <summary>The record in an instance's folder, or null when it has none that can be read.</summary>
     private static InstanceInfo? Read(string dir)
     {
         try
@@ -112,9 +96,6 @@ internal sealed class Instances(string folder)
         }
     }
 
-    /// <summary>
-    /// Whether a process with <paramref name="pid"/> is still running. A process that cannot be opened counts as gone.
-    /// </summary>
     internal static bool ProcessAlive(int pid)
     {
         if (pid <= 0)
@@ -130,10 +111,6 @@ internal sealed class Instances(string folder)
         }
     }
 
-    /// <summary>
-    /// The instance has not exited and its process id still names the process that wrote it. A killed instance leaves
-    /// its file for a day, and Windows can give that process id to the next shell.
-    /// </summary>
     internal static bool IsRunning(InstanceInfo info)
     {
         if (info.ExitedAt is not null)
@@ -149,11 +126,6 @@ internal sealed class Instances(string folder)
         }
     }
 
-    /// <summary>
-    /// True when <paramref name="process"/> wrote the record, as far as this user can tell. This user may not be able
-    /// to open the process, so the name is read first: reading it needs no handle. A process whose start time cannot
-    /// be read is taken at its name.
-    /// </summary>
     internal static bool Wrote(InstanceInfo info, Process process)
     {
         try
@@ -181,7 +153,6 @@ internal sealed class Instances(string folder)
         }
     }
 
-    /// <summary>Waits for the shell a new one takes over from to let go of the taskbar, the hotkeys and the tray.</summary>
     internal static void WaitForExit(int pid)
     {
         try
@@ -191,16 +162,9 @@ internal sealed class Instances(string folder)
         }
         catch (ArgumentException)
         {
-            // It has already gone.
         }
     }
 
-    /// <summary>Removes the folders of instances that are no longer running, keeping their logs a day.</summary>
-    /// <remarks>
-    /// A stopped instance's folder goes once it is a day old, measured from when it exited, or else from the log's last
-    /// write. A folder with no record, from a start that ended before it wrote one, goes on the same rule. A record that
-    /// does not read may be one being written, so its folder stays.
-    /// </remarks>
     public void Clean()
     {
         if (!Directory.Exists(folder))

@@ -7,61 +7,26 @@ using System.Text.RegularExpressions;
 
 namespace Winshell;
 
-/// <summary>
-/// A crash report on disk, and what it is about. A window's report also names the window for a person,
-/// <see cref="Subject"/>, and says what Winshell did about it, <see cref="Recovery"/>.
-/// </summary>
 internal sealed record CrashReport(
     string Path,
-    // The report file names where the runtime failed, and the record keeps that place.
     string Where,
-    // The report file includes the exception, and the record keeps that exception.
     Exception Error,
     bool Fatal)
 {
-    /// <summary>What failed, as a sentence names it: "the taskbar", "a window". Empty when it is not a window.</summary>
     public string Subject { get; init; } = "";
 
-    /// <summary>What Winshell did about it, such as "Winshell opens it again in 1 second." Empty when nothing.</summary>
     public string Recovery { get; init; } = "";
 }
 
-/// <summary>
-/// A report read back from its file. <see cref="Written"/> is the UTC instant in the file name.
-/// <see cref="ExceptionLine"/> is the first line of the exception, or empty when the report has none.
-/// </summary>
 internal readonly record struct CrashRecord(string Path, DateTimeOffset Written, bool Closed, string ExceptionLine);
 
-/// <summary>
-/// A file named as a report that could not be read. <see cref="Written"/> is the UTC instant in its name.
-/// </summary>
 internal readonly record struct CrashFileError(string Path, DateTimeOffset Written, string Message);
 
-/// <summary>
-/// The reports in a folder, newest first. <see cref="FolderError"/> is set when the folder cannot be listed.
-/// <see cref="FileError"/> is the newest file named as a report that could not be read. A missing folder has neither.
-/// </summary>
 internal readonly record struct CrashList(
     IReadOnlyList<CrashRecord> Reports,
     string? FolderError,
     CrashFileError? FileError);
 
-/// <summary>
-/// Writes and reads crash reports: plain text files in one folder on this PC, for a bug report. Nothing is sent
-/// anywhere. A report says where the runtime failed and the exception with its stack, with the secrets
-/// <see cref="CrashRedaction"/> recognizes taken out, and copies the end of the instance's log, which is written with
-/// them taken out already. Several instances can share the folder: each report gets a file of its own, and only files
-/// that are Winshell reports are deleted. A report shows up in the folder only once it is whole and closed. The UTC
-/// instant in the file name is when the report says it was written.
-/// </summary>
-/// <param name="folder">The folder reports go to: the instance's <c>ShellLocations.CrashRoot</c>.</param>
-/// <param name="log">
-/// Where a report that could not be written, or a handler that threw, is recorded. Null when the caller only needs
-/// the null return.
-/// </param>
-/// <param name="shellId">The shell id each report names. Empty when there is none.</param>
-/// <param name="configPath">The configuration each report names. Empty when there is none.</param>
-/// <param name="logPath">The instance's log, whose last lines go into each report. Empty when there is none.</param>
 internal sealed partial class CrashReports(
     string folder,
     Log? log = null,
@@ -69,7 +34,6 @@ internal sealed partial class CrashReports(
     string configPath = "",
     string logPath = "")
 {
-    /// <summary>How many reports the folder keeps. Writing one deletes the oldest beyond this.</summary>
     private const int Keep = 50;
 
     private const string Heading = "Winshell crash report";
@@ -79,7 +43,6 @@ internal sealed partial class CrashReports(
     private const int LogLines = 40;
     private const int LogBytes = 16 * 1024;
 
-    /// <summary>The subfolder a report is written in before it is moved into the folder whole.</summary>
     private const string WritingFolder = "writing";
 
     private static readonly Lock TimeGate = new();
@@ -87,19 +50,12 @@ internal sealed partial class CrashReports(
     private readonly Lock _lock = new();
     private readonly HashSet<string> _reported = [];
 
-    /// <summary>The folder reports go to.</summary>
     public string Folder { get; } = Path.GetFullPath(folder);
 
-    /// <summary>The time a report is written at. Tests set it.</summary>
     internal TimeProvider Time { get; init; } = TimeProvider.System;
 
-    /// <summary>Raised after a report is written, on the thread that wrote it.</summary>
     public event Action<CrashReport>? Written;
 
-    /// <summary>
-    /// Writes a report. Returns null when the folder cannot be written. Nothing it does throws: it runs when
-    /// something else already failed, sometimes as the process ends.
-    /// </summary>
     public CrashReport? Write(string where, Exception error, bool fatal = false, string subject = "",
         string recovery = "")
     {
@@ -113,11 +69,6 @@ internal sealed partial class CrashReports(
         return report;
     }
 
-    /// <summary>
-    /// Writes a report unless one was already written for the same exceptions thrown along the same stacks from the
-    /// same place, so work that fails each time it runs, such as a timer, writes one report rather than filling
-    /// the disk. A report that could not be written is tried again the next time.
-    /// </summary>
     public CrashReport? WriteOnce(string where, Exception error, string subject = "", string recovery = "")
     {
         CrashReport? report;
@@ -149,10 +100,6 @@ internal sealed partial class CrashReports(
         }
     }
 
-    /// <summary>
-    /// What makes two failures the same: where, and each exception's type and full stack, inner and aggregated ones
-    /// included. Messages are left out, since they often carry values that change from one run to the next.
-    /// </summary>
     private static string Fingerprint(string where, Exception error)
     {
         var text = new StringBuilder(where);
@@ -178,8 +125,6 @@ internal sealed partial class CrashReports(
         {
             var now = Time.GetLocalNow();
             var text = Format(now, where, error, fatal, recovery);
-            // A report is written whole in a subfolder, then moved in, so whoever reads the folder never finds one
-            // half written or still open.
             var writing = Path.Combine(Folder, WritingFolder);
             Directory.CreateDirectory(writing);
             var temp = Path.Combine(writing, $"{Environment.ProcessId}-{Guid.NewGuid():N}.txt");
@@ -195,8 +140,6 @@ internal sealed partial class CrashReports(
                     stream.Flush(true);
                 }
 
-                // The name is unique to this process and instant; another instance writing into the folder at the same
-                // time cannot take it over, since a report is moved only to a name that is not there yet.
                 var path = Path.Combine(Folder, FileName(NextTicks(now.UtcTicks), where));
                 File.Move(temp, path, false);
                 Prune(path);
@@ -204,7 +147,6 @@ internal sealed partial class CrashReports(
             }
             finally
             {
-                // Already gone once moved; this deletes what a failed write or move left.
                 try
                 {
                     File.Delete(temp);
@@ -221,7 +163,6 @@ internal sealed partial class CrashReports(
         }
     }
 
-    /// <summary>The instant of a new report: never the same as, or before, the last one this process wrote.</summary>
     private static long NextTicks(long utcTicks)
     {
         lock (TimeGate)
@@ -231,7 +172,6 @@ internal sealed partial class CrashReports(
         }
     }
 
-    /// <summary><c>crash-20261029-140312-1234567Z-4321-winshell.txt</c>: the UTC instant, the process, where.</summary>
     private static string FileName(long utcTicks, string where)
     {
         return
@@ -241,10 +181,6 @@ internal sealed partial class CrashReports(
     [GeneratedRegex(@"^crash-(?<time>\d{8}-\d{6}-\d{7})Z-(?<pid>\d{1,10})-[a-z0-9\-]{1,40}\.txt$")]
     private static partial Regex ReportName();
 
-    /// <summary>
-    /// Where a report stands among the others: by the UTC instant in its name, then the process, then the name. The
-    /// greatest is the newest.
-    /// </summary>
     private readonly record struct ReportOrder(long Ticks, long Pid, string Name) : IComparable<ReportOrder>
     {
         public DateTimeOffset Written => new(Ticks, TimeSpan.Zero);
@@ -256,7 +192,6 @@ internal sealed partial class CrashReports(
         }
     }
 
-    /// <summary>Where the file <paramref name="name"/> stands among reports, or null when it is not named as one.</summary>
     private static ReportOrder? OrderOf(string name)
     {
         var m = ReportName().Match(name);
@@ -267,7 +202,6 @@ internal sealed partial class CrashReports(
         return new ReportOrder(time.Ticks, long.Parse(m.Groups["pid"].Value, CultureInfo.InvariantCulture), name);
     }
 
-    /// <summary>A file name part: lowercase letters and digits, the rest dashes.</summary>
     private static string Slug(string text)
     {
         var slug = new StringBuilder();
@@ -321,7 +255,6 @@ internal sealed partial class CrashReports(
         return text.ToString();
     }
 
-    /// <summary>The exception as .NET writes it, or its type and message when writing it throws too.</summary>
     private static string Describe(Exception error)
     {
         try
@@ -334,7 +267,6 @@ internal sealed partial class CrashReports(
         }
     }
 
-    /// <summary>The last lines of the log, as they are. Only the end of the log is read.</summary>
     private List<string> LogTail()
     {
         if (logPath.Length == 0 || !File.Exists(logPath))
@@ -348,7 +280,6 @@ internal sealed partial class CrashReports(
             stream.Seek(start, SeekOrigin.Begin);
             using var reader = new StreamReader(stream);
             lines = reader.ReadToEnd().Split('\n').Select(l => l.TrimEnd('\r')).ToList();
-            // The first line may start halfway; the last is empty after the final newline.
             if (start > 0 && lines.Count > 0)
                 lines.RemoveAt(0);
             if (lines.Count > 0 && lines[^1].Length == 0)
@@ -362,10 +293,6 @@ internal sealed partial class CrashReports(
         return [.. lines.TakeLast(LogLines)];
     }
 
-    /// <summary>
-    /// Deletes the oldest reports beyond <see cref="Keep"/>. Only files named and headed as Winshell reports are
-    /// counted or deleted, and nothing is deleted when the folder is a link or junction to somewhere else.
-    /// </summary>
     private void Prune(string written)
     {
         try
@@ -403,10 +330,6 @@ internal sealed partial class CrashReports(
         }
     }
 
-    /// <summary>
-    /// The reports in <paramref name="folder"/>, newest first. A report's name carries a UTC instant and its first
-    /// line is the heading. A missing folder has none. A file whose name is not a report is left out.
-    /// </summary>
     public static CrashList List(string folder)
     {
         if (!Directory.Exists(folder))
@@ -438,7 +361,6 @@ internal sealed partial class CrashReports(
 
     private readonly record struct RecordRead(CrashRecord? Record, string? Error);
 
-    /// <summary>The report in <paramref name="path"/>, or why it cannot be read. A file that is not a report has neither.</summary>
     private static RecordRead ReadRecord(string path, DateTimeOffset written)
     {
         try
@@ -468,13 +390,11 @@ internal sealed partial class CrashReports(
         }
     }
 
-    /// <summary>Whether a line is the heading a report starts with. The whole line must match.</summary>
     private static bool IsHeading([NotNullWhen(true)] string? line)
     {
         return line == Heading;
     }
 
-    /// <summary>Whether the file's first line is the report heading. A file that cannot be read is not one.</summary>
     private static bool StartsWithHeading(string path)
     {
         try

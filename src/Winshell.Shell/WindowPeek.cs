@@ -3,10 +3,6 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>
-/// Windows' peek: DWM shows one window at full size and hides the others, until it is told to stop. It stays off
-/// when the user turned peek off in System Properties, and when this build of Windows has no such call.
-/// </summary>
 internal sealed class WindowPeek(Func<bool> turnedOn, Func<bool, nint, nint, bool> set)
 {
     private nint _window;
@@ -17,7 +13,6 @@ internal sealed class WindowPeek(Func<bool> turnedOn, Func<bool, nint, nint, boo
         return new WindowPeek(SettingIsOn, DwmLivePreview.Set);
     }
 
-    /// <summary>Peeks at a window, or at nothing when it is 0, leaving the window <paramref name="above"/> in front.</summary>
     public void Show(nint window, nint above)
     {
         if (window == _window && above == _above)

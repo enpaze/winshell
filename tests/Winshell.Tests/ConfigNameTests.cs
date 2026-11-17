@@ -1,6 +1,5 @@
 namespace Winshell.Tests;
 
-/// <summary><c>-c</c> names one folder in the config folder. It can't be empty or leave that folder.</summary>
 public class ConfigNameTests
 {
     [Theory]

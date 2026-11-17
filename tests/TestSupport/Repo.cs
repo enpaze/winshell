@@ -1,7 +1,5 @@
 namespace Winshell.TestSupport;
 
-// Each test project compiles this file, so a use in another project is invisible here.
-/// <summary>The repository these tests were built from.</summary>
 internal static class Repo
 {
     public static string Root { get; } = Find();

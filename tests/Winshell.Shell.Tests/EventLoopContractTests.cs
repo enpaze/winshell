@@ -3,10 +3,6 @@ using Xunit.Sdk;
 
 namespace Winshell.ShellTests;
 
-/// <summary>
-/// Ordering, timer cancellation and failure reporting, once each for the test loop and for
-/// <see cref="DispatcherLoop"/>. The dispatcher runs on the shared real shell.
-/// </summary>
 public sealed partial class EventLoopContractTests
 {
     [Fact]
@@ -39,7 +35,6 @@ public sealed partial class EventLoopContractTests
         await PostedWorkThatThrowsIsReported(Manual());
     }
 
-    // The shell shows its crash notice for the failure.
     [Fact]
     [Trait("Category", "Window")]
     public async Task Posted_work_that_throws_is_reported_and_later_work_runs_on_the_dispatcher()
@@ -109,7 +104,6 @@ public sealed partial class EventLoopContractTests
 
     private static async Task ADisposedTimerDoesNotFire(LoopRun run)
     {
-        // The callbacks write these counters, and the test reads them after Settle.
         var cancelled = 0;
         var kept = 0;
         var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -137,7 +131,6 @@ public sealed partial class EventLoopContractTests
             run.Loop.Post(() => throw new InvalidOperationException("posted"));
             run.Loop.Post(() =>
             {
-                // The callback sets ran, and the assertion reads it after Settle.
                 Interlocked.Exchange(ref ran, 1);
                 finished.SetResult();
             });
@@ -179,8 +172,6 @@ public sealed partial class EventLoopContractTests
             }
             finally
             {
-                // The shell posts the crash notice after the report is flushed, which can sit behind this wait.
-                // Post the hide here so it runs after that show. A nested On waits on the gate this turn holds.
                 var hidden = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 shell.Loop.Post(() =>
                 {

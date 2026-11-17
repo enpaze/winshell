@@ -55,8 +55,8 @@ public sealed class WindowRulesTests
     public void Caret_cursor_and_child_objects_are_not_window_events()
     {
         Assert.True(WindowRules.IsWindowObject((int)OBJECT_IDENTIFIER.OBJID_WINDOW, (int)PInvoke.CHILDID_SELF));
-        Assert.False(WindowRules.IsWindowObject(-8 /* OBJID_CARET */, (int)PInvoke.CHILDID_SELF));
-        Assert.False(WindowRules.IsWindowObject(-9 /* OBJID_CURSOR */, (int)PInvoke.CHILDID_SELF));
+        Assert.False(WindowRules.IsWindowObject(-8, (int)PInvoke.CHILDID_SELF));
+        Assert.False(WindowRules.IsWindowObject(-9, (int)PInvoke.CHILDID_SELF));
         Assert.False(WindowRules.IsWindowObject((int)OBJECT_IDENTIFIER.OBJID_WINDOW, 1));
     }
 

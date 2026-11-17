@@ -3,14 +3,8 @@ using System.Runtime.CompilerServices;
 
 namespace Winshell.Core.Tests;
 
-/// <summary>
-/// What a crash report must not do: keep a secret, hide a different crash, lose a report to another writer, show up
-/// half written, keep the wrong ones, or delete a file that is not a report. And windows that fail while they are first made or placed.
-/// Every file is under a temp folder this class creates.
-/// </summary>
 public sealed class CrashReportSafetyTests : IDisposable
 {
-    /// <summary>How many reports the folder keeps, as docs/development.md says.</summary>
     private const int Keep = 50;
 
     private readonly string _root =
@@ -23,7 +17,6 @@ public sealed class CrashReportSafetyTests : IDisposable
 
     public void Dispose()
     {
-        // A junction is removed as a link, so what it points at is deleted once, through its own path.
         foreach (var dir in Directory.EnumerateDirectories(_root))
             if (new DirectoryInfo(dir).LinkTarget is not null)
                 Directory.Delete(dir);
@@ -80,8 +73,6 @@ public sealed class CrashReportSafetyTests : IDisposable
         throw new InvalidOperationException("second task");
     }
 
-    // Privacy
-
     [Fact]
     public void Secrets_in_the_exception_and_its_inner_exceptions_are_taken_out()
     {
@@ -102,7 +93,6 @@ public sealed class CrashReportSafetyTests : IDisposable
         Assert.DoesNotContain("eyJ", text, StringComparison.Ordinal);
         Assert.DoesNotContain("AbCdEfGh1234567890IjKlMnOp", text, StringComparison.Ordinal);
         Assert.Contains("[redacted]", text, StringComparison.Ordinal);
-        // What makes the report useful stays: the URL's host and path, the types and the stack.
         Assert.Contains("https://[redacted]@example.com/path?[redacted]", text, StringComparison.Ordinal);
         Assert.Contains("Authorization: [redacted]", text, StringComparison.Ordinal);
         Assert.Contains("System.Net.Http.HttpRequestException", text, StringComparison.Ordinal);
@@ -141,13 +131,10 @@ public sealed class CrashReportSafetyTests : IDisposable
         Assert.Equal(text, CrashRedaction.Redact(text));
     }
 
-    // Deduplication
-
     [Fact]
     public void Two_different_task_failures_are_two_reports()
     {
         var crashes = new CrashReports(Folder());
-        // As TaskScheduler.UnobservedTaskException gives them: aggregates that were never thrown themselves.
         var first = new AggregateException(Catch(FirstTask));
         var second = new AggregateException(Catch(SecondTask));
         Assert.Null(first.StackTrace);
@@ -181,8 +168,6 @@ public sealed class CrashReportSafetyTests : IDisposable
         Assert.Null(crashes.WriteOnce("event loop", Catch(FirstCaller)));
     }
 
-    // Retention and the folder
-
     [Fact]
     public void Pruning_deletes_only_winshell_reports()
     {
@@ -192,7 +177,6 @@ public sealed class CrashReportSafetyTests : IDisposable
         {
             "0000-user-notes.txt",
             "crash-notes.txt",
-            // Named like a report, but not one.
             "crash-20000101-000000-0000000Z-1-old.txt"
         };
         foreach (var name in others)
@@ -211,7 +195,6 @@ public sealed class CrashReportSafetyTests : IDisposable
     {
         var target = Folder("elsewhere");
         Directory.CreateDirectory(target);
-        // Reports a user moved there, or another program's files: none is the crash folder's to delete.
         var crashes = new CrashReports(target);
         var moved = Enumerable.Range(0, 3)
             .Select(i => crashes.Write($"moved {i}", new InvalidOperationException("x"))!.Path).ToList();
@@ -219,7 +202,6 @@ public sealed class CrashReportSafetyTests : IDisposable
         var link = Folder();
         Junction(link, target);
 
-        // Enough to push the moved reports past what the folder keeps.
         var through = new CrashReports(link);
         for (var i = 0; i < Keep; i++)
             Assert.NotNull(through.Write("through the junction", new InvalidOperationException("x")));
@@ -250,7 +232,6 @@ public sealed class CrashReportSafetyTests : IDisposable
     [Fact]
     public void Retention_follows_the_utc_instant_across_a_clock_change()
     {
-        // Daylight saving ends: 02:30 at +02:00 is 00:30 UTC; twenty minutes on the wall later it is 02:10 at +01:00, 01:10 UTC.
         var time = new FakeTimeProvider(new DateTimeOffset(2031, 10, 26, 2, 30, 0, TimeSpan.FromHours(2))
             .ToUniversalTime());
         time.SetLocalTimeZone(ZoneAt(2));
@@ -275,8 +256,6 @@ public sealed class CrashReportSafetyTests : IDisposable
     [Fact]
     public void Two_writers_sharing_the_folder_never_overwrite_each_other()
     {
-        // As two instances would: separate writers, each with its own lock, on one folder at one instant. Together
-        // they write no more than the folder keeps, so every report is still there to count.
         var instant = new DateTimeOffset(2032, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var writers = Enumerable.Range(0, 4).Select(_ => new CrashReports(Folder())
         { Time = new FakeTimeProvider(instant) }).ToList();
@@ -297,7 +276,6 @@ public sealed class CrashReportSafetyTests : IDisposable
             t[t.IndexOf("InvalidOperationException: ", StringComparison.Ordinal)..].Split('\n')[0].Trim()).ToList();
         Assert.Equal(total, messages.Distinct().Count());
 
-        // Writing past what the folder keeps brings it back to that.
         var keeping = new CrashReports(Folder());
         var newest = "";
         for (var i = total; i <= Keep; i++)
@@ -309,9 +287,6 @@ public sealed class CrashReportSafetyTests : IDisposable
     [Fact]
     public void A_reader_of_the_folder_only_ever_finds_whole_reports()
     {
-        // Read every file in the folder while reports go in, refusing to share with a writer, so a report still being
-        // written fails the open. Delete is shared: a file just renamed into a folder is still open to the rename for
-        // an instant. A long message keeps each write busy long enough for the reader to land in the middle of it.
         var folder = Folder();
         Directory.CreateDirectory(folder);
         var crashes = new CrashReports(folder);
@@ -321,7 +296,6 @@ public sealed class CrashReportSafetyTests : IDisposable
         var writing = true;
         var reader = new Thread(() =>
             {
-                // The writer clears this flag to stop the reader.
                 while (Volatile.Read(ref writing))
                     foreach (var file in Directory.GetFiles(folder))
                         try

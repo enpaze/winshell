@@ -4,7 +4,6 @@ using System.Text.Json.Serialization;
 
 namespace Winshell;
 
-/// <summary>One running instance as <c>winshell list --json</c> prints it. The instance file has its own type.</summary>
 internal sealed record InstanceListItem(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("pid")] int Pid,
@@ -29,7 +28,6 @@ internal sealed record InstanceListItem(
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal sealed partial class CliJsonContext : JsonSerializerContext;
 
-/// <summary>The JSON <c>list --json</c> and <c>ipc show -j</c> write. Escaping matches <c>doctor --json</c>.</summary>
 internal static class CliJson
 {
     public static string Instances(IEnumerable<InstanceInfo> instances)
@@ -42,14 +40,12 @@ internal static class CliJson
         return Write(targets as List<IpcTargetView> ?? targets.ToList());
     }
 
-    /// <summary>The target list the control pipe returned for <c>ipc show -j</c>, in the command's own JSON.</summary>
     public static string IpcShow(string payload)
     {
         var targets = JsonSerializer.Deserialize(payload, CliJsonContext.Default.ListIpcTargetView) ?? [];
         return IpcShow(targets);
     }
 
-    /// <summary>The writer is <see cref="JsonText.IndentedWriter"/>, the same one <c>doctor --json</c> uses.</summary>
     private static string Write<T>(T value)
     {
         using var stream = new MemoryStream();

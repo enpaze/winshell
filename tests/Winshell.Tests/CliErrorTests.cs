@@ -1,9 +1,5 @@
 namespace Winshell.Tests;
 
-/// <summary>
-/// A command other than <c>run</c> prints one sentence when the environment fails, and exits 1.
-/// The shell's own crash reporting is left alone. With nothing running, kill says so plainly and list says how to start one.
-/// </summary>
 public class CliErrorTests
 {
     [Fact]
@@ -41,7 +37,7 @@ public class CliErrorTests
 
     private static ChildProcess Run(params string[] args)
     {
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         return WinshellCli.Run(
             args,
             ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));

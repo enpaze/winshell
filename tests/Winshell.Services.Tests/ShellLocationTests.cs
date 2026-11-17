@@ -1,9 +1,5 @@
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// The config and local roots follow the Windows profile unless <c>WINSHELL_CONFIG_DIR</c> or
-/// <c>WINSHELL_LOCAL_DIR</c> names another folder. The folders under the local root are files on disk users find.
-/// </summary>
 public class ShellLocationTests
 {
     [Theory]
@@ -20,7 +16,6 @@ public class ShellLocationTests
     [Fact]
     public void The_local_override_names_the_local_root()
     {
-        // LocalFolder gives every test here its own WINSHELL_LOCAL_DIR.
         var local = Environment.GetEnvironmentVariable("WINSHELL_LOCAL_DIR")!;
 
         Assert.Equal(local, ShellLocations.Current.LocalRoot);

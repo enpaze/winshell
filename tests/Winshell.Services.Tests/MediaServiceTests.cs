@@ -31,7 +31,6 @@ public sealed class MediaServiceTests
         _native = Native(_link);
     }
 
-    /// <summary>A session with no Windows behind it. Its commands land on the link.</summary>
     private SmtcSession Native(RecordingLink link, string appId = "test")
     {
         return new SmtcSession(_loop, _log, appId, appId, link);
@@ -226,7 +225,6 @@ public sealed class MediaServiceTests
     {
         var changes = Watch(Session());
 
-        // The names are the properties this check asserts were raised.
         void Raised(params string[] names)
         {
             Assert.Superset(names.ToHashSet(), changes.ToHashSet());

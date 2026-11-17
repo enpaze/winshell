@@ -4,10 +4,6 @@ using StartupTaskState = Windows.ApplicationModel.StartupTaskState;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// The sentence <c>winshell doctor</c> prints for a sign-in answer. Production reads this process and calls
-/// <see cref="DoctorSignIn.Check"/>; these build that answer from the facts a test supplies.
-/// </summary>
 internal static class SignInSentences
 {
     public static DoctorCheck SignIn(string? command, bool turnedOff, string thisExe, string configRoot,

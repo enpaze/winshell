@@ -8,15 +8,8 @@ using Winshell.Capture;
 
 namespace Winshell;
 
-/// <summary>
-/// A live view of a <see cref="CaptureSession"/>. The frame is fitted and centered, keeping its aspect ratio.
-/// Its natural size is the frame's physical size divided by this window's scale. The frame is written once into
-/// the bitmap, on the thread that delivered it, so the session's loop is this window's. The view lets go of the
-/// session when it leaves the tree.
-/// </summary>
 public sealed partial class CaptureView : Panel
 {
-    /// <summary>The capture to show. Null shows nothing.</summary>
     public static readonly DependencyProperty SessionProperty = DependencyProperty.Register(
         nameof(Session),
         typeof(CaptureSession),
@@ -30,7 +23,6 @@ public sealed partial class CaptureView : Panel
     private readonly ShellWindowSubscription _shell;
     private WriteableBitmap? _bitmap;
 
-    /// <summary>A view with no session, which shows nothing.</summary>
     public CaptureView()
     {
         _shell = new ShellWindowSubscription(OnShellChanged);
@@ -39,17 +31,12 @@ public sealed partial class CaptureView : Panel
         Unloaded += (_, _) => OnUnloaded();
     }
 
-    /// <summary>The capture to show. Null shows nothing.</summary>
     public CaptureSession? Session
     {
         get => (CaptureSession?)GetValue(SessionProperty);
         set => SetValue(SessionProperty, value);
     }
 
-    /// <summary>
-    /// Asks for the frame's natural size, scaled down to fit <paramref name="availableSize"/> with its aspect ratio
-    /// kept. Zero without a frame.
-    /// </summary>
     protected override Size MeasureOverride(Size availableSize)
     {
         var size = Fit(Natural(), availableSize);
@@ -57,7 +44,6 @@ public sealed partial class CaptureView : Panel
         return size;
     }
 
-    /// <summary>Gives the frame all of <paramref name="finalSize"/>; the frame is fitted and centered in it.</summary>
     protected override Size ArrangeOverride(Size finalSize)
     {
         _image.Arrange(new Rect(0, 0, finalSize.Width, finalSize.Height));
@@ -126,7 +112,6 @@ public sealed partial class CaptureView : Panel
             return;
         }
 
-        // One bitmap is reused while the frame size stays, so a live view does not allocate one per frame.
         var resized = _bitmap is null || _bitmap.PixelWidth != frame.Width || _bitmap.PixelHeight != frame.Height;
         if (resized)
             _bitmap = new WriteableBitmap(frame.Width, frame.Height);

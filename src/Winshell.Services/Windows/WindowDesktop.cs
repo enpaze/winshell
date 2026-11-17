@@ -3,15 +3,10 @@ using Winshell.Native;
 
 namespace Winshell.Windows;
 
-/// <summary>
-/// Which virtual desktop a window is on, and moving it to another, through the supported
-/// <c>IVirtualDesktopManager</c>. Unlike the desktop list in <see cref="VirtualDesktopBackend"/>, it works on every build.
-/// </summary>
 internal static class WindowDesktop
 {
     private static WindowDesktopManager? _manager;
 
-    /// <summary>The id of the desktop the window is on, or empty when Windows does not say.</summary>
     public static string IdOf(nint hwnd)
     {
         if (hwnd == 0)
@@ -32,7 +27,6 @@ internal static class WindowDesktop
         }
     }
 
-    /// <summary>Moves the window to that desktop. False, with why, when Windows refuses or the manager is unavailable.</summary>
     public static bool Move(nint hwnd, Guid desktop, out string problem)
     {
         if (hwnd == 0 || desktop == Guid.Empty)

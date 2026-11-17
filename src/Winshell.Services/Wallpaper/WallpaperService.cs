@@ -1,14 +1,5 @@
 namespace Winshell.Wallpaper;
 
-/// <summary>
-/// The desktop wallpaper Windows draws. Each screen has its own image. The fit and the background color are shared,
-/// and a change stays after the shell exits, because it is Windows' own setting. A slideshow or Windows Spotlight
-/// reports the image Windows is showing on that screen, or none when Windows reports no image. This does not manage
-/// a slideshow.
-/// Windows writes several values for one change and does not broadcast it, so a change made in Settings is read a
-/// tenth of a second later and raised on the loop's thread. Until a reading succeeds there are no screens. A later
-/// reading that cannot reach Explorer's desktop leaves the last one in place, and a set does nothing.
-/// </summary>
 public sealed class WallpaperService : ObservableObject, IDisposable
 {
     private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(100);
@@ -30,25 +21,12 @@ public sealed class WallpaperService : ObservableObject, IDisposable
         Apply(_backend.Read());
     }
 
-    /// <summary>
-    /// Each screen's wallpaper, in the order Windows lists the monitors. Empty when the desktop wallpaper cannot
-    /// be read.
-    /// </summary>
     public IReadOnlyList<WallpaperScreen> Screens => Read(_screens);
 
-    /// <summary>How the image is fitted. The same fit is used on every screen.</summary>
     public WallpaperFit Fit => Read(_fit);
 
-    /// <summary>
-    /// The color behind the image, and the color of a screen with no image. The same color is used on every screen.
-    /// </summary>
     public WallpaperColor Background => Read(_background);
 
-    /// <summary>
-    /// Sets <paramref name="image"/> on <paramref name="screen"/> and leaves the others as they are. An unknown
-    /// screen, an empty path and the image already there are ignored. Returns whether Windows was asked. Call it on
-    /// the loop's thread. <paramref name="image"/> is the full path of an image file.
-    /// </summary>
     public bool SetImage(WallpaperScreen screen, string image)
     {
         ArgumentNullException.ThrowIfNull(screen);
@@ -63,11 +41,6 @@ public sealed class WallpaperService : ObservableObject, IDisposable
         return true;
     }
 
-    /// <summary>
-    /// Sets <paramref name="image"/> on every screen. An empty path, and an image every screen already shows, are
-    /// ignored. Returns whether Windows was asked. Call it on the loop's thread. <paramref name="image"/> is the
-    /// full path of an image file.
-    /// </summary>
     public bool SetImage(string image)
     {
         ArgumentNullException.ThrowIfNull(image);
@@ -81,11 +54,6 @@ public sealed class WallpaperService : ObservableObject, IDisposable
         return true;
     }
 
-    /// <summary>
-    /// Sets the fit every screen uses. The fit already in use, and one Windows does not define, are ignored. Until a
-    /// reading succeeds, the fit shown is not one Windows reported, so setting it still asks Windows. Returns whether
-    /// Windows was asked. Call it on the loop's thread.
-    /// </summary>
     public bool SetFit(WallpaperFit fit)
     {
         if (_disposed || !Enum.IsDefined(fit) || (_known && fit == _fit))
@@ -96,11 +64,6 @@ public sealed class WallpaperService : ObservableObject, IDisposable
         return true;
     }
 
-    /// <summary>
-    /// Sets the background color every screen uses. The color already in use is ignored. Until a reading succeeds, the
-    /// color shown is not one Windows reported, so setting it still asks Windows. Returns whether Windows was asked.
-    /// Call it on the loop's thread.
-    /// </summary>
     public bool SetBackground(WallpaperColor color)
     {
         if (_disposed || (_known && color == _background))
@@ -111,7 +74,6 @@ public sealed class WallpaperService : ObservableObject, IDisposable
         return true;
     }
 
-    /// <summary>Stops watching the wallpaper, and a later set does nothing.</summary>
     public void Dispose()
     {
         if (_disposed)

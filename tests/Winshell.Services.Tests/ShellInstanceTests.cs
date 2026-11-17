@@ -4,7 +4,6 @@ using System.Text.Json;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>The life of an instance, with the control pipe and its protocol, and no shell behind it.</summary>
 [Collection(InstanceRunCollection.Name)]
 public sealed class ShellInstanceTests
 {
@@ -29,7 +28,6 @@ public sealed class ShellInstanceTests
         throw new InvalidOperationException("The server closed the pipe without answering.");
     }
 
-    /// <summary>Sends one raw line, as a client from another version would, and reads the answer.</summary>
     private static async Task<string?> AskRaw(string pipe, string line)
     {
         await using var client = new NamedPipeClientStream(".", pipe, PipeDirection.InOut, PipeOptions.Asynchronous);
@@ -48,7 +46,6 @@ public sealed class ShellInstanceTests
         return (pipe, loop, new IpcServer(IpcServer.OpenFirst(pipe), pipe, loop, Log.Default, control));
     }
 
-    /// <summary>Runs posted work on a thread of the test's own while the client waits for its answer.</summary>
     private static async Task<T> Pumping<T>(EventQueue loop, Func<Task<T>> ask)
     {
         var answer = ask();
@@ -73,7 +70,6 @@ public sealed class ShellInstanceTests
         row = Assert.Single(Rows(instance));
         Assert.False(row.Alive);
         Assert.NotNull(row.Info.ExitedAt);
-        // The pipe closed with it, so the name is free again.
         IpcServer.OpenFirst(instance.Pipe).Dispose();
     }
 
@@ -103,7 +99,6 @@ public sealed class ShellInstanceTests
 
         Assert.False(Directory.Exists(ShellLocations.Current.Instances.DirOf(instance.Id)));
         Assert.Empty(Rows(instance));
-        // The name is free again.
         IpcServer.OpenFirst(instance.Pipe).Dispose();
     }
 
@@ -174,7 +169,6 @@ public sealed class ShellInstanceTests
     [Fact]
     public async Task A_kill_reaches_a_shell_whatever_its_program_is_called()
     {
-        // The server here is this test program, which the client now trusts by owner and integrity alone.
         var control = new FakeInstanceControl();
         var (pipe, loop, server) = Serve(control);
         using var _ = server;
@@ -365,7 +359,6 @@ public sealed class ShellInstanceTests
 
         await Ask(pipe, IpcRequest.ForKill());
 
-        // Kill must reach a shell of any release, so the line is pinned in full: an older shell has to read every field of it.
         var version = JsonSerializer.Serialize(ProductVersion.Current.Text);
         Assert.Equal(
             $$"""{"op":"kill","target":null,"name":null,"args":null,"protocol":{{IpcProtocol.Current}},"winshell":{{version}}}""",

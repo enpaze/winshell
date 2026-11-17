@@ -5,27 +5,17 @@ using Winshell.Native;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// Another process holds the foreground and is the last one that sent input. What <see cref="Focus.Take"/> does
-/// before its key tap then leaves focus where it was, and the tap is what moves it. A foreground lock timeout of
-/// zero never produces that refusal: any process may take the foreground, so the test says so instead of waiting
-/// out its patience. The same when the holder sends input and never becomes the foreground.
-/// </summary>
 [Trait("Category", "Window")]
 public sealed class FocusTakeoverTests
 {
-    /// <summary>How often Windows may hand over the foreground with no key tap before that is the machine, not a race.</summary>
     private const int GrantsThatMeanNoLock = 3;
 
     private enum Refusal
     {
-        /// <summary>The holder is not yet the foreground process that last sent input.</summary>
         Waiting,
 
-        /// <summary><see cref="Focus.Take"/> without its key tap left the window unfocused.</summary>
         Refused,
 
-        /// <summary>This process took the foreground without a key tap.</summary>
         Granted
     }
 
@@ -55,18 +45,12 @@ public sealed class FocusTakeoverTests
             var grants = 0;
             await Wait.UntilAsync(() =>
             {
-                // The holder gives up once its taps have not made it the foreground. That is the precondition
-                // failing, not a reason to sit out the rest of the patience.
-                // The wait returns before this method disposes the handle.
                 if (blocked.WaitOne(0))
                     Assert.Fail("Could not establish the precondition: the focus holder sent input and never " +
                                 "became the foreground. " + errors);
-                // The wait returns before this method disposes the holder and these handles.
                 var refusal = Observe(holder, steady, tapped, window.Handle, errors);
                 if (refusal != Refusal.Granted)
                     return refusal == Refusal.Refused;
-                // Each grant is Focus.Take without the key tap. If that keeps working, the tap is not what moved
-                // focus, and another wait will not make a refusal appear.
                 grants++;
                 if (grants == GrantsThatMeanNoLock)
                     Assert.Fail("Could not establish the precondition: Windows gave this process the foreground " +
@@ -74,14 +58,11 @@ public sealed class FocusTakeoverTests
                 return false;
             }, "could not establish the precondition: the focus holder never started");
 
-            // The holder stays put, so a foreground change that lands after SetForegroundWindow returns is visible.
-            // Take is the same steps as the refusal check, plus the key tap.
             Focus.Take(window.Handle);
             Wait.Until(() => PInvoke.GetForegroundWindow() == window.Handle,
                 "Focus.Take to give the window the keyboard after Windows had refused it",
                 TimeSpan.FromSeconds(5), () =>
                 {
-                    // The holder is still the process this check reads; the method disposes it after the wait.
                     if (holder.HasExited)
                         Assert.Fail("The focus holder exited early (" + holder.ExitCode + "). " + errors);
                 });
@@ -93,12 +74,6 @@ public sealed class FocusTakeoverTests
         }
     }
 
-    /// <summary>
-    /// Stops the holder and puts the previous window back. This still runs when opening the test window throws,
-    /// and when the test deadline has already cancelled the wait: that wait would return at once and leave the
-    /// holder's session lock held. Killing the holder releases that lock and skips the timeout restore, so a
-    /// timeout this test imposed is put back here.
-    /// </summary>
     private static async Task ReleaseHolder(EventWaitHandle stop, Process holder, EventWaitHandle imposed,
         nint previous, PumpedWindow? window, bool passed, StringBuilder errors)
     {
@@ -107,8 +82,6 @@ public sealed class FocusTakeoverTests
         var restoreFailed = false;
         try
         {
-            // Leaving the loop unlocks the session and restores the timeout. Kill is only for a holder that
-            // never notices stop; process exit still releases the foreground lock.
             if (!holder.HasExited && !holder.WaitForExit(5000))
             {
                 killed = true;
@@ -118,7 +91,6 @@ public sealed class FocusTakeoverTests
         }
         finally
         {
-            // The timeout is session state. It survives the kill that releases the foreground lock.
             if (imposed.WaitOne(0) && (killed || !holder.HasExited || holder.ExitCode != 0))
                 restoreFailed = !RestoreZeroTimeout(errors);
             try
@@ -139,13 +111,11 @@ public sealed class FocusTakeoverTests
             Assert.Fail("The focus holder did not restore the foreground lock (" + holder.ExitCode + "). " + errors);
     }
 
-    /// <summary>Puts a timeout of zero back after the holder was killed or its own restore failed.</summary>
     private static bool RestoreZeroTimeout(StringBuilder errors)
     {
         var powershell = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
         var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(RestoreTimeoutProgram));
         using var process = new Process();
-        // Assigned after the using owns the process, so a failure here still disposes it.
         process.StartInfo = new ProcessStartInfo
         {
             FileName = powershell,
@@ -170,18 +140,11 @@ public sealed class FocusTakeoverTests
         return process.ExitCode == 0;
     }
 
-    /// <summary>
-    /// The holder has sent input and is foreground, and <see cref="Focus.Take"/> without its key tap still leaves
-    /// <paramref name="window"/> without the keyboard. A late grant counts as <see cref="Refusal.Granted"/>: the
-    /// foreground switch is not always visible in the call that asked for it.
-    /// </summary>
     private static Refusal Observe(Process holder, EventWaitHandle steady, EventWaitHandle tapped, nint window,
         StringBuilder errors)
     {
         if (holder.HasExited)
             Assert.Fail("The focus holder exited early (" + holder.ExitCode + "). " + errors);
-        // The holder injects again only while tapped is clear. A foreground it has already lost has to be
-        // cleared here, or the holder stops and this wait runs out its patience.
         var holderInFront = ForegroundProcess() == (uint)holder.Id;
         if (!holderInFront || !tapped.WaitOne(0))
         {
@@ -200,8 +163,6 @@ public sealed class FocusTakeoverTests
 
         if (!TakenWithoutTheKey(window))
         {
-            // Nothing else signals that Windows declined. A switch that is only late must not look like a refusal,
-            // or Focus.Take would be credited for a handover that was already on its way.
             Wait.ForNothingToHappen(TimeSpan.FromSeconds(1));
             if (holder.HasExited)
                 Assert.Fail("The focus holder exited early (" + holder.ExitCode + "). " + errors);
@@ -214,7 +175,6 @@ public sealed class FocusTakeoverTests
         return PInvoke.GetForegroundWindow() == window ? Refusal.Granted : Refusal.Waiting;
     }
 
-    /// <summary>What <see cref="Focus.Take"/> does before it taps a key, including the raise while joined.</summary>
     private static bool TakenWithoutTheKey(nint window)
     {
         if (PInvoke.SetForegroundWindow((HWND)window) && PInvoke.GetForegroundWindow() == window)
@@ -289,8 +249,6 @@ public sealed class FocusTakeoverTests
                "} catch {\n[Console]::Error.WriteLine($_.Exception.ToString())\nexit 1\n}\n";
     }
 
-    // Encoded so the timeout can be put back from this process when the holder is killed. Killing skips the
-    // holder's finally, and the timeout is session state.
     private const string RestoreTimeoutProgram = """
                                                  $ErrorActionPreference = 'Stop'
                                                  $ProgressPreference = 'SilentlyContinue'
@@ -305,9 +263,6 @@ public sealed class FocusTakeoverTests
                                                  if (-not [ForegroundLockTimeout]::Set(0x2001, 0, [IntPtr]::Zero, 0)) { exit 1 }
                                                  """;
 
-    // Windows PowerShell 5 compiles this with the C# 5 compiler. A second process has to be the one that last sent
-    // input, or this process would be allowed to take focus without the key tap. The single-quoted program keeps the
-    // script valid whatever indentation the C# has.
     private const string HolderProgram = """
                                          $ErrorActionPreference = 'Stop'
                                          $ProgressPreference = 'SilentlyContinue'
@@ -493,7 +448,6 @@ public sealed class FocusTakeoverTests
                                          '
                                          """;
 
-    /// <summary>A visible window whose thread pumps, so it can be given the keyboard.</summary>
     private sealed class PumpedWindow : IAsyncDisposable
     {
         private readonly Thread _thread;

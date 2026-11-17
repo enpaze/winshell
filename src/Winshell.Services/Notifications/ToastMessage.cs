@@ -2,14 +2,12 @@ using System.Xml.Linq;
 
 namespace Winshell.Notifications;
 
-/// <summary>A native toast sent under an installed Windows AppUserModelID.</summary>
 public sealed class ToastMessage : ObservableObject
 {
     private readonly IEventLoop _loop;
     private readonly INotificationBackend _backend;
     private string _error = "";
 
-    /// <summary>Creates an empty toast whose <see cref="Failed"/> event is raised on the given event loop.</summary>
     public ToastMessage(IEventLoop loop)
         : this(loop, new WindowsNotificationBackend())
     {
@@ -21,65 +19,54 @@ public sealed class ToastMessage : ObservableObject
         _backend = backend;
     }
 
-    /// <summary>A send failed, at once or when Windows later rejected the toast. The text is <see cref="Error"/>.</summary>
     public event Action<string>? Failed;
 
-    /// <summary>The AppUserModelID of the sending app's installed Windows identity. Required.</summary>
     public string AppId
     {
         get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
-    /// <summary>The first line. Required.</summary>
     public string Title
     {
         get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
-    /// <summary>The text under the title, as plain text.</summary>
     public string Body
     {
         get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
-    /// <summary>An absolute protocol URI Windows opens when the user clicks the toast. Without one, the toast is informational.</summary>
     public string ActivationUri
     {
         get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
-    /// <summary>An optional Windows replacement identifier, at most 64 characters.</summary>
     public string Tag
     {
         get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
-    /// <summary>An optional Windows replacement group, at most 64 characters. Needs a <see cref="Tag"/>.</summary>
     public string Group
     {
         get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
-    /// <summary>Whether the toast plays no sound.</summary>
     public bool Silent
     {
         get => Read(field);
         set => Set(ref field, value);
     }
 
-    /// <summary>Why the last send failed. Cleared by a send that passes validation.</summary>
     public string Error => Read(_error);
 
-    /// <summary>Up to five buttons on the toast.</summary>
     public ObservableList<ToastAction> Actions { get => Read(field); } = [];
 
-    /// <summary>Sends the toast. Returns whether validation and submission succeeded; Windows can still hold back the banner.</summary>
     public bool Send()
     {
         if (Invalid() is { } problem)
@@ -152,17 +139,14 @@ public sealed class ToastMessage : ObservableObject
     }
 }
 
-/// <summary>A button on a toast.</summary>
 public sealed class ToastAction : ObservableObject
 {
-    /// <summary>The button's label. Required.</summary>
     public string Text
     {
         get => Read(field);
         set => Set(ref field, Strings.OrEmpty(value));
     } = "";
 
-    /// <summary>The absolute protocol URI Windows opens when the user clicks the button.</summary>
     public string ActivationUri
     {
         get => Read(field);
@@ -170,7 +154,6 @@ public sealed class ToastAction : ObservableObject
     } = "";
 }
 
-/// <summary>A null from a caller without nullable checks is empty, as an unset field is.</summary>
 file static class Strings
 {
     internal static string OrEmpty(string? value)

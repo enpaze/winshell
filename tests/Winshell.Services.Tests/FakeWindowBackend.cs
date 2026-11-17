@@ -3,13 +3,10 @@ using Winshell.Windows;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>Windows a test opens, changes and closes by hand, raising the events Windows would. No real window is read or moved.</summary>
 internal sealed class FakeWindowBackend : IWindowBackend
 {
-    /// <summary>The windows that exist, in z-order, with what reading each gives.</summary>
     public Dictionary<nint, WindowRead> Shown { get; } = [];
 
-    /// <summary>What Windows says about each window the taskbar's rule uses.</summary>
     private Dictionary<nint, TaskbarWindowFacts> Facts { get; } = [];
 
     public Dictionary<nint, nint> Owners { get; } = [];
@@ -22,10 +19,8 @@ internal sealed class FakeWindowBackend : IWindowBackend
 
     public nint Foreground { get; set; }
 
-    /// <summary>The monitors the foreground window covers.</summary>
     public HashSet<string> Fullscreen { get; } = [];
 
-    /// <summary>Runs inside each read, with the window being read, as a message pumped during the read would.</summary>
     public Action<nint>? Reading { get; set; }
 
     private readonly Listeners<Action<uint, nint, int, int>> _winEvents = new();
@@ -54,7 +49,6 @@ internal sealed class FakeWindowBackend : IWindowBackend
         });
     }
 
-    /// <summary>The facts of a normal window with a title: the taskbar lists it.</summary>
     public static TaskbarWindowFacts Normal { get; } =
         new(true, true, false, false, false, false, false, false, true, false);
 
@@ -68,7 +62,6 @@ internal sealed class FakeWindowBackend : IWindowBackend
         Show(hwnd, Window(title));
     }
 
-    /// <summary>Shows a window, or changes one, and says its name changed.</summary>
     public void Show(nint hwnd, WindowRead read, TaskbarWindowFacts? facts = null)
     {
         Shown[hwnd] = read;
@@ -89,7 +82,6 @@ internal sealed class FakeWindowBackend : IWindowBackend
         Raise(PInvoke.EVENT_SYSTEM_FOREGROUND, hwnd);
     }
 
-    /// <summary>Moves or resizes a window.</summary>
     public void Move(nint hwnd)
     {
         Raise(PInvoke.EVENT_OBJECT_LOCATIONCHANGE, hwnd);
@@ -141,7 +133,6 @@ internal sealed class FakeWindowBackend : IWindowBackend
         return Facts.GetValueOrDefault(hwnd);
     }
 
-    /// <summary>The window, with the package id and program path left out when they were not asked for.</summary>
     public WindowRead Read(nint hwnd, bool package, bool executable)
     {
         Reading?.Invoke(hwnd);

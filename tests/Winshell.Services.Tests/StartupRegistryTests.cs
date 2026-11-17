@@ -8,11 +8,6 @@ using StartupTaskState = Windows.ApplicationModel.StartupTaskState;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// The sign-in entry is a registry value, or the package's startup task. These tests use a key of their own under
-/// <c>HKCU\Software\Winshell\Tests</c> that they delete, and a fake task. They never touch the user's Run key. A
-/// configuration is a project in a config folder of their own.
-/// </summary>
 public sealed class StartupRegistryTests : IDisposable
 {
     private readonly TempFolder _configRoot = new();
@@ -167,17 +162,12 @@ public sealed class StartupRegistryTests : IDisposable
 
         var installer = await InstallerSignInCommand(winshell);
 
-        // install.ps1 names conhost from %SystemRoot%, which can differ in case from the system folder .NET reports.
         var conhost = Path.Combine(Environment.SystemDirectory, "conhost.exe");
         var written = CommandLine.ForSignIn(winshell, []);
         Assert.StartsWith(conhost, installer, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(written[conhost.Length..], installer[conhost.Length..]);
     }
 
-    /// <summary>
-    /// What install.ps1's <c>Get-WinshellSignInCommand</c> returns for <paramref name="exe"/>, run alone in Windows
-    /// PowerShell, which install.ps1 also runs on. Running the whole script would install Winshell.
-    /// </summary>
     private static async Task<string> InstallerSignInCommand(string exe)
     {
         var script = Path.Combine(Repo.Root, "scripts", "install.ps1");
@@ -221,7 +211,6 @@ public sealed class StartupRegistryTests : IDisposable
     [Fact]
     public void The_install_sign_in_entry_for_this_configuration_is_on_and_the_doctor_agrees()
     {
-        // install.ps1 -AutoStart writes this command, which names no configuration.
         const string winshell = @"C:\Program Files\Winshell\winshell.exe";
         const string windowed = @"C:\Program Files\Winshell\winshellw.exe";
         const string written = @"C:\Users\a\AppData\Roaming\winshell\work";
@@ -237,10 +226,8 @@ public sealed class StartupRegistryTests : IDisposable
         Assert.Null(StartupService.SignInCommand(program, null));
         Assert.Null(StartupService.SignInCommand(program, @"C:\Program Files\dotnet\dotnet.exe"));
 
-        // From here the configurations are on disk, where winshell run looks for them.
         var root = _configRoot.Path;
         var project = Configuration(root, "work");
-        // Not a folder of the config folder itself, so a bare winshell run still has one configuration to start.
         var play = Configuration(Path.Combine(root, "other"), "play");
         var workFile = Path.Combine(project, "work.csproj");
         var playFile = Path.Combine(play, "play.csproj");
@@ -365,7 +352,6 @@ public sealed class StartupRegistryTests : IDisposable
         var startup = new StartupService(_log, registry);
         Assert.True(startup.RunAtSignIn);
 
-        // Now a bare winshell run has two configurations to choose from, so it starts neither.
         Configuration(_configRoot.Path, "play");
         startup.Refresh();
         Assert.False(startup.RunAtSignIn);
@@ -557,7 +543,6 @@ public sealed class StartupRegistryTests : IDisposable
         Assert.Contains(_warnings, warning => warning.Contains("unreadable link", StringComparison.Ordinal));
     }
 
-    /// <summary>A configuration named <paramref name="name"/> in <paramref name="folder"/>: a folder with its project.</summary>
     private static string Configuration(string folder, string name)
     {
         var project = Path.Combine(folder, name);
@@ -566,7 +551,6 @@ public sealed class StartupRegistryTests : IDisposable
         return project;
     }
 
-    /// <summary>A startup task that records calls. It is not <c>Windows.ApplicationModel.StartupTask</c>.</summary>
     private sealed class FakeStartupTask : IStartupTask
     {
         public Exception? ReadError { get; init; }

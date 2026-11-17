@@ -2,10 +2,6 @@ using System.ComponentModel;
 
 namespace Winshell.Core.Tests;
 
-/// <summary>
-/// An <see cref="ObservableList{T}"/> raises <see cref="System.ComponentModel.INotifyPropertyChanged.PropertyChanged"/>
-/// when an item does, which is what Reactor's tree walker hears: it subscribes to the list and does not enumerate it.
-/// </summary>
 public sealed class ObservableListTests
 {
     [Fact]
@@ -65,7 +61,6 @@ public sealed class ObservableListTests
         return names;
     }
 
-    /// <summary>An item a service exposes. Its property is the change a list has to pass on.</summary>
     private sealed class Reading : ObservableObject
     {
         public int Level

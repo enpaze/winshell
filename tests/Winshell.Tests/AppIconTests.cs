@@ -2,7 +2,6 @@ namespace Winshell.Tests;
 
 public class AppIconTests
 {
-    // The sizes render-logo.cs writes into packaging/winshell.ico.
     private static readonly int[] Sizes = [16, 20, 24, 32, 40, 48, 64, 256];
 
     [Fact]
@@ -18,7 +17,6 @@ public class AppIconTests
     public void The_executable_embeds_the_application_icon()
     {
         var exe = Path.Combine(AppContext.BaseDirectory, "winshell.exe");
-        // The C# compiler stores ApplicationIcon as icon group 32512, IDI_APPLICATION.
         using var icon = OwnedIcon.Load(exe, 32512, "", 32);
         Assert.NotNull(icon);
     }

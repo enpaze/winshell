@@ -1,4 +1,3 @@
-# A # ends a comment only outside quotes.
 function script:Remove-TrailingComment([string] $Line) {
     $quote = [char]0
     for ($i = 0; $i -lt $Line.Length; $i++) {
@@ -15,7 +14,6 @@ function script:Remove-TrailingComment([string] $Line) {
     return $Line.TrimEnd()
 }
 
-# What a workflow runs: its text without comments. A comment can repeat a command without running it.
 function script:Get-WorkflowCode([string] $Path) {
     $code = foreach ($line in (Get-Content -LiteralPath $Path)) {
         $kept = Remove-TrailingComment $line

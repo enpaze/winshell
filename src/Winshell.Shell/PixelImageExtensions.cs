@@ -4,15 +4,8 @@ using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace Winshell;
 
-/// <summary>Pictures in memory as sources WinUI can show.</summary>
 public static class PixelImageExtensions
 {
-    /// <summary>
-    /// Makes a new source for a WinUI <c>Image</c>, with the picture's pixel size and colors.
-    /// Call on the UI thread. The pixels are copied and premultiplied when needed; the picture is unchanged.
-    /// </summary>
-    /// <param name="image">The picture to show.</param>
-    /// <returns>A source that keeps its own copy of the pixels.</returns>
     public static ImageSource ToImageSource(this PixelImage image)
     {
         ArgumentNullException.ThrowIfNull(image);
@@ -21,10 +14,6 @@ public static class PixelImageExtensions
         return bitmap;
     }
 
-    /// <summary>
-    /// Writes the picture into <paramref name="bitmap"/>, which has its pixel size, premultiplied when needed. A view
-    /// that shows frame after frame reuses one bitmap this way. Call on the UI thread.
-    /// </summary>
     internal static void WriteInto(this PixelImage image, WriteableBitmap bitmap)
     {
         using (var stream = bitmap.PixelBuffer.AsStream())

@@ -157,7 +157,6 @@ public class WinlandProtocolTests
     [Fact]
     public void Json_becomes_maps_and_lists()
     {
-        // A monitors entry as Winland 0.3 writes it.
         using var doc = JsonDocument.Parse("""
                                            {"id":0,"name":"\\\\.\\DISPLAY2","scale":1.25,"focused":true,"reserved":[0,0,0,48],
                                             "activeWorkspace":{"address":"1","id":1,"type":"normal","name":"1","monitor":"\\\\.\\DISPLAY2"},
