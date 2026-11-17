@@ -1,5 +1,6 @@
 namespace Winshell;
 
+// Starts the CLI.
 internal static class Program
 {
     [STAThread]
