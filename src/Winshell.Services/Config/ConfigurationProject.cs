@@ -6,32 +6,19 @@ using System.Xml.Linq;
 
 namespace Winshell;
 
-/// <summary>
-/// What a command printed and how it ended. <see cref="Output"/> is both streams, in the order they arrived. When the
-/// program could not be started, it is <see cref="ConfigurationProject.NeedsSdk"/>.
-/// </summary>
 internal sealed record CommandResult(int ExitCode, string Output);
 
-/// <summary>Runs a program in a folder and waits for it. Tests replace this, so most of them build nothing.</summary>
 internal delegate CommandResult RunProcess(string file, IReadOnlyList<string> arguments, string folder);
 
-/// <summary>Which of a configuration's programs an instance runs.</summary>
 internal enum ConfigurationBuild
 {
-    /// <summary>What <c>winshell run</c> and <c>reload</c> build: <see cref="ConfigurationProject.Program"/>.</summary>
     Run,
 
-    /// <summary>Any other program under the project's folder: what <c>winshell dev</c>'s <c>dotnet watch</c> builds.</summary>
     Dev
 }
 
-/// <summary>
-/// A configuration on disk: the .NET project that defines a shell, and the program it builds into. Nothing here runs
-/// MSBuild outside a build, so <c>doctor</c> and a start with <c>--no-build</c> read the project as data.
-/// </summary>
 internal sealed partial class ConfigurationProject
 {
-    /// <summary>The most lines a build-error notice lists.</summary>
     internal const int MostErrors = 10;
 
     internal const string NeedsSdk = "Building a configuration needs the .NET SDK, from https://dot.net/download.";
@@ -52,20 +39,13 @@ internal sealed partial class ConfigurationProject
 
     public string Name { get; }
 
-    /// <summary>Where a build puts the program. It is fixed, so a start with no SDK finds it without asking MSBuild.</summary>
     public string OutputFolder => Path.Combine(Folder, "bin", Output);
 
-    /// <summary>Where a reload builds when a program still running holds <see cref="OutputFolder"/> open.</summary>
     private string BesideFolder => Path.Combine(Folder, "bin", OutputBeside);
 
     private const string Output = "shell";
     private const string OutputBeside = "shell.next";
 
-    /// <summary>
-    /// The project folder of a program at <c>&lt;project&gt;\bin\shell\Name.exe</c>, or <c>bin\shell.next\Name.exe</c>
-    /// when a reload had to build beside a program that still had its folder open. Nothing is read from disk, so a
-    /// sign-in command can name a project that is not there. Anything else, including <c>winshell.exe</c>, is null.
-    /// </summary>
     public static string? FolderOf(string program)
     {
         if (Full(program) is not { } full
@@ -81,19 +61,11 @@ internal sealed partial class ConfigurationProject
             : null;
     }
 
-    /// <summary>
-    /// <paramref name="program"/> as it is in <see cref="OutputFolder"/>, so a program a reload built in
-    /// <c>bin\shell.next</c> names the same one. Null for a program in neither build folder.
-    /// </summary>
     public static string? InOutputFolder(string program)
     {
         return FolderOf(program) is { } folder ? Path.Combine(folder, "bin", Output, Path.GetFileName(program)) : null;
     }
 
-    /// <summary>
-    /// The project whose <see cref="ConfigurationBuild.Run"/> program is <paramref name="program"/>, or null. A folder
-    /// can hold several projects; this is the one that builds the program.
-    /// </summary>
     public static ConfigurationProject? ForProgram(string program)
     {
         if (FolderOf(program) is not { } folder)
@@ -103,11 +75,6 @@ internal sealed partial class ConfigurationProject
             .FirstOrDefault(project => project.IsProgram(full));
     }
 
-    /// <summary>
-    /// What <c>winshell run -p</c> takes to start the project of <paramref name="program"/>: its folder, or the project
-    /// file when the folder holds several projects and so names none of them. A folder that cannot be read, or is not
-    /// there, stands. Null for a program in neither build folder.
-    /// </summary>
     public static string? RunPath(string program)
     {
         if (FolderOf(program) is not { } folder)
@@ -122,10 +89,6 @@ internal sealed partial class ConfigurationProject
         }
     }
 
-    /// <summary>
-    /// The instances in <paramref name="instances"/> that run <paramref name="build"/> of this project, in their order.
-    /// A program whose folder only shares a prefix with this project's is not one of them.
-    /// </summary>
     public IEnumerable<InstanceInfo> InstancesOf(ConfigurationBuild build, IEnumerable<InstanceInfo> instances)
     {
         return instances.Where(instance => BuildOf(instance.ConfigPath) == build);
@@ -164,10 +127,6 @@ internal sealed partial class ConfigurationProject
         }
     }
 
-    /// <summary>
-    /// The program to run: the one in <see cref="OutputFolder"/>, or the one in <see cref="BesideFolder"/> when it was
-    /// built later. A build stamps what it wrote with the time, so the newer of the two is always the last build.
-    /// </summary>
     public string Program
     {
         get
@@ -186,10 +145,8 @@ internal sealed partial class ConfigurationProject
         return Path.Combine(folder, AssemblyName() + ".exe");
     }
 
-    /// <summary>The file in the config folder that names the configuration <c>winshell use</c> chose.</summary>
     private const string ChoiceFile = "chosen.txt";
 
-    /// <summary>The name <c>winshell use</c> recorded in <paramref name="root"/>, or null when it recorded none.</summary>
     public static string? Chosen(string root)
     {
         var file = Path.Combine(root, ChoiceFile);
@@ -197,14 +154,12 @@ internal sealed partial class ConfigurationProject
         return name.Length > 0 ? name : null;
     }
 
-    /// <summary>Records <paramref name="name"/> as the configuration a run with no <c>-p</c> or <c>-c</c> starts.</summary>
     public static void Record(string root, string name)
     {
         Directory.CreateDirectory(root);
         File.WriteAllText(Path.Combine(root, ChoiceFile), name + Environment.NewLine);
     }
 
-    /// <summary>The folders of <paramref name="root"/> that hold a project: the names <c>-c</c> takes.</summary>
     public static IReadOnlyList<string> Names(string root)
     {
         return Directory.Exists(root)
@@ -213,12 +168,6 @@ internal sealed partial class ConfigurationProject
             : [];
     }
 
-    /// <summary>
-    /// The project to run: <paramref name="path"/>, a project or a folder holding one; or a named folder in
-    /// <paramref name="root"/>; or else the one <see cref="Chosen"/> names, then the one in <paramref name="root"/>, then
-    /// its <c>default</c> folder, then its only folder with a project. Null with no error when there is none, so nothing
-    /// runs. A folder Winshell cannot read is an error.
-    /// </summary>
     public static ConfigurationProject? Find(string? path, string? name, string root, out string? error)
     {
         try
@@ -289,10 +238,6 @@ internal sealed partial class ConfigurationProject
         return names.Count == 1 ? In(Path.Combine(root, names[0]), out error) : null;
     }
 
-    /// <summary>
-    /// Gets the program ready to start, and says why it isn't, or null when it is. <paramref name="noBuild"/> runs what the
-    /// last build left, even if a source is newer, so signing in never depends on the SDK or on a broken edit.
-    /// </summary>
     public string? Prepare(bool noBuild, RunProcess run)
     {
         try
@@ -307,7 +252,6 @@ internal sealed partial class ConfigurationProject
         }
     }
 
-    /// <summary>Whether a build would change the program: there is none, or a file of the project is newer.</summary>
     public bool NeedsBuild()
     {
         var program = Program;
@@ -317,11 +261,6 @@ internal sealed partial class ConfigurationProject
         return Sources(Folder).Any(source => File.GetLastWriteTimeUtc(source) > built);
     }
 
-    /// <summary>
-    /// Runs a program and collects what it prints, up to a limit. The streams get a short wait after it exits, because a
-    /// build server that outlives it keeps them open. They have threads of their own, so a busy pool cannot lose the last
-    /// lines.
-    /// </summary>
     public static CommandResult Run(string file, IReadOnlyList<string> arguments, string folder)
     {
         var start = new ProcessStartInfo(file)
@@ -352,7 +291,6 @@ internal sealed partial class ConfigurationProject
 
         try
         {
-            // Not disposed: a reader may still be waiting on a stream that a build server holds.
             var process = Process.Start(start)!;
             Thread[] readers = [Read(process.StandardOutput), Read(process.StandardError)];
             if (!process.WaitForExit(BuildLimit))
@@ -373,12 +311,8 @@ internal sealed partial class ConfigurationProject
         }
     }
 
-    /// <summary>Builds the project into its output folder, or beside it while the program there is running.</summary>
     private string? Build(RunProcess run)
     {
-        // A running program keeps its files open. Windows will not replace those, and a build then waits on them
-        // until it gives up. Renaming the folder lets the build write the new program. A WinUI program also keeps the
-        // folder itself open, so the rename fails and the build goes in the folder beside it.
         var destination = OutputFolder;
         var parked = Park(destination);
         if (parked is null && Directory.Exists(destination))
@@ -405,7 +339,6 @@ internal sealed partial class ConfigurationProject
         return $"{Name} did not build.\n{Errors(result.Output, Folder)}";
     }
 
-    /// <summary>Moves <paramref name="folder"/> aside, or null when there was nothing to move or the move failed.</summary>
     private static string? Park(string folder)
     {
         var parked = folder + ".previous";
@@ -423,7 +356,6 @@ internal sealed partial class ConfigurationProject
         }
     }
 
-    /// <summary>Puts a parked program back when the build failed, so the last one that ran is still there.</summary>
     private static void Restore(string folder, string parked)
     {
         if (!Directory.Exists(parked))
@@ -452,7 +384,6 @@ internal sealed partial class ConfigurationProject
         }
     }
 
-    /// <summary>The compiler's own lines, once each, as <see cref="ErrorLine"/> shows them. Any other failure keeps its last lines.</summary>
     internal static string Errors(string output, string folder)
     {
         var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -461,10 +392,6 @@ internal sealed partial class ConfigurationProject
         return string.Join('\n', errors.Count > 0 ? errors.Take(MostErrors) : lines.TakeLast(MostErrors));
     }
 
-    /// <summary>
-    /// Whether a line of build output is an error: <c>error</c> then its code, such as <c>error CS1002:</c>,
-    /// <c>error CsWinRT1028:</c> or <c>XamlCompiler error WMC0130:</c>, or <c>: error :</c> for one with no code.
-    /// </summary>
     internal static bool IsErrorLine(string line)
     {
         return CompilerError().IsMatch(line);
@@ -473,10 +400,6 @@ internal sealed partial class ConfigurationProject
     [GeneratedRegex(@"\berror [A-Za-z]+\d+:|: error :")]
     private static partial Regex CompilerError();
 
-    /// <summary>
-    /// A compiler line as a build-error notice shows it: without the project MSBuild adds to it, and with a file under
-    /// <paramref name="folder"/> named from there. A deep folder would wrap over the notice and push the error itself down.
-    /// </summary>
     internal static string ErrorLine(string line, string folder)
     {
         var error = ProjectSuffix().Replace(line, "");
@@ -487,7 +410,6 @@ internal sealed partial class ConfigurationProject
     [GeneratedRegex(@"\s+\[[^\]]*\.csproj(::[^\]]*)?\]$", RegexOptions.IgnoreCase)]
     private static partial Regex ProjectSuffix();
 
-    /// <summary>The project's <c>AssemblyName</c> when it writes one out, or else its file name. A computed one is not read: that would take MSBuild.</summary>
     private string AssemblyName()
     {
         try
@@ -523,7 +445,6 @@ internal sealed partial class ConfigurationProject
         return Directory.Exists(folder) ? Directory.GetFiles(folder, "*.csproj") : [];
     }
 
-    /// <summary>The project's files. <c>bin</c>, <c>obj</c> and dot folders are what a build and an editor write.</summary>
     private static IEnumerable<string> Sources(string folder)
     {
         foreach (var file in Directory.EnumerateFiles(folder))

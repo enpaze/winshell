@@ -5,17 +5,11 @@ using Xunit.Sdk;
 
 namespace Winshell.Tests;
 
-/// <summary>
-/// Runs several winshell instances at once, as separate processes, and checks that they keep apart: each has its own
-/// local folder, id, pipe and log, each answers for itself, and one that crashes leaves the others running. A second
-/// shell in one folder would replace the first, so each of these has a folder of its own.
-/// </summary>
 public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<(Process Process, string Local)> _started = [];
 
-    // The instances' own local folder, so the list holds only what this test started and the user's is left alone.
     private string Local => Path.Combine(_dir, "local");
 
     private string RunDir(string id)
@@ -33,8 +27,6 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
     [Fact]
     public void Instances_keep_apart_and_outlive_one_that_crashes()
     {
-        // Two start with one shell id, and the third is another shell. Each local folder keeps them from replacing
-        // one another.
         var locals = new[] { Path.Combine(_dir, "local-a"), Path.Combine(_dir, "local-b"), Path.Combine(_dir, "local-c") };
         var a = Start(Config("a"), locals[0]);
         var b = Start(Config("b"), locals[1]);
@@ -51,7 +43,6 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
         Assert.Equal(0, Show(b, locals[1]));
         Assert.Equal(0, Show(c, locals[2]));
 
-        // B dies without cleaning up, as a crash would leave it.
         b.Kill();
         b.WaitForExit();
 
@@ -60,10 +51,6 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
         Assert.DoesNotContain(Listed(locals[1]), i => i.GetProperty("pid").GetInt32() == b.Id);
     }
 
-    /// <summary>
-    /// A killed instance leaves its file, and Windows can give that process id to the next shell.
-    /// The list then has to name the process that is running, not the file the dead one left.
-    /// </summary>
     [Fact]
     public void A_reused_process_id_is_listed_for_the_instance_that_owns_it()
     {
@@ -78,7 +65,6 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
         var reusedId = Instances.NewId();
         var reusedDir = RunDir(reusedId);
         Directory.CreateDirectory(reusedDir);
-        // This process id already belongs to the live record, but the stale file names a different process start.
         instances.Write(live with
         {
             Id = reusedId,
@@ -120,10 +106,9 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
         return result.Code;
     }
 
-    /// <summary>Runs the winshell CLI and returns what it printed.</summary>
     private string Winshell(string local, params string[] args)
     {
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         var result = WinshellCli.Run(args, ("WINSHELL_LOCAL_DIR", local));
 #pragma warning restore CsWinRT1030
         result.AssertExitCode(0);
@@ -132,7 +117,6 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
 
     public void Dispose()
     {
-        // Only the instances this test started, by their process ids: asked to quit, then ended if they do not.
         foreach (var (process, local) in _started)
         {
             if (!process.HasExited)

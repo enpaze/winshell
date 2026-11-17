@@ -1,9 +1,5 @@
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// A shared backend's handler that throws is reported to the service that added it, once, and does not stop the next
-/// one.
-/// </summary>
 public class ListenersTests
 {
     [Fact]

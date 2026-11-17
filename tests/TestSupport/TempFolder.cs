@@ -2,16 +2,8 @@ using System.Runtime.CompilerServices;
 
 namespace Winshell.TestSupport;
 
-// Each test project compiles this file, so a use in another project is invisible here.
-// CsWinRT1028 requires partial. The WinUI test projects generate the other part.
-/// <summary>
-/// A new folder under <c>%TEMP%\winshell-tests</c>, deleted on dispose. Every test program prunes folders a crashed
-/// run left there once at startup; a folder from today stays. A test gets every temp path here, and
-/// calls <c>Path.GetTempPath</c> nowhere else.
-/// </summary>
 internal sealed partial class TempFolder : IDisposable
 {
-    // The one root every test folder lives under.
     internal static readonly string Root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "winshell-tests");
 
     public TempFolder()
@@ -22,7 +14,6 @@ internal sealed partial class TempFolder : IDisposable
 
     public string Path { get; }
 
-    /// <summary>A folder path under <see cref="Root"/> that nothing has made yet, for a fixture that deletes its own folder.</summary>
     public static string NewPath()
     {
         return System.IO.Path.Combine(Root, Guid.NewGuid().ToString("N"));

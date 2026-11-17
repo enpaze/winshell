@@ -5,12 +5,6 @@ using Winshell.Native;
 
 namespace Winshell.Winland;
 
-/// <summary>
-/// The one connection to Winland for the whole process, <see cref="Instance"/>: its event stream, and a fresh pipe
-/// connection per request. While Winland is not running it looks for the pipe after 3 s, then twice as long each time,
-/// up to every 30 s. Its events are raised on a background thread, in order; each engine's
-/// <see cref="WinlandService"/> posts them to its own loop.
-/// </summary>
 internal sealed class WinlandBackend : IWinlandBackend
 {
     private static readonly TimeSpan FirstPoll = TimeSpan.FromSeconds(3);
@@ -95,11 +89,6 @@ internal sealed class WinlandBackend : IWinlandBackend
         }
     }
 
-    /// <summary>
-    /// Winland drops a subscriber that falls behind, so a lost stream is tried again after 250 ms, and the search
-    /// starts again from 3 s. Otherwise the wait is 3 s, then twice as long, up to 30 s. It paces looking for another
-    /// process, for every shell in this process, so it belongs to no shell's loop.
-    /// </summary>
     internal async Task WaitBeforeLookingAgain(bool lost, CancellationToken cancel = default)
     {
         var wait = lost ? TimeSpan.FromMilliseconds(250) : _poll;
@@ -107,7 +96,6 @@ internal sealed class WinlandBackend : IWinlandBackend
         await Task.Delay(wait, _time, cancel).ConfigureAwait(false);
     }
 
-    /// <summary>The wait after <paramref name="poll"/> finds no Winland: twice as long, at most 30 s.</summary>
     private static TimeSpan NextPoll(TimeSpan poll)
     {
         return poll * 2 < LastPoll ? poll * 2 : LastPoll;
@@ -145,7 +133,6 @@ internal sealed class WinlandBackend : IWinlandBackend
         try
         {
             await pipe.ConnectAsync(timeoutMs).ConfigureAwait(false);
-            // Only a Winland in this session is ours to talk to, as Winland's own CLI checks.
             if (ServerProcess(pipe) is not { } pid || ProcessSession.Of(pid) is not { } session || session != SessionId)
             {
                 await pipe.DisposeAsync().ConfigureAwait(false);

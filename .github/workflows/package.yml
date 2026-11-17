@@ -1,12 +1,5 @@
 name: Package
 
-# Builds and verifies what a release ships with scripts/package.ps1. release-please.yml calls it for a new draft release,
-# and it can be run by hand to resume a draft; both publish only after its assets are verified. The upload also includes
-# scripts/install.ps1 and scripts/uninstall.ps1, copied from the tagged commit.
-#
-# Every pull request and push to main starts it. Its changes job builds a change that scripts/ci-changes.ps1 flags package,
-# and also a push to main that it flags code. Those runs also run the packed starter tests (Category=Package),
-# so a new project that cannot restore shows before a release.
 on:
   pull_request:
   push:
@@ -23,7 +16,6 @@ on:
         required: false
       SIGNPATH_API_TOKEN:
         required: false
-  # Resumes an unpublished draft. Published releases with missing assets cannot be repaired in place.
   workflow_dispatch:
     inputs:
       tag:
@@ -34,18 +26,12 @@ on:
 permissions:
   contents: read
 
-# One run per release tag, for the whole workflow. Two calls for the same tag queue, so they do not both build and both
-# ask SignPath to sign. A pull request cancels its older run. A push to main uses its own run id, because a group holds
-# only one pending run: a shared one would drop a push in a burst of merges, and nothing on main is cancelled.
 concurrency:
   group: package-${{ inputs.tag || (github.event_name == 'pull_request' && github.ref) || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   changes:
-    # A release passes a tag and always builds. The called workflow sees the caller's event name, so the tag is what
-    # tells a release from a push. This job still runs for a release, because a job whose ancestor was skipped is
-    # skipped too.
     name: changes
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -55,11 +41,10 @@ jobs:
     outputs:
       build: ${{ inputs.tag != '' || steps.changes.outputs.package == 'true' || (github.event_name == 'push' && steps.changes.outputs.code == 'true') }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         if: ${{ inputs.tag == '' }}
         with:
           persist-credentials: false
-      # The pinned actionlint cannot parse self-repository syntax; local actions use this checkout.
       - uses: ./.github/actions/changes # zizmor: ignore[self-repository]
         if: ${{ inputs.tag == '' }}
         id: changes
@@ -80,16 +65,12 @@ jobs:
     env:
       SIGN: ${{ inputs.tag != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-          # A release builds its tagged commit, not whatever commit started this run.
           ref: ${{ inputs.tag || github.sha }}
-      # The pinned actionlint cannot parse self-repository syntax; local actions use this checkout.
       - uses: ./.github/actions/prepare # zizmor: ignore[self-repository]
       - name: Check the commit to sign
-        # SignPath records the run's commit as the origin of what it signs, so the checkout must be that commit. This
-        # runs before the build, so a repair started from main stops at once: start it from the release's tag.
         if: ${{ env.SIGN == 'true' }}
         shell: pwsh
         run: |
@@ -99,31 +80,25 @@ jobs:
         shell: pwsh
         env:
           RUNTIME: ${{ matrix.runtime }}
-          # Empty outside a release. For a release, the script stops unless the checkout is that version.
           TAG: ${{ inputs.tag }}
         run: pwsh scripts/package.ps1 -Publish -Runtime $env:RUNTIME -Out "$env:RUNNER_TEMP/artifacts" -Tag $env:TAG
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: publish-${{ matrix.runtime }}
           path: ${{ runner.temp }}/artifacts/publish/
           if-no-files-found: error
-          # Re-run failed jobs uploads again. package has them by then, so they need not stay.
           overwrite: true
           retention-days: 1
 
   starter:
-    # Packs the library, creates the starter with winshell new, builds it and runs it. Not for a release, because these tests
-    # open windows. A change that bumps a pin in Directory.Packages.props, or a library project file, shows here if a
-    # new project can no longer restore.
     needs: changes
     if: ${{ inputs.tag == '' && needs.changes.outputs.build == 'true' }}
     runs-on: windows-2025
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      # The pinned actionlint cannot parse self-repository syntax; local actions use this checkout.
       - uses: ./.github/actions/prepare # zizmor: ignore[self-repository]
       - name: Package tests
         shell: pwsh
@@ -133,18 +108,15 @@ jobs:
     name: package
     needs: publish
     runs-on: windows-2025
-    # A release waits for a person to approve its signing request in SignPath.
     timeout-minutes: ${{ inputs.tag != '' && 150 || 30 }}
     env:
-      # A release is signed once the SignPath Foundation project is set up: see docs/development.md#releasing.
       SIGN: ${{ inputs.tag != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-          # The script reads the commit's date, and the scripts it stages come from this commit too.
           ref: ${{ inputs.tag || github.sha }}
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           pattern: publish-*
           merge-multiple: true
@@ -161,25 +133,21 @@ jobs:
       - name: Upload the binaries to sign
         id: unsigned
         if: ${{ env.SIGN == 'true' }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: unsigned
           path: ${{ runner.temp }}/artifacts/publish/
           if-no-files-found: error
-          # Re-run failed jobs after a rejected or timed-out request uploads again.
           overwrite: true
       - name: Sign with SignPath
-        # SignPath signs only Winshell's own binaries, as its artifact configuration (packaging/signpath/) lists, after
-        # an approver approves the request.
         if: ${{ env.SIGN == 'true' }}
-        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
           project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'winshell' }}
           signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
           github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
-          # Every signed binary must carry this product name and version, as packaging/signpath/artifact-configuration.xml says.
           parameters: |
             version: ${{ toJSON(steps.product.outputs.version) }}
             product: ${{ toJSON(steps.product.outputs.product) }}
@@ -196,7 +164,6 @@ jobs:
         shell: pwsh
         env:
           TAG: ${{ inputs.tag }}
-          # The Store identity Partner Center reserved. Unset, the package has a test identity.
           MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
           MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
           MSIX_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}
@@ -204,8 +171,6 @@ jobs:
           ./scripts/package.ps1 -Pack -Verify -Out "$env:RUNNER_TEMP/artifacts" -Tag $env:TAG -Signed:($env:SIGN -eq 'true')
           -IdentityName $env:MSIX_IDENTITY_NAME -Publisher $env:MSIX_PUBLISHER -PublisherDisplayName $env:MSIX_PUBLISHER_DISPLAY_NAME
       - name: Install the Store package on this runner
-        # Windows accepts the manifest, and the winshell alias runs in the package. A throwaway certificate that only
-        # this runner trusts signs a copy; the Store signs the real package.
         shell: pwsh
         env:
           MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
@@ -233,7 +198,7 @@ jobs:
           } finally {
             Remove-AppxPackage -Package $package.PackageFullName
           }
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: packages
           path: |
@@ -242,29 +207,26 @@ jobs:
             ${{ runner.temp }}/artifacts/SHA256SUMS.txt
             ${{ runner.temp }}/artifacts/winget/
           if-no-files-found: error
-      # For Partner Center, which signs it. Not on the release: unsigned, it installs nowhere else.
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: store-package
           path: ${{ runner.temp }}/artifacts/*.msixbundle
-          # The release assets are the durable copy. This bundle is for Partner Center.
           retention-days: 14
           if-no-files-found: error
 
   release:
     name: release
     if: ${{ inputs.tag != '' }}
-    # A published release can't be repaired, so the arm64 build has to start before this runs.
     needs: [package, arm64]
     runs-on: windows-2025
     timeout-minutes: 15
     permissions:
-      contents: write # uploads to the release
+      contents: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: packages
           path: packages
@@ -278,16 +240,12 @@ jobs:
       - name: Submit to winget
         shell: pwsh
         env:
-          # wingetcreate reads this name. An argument would put the secret on the process command line.
-          # A classic token with public_repo, from the account that forks microsoft/winget-pkgs. Without it, the
-          # manifests stay on the release for a manual wingetcreate submit.
           WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}
         run: |
           if (-not $env:WINGET_CREATE_GITHUB_TOKEN) {
             Write-Output 'No WINGET_TOKEN secret: the manifests are on the release, not submitted.'
             exit 0
           }
-          # scripts/package.ps1 validates the manifests with the WinGetUtil.dll this download is built with.
           $pins = Import-PowerShellDataFile ./scripts/tool-pins.psd1
           $exe = Join-Path $env:RUNNER_TEMP 'wingetcreate.exe'
           Invoke-WebRequest $pins.wingetCreate.url -OutFile $exe
@@ -296,18 +254,17 @@ jobs:
           & $exe submit --prtitle "New version: DanteSparras.Winshell $($manifests.Name)" $manifests.FullName
           exit $LASTEXITCODE
 
-  # The package job checks arm64 headers on x64. This runs the executable.
   arm64:
     name: arm64
     needs: package
     runs-on: windows-11-arm
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
           ref: ${{ inputs.tag || github.sha }}
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: packages
           path: packages

@@ -2,7 +2,6 @@ using System.Globalization;
 
 namespace Winshell.Input;
 
-/// <summary>The modifiers of a chord, with the <c>MOD_</c> values <c>RegisterHotKey</c> takes.</summary>
 [Flags]
 internal enum HotkeyModifiers
 {
@@ -21,13 +20,11 @@ internal enum WinKeySide
     Right
 }
 
-/// <summary>The virtual keys of the modifiers.</summary>
 internal static class VirtualKeys
 {
     public const int LeftWin = 0x5B;
     public const int RightWin = 0x5C;
 
-    // Each modifier with the keys Windows reports for it: the key for either side, then left and right.
     private static readonly (HotkeyModifiers Modifier, int[] Keys)[] ModifierKeys =
     [
         (HotkeyModifiers.Ctrl, [0x11, 0xA2, 0xA3]),
@@ -44,7 +41,6 @@ internal static class VirtualKeys
         return false;
     }
 
-    /// <summary>The modifiers with a key down.</summary>
     public static HotkeyModifiers Held(Predicate<int> isDown)
     {
         var held = HotkeyModifiers.None;
@@ -55,7 +51,6 @@ internal static class VirtualKeys
     }
 }
 
-/// <summary>One chord, such as <c>Ctrl+Shift+K</c> or the Windows key by itself.</summary>
 internal sealed class HotkeyChord
 {
     private HotkeyChord(HotkeyModifiers modifiers, int virtualKey, WinKeySide side, string text)
@@ -68,7 +63,6 @@ internal sealed class HotkeyChord
 
     public HotkeyModifiers Modifiers { get; }
 
-    /// <summary>The key, or 0 when the chord is the Windows key by itself.</summary>
     public int VirtualKey { get; }
 
     public WinKeySide Side { get; }
@@ -109,10 +103,8 @@ internal sealed class HotkeyChord
     }
 }
 
-/// <summary>The <c>RegisterHotKey</c> identity of a chord: its modifiers and virtual key.</summary>
 internal readonly record struct OsChord(HotkeyModifiers Modifiers, int VirtualKey);
 
-/// <summary>One or more chords, separated by commas in the text the configuration wrote.</summary>
 internal sealed class HotkeySequence
 {
     private HotkeySequence(IReadOnlyList<HotkeyChord> chords, string text)
@@ -123,13 +115,8 @@ internal sealed class HotkeySequence
 
     public IReadOnlyList<HotkeyChord> Chords { get; }
 
-    /// <summary>The sequence in Windows names, such as <c>Win+Ctrl+K, C</c>.</summary>
     public string Text { get; }
 
-    /// <summary>
-    /// Reads a key sequence. An empty string is idle: <paramref name="error"/> is null.
-    /// Anything else that is not a sequence sets <paramref name="error"/>.
-    /// </summary>
     public static bool TryParse(string? text, out HotkeySequence? sequence, out string? error)
     {
         sequence = null;

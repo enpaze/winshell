@@ -24,7 +24,6 @@ internal static class NewCommand
         Run = static parsed => Task.FromResult(Execute(parsed))
     };
 
-    /// <summary>winshell new: lists what it can copy, or copies one into the config folder or <c>--path</c>.</summary>
     internal static int Execute(Invocation parsed)
     {
         var packages = Path.Combine(Path.GetDirectoryName(Environment.ProcessPath)!, "packages");
@@ -35,10 +34,6 @@ internal static class NewCommand
         return result.Code;
     }
 
-    /// <summary>
-    /// What <see cref="Execute"/> prints and returns. <paramref name="packages"/> is the folder beside winshell.exe that
-    /// may hold this release's Winshell package. An unknown name, or a folder that isn't empty, changes nothing.
-    /// </summary>
     internal static Result Make(Invocation parsed, string configRoot, string packages)
     {
         var output = new StringBuilder();
@@ -72,7 +67,6 @@ internal static class NewCommand
         return new Result(0, output.ToString(), null);
     }
 
-    /// <summary>The release a package is named after: the version without its build id, such as <c>0.6.0</c>.</summary>
     private static string PackageVersion(string version)
     {
         var plus = version.IndexOf('+', StringComparison.Ordinal);

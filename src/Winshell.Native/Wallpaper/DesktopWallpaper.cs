@@ -5,18 +5,8 @@ using Windows.Win32.UI.Shell;
 
 namespace Winshell.Native;
 
-/// <summary>One screen's wallpaper, before it is a <c>WallpaperScreen</c>.</summary>
-/// <param name="Id">The screen id, such as <c>\\.\DISPLAY1</c>, or the monitor id when it could not be matched.</param>
-/// <param name="MonitorId">The id <c>IDesktopWallpaper</c> uses for this screen.</param>
-/// <param name="Image">The image path, or empty when the screen shows only the background color.</param>
 internal readonly record struct DesktopMonitor(string Id, string MonitorId, string Image, bool IsPrimary);
 
-/// <summary>A reading of the desktop wallpaper. <paramref name="Position"/> is -1 when Windows did not say.</summary>
-/// <param name="Available">Whether Explorer's wallpaper server answered.</param>
-/// <param name="Error">The failure, or 0 when <paramref name="Available"/>.</param>
-/// <param name="Monitors">Each screen, in the order Windows lists them.</param>
-/// <param name="Position">A <see cref="DESKTOP_WALLPAPER_POSITION"/>, or -1.</param>
-/// <param name="Color">The background color as a <c>COLORREF</c>.</param>
 internal readonly record struct DesktopWallpaperState(
     bool Available,
     int Error,
@@ -24,24 +14,8 @@ internal readonly record struct DesktopWallpaperState(
     int Position,
     uint Color);
 
-/// <summary>
-/// The desktop wallpaper through <c>IDesktopWallpaper</c>, the API Settings uses. It is a local COM server
-/// (<c>CLSCTX_INPROC_SERVER</c> returns <c>REGDB_E_CLASSNOTREG</c>; the class is the AppId "Desktop Wallpaper
-/// Factory", RunAs Interactive User). <c>CoCreateInstance</c> therefore fails when Explorer's desktop is not
-/// running, and a reading then reports itself unavailable. <c>SystemParametersInfo</c> cannot give each screen its
-/// own image, and its style numbers are not <see cref="DESKTOP_WALLPAPER_POSITION"/> (Fill is 4 here and 10 in
-/// <c>WallpaperStyle</c>).
-/// <para>
-/// <c>GetWallpaper</c> for one monitor returns the image on that screen. An empty path is a solid color. Passing
-/// null while the screens differ, or while a slideshow is running, returns <c>S_FALSE</c> and an empty string, so a
-/// reading always asks for one monitor. A slideshow or Windows Spotlight is not a mode this service sets. The path
-/// is whatever Windows reports for that screen: the slide it is showing, or the Spotlight image it has placed, or
-/// empty when it reports none.
-/// </para>
-/// </summary>
 internal static class DesktopWallpaper
 {
-    /// <summary><c>CLSID_DesktopWallpaper</c>.</summary>
     private static readonly Guid Clsid = new("C2CF3110-460E-4fc1-B9D0-8A1C0C9CC4BD");
 
     private const int NoInterface = unchecked((int)0x80004002);
@@ -50,7 +24,6 @@ internal static class DesktopWallpaper
 
     private const int MaxMonitors = 64;
 
-    /// <summary>Each screen's image, the fit and the background color. Unavailable when the server cannot be opened.</summary>
     internal static DesktopWallpaperState Read()
     {
         var desktop = Open(out var hr);
@@ -89,16 +62,11 @@ internal static class DesktopWallpaper
         }
     }
 
-    /// <summary>
-    /// Sets one screen's image, or every screen's when <paramref name="monitorId"/> is null. Returns a failure code,
-    /// or 0.
-    /// </summary>
     internal static int SetImage(string? monitorId, string image)
     {
         return Use(desktop => desktop.SetWallpaper(monitorId, image));
     }
 
-    /// <summary>Sets the fit. Returns a failure code, or 0. A position Windows does not define is refused here.</summary>
     internal static int SetPosition(int position)
     {
         if (!Enum.IsDefined(typeof(DESKTOP_WALLPAPER_POSITION), position))
@@ -106,7 +74,6 @@ internal static class DesktopWallpaper
         return Use(desktop => desktop.SetPosition((DESKTOP_WALLPAPER_POSITION)position));
     }
 
-    /// <summary>Sets the background color, a <c>COLORREF</c>. Returns a failure code, or 0.</summary>
     internal static int SetColor(uint color)
     {
         return Use(desktop => desktop.SetBackgroundColor(color));
@@ -129,7 +96,6 @@ internal static class DesktopWallpaper
         return (monitorId, false);
     }
 
-    /// <summary>The connected screens, by the wallpaper monitor id and by the rectangle both APIs report.</summary>
     private static (Dictionary<string, (string Id, bool IsPrimary)> ByPath,
         Dictionary<(int Left, int Top, int Right, int Bottom), (string Id, bool IsPrimary)> ByRect) Displays()
     {
@@ -193,11 +159,6 @@ internal static class DesktopWallpaper
             Marshal.FreeCoTaskMem(pointer);
     }
 
-    /// <summary>
-    /// <c>IDesktopWallpaper</c>, declared here. Generating it from the metadata pulls <c>IShellItemArray</c> and then
-    /// <c>IMoniker</c>, whose friendly methods use the banned <c>ComTypes</c> interfaces. Only the methods up to the
-    /// fit and the color are declared; their slots are the Windows order, and a slideshow is not set from here.
-    /// </summary>
     [ComImport]
     [Guid("B92B56A9-8B55-4E14-9A89-0199BBB6F93B")]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

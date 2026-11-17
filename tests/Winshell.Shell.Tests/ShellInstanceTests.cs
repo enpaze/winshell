@@ -1,9 +1,5 @@
 namespace Winshell.ShellTests;
 
-/// <summary>
-/// The shell of this test process is a Winshell instance, in a local folder of its own: it is listed, it logs, it has
-/// its folders, and the control pipe reaches what it registered.
-/// </summary>
 public sealed class ShellInstanceTests
 {
     private static async Task<InstanceInfo> Own()
@@ -104,7 +100,6 @@ public sealed class ShellInstanceTests
             }
             finally
             {
-                // The shell is one for the whole run. A notice left up is a second window for the tests that follow.
                 await DismissNotice();
             }
         });
@@ -126,12 +121,10 @@ public sealed class ShellInstanceTests
                           ReadClosed(f).Contains("SENTINEL posted failure", StringComparison.Ordinal)),
                 "a crash report for the posted failure");
             Assert.True(await ShellFixture.On(_ => true));
-            // The report shows a notice. Take it down before another test looks at the shell's windows.
             await DismissNotice();
         });
     }
 
-    /// <summary>Closes the shell's notice. The show is already posted by the time a report or a build error is visible.</summary>
     private static Task DismissNotice()
     {
         return ShellFixture.On(shell =>
@@ -141,11 +134,6 @@ public sealed class ShellInstanceTests
         });
     }
 
-    /// <summary>
-    /// A file's text, refusing to share with a writer as <see cref="File.ReadAllText(string)"/> does, so a report still
-    /// being written fails. Delete is shared: a report just renamed into the folder is still open to the rename for an
-    /// instant.
-    /// </summary>
     private static string ReadClosed(string path)
     {
         using var reader =

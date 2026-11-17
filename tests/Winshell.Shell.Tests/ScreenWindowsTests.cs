@@ -2,11 +2,6 @@ using Windows.Foundation;
 
 namespace Winshell.ShellTests;
 
-/// <summary>
-/// One window on each screen for a component: made as a screen appears, kept while it changes size, disposed as it goes,
-/// and made again when another monitor takes its id or its row in the component's section changes. The screens are the
-/// shell's own list, changed as the platform changes it when monitors are connected, removed or set up again.
-/// </summary>
 public sealed class ScreenWindowsTests
 {
     [Fact]
@@ -19,7 +14,6 @@ public sealed class ScreenWindowsTests
             var second = Screen("TST", "Second", "2");
             var made = new List<Window>();
             screens.Add(first);
-            // Nothing here waits, so the platform's next refresh, which drops made-up screens, comes after the test.
             try
             {
                 using var windows = new ScreenWindows("windows" + Guid.NewGuid().ToString("N"), Record(made));
@@ -79,8 +73,6 @@ public sealed class ScreenWindowsTests
                 Assert.Equal("right", tallWindow.Row?["edge"]);
 
                 File.WriteAllText(path, Rows(name, "bottom"));
-                // Making a section reads the file as it is now, without waiting for the file watch: the platform's
-                // next refresh drops made-up screens, so they are kept in the list as briefly as possible.
                 new Section(name).Dispose();
                 await Wait.UntilAsync(() =>
                 {
@@ -105,7 +97,6 @@ public sealed class ScreenWindowsTests
         });
     }
 
-    /// <summary>A window function that keeps what it makes in <paramref name="made"/>.</summary>
     private static Func<ScreenInfo, IReadOnlyDictionary<string, object?>?, IDisposable> Record(List<Window> made)
     {
         return (screen, row) =>
@@ -116,7 +107,6 @@ public sealed class ScreenWindowsTests
         };
     }
 
-    /// <summary>A section with a row for the wide screen with serial 1, on <paramref name="edge"/>, and one for the tall screen.</summary>
     private static string Rows(string name, string edge)
     {
         return $"""
@@ -137,7 +127,6 @@ public sealed class ScreenWindowsTests
             """;
     }
 
-    /// <summary>A screen with an id no monitor has, as the platform would report a monitor that was connected.</summary>
     internal static ScreenInfo Screen(string manufacturer, string model, string serial)
     {
         var name = "TEST" + Guid.NewGuid().ToString("N");
@@ -145,10 +134,8 @@ public sealed class ScreenWindowsTests
             new Rect(0, 0, 1920, 1040), 1, 0, 0, 60, false);
     }
 
-    /// <summary>A section with no keys, made to read the file.</summary>
     private sealed partial class Section(string name) : Preferences(name);
 
-    /// <summary>What a configuration's function made for one screen, and whether it has been disposed.</summary>
     private sealed class Window(ScreenInfo screen, IReadOnlyDictionary<string, object?>? row) : IDisposable
     {
         public ScreenInfo Screen { get; } = screen;

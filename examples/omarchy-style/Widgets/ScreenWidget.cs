@@ -6,7 +6,6 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
-/// <summary>The monitor this bar is on, and whether there are others.</summary>
 public sealed class ScreenWidget : Component<WidgetContext>
 {
     public override Element Render()
@@ -18,7 +17,6 @@ public sealed class ScreenWidget : Component<WidgetContext>
 
     private sealed record GlyphProps(ShellWindow Window, WidgetContext Context);
 
-    /// <summary>The glyph, once the bar's window is known. The window says which screen this bar is on.</summary>
     private sealed class Glyph : Component<GlyphProps>
     {
         public override Element Render()

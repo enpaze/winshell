@@ -4,10 +4,8 @@ using Windows.Win32.Foundation;
 
 namespace Winshell.Native;
 
-/// <summary>A command line split into arguments as Windows splits it.</summary>
 internal static unsafe class CommandLine
 {
-    /// <summary>The arguments, or none for a blank line: <c>CommandLineToArgvW</c> returns this program's path for one.</summary>
     internal static string[] Split(string command)
     {
         if (string.IsNullOrWhiteSpace(command))

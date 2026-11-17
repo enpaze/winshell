@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- The WinUI host settings a configuration gets from the Winshell library package. -->
   <Import Project="..\Winshell.Package\buildTransitive\Winshell.props" />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -8,22 +7,12 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>..\..\packaging\winshell.ico</ApplicationIcon>
     <InvariantGlobalization>false</InvariantGlobalization>
-    <!-- WinUI's self-contained payload needs an architecture. A plain build keeps the ordinary folder, so tests find
-         winshell.exe. A publish for an architecture keeps its own: sharing obj would give arm64 the x64 ReadyToRun code. -->
     <AppendRuntimeIdentifierToOutputPath Condition="'$(RuntimeIdentifier)' == ''">false</AppendRuntimeIdentifierToOutputPath>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
-    <!-- The build writes the merged resource index beside the bin output. The targets this project imports never
-         publish it, and WinUI cannot find its XAML without the copy named after the exe. -->
     <ProjectPriFileName>winshell.pri</ProjectPriFileName>
     <ProjectPriFullPath>$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\$(ProjectPriFileName)</ProjectPriFullPath>
-    <!-- UseWinUI would infer a windowed exe. The installer turns a console winshell.exe into winshellw.exe. -->
     <DisableWinExeOutputInference>true</DisableWinExeOutputInference>
-    <!-- Winshell.Shell, Winshell.Services and Winshell.Core write XML doc files for the reference pages. A release does not ship them. -->
-    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
   </PropertyGroup>
-  <!-- A release is trimmed. Partial leaves Winshell's own assemblies whole, which the TOML files and the IPC handlers
-       reflect over, and cuts the framework and the WinRT projections to what they use. Set here and not by the script,
-       so a build runs under the same switches a release does, and only this project's publish trims. -->
   <PropertyGroup>
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>partial</TrimMode>
@@ -31,8 +20,6 @@
     <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
   </PropertyGroup>
-  <!-- Kept whole. A trimmed interface loses the vtable slots of the methods nothing calls, so these COM surfaces would
-       call the wrong method. WinUI's projections, trimmed, fail to start with E_NOINTERFACE. Tomlyn reads by reflection. -->
   <ItemGroup>
     <TrimmerRootAssembly Include="Microsoft.WinUI" />
     <TrimmerRootAssembly Include="Microsoft.InteractiveExperiences.Projection" />
@@ -50,8 +37,6 @@
     <ProjectReference Include="..\Winshell.Shell\Winshell.Shell.csproj" />
     <InternalsVisibleTo Include="Winshell.Tests" />
   </ItemGroup>
-  <!-- What winshell new copies: the starter, and each folder under examples, by glob, so a new example needs
-       no change here. Example.cs reads them as new/<name>/<path>. -->
   <ItemGroup>
     <EmbeddedResource Include="..\..\templates\winshell\**"
                       Exclude="..\..\templates\winshell\**\bin\**;..\..\templates\winshell\**\obj\**"
@@ -60,15 +45,9 @@
                       Exclude="..\..\examples\**\bin\**;..\..\examples\**\obj\**"
                       LogicalName="new/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
-  <!-- Debugger helpers and symbols are not part of the install, and neither is what nothing in Winshell loads: WebView2,
-       the other garbage collectors, and HTTP/3. The .mui files stay: without them WinUI ends the process, with no crash
-       report, when a control asks for one of its strings. So does Microsoft.UI.Xaml.Phone.dll, whatever its name says,
-       which WinUI's controls load. Held as text so the patterns stay patterns. scripts/package.ps1 applies the list after
-       the release publish. A plain publish keeps every file. -->
   <PropertyGroup>
     <WinshellReleaseRemoved>*.pdb;createdump.exe;mscordbi.dll;mscordaccore*;Microsoft.DiaSymReader.Native.*.dll;Microsoft.Web.WebView2.*;WebView2Loader.dll;clrgc*.dll;msquic.dll</WinshellReleaseRemoved>
   </PropertyGroup>
-  <!-- The publish list never includes that index, so copy it next to winshell.exe. -->
   <Target Name="CopyProjectPriToPublish" AfterTargets="CopyFilesToPublishDirectory">
     <Copy SourceFiles="$(ProjectPriFullPath)"
           DestinationFiles="$([MSBuild]::EnsureTrailingSlash($(PublishDir)))$(ProjectPriFileName)"

@@ -1,35 +1,5 @@
 namespace Winshell;
 
-/// <summary>
-/// One window on each screen for a component, such as a bar or a dock. It makes a screen's window when the screen
-/// appears and disposes it when the screen goes, and leaves every other screen's window as it is, so their widgets keep
-/// their state. A screen whose size, scale or work area changes keeps its window, and the screen it was made with: read
-/// <see cref="Shell.Screens"/> for the screen as it is now.
-/// <code>
-/// var dock = new ScreenWindows("dock", (screen, row) => new PanelWindow
-/// {
-///     Screen = screen,
-///     Anchors = row?.GetValueOrDefault("edge") is "top"
-///         ? Edges.Left | Edges.Right | Edges.Top
-///         : Edges.Left | Edges.Right | Edges.Bottom,
-///     Height = 48,
-///     ReservedSize = 48,
-///     Visible = true
-/// });
-/// </code>
-/// A screen that differs from the rest has a row in the component's section of the preferences file, a
-/// <c>[[dock.screen]]</c> table with its <c>manufacturer</c>, <c>model</c> and <c>serial</c> as strings. A row matches
-/// a screen when all three equal the screen's <see cref="ScreenInfo.Manufacturer"/>, <see cref="ScreenInfo.Model"/>
-/// and <see cref="ScreenInfo.SerialNumber"/>, so an empty one is written <c>""</c>, and the first match wins. The name
-/// Windows numbers, such as <c>DISPLAY1</c>, is never matched: Windows renumbers it. A row for a screen that is not
-/// connected stays in the file and matches no other screen. When a screen's row changes, its window is disposed and
-/// made again from the new row, on the next turn of the loop, once the whole save is read. The log says, under the
-/// component's name, which screens have a row of their own.
-/// <para>
-/// It is a shortcut, not a limit: a configuration can still make any window on any screen itself. Make one on the
-/// shell's thread and dispose it when the component goes, which disposes its windows.
-/// </para>
-/// </summary>
 public sealed class ScreenWindows : IDisposable
 {
     private readonly string _name;
@@ -37,22 +7,12 @@ public sealed class ScreenWindows : IDisposable
     private readonly Shell _shell;
     private readonly ScreenRows _rows;
 
-    /// <summary>Each screen's window, by the screen's id, with the screen and the row it was made for.</summary>
     private readonly Dictionary<string, (ScreenInfo Screen, IReadOnlyDictionary<string, object?>? Row, IDisposable Window)>
         _windows = [];
 
     private bool _syncPosted;
     private bool _disposed;
 
-    /// <summary>Makes the window of every screen there is now, and follows the screens and the rows from then on.</summary>
-    /// <param name="name">The component's name, which names its section of the preferences file, as in <c>[bar]</c>.</param>
-    /// <param name="make">
-    /// Makes the window for a screen, given the screen and its row, or null when it has none. The row is the table as
-    /// the file has it, the three matching keys included, with each value as TOML reads it: a string, a bool, a long,
-    /// a double, a list or a table. Return the window, or anything disposable that holds it with what else the
-    /// screen's window needs, such as its widget areas. A function that throws is logged under the component's name,
-    /// and that screen has no window until the screens or the rows change.
-    /// </param>
     public ScreenWindows(string name, Func<ScreenInfo, IReadOnlyDictionary<string, object?>?, IDisposable> make)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -61,15 +21,11 @@ public sealed class ScreenWindows : IDisposable
         _make = make;
         _shell = Shell.Current;
         _rows = new ScreenRows(name);
-        // A save can change a row and the component's other keys in one read. Following once, on the next turn, sees
-        // all of it, so a window is made from the component's new keys too.
         _rows.PropertyChanged += (_, _) => PostSync();
         _shell.Screens.CollectionChanged += OnScreensChanged;
         Sync();
     }
 
-    // Each change is followed as it is made. The platform adds a renumbered screen's new id before it removes the old
-    // one, so that monitor has two windows until the removal, in the same turn.
     private void OnScreensChanged(object? sender, EventArgs e)
     {
         Sync();
@@ -87,10 +43,6 @@ public sealed class ScreenWindows : IDisposable
         });
     }
 
-    /// <summary>
-    /// Disposes the windows of screens that went, or that are another monitor now or have another row, and makes the
-    /// windows that are missing.
-    /// </summary>
     private void Sync()
     {
         if (_disposed)
@@ -109,7 +61,6 @@ public sealed class ScreenWindows : IDisposable
             }
 
             Try($"make the window of {screen.Id}", () => Make(screen, row));
-            // The window function or a window's disposal can dispose this.
             if (_disposed)
                 return;
         }
@@ -134,7 +85,6 @@ public sealed class ScreenWindows : IDisposable
         dropped.Window.Dispose();
     }
 
-    /// <summary>Runs one screen's part, so a window function that throws leaves the other screens' windows.</summary>
     private void Try(string what, Action part)
     {
         try
@@ -147,14 +97,12 @@ public sealed class ScreenWindows : IDisposable
         }
     }
 
-    /// <summary>Whether two records of one screen id are the same monitor, which a size or scale change leaves.</summary>
     private static bool Same(ScreenInfo kept, ScreenInfo now)
     {
         return kept.Manufacturer == now.Manufacturer && kept.Model == now.Model &&
                kept.SerialNumber == now.SerialNumber;
     }
 
-    /// <summary>The first row whose manufacturer, model and serial all equal the screen's, or null when none does.</summary>
     private IReadOnlyDictionary<string, object?>? RowOf(ScreenInfo screen)
     {
         return _rows.Screen?.FirstOrDefault(row =>
@@ -163,10 +111,6 @@ public sealed class ScreenWindows : IDisposable
             row.GetValueOrDefault("serial") as string == screen.SerialNumber);
     }
 
-    /// <summary>
-    /// Disposes every window and stops following the screens and the rows. All are attempted even if one disposal
-    /// throws.
-    /// </summary>
     public void Dispose()
     {
         if (_disposed)
@@ -179,7 +123,6 @@ public sealed class ScreenWindows : IDisposable
         Shell.DisposeEach(windows);
     }
 
-    /// <summary>The <c>screen</c> rows of the component's section, each one screen that differs.</summary>
     private sealed class ScreenRows(string name) : Preferences(name)
     {
         public IReadOnlyList<IReadOnlyDictionary<string, object?>>? Screen

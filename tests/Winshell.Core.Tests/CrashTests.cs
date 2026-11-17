@@ -2,7 +2,6 @@ using System.Globalization;
 
 namespace Winshell.Core.Tests;
 
-/// <summary>Crash reports. Every report goes to a temp folder this class creates.</summary>
 public sealed class CrashTests : IDisposable
 {
     private readonly string _folder =

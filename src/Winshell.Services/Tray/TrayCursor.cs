@@ -1,6 +1,5 @@
 namespace Winshell.Tray;
 
-/// <summary>Temporarily places the pointer for an old tray app without undoing the user's next mouse movement.</summary>
 internal sealed class TrayCursor(IEventLoop loop, Func<(int X, int Y)> position, Action<(int X, int Y)> move)
     : IDisposable
 {

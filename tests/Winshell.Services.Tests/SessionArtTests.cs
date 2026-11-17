@@ -6,7 +6,6 @@ using Winshell.Media;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>A session's art comes from a thumbnail Windows gives, which an app can fail to hand over.</summary>
 public sealed class SessionArtTests
 {
     [Fact]
@@ -63,7 +62,6 @@ public sealed class SessionArtTests
         }
     }
 
-    /// <summary>A PNG header with bytes of its own after it, so each one is a new file in the cache.</summary>
     private static async Task<IRandomAccessStreamReference> ThumbnailAsync()
     {
         var data = new byte[40];

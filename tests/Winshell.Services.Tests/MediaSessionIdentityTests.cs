@@ -2,9 +2,6 @@ using Winshell.Media;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// Windows returns a new object every time the media session list is read. The held session has to stay.
-/// </summary>
 public class MediaSessionIdentityTests
 {
     [Fact]

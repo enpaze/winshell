@@ -6,17 +6,14 @@ using Windows.Win32.System.Threading;
 
 namespace Winshell.Native;
 
-/// <summary>How a read of a process's token ended.</summary>
 internal enum TokenRead
 {
     Read,
 
-    /// <summary>The process opened, but Windows refused its token.</summary>
     Denied,
     Failed
 }
 
-/// <summary>A process opened for limited queries. Disposing it closes the handle.</summary>
 internal readonly unsafe ref struct ProcessHandle
 {
     private ProcessHandle(HANDLE handle)
@@ -26,7 +23,6 @@ internal readonly unsafe ref struct ProcessHandle
 
     internal HANDLE Handle { get; }
 
-    /// <summary>False when the process could not be opened.</summary>
     internal bool IsOpen => !Handle.IsNull;
 
     internal static ProcessHandle Open(uint processId)
@@ -35,9 +31,6 @@ internal readonly unsafe ref struct ProcessHandle
             PInvoke.OpenProcess(PROCESS_ACCESS_RIGHTS.PROCESS_QUERY_LIMITED_INFORMATION, false, processId));
     }
 
-    /// <summary>
-    /// Reads one class of the process's token into <paramref name="buffer"/>. A process that did not open fails.
-    /// </summary>
     internal TokenRead ReadToken(TOKEN_INFORMATION_CLASS info, Span<byte> buffer)
     {
         if (!IsOpen)

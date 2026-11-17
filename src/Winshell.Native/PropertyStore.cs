@@ -3,17 +3,14 @@ using Windows.Win32.System.Com.StructuredStorage;
 
 namespace Winshell.Native;
 
-/// <summary>Reads typed values from a Windows property store: an audio device's, a window's or a shortcut's.</summary>
 internal static partial class PropertyStore
 {
     private const ushort VtUI4 = 19;
     private const ushort VtLpwstr = 31;
     private const ushort VtBlob = 65;
 
-    /// <summary>System.AppUserModel.ID: the id a window sets, or a shortcut gives the app it starts.</summary>
     public static readonly PROPERTYKEY AppUserModelId = new(new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), 5);
 
-    /// <summary>A string value, or null when the store has none of that key or holds another type.</summary>
     public static string? ReadString(IPropertyStore store, in PROPERTYKEY key)
     {
         if (store.GetValue(key, out var value) != 0)
@@ -28,7 +25,6 @@ internal static partial class PropertyStore
         }
     }
 
-    /// <summary>A 32-bit unsigned value, or null when the store has none of that key or holds another type.</summary>
     public static uint? ReadUInt(IPropertyStore store, in PROPERTYKEY key)
     {
         if (store.GetValue(key, out var value) != 0)
@@ -43,7 +39,6 @@ internal static partial class PropertyStore
         }
     }
 
-    /// <summary>A copy of a blob value, or null when the store has none of that key or holds another type.</summary>
     public static byte[]? ReadBlob(IPropertyStore store, in PROPERTYKEY key)
     {
         if (store.GetValue(key, out var value) != 0)
@@ -73,8 +68,6 @@ internal readonly struct PROPERTYKEY(Guid format, uint id)
     public readonly uint Id = id;
 }
 
-/// <summary>IPropertyStore, with the Windows SDK's methods in its vtable order.</summary>
-// Every method keeps its place in the IPropertyStore vtable.
 [ComImport]
 [Guid("886d8eeb-8cf2-4446-8d02-cdba1dbdcf99")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

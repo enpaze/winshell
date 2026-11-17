@@ -2,10 +2,6 @@ using System.Globalization;
 
 namespace Winshell;
 
-/// <summary>
-/// Each flag Winshell's commands share, spelled once. An entry lists the flags it takes. A flag that only one
-/// subcommand takes is listed on that subcommand, not on every command.
-/// </summary>
 internal static class CliFlags
 {
     public static readonly CommandOption Help = CommandOption.Flag(new CommandWord("--help", "-h", "/?"));
@@ -48,10 +44,8 @@ internal static class CliFlags
 
     public static readonly CommandOption NoColor = CommandOption.Flag(new CommandWord("--no-color"));
 
-    /// <summary>What every command takes: verbose, help and version.</summary>
     public static readonly CommandOption[] Shared = [Verbose, Help, Version];
 
-    /// <summary>What a command that picks one instance takes.</summary>
     public static readonly CommandOption[] Instance = [Id, Pid, Path, Config];
 
     private static object ConfigName(string option, string name)
@@ -62,19 +56,13 @@ internal static class CliFlags
         return name;
     }
 
-    /// <summary>
-    /// A process id or a tail count. A value that isn't one is an <see cref="ArgumentException"/>,
-    /// which the front door turns into exit code 2.
-    /// </summary>
     private static object WholeNumber(string option, string text)
     {
-        // NumberStyles.Integer keeps "+5", surrounding whitespace and "-0" (which is 0). A negative is not a whole number.
         if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) || value < 0)
             throw new ArgumentException($"{option} needs a whole number.");
         return value;
     }
 
-    /// <summary>A frame rate: a whole number above 0.</summary>
     private static object Positive(string option, string text)
     {
         var value = (int)WholeNumber(option, text);
@@ -83,7 +71,6 @@ internal static class CliFlags
         return value;
     }
 
-    /// <summary>A time: seconds, such as <c>5</c> or <c>2.5s</c>, or milliseconds, such as <c>500ms</c>. At least 1 ms.</summary>
     private static object Duration(string option, string text)
     {
         var (number, milliseconds) = text.EndsWith("ms", StringComparison.Ordinal) ? (text[..^2], 1.0)
@@ -95,7 +82,6 @@ internal static class CliFlags
         return TimeSpan.FromMilliseconds(Math.Round(value * milliseconds));
     }
 
-    /// <summary><c>--screen</c> with no number is the primary screen, numbered 0.</summary>
     private static object ScreenNumber(string option, string? text)
     {
         return text is null ? 0 : WholeNumber(option, text);

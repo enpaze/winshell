@@ -8,13 +8,8 @@ using Windows.Win32.System.Pipes;
 
 namespace Winshell.Native;
 
-/// <summary>Named pipe instances created with a security descriptor, and the mandatory label on a handle.</summary>
 internal static unsafe class NamedPipeServer
 {
-    /// <summary>
-    /// Creates one duplex, overlapped server instance of <paramref name="name"/> that refuses remote clients, with the
-    /// descriptor <paramref name="sddl"/>. Null when it fails, with the Win32 error in <paramref name="error"/>.
-    /// </summary>
     internal static SafePipeHandle? CreateServer(string name, bool first, string sddl, out int error)
     {
         error = 0;
@@ -34,8 +29,6 @@ internal static unsafe class NamedPipeServer
             HANDLE handle;
             fixed (char* path = name)
             {
-                // The metadata leaves SetLastError off CreateNamedPipeW, so its error is read here, as CsWin32 does for
-                // the calls that have it.
                 Marshal.SetLastSystemError(0);
                 handle = PInvoke.CreateNamedPipe(path, mode, NAMED_PIPE_MODE.PIPE_REJECT_REMOTE_CLIENTS, 255, 4096,
                     4096, 0, &attributes);
@@ -53,7 +46,6 @@ internal static unsafe class NamedPipeServer
         }
     }
 
-    /// <summary>The mandatory label of <paramref name="handle"/> as SDDL, or empty when it has none or cannot be read.</summary>
     internal static string MandatoryLabel(SafeHandle handle)
     {
         var target = new HANDLE(handle.DangerousGetHandle());
@@ -81,10 +73,6 @@ internal static unsafe class NamedPipeServer
         }
     }
 
-    /// <summary>
-    /// Replaces the mandatory label of <paramref name="handle"/> with the one in <paramref name="sddl"/>. Returns 0, or
-    /// the Win32 error.
-    /// </summary>
     internal static int SetMandatoryLabel(SafeHandle handle, string sddl)
     {
         if (!PInvoke.ConvertStringSecurityDescriptorToSecurityDescriptor(sddl, PInvoke.SDDL_REVISION_1, out var sd))
@@ -102,7 +90,6 @@ internal static unsafe class NamedPipeServer
         }
     }
 
-    /// <summary>The process at the client end of a connected server instance, or null with the Win32 error.</summary>
     internal static uint? ClientProcessId(SafePipeHandle pipe, out int error)
     {
         error = 0;

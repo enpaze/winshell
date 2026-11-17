@@ -4,7 +4,6 @@ using Winshell.Native;
 
 namespace Winshell.Audio;
 
-/// <summary>An audio endpoint: a playback device, or a recording device.</summary>
 internal sealed class EndpointNode : AudioGraphNode
 {
     private readonly AudioGraph _graph;
@@ -60,7 +59,6 @@ internal sealed class EndpointNode : AudioGraphNode
         }
         catch
         {
-            // No node holds the device's volume when it fails to open.
             Winshell.Native.Com.Release(_volume);
             throw;
         }
@@ -109,11 +107,6 @@ internal sealed class EndpointNode : AudioGraphNode
         ReadVolume();
     }
 
-    /// <summary>
-    /// A recording device only meters while something records from it. This opens a shared recording
-    /// stream while peaks are wanted. Windows shows its microphone privacy indicator while the stream is
-    /// open; the stream's own session is not shown as a node.
-    /// </summary>
     public override IDisposable? KeepRunning()
     {
         if (IsPlayback || Released)
@@ -145,7 +138,6 @@ internal sealed class EndpointNode : AudioGraphNode
         }
         catch (COMException)
         {
-            // The device is gone already.
         }
 
         Winshell.Native.Com.Release(client);
@@ -174,13 +166,11 @@ internal sealed class EndpointNode : AudioGraphNode
 
     private bool Released { get; set; }
 
-    /// <summary>Starts tracking the apps that play to or record from this device.</summary>
     public void StartSessions()
     {
         try
         {
             _sessionManager = CoreAudio.Activate<IAudioSessionManager2>(_device);
-            // Windows only reports new sessions once the session list has been read.
             _sessionManager.GetSessionEnumerator(out var sessions);
             try
             {
@@ -204,7 +194,6 @@ internal sealed class EndpointNode : AudioGraphNode
         }
     }
 
-    /// <summary>Shows the session of <paramref name="control"/>, which this takes: a new session node keeps it.</summary>
     private void AddSession(IAudioSessionControl2 control)
     {
         SessionNode? session = null;
@@ -234,8 +223,6 @@ internal sealed class EndpointNode : AudioGraphNode
             return null;
         control.GetState(out var state);
         control.GetProcessId(out var processId);
-        // A recording device's System Sounds session records nothing, and this process's own session there is
-        // the stream KeepRunning opens to make the meter work.
         if (state == AudioSessionState.AudioSessionStateExpired
             || (!IsPlayback && (control.IsSystemSoundsSession() == 0 || processId == Environment.ProcessId)))
             return null;
@@ -245,7 +232,6 @@ internal sealed class EndpointNode : AudioGraphNode
         }
         catch (Exception e) when (e is COMException or InvalidCastException)
         {
-            // The session closed while it was being read, or has no volume control.
             return null;
         }
     }
@@ -263,7 +249,6 @@ internal sealed class EndpointNode : AudioGraphNode
         }
         catch (COMException)
         {
-            // The device is gone already.
         }
 
         StopKeepAlive();
@@ -315,8 +300,6 @@ internal sealed class EndpointNode : AudioGraphNode
     {
         public int OnSessionCreated(IAudioSessionControl2 session)
         {
-            // The callback's object belongs to the audio engine's thread. Marshal it before the
-            // UI thread reads it, including after that thread is a single-threaded apartment.
             nint stream;
             try
             {

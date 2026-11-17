@@ -112,7 +112,6 @@ public sealed class WindowKindTests
             shell.Platform.OutsideClicks.Click(below);
             var result = (heard, popup.Visible, flyout.IsOpen);
 
-            // A click outside both closes the flyout, so the mouse hook does not outlive the test.
             shell.Platform.OutsideClicks.Click(new POINT { X = (int)screen.Right - 5, Y = (int)screen.Bottom - 5 });
             return result;
         });
@@ -163,7 +162,6 @@ public sealed class WindowKindTests
         };
     }
 
-    /// <summary>Puts an app window in front of a shown window, calls that window's Focus, and reports who is in front.</summary>
     private static Task<(nint App, nint Window, nint Foreground)> FocusInFrontOfApp(Func<Shell, ShellWindow> create)
     {
         return ShellFixture.On(async shell =>

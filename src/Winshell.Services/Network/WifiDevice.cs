@@ -1,6 +1,5 @@
 namespace Winshell.Network;
 
-/// <summary>A Wi-Fi adapter.</summary>
 public sealed class WifiDevice : NetworkDevice
 {
     private readonly DeviceAction _scan;
@@ -12,19 +11,14 @@ public sealed class WifiDevice : NetworkDevice
         _scan = new DeviceAction(loop.Post);
     }
 
-    /// <summary>A scan failed.</summary>
     public event Action<string>? OperationFailed;
 
-    /// <summary>The adapter's 802.11 mode.</summary>
     public WifiDeviceMode Mode => Read(Info).Mode;
 
-    /// <summary>Whether a scan is running. <see cref="Scan"/> does nothing until it ends.</summary>
     public bool Scanning => Read(_scan).Running;
 
-    /// <summary>Why the last scan failed. Empty while a scan runs and after one succeeds.</summary>
     public string Error => Read(_error);
 
-    /// <summary>Scans once and updates <see cref="NetworkDevice.Networks"/>. Needs <see cref="NetworkingService.RequestAccess"/> first.</summary>
     public void Scan()
     {
         _ = ScanAsync();

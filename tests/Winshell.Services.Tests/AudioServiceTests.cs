@@ -414,7 +414,6 @@ public sealed class AudioServiceTests
         using var _ = audio;
         using var monitor = new AudioPeakMonitor(_loop);
         monitor.Node = audio.Nodes[0];
-        // The handler runs on the advance below, before the monitor is disposed.
         monitor.PropertyChanged += (_, _) => monitor.Enabled = false;
 
         meter.Peaks = [0.75f, 0.5f];

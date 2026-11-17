@@ -6,11 +6,6 @@ using Winshell.Native;
 
 namespace Winshell.Capture;
 
-/// <summary>
-/// Samples the latest frame of a <see cref="CaptureLifetime"/>, so slow consumers never queue frames or UI callbacks.
-/// Only a consumed frame leaves the GPU.
-/// </summary>
-/// <param name="log">Where a teardown that fails is reported.</param>
 internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
 {
     private CaptureLifetime? _life;
@@ -49,11 +44,10 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
         var generation = life.Generation;
         var ready = _readbackPending ? Readback(life) : null;
         if (_readbackPending)
-            return null; // GPU work is still in flight; never stall the shell's scene thread.
+            return null;
         Direct3D11CaptureFrame? latest = null;
         try
         {
-            // At most the pool's buffers. Never wait for a producer or drain an unbounded queue.
             for (var i = 0; i < CaptureLifetime.Buffers && generation == life.Generation; i++)
             {
                 var pool = life.Pool;
@@ -78,7 +72,6 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
             var size = latest.ContentSize;
             if (size.Width <= 0 || size.Height <= 0)
                 return ready;
-            // The first frame after a resize may have old-sized storage. Drop it rather than export clipped pixels.
             if (size.Width != _size.Width || size.Height != _size.Height)
             {
                 latest.Dispose();
@@ -86,8 +79,6 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
                 _size = size;
                 _staging?.Dispose();
                 _staging = null;
-                // A static source may not invalidate after the pool is recreated. Stop the old session and
-                // release its frames before the pool goes away, then start a new pair.
                 life.Restart(size);
                 return ready;
             }
@@ -131,7 +122,6 @@ internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
 
     public void Dispose()
     {
-        // An in-flight closed event then no-ops, instead of stopping a session that is already going away.
         Interlocked.Exchange(ref _closed, null);
         var life = _life;
         var staging = _staging;

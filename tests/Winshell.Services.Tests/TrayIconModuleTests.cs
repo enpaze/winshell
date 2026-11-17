@@ -2,7 +2,6 @@ using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>An app picks the module a tray icon's resource is loaded from, so a path that is not local is never opened.</summary>
 public sealed class TrayIconModuleTests
 {
     [Theory]

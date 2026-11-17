@@ -4,10 +4,8 @@ using System.Text.Json;
 
 namespace Winshell.Diagnostics;
 
-/// <summary>The checks <see cref="Doctor"/> ran, as <c>winshell doctor</c> prints them: as text, or as JSON.</summary>
 internal static class DoctorReport
 {
-    /// <summary>The checks as <c>winshell doctor</c> prints them: a line each, a fix under each problem, and a count.</summary>
     internal static string Format(IReadOnlyList<DoctorCheck> checks, string version, bool color)
     {
         var text = new StringBuilder();
@@ -47,11 +45,9 @@ internal static class DoctorReport
             $"{checks.Count(c => c.Status == CheckStatus.Pass)} passed, {warns} {(warns == 1 ? "warning" : "warnings")}, {fails} failed.");
     }
 
-    /// <summary>The checks as <c>winshell doctor --json</c> prints them.</summary>
     internal static string ToJson(IReadOnlyList<DoctorCheck> checks, string version)
     {
         using var stream = new MemoryStream();
-        // Read by people too: paths and messages are written as they are, not escaped for HTML.
         using (var json = new Utf8JsonWriter(stream, JsonText.IndentedWriter))
         {
             json.WriteStartObject();

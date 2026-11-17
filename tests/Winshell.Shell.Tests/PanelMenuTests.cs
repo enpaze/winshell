@@ -10,17 +10,12 @@ namespace Winshell.ShellTests;
 [Trait("Category", "Window")]
 public sealed class PanelMenuTests
 {
-    /// <summary>
-    /// A tray app that opens its menu without the foreground has a menu a click elsewhere never closes. The thread
-    /// here is that app: a press on a panel still has to close its menu, and the panel takes no activation.
-    /// </summary>
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public async Task A_panel_press_closes_a_menu_opened_without_the_foreground_and_takes_no_activation(
         bool mouseActivation)
     {
-        // Another test's press closes every menu too, so none runs until this menu is gone.
         await ShellFixture.Hold(async () =>
         {
             var menu = TrayAppMenu.Open();
@@ -37,7 +32,6 @@ public sealed class PanelMenuTests
                     Assert.Equal((nint)PInvoke.MA_NOACTIVATE,
                         (nint)PInvoke.SendMessage((HWND)host.Handle, PInvoke.WM_MOUSEACTIVATE, 0, 0));
                 else
-                    // What `winshell inspect click` does before it invokes a control.
                     host.Messages.Press();
 
                 Assert.Equal(foreground, PInvoke.GetForegroundWindow());
@@ -48,7 +42,6 @@ public sealed class PanelMenuTests
         });
     }
 
-    /// <summary>A popup menu shown on a thread of its own that never has the foreground.</summary>
     private sealed class TrayAppMenu
     {
         private readonly TaskCompletionSource _closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -71,7 +64,6 @@ public sealed class PanelMenuTests
             return menu;
         }
 
-        /// <summary>Waits for the menu to close. This failed once on CI and never here, so a menu that stays open says what its thread was doing.</summary>
         public async Task Closed()
         {
             try
@@ -105,7 +97,6 @@ public sealed class PanelMenuTests
             }
         }
 
-        /// <summary>What Windows says about a thread's menu: whether one shows, and the thread's menu mode, owner and capture.</summary>
         private static string State(uint thread)
         {
             var info = new GUITHREADINFO { cbSize = (uint)Marshal.SizeOf<GUITHREADINFO>() };

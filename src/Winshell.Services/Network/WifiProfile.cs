@@ -1,6 +1,5 @@
 namespace Winshell.Network;
 
-/// <summary>A saved WLAN profile for one network. It is not a Windows connection profile, and it never holds a key.</summary>
 public sealed class WifiProfile : ObservableObject
 {
     private readonly Network _network;
@@ -15,7 +14,6 @@ public sealed class WifiProfile : ObservableObject
         _write = new DeviceAction(network.Device.Loop.Post);
     }
 
-    /// <summary>Setting <see cref="AutoConnect"/>, <see cref="ClearPassword"/> or <see cref="Forget"/> failed.</summary>
     public event Action<string>? OperationFailed;
 
     internal Network Network => _network;
@@ -24,19 +22,12 @@ public sealed class WifiProfile : ObservableObject
 
     internal bool Removed { get; private set; }
 
-    /// <summary>The adapter's ID and the profile's name, joined by a colon.</summary>
     public string Id => Read(_info).Id;
 
-    /// <summary>The profile's name in Windows. Usually the SSID, but it can differ.</summary>
     public string Name => Read(_info).Name;
 
-    /// <summary>The SSID the profile connects to. Empty when <see cref="Loaded"/> is false.</summary>
     public string Ssid => Read(_info).Ssid;
 
-    /// <summary>
-    /// Whether the connection mode is automatic. Setting it changes only that element, and the value stays what the
-    /// last read reported until a later read shows the change.
-    /// </summary>
     public bool AutoConnect
     {
         get => Read(_info).AutoConnect;
@@ -48,30 +39,19 @@ public sealed class WifiProfile : ObservableObject
         }
     }
 
-    /// <summary>
-    /// How the profile's network is secured. <see cref="WifiSecurityType.Unknown"/> when <see cref="Loaded"/> is
-    /// false.
-    /// </summary>
     public WifiSecurityType Security => Read(_info).Security;
 
-    /// <summary>Whether the profile has a key element. The key text is not read.</summary>
     public bool HasPassword => Read(_info).HasPassword;
 
-    /// <summary>
-    /// Whether the profile could be read. When false, only <see cref="Id"/> and <see cref="Name"/> are set.
-    /// </summary>
     public bool Loaded => Read(_info).Loaded;
 
-    /// <summary>Why the last change failed, or else why the profile can't be read. Empty when neither did.</summary>
     public string Error => Read(_actionError).Length > 0 ? _actionError : _info.Error;
 
-    /// <summary>Removes every key element and writes the profile back. The key text is not read.</summary>
     public void ClearPassword()
     {
         _ = ClearPasswordAsync();
     }
 
-    /// <summary>Deletes this saved profile by its profile name.</summary>
     public void Forget()
     {
         _ = ForgetAsync();

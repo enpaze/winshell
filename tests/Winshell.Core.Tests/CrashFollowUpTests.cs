@@ -3,7 +3,6 @@ using System.Text;
 
 namespace Winshell.Core.Tests;
 
-/// <summary>The next start shows a fatal crash report once, and skips one older than the last clean exit.</summary>
 public sealed class CrashFollowUpTests : IDisposable
 {
     private readonly string _dir =
@@ -101,7 +100,6 @@ public sealed class CrashFollowUpTests : IDisposable
         var clean = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
         const string shown = @"C:\crashes\crash-one.txt";
 
-        // One pair can finish in order and hide a lost replace. Each pass asserts on its own, so a miss fails the test.
         for (var i = 0; i < 40; i++)
         {
             if (File.Exists(state))

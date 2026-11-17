@@ -2,30 +2,19 @@ using Winshell.Apps;
 
 namespace Winshell.Tray;
 
-/// <summary>The icon a balloon notification asked for, from its <c>NIIF_</c> flags.</summary>
 public enum BalloonIcon
 {
-    /// <summary>No icon.</summary>
     None = 0,
 
-    /// <summary>The information icon.</summary>
     Info = 1,
 
-    /// <summary>The warning icon.</summary>
     Warning = 2,
 
-    /// <summary>The error icon.</summary>
     Error = 3,
 
-    /// <summary>The app's own icon.</summary>
     App = 4
 }
 
-/// <summary>
-/// The notification area icons of every app, in the order they were added. An icon the app hid is left out until the
-/// app shows it again. Only one running instance in the Windows session owns the notification area; in the others
-/// <see cref="Items"/> stays empty until that one exits.
-/// </summary>
 public sealed class SystemTray : ObservableObject, IDisposable
 {
     private readonly IEventLoop _loop;
@@ -58,10 +47,8 @@ public sealed class SystemTray : ObservableObject, IDisposable
         loop.Post(Start);
     }
 
-    /// <summary>The icons apps show, in the order they were added. Empty while another instance has the tray.</summary>
     public ObservableList<SystemTrayItem> Items { get => Read(field); } = [];
 
-    /// <summary>Becomes the notification area, or waits for the instance that has it to exit.</summary>
     private void Start()
     {
         _timer = null;
@@ -90,7 +77,6 @@ public sealed class SystemTray : ObservableObject, IDisposable
         _answered = _backend.Explorer;
         UseSettings();
         KeepInFront();
-        // Every app adds its icons again, now to this window.
         _backend.Broadcast();
     }
 
@@ -99,10 +85,6 @@ public sealed class SystemTray : ObservableObject, IDisposable
         _icons.UseSettings(_backend.ReadSettings());
     }
 
-    /// <summary>
-    /// Drops icons of apps that ended without removing them, and checks the taskbar order as a fallback for a
-    /// missing signal. Explorer coming in front normally raises the window at once, without a timer.
-    /// </summary>
     private void KeepInFront()
     {
         try
@@ -119,12 +101,6 @@ public sealed class SystemTray : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Explorer broadcasts <c>TaskbarCreated</c> when it makes a new taskbar: after a restart, a crash or an update.
-    /// Apps then add their icons to whichever taskbar window is first, which can be Explorer's new one. The window
-    /// gets back in front and asks once more a moment later, so every app registers through it. A broadcast while
-    /// Explorer's taskbar is the one already answered is not answered: this tray's own, or another tray's.
-    /// </summary>
     private void OnTaskbarCreated()
     {
         _backend.Raise();
@@ -183,7 +159,6 @@ public sealed class SystemTray : ObservableObject, IDisposable
         item.OnBalloon(title, message, kind <= (int)BalloonIcon.App ? (BalloonIcon)kind : BalloonIcon.None);
     }
 
-    /// <summary>Gives the notification area up. Call on the loop's thread.</summary>
     public void Dispose()
     {
         if (_disposed)
@@ -194,8 +169,6 @@ public sealed class SystemTray : ObservableObject, IDisposable
         _timer = _answer = null;
         _clicker.Dispose();
         ExplorerTaskbarWindow.Closed(_backend);
-        // The window goes, the next instance may take over, and apps are asked to add their icons again to whichever
-        // taskbar window is first now.
         _backend.Close();
         if (_open)
             _backend.Broadcast();
@@ -204,10 +177,6 @@ public sealed class SystemTray : ObservableObject, IDisposable
     }
 }
 
-/// <summary>
-/// An app's notification area icon. Its menu belongs to the app, which draws it itself. <see cref="Display()"/> asks
-/// the app to open it.
-/// </summary>
 public sealed class SystemTrayItem : ObservableObject
 {
     private readonly ITrayBackend _backend;
@@ -234,37 +203,24 @@ public sealed class SystemTrayItem : ObservableObject
             : file;
     }
 
-    /// <summary>Raised once, just after the icon is added to <see cref="SystemTray.Items"/>.</summary>
     public event Action? Ready;
 
-    /// <summary>The app showed a balloon notification: its title, its text and its icon. Explorer still shows it as a toast.</summary>
     public event Action<string, string, BalloonIcon>? Balloon;
 
-    /// <summary>The program's name in lower case, without its extension, or the icon's key when its program is unknown.</summary>
     public string Id { get => Read(field); }
 
-    /// <summary>The program's description, as Task Manager shows it, or its file name.</summary>
     public string AppName { get => Read(field); }
 
-    /// <summary>The full path of the program that added the icon.</summary>
     public string Executable { get => Read(field); }
 
-    /// <summary>The process that added the icon, the owner of the window its clicks go to.</summary>
     public int ProcessId { get => Read(field); }
 
-    /// <summary>The icon as the app set it, at the size it chose. It changes when the app changes the icon.</summary>
     public PixelImage? Icon => Read(_image);
 
-    /// <summary>The icon's tooltip, which may run over several lines.</summary>
     public string Tooltip => Read(_tooltip);
 
-    /// <summary>Windows shows this icon in the hidden icons flyout, not in the taskbar. Users choose in Settings.</summary>
     public bool Overflow => Read(_overflow);
 
-    /// <summary>
-    /// The icon at a size in pixels, for the screen's scale. An icon loaded from a resource is drawn again at that size.
-    /// Any other is the app's own bitmap, at the size it chose.
-    /// </summary>
     public PixelImage? IconAt(int size)
     {
         if (Icon is not { } image)
@@ -274,31 +230,26 @@ public sealed class SystemTrayItem : ObservableObject
             : image;
     }
 
-    /// <summary>A left click at the cursor, which most apps answer by showing their window.</summary>
     public void Click()
     {
         _clicker.Click(_icon, TrayClick.Left, null);
     }
 
-    /// <summary>A double click at the cursor, which many older apps need before they show their window.</summary>
     public void DoubleClick()
     {
         _clicker.Click(_icon, TrayClick.Double, null);
     }
 
-    /// <summary>A middle click at the cursor. What it does is up to the app.</summary>
     public void MiddleClick()
     {
         _clicker.Click(_icon, TrayClick.Middle, null);
     }
 
-    /// <summary>A right click, which asks the app to open its menu at the cursor.</summary>
     public void Display()
     {
         _clicker.Click(_icon, TrayClick.Menu, null);
     }
 
-    /// <summary>A right click, which asks the app to open its menu at a point on the virtual desktop, in physical pixels.</summary>
     public void Display(int x, int y)
     {
         _clicker.Click(_icon, TrayClick.Menu, (x, y));

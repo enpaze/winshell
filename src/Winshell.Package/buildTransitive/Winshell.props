@@ -3,17 +3,8 @@
     <SupportedOSPlatformVersion>10.0.22621.0</SupportedOSPlatformVersion>
     <UseWinUI>true</UseWinUI>
     <WindowsPackageType>None</WindowsPackageType>
-    <!-- Leave WindowsAppSDKSelfContained unset. The SDK defaults it to true for any project that is not a library,
-         so an executable stays self-contained and a widget library builds. The Runtime package sets
-         MicrosoftWindowsAppSDKPackageDir, and that stops the default: an executable then waits on an installed
-         runtime. Clearing the directory leaves the default in place. A project that sets the property keeps its choice. -->
     <MicrosoftWindowsAppSDKPackageDir Condition="'$(WindowsAppSDKSelfContained)' == ''"></MicrosoftWindowsAppSDKPackageDir>
-    <!-- Windows bitmap-scales a program that does not declare this, so a shell is blurry on a scaled screen and its
-         coordinates are not physical pixels. A project that sets ApplicationManifest keeps its own. The Windows App
-         SDK merges this into the manifest it embeds. -->
     <ApplicationManifest Condition="'$(ApplicationManifest)' == ''">$(MSBuildThisFileDirectory)app.manifest</ApplicationManifest>
-    <!-- A shell mostly waits. PGO keeps instrumenting code it will never make hot, and a background GC thread saves pauses
-         nobody sees on so small a heap. Together they cost a third of an idle shell's CPU. -->
     <TieredPGO>false</TieredPGO>
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
   </PropertyGroup>

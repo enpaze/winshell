@@ -72,7 +72,6 @@ public sealed class PanelWindowTests
         });
 
         Assert.True(pixels.PixelWidth > 0);
-        // BGRA: a red that reached the compositor, not an empty buffer.
         Assert.Equal([0, 0, 255, 255], pixels.Bytes[..4]);
     }
 

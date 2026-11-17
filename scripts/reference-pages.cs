@@ -1,38 +1,26 @@
-// The reference page writer. It has no entry point: scripts/generate-reference.cs includes it and is what
-// dotnet run starts, and Winshell.Shell.Tests compiles this file to check the committed pages.
-
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Xml.Linq;
 
 namespace Winshell.Docs;
 
-/// <summary>
-/// The reference pages of Winshell.Shell, Winshell.Services and Winshell.Core. A page has a section for each
-/// included type: the public types of a <c>Winshell</c> namespace, and the public types their members use. A
-/// section lists the public members the type declares, with their /// comments.
-/// </summary>
-internal static partial class ReferencePages
+internal static class ReferencePages
 {
     private const string Marker = "<!-- generated below: dotnet run scripts/generate-reference.cs -->";
 
     private const BindingFlags Declared =
         BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
 
-    /// <summary>Each page's text by file name, with the top of the page that is in <paramref name="folder"/>.</summary>
     public static SortedDictionary<string, string> Generate(string folder)
     {
         Assembly[] assemblies = [typeof(Shell).Assembly, typeof(ShellIpc).Assembly, typeof(IEventLoop).Assembly];
-        var docs = assemblies.SelectMany(Docs).DistinctBy(pair => pair.Key).ToDictionary(StringComparer.Ordinal);
         var included = Included(assemblies);
         var pages = new SortedDictionary<string, string>(StringComparer.Ordinal);
         foreach (var group in included.GroupBy(type => type.Namespace!))
         {
             var file = FileName(group.Key);
-            var page = new Page(group.Key, included, docs);
+            var page = new Page(group.Key, included);
             var text = new StringBuilder(Top(Path.Combine(folder, file), group.Key));
             foreach (var type in group.OrderBy(type => type.Name, StringComparer.Ordinal))
                 text.Append(page.Section(type));
@@ -42,10 +30,6 @@ internal static partial class ReferencePages
         return pages;
     }
 
-    /// <summary>
-    /// The files in <paramref name="folder"/> that are not what <paramref name="pages"/> says: a page that differs
-    /// or is missing, and a <c>winshell*.md</c> page of a namespace that is gone.
-    /// </summary>
     public static List<string> Stale(string folder, SortedDictionary<string, string> pages)
     {
         var stale = pages
@@ -63,7 +47,6 @@ internal static partial class ReferencePages
         return ns == "Winshell" ? "winshell.md" : ns.ToLowerInvariant().Replace('.', '-') + ".md";
     }
 
-    /// <summary>The hand-written top of a page, down to the marker, or a title and the marker for a new page.</summary>
     private static string Top(string path, string ns)
     {
         if (!File.Exists(path))
@@ -75,32 +58,20 @@ internal static partial class ReferencePages
         return text[..(marker + Marker.Length + 1)];
     }
 
-    private static IEnumerable<KeyValuePair<string, XElement>> Docs(Assembly assembly)
-    {
-        var path = Path.ChangeExtension(assembly.Location, ".xml");
-        foreach (var member in XDocument.Load(path).Descendants("member"))
-            yield return new KeyValuePair<string, XElement>((string?)member.Attribute("name") ?? "", member);
-    }
-
-    /// <summary>One namespace's page: links to included types, and the /// comments of every member.</summary>
-    private sealed class Page(string ns, HashSet<Type> included, Dictionary<string, XElement> docs)
+    private sealed class Page(string ns, HashSet<Type> included)
     {
         private readonly NullabilityInfoContext _nullability = new();
 
         public string Section(Type type)
         {
             var text = new StringBuilder($"\n## {Bare(type.Name)}\n\n");
-            var summary = Doc("T:" + Id(type), type, true);
-            if (summary.Length > 0)
-                text.Append(summary).Append("\n\n");
             if (type.IsEnum)
             {
-                text.Append("| Value | Number | Description |\n| --- | --- | --- |\n");
+                text.Append("| Value | Number |\n| --- | --- |\n");
                 foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Static))
                 {
                     var number = Convert.ToString(field.GetRawConstantValue(), CultureInfo.InvariantCulture);
-                    text.Append(CultureInfo.InvariantCulture,
-                        $"| `{field.Name}` | {number} | {Doc("F:" + Id(type) + "." + field.Name, type)} |\n");
+                    text.Append(CultureInfo.InvariantCulture, $"| `{field.Name}` | {number} |\n");
                 }
 
                 return text.ToString();
@@ -111,20 +82,13 @@ internal static partial class ReferencePages
             var rows = Rows(type).ToList();
             if (rows.Count == 0)
                 return text.ToString();
-            text.Append("| Member | Type | Description |\n| --- | --- | --- |\n");
-            // A record's primary constructor has the record's own comment, which the section already says.
-            var said = Doc("T:" + Id(type), type);
-            foreach (var (cell, kind, id) in rows)
-            {
-                // A constructor the compiler adds has no comment.
-                var doc = Doc(id, type, optional: cell == type.Name + "()");
-                text.Append(CultureInfo.InvariantCulture, $"| `{cell}` | {kind} | {(doc == said ? "" : doc)} |\n");
-            }
+            text.Append("| Member | Type |\n| --- | --- |\n");
+            foreach (var (cell, kind) in rows)
+                text.Append(CultureInfo.InvariantCulture, $"| `{cell}` | {kind} |\n");
 
             return text.ToString();
         }
 
-        /// <summary>What a section says about the base type, whose members it does not list.</summary>
         private string? Inherits(Type type)
         {
             if (type.IsInterface || type.IsValueType || type.BaseType is not { } baseType || baseType == typeof(object))
@@ -141,11 +105,10 @@ internal static partial class ReferencePages
             return $"A {winui}{baseType.Name}. The members here are the ones Winshell adds.";
         }
 
-        /// <summary>The members table: constructors, properties, fields, events and methods, by name.</summary>
-        private IEnumerable<(string Cell, string Kind, string Id)> Rows(Type type)
+        private IEnumerable<(string Cell, string Kind)> Rows(Type type)
         {
             foreach (var ctor in type.GetConstructors(Declared).OrderBy(ctor => ctor.GetParameters().Length))
-                yield return ($"{type.Name}({Parameters(ctor)})", "constructor", Id(ctor));
+                yield return ($"{type.Name}({Parameters(ctor)})", "constructor");
             foreach (var property in type.GetProperties(Declared).Where(member => !Skip(member))
                          .OrderBy(member => member.Name, StringComparer.Ordinal))
             {
@@ -156,8 +119,7 @@ internal static partial class ReferencePages
                     kind += ", read-only";
                 else if (setter.ReturnParameter.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit)))
                     kind += ", init";
-                yield return (property.Name, kind,
-                    "P:" + Id(type) + "." + property.Name + Id(property.GetIndexParameters()));
+                yield return (property.Name, kind);
             }
 
             foreach (var field in type.GetFields(Declared).Where(member => !Skip(member))
@@ -165,12 +127,12 @@ internal static partial class ReferencePages
             {
                 var kind = Name(field.FieldType, _nullability.Create(field).ReadState) +
                            (field.IsStatic ? ", static" : "");
-                yield return (field.Name, kind, "F:" + Id(type) + "." + field.Name);
+                yield return (field.Name, kind);
             }
 
             foreach (var evt in type.GetEvents(Declared).Where(member => !Skip(member))
                          .OrderBy(member => member.Name, StringComparer.Ordinal))
-                yield return (evt.Name, Name(evt.EventHandlerType!), "E:" + Id(type) + "." + evt.Name);
+                yield return (evt.Name, Name(evt.EventHandlerType!));
             var methods = type.GetMethods(Declared)
                 .Where(method => !method.IsSpecialName && !Skip(method))
                 .OrderBy(method => method.Name, StringComparer.Ordinal)
@@ -182,7 +144,7 @@ internal static partial class ReferencePages
                     : "";
                 var kind = Name(method.ReturnType, _nullability.Create(method.ReturnParameter).ReadState) +
                            (method.IsStatic ? ", static" : "");
-                yield return ($"{method.Name}{generic}({Parameters(method)})", kind, Id(method));
+                yield return ($"{method.Name}{generic}({Parameters(method)})", kind);
             }
         }
 
@@ -210,7 +172,6 @@ internal static partial class ReferencePages
             };
         }
 
-        /// <summary>A type as a reader names it: <c>IReadOnlyList of string</c>, and a link for an included type.</summary>
         private string Name(Type type, NullabilityState state = NullabilityState.Unknown)
         {
             var name = type switch
@@ -238,84 +199,7 @@ internal static partial class ReferencePages
                 : $"[{type.Name}]({FileName(type.Namespace)}#{type.Name.ToLowerInvariant()})";
         }
 
-        /// <summary>
-        /// A member's /// comment as Markdown: its summary, its value or what it returns, and what it throws. Its
-        /// params and remarks stay in the code. A table cell is one line; a type's section keeps its paragraphs.
-        /// </summary>
-        private string Doc(string id, Type within, bool paragraphs = false, bool optional = false)
-        {
-            if (!docs.TryGetValue(id, out var member))
-                return optional ? "" : throw new InvalidOperationException($"{id} has no /// comment");
-            var parts = member.Elements()
-                .Where(element => element.Name.LocalName is "summary" or "value" or "returns" or "exception")
-                .Select(element => element.Name.LocalName == "exception"
-                    ? Throws(element, Id(within))
-                    : Markdown(element, Id(within)));
-            var text = string.Join("\n\n", parts.Where(part => part.Length > 0));
-            var blocks = text.Split("\n\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(block => Spaces().Replace(block, " "));
-            return paragraphs
-                ? string.Join("\n\n", blocks)
-                : string.Join(" ", blocks).Replace("|", "\\|", StringComparison.Ordinal);
-        }
-
-        private static string Markdown(XElement element, string within)
-        {
-            return string.Concat(element.Nodes().Select(node => node switch
-            {
-                XText text => text.Value,
-                XElement { Name.LocalName: "c" } code => $"`{code.Value}`",
-                XElement { Name.LocalName: "code" } => "",
-                XElement { Name.LocalName: "para" } para => $"\n\n{Markdown(para, within)}\n\n",
-                XElement { Name.LocalName: "paramref" or "typeparamref" } reference => reference.Attribute("name")
-                    ?.Value ?? "",
-                XElement { Name.LocalName: "see" or "seealso" } see when see.Attribute("cref") is { } cref => Cref(
-                    cref.Value, within),
-                XElement { Name.LocalName: "see" or "seealso" } see when see.Attribute("langword") is { } word => word
-                    .Value,
-                XElement { Name.LocalName: "see" or "seealso" } see when see.Attribute("href") is { } href =>
-                    $"[{(see.Value.Length > 0 ? see.Value : href.Value)}]({href.Value})",
-                XElement other => throw new NotSupportedException(
-                    $"<{other.Name}> in a /// comment has no Markdown here"),
-                _ => ""
-            }));
-        }
-
-        /// <summary>An exception as a sentence: "The handler is null." reads "Throws X when the handler is null."</summary>
-        private static string Throws(XElement exception, string within)
-        {
-            var text = Markdown(exception, within).Trim();
-            if (text.Length > 1 && char.IsUpper(text[0]) && char.IsLower(text[1]))
-                text = char.ToLowerInvariant(text[0]) + text[1..];
-            return (string?)exception.Attribute("cref") is { } cref ? $"Throws {Cref(cref, within)} when {text}" : text;
-        }
-
-        /// <summary>A cref as its name: a type alone, and a member with its type unless it is the one documented.</summary>
-        private static string Cref(string cref, string within)
-        {
-            var name = cref[(cref.IndexOf(':', StringComparison.Ordinal) + 1)..];
-            var paren = name.IndexOf('(', StringComparison.Ordinal);
-            if (paren >= 0)
-                name = name[..paren];
-            name = Arity().Replace(name, "");
-            if (cref.StartsWith("T:", StringComparison.Ordinal) && Type.GetType(name) is { } type &&
-                Aliases.TryGetValue(type, out var alias))
-                return alias;
-            if (cref.StartsWith("T:", StringComparison.Ordinal) || cref.StartsWith("N:", StringComparison.Ordinal))
-                return name[(name.LastIndexOf('.') + 1)..];
-            var dot = name.LastIndexOf('.');
-            var owner = name[..dot];
-            var member = name[(dot + 1)..]
-                .Replace("#ctor", owner[(owner.LastIndexOf('.') + 1)..], StringComparison.Ordinal);
-            return owner == within ? member : owner[(owner.LastIndexOf('.') + 1)..] + "." + member;
-        }
     }
-
-    [GeneratedRegex(@"\s+")]
-    private static partial Regex Spaces();
-
-    [GeneratedRegex("`+[0-9]+")]
-    private static partial Regex Arity();
 
     private static readonly Dictionary<Type, string> Aliases = new()
     {
@@ -343,38 +227,6 @@ internal static partial class ReferencePages
         return tick < 0 ? name : name[..tick];
     }
 
-    /// <summary>The XML doc id of a constructor or method, as the compiler writes it.</summary>
-    private static string Id(MethodBase method)
-    {
-        var name = method.IsConstructor ? "#ctor" : method.Name;
-        if (method.IsGenericMethod)
-            name += "``" + method.GetGenericArguments().Length;
-        // Every method here is a member of a type.
-        return "M:" + Id(method.DeclaringType!) + "." + name + Id(method.GetParameters());
-    }
-
-    private static string Id(ParameterInfo[] parameters)
-    {
-        return parameters.Length == 0
-            ? ""
-            : "(" + string.Join(",", parameters.Select(parameter => Id(parameter.ParameterType))) + ")";
-    }
-
-    /// <summary>A type as an XML doc id writes it, without the <c>T:</c>.</summary>
-    private static string Id(Type? type)
-    {
-        return type switch
-        {
-            null => "",
-            { IsGenericParameter: true } => (type.DeclaringMethod is null ? "`" : "``") + type.GenericParameterPosition,
-            { IsByRef: true } => Id(type.GetElementType()) + "@",
-            { IsArray: true } => Id(type.GetElementType()) + "[]",
-            { IsConstructedGenericType: true } => Bare(Id(type.GetGenericTypeDefinition()))
-                                                  + "{" + string.Join(",", type.GetGenericArguments().Select(Id)) + "}",
-            _ => (type.FullName ?? type.Name).Replace('+', '.')
-        };
-    }
-
     private static bool Skip(MemberInfo member)
     {
         if (member.Name is "Equals" or "GetHashCode" or "ToString" or "Deconstruct" or "PrintMembers" or "GetType"
@@ -385,10 +237,6 @@ internal static partial class ReferencePages
         return member.GetCustomAttribute<CompilerGeneratedAttribute>() is not null;
     }
 
-    /// <summary>
-    /// The public types of a <c>Winshell</c> namespace in the assemblies, their public nested types, and the public
-    /// types of the assemblies that their members, constructors and base types use.
-    /// </summary>
     public static HashSet<Type> Included(Assembly[] assemblies)
     {
         var included = new HashSet<Type>();
@@ -434,7 +282,6 @@ internal static partial class ReferencePages
             yield return related;
     }
 
-    /// <summary>The types a type is made of: the element of an array or reference, and the arguments of a generic.</summary>
     private static IEnumerable<Type> Atoms(Type type)
     {
         if (type.GetElementType() is { } element)

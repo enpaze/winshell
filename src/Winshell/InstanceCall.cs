@@ -1,12 +1,7 @@
 namespace Winshell;
 
-/// <summary>A command's request to a running instance over its control pipe: which instance, its answer, and what is printed.</summary>
 internal static class InstanceCall
 {
-    /// <summary>
-    /// The instance <paramref name="choice"/> selects. Null once why not is printed, and <paramref name="code"/> is then
-    /// the command's exit code.
-    /// </summary>
     internal static InstanceInfo? Select(InstanceChoice choice, InstanceSelection.Question question, out int code)
     {
         var selected = InstanceSelection.Select(choice, question, ShellLocations.Current.Instances.List(true));
@@ -18,10 +13,6 @@ internal static class InstanceCall
         return selected.Info;
     }
 
-    /// <summary>
-    /// The instance's first answer, or why there is none. The client names a rejection, a timeout and a pipe that
-    /// could not be reached. A pipe that closes with no line is named here.
-    /// </summary>
     internal static async Task<Answer> AskAsync(InstanceInfo info, IpcRequest request,
         CancellationToken cancel = default)
     {
@@ -49,7 +40,6 @@ internal static class InstanceCall
         return 0;
     }
 
-    /// <summary>An instance's answer, or the sentence that says why there is none.</summary>
     internal readonly record struct Answer(IpcResponse? Response, string? Failure)
     {
         public static Answer Of(IpcReply reply, string instanceId)
@@ -61,10 +51,6 @@ internal static class InstanceCall
             };
         }
 
-        /// <summary>
-        /// The instance's refusal, after <paramref name="refused"/> when the command names its failure, or else why there
-        /// is no answer. Null when it agreed, or when there is neither, as for a shell that did not answer in time.
-        /// </summary>
         public string? Problem(string? refused)
         {
             if (Response is { Ok: false } response)

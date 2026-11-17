@@ -2,7 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace Winshell.Native;
 
-// COM vtable. An unused method stays so the calls below it keep their slots.
 [ComImport]
 [Guid("6D5140C1-7436-11CE-8034-00AA006009FA")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -12,31 +11,18 @@ internal interface IServiceProvider
     int QueryService(in Guid service, in Guid iid, out nint instance);
 }
 
-/// <summary>
-/// The Windows builds whose <see cref="IVirtualDesktopManagerInternal"/> slots Winshell calls. Windows 11 23H2
-/// shares that interface id and uses different slots.
-/// </summary>
 internal static class VirtualDesktopBuilds
 {
-    /// <summary>Windows 11 24H2, the first build whose table has <c>SwitchDesktopAndMoveForegroundView</c>.</summary>
     internal const uint OldestBuild = 26100;
 
-    /// <summary>The newest build treated as that same table: 24H2, 25H2 and 26H2.</summary>
     internal const uint NewestBuild = 26399;
 
-    /// <summary>Whether <paramref name="build"/> is that table. A build Windows did not report is not.</summary>
     internal static bool Known(uint? build)
     {
         return build is >= OldestBuild and <= NewestBuild;
     }
 }
 
-/// <summary>
-/// The internal desktop manager for <see cref="VirtualDesktopBuilds"/>. Slots Windows inserted in 24H2 stay,
-/// including <c>MoveDesktop</c>, which is not called: removing it would move <c>RemoveDesktop</c> onto the wrong
-/// slot.
-/// </summary>
-// COM vtable. An unused method stays so the calls below it keep their slots.
 [ComImport]
 [Guid("53F5CA0B-158F-4124-900C-057158060B27")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -76,7 +62,6 @@ internal interface IVirtualDesktopManagerInternal
     int RemoveDesktop(nint destroy, nint fallback);
 }
 
-// COM vtable. An unused method stays so the calls below it keep their slots.
 [ComImport]
 [Guid("3F07F4BE-B107-441A-AF0F-39D82529072C")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -92,7 +77,6 @@ internal interface IVirtualDesktop
     int GetName(out nint name);
 }
 
-// COM vtable. An unused method stays so the calls below it keep their slots.
 [ComImport]
 [Guid("92CA9DCD-5622-4BBA-A805-5E9F541BD8C9")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -105,7 +89,6 @@ internal interface IObjectArray
     int GetAt(uint index, in Guid iid, [MarshalAs(UnmanagedType.IUnknown)] out object item);
 }
 
-// COM vtable. An unused method stays so the calls below it keep their slots.
 [ComImport]
 [Guid("A5CD92FF-29BE-454C-8D04-D82879FB3F1B")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

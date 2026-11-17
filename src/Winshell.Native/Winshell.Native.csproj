@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <!-- GetWindowLongPtr is 64-bit only in the metadata. x64 and arm64 share that signature, and Winshell ships both. -->
     <CsWin32PlatformTarget>x64</CsWin32PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
@@ -11,8 +10,6 @@
     <InternalsVisibleTo Include="Winshell.Core" />
     <InternalsVisibleTo Include="Winshell.Services" />
     <InternalsVisibleTo Include="Winshell.Shell" />
-    <!-- Every test project, found by its folder, so a new one needs no line here. Each compiles tests/TestSupport,
-         whose parent process watch asks ProcessImage for this process's parent. -->
     <WinshellTestProject Include="$(MSBuildThisFileDirectory)..\..\tests\*\*.csproj" />
     <InternalsVisibleTo Include="@(WinshellTestProject->'%(Filename)')" />
   </ItemGroup>

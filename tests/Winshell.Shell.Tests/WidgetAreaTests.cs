@@ -220,7 +220,6 @@ public sealed class WidgetAreaTests
                 Assert.Contains($"[{unknown}]", File.ReadAllText(path), StringComparison.Ordinal);
 
                 var before = created.Count;
-                // Replacing the file also exercises editors that save by rename.
                 var next = path + ".next";
                 File.WriteAllText(next, $"[{name}]\nwidgets = [{{ widget = '{widget}', text = 'updated' }}]\n");
                 File.Move(next, path, true);
@@ -359,16 +358,12 @@ public sealed class WidgetAreaTests
 
             area.Set(area.Props with { Defaults = [new(name)] });
             await Wait.UntilAsync(() => MountedWidget.Mounted == 1, "the removed placement to unmount");
-            // The placement that stays is the same component. A_new_orientation_or_defaults_renders_the_same_component
-            // proves it renders the new orientation. The host unmounts the components; the area does not dispose them.
             area.Set(area.Props with { Orientation = Orientation.Vertical });
             Assert.Equal(1, MountedWidget.Mounted);
             area.Dispose();
             area.Dispose();
             Assert.Equal(0, MountedWidget.Mounted);
             Assert.Empty(TextIn(host));
-            // Props are not disposable, so a later change is not an ObjectDisposedException. Disposing the host
-            // again is a no-op, and the widgets are already gone.
             return true;
         });
     }
@@ -393,7 +388,6 @@ public sealed class WidgetAreaTests
             await ShellFixture.LaidOut(text).WaitAsync(TestContext.Current.CancellationToken);
             var shown = AreaShowing(text);
             shown.Resources["author"] = "keep";
-            // Merged after the style, so this slot size wins for the controls in the area.
             shown.Resources.MergedDictionaries.Add(new ResourceDictionary { ["ShellSlotSize"] = 50.0 });
             try
             {
@@ -438,7 +432,6 @@ public sealed class WidgetAreaTests
         });
     }
 
-    // A contrast theme cannot be turned on for one control, so this reads the dictionary Windows picks from in one.
     [Fact]
     public async Task A_contrast_theme_paints_with_its_own_colors_for_a_custom_style_and_the_built_in_one()
     {
@@ -696,7 +689,6 @@ public sealed class WidgetAreaTests
 
     private static global::Windows.UI.Color ColorOf(Brush brush) => Assert.IsType<SolidColorBrush>(brush).Color;
 
-    /// <summary>The area that shows <paramref name="control"/>: the outermost stack that lays its placements out.</summary>
     private static StackPanel AreaShowing(FrameworkElement control)
     {
         StackPanel? area = null;
@@ -707,10 +699,8 @@ public sealed class WidgetAreaTests
         return area;
     }
 
-    /// <summary>The text color Windows gives a theme: "Light", or "Default" for dark.</summary>
     private static global::Windows.UI.Color WindowsText(string theme) => WindowsColor(theme, "TextFillColorPrimary");
 
-    /// <summary>A color Windows gives a theme: "Light", or "Default" for dark.</summary>
     internal static global::Windows.UI.Color WindowsColor(string theme, string key)
     {
         var value = WindowsResource(theme, key);
@@ -732,7 +722,6 @@ public sealed class WidgetAreaTests
                 yield return child;
     }
 
-    /// <summary>Two widgets of plain controls, a button holding a glyph and a line of text, and what each placement made.</summary>
     private sealed class PlainControls
     {
         public PlainControls()
@@ -750,7 +739,6 @@ public sealed class WidgetAreaTests
         public List<TextBlock> Lines { get; } = [];
     }
 
-    /// <summary>Keeps the first props, so a later render with the shell window does not replace the popup styling.</summary>
     private sealed class PopupCapture : Component<WidgetContext>
     {
         public static WidgetContext? Context;
@@ -762,7 +750,6 @@ public sealed class WidgetAreaTests
         }
     }
 
-    /// <summary>A text block of a fixed size, so a test can measure how an area arranges placements.</summary>
     private sealed class OrderedWidget : Component<WidgetContext>
     {
         public static List<WidgetContext> Inputs = [];
@@ -777,7 +764,6 @@ public sealed class WidgetAreaTests
         });
     }
 
-    /// <summary>The placement that keeps running beside one that fails.</summary>
     private sealed class SurvivorWidget : Component<WidgetContext>
     {
         public override Element Render()
@@ -787,7 +773,6 @@ public sealed class WidgetAreaTests
         }
     }
 
-    /// <summary>Fails while rendering, which the area shows in that placement.</summary>
     private sealed class BadWidget : Component<WidgetContext>
     {
         public static string Failure = "";
@@ -799,7 +784,6 @@ public sealed class WidgetAreaTests
         };
     }
 
-    /// <summary>One mount of a placement, and how many times the area has unmounted it.</summary>
     internal sealed class Mount(WidgetContext context)
     {
         public WidgetContext Context { get; } = context;
@@ -809,7 +793,6 @@ public sealed class WidgetAreaTests
         public void Unmount() => Unmounts++;
     }
 
-    /// <summary>Records each mount, so a test can see a placement leave without a control of its own.</summary>
     private sealed class TrackedWidget : Component<WidgetContext>
     {
         public static List<Mount> Mounts = [];
@@ -830,7 +813,6 @@ public sealed class WidgetAreaTests
         }
     }
 
-    /// <summary>Shows its <c>text</c> setting, or <c>default</c> when the placement has none.</summary>
     private sealed class TextWidget : Component<WidgetContext>
     {
         public override Element Render()
@@ -840,7 +822,6 @@ public sealed class WidgetAreaTests
         }
     }
 
-    /// <summary>Stays mounted while its area is moved, and leaves when the area drops it.</summary>
     private sealed class MountedWidget : Component<WidgetContext>
     {
         public static int Mounted;

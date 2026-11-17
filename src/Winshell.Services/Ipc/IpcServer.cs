@@ -7,7 +7,6 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Winshell;
 
-/// <summary>Takes CLI requests on a named pipe and runs them on the UI thread.</summary>
 internal sealed class IpcServer : IDisposable
 {
     private readonly string _pipe;
@@ -20,17 +19,12 @@ internal sealed class IpcServer : IDisposable
     private const int WaitingInstances = 2;
     private const int OpenAttempts = 3;
 
-    // A client that never ends its line, and a listener that never reads, must not grow without a limit.
-    // The signal callback runs on the UI thread, so a full queue drops the oldest value instead of waiting.
-    // A command line holds at most 32767 characters, so a request from winshell is well under this once encoded.
     internal const int MaxRequestBytes = 256 * 1024;
 
-    // A listener holds its client for as long as it runs, so this has to leave room for `winshell kill`.
     internal const int MaxClients = 64;
 
     internal const int MaxQueuedSignals = 1024;
 
-    // winshell sends its line as soon as it connects. A client that does not, refused or not, gives its slot back.
     internal static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(5);
 
     private readonly Lock _firstGate = new();
@@ -40,17 +34,6 @@ internal sealed class IpcServer : IDisposable
     private int _clients;
     private bool _disposed;
 
-    /// <param name="first">
-    /// The pipe instance <see cref="OpenFirst"/> or <see cref="OpenAvailable"/> opened, which the server now owns.
-    /// </param>
-    /// <param name="pipe">The pipe's name, for the instances opened after the first.</param>
-    /// <param name="loop">The UI thread's loop, which requests run on, and whose clock times <see cref="RequestTimeout"/>.</param>
-    /// <param name="log">Where a pipe instance that cannot open and a refused client are reported.</param>
-    /// <param name="control">What requests do to the shell.</param>
-    /// <param name="refusal">
-    /// Why a connected client is refused, or null. Tests replace the integrity check: a client below the shell's
-    /// integrity is a process a test can't start.
-    /// </param>
     public IpcServer(NamedPipeServerStream first, string pipe, IEventLoop loop, Log log, IInstanceControl control,
         Func<SafePipeHandle, string?>? refusal = null)
     {
@@ -63,21 +46,16 @@ internal sealed class IpcServer : IDisposable
         _ = Task.Run(AcceptLoop);
     }
 
-    /// <summary>Creates the first instance. Fails if the name is already taken, instead of attaching to it.</summary>
     internal static NamedPipeServerStream OpenFirst(string pipe)
     {
         return Create(pipe, true);
     }
 
-    /// <summary>Creates another instance of a pipe this process already serves.</summary>
     internal static NamedPipeServerStream OpenNext(string pipe)
     {
         return Create(pipe, false);
     }
 
-    /// <summary>
-    /// The names a start tries, in order: <paramref name="pipe"/>, then that name with <c>-2</c> through <c>-8</c>.
-    /// </summary>
     internal static IReadOnlyList<string> Candidates(string pipe)
     {
         var names = new string[8];
@@ -87,10 +65,6 @@ internal sealed class IpcServer : IDisposable
         return names;
     }
 
-    /// <summary>
-    /// Opens the first free name from <see cref="Candidates"/>. The chosen name is written back to <paramref name="pipe"/>.
-    /// Only a taken name moves on to the next: any other failure fails on every name.
-    /// </summary>
     internal static NamedPipeServerStream OpenAvailable(ref string pipe)
     {
         var names = Candidates(pipe);
@@ -122,12 +96,6 @@ internal sealed class IpcServer : IDisposable
         }
     }
 
-    /// <summary>
-    /// Keeps two instances waiting. One client taking an instance then leaves another free, even while this loop
-    /// waits for a thread and has not seen that connection yet. A name with no instance can be created again by
-    /// anyone, and this shell's next instance would then join that pipe. So a replacement waits before a connected
-    /// instance is handed off, and the loop stops rather than open an instance after it has none left.
-    /// </summary>
     private async Task AcceptLoop()
     {
         var waiting = new Dictionary<Task, NamedPipeServerStream>();
@@ -154,8 +122,6 @@ internal sealed class IpcServer : IDisposable
                 }
 
                 OpenInstances(waiting);
-                // A client that never finishes its line holds a slot until it leaves or the shell stops.
-                // Past the cap the connection is closed, so the wait does not grow with every connect.
                 if (finished.IsCompletedSuccessfully && TryTakeClient())
                 {
                     var taken = stream!;
@@ -188,7 +154,6 @@ internal sealed class IpcServer : IDisposable
         }
     }
 
-    /// <summary>Opens instances until two wait. What still fails here is tried again after the next connection.</summary>
     private void OpenInstances(Dictionary<Task, NamedPipeServerStream> waiting)
     {
         var failures = 0;
@@ -228,7 +193,6 @@ internal sealed class IpcServer : IDisposable
             var refusal = _refusal(stream.SafePipeHandle);
             if (refusal is not null)
                 _log.Warn("ipc", $"Refused a control pipe client: {refusal}");
-            // Only the request line is timed: a listener holds its client for as long as it runs.
             string? line;
             bool tooLong;
             using (var idle = new CancellationTokenSource(RequestTimeout, _loop.Time))
@@ -248,7 +212,6 @@ internal sealed class IpcServer : IDisposable
 
             if (line is null)
                 return;
-            // Answered after the request is read, so the client has finished writing and reads the reason.
             if (refusal is not null)
             {
                 await Send(writer, new IpcResponse(false, Error: refusal), _cancel.Token).ConfigureAwait(false);
@@ -304,7 +267,6 @@ internal sealed class IpcServer : IDisposable
         }
         catch (IOException)
         {
-            // The client closed the pipe (Ctrl+C, or it exited). That is not a crash.
         }
         catch (ObjectDisposedException)
         {
@@ -314,7 +276,6 @@ internal sealed class IpcServer : IDisposable
         }
     }
 
-    /// <summary>Every request but a listen. A screenshot awaits WinUI, so inspect ends where the shell's work does.</summary>
     private async Task<IpcResponse> Handle(IpcRequest request)
     {
         var ipc = _control.Ipc;
@@ -336,7 +297,6 @@ internal sealed class IpcServer : IDisposable
         };
     }
 
-    /// <summary><c>winshell ipc call notice dismiss</c>. It takes no arguments and closes whichever notice is showing.</summary>
     private IpcResponse DismissNotice(List<string>? args)
     {
         if (args is { Count: > 0 })
@@ -351,10 +311,6 @@ internal sealed class IpcServer : IDisposable
         return new IpcResponse(true);
     }
 
-    /// <summary>
-    /// The taskbar is handed over before the answer is sent, and the quit runs after it, as <see cref="Kill"/> does.
-    /// A shell that restored while the answer was in flight would show the taskbar in between.
-    /// </summary>
     private IpcResponse Yield()
     {
         _control.Yield();
@@ -369,10 +325,6 @@ internal sealed class IpcServer : IDisposable
             : new IpcResponse(true);
     }
 
-    /// <summary>
-    /// <c>winshell reload</c> reports a failed build with it, and <c>winshell dev</c> reports each build. An empty error
-    /// says the project built, which closes that project's build-error notice.
-    /// </summary>
     private IpcResponse Build(IpcRequest request)
     {
         if (request.BuildReport is not var (error, projectFile))
@@ -408,8 +360,6 @@ internal sealed class IpcServer : IDisposable
         {
             while (true)
             {
-                // The read is cancelled before a response is written. A pipe does not take a read and a write at once,
-                // and a client that leaves without another signal would otherwise sit here until shutdown.
                 using var pause = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
                 var gone = WaitForDisconnect(stream, pause.Token);
                 waiting = channel.Reader.WaitToReadAsync(stop.Token).AsTask();
@@ -452,7 +402,6 @@ internal sealed class IpcServer : IDisposable
         }
     }
 
-    /// <summary>Reads one request line, or reports that it passed <see cref="MaxRequestBytes"/> with no newline.</summary>
     private static async Task<(string? Line, bool TooLong)> ReadRequest(Stream stream, CancellationToken cancel)
     {
         var bytes = ArrayPool<byte>.Shared.Rent(MaxRequestBytes + 1);
@@ -465,7 +414,6 @@ internal sealed class IpcServer : IDisposable
                     .ConfigureAwait(false);
                 if (n == 0)
                     return (null, false);
-                // A client sends one line, so nothing after the newline is lost. A listener sees a disconnect by a read of 0.
                 var newline = Array.IndexOf(bytes, (byte)'\n', count, n);
                 if (newline >= 0)
                 {
@@ -485,7 +433,6 @@ internal sealed class IpcServer : IDisposable
         }
     }
 
-    /// <summary>Completes when the client closes its end. Bytes it still sends are discarded.</summary>
     private static async Task WaitForDisconnect(Stream stream, CancellationToken cancel)
     {
         var one = new byte[1];
@@ -543,10 +490,6 @@ internal sealed class IpcServer : IDisposable
         }
     }
 
-    /// <summary>
-    /// Starts <paramref name="work"/> on the shell's thread. What it throws is a failed response: a script error is a
-    /// failed request, not a crash report from an unobserved task.
-    /// </summary>
     private Task<IpcResponse> OnUiThread(Func<Task<IpcResponse>> work)
     {
         var tcs = new TaskCompletionSource<IpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);

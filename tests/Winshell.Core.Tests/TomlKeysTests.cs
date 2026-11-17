@@ -1,9 +1,5 @@
 namespace Winshell.Core.Tests;
 
-/// <summary>
-/// <see cref="TomlKeys"/> loads a table read from a file into typed properties, and names each value it leaves and each
-/// key that may be misspelled.
-/// </summary>
 public sealed class TomlKeysTests
 {
     private readonly List<string> _warnings = [];

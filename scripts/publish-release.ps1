@@ -22,7 +22,6 @@ function Publish-WinshellRelease {
     }
     $release = gh release view $Tag --repo $Repository --json 'isDraft,body,assets' | ConvertFrom-Json
     if ($LASTEXITCODE -ne 0) { throw "Could not read release $Tag." }
-    # Preflight every existing digest before uploading anything. Published releases are never repaired in place.
     $missing = @(
         foreach ($file in $files) {
             $existing = @($release.assets | Where-Object name -CEQ $file.Name)
@@ -43,7 +42,6 @@ function Publish-WinshellRelease {
         gh release upload $Tag $file.Path --repo $Repository
         if ($LASTEXITCODE -ne 0) { throw "Could not upload $($file.Name). $Tag remains a draft." }
     }
-    # Re-read GitHub's digests: a successful upload command alone is not permission to freeze the release.
     $uploaded = gh release view $Tag --repo $Repository --json 'isDraft,body,assets' | ConvertFrom-Json
     if ($LASTEXITCODE -ne 0 -or -not $uploaded.isDraft) { throw "Could not verify draft $Tag before publication." }
     foreach ($file in $files) {

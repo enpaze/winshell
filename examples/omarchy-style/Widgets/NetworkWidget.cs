@@ -9,7 +9,6 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
-/// <summary>The connection in use, wired before Wi-Fi, in the alert color when it can't reach the internet.</summary>
 public sealed class NetworkWidget : Component<WidgetContext>
 {
     public override Element Render()
@@ -33,7 +32,6 @@ public sealed class NetworkWidget : Component<WidgetContext>
             .AutomationName(tip)
             .Set(control =>
             {
-                // The style's alert color. Clearing it returns the glyph to the style's foreground.
                 if (alert is { } color)
                     control.Foreground = new SolidColorBrush(color);
                 else

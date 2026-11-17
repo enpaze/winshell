@@ -2,10 +2,6 @@ using System.Text;
 
 namespace Winshell;
 
-/// <summary>
-/// The shell's preferences file and the <see cref="Preferences"/> sections that read it. Reads, writes and every
-/// section's changes run on the shell loop.
-/// </summary>
 internal sealed class PreferencesFile : IDisposable
 {
     private static readonly IReadOnlyDictionary<string, object?> Nothing = new Dictionary<string, object?>();
@@ -16,45 +12,31 @@ internal sealed class PreferencesFile : IDisposable
     private readonly FileWatch _watch;
     private readonly List<Preferences> _sections = [];
 
-    /// <summary>The sections made since the file was last written or found to have them all.</summary>
     private readonly List<Preferences> _made = [];
 
-    /// <summary>The file as last read or written, or null while it is missing.</summary>
     private TomlDocument? _document;
 
-    /// <summary>The text last read or written, so the watch can tell a hand save from this file's own write.</summary>
     private string? _text;
 
-    /// <summary>Why the file could not be used, as <c>path[line:column]: message</c>, or empty.</summary>
     private string _error = "";
 
     private bool _writePending;
     private bool _commitPending;
 
-    /// <summary>True on the turn <see cref="StartReturned"/> posted, and after. A section made before that waits for it.</summary>
     private bool _afterStart;
 
-    /// <summary>True once <see cref="StartReturned"/> has posted its turn, so a second call does not post another.</summary>
     private bool _startupPosted;
     private bool _disposed;
 
-    /// <param name="path">The file. It and its folder need not exist yet.</param>
-    /// <param name="loop">Where a change to the file arrives and a write runs.</param>
-    /// <param name="log">Takes the warnings.</param>
     public PreferencesFile(string path, IEventLoop loop, Log log)
     {
         _path = Path.GetFullPath(path);
         _loop = loop;
         _log = log;
-        // Watching first, so a save between the two is not missed.
         _watch = new FileWatch(_path, loop, Follow);
         Follow();
     }
 
-    /// <summary>
-    /// Posts the write that follows <see cref="ShellConfiguration.Start"/>. A section made on the turn after Start,
-    /// such as a bar's, is in that write. A section made once that turn has begun posts its own.
-    /// </summary>
     internal void StartReturned()
     {
         if (_disposed || _startupPosted)
@@ -71,7 +53,6 @@ internal sealed class PreferencesFile : IDisposable
 
     public void Add(Preferences section)
     {
-        // A save the watch has not delivered yet is read now, so the section starts from the file as it is.
         Follow();
         _sections.Add(section);
         _made.Add(section);
@@ -89,7 +70,6 @@ internal sealed class PreferencesFile : IDisposable
         _made.Remove(section);
     }
 
-    /// <summary>Writes the assigned values of every section on the next turn of the loop.</summary>
     public void PostWrite()
     {
         if (_writePending || _disposed)
@@ -107,10 +87,6 @@ internal sealed class PreferencesFile : IDisposable
         _log.Warn("preferences", message);
     }
 
-    /// <summary>
-    /// Writes a missing file, adds the sections made since that the file does not have, and names sections no component
-    /// reads. Until <see cref="StartReturned"/>'s turn, this waits, so a bar can make its section on that turn first.
-    /// </summary>
     private void PostCommit()
     {
         if (!_afterStart || _commitPending || _disposed)
@@ -125,7 +101,6 @@ internal sealed class PreferencesFile : IDisposable
             return;
         _commitPending = false;
         var load = TomlDocument.Load(_path);
-        // An assignment posted during Start leaves its write pending until this turn, so the file is not created early.
         if (_writePending ||
             (_sections.Count > 0 &&
              (load.Kind == TomlRead.Missing || (load.Document is { } document && Unwritten(document).Any()))))
@@ -135,7 +110,6 @@ internal sealed class PreferencesFile : IDisposable
         WarnUnknown();
     }
 
-    /// <summary>Takes in the file as it is now. Each section changes only the properties whose keys changed.</summary>
     private void Follow()
     {
         if (_writePending)
@@ -144,7 +118,6 @@ internal sealed class PreferencesFile : IDisposable
         switch (load.Kind)
         {
             case TomlRead.Unreadable:
-                // An editor can hold the file while it saves. That says nothing about the file.
                 _log.Debug("io", $"Preferences: failed to read {_path}: {load.Message}");
                 return;
             case TomlRead.TooLarge:
@@ -181,22 +154,17 @@ internal sealed class PreferencesFile : IDisposable
         PostCommit();
     }
 
-    /// <summary>
-    /// The sections, each while it is still attached: loading one runs its handlers, which can make or dispose others.
-    /// </summary>
     private IEnumerable<Preferences> Attached()
     {
         return _sections.ToArray().Where(_sections.Contains);
     }
 
-    /// <summary>Keeps every section as it is and says why the file could not be used.</summary>
     private void Failed(string error, string warning)
     {
         Report(error);
         Warn(warning);
     }
 
-    /// <summary>Tells <c>winshell dev</c> when the file stops or starts being usable.</summary>
     private void Report(string error)
     {
         if (error == _error)
@@ -205,17 +173,12 @@ internal sealed class PreferencesFile : IDisposable
         _log.ReportFileError(_path, error);
     }
 
-    /// <summary>Loads <paramref name="section"/> from the file, leaving <paramref name="keep"/> as they are.</summary>
     private void Load(Preferences section, IReadOnlySet<TomlKey>? keep)
     {
         if (Values(section, _document, out var where) is { } values)
             section.Keys.Apply(values, where, keep, section.Defaults);
     }
 
-    /// <summary>
-    /// The part of <paramref name="document"/> that is <paramref name="section"/>'s, and how to find a key of it. Null
-    /// when the section is not a table, which is reported.
-    /// </summary>
     private IReadOnlyDictionary<string, object?>? Values(Preferences section, TomlDocument? document,
         out Func<string, string> where)
     {
@@ -226,7 +189,6 @@ internal sealed class PreferencesFile : IDisposable
         if (document is null)
             return Nothing;
         if (name.Length == 0)
-            // A table is a component's section, unless this reads a key by that name.
             return document.Values.Where(pair => pair.Value is not IReadOnlyDictionary<string, object?> ||
                                                  section.Keys.All.Any(key => key.Name == pair.Key))
                 .ToDictionary();
@@ -242,14 +204,6 @@ internal sealed class PreferencesFile : IDisposable
         }
     }
 
-    /// <summary>
-    /// Puts the assigned values of every section into the file, which a hand save may have changed. A section the file
-    /// does not have yet is added first, under its own header with its keys commented out, as a missing file is written.
-    /// </summary>
-    /// <param name="waitForStart">
-    /// True while an assignment made before <see cref="StartReturned"/>'s turn must wait, leaving the pending flag
-    /// set. False when a section is leaving or the file is closing: that write runs now.
-    /// </param>
     private void Write(bool waitForStart = true)
     {
         if (waitForStart && !_afterStart)
@@ -296,11 +250,6 @@ internal sealed class PreferencesFile : IDisposable
         _made.Clear();
     }
 
-    /// <summary>
-    /// The sections, each with every other of its name, that were just made or assigned and that
-    /// <paramref name="document"/> does not have. A section taken out by hand is not added back until its component is
-    /// made again or assigned.
-    /// </summary>
     private IEnumerable<IGrouping<string, Preferences>> Unwritten(TomlDocument document)
     {
         var due = _sections
@@ -311,13 +260,11 @@ internal sealed class PreferencesFile : IDisposable
         return _sections.Where(section => due.Contains(section.Section)).GroupBy(section => section.Section);
     }
 
-    /// <summary>Puts the text down, or returns false with the assigned values still waiting.</summary>
     private bool Put(string next, string? read, bool bom)
     {
         try
         {
             var written = AtomicFile.Save(_path, next, bom, read) == AtomicSave.Saved;
-            // A hand save landed during this write. The next pass reads it and writes the assigned values into it.
             if (!written)
                 PostWrite();
             return written;
@@ -329,10 +276,6 @@ internal sealed class PreferencesFile : IDisposable
         }
     }
 
-    /// <summary>
-    /// The file a missing one is written as: the configuration's own keys, then a header for each section, each key
-    /// commented out at its default under its comment.
-    /// </summary>
     private string Defaults()
     {
         var text = new StringBuilder("""
@@ -351,10 +294,6 @@ internal sealed class PreferencesFile : IDisposable
         return text.ToString();
     }
 
-    /// <summary>
-    /// The lines of each key of <paramref name="group"/>, sections of one name: a blank line, its comment, and the key
-    /// commented out at its default.
-    /// </summary>
     private static IEnumerable<string> Commented(IEnumerable<Preferences> group)
     {
         foreach (var (section, key) in group
@@ -370,7 +309,6 @@ internal sealed class PreferencesFile : IDisposable
         }
     }
 
-    /// <summary>Names each section of the file that no component reads. It stays in the file.</summary>
     private void WarnUnknown()
     {
         if (_document is not { } document)
@@ -382,7 +320,6 @@ internal sealed class PreferencesFile : IDisposable
                 Warn($"{document.LocationOf(name)}: no component named '{name}'; the section was kept in the file.");
     }
 
-    /// <summary>Stops following the file. A write that was on its way runs now.</summary>
     public void Dispose()
     {
         if (_disposed)

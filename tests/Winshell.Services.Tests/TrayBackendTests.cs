@@ -8,11 +8,6 @@ using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// Opens notification area windows under private window classes and a private owner name, so the real taskbar and the
-/// apps in the session never see them. An "Explorer" here is another backend, which records what it is passed.
-/// Nothing is broadcast or posted to the session's windows.
-/// </summary>
 public sealed class TrayBackendTests : IDisposable
 {
     private static readonly uint TaskbarCreated = PInvoke.RegisterWindowMessage("TaskbarCreated");
@@ -25,7 +20,6 @@ public sealed class TrayBackendTests : IDisposable
     public TrayBackendTests(ITestOutputHelper output)
     {
         _log = new Log { Sink = (_, category, message) => output.WriteLine($"{category}: {message}") };
-        // The window an app would add its icon for. Message-only, so nothing else can find it.
         _app = NativeWindow.OfClass("STATIC", "", 0, 0, 0, 0, 0, HWND.HWND_MESSAGE, 0);
         Assert.NotEqual(0, _app);
     }
@@ -45,7 +39,6 @@ public sealed class TrayBackendTests : IDisposable
         Assert.Equal("Backup", Assert.Single(host.Icons).Tip);
         Assert.Equal("Backup", Assert.Single(explorer.Icons).Tip);
 
-        // Not an icon: an app bar message. Explorer answers it.
         Send(host.Window, new byte[16], 0);
 
         Send(host.Window, TrayCall.Build(TrayProtocol.Delete, (int)_app, 1, 0));
@@ -58,8 +51,6 @@ public sealed class TrayBackendTests : IDisposable
     {
         var explorer = OpenExplorer();
         var host = Open(HostNames);
-        // Windows Security added its icon to Explorer before the host took over. Asked to add it again, it changes it,
-        // and adds it only when that fails. Explorer has the icon and would say yes; the host's own answer is the one.
         var guid = Guid.NewGuid();
         var flags = TrayProtocol.NIF_TIP | TrayProtocol.NIF_GUID;
         Assert.Equal(1,
@@ -78,11 +69,8 @@ public sealed class TrayBackendTests : IDisposable
     [Fact]
     public void The_broadcast_reaches_message_only_windows_while_others_come_and_go()
     {
-        // Hex keeps its icon on a message-only window, which a broadcast to every window does not reach, so the shell
-        // also posts to each one it finds. Nothing is posted here: other tests and apps own message-only windows too.
         var window = NativeWindow.OfClass("STATIC", "", 0, 0, 0, 0, 0, HWND.HWND_MESSAGE, 0);
         Assert.NotEqual(0, window);
-        // Apps open and close message-only windows all the time, as test runs beside this one do.
         var stop = new StrongBox<bool>(false);
         var churn = new Thread(() =>
         {
@@ -117,7 +105,6 @@ public sealed class TrayBackendTests : IDisposable
         var created = 0;
         host.Backend.TaskbarCreated += () => created++;
 
-        // Explorer ends, and a new one makes a new taskbar and asks apps to add their icons.
         Close(explorer);
         explorer = OpenExplorer();
         PInvoke.SendMessage((HWND)host.Window, TaskbarCreated, 0, 0);
@@ -139,8 +126,6 @@ public sealed class TrayBackendTests : IDisposable
         Assert.False(next.TryOwn());
 
         var window = owner.Window;
-        // A crash ends the owner's thread with the owner name still held; Windows hands it on as abandoned. Join can
-        // return before Windows has ended the thread, so the next instance tries again, as SystemTray does.
         owner.Exit(clean);
         if (clean)
             Assert.False(PInvoke.IsWindow((HWND)window));
@@ -172,8 +157,6 @@ public sealed class TrayBackendTests : IDisposable
         try
         {
             var host = Open(HostNames);
-            // Explorer here is a test window, but the commands are still ones no real taskbar acts on. It also gets
-            // whatever is broadcast to every window meanwhile, which is not a command.
             PInvoke.PostMessage((HWND)explorer.Window, 0x8005, 0, 0);
             (uint, nint, nint)[] commands = [(PInvoke.WM_COMMAND, 0x1234, 0), (PInvoke.WM_SYSCOMMAND, 0xF120, 0)];
             foreach (var (message, wParam, lParam) in commands)
@@ -201,8 +184,6 @@ public sealed class TrayBackendTests : IDisposable
         try
         {
             var host = Open(HostNames);
-            // The first call also loads what handling an icon needs, and a busy runner can stall any one call, so the
-            // limit is for the fastest of the later ones. Waiting on Explorer as long as an app bar does slows them all.
             Assert.Equal(1,
                 Send(host.Window, TrayCall.Build(TrayProtocol.Add, (int)_app, 1, TrayProtocol.NIF_TIP, tip: "Backup")));
             var fastest = TimeSpan.MaxValue;
@@ -231,18 +212,12 @@ public sealed class TrayBackendTests : IDisposable
     private TrayNames ExplorerNames => new(ExplorerClass, $"WinshellTestNone-{_id}",
         $@"Local\winshell-test-explorer-{Guid.NewGuid():N}");
 
-    /// <summary>
-    /// Explorer's taskbar on its own thread, as in its own process, which records the messages posted to its window.
-    /// </summary>
     private sealed class ExplorerThread
     {
         private const uint Quit = 0x8001;
         private readonly Thread _thread;
         private readonly ManualResetEventSlim _started = new();
 
-        /// <param name="names">The window class and kernel object this taskbar opens under.</param>
-        /// <param name="log">The log the backend writes to.</param>
-        /// <param name="busy">When given, the thread answers nothing until it is set.</param>
         public ExplorerThread(TrayNames names, Log log, ManualResetEventSlim? busy = null)
         {
             _thread = new Thread(() =>
@@ -255,8 +230,6 @@ public sealed class TrayBackendTests : IDisposable
                     busy?.Wait();
                     while (PInvoke.GetMessage(out var msg, HWND.Null, 0, 0) > 0 && !((nint)msg.hwnd == Window && msg.message == Quit))
                     {
-                        // Only the commands a host forwards. Any shell that takes the tray, a test's included, broadcasts
-                        // TaskbarCreated to every window, this one too.
                         if ((nint)msg.hwnd == Window && msg.message is PInvoke.WM_COMMAND or PInvoke.WM_SYSCOMMAND)
                             Posted.Add((msg.message, (nint)msg.wParam.Value, msg.lParam));
                         PInvoke.DispatchMessage(msg);
@@ -302,7 +275,6 @@ public sealed class TrayBackendTests : IDisposable
         Assert.True(Above(explorer.Window, host.Window));
     }
 
-    /// <summary>Whether one window is in front of another, as FindWindow and SHAppBarMessage see the order.</summary>
     private static bool Above(nint upper, nint lower)
     {
         for (nint hwnd = PInvoke.GetWindow((HWND)upper, GET_WINDOW_CMD.GW_HWNDNEXT);
@@ -316,7 +288,6 @@ public sealed class TrayBackendTests : IDisposable
     [Fact]
     public void An_icon_from_a_resource_is_drawn_again_at_the_size_asked_for()
     {
-        // A 16-pixel icon from shell32's resources, as an app loads it at 100%, and a copy that no longer knows its resource.
         using var loaded = OwnedIcon.Load(Path.Combine(Environment.SystemDirectory, "shell32.dll"), 4, "", 16);
         Assert.NotNull(loaded);
         var copied = PInvoke.CopyIcon((HICON)loaded.Handle);
@@ -370,7 +341,6 @@ public sealed class TrayBackendTests : IDisposable
 
     private delegate nint WindowProc(nint hwnd, uint msg, nint wParam, nint lParam);
 
-    /// <summary>A backend with its window open, and the icon table its icon calls go to.</summary>
     private sealed record Host(TrayBackend Backend, TrayIcons Table)
     {
         public nint Window => Backend.Window;
@@ -427,7 +397,6 @@ public sealed class TrayBackendTests : IDisposable
         PInvoke.DestroyWindow((HWND)_app);
     }
 
-    /// <summary>A backend on its own thread, the way another winshell process holds the tray.</summary>
     private sealed class OtherInstance
     {
         private readonly Thread _thread;

@@ -32,7 +32,6 @@ runs:
         $ErrorActionPreference = 'Stop'
         $files = Join-Path $env:RUNNER_TEMP 'changed-files.json'
         if ($env:EVENT -eq 'workflow_dispatch') {
-          # A run by hand has no change to compare against, and ci-changes.ps1 runs every check for an empty list.
           $rows = @()
           $limit = 3000
         } elseif ($env:PR) {

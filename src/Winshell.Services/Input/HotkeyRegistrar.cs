@@ -1,10 +1,5 @@
 namespace Winshell.Input;
 
-/// <summary>
-/// The claim rules for a shell's hotkeys, on its loop: chords are shared, an unused chord is given back, the keyboard hook
-/// is installed only while a Windows-key hotkey or a waiting sequence needs it, and a sequence that is not finished
-/// in time is dropped. Windows is reached through <see cref="IHotkeyBackend"/>.
-/// </summary>
 internal sealed class HotkeyRegistrar : IDisposable
 {
     private readonly Lock _bookLock = new();
@@ -17,8 +12,6 @@ internal sealed class HotkeyRegistrar : IDisposable
     private int _syncPosted;
     private bool _disposed;
 
-    /// <param name="loop">The loop the hotkeys live on.</param>
-    /// <param name="log">Where a hotkey whose handler throws, and a failed Windows callback, are reported.</param>
     public HotkeyRegistrar(IEventLoop loop, Log log)
         : this(loop, log, new HotkeyBackend(loop, e => log.Warn("hotkey", e.Message)))
     {
@@ -213,7 +206,6 @@ internal sealed class HotkeyRegistrar : IDisposable
         return (long)_loop.Time.GetElapsedTime(_started).TotalMilliseconds;
     }
 
-    // True when the hook is installed.
     private bool SyncHook()
     {
         if (_disposed)
@@ -224,8 +216,6 @@ internal sealed class HotkeyRegistrar : IDisposable
         return false;
     }
 
-    // Runs on the hook thread, which Windows drops when it is slow: no wait, and work for the loop is posted, the
-    // unhook too. The modifiers are read before the lock, to keep it short.
     private bool OnHook(int virtualKey, bool isUp)
     {
         var modifiers = VirtualKeys.Held(_backend.IsKeyDown);
@@ -250,8 +240,6 @@ internal sealed class HotkeyRegistrar : IDisposable
             PostSync();
         if (!result.MaskWin)
             return result.Swallow;
-        // A handled Windows-key tap is masked while the key is still down, and its key-up is passed on so the key
-        // does not stay held.
         _backend.SendMask();
         return false;
     }

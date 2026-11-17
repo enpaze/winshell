@@ -3,12 +3,6 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>
-/// The native window behind a shell window, and its life. It makes the window's parts, <see cref="Placement"/>, the
-/// <see cref="Placer"/> its client makes, <see cref="Presentation"/>, <see cref="Focus"/> and <see cref="Messages"/>,
-/// before the window itself, and releases the window, its place and its content when its client disposes it or
-/// Windows destroys it. A window that throws while handling a message stops, and its client makes another.
-/// </summary>
 internal sealed partial class HostWindow : IDisposable
 {
     private const string ClassName = DoctorScreens.WinshellClass;
@@ -47,22 +41,18 @@ internal sealed partial class HostWindow : IDisposable
 
     public WindowKind Kind { get; }
 
-    /// <summary>The shell window this native window shows.</summary>
     internal ShellWindow Client { get; }
 
     internal HostPlacement Placement { get; }
 
-    /// <summary>Where the window's kind puts it: a panel's edge, a popup's place, or a floating window's frame.</summary>
     internal IWindowPlacer Placer { get; }
 
     internal HostPresentation Presentation { get; }
 
     internal HostMessages Messages { get; }
 
-    /// <summary>Whether the window takes the keyboard, and what follows from it.</summary>
     internal WindowFocus Focus { get; }
 
-    /// <summary>Whether the window has started letting go of its parts. <see cref="Handle"/> turns 0 once it has let go of the window too.</summary>
     internal bool Released { get; private set; }
 
     private nint? OnWindowMessage(WindowMessage message)
@@ -70,10 +60,6 @@ internal sealed partial class HostWindow : IDisposable
         return _failed ? null : Messages.OnMessage(message);
     }
 
-    /// <summary>
-    /// The window threw while handling a message. It stops handling them, and its client is told on the loop, outside
-    /// this message, to dispose it and make another.
-    /// </summary>
     private void Fail(Exception error)
     {
         if (_failed)
@@ -91,7 +77,6 @@ internal sealed partial class HostWindow : IDisposable
         Cleanup(true);
     }
 
-    /// <summary>Windows is destroying the window, so it lets go of it without destroying it, and tells its client on the loop.</summary>
     internal void NoteExternalDestroy()
     {
         if (Released)

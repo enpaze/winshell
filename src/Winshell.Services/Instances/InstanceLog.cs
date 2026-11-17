@@ -3,22 +3,12 @@ using System.Text;
 
 namespace Winshell;
 
-/// <summary>
-/// The instance's log file. Ordinary lines stay in memory and land a moment later, so a binding that logs does not
-/// flush the disk on the caller. The timer runs only while a line waits, so an idle shell is not woken for it. Warn
-/// and above flush at once, which is also what a crash report reads back.
-/// Once the file reaches its cap it is copied to <see cref="RolledName"/> and starts again empty, so a shell that
-/// runs for the whole session cannot fill the disk. It stays the same file, so a reader that holds it open, such as
-/// <see cref="Follow"/>, still reads what comes next.
-/// </summary>
 internal sealed class InstanceLog : IDisposable
 {
     private const long DefaultCap = 4 * 1024 * 1024;
 
-    /// <summary>The log in an instance's folder.</summary>
     public const string FileName = "log.txt";
 
-    /// <summary>The part before the last roll, beside <see cref="FileName"/>.</summary>
     private const string RolledName = "log.1.txt";
 
     private static readonly TimeSpan FollowPoll = TimeSpan.FromMilliseconds(200);
@@ -41,7 +31,6 @@ internal sealed class InstanceLog : IDisposable
             Timeout.InfiniteTimeSpan);
     }
 
-    /// <summary>Queues one already-stamped line. Warn and above are on disk before this returns.</summary>
     public void Write(LogLevel level, string stampedLine)
     {
         lock (_gate)
@@ -71,8 +60,6 @@ internal sealed class InstanceLog : IDisposable
         }
     }
 
-    // Nobody awaits the timer, so a failure here would end the process. The lines that could not land are dropped,
-    // which also lets the next Write start the timer again.
     private void FlushFromTimer()
     {
         lock (_gate)
@@ -132,7 +119,6 @@ internal sealed class InstanceLog : IDisposable
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            // A reader still has the previous roll. Keep appending; the next flush tries again.
             _writer = Open();
             return;
         }
@@ -148,17 +134,11 @@ internal sealed class InstanceLog : IDisposable
         };
     }
 
-    /// <summary>Opens a log to read while its shell may still be writing and rolling it.</summary>
     public static FileStream OpenToRead(string path)
     {
         return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
     }
 
-    /// <summary>
-    /// Each line written to the log after what <paramref name="reader"/> has read, until <paramref name="cancel"/>.
-    /// A roll empties the file, and reading goes on from its start. When nothing new is there yet, the wait is on
-    /// <paramref name="time"/>.
-    /// </summary>
     public static async IAsyncEnumerable<string> Follow(StreamReader reader, TimeProvider? time = null,
         [EnumeratorCancellation] CancellationToken cancel = default)
     {
@@ -171,8 +151,6 @@ internal sealed class InstanceLog : IDisposable
                 continue;
             }
 
-            // A shell writes far less than the cap between two reads, so a file shorter than what was read has rolled.
-            // The roll copied it to log.1.txt first, so what was not read yet is there.
             if (stream.Length < stream.Position)
             {
                 if (stream is FileStream { Name: var name })
@@ -188,7 +166,6 @@ internal sealed class InstanceLog : IDisposable
         }
     }
 
-    /// <summary>The lines of <paramref name="file"/> after byte <paramref name="from"/>, or none when it cannot be read.</summary>
     private static List<string> Rest(string file, long from)
     {
         var lines = new List<string>();

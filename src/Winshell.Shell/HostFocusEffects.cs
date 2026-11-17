@@ -3,7 +3,6 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>Carries out <see cref="WindowFocus"/>'s answers on a native window and the shell's outside clicks.</summary>
 internal sealed class HostFocusEffects(HostWindow host, ShellPlatform platform) : IFocusEffects
 {
     public void AllowActivation(bool allow)
@@ -15,7 +14,6 @@ internal sealed class HostFocusEffects(HostWindow host, ShellPlatform platform) 
     {
         var show = activate ? SHOW_WINDOW_CMD.SW_SHOW : SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE;
         PInvoke.ShowWindow((HWND)host.Handle, show);
-        // A process's first SW_SHOW takes the state its launcher asked for, so a hidden start would hide the window.
         if (!PInvoke.IsWindowVisible((HWND)host.Handle))
             PInvoke.ShowWindow((HWND)host.Handle, show);
     }
@@ -27,7 +25,6 @@ internal sealed class HostFocusEffects(HostWindow host, ShellPlatform platform) 
 
     public void TakeKeyboard()
     {
-        // A Windows-key chord arrives through a low-level hook, which does not grant the right to take the keyboard.
         Focus.Take(host.Handle);
         host.Presentation.FocusContent();
     }

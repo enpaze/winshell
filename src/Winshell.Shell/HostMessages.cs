@@ -2,17 +2,14 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>What a native window does with each message Windows sends it.</summary>
 internal sealed class HostMessages(HostWindow host, ShellPlatform platform)
 {
-    /// <summary>A panel or popup press ends another app's native menu before its control handles the click.</summary>
     internal void Press()
     {
         if (host.Kind is WindowKind.Panel or WindowKind.Popup)
             NativeMenu.Dismiss();
     }
 
-    /// <summary>The window's own handling first. What it leaves to Windows goes to the kind's placer.</summary>
     public nint? OnMessage(WindowMessage message)
     {
         return OnWindowMessage(message) ?? host.Placer.OnMessage(message);
@@ -31,7 +28,6 @@ internal sealed class HostMessages(HostWindow host, ShellPlatform platform)
                 return null;
             case PInvoke.WM_DPICHANGED:
                 {
-                    // A size we apply from this message can send it again with the monitor's old scale. Keep the one that started it.
                     if (!placement.Placing)
                         placement.Scale = DesktopSpace.Scale((uint)Win32.HighWord(wParam));
                     host.Placer.OnDpiChanged(message.SuggestedRect, placement.Placing);
@@ -40,13 +36,9 @@ internal sealed class HostMessages(HostWindow host, ShellPlatform platform)
                     return 0;
                 }
             case PInvoke.WM_MOUSEACTIVATE:
-                // A click here does not close a menu another app opened without the foreground, as tray menus
-                // often are. Close it before the mouse message reaches the XAML island.
                 Press();
                 return host.Focus.ActivatesOnClick ? null : (nint)PInvoke.MA_NOACTIVATE;
             case PInvoke.WM_ACTIVATE:
-                // A grabbing popup closes on a click outside it, which the mouse hook sees; losing activation
-                // alone does not close it, since Windows can take activation away at any time.
                 host.Client.OnActiveChanged(Win32.LowWord(wParam) != 0);
                 return null;
             case PInvoke.WM_SETFOCUS:
@@ -57,7 +49,6 @@ internal sealed class HostMessages(HostWindow host, ShellPlatform platform)
                 placement.SetVisible(false);
                 return 0;
             case PInvoke.WM_DESTROY:
-                // The owner is closing, so Windows destroys this window. Drop the handle before it dangles.
                 host.NoteExternalDestroy();
                 return null;
             case PInvoke.WM_ERASEBKGND:

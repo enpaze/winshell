@@ -31,7 +31,6 @@ public sealed class ToastChangesTests
         Assert.True(changes.Due(out current));
         changes.Read(current);
 
-        // A database that cannot be read says nothing, so every poll reads.
         _stamp = null;
         Assert.True(changes.Due(out current));
         changes.Read(current);
@@ -51,7 +50,6 @@ public sealed class ToastChangesTests
 
         changes.Change();
         Assert.True(changes.Due(out _));
-        // That read failed, so nothing was read.
         Assert.True(changes.Due(out current));
         changes.Read(current);
         Assert.False(changes.Due(out _));

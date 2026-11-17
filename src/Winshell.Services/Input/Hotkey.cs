@@ -1,9 +1,5 @@
 namespace Winshell.Input;
 
-/// <summary>
-/// A hotkey that works anywhere in Windows. <see cref="Sequence"/> uses Windows names: <c>Win</c>, <c>Ctrl</c>,
-/// <c>Alt</c> and <c>Shift</c>. Dispose it to give the keys back.
-/// </summary>
 public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
 {
     private const int PollIntervalMs = 16;
@@ -23,9 +19,6 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
     private int _polls;
     private bool _disposed;
 
-    /// <param name="loop">The loop the hotkey lives on.</param>
-    /// <param name="log">Where a hotkey that is not active is reported.</param>
-    /// <param name="registrar">Claims the keys, and reads whether a key is down.</param>
     internal Hotkey(IEventLoop loop, Log log, HotkeyRegistrar registrar)
     {
         _loop = loop;
@@ -33,10 +26,6 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
         _registrar = registrar;
     }
 
-    /// <summary>
-    /// The keys, such as <c>Win+Ctrl+K</c>, or several chords separated by commas, such as <c>Win+Ctrl+K, C</c>.
-    /// Empty claims nothing. Setting it claims the new keys from Windows.
-    /// </summary>
     public string Sequence
     {
         get => Read(_sequence);
@@ -47,7 +36,6 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
         }
     }
 
-    /// <summary>Whether the hotkey claims its keys. False gives them back. True by default.</summary>
     public bool Enabled
     {
         get => Read(_enabled);
@@ -58,25 +46,16 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
         }
     }
 
-    /// <summary>Whether the keys are claimed and a press raises <see cref="Pressed"/>.</summary>
     public bool Active => Read(_active);
 
-    /// <summary>Whether Windows or another app already holds the keys, so this hotkey could not claim them.</summary>
     public bool Taken => Read(_taken);
 
-    /// <summary>True from the press until the keys of the last chord are up.</summary>
     public bool IsPressed => Read(_pressed);
 
-    /// <summary>
-    /// Why the hotkey is not active, such as a sequence that does not parse or keys that are taken. Empty when it is
-    /// active, disabled, or has no sequence.
-    /// </summary>
     public string Error => Read(_error);
 
-    /// <summary>The last chord of the sequence went down.</summary>
     public event EventHandler? Pressed;
 
-    /// <summary>The keys of the last chord came up.</summary>
     public event EventHandler? Released;
 
     IEventLoop IHotkeyListener.Loop => _loop;
@@ -177,7 +156,6 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
         return _registrar.IsKeyDown(virtualKey);
     }
 
-    /// <summary>Gives the keys back to Windows. No event is raised after this.</summary>
     public void Dispose()
     {
         if (_disposed)

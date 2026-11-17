@@ -1,5 +1,3 @@
-// Loaded by Tests.ps1. Names each visible top-level window that a process descended from rootProcessId shows, or
-// uncloaks, while it watches. A window that closes before its event is handled, within milliseconds, escapes it.
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,7 +14,6 @@ public sealed class WinshellWindowWatch
     const uint GaParent = 1;
     const int DwmwaCloaked = 14;
     const uint Th32csSnapProcess = 2;
-    // Far deeper than dotnet test, its test host and a process a test starts; stops a loop of reused process ids.
     const int MaxDepth = 64;
 
     delegate void WinEventProc(IntPtr hook, uint evt, IntPtr hwnd, int idObject, int idChild, uint thread, uint time);
@@ -34,7 +31,6 @@ public sealed class WinshellWindowWatch
     {
         this.rootProcessId = rootProcessId;
         proc = OnShow;
-        // An out-of-context hook calls back on the thread that set it, from that thread's message loop.
         thread = new Thread(() =>
         {
             threadId = GetCurrentThreadId();
@@ -62,7 +58,6 @@ public sealed class WinshellWindowWatch
 
     void OnShow(IntPtr hook, uint evt, IntPtr hwnd, int idObject, int idChild, uint thread, uint time)
     {
-        // A message-only window's parent is not the desktop.
         if (idObject != 0 || idChild != 0 || GetAncestor(hwnd, GaParent) != GetDesktopWindow()) return;
         int cloaked;
         if (!IsWindowVisible(hwnd) || (DwmGetWindowAttribute(hwnd, DwmwaCloaked, out cloaked, 4) == 0 && cloaked != 0)) return;
@@ -78,8 +73,6 @@ public sealed class WinshellWindowWatch
         windows.Add(string.Format("\"{0}\" (class {1}, process {2} {3})", title, className, name, pid));
     }
 
-    // Walks the window's process up through its parents to rootProcessId. A process whose parent has exited ends the walk,
-    // and so does a parent that started after its child: another process took the exited parent's id.
     bool Descends(int pid)
     {
         var parents = new Dictionary<int, int>();

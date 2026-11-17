@@ -3,9 +3,6 @@ using Winshell.Media;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// Naming the app behind a media session asks the shell and can scan processes. The UI thread must not wait for it.
-/// </summary>
 public class MediaAppNameTests
 {
     [Fact]
@@ -20,12 +17,10 @@ public class MediaAppNameTests
         {
             Interlocked.Increment(ref lookups);
             lookupThread = Environment.CurrentManagedThreadId;
-            // The name is published after this returns, and before the method disposes the event.
             lookupMayEnd.Wait(TimeSpan.FromSeconds(10));
             return "Spotify Music";
         }, () => named++);
 
-        // Both return the fallback name while the lookup is still blocked.
         Assert.Equal("Spotify", names.Get("Spotify.exe"));
         Assert.Equal("Spotify", names.Get("Spotify.exe"));
         lookupMayEnd.Set();

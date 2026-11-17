@@ -12,10 +12,6 @@ using StartupTaskState = Windows.ApplicationModel.StartupTaskState;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// winshell doctor's checks: each judges facts passed in, so these tests need nothing of this PC. Two tests run the
-/// whole doctor here. Every file is under a temp folder this class creates.
-/// </summary>
 public sealed class DoctorTests : IDisposable
 {
     private readonly string _dir =
@@ -30,8 +26,6 @@ public sealed class DoctorTests : IDisposable
     {
         Directory.Delete(_dir, true);
     }
-
-    // Windows and .NET
 
     [Theory]
     [InlineData(26300, 9711, "26H2", false, CheckStatus.Pass, "Windows 11 26H2, build 26300.9711")]
@@ -55,8 +49,6 @@ public sealed class DoctorTests : IDisposable
             DotNet(new Version(11, 0, 1), ".NET 11.0.1", true));
         Assert.Equal(CheckStatus.Fail, DotNet(new Version(10, 0), ".NET 10.0.0", false).Status);
     }
-
-    // Folders
 
     [Fact]
     public void Folders_fail_when_one_cannot_be_written_and_warn_about_an_elevated_instance()
@@ -138,12 +130,9 @@ public sealed class DoctorTests : IDisposable
     public void Telling_whether_a_folder_can_be_written_leaves_nothing_behind()
     {
         Assert.True(DoctorProbe.CanWrite(_dir));
-        // A folder Winshell would make: the nearest one that is there is asked instead.
         Assert.True(DoctorProbe.CanWrite(Path.Combine(_dir, "not", "yet")));
         Assert.Empty(Directory.EnumerateFileSystemEntries(_dir));
     }
-
-    // App bars
 
     private static MonitorFacts Screen(string name = "DISPLAY1", int x = 0, int top = 0, int bottom = 0, int left = 0,
         int right = 0)
@@ -173,7 +162,6 @@ public sealed class DoctorTests : IDisposable
         Assert.Equal(CheckStatus.Warn, unknown.Status);
         Assert.Equal("Another app reserves 48 pixels at the bottom of DISPLAY1.", unknown.Message);
 
-        // On the second screen, beside a taskbar on the first.
         var named = AppBars(
             [Screen(bottom: 48), Screen("DISPLAY2", 1920, 40)],
             [
@@ -186,20 +174,16 @@ public sealed class DoctorTests : IDisposable
     [Fact]
     public void A_winshell_panel_explains_its_margins_and_a_zone_other_than_its_size()
     {
-        // A floating panel: 8 pixels of margin above and below a 40-pixel window reserve 56.
         Assert.Equal(CheckStatus.Pass,
             AppBars([Screen(top: 56)], [Bar(WinshellClass, 0, 8, 1920, 40, "winshell.exe")]).Status);
-        // Thin windows along the edge, such as another app's 2-pixel border, are not app bars.
         Assert.Equal(CheckStatus.Pass,
             AppBars([Screen(top: 56)],
             [
                 Bar(WinshellClass, 0, 8, 1920, 40, "winshell.exe"), Bar("Border", 0, 0, 1920, 2, "borders.exe"),
                 Bar("EdgeUiInputTopWndClass", 15, 0, 1905, 4)
             ]).Status);
-        // A panel taller than its exclusive zone.
         Assert.Equal(CheckStatus.Pass,
             AppBars([Screen(top: 40)], [Bar(WinshellClass, 0, 0, 1920, 60, "winshell.exe")]).Status);
-        // A Winshell window filling the screen is no panel, and explains nothing.
         Assert.Equal(CheckStatus.Warn,
             AppBars([Screen(top: 40)], [Bar(WinshellClass, 0, 0, 1920, 1080, "winshell.exe")]).Status);
     }
@@ -207,14 +191,12 @@ public sealed class DoctorTests : IDisposable
     [Fact]
     public void An_app_bar_overlapping_a_winshell_panel_is_named()
     {
-        // The panel covers the reserved strip, and yasb sits in the same pixels.
         var overlap = AppBars(
             [Screen(top: 40)],
             [Bar(WinshellClass, 0, 0, 1920, 40, "winshell.exe"), Bar("YasbBar", 0, 0, 1920, 40, "yasb.exe")]);
         Assert.Equal(CheckStatus.Warn, overlap.Status);
         Assert.Equal("yasb.exe reserves space at the top of DISPLAY1.", overlap.Message);
 
-        // yasb is thicker than the 8 pixels the panel leaves above a window at 8–48.
         var thicker = AppBars(
             [Screen(top: 48)],
             [Bar(WinshellClass, 0, 8, 1920, 40, "winshell.exe"), Bar("YasbBar", 0, 0, 1920, 48, "yasb.exe")]);
@@ -248,8 +230,6 @@ public sealed class DoctorTests : IDisposable
         Assert.Equal(CheckStatus.Warn, both.Status);
         Assert.Contains("both reserve the bottom of DISPLAY1", both.Message, StringComparison.Ordinal);
     }
-
-    // DPI
 
     [Fact]
     public void A_scaling_override_fails_and_another_compatibility_mode_warns()
@@ -286,8 +266,6 @@ public sealed class DoctorTests : IDisposable
         Assert.Equal(CheckStatus.Fail, unaware.Status);
         Assert.StartsWith("Winshell is not per-monitor DPI aware", unaware.Message, StringComparison.Ordinal);
     }
-
-    // Sign-in
 
     [Fact]
     public void The_sign_in_entry_must_start_this_winshell_and_be_on()
@@ -401,8 +379,6 @@ public sealed class DoctorTests : IDisposable
             SignInForProcess(shell, @"C:\Other\winshell.exe", command, false, _dir, _ => true).Status);
     }
 
-    // Notifications, instances, crashes
-
     [Theory]
     [InlineData("Allowed", CheckStatus.Pass)]
     [InlineData("Denied", CheckStatus.Warn)]
@@ -471,8 +447,6 @@ public sealed class DoctorTests : IDisposable
                 $"Report it at {BugReports}."), check);
     }
 
-    // Output
-
     private static readonly DoctorCheck[] Sample =
     [
         new("windows", "Windows", CheckStatus.Pass, "Windows 11 26H2, build 26300.1"),
@@ -516,8 +490,6 @@ public sealed class DoctorTests : IDisposable
         Assert.Equal(1, root.GetProperty("summary").GetProperty("fail").GetInt32());
         Assert.DoesNotContain("\\u002B", ToJson(Sample, "1.2.3+abc"), StringComparison.Ordinal);
     }
-
-    // On this PC
 
     [Fact]
     public void A_path_with_no_project_is_the_folder_the_doctor_tries_to_write()

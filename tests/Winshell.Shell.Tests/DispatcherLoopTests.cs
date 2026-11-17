@@ -10,7 +10,6 @@ public sealed class DispatcherLoopTests
         await ShellFixture.On(shell =>
         {
             shell.Loop.Schedule(TimeSpan.Zero, fired.SetResult);
-            // The dispatcher cannot fire until this turn yields, so collect while the dropped handle is still pending.
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();

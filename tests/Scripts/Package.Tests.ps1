@@ -2,7 +2,6 @@ Describe 'The binaries Winshell signs' {
     It 'are the same for each runtime in SignPath''s artifact configuration, and include every assembly built from src' {
         [xml] $config = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../packaging/signpath/artifact-configuration.xml')
         $runtimes = $config.'artifact-configuration'.'zip-file'.'pe-file-set'.include.path | Group-Object { ($_ -split '/')[0] }
-        # The package project only packs the others; it builds nothing that ships.
         $assemblies = Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '../../src') -Recurse -Filter '*.csproj' | ForEach-Object {
             $text = Get-Content -Raw -LiteralPath $_.FullName
             if ($text -notmatch '<IsPackable>true</IsPackable>') {
@@ -24,8 +23,6 @@ Describe 'The oldest Windows a release runs on' {
         $windows = '<(?:SupportedOSPlatformVersion>|TargetFramework>net[\d.]+-windows)(10\.0\.\d+\.\d+)<'
         $projects = Get-ChildItem -LiteralPath (Join-Path $root 'src'), (Join-Path $root 'tests'), (Join-Path $root 'templates') -Recurse -File -Include '*.csproj', '*.props' |
             Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' }
-        # Doctor.OldestReleaseBuild is the floor the Windows check compares to. The build numbers in its
-        # other conditions, such as Windows 11 against Windows 10, are not that floor.
         $doctorSource = Get-Content -Raw -LiteralPath (Join-Path $root 'src/Winshell.Services/Diagnostics/Doctor.cs')
         $oldest = [regex]::Matches($doctorSource, 'OldestReleaseBuild = (\d+)')
         $oldest.Count | Should -Be 1

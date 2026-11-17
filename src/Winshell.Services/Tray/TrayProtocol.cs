@@ -5,10 +5,6 @@ using Winshell.Native;
 
 namespace Winshell.Tray;
 
-/// <summary>
-/// One <c>Shell_NotifyIcon</c> call, as Shell32 sends it to the taskbar: a <c>NOTIFYICONDATA</c> with 32-bit handles,
-/// whatever the bitness of the app.
-/// </summary>
 internal sealed record NotifyIconCall
 {
     public uint Message { get; init; }
@@ -31,36 +27,30 @@ internal sealed record NotifyIconCall
 
     public string Info { get; init; } = "";
 
-    /// <summary>The balloon timeout, except in <c>NIM_SETVERSION</c>, where it is the interface version.</summary>
     public uint TimeoutOrVersion { get; init; }
 
     public string InfoTitle { get; init; } = "";
 
     public uint InfoFlags { get; init; }
 
-    /// <summary>The icon's GUID when the app sent <c>NIF_GUID</c> and a structure long enough to hold it.</summary>
     public Guid Guid { get; init; }
 }
 
-/// <summary>A click on a tray icon, as the app receives it.</summary>
 internal enum TrayClick
 {
     Left,
     Double,
     Middle,
 
-    /// <summary>A right click, which asks the app for its menu.</summary>
     Menu
 }
 
-/// <summary>How Explorer and apps talk about notification-area icons.</summary>
 internal static class TrayProtocol
 {
     public const uint Version = 3;
 
     public const uint Version4 = 4;
 
-    /// <summary>The <c>dwData</c> of a <c>WM_COPYDATA</c> that carries a <c>Shell_NotifyIcon</c> call.</summary>
     public const nuint NotifyIconData = 1;
 
     public const int Signature = 0x34753423;
@@ -76,7 +66,6 @@ internal static class TrayProtocol
 
     public const uint NIS_HIDDEN = 0x1;
 
-    // The NOTIFYICONDATA that Shell32 sends, after the signature and the message.
     private const int HeaderSize = 8;
     private const int TipOffset = 24, TipChars = 128;
     private const int StateOffset = 280, StateMaskOffset = 284;
@@ -86,13 +75,8 @@ internal static class TrayProtocol
     private const int InfoFlagsOffset = 932;
     private const int GuidOffset = 936;
 
-    /// <summary>The longest structure, up to <c>hBalloonIcon</c>.</summary>
     public const int FullSize = 956;
 
-    /// <summary>
-    /// Reads a call. Apps built for older Windows send a shorter structure; what they left out reads as zero.
-    /// Returns null for anything that is not a call, which the taskbar still gets as it was.
-    /// </summary>
     public static NotifyIconCall? Read(ReadOnlySpan<byte> payload)
     {
         if (payload.Length < HeaderSize + TipOffset || BinaryPrimitives.ReadInt32LittleEndian(payload) != Signature)
@@ -106,7 +90,6 @@ internal static class TrayProtocol
         return new NotifyIconCall
         {
             Message = message,
-            // Handles are 32 bits wide here, and sign-extend the way Windows does.
             Window = BinaryPrimitives.ReadInt32LittleEndian(nid[4..]),
             Id = U32(nid, 8),
             Flags = flags,
@@ -125,10 +108,6 @@ internal static class TrayProtocol
         };
     }
 
-    /// <summary>
-    /// The messages a click sends, in order: the mouse messages a window would get, and from version 3 on,
-    /// <c>NIN_SELECT</c> after each left button release and <c>WM_CONTEXTMENU</c> after a right one.
-    /// </summary>
     public static uint[] ClickMessages(TrayClick click, uint version)
     {
         var current = version >= Version;
@@ -151,10 +130,6 @@ internal static class TrayProtocol
         };
     }
 
-    /// <summary>
-    /// The <c>wParam</c> and <c>lParam</c> of the icon's callback. Version 4 carries the screen point and the icon
-    /// id; older versions carry the icon id and the mouse message.
-    /// </summary>
     public static (nint WParam, nint LParam) Callback(uint version, uint iconId, uint message, int x, int y)
     {
         if (version >= Version4)

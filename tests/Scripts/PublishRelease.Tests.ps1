@@ -18,7 +18,6 @@ Describe 'Publishing a complete draft release' {
             $script:Calls.Add(($args -join ' '))
             $global:LASTEXITCODE = 0
             if ($args[0] -eq 'api' -and $args[1] -like 'repos/*/releases/tags/*') {
-                # The REST tag lookup cannot find a draft, even when its tag already exists.
                 if ($script:Draft) {
                     $global:LASTEXITCODE = 1
                     return '{"message":"Not Found"}'

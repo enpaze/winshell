@@ -1,9 +1,5 @@
 namespace Winshell.Tests;
 
-/// <summary>
-/// Help text recorded before each command owned its own lines. Placeholders are put back so a machine's config folder
-/// and this build's version do not change the comparison.
-/// </summary>
 public class CliHelpTextTests
 {
     [Theory]

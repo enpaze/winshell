@@ -3,10 +3,8 @@ using Winshell.Native;
 
 namespace Winshell.Network;
 
-/// <summary>A profile write. <see cref="Wrote"/> is false when nothing was sent to Windows.</summary>
 internal readonly record struct ProfileChange(string? Error, bool Wrote);
 
-/// <summary>Gets a profile, changes one element, and writes it back with the flag Windows reported.</summary>
 internal static class WifiProfileEdit
 {
     public static ProfileChange SetAutoConnect(Guid adapter, string profileName, bool auto)
@@ -54,7 +52,6 @@ internal static class WifiProfileEdit
     }
 }
 
-/// <summary>Turns profile XML into the fields a configuration sees. The XML itself is not kept.</summary>
 internal static class WifiProfiles
 {
     public static WifiProfileInfo Describe(Guid adapter, string profileName, string? xml, uint readError)
@@ -75,7 +72,6 @@ internal static class WifiProfiles
             "");
     }
 
-    /// <summary>A readable profile matches its SSID. One that could not be read matches its profile name.</summary>
     public static bool Matches(WifiProfileInfo profile, string networkName)
     {
         return profile.Loaded
@@ -84,7 +80,6 @@ internal static class WifiProfiles
     }
 }
 
-/// <summary>Runs profile XML writes one at a time, off the thread that asked.</summary>
 internal sealed class ProfileWriteQueue
 {
     private readonly SemaphoreSlim _gate = new(1, 1);

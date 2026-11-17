@@ -9,29 +9,19 @@ using Tomlyn.Syntax;
 
 namespace Winshell;
 
-/// <summary>What reading a TOML file from disk found.</summary>
 internal enum TomlRead
 {
-    /// <summary>The file is not there.</summary>
     Missing,
 
-    /// <summary>The file is past 1 MiB, so it was not read.</summary>
     TooLarge,
 
-    /// <summary>The file could not be read.</summary>
     Unreadable,
 
-    /// <summary>The text is not TOML. <see cref="TomlLoad.Line"/> and <see cref="TomlLoad.Column"/> name the first error.</summary>
     Invalid,
 
-    /// <summary>The file parsed. <see cref="TomlLoad.Document"/> is set.</summary>
     Parsed
 }
 
-/// <summary>
-/// A TOML file read from disk. <see cref="Document"/> is set only for <see cref="TomlRead.Parsed"/>.
-/// <see cref="Text"/> is the file with a UTF-8 byte order mark stripped, including when the text is not TOML.
-/// </summary>
 internal readonly struct TomlLoad
 {
     private TomlLoad(TomlRead kind, TomlDocument? document, string? text, bool bom, string message, int line,
@@ -54,16 +44,12 @@ internal readonly struct TomlLoad
 
     public bool Bom { get; }
 
-    /// <summary>The error detail, without the path. Empty when the file parsed or is missing.</summary>
     public string Message { get; }
 
-    /// <summary>The 1-based line of a syntax error, or 0 when the error has no position.</summary>
     public int Line { get; }
 
-    /// <summary>The 1-based column of a syntax error, or 0 when the error has no position.</summary>
     public int Column { get; }
 
-    /// <summary><c>path[line:column]: message</c>, or <c>path: message</c> when the error has no position.</summary>
     public string Describe(string where)
     {
         return Line > 0
@@ -97,19 +83,6 @@ internal readonly struct TomlLoad
     }
 }
 
-/// <summary>
-/// A TOML file's text, read and edited as plain values: string, bool, long, double,
-/// <see cref="IReadOnlyList{T}"/> of object and <see cref="IReadOnlyDictionary{TKey, TValue}"/> of string and object.
-/// A date or a time reads as a string, and its token stays while that string does. <see cref="Set"/> changes one key
-/// and leaves the rest of the text: comments, blank lines, number spellings and other keys stay. A table, an array of
-/// tables, or a dotted key already in the file is the value: only what changed in it is updated, in place, and a key
-/// it does not have yet goes at the end of its table, above the blank line before the next one. When that
-/// would write a part the file has elsewhere a second time, such as a key of a table that is under its own header, or
-/// leave a part that null takes out, the value is written again whole instead, inline, where a key the file does not
-/// have yet goes: at the end of its top-level keys, under its comment. <see cref="AddTable"/> adds a table under its
-/// own header at the end of the file. <see cref="Load"/> reads a file and says when
-/// it is missing, too large, unreadable, or not TOML, and <see cref="LocationOf(string)"/> says where a key is defined.
-/// </summary>
 internal sealed partial class TomlDocument
 {
     private readonly string _where;
@@ -125,18 +98,12 @@ internal sealed partial class TomlDocument
         _values = PlainTable(table);
     }
 
-    /// <summary>
-    /// Reads <paramref name="path"/>. A file that is missing, past 1 MiB, unreadable, or not TOML comes back as that
-    /// <see cref="TomlLoad.Kind"/> and no document. The text of a file that is not TOML is still
-    /// <see cref="TomlLoad.Text"/>.
-    /// </summary>
     public static TomlLoad Load(string path)
     {
         string text;
         bool bom;
         try
         {
-            // Share the file so a save can replace it while this read is open.
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
                 FileShare.ReadWrite | FileShare.Delete);
             if (FileBytes(stream.Length, MaxTextBytes) is { } why)
@@ -161,35 +128,24 @@ internal sealed partial class TomlDocument
         return TomlLoad.Parsed(new TomlDocument(path, syntax, table), text, bom);
     }
 
-    /// <summary>A document with nothing in it, for a file that does not exist yet. <paramref name="where"/> is its path.</summary>
     public static TomlDocument Empty(string where)
     {
         return new TomlDocument(where, new DocumentSyntax(), []);
     }
 
-    /// <summary><c>path[line:column]</c> of where <paramref name="key"/> is first defined, or the path when it is not.</summary>
     public string LocationOf(string key)
     {
         return KeyAt(_where, _document, key);
     }
 
-    /// <summary>
-    /// <c>path[line:column]</c> of where <paramref name="key"/> of the table <paramref name="table"/> is defined, or of
-    /// the table when that key is not under its header, or the path when the table is not in the file.
-    /// </summary>
     public string LocationOf(string table, string key)
     {
         return KeyAt(_where, _document, table, key);
     }
 
-    /// <summary>The top-level keys and their values.</summary>
     public IReadOnlyDictionary<string, object?> Values =>
         _values ??= PlainTable(TomlSerializer.Deserialize<TomlTable>(_document.ToString()) ?? []);
 
-    /// <summary>
-    /// Reads <paramref name="text"/>. <paramref name="error"/> is <c>path[line:column]: message</c>, or
-    /// <c>path: message</c> for a file past 1 MiB or nesting past 64 levels, when it does not parse.
-    /// </summary>
     public static bool TryParse(string where, string text, [NotNullWhen(true)] out TomlDocument? document,
         out string error)
     {
@@ -207,11 +163,6 @@ internal sealed partial class TomlDocument
         return true;
     }
 
-    /// <summary>
-    /// Makes <paramref name="key"/> hold <paramref name="value"/>. Null takes the key out, because TOML has no null,
-    /// and the comments around it stay. A table keeps the keys it is not given. A key the file does not have yet is
-    /// written under <paramref name="comment"/>.
-    /// </summary>
     public void Set(string key, object? value, string? comment = null)
     {
         var desired = Plain(value);
@@ -244,11 +195,6 @@ internal sealed partial class TomlDocument
         _values = null;
     }
 
-    /// <summary>
-    /// Adds the table <paramref name="name"/> at the end of the file, after a blank line, with <paramref name="lines"/>
-    /// under its header: comments, each starting with <c>#</c>, or empty for a blank line. A file that already has
-    /// <paramref name="name"/> is left as it is.
-    /// </summary>
     public void AddTable(string name, IEnumerable<string> lines)
     {
         if (FindOwned(_document, name).Defined)
@@ -265,13 +211,11 @@ internal sealed partial class TomlDocument
         _values = null;
     }
 
-    /// <summary>The file's text.</summary>
     public override string ToString()
     {
         return _document.ToString();
     }
 
-    /// <summary>A value as the plain types this class reads and writes.</summary>
     public static object? Plain(object? value)
     {
         return value switch
@@ -287,7 +231,6 @@ internal sealed partial class TomlDocument
         };
     }
 
-    /// <summary>Whether two plain values are the same value. An integer and a float can be.</summary>
     public static bool Same(object? left, object? right)
     {
         return (left, right) switch
@@ -302,10 +245,6 @@ internal sealed partial class TomlDocument
         };
     }
 
-    /// <summary>
-    /// What <paramref name="desired"/> changes in <paramref name="current"/>: a table only with its keys that change, and
-    /// a list with each table in it the same way, by position.
-    /// </summary>
     private static object Changes(object? current, object desired)
     {
         return (current, desired) switch
@@ -321,7 +260,6 @@ internal sealed partial class TomlDocument
         };
     }
 
-    /// <summary>Whether <paramref name="read"/> still has a key that <paramref name="changes"/> takes out.</summary>
     private static bool Keeps(object? read, object changes)
     {
         return (read, changes) switch
@@ -335,7 +273,6 @@ internal sealed partial class TomlDocument
         };
     }
 
-    /// <summary>What an update in place makes of <paramref name="current"/>, for writing it again whole.</summary>
     private static object Merged(object? current, object desired)
     {
         switch (current, desired)
@@ -375,7 +312,6 @@ internal sealed partial class TomlDocument
             AppendRaw(_document, Key(key), text, _newline, CommentLines(comment));
     }
 
-    /// <summary>The lines of <paramref name="comment"/> as TOML comments, each starting with <c>#</c>.</summary>
     public static IEnumerable<string> CommentLines(string? comment)
     {
         if (comment is null)
@@ -396,7 +332,6 @@ internal sealed partial class TomlDocument
             return true;
         }
 
-        // No rows is not an array of tables, so an empty list is written as [] and stays a choice the file remembers.
         if (simple.Count == 0 && dotted.Count == 0 && tables.Count == 0 && rows.Count > 0
             && desired is IReadOnlyList<object?> { Count: > 0 } list &&
             list.All(item => item is IReadOnlyDictionary<string, object?>))
@@ -520,7 +455,6 @@ internal sealed partial class TomlDocument
             case FloatValueSyntax number when desired is double value:
                 return UpdateFloat(number, value);
             case DateTimeValueSyntax date when desired is string written:
-                // The token is the user's spelling. Quoting it would turn a date into a string.
                 return date.Token?.Text == written || date.Value.ToString() == written;
             case ArraySyntax array when desired is IReadOnlyList<object?> list:
                 UpdateArray(array, list);
@@ -642,7 +576,6 @@ internal sealed partial class TomlDocument
         return table;
     }
 
-    /// <summary>A value as TOML, or null for one TOML cannot hold.</summary>
     public static string? Format(object? value)
     {
         switch (value)
@@ -668,7 +601,6 @@ internal sealed partial class TomlDocument
         }
     }
 
-    /// <summary>A double as a TOML float. Without a fraction or an exponent it would read back as an integer.</summary>
     private static string Number(double value)
     {
         if (double.IsNaN(value))

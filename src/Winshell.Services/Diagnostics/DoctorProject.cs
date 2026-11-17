@@ -1,13 +1,7 @@
 namespace Winshell.Diagnostics;
 
-/// <summary>The doctor's checks of the configuration project. They read the project file as data and never build.</summary>
 internal static class DoctorProject
 {
-    /// <summary>
-    /// The checks of a project the caller found, or of none and <paramref name="problem"/>, why there is not one:
-    /// whether it was found, whether its program has been built,
-    /// and whether a build is needed. Nothing here runs MSBuild.
-    /// </summary>
     internal static IReadOnlyList<DoctorCheck> Configuration(ConfigurationProject? project, string? problem)
     {
         return

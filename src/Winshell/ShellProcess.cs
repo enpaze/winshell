@@ -3,7 +3,6 @@ using System.Diagnostics;
 
 namespace Winshell;
 
-/// <summary>A shell <see cref="ShellSupervisor"/> runs: a configuration's program.</summary>
 internal sealed partial class ShellProcess : IShellChild
 {
     private readonly Process _process;
@@ -22,12 +21,10 @@ internal sealed partial class ShellProcess : IShellChild
 
     public ExitIntent Intent => _supervision.Intent;
 
-    /// <summary>Starts the shell, or says why it did not start and returns null. A dialog can offer <paramref name="folder"/>.</summary>
     public static ShellProcess? Start(ProcessStartInfo info, string? folder)
     {
         try
         {
-            // UseShellExecute=false starts a process, so Start cannot return null for an opened document.
             return new ShellProcess(Process.Start(info)!);
         }
         catch (Win32Exception e)
@@ -37,13 +34,8 @@ internal sealed partial class ShellProcess : IShellChild
         }
     }
 
-    /// <summary>
-    /// Asks the shell to quit and ends it two seconds later if it has not. Closing the console or signing out leaves this
-    /// process about five seconds for all of it.
-    /// </summary>
     public async Task StopAsync()
     {
-        // The child's instance is the one with its process id, which no other process can take while this one holds it.
         var info = ShellLocations.Current.Instances.List(false).Select(row => row.Info)
             .FirstOrDefault(candidate => candidate.Pid == _process.Id);
         _ = await ShellExit.QuitAsync(_process, info, ExitIntent.None, ShellExit.Patience.Closing,

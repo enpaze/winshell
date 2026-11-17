@@ -1,9 +1,3 @@
-// Renders packaging/logo.svg into the PNGs the MSIX package and the Store listing use, and into
-// packaging/winshell.ico for the executable and the window class. The package PNGs include the
-// scale sizes Windows uses on high-DPI screens and the unplated taskbar sizes. Run it after
-// changing the logo, and commit the files it writes.
-//
-//   dotnet run scripts/render-logo.cs
 #:property PublishAot=false
 #:package Svg.Skia
 #:package SkiaSharp
@@ -16,9 +10,6 @@ using var svg = new SKSvg();
 svg.Load(Path.Combine(packaging, "logo.svg"));
 var picture = svg.Picture ?? throw new InvalidOperationException("packaging/logo.svg did not load");
 
-// Name, size in pixels. The unqualified files are the 100% sizes the manifest names. scale-125,
-// scale-150, and scale-200 are the sizes Windows looks up; 150 * 1.25 is 188 and 50 * 1.25 is 63.
-// The Store file is the listing's app tile.
 (string Path, int Size)[] images =
 [
     ("msix/Assets/Square44x44Logo.png", 44),
@@ -38,14 +29,12 @@ var picture = svg.Picture ?? throw new InvalidOperationException("packaging/logo
 foreach (var (path, size) in images)
     WritePng(Path.Combine(packaging, path), path, Render(picture, size), size);
 
-// Without these, Windows draws the taskbar, Start, and Alt+Tab icon on an accent-coloured plate.
 foreach (var size in new[] { 16, 24, 32, 48, 256 })
 {
     var path = $"msix/Assets/Square44x44Logo.targetsize-{size}_altform-unplated.png";
     WritePng(Path.Combine(packaging, path), path, Render(picture, size), size);
 }
 
-// Shell sizes for the executable icon. 0 in the directory means 256.
 int[] iconSizes = [16, 20, 24, 32, 40, 48, 64, 256];
 WriteIcon(Path.Combine(packaging, "winshell.ico"), iconSizes.Select(size => Render(picture, size)).ToArray(), iconSizes);
 Console.WriteLine($"winshell.ico ({string.Join(", ", iconSizes)})");

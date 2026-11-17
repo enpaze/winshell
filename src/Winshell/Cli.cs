@@ -36,7 +36,6 @@ internal static class Cli
         {
             if (command is null)
             {
-                // The Start tile and sign-in host still start a shell without a command word.
                 var windowless = WinshellHost.IsWindowless(Environment.ProcessPath);
                 if (parsed.Arguments.IsEmpty && !windowless)
                 {
@@ -77,10 +76,6 @@ internal static class Cli
         return entry.Run!(parsed);
     }
 
-    /// <summary>
-    /// A pipe or a file gets UTF-8. The console's own code page would turn text outside it into question marks,
-    /// and setting that code page would change it for the terminal too.
-    /// </summary>
     private static void WriteUtf8WhenRedirected()
     {
         var utf8 = new UTF8Encoding(false);

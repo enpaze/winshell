@@ -3,9 +3,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Winshell.Architecture.Tests;
 
-/// <summary>
-/// Last-input time is measured on <c>GetTickCount</c>. Only <c>SentInput</c> reads that clock in <c>src/</c>.
-/// </summary>
 public class InputClockTests
 {
     [Fact]
@@ -22,7 +19,6 @@ public class InputClockTests
         Assert.Equal(["Winshell.Native/Input/SentInput.cs"], readers);
     }
 
-    // A call to GetTickCount, or Environment.TickCount. The declaration of GetTickCount is not a read.
     private static bool ReadsTickCount(string path)
     {
         var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(path));

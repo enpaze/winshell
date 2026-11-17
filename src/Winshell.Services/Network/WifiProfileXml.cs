@@ -4,11 +4,6 @@ using System.Xml;
 
 namespace Winshell.Network;
 
-/// <summary>
-/// Reads a WLAN profile and edits one element of the XML Windows returned.
-/// The document is untrusted: DTD processing is off, nothing is resolved externally, and a document
-/// past the size or depth cap is refused. The key text is never copied into a field or an error.
-/// </summary>
 internal static class WifiProfileXml
 {
     internal const int MaxCharacters = 256 * 1024;
@@ -75,10 +70,6 @@ internal static class WifiProfileXml
         return true;
     }
 
-    /// <summary>
-    /// Replaces the profile's own <c>connectionMode</c> text and leaves every other byte as Windows sent it.
-    /// <paramref name="changed"/> is false when the profile already has that mode, so the caller does not write.
-    /// </summary>
     public static bool TrySetAutoConnect(string xml, bool auto, out string updated, out bool changed, out string error)
     {
         updated = xml;
@@ -107,7 +98,6 @@ internal static class WifiProfileXml
         return true;
     }
 
-    /// <summary>Removes every <c>keyMaterial</c> element. Other elements, including ones this code does not know, stay.</summary>
     public static bool TryClearPassword(string xml, out string updated, out bool changed, out string error)
     {
         updated = xml;
@@ -162,7 +152,6 @@ internal static class WifiProfileXml
         };
     }
 
-    /// <summary>Rejects a document that is too deep before a DOM is built. A DTD fails the reader and is not resolved.</summary>
     private static bool WithinLimits(string xml)
     {
         using var reader = XmlReader.Create(new StringReader(xml), ReaderSettings());
@@ -221,7 +210,6 @@ internal static class WifiProfileXml
             hidden == true);
     }
 
-    /// <summary>The element's own text. Descendant text, including a nested key, is not read.</summary>
     private static string ElementText(XmlElement element)
     {
         var builder = new StringBuilder();
@@ -292,7 +280,6 @@ internal static class WifiProfileXml
         contentStart = contentEnd = 0;
         if (!TryCollectElements(xml, localName, false, out var spans))
             return false;
-        // A self-closing tag has no text to replace. An empty pair, <c></c>, does.
         if (spans.Count != 1 || spans[0].ContentStart >= spans[0].End)
             return false;
         contentStart = spans[0].ContentStart;
@@ -302,10 +289,6 @@ internal static class WifiProfileXml
 
     private readonly record struct ElementSpan(int Start, int End, int ContentStart, int ContentEnd);
 
-    /// <summary>
-    /// Locates elements by walking the text. Comments, processing instructions and CDATA are not elements.
-    /// A document the walker cannot follow is refused, so a write does not guess.
-    /// </summary>
     private static bool TryCollectElements(string xml, string localName, bool anyDepth, out List<ElementSpan> spans)
     {
         spans = [];

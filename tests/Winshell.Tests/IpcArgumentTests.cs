@@ -1,9 +1,5 @@
 namespace Winshell.Tests;
 
-/// <summary>
-/// Arguments of <c>ipc call</c> belong to the function. A <c>--</c> ends options on every command.
-/// These stay inside <see cref="CliParser"/> so a live instance on this PC is never called.
-/// </summary>
 public class IpcArgumentTests
 {
     [Fact]

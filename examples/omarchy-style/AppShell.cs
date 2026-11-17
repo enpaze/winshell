@@ -2,16 +2,12 @@ using Winshell;
 
 namespace OmarchyStyle;
 
-/// <summary>Omarchy's bar on one edge of every screen, in its Tokyo Night style.</summary>
 public sealed class AppShell : ShellConfiguration
 {
     public override void Start(Shell shell)
     {
-        // Winshell shows Explorer's taskbar again when the shell quits, however it quits.
         shell.ExplorerTaskbar.Hidden = true;
         shell.Style = TokyoNight.Style;
-        // A component is registered in code. The [bar] section of the preferences file can move the bar and change
-        // these lists, for every screen or, in a [[bar.screen]] row, for one.
         Widgets.Register<WindowsWidget>("windows");
         Widgets.Register<WorkspacesWidget>("workspaces");
         Widgets.Register<ClockWidget>("clock");

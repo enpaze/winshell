@@ -2,11 +2,6 @@ using System.ComponentModel;
 
 namespace Winshell.Core.Tests;
 
-/// <summary>
-/// Reading a list property follows that list. Reactor's tree walker hears the object's
-/// <see cref="INotifyPropertyChanged.PropertyChanged"/>, not a tracked read, so the follow has to stay when the read
-/// report goes.
-/// </summary>
 public sealed class ObservableObjectTests
 {
     [Fact]
@@ -41,13 +36,11 @@ public sealed class ObservableObjectTests
         Assert.Equal([nameof(SharedShelf.First)], names);
     }
 
-    /// <summary>A service whose list is created with <c>= []</c>, so the getter is what starts the follow.</summary>
     private sealed class Shelf : ObservableObject
     {
         public ObservableList<Reading> Items { get => Read(field); } = [];
     }
 
-    /// <summary>Two properties that return one list. The second follow must fail instead of staying silent.</summary>
     private sealed class SharedShelf : ObservableObject
     {
         private readonly ObservableList<Reading> _items = [];
@@ -57,7 +50,6 @@ public sealed class ObservableObjectTests
         public ObservableList<Reading> Second => Read(_items);
     }
 
-    /// <summary>An item in <see cref="Shelf.Items"/>.</summary>
     private sealed class Reading : ObservableObject
     {
         public int Level

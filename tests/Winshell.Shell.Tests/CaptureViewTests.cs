@@ -8,7 +8,6 @@ using Winshell.Capture;
 
 namespace Winshell.ShellTests;
 
-/// <summary>The view shows a session's frames and lets go of it. What the screen then looks like is not asserted here.</summary>
 [Trait("Category", "Window")]
 public sealed partial class CaptureViewTests
 {
@@ -95,7 +94,6 @@ public sealed partial class CaptureViewTests
             popup.Visible = true;
             await ShellFixture.LaidOut(view);
 
-            // The wrapper of a XamlRoot does not live as long as the native object it wraps.
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
@@ -139,7 +137,6 @@ public sealed partial class CaptureViewTests
             popup.Visible = true;
             await ShellFixture.LaidOut(view);
 
-            // Straight BGRA. These bytes are the premultiplied colors of that picture.
             backend.Next = new PixelImage(2, 2,
                 [32, 64, 128, 128, 10, 20, 30, 255, 100, 150, 200, 0, 128, 64, 32, 64],
                 false);
@@ -178,8 +175,6 @@ public sealed partial class CaptureViewTests
         return bytes;
     }
 
-    // Not in TestSupport: Core.Tests compiles it and cannot see ICaptureBackend. CaptureSessionTests' fake also counts calls
-    // and fails on demand.
     private sealed partial class FakeCapture : ICaptureBackend
     {
         public PixelImage? Next { get; set; }

@@ -1,5 +1,3 @@
-# The versions, hashes and waits of the tools CI installs by URL live in one file.
-# A bump edits that file and nothing else copies the numbers.
 BeforeAll {
     $script:Root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
     $script:Pin = 'scripts/tool-pins.psd1'
@@ -13,7 +11,6 @@ BeforeAll {
         '.github/actions/powershell/action.yml'
     )
 
-    # git grep exits 1 when nothing matches. That is an empty result, not a failed search.
     function script:Get-OtherPinHits([string] $Needle, [string[]] $Paths = @('.')) {
         if (-not $Needle) { throw 'A pin needle is empty.' }
         $output = git -C $script:Root grep -F -I -n -e $Needle -- @Paths
@@ -29,8 +26,6 @@ BeforeAll {
 }
 
 Describe 'The tools CI installs by URL' {
-    # A hash or a URL names one download anywhere in the repository. A bare version such as 1.7.6 can also be some
-    # other package's, so it is looked for only where the pins are read.
     It 'keeps every version and hash in scripts/tool-pins.psd1 alone' {
         $anywhere = @(
             $script:Pins.lychee.windowsSha256
@@ -46,7 +41,6 @@ Describe 'The tools CI installs by URL' {
             $script:Pins.actionlint.version
             $script:Pins.zizmor.version
             $script:Pins.pester.version
-            # The versions sit in those URLs. They are not a second copy of the download.
             ([regex]::Match($script:Pins.wingetCreate.url, '/v(?<version>\d+\.\d+\.\d+\.\d+)/')).Groups['version'].Value
             ([regex]::Match($script:Pins.wingetUtil.url, '/(?<version>\d+\.\d+\.\d+)/')).Groups['version'].Value
         )

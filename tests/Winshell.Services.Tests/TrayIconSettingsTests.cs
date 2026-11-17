@@ -18,10 +18,8 @@ public sealed class TrayIconSettingsTests
         Assert.False(TrayIconSettings.InOverflow(settings, guid, @"C:\Other\app.exe", 9));
         Assert.False(TrayIconSettings.InOverflow(settings, Guid.Empty, @"c:\apps\SYNC.exe", 1));
         Assert.True(TrayIconSettings.InOverflow(settings, Guid.Empty, @"C:\Apps\sync.exe", 2));
-        // Unknown: a new icon, which Windows 11 puts in the flyout.
         Assert.True(TrayIconSettings.InOverflow(settings, Guid.Empty, @"C:\Apps\sync.exe", 3));
         Assert.True(TrayIconSettings.InOverflow(settings, Guid.NewGuid(), @"C:\Apps\sync.exe", 1));
-        // An icon with a GUID is not matched by program, nor a program by a GUID entry.
         Assert.True(TrayIconSettings.InOverflow([new TrayIconSetting(Guid.Empty, @"C:\Apps\sync.exe", 1, true)],
             Guid.NewGuid(), @"C:\Apps\sync.exe", 1));
         Assert.True(TrayIconSettings.InOverflow([new TrayIconSetting(guid, @"C:\Apps\sync.exe", 1, true)], Guid.Empty,
@@ -31,7 +29,6 @@ public sealed class TrayIconSettingsTests
     [Fact]
     public void Explorer_s_keys_read_as_choices_with_known_folders_expanded()
     {
-        // As Explorer writes HKCU\Control Panel\NotifyIconSettings, in a key of the test's own.
         var path = @"Software\Winshell\Tests\" + Guid.NewGuid().ToString("N");
         var guid = Guid.NewGuid();
         try

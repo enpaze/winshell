@@ -3,7 +3,6 @@ using Winshell.ExplorerTaskbar;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>Hiding, re-hiding and restoring Explorer's taskbar go through the module, against a stand-in.</summary>
 public class ExplorerTaskbarTests
 {
     private readonly List<string> _warnings = [];

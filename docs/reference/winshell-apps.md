@@ -6,80 +6,68 @@ Installed apps, search, jump lists and recent documents. Reach them from `Shell.
 
 ## AppEntry
 
-One app of the Start menu.
-
 Has the members of [ObservableObject](winshell.md#observableobject).
 
-| Member | Type | Description |
-| --- | --- | --- |
-| `AppId` | string, read-only | The AppUserModelID the app's windows carry, or its program's name in lower case. |
-| `Arguments` | string, read-only | The shortcut's arguments. Empty for a packaged app. |
-| `CommandLine` | string, read-only | A command line that describes how the app is opened. |
-| `Description` | string, read-only | The shortcut's comment, or the packaged app's description. May be empty. |
-| `Folders` | IReadOnlyList of string, read-only | The Start menu folders the shortcut is in. Empty for a packaged app. |
-| `Hidden` | bool, read-only | True for an uninstaller or a document shortcut. Hidden apps stay out of `Apps`, `Search`, `Recent` and `Frequent`. |
-| `Icon` | string, read-only | A path an icon is read from: `shell:AppsFolder\<id>` when the id is packaged, or the program's file. A shortcut with no program and no packaged id keeps its own file. |
-| `Id` | string, read-only | A shortcut's path under Programs, such as `Accessories/Notepad`, or a packaged app's AppUserModelID. |
-| `LastUsed` | long, read-only | When the app was last used, in Unix milliseconds, or 0 when Windows has no record. |
-| `Name` | string, read-only | The name Start shows: the shortcut's file name without `.lnk`, or the packaged app's display name. |
-| `Packaged` | bool, read-only | True when the app came from PackageManager. |
-| `RunCount` | int, read-only | How many times Windows, or Launch, has run the app. |
-| `StartIn` | string, read-only | The shortcut's Start in folder. |
-| `Target` | string, read-only | The program the shortcut opens, or `shell:AppsFolder\<id>` for a packaged app. |
-| `Launch()` | void | Opens the app as the Start menu does, through its shortcut or its AppUserModelID. A packaged app starts in the background, so this returns before it is up. |
+| Member | Type |
+| --- | --- |
+| `AppId` | string, read-only |
+| `Arguments` | string, read-only |
+| `CommandLine` | string, read-only |
+| `Description` | string, read-only |
+| `Folders` | IReadOnlyList of string, read-only |
+| `Hidden` | bool, read-only |
+| `Icon` | string, read-only |
+| `Id` | string, read-only |
+| `LastUsed` | long, read-only |
+| `Name` | string, read-only |
+| `Packaged` | bool, read-only |
+| `RunCount` | int, read-only |
+| `StartIn` | string, read-only |
+| `Target` | string, read-only |
+| `Launch()` | void |
 
 ## AppJumpList
 
-One read of an app's jump list.
-
 Has the members of [ObservableObject](winshell.md#observableobject).
 
-| Member | Type | Description |
-| --- | --- | --- |
-| `Available` | bool, read-only | False when the recent and frequent lists cannot be read. |
-| `Destinations` | IReadOnlyList of string, read-only | Document names, recent first. Empty when the list cannot be read, or when it was read and has none. |
+| Member | Type |
+| --- | --- |
+| `Available` | bool, read-only |
+| `Destinations` | IReadOnlyList of string, read-only |
 
 ## AppsService
 
-The Start menu's shortcuts and packaged apps. Find finds the app of a window, and Search ranks a typed query.
-
 Has the members of [ObservableObject](winshell.md#observableobject).
 
-| Member | Type | Description |
-| --- | --- | --- |
-| `Apps` | ObservableList of [AppEntry](#appentry), read-only | The apps that are shown in Start, by name. |
-| `Frequent` | ObservableList of [AppEntry](#appentry), read-only | Visible apps with a use count, most used first. |
-| `Recent` | ObservableList of [AppEntry](#appentry), read-only | Visible apps Windows has a last-used time for, newest first. |
-| `ById(string id)` | [AppEntry](#appentry)? | An entry by its id: a shortcut's path under Programs, or a packaged app's AppUserModelID. Includes hidden entries. |
-| `DisplayName(string appId)` | string, static | The name Windows shows for the app behind a media session: the name Start shows for its AppUserModelID, or else the running program's ProgramDescription, or else FallbackName. It asks the shell and can scan processes, so call it off the UI thread. |
-| `Dispose()` | void | Stops following changes to the Start menu and the installed apps. |
-| `FallbackName(string appId)` | string, static | The name to show for an app until DisplayName finds a better one: the program's name without `.exe`, or else the id. |
-| `Find(string name)` | [AppEntry](#appentry)? | Finds an app by id, then by the app id a window carries, then by display name. Includes hidden entries. |
-| `ProgramDescription(string path)` | string?, static | The description of the program at path, as Task Manager shows it. Null when the file has none or cannot be read. |
-| `Search(string query)` | IReadOnlyList of [AppEntry](#appentry) | Visible apps the query matches, best first. A blank query matches nothing. |
+| Member | Type |
+| --- | --- |
+| `Apps` | ObservableList of [AppEntry](#appentry), read-only |
+| `Frequent` | ObservableList of [AppEntry](#appentry), read-only |
+| `Recent` | ObservableList of [AppEntry](#appentry), read-only |
+| `ById(string id)` | [AppEntry](#appentry)? |
+| `DisplayName(string appId)` | string, static |
+| `Dispose()` | void |
+| `FallbackName(string appId)` | string, static |
+| `Find(string name)` | [AppEntry](#appentry)? |
+| `ProgramDescription(string path)` | string?, static |
+| `Search(string query)` | IReadOnlyList of [AppEntry](#appentry) |
 
 ## JumpListService
 
-Reads the recent and frequent documents Windows will give for an app. It does not open them, pin them, or change the list.
-
-| Member | Type | Description |
-| --- | --- | --- |
-| `ForApp(string appId)` | [AppJumpList](#appjumplist) | The recent and frequent documents for an AppUserModelID. A blank id is not read. The same object is returned for an id, with its properties updated from the latest read. |
+| Member | Type |
+| --- | --- |
+| `ForApp(string appId)` | [AppJumpList](#appjumplist) |
 
 ## RecentDocument
 
-A shortcut in the Recent folder: its name without `.lnk`, and its path.
-
-| Member | Type | Description |
-| --- | --- | --- |
-| `RecentDocument(string Name, string Path)` | constructor |  |
-| `Name` | string, init | The shortcut's file name without `.lnk`, usually the document's name. |
-| `Path` | string, init | The full path of the shortcut, which opens the document. |
+| Member | Type |
+| --- | --- |
+| `RecentDocument(string Name, string Path)` | constructor |
+| `Name` | string, init |
+| `Path` | string, init |
 
 ## RecentDocuments
 
-Recent documents Windows already keeps as shortcuts in the Recent folder. This reads those names. It does not index files, and a blank query does not open the folder.
-
-| Member | Type | Description |
-| --- | --- | --- |
-| `Search(string query)` | IReadOnlyList of [RecentDocument](#recentdocument) | Shortcuts whose name contains every word of query, newest first, at most 20. A blank query matches nothing and does not read a folder. The path is not searched. |
+| Member | Type |
+| --- | --- |
+| `Search(string query)` | IReadOnlyList of [RecentDocument](#recentdocument) |

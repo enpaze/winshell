@@ -9,11 +9,6 @@ namespace Winshell.Native;
 
 internal static class ClipboardImage
 {
-    /// <summary>
-    /// Replaces the clipboard's contents with <paramref name="dib"/>, a BITMAPV5HEADER and its pixels, as CF_DIBV5.
-    /// <paramref name="owner"/> is the window that opens the clipboard. Throws a <see cref="Win32Exception"/> when
-    /// Windows refuses.
-    /// </summary>
     internal static unsafe void SetDibV5(byte[] dib, nint owner)
     {
         var memory = PInvoke.GlobalAlloc(GLOBAL_ALLOC_FLAGS.GMEM_MOVEABLE, (nuint)dib.Length);
@@ -40,7 +35,7 @@ internal static class ClipboardImage
                 if (!PInvoke.EmptyClipboard() ||
                     PInvoke.SetClipboardData((uint)CLIPBOARD_FORMAT.CF_DIBV5, (HANDLE)(nint)memory).IsNull)
                     throw new Win32Exception();
-                memory = default; // The clipboard owns the allocation now.
+                memory = default;
             }
             finally
             {

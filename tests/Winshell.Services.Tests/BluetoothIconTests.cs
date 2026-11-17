@@ -50,7 +50,6 @@ public sealed class BluetoothIconTests
         Assert.Equal(error, BluetoothBackend.UnpairingError(status));
     }
 
-    // Major and minor are the unshifted Windows codes: headphones is 6, not the raw class bits.
     [Theory]
     [InlineData(0x01, 0, null, "computer")]
     [InlineData(0x01, 5, 1 << 6, "computer")]

@@ -3,10 +3,6 @@ using Windows.Foundation;
 
 namespace Winshell;
 
-/// <summary>
-/// A top-level surface of the shell. Set <see cref="Content"/> to any <see cref="UIElement"/>: XAML, or a
-/// <c>ReactorHostControl</c>. Its background stays transparent, so <see cref="Backdrop"/> shows through.
-/// </summary>
 public abstract class ShellWindow : ObservableObject, IDisposable
 {
     private readonly Shell _shell;
@@ -30,14 +26,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         _shell = shell;
     }
 
-    /// <summary>
-    /// The shell window <paramref name="element"/> is drawn in, or null when it is not in one yet. A widget is created
-    /// before its area is in a window, so one that depends on the screen calls this from its loaded event. The window's
-    /// root holds the window. A table keyed on the <c>XamlRoot</c> would not: the wrapper of a <c>XamlRoot</c> goes in a
-    /// collection, and the next read of it is another object.
-    /// </summary>
-    /// <param name="element">An element of a shell window, or any element.</param>
-    /// <returns>That window, or null when <paramref name="element"/> is not drawn in one.</returns>
     public static ShellWindow? Of(UIElement element)
     {
         return (element.XamlRoot?.Content as FrameworkElement)?.Tag as ShellWindow;
@@ -47,7 +35,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
 
     internal HostWindow? Host => _host;
 
-    /// <summary>What the window shows: any <see cref="UIElement"/>, or null for nothing.</summary>
     public UIElement? Content
     {
         get => _content;
@@ -60,10 +47,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Whether the window is shown. A new window is hidden until this is set. It turns false when the user closes the
-    /// window.
-    /// </summary>
     public bool Visible
     {
         get => _visible;
@@ -81,10 +64,8 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Whether this window is the foreground window.</summary>
     public bool Active => _active;
 
-    /// <summary>The width in logical pixels. NaN leaves it to the window's kind: anchors, or the default size.</summary>
     public double Width
     {
         get;
@@ -95,7 +76,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         }
     } = double.NaN;
 
-    /// <summary>The height in logical pixels. NaN leaves it to the window's kind: anchors, or the default size.</summary>
     public double Height
     {
         get;
@@ -106,19 +86,14 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         }
     } = double.NaN;
 
-    /// <summary>The width the window has now, in logical pixels. 0 before it is first shown.</summary>
     public double ActualWidth => _actualWidth;
 
-    /// <summary>The height the window has now, in logical pixels. 0 before it is first shown.</summary>
     public double ActualHeight => _actualHeight;
 
-    /// <summary>How many physical pixels this window draws for one logical pixel.</summary>
     public double Scale => _scale;
 
-    /// <summary>The window's origin on the virtual desktop, in logical pixels.</summary>
     public Point Origin => _host?.Placement.Origin ?? default;
 
-    /// <summary>The screen this window is on, or was asked to be on. Null is the primary screen.</summary>
     public ScreenInfo? Screen
     {
         get => _screen;
@@ -129,7 +104,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Fades the content. The material behind it does not fade.</summary>
     public double Opacity
     {
         get => _opacity;
@@ -140,7 +114,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>The Windows 11 material behind the content. <see cref="WindowBackdrop.None"/> by default.</summary>
     public WindowBackdrop Backdrop
     {
         get => _backdrop;
@@ -151,7 +124,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>How the window's corners are drawn. <see cref="WindowCorners.Default"/> by default.</summary>
     public WindowCorners Corners
     {
         get => _corners;
@@ -162,10 +134,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// The parts of the window that take clicks, in logical pixels; clicks elsewhere go to the window below. Null is
-    /// the whole window. An empty list lets every click through.
-    /// </summary>
     public IReadOnlyList<Rect>? InputRegion
     {
         get => _inputRegion;
@@ -177,7 +145,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Clips the content to a rectangle, in logical pixels. Null shows all of it.</summary>
     public Rect? VisibleMask
     {
         get => _visibleMask;
@@ -188,49 +155,34 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>The user closed the window. It is hidden, and can be shown again.</summary>
     public event Action? Closed;
 
-    /// <summary>The native window now exists, so a window it owns can link to it.</summary>
     internal event Action? HostCreated;
 
-    /// <summary>This window is about to go for good.</summary>
     internal event Action? Disposing;
 
-    /// <summary>The native window failed. It was rebuilt with the same content.</summary>
     public event Action<Exception>? Failed;
 
-    /// <summary>Takes the keyboard, if this kind of window may. A panel takes it only while focusable, and a popup only while it grabs focus.</summary>
     public void Focus()
     {
         _host?.Focus.TakeKeyboard();
     }
 
-    /// <summary>Puts the window above the others at its level, without focusing it.</summary>
     public void Raise()
     {
         _host?.Placement.Raise();
     }
 
-    /// <summary>
-    /// Lets the user move the window by dragging, as a title bar does. Call it when a pointer button goes down.
-    /// </summary>
     public void StartSystemMove()
     {
         _host?.Placement.StartSystemMove();
     }
 
-    /// <summary>
-    /// Lets the user resize the window by dragging an edge or a corner, as its border does. Call it when a pointer
-    /// button goes down. Two adjacent edges, such as top and left, name a corner. Any other combination resizes from
-    /// the bottom-right corner.
-    /// </summary>
     public void StartSystemResize(Edges edges)
     {
         _host?.Placement.StartSystemResize(edges);
     }
 
-    /// <summary>A point in logical window coordinates, in physical pixels on the virtual desktop.</summary>
     public (int X, int Y) MapToScreen(double x, double y)
     {
         return _host?.Placement.MapToScreen(x, y) ?? ((int)x, (int)y);
@@ -243,7 +195,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         _host = _shell.Platform.CreateWindow(Kind, this);
         _host.Presentation.Content = _content;
         _host.Presentation.SetBackdrop(_backdrop, _corners);
-        // 1 is the opacity this window starts with, so only an exact change is one the host has not been told.
         if (_opacity != 1)
             _host.Presentation.SetOpacity(_opacity);
         if (_inputRegion is not null)
@@ -254,13 +205,10 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         HostCreated?.Invoke();
     }
 
-    /// <summary>Makes what places a new native window of this kind. <see cref="ApplyPlacement"/> then goes to it.</summary>
     internal abstract IWindowPlacer CreatePlacer(HostWindow host, ShellPlatform platform);
 
-    /// <summary>Tells the native window where to be. Only called with a host.</summary>
     private protected abstract void ApplyPlacement();
 
-    /// <summary>Tells a new native window whether it takes the keyboard. A floating window always does.</summary>
     private protected virtual void ApplyFocus()
     {
     }
@@ -271,7 +219,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
             ApplyPlacement();
     }
 
-    /// <summary>A click elsewhere, or Esc, dismissed a window that grabs focus.</summary>
     internal virtual void OnDismissed()
     {
     }
@@ -284,7 +231,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
     {
     }
 
-    /// <summary>The window's size changed, in logical pixels, or its scale did.</summary>
     internal void OnResized(double width, double height, double scale)
     {
         Set(ref _actualWidth, width, nameof(ActualWidth));
@@ -303,20 +249,17 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         Closed?.Invoke();
     }
 
-    /// <summary>The native window became the foreground window, or stopped being it.</summary>
     internal void OnActiveChanged(bool active)
     {
         Set(ref _active, active, nameof(Active));
     }
 
-    /// <summary>A window that was not asked for a screen moved to another one.</summary>
     internal void OnScreenChanged(string screenId)
     {
         if (_screen is null && _shell.Platform.Screens.Any(s => s.Id == screenId))
             Changed(nameof(Screen));
     }
 
-    /// <summary>Windows destroyed the native window, because its owner closed. To the app that is this window closing.</summary>
     internal void OnBackingDestroyed()
     {
         _host = null;
@@ -324,7 +267,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
             Closed?.Invoke();
     }
 
-    /// <summary>The native window threw while handling a message, and stopped handling them. Called on the loop, once.</summary>
     internal void OnFailed(Exception error)
     {
         _shell.Log.Error("window", error.ToString());
@@ -340,7 +282,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Closes the window for good and releases its native window. It can't be shown again.</summary>
     public void Dispose()
     {
         if (_disposed)

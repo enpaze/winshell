@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 
 namespace Winshell.Audio;
 
-/// <summary>A playback or recording device, or an app's audio session on one.</summary>
 public sealed class AudioNode : ObservableObject
 {
     private readonly AudioGraphNode _node;
@@ -34,52 +33,32 @@ public sealed class AudioNode : ObservableObject
 
     internal bool IsRemoved { get; private set; }
 
-    /// <summary>The node left the graph, or its service was disposed.</summary>
     internal event Action? Removed;
 
-    /// <summary>A number that tells nodes apart while the shell runs. Windows does not store it.</summary>
     public int Id => Read(_node).Id;
 
-    /// <summary>For a device, the Windows endpoint id. For a session, the program's file name without <c>.exe</c>, or <c>system-sounds</c>.</summary>
     public string Name => Read(_node).Name;
 
-    /// <summary>The name to show.</summary>
     public string Description => Read(_description);
 
-    /// <summary>For a device, the description Windows gives the endpoint, such as <c>Speakers</c>. Empty for a session.</summary>
     public string InterfaceName => Read(_node).InterfaceName;
 
-    /// <summary>True for a playback device and for a session that plays to one.</summary>
     public bool IsPlayback => Read(_node).IsPlayback;
 
-    /// <summary>True for an app's audio session, false for a device.</summary>
     public bool IsSession => Read(_node).IsSession;
 
-    /// <summary>The device a session plays to or records from. Null for a device.</summary>
     public AudioNode? Device => Service.Find(Read(_node).Device);
 
-    /// <summary>True while a session plays or records, false while it is open but idle. A device stays false.</summary>
     public bool Active => Read(_active);
 
-    /// <summary>
-    /// More about the node. <see cref="AudioProperty"/> holds the keys. A device has <c>endpointId</c>,
-    /// <c>friendlyName</c>, <c>interfaceName</c>, <c>flow</c>, <c>adapter</c>, <c>icon</c> and <c>formFactor</c>.
-    /// A session has <c>sessionId</c>, <c>friendlyName</c>, <c>flow</c>, <c>appName</c>, <c>icon</c>,
-    /// <c>processId</c> and <c>processName</c>.
-    /// </summary>
     public IReadOnlyDictionary<string, string> Properties => Read(_node).Properties;
 
-    /// <summary>Whether the device or session is muted. Setting it mutes or unmutes it in Windows.</summary>
     public bool Muted
     {
         get => Read(_muted);
         set => Apply(() => _node.SetMuted(value));
     }
 
-    /// <summary>
-    /// The average of the channels, from 0 to 1: the slider position the Windows volume flyout shows. Setting it keeps
-    /// the balance between channels. Windows cannot go above 1.
-    /// </summary>
     public double Volume
     {
         get => Average(Read(_volumes));
@@ -93,17 +72,12 @@ public sealed class AudioNode : ObservableObject
         }
     }
 
-    /// <summary>
-    /// The volume of each channel, from 0 to 1. A list of a different length sets every channel to its first entry.
-    /// A session has one volume in Windows, so every entry shows it, and setting this sets it to their average.
-    /// </summary>
     public IReadOnlyList<double> Volumes
     {
         get => [.. Read(_volumes).Select(v => (double)v)];
         set => SetLevels(value);
     }
 
-    /// <summary>The speaker position of each entry of <see cref="Volumes"/>.</summary>
     public IReadOnlyList<AudioChannel> Channels { get => Read(field); }
 
     internal void Remove()
@@ -122,7 +96,6 @@ public sealed class AudioNode : ObservableObject
         return volumes.Count == 0 ? 0 : volumes.Average();
     }
 
-    // A configuration can pass null, so a missing list changes nothing.
     private void SetLevels(IReadOnlyList<double>? levels)
     {
         var count = _volumes.Count;
@@ -171,7 +144,6 @@ public sealed class AudioNode : ObservableObject
     }
 }
 
-/// <summary>Every playback device, recording device and audio session Windows has.</summary>
 public sealed class AudioService : ObservableObject, IDisposable
 {
     private readonly IAudioBackend _graph;
@@ -195,24 +167,20 @@ public sealed class AudioService : ObservableObject, IDisposable
         _graph.DefaultsChanged += OnDefaultsChanged;
     }
 
-    /// <summary>Every node: the active devices and the audio sessions on them.</summary>
     public ObservableList<AudioNode> Nodes { get => Read(field); } = [];
 
-    /// <summary>The default playback device. Setting it makes that device the Windows default.</summary>
     public AudioNode? DefaultPlaybackDevice
     {
         get => Read(_defaultPlayback);
         set => SetDefault(value, true);
     }
 
-    /// <summary>The default recording device. Setting it makes that device the Windows default.</summary>
     public AudioNode? DefaultRecordingDevice
     {
         get => Read(_defaultRecording);
         set => SetDefault(value, false);
     }
 
-    /// <summary>False when Windows audio cannot be opened, and then <see cref="Nodes"/> is empty.</summary>
     public bool Ready => Read(_graph).Ready;
 
     internal AudioNode? Find(AudioGraphNode? node)
@@ -251,7 +219,6 @@ public sealed class AudioService : ObservableObject, IDisposable
         Set(ref _defaultRecording, Find(_graph.DefaultRecording), nameof(DefaultRecordingDevice));
     }
 
-    /// <summary>Stops following Windows audio changes. Peak monitors on its nodes stop reading.</summary>
     public void Dispose()
     {
         _graph.NodeAdded -= OnNodeChanged;

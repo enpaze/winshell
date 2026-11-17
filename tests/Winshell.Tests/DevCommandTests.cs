@@ -9,7 +9,6 @@ using Windows.Win32;
 
 namespace Winshell.Tests;
 
-/// <summary>The real <c>winshell dev</c>, on a real project, editing its source.</summary>
 public sealed partial class DevCommandTests : IDisposable
 {
     private static readonly TimeSpan BuildPatience = TimeSpan.FromSeconds(140);
@@ -103,7 +102,6 @@ public sealed partial class DevCommandTests : IDisposable
             }
             catch (Exception e) when (e is InvalidOperationException or Win32Exception)
             {
-                // Already gone.
             }
         }
 
@@ -175,9 +173,6 @@ public sealed partial class DevCommandTests : IDisposable
         return new Instances(Path.Combine(_dir, "local", "run")).List(false).Single().Info.Pid;
     }
 
-    /// <param name="ownGroup">
-    /// In a process group of its own, on this test's console, so a Ctrl+Break can be sent to it alone.
-    /// </param>
     private void StartDev(bool ownGroup = false)
     {
         var info = WinshellCli.StartInfo(["dev", "-p", Project]);
@@ -185,9 +180,6 @@ public sealed partial class DevCommandTests : IDisposable
         info.CreateNewProcessGroup = ownGroup;
         foreach (var (name, value) in Folders)
             info.Environment[name] = value;
-        // A private handshake makes this watch create its own MSBuild nodes, so the test can see them on a machine
-        // that already has a reuse pool. They must not stay idle: stopping the watch ends them, and a build that
-        // borrowed one fails with MSB4166. Dropping MSBUILDDISABLENODEREUSE keeps that setting out of the shell.
         info.Environment["MSBUILDNODEHANDSHAKESALT"] = _dir;
         info.Environment.Remove("MSBUILDDISABLENODEREUSE");
         _dev = Process.Start(info)!;
@@ -203,7 +195,6 @@ public sealed partial class DevCommandTests : IDisposable
             { IsBackground = true }.Start();
     }
 
-    /// <summary>Every process this project started: dotnet watch, the build, and the shell, by command line or path.</summary>
     private List<string> FromProject()
     {
         using var search =
@@ -216,11 +207,6 @@ public sealed partial class DevCommandTests : IDisposable
             .ToList();
     }
 
-    /// <summary>
-    /// Opens each MSBuild node under this <c>winshell dev</c> and keeps it open, so the test can wait for it to exit and
-    /// Windows can't give its id to another process. A node's parent is the build, so a scan sees a node only while the
-    /// build runs.
-    /// </summary>
     private void NoteDevNodes()
     {
         if (_dev is null)
@@ -238,10 +224,6 @@ public sealed partial class DevCommandTests : IDisposable
         }
     }
 
-    /// <summary>
-    /// Waits for the build nodes of this <c>winshell dev</c> to exit. Without reuse they exit after the build. A node
-    /// kept for reuse stays idle for about 15 minutes, so it still fails the wait.
-    /// </summary>
     private async Task NodesExit()
     {
         var token = TestContext.Current.CancellationToken;
@@ -252,7 +234,6 @@ public sealed partial class DevCommandTests : IDisposable
         }
         catch (TimeoutException)
         {
-            // A command line with /nodeReuse:true is a node winshell dev left for reuse.
             var alive = _nodes.Values.Where(node => !node.HasExited).Select(node => node.Id).ToList();
             var commands = Processes().ToDictionary(row => row.Pid, row => row.Command);
             Assert.Fail("Timed out: winshell dev's MSBuild nodes to exit: " + string.Join("; ",
@@ -260,11 +241,6 @@ public sealed partial class DevCommandTests : IDisposable
         }
     }
 
-    /// <summary>
-    /// Whether <paramref name="row"/> descends from <paramref name="root"/>. A process keeps its parent's id after the
-    /// parent exits, and Windows gives that id to later processes. A parent that started after its child is one of
-    /// those, so the walk stops there.
-    /// </summary>
     private static bool Reaches(ProcessRow row, Dictionary<int, ProcessRow> byId, int root)
     {
         var seen = new HashSet<int>();
@@ -278,21 +254,18 @@ public sealed partial class DevCommandTests : IDisposable
         return true;
     }
 
-    /// <summary>The process a scan found, held open, or null if it has exited since or can't be opened.</summary>
     private static Process? Open(ProcessRow row)
     {
         Process? process = null;
         try
         {
             process = Process.GetProcessById(row.Pid);
-            // Holds the process, so its id is not reused, and then checks it is the one the scan found.
             _ = process.Handle;
             if ((process.StartTime - row.Created).Duration() < TimeSpan.FromMilliseconds(1))
                 return process;
         }
         catch (Exception e) when (e is ArgumentException or InvalidOperationException or Win32Exception)
         {
-            // It has exited, or can't be opened.
         }
 
         process?.Dispose();
@@ -343,9 +316,6 @@ public sealed partial class DevCommandTests : IDisposable
         Assert.Contains("Run winshell new to make one.", result.Error, StringComparison.Ordinal);
     }
 
-    // One watch host covers an in-place edit, a failed edit, an app opened from the shell, and graceful console
-    // shutdown. Its build leaves no idle MSBuild node, and the shell and an app it starts do not inherit
-    // MSBUILDDISABLENODEREUSE.
     [Fact(Timeout = 420_000)]
     [Trait("Category", "Window")]
     public async Task Edits_an_opened_app_and_Ctrl_Break_keep_the_watch_lifecycle_correct()
@@ -369,14 +339,12 @@ public sealed partial class DevCommandTests : IDisposable
         await NodesExit();
         var shell = ShellProcess();
         var id = InstanceId();
-        // Start opens this shortcut. The app has to outlive the edit and the end of winshell dev.
         await Wait.UntilAsync(async () => await LaunchProbe() == "launched", "the app to open",
             TimeSpan.FromSeconds(60));
         await Wait.UntilAsync(ProbeAlive, "the opened app");
         await Wait.UntilAsync(() => File.Exists(Path.Combine(_dir, "reuse.txt")), "the opened app's environment");
         Assert.Equal("", (await File.ReadAllTextAsync(Path.Combine(_dir, "reuse.txt"),
             TestContext.Current.CancellationToken)).Trim());
-        // The first edit also warms the compiler up.
         Mark("""=> "two";""");
         await Wait.UntilAsync(async () => (await Value()).Text == "two", "the first edit", BuildPatience);
 
@@ -395,11 +363,9 @@ public sealed partial class DevCommandTests : IDisposable
         Assert.Equal(shell, ShellProcess());
         Assert.True(ProbeAlive(), "The app opened from the shell ended when the edit was applied.");
 
-        // Ctrl+C reaches every process on the console, this test's too. Ctrl+Break reaches only this process group.
         Assert.True(PInvoke.GenerateConsoleCtrlEvent(CtrlBreakEvent, (uint)_dev!.Id), "Ctrl+Break was not sent.");
         Wait.Until(() => _dev.HasExited, "winshell dev to exit");
         Wait.Until(() => FromProject().Count == 0, "dotnet watch and the shell to end", TimeSpan.FromSeconds(30));
-        // Shutdown asks the shell to quit before ending watch.
         var record = await File.ReadAllTextAsync(Path.Combine(_dir, "local", "run", id, "instance.json"),
             TestContext.Current.CancellationToken);
         Assert.NotNull(JsonSerializer.Deserialize(record, InstanceJson.Default.InstanceInfo)?.ExitedAt);
@@ -408,7 +374,6 @@ public sealed partial class DevCommandTests : IDisposable
 
     private const uint CtrlBreakEvent = 1;
 
-    /// <summary>A Start menu shortcut the shell opens, aimed at a PowerShell that records its process id and waits.</summary>
     private void CreateProbeShortcut()
     {
         var programs = Environment.GetFolderPath(Environment.SpecialFolder.Programs);

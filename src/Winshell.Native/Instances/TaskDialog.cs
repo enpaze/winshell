@@ -3,15 +3,10 @@ using Windows.Win32.UI.Controls;
 
 namespace Winshell.Native;
 
-/// <summary>A task dialog, which needs version 6 of the common controls in the program's manifest.</summary>
 internal static unsafe class TaskDialog
 {
     private const int Ok = 1;
 
-    /// <summary>
-    /// Shows an error with an OK button, and <paramref name="button"/> beside it when set. Returns the id of the button
-    /// pressed, or null when the dialog could not be shown.
-    /// </summary>
     internal static int? ShowError(string title, string instruction, string content, (int Id, string Text)? button)
     {
         fixed (char* titleText = title, instructionText = instruction, contentText = content, buttonText = button?.Text)

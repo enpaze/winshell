@@ -7,12 +7,6 @@ using Winshell.Session;
 
 namespace Winshell.Diagnostics;
 
-/// <summary>One thing <c>winshell doctor</c> checked: what it found and, when something is wrong, how to fix it.</summary>
-/// <param name="Id">A stable name for the check, such as <c>dotnet</c>.</param>
-/// <param name="Title">The check's name as <c>winshell doctor</c> prints it.</param>
-/// <param name="Status">How the check came out.</param>
-/// <param name="Message">What the check found.</param>
-/// <param name="Fix">How to fix what is wrong, or null when nothing is or there is nothing to do.</param>
 public sealed record DoctorCheck(
     string Id,
     string Title,
@@ -20,30 +14,14 @@ public sealed record DoctorCheck(
     string Message,
     string? Fix = null);
 
-/// <summary>A running Winshell, as the instance list has it.</summary>
 internal sealed record DoctorInstance(string Id, int Pid, string ConfigPath, string LogPath);
 
-/// <summary>
-/// What <c>winshell doctor</c> was asked to check, and the folders it reads. <see cref="Doctor"/> decides which
-/// project that is, and which folder the Folders check writes to, from <paramref name="Path"/> and
-/// <paramref name="Config"/>.
-/// </summary>
-/// <param name="Locations">The config and local folders, <see cref="ShellLocations.Current"/> for <c>winshell doctor</c>.</param>
-/// <param name="Path">The <c>-p</c> folder or project, as the user gave it. Null when they gave none.</param>
-/// <param name="Config">The <c>-c</c> name, as the user gave it. Null when they gave none.</param>
 internal sealed record DoctorContext(ShellLocations Locations, string? Path, string? Config);
 
-/// <summary>
-/// Checks this PC's setup for Winshell. Nothing is changed: no prompt, no registry or settings write, no instance
-/// started or stopped, and no build. Telling whether a folder can be written makes and removes one empty file. The
-/// user's own folders are written as <c>%LOCALAPPDATA%</c>, <c>%APPDATA%</c> and <c>%USERPROFILE%</c>, so what it
-/// reports can go into a bug report without the Windows user name.
-/// </summary>
 public static class Doctor
 {
     internal const string BugReports = "https://github.com/enpaze/winshell/issues/new/choose";
 
-    /// <summary>Windows 11 22H2, the oldest build a release runs on. An older Windows 11 build warns.</summary>
     internal const int OldestReleaseBuild = 22621;
 
     internal static IReadOnlyList<DoctorCheck> Run(DoctorContext context)
@@ -51,21 +29,12 @@ public static class Doctor
         return Report(context, ChooseUser(context.Locations.ConfigRoot, context.Path, context.Config));
     }
 
-    /// <summary>
-    /// The project one run checks, why there is none, where Folders writes, and the configuration sign-in is about.
-    /// Sign-in is null when a shell is not a configuration program: the search of the config root is not a choice of one.
-    /// </summary>
     private readonly record struct Chosen(
         ConfigurationProject? Project,
         string? Problem,
         string Folder,
         string? SignInProject);
 
-    /// <summary>
-    /// The project <c>winshell doctor</c> checks for the <c>-p</c> and <c>-c</c> the user gave. Neither means the
-    /// project <c>winshell run</c> would start. The Folders check writes to that project's folder, or, when there is
-    /// none, to the <c>-p</c> path as given. Its parent could be a drive, the profile or another project.
-    /// </summary>
     private static Chosen ChooseUser(string configRoot, string? path, string? config)
     {
         var project = ConfigurationProject.Find(path, config, configRoot, out var problem);
@@ -73,11 +42,6 @@ public static class Doctor
         return new Chosen(project, problem, folder, project?.ProjectFile);
     }
 
-    /// <summary>
-    /// The project a shell running in <paramref name="program"/> checks. A configuration program is checked in its own
-    /// folder. Any other program is checked in <paramref name="configRoot"/>: the project search starts there, and the
-    /// Folders check writes there even when the search finds a project. Sign-in is not about that project.
-    /// </summary>
     private static Chosen ChooseProcess(string configRoot, string program)
     {
         try
@@ -105,8 +69,6 @@ public static class Doctor
     private static IReadOnlyList<DoctorCheck> Report(DoctorContext context, Chosen chosen)
     {
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
-        // The process running the doctor. The CLI is winshell.exe. A shell is its configuration program, and sign-in
-        // compares the winshell.exe that started it.
         var process = Environment.ProcessPath ?? "";
         var configFolder = chosen.Folder;
         var configuration = DoctorProject.Configuration(chosen.Project, chosen.Problem).ToList();
@@ -139,8 +101,6 @@ public static class Doctor
                     monitors.Value)),
             Guard("signIn", "Sign-in", () =>
             {
-                // A sign-in command with no -p and no -c starts whichever configuration winshell run would, and that
-                // is a different verdict from a configuration the user, or this process, picked.
                 var project = chosen.SignInProject;
                 return DoctorSignIn.Check(SignInProcess.Read(process, context.Locations.ConfigRoot, File.Exists,
                     SignInEntry.Resolve, project), context.Locations.ConfigRoot, project);
@@ -158,10 +118,6 @@ public static class Doctor
         ]);
     }
 
-    /// <summary>
-    /// Writes each of the user's folders as its variable in every message and fix, the longest folder first. A
-    /// folder only matches whole: <c>C:\Users\ann</c> leaves <c>C:\Users\anna</c> alone.
-    /// </summary>
     internal static IReadOnlyList<DoctorCheck> WithoutUserFolders(IReadOnlyList<DoctorCheck> checks,
         IReadOnlyList<(string Path, string Name)> folders)
     {
@@ -180,7 +136,6 @@ public static class Doctor
             .ToList();
     }
 
-    /// <summary>A check that could not run says so, rather than ending the whole run.</summary>
     internal static DoctorCheck Guard(string id, string title, Func<DoctorCheck> check)
     {
         try
@@ -194,12 +149,6 @@ public static class Doctor
         }
     }
 
-    /// <param name="build">The Windows build number, such as 26100.</param>
-    /// <param name="revision">The update revision, the number after the build's dot.</param>
-    /// <param name="displayVersion">The version name, such as <c>24H2</c>; null or empty leaves it out.</param>
-    /// <param name="server">Whether this is Windows Server.</param>
-    /// <param name="transparencyOff">Whether Windows transparency effects are off. The message says so. The result does not change.</param>
-    /// <param name="contrastTheme">Whether a contrast theme is on. The message says so. The result does not change.</param>
     internal static DoctorCheck Windows(int build, int revision, string? displayVersion, bool server = false,
         bool transparencyOff = false, bool contrastTheme = false)
     {
@@ -230,10 +179,6 @@ public static class Doctor
         return new DoctorCheck("dotnet", ".NET", CheckStatus.Pass, $"{description}, {how}");
     }
 
-    /// <summary>
-    /// A preferences file that does not parse is a warning on a project check that passed. A project that is not
-    /// there or failed already says what to fix, and with no project nothing reads the file.
-    /// </summary>
     private static DoctorCheck WithPreferences(DoctorCheck check, string problem)
     {
         return check with
@@ -244,10 +189,6 @@ public static class Doctor
         };
     }
 
-    /// <summary>
-    /// Every check, for the shell running in this process. A configuration project's program is checked in its own
-    /// folder. Any other program is checked in <paramref name="configRoot"/>. Nothing is built.
-    /// </summary>
     public static IReadOnlyList<DoctorCheck> ForThisProcess(string configRoot)
     {
         return Report(
@@ -255,7 +196,6 @@ public static class Doctor
             ChooseProcess(configRoot, Environment.ProcessPath ?? ""));
     }
 
-    /// <summary>The running instances, or none when their folder cannot be read. The doctor still runs its checks.</summary>
     private static List<DoctorInstance> ListedInstances(Instances instances)
     {
         try
@@ -269,9 +209,6 @@ public static class Doctor
         }
     }
 
-    /// <param name="folders">Each folder to write: its name in the message, its path, whether it is writable.</param>
-    /// <param name="elevatedInstances">The ids of the running instances that run as administrator.</param>
-    /// <param name="asAdministrator">Whether the doctor itself runs as administrator, and so says what an administrator can write.</param>
     internal static DoctorCheck Folders(IReadOnlyList<(string Name, string Path, bool Writable)> folders,
         IReadOnlyList<string> elevatedInstances, bool asAdministrator = false)
     {
@@ -322,7 +259,6 @@ public static class Doctor
         return new DoctorCheck("instances", "Running", CheckStatus.Pass, list);
     }
 
-    /// <summary>The status as <c>winshell doctor</c> writes it: <c>pass</c>, <c>warn</c> or <c>fail</c>.</summary>
     public static string StatusName(CheckStatus status)
     {
         return status switch

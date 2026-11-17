@@ -2,11 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace Winshell.Audio;
 
-/// <summary>
-/// The peak level of a node's channels, read from the Windows peak meter about 30 times a second while enabled.
-/// Windows meters a device after its volume is applied. A recording device only meters while something records from
-/// it, so this keeps a recording stream open on it, and Windows shows its microphone privacy indicator meanwhile.
-/// </summary>
 public sealed class AudioPeakMonitor : ObservableObject, IDisposable
 {
     private static readonly TimeSpan Interval = TimeSpan.FromMilliseconds(33);
@@ -22,17 +17,11 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
     private IDisposable? _keepRunning;
     private IAudioMeterInformation? _meter;
 
-    /// <summary>Creates an enabled monitor with no node. Pass the shell's loop, <c>Shell.Current.Loop</c>.</summary>
-    /// <param name="loop">The loop the meter is read on.</param>
     public AudioPeakMonitor(IEventLoop loop)
     {
         _loop = loop;
     }
 
-    /// <summary>
-    /// The device or session to meter. Null meters nothing. When the node leaves Windows, <see cref="Peak"/> goes to 0
-    /// and the lists empty.
-    /// </summary>
     public AudioNode? Node
     {
         get => Read(_node);
@@ -47,7 +36,6 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Whether the monitor reads the meter. While it is false, <see cref="Peak"/> is 0 and the lists are empty.</summary>
     public bool Enabled
     {
         get => Read(_enabled);
@@ -58,13 +46,10 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>The highest of <see cref="Peaks"/>, from 0 to 1.</summary>
     public double Peak => Read(_peak);
 
-    /// <summary>The peak of each channel since the last read, from 0 to 1.</summary>
     public IReadOnlyList<double> Peaks => Read(_peaks);
 
-    /// <summary>The speaker position of each entry of <see cref="Peaks"/>.</summary>
     public IReadOnlyList<AudioChannel> Channels => Read(_channels);
 
     private void Restart()
@@ -94,7 +79,6 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
         }
         catch (COMException)
         {
-            // The device went away; the node is removed shortly.
         }
 
         if (ReferenceEquals(_meter, meter) && _timer is null)
@@ -148,7 +132,6 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
         _meter = null;
     }
 
-    /// <summary>Stops reading the meter and closes the recording stream it keeps open.</summary>
     public void Dispose()
     {
         _disposed = true;

@@ -5,15 +5,8 @@ using System.ComponentModel;
 
 namespace Winshell;
 
-/// <summary>
-/// A list a service keeps current. A configuration reads it, and only its service changes it. A change is raised on
-/// the thread that made it, which for a service is its event loop, so Reactor can show it. An item that raises
-/// <see cref="INotifyPropertyChanged.PropertyChanged"/> raises this list too, until the item is removed, replaced or
-/// cleared.
-/// </summary>
 public sealed class ObservableList<T> : IReadOnlyList<T>, IList, INotifyCollectionChanged, INotifyPropertyChanged
 {
-    // What XAML and Reactor both treat as "the items changed": the binding indexer's name.
     internal const string ItemsChanged = "Item[]";
 
     private readonly ObservableCollection<T> _items;
@@ -32,38 +25,28 @@ public sealed class ObservableList<T> : IReadOnlyList<T>, IList, INotifyCollecti
         Follow(_items);
     }
 
-    /// <summary>Raised when an item is added, removed, moved or replaced.</summary>
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
-    /// <summary>
-    /// Raised when <see cref="Count"/> or the items change, and when an item raises
-    /// <see cref="INotifyPropertyChanged.PropertyChanged"/>, for Reactor.
-    /// </summary>
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    /// <summary>How many items there are.</summary>
     public int Count => _items.Count;
 
-    /// <summary>The item at <paramref name="index"/>.</summary>
     public T this[int index]
     {
         get => _items[index];
         internal set => _items[index] = value;
     }
 
-    /// <summary>Where <paramref name="item"/> is, or -1 when it is not in the list.</summary>
     public int IndexOf(T item)
     {
         return _items.IndexOf(item);
     }
 
-    /// <summary>Whether <paramref name="item"/> is in the list.</summary>
     public bool Contains(T item)
     {
         return _items.Contains(item);
     }
 
-    /// <summary>Goes through the items in order.</summary>
     public IEnumerator<T> GetEnumerator()
     {
         return _items.GetEnumerator();
@@ -104,7 +87,6 @@ public sealed class ObservableList<T> : IReadOnlyList<T>, IList, INotifyCollecti
         return GetEnumerator();
     }
 
-    // A XAML list shows an IList, so the list is one, read-only.
     bool IList.IsReadOnly => true;
 
     bool IList.IsFixedSize => false;

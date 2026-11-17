@@ -17,11 +17,6 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>
-/// What a native window shows, and the keyboard that reaches it: a XAML island whose background stays transparent, over
-/// a material, both following the shell's theme. The content's root exists before the native window; the island goes in
-/// once every part of the window exists.
-/// </summary>
 internal sealed partial class HostPresentation(HostWindow host, ShellPlatform platform) : IDisposable
 {
     private readonly WindowKindDescription _kind = WindowKindDescription.Of(host.Kind);
@@ -34,7 +29,6 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
 
     private nint Handle => host.Handle;
 
-    /// <summary>What the window shows. Its background stays transparent, so the material shows through.</summary>
     public UIElement? Content
     {
         get => _root.Children.Count > 0 ? _root.Children[0] : null;
@@ -48,13 +42,8 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
 
     public XamlRoot? XamlRoot => _root.XamlRoot;
 
-    /// <summary>
-    /// Readies the native window, which exists now, for the material: its frame, and for a panel or popup no fade, peek,
-    /// rounding or border. Then puts the content in it and follows the theme from then on.
-    /// </summary>
     public void Attach()
     {
-        // The material shows wherever the content is transparent.
         var margins = new MARGINS
         {
             cxLeftWidth = -1,
@@ -65,7 +54,6 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
         PInvoke.DwmExtendFrameIntoClientArea((HWND)Handle, margins);
         if (_kind.ReplacesSystemFrame)
         {
-            // Panels and popups appear without the Windows fade, as layer surfaces do.
             SetDwm(DWMWINDOWATTRIBUTE.DWMWA_TRANSITIONS_FORCEDISABLED, 1);
             SetDwm(DWMWINDOWATTRIBUTE.DWMWA_EXCLUDED_FROM_PEEK, 1);
         }
@@ -83,7 +71,6 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
         platform.ThemeChanged += OnThemeChanged;
     }
 
-    /// <summary>Sizes the island to the window's client area, in physical pixels.</summary>
     internal void FitIsland(int width, int height)
     {
         _xaml?.SiteBridge.MoveAndResize(new RectInt32(0, 0, width, height));
@@ -100,7 +87,6 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
         }
     }
 
-    /// <summary>The caption follows the shell's dark or light choice, including a window that has a title bar.</summary>
     private void ApplyCaption()
     {
         if (Handle == 0)
@@ -117,13 +103,11 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
         }
     }
 
-    /// <summary>Fades the content. The material behind it does not fade, and has no opacity of its own.</summary>
     public void SetOpacity(double opacity)
     {
         _root.Opacity = opacity;
     }
 
-    /// <summary>Clips the content to a rectangle in logical window coordinates. It does not change <see cref="HostPlacement.SetInputRegion"/>.</summary>
     public void SetVisibleMask(Rect? bounds)
     {
         _root.Clip = bounds is { } b
@@ -131,10 +115,6 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
             : null;
     }
 
-    /// <summary>
-    /// Puts a material behind the content. A controller told the window is active keeps a live material on a window
-    /// that never activates, which the DWM backdrop attribute does not.
-    /// </summary>
     public void SetBackdrop(WindowBackdrop backdrop, WindowCorners corners)
     {
         _backdropController?.Dispose();
@@ -158,7 +138,6 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
         SetCornersAndBorder(backdrop, corners);
     }
 
-    /// <summary>A fullscreen window's corners are square, so it meets the monitor's corners instead of rounding inside them.</summary>
     internal void SetFullscreen(bool fullscreen)
     {
         if (_fullscreen == fullscreen)
@@ -167,15 +146,12 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
         ApplyCorners();
     }
 
-    /// <summary>The window's corners, and for a panel or popup its border, which follow its material.</summary>
     private void SetCornersAndBorder(WindowBackdrop backdrop, WindowCorners corners)
     {
-        // A bar along an edge stays square; a popup with a material is a rounded flyout.
         _corners = corners != WindowCorners.Default ? corners : _kind.OwnCorners(backdrop);
         ApplyCorners();
         if (_kind.ReplacesSystemFrame)
         {
-            // A popup window with a material gets Windows' hairline border; a plain panel or popup window gets none.
             SetDwm(DWMWINDOWATTRIBUTE.DWMWA_BORDER_COLOR, _kind.HairlineBorder(backdrop)
                 ? PInvoke.DWMWA_COLOR_DEFAULT
                 : PInvoke.DWMWA_COLOR_NONE);
@@ -184,7 +160,6 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
 
     private void ApplyCorners()
     {
-        // DWM_WINDOW_CORNER_PREFERENCE: DWMWCP_DEFAULT, DWMWCP_DONOTROUND, DWMWCP_ROUND, DWMWCP_ROUNDSMALL.
         var preference = (_fullscreen ? WindowCorners.Square : _corners) switch
         {
             WindowCorners.Square => 1,
@@ -201,7 +176,6 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
         PInvoke.DwmSetWindowAttribute((HWND)Handle, attribute, MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in value)));
     }
 
-    /// <summary>Hands the keyboard to the island, unless it already has it.</summary>
     internal void FocusContent()
     {
         if (_xaml is { HasFocus: false } xaml)

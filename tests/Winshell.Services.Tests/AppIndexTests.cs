@@ -9,9 +9,6 @@ using Winshell.Native;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// The Start menu index: shortcuts, packaged apps, ranked search, usage, and a catalog that follows its folders.
-/// </summary>
 public sealed class AppIndexTests
 {
     private static readonly long Now = DateTimeOffset.Parse("2026-06-15T12:00:00Z", CultureInfo.InvariantCulture)
@@ -96,7 +93,6 @@ public sealed class AppIndexTests
         var calc = Assert.Single(apps, app => app.Packaged);
         Assert.Equal(packaged.Id, calc.Id);
         Assert.Contains(apps, app => app.Id == "Accessories/Editor");
-        // Combine gets the shortcuts first, so the packaged Calculator leads only because the result is sorted by name.
         Assert.Equal([packaged.Id, "Accessories/Editor"], apps.Select(app => app.Id));
     }
 
@@ -205,7 +201,6 @@ public sealed class AppIndexTests
             [new KeyValuePair<string, int>(path, 3)],
             [new KeyValuePair<string, int>(path, 9), new KeyValuePair<string, int>("OnlySwitched", 2)],
             [
-                // UserAssist names its values in ROT13.
                 (@"P:\Jvaqbjf\Flfgrz32\abgrcnq.rkr", data),
                 (@"{1NP14R77-02R7-4R5Q-O744-2RO1NR5198O7}\abgrcnq.rkr", data),
                 ("HRZR_PGYPHNPbhag:pgbe", data)
@@ -233,10 +228,8 @@ public sealed class AppIndexTests
         {
             var link = Path.Combine(folder, "Probe.lnk");
             WriteLink(link, Cmd(), "", "", "probe");
-            // Until calls this before apps is disposed.
             Until(loop, () => Listed(apps, "Probe"), "the new shortcut");
             File.Delete(link);
-            // Until calls this before apps is disposed.
             Until(loop, () => !Listed(apps, "Probe"), "the removed shortcut to go");
         }
         finally
@@ -256,14 +249,11 @@ public sealed class AppIndexTests
         using var apps = new AppsService(loop, new Log(), Catalog(folder));
         try
         {
-            // Until calls this before apps is disposed.
             Until(loop, () => Listed(apps, "First"), "the first read");
             Directory.Delete(folder, true);
             Directory.CreateDirectory(folder);
-            // Until calls this before apps is disposed.
             Until(loop, () => !Listed(apps, "First"), "the shortcut in the recreated folder to go");
             WriteLink(Path.Combine(folder, "Second.lnk"), Cmd(), "", "", "second");
-            // Until calls this before apps is disposed.
             Until(loop, () => Listed(apps, "Second"), "the shortcut in the recreated folder");
         }
         finally
@@ -280,11 +270,8 @@ public sealed class AppIndexTests
         var ended = false;
         var catalog = new AppCatalog(new Log(), [], () =>
         {
-            // The read signals reading before it is disposed.
             reading.Set();
-            // The read blocks on release and finishes before it is disposed.
             release.Wait(TimeSpan.FromSeconds(10));
-            // The read publishes ended for the test, which only sets the initial false.
             Volatile.Write(ref ended, true);
             return [];
         }, () => new Dictionary<string, AppUsage>(StringComparer.OrdinalIgnoreCase));
@@ -330,7 +317,6 @@ public sealed class AppIndexTests
                 return new Dictionary<string, AppUsage>(StringComparer.OrdinalIgnoreCase) { [calc.Id] = new(3, 0) };
             });
 
-            // Every read after the first fails.
             await catalog.ReadAsync();
             await catalog.ReadAsync();
             var snapshot = await catalog.ReadAsync();
@@ -369,7 +355,6 @@ public sealed class AppIndexTests
             folder.SetAccessControl(acl);
             try
             {
-                // The other folder still reads while the locked one keeps failing.
                 WriteLink(Path.Combine(open, "First.lnk"), Cmd(), "", "", "first");
                 await catalog.ReadAsync();
                 var snapshot = await catalog.ReadAsync();
@@ -404,13 +389,11 @@ public sealed class AppIndexTests
         return apps.ById(id) is not null;
     }
 
-    /// <summary>Waits for what a catalog's watch hears, moving the loop a second at a time so a change it reports is read.</summary>
     private static void Until(ManualEventLoop loop, Func<bool> done, string what)
     {
         Wait.Until(done, what, () => loop.Advance(TimeSpan.FromSeconds(1)));
     }
 
-    /// <summary>A catalog of some folders, the common one first, with no packaged apps and no usage.</summary>
     private static AppCatalog Catalog(params string[] folders)
     {
         return new AppCatalog(new Log(), folders, () => [],

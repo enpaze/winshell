@@ -3,21 +3,10 @@ using Windows.Storage.Streams;
 
 namespace Winshell;
 
-/// <summary>
-/// A picture in memory: BGRA, one byte a channel, top row first, with no gap between rows. Nothing writes to the
-/// pixels after this is made, so the constructor keeps <c>bgra</c> rather than copying it, and a UI can hold on to one.
-/// </summary>
 public sealed class PixelImage
 {
     private readonly byte[] _bgra;
 
-    /// <summary>A picture of the given size that keeps <paramref name="bgra"/> as its pixels.</summary>
-    /// <param name="width">The width in pixels. Must be above 0.</param>
-    /// <param name="height">The height in pixels. Must be above 0.</param>
-    /// <param name="bgra">
-    /// The pixels: exactly <paramref name="width"/> times <paramref name="height"/> times 4 bytes.
-    /// </param>
-    /// <param name="premultiplied">Whether the color channels are already multiplied by alpha.</param>
     public PixelImage(int width, int height, byte[] bgra, bool premultiplied = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
@@ -31,23 +20,18 @@ public sealed class PixelImage
         _bgra = bgra;
     }
 
-    /// <summary>The width in pixels.</summary>
     public int Width { get; }
 
-    /// <summary>The height in pixels.</summary>
     public int Height { get; }
 
-    /// <summary>Whether the color channels are already multiplied by alpha.</summary>
     public bool Premultiplied { get; }
 
-    /// <summary>The pixels: BGRA, four bytes a pixel, top row first. Read-only.</summary>
     public ReadOnlySpan<byte> Bgra => _bgra;
 
-    /// <summary>The picture as a PNG file. Blocks while Windows encodes it.</summary>
     public byte[] EncodePng()
     {
         using var output = new InMemoryRandomAccessStream();
-#pragma warning disable VSTHRD002 // WIC's encoder is async only. The encode needs no thread of the caller's, so this ends on a UI thread too.
+#pragma warning disable VSTHRD002
         var encoder = BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, output).AsTask().GetAwaiter().GetResult();
         encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Straight, (uint)Width, (uint)Height, 96, 96,
             StraightBgra());
@@ -62,7 +46,6 @@ public sealed class PixelImage
         return encoded.ToArray();
     }
 
-    /// <summary>The pixels with straight alpha, as a PNG and the clipboard keep them. Read-only: it can be the image's own array.</summary>
     internal byte[] StraightBgra()
     {
         if (!Premultiplied)

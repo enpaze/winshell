@@ -3,7 +3,6 @@ using Winshell.Windows;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>Which Windows builds use the internal desktop table, and the report the service still gives.</summary>
 public sealed class VirtualDesktopBuildsTests
 {
     [Theory]

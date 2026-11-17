@@ -9,10 +9,6 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
-/// <summary>
-/// The tray, on the primary screen only. Hovering the chevron slides out the icons Windows keeps in its overflow:
-/// to the side on a top or bottom bar, and downwards on a side bar, where the icons stack.
-/// </summary>
 public sealed class TrayWidget : Component<WidgetContext>
 {
     public override Element Render()
@@ -24,7 +20,6 @@ public sealed class TrayWidget : Component<WidgetContext>
 
     private sealed record IconsProps(ShellWindow Window, WidgetContext Context);
 
-    /// <summary>The icons, once the bar's window is known. Only the primary screen shows them.</summary>
     private sealed class Icons : Component<IconsProps>
     {
         private const double IconSize = 12;
@@ -74,8 +69,6 @@ public sealed class TrayWidget : Component<WidgetContext>
                             Slide();
                     };
                 });
-            // Closed, the clip is empty along the bar, and the hidden icons beyond it don't show.
-            // A grid, as before: the hidden row keeps its size while the grid's own height or width hides it.
             var clipBox = Grid(columns: [GridSize.Star()], rows: [GridSize.Star()], hidden.Grid(0, 0))
                 .WithKey("clip")
                 .OnMount(element =>
@@ -87,8 +80,6 @@ public sealed class TrayWidget : Component<WidgetContext>
                     clip.Current = element;
                 });
             var chevron = Button(Glyphs.TrayChevron).AutomationName("Show hidden icons");
-            // Transparent, not null, so the pointer over the gaps still counts as over the overflow.
-            // The color is a hit target, not paint, so it stays off the theme tokens.
 #pragma warning disable REACTOR_THEME_001
             var overflow = BarLayout.Along(Props.Context.Orientation, 0, chevron, clipBox)
                 .Background("transparent")

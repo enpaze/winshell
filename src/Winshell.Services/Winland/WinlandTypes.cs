@@ -4,19 +4,14 @@ using Winshell.Windows;
 
 namespace Winshell.Winland;
 
-/// <summary>One line of the event stream.</summary>
-/// <param name="Name">The event's name, before <c>&gt;&gt;</c>, such as <c>workspacev2</c>.</param>
-/// <param name="Data">The text after <c>&gt;&gt;</c>.</param>
 public sealed record WinlandEvent(string Name, string Data)
 {
-    /// <summary>Splits <see cref="Data"/> at commas into that many strings. The last keeps any further commas, and missing ones are empty.</summary>
     public IReadOnlyList<string> Parse(int argumentCount)
     {
         return WinlandProtocol.ParseArgs(Data, argumentCount);
     }
 }
 
-/// <summary>A Monitor as Winland reports it.</summary>
 public sealed class WinlandMonitor : ObservableObject
 {
     private readonly WinlandService _ipc;
@@ -34,48 +29,28 @@ public sealed class WinlandMonitor : ObservableObject
         _ipc = ipc;
     }
 
-    /// <summary>Winland's number for the Monitor. -1 until Winland reports it.</summary>
     public int Id => Read(_id);
 
-    /// <summary>The Windows display name, such as <c>\\.\DISPLAY1</c>, which is the screen's id.</summary>
     public string Name => Read(_name);
 
-    /// <summary>
-    /// The Monitor's make, model and serial number, joined by spaces, or its friendly name when it reports no model or
-    /// serial. A <c>desc:</c> rule in Winland's config matches this.
-    /// </summary>
     public string Description => Read(_description);
 
-    /// <summary>The left edge on the virtual screen, in physical pixels.</summary>
     public int X => Read(_x);
 
-    /// <summary>The top edge on the virtual screen, in physical pixels.</summary>
     public int Y => Read(_y);
 
-    /// <summary>The width in physical pixels.</summary>
     public int Width => Read(_width);
 
-    /// <summary>The height in physical pixels.</summary>
     public int Height => Read(_height);
 
-    /// <summary>The Monitor's DPI divided by 96, such as 1.5 at 150%.</summary>
     public double Scale => Read(_scale);
 
-    /// <summary>Whether this is <see cref="WinlandService.FocusedMonitor"/>.</summary>
     public bool Focused => Read(_focused);
 
-    /// <summary>The Workspace shown on the Monitor, or null.</summary>
     public WinlandWorkspace? ActiveWorkspace => Read(_activeWorkspace);
 
-    /// <summary>The Monitor's entry from Winland's last monitor list. Null before the first one.</summary>
     public JsonElement? LastIpcObject => Read(_lastIpcObject);
 
-    /// <summary>
-    /// Shows the Workspace number on this Monitor, creating it if it does not exist yet. If this Monitor is not
-    /// focused, focuses it first in the same request. A failure is logged.
-    /// </summary>
-    /// <param name="number">The positive Workspace number on this Monitor.</param>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="number"/> is zero or negative.</exception>
     public void ActivateWorkspace(int number)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(number);
@@ -125,7 +100,6 @@ public sealed class WinlandMonitor : ObservableObject
     }
 }
 
-/// <summary>A Workspace. Winland numbers Workspaces per Monitor, so two can both be 3; <see cref="Monitor"/> tells them apart.</summary>
 public sealed class WinlandWorkspace : ObservableObject
 {
     private readonly WinlandService _ipc;
@@ -140,39 +114,26 @@ public sealed class WinlandWorkspace : ObservableObject
         _ipc = ipc;
     }
 
-    /// <summary>The Workspace number. A named Workspace gets a negative id, and <c>special:special</c> gets -99.</summary>
     public int Id => Read(_id);
 
-    /// <summary>The Workspace's name: its number, a name, or <c>special:</c> and a name.</summary>
     public string Name => Read(_name);
 
-    /// <summary>The Monitor the Workspace belongs to, or null when Winland has not said.</summary>
     public WinlandMonitor? Monitor => Read(_monitor);
 
-    /// <summary>Whether the Workspace is shown on its Monitor.</summary>
     public bool Active => Read(_active);
 
-    /// <summary>Whether this is <see cref="WinlandService.FocusedWorkspace"/>.</summary>
     public bool Focused => Read(_focused);
 
-    /// <summary>Whether a window on it is urgent while the Workspace is not focused.</summary>
     public bool Urgent => Read(_urgent);
 
-    /// <summary>Whether a window on the Workspace is fullscreen.</summary>
     public bool HasFullscreen => Read(_hasFullscreen);
 
-    /// <summary>The windows on the Workspace, in the order they arrived there.</summary>
     public ObservableList<WinlandWindow> Windows { get => Read(field); } = [];
 
-    /// <summary>The Workspace's entry from Winland's last workspace list. Null before the first one.</summary>
     public JsonElement? LastIpcObject => Read(_lastIpcObject);
 
     private bool IsSpecial => WinlandProtocol.IsSpecial(_name);
 
-    /// <summary>
-    /// Shows the Workspace. A Workspace number means that number on the focused Monitor in Winland, so the
-    /// Workspace's own Monitor is focused first when it is another one.
-    /// </summary>
     public void Activate()
     {
         if (!IsSpecial && _monitor is { Id: >= 0 } monitor)
@@ -231,7 +192,6 @@ public sealed class WinlandWorkspace : ObservableObject
     }
 }
 
-/// <summary>A window as Winland reports it. Its address is the window handle.</summary>
 public sealed class WinlandWindow : ObservableObject
 {
     private readonly WinlandService _service;
@@ -248,31 +208,22 @@ public sealed class WinlandWindow : ObservableObject
         _service = service;
     }
 
-    /// <summary>The window handle in hexadecimal, without <c>0x</c>.</summary>
     public string Address => Read(_address) == 0 ? "" : _address.ToString("x", CultureInfo.InvariantCulture);
 
-    /// <summary>The window handle, which names the same window in <c>Winshell.Windows</c>.</summary>
     public nint Handle => (nint)Read(_address);
 
-    /// <summary>The same window in <see cref="WindowListService"/>, or null when that list is not in use or has no such window.</summary>
     public AppWindow? Window => Read(_service).FindWindow(Handle);
 
-    /// <summary>The window's title, as Winland last reported it.</summary>
     public string Title => Read(_title);
 
-    /// <summary>The Workspace the window is on, or null when Winland has not said.</summary>
     public WinlandWorkspace? Workspace => Read(_workspace);
 
-    /// <summary>The Monitor of the window's Workspace, or null.</summary>
     public WinlandMonitor? Monitor => Read(_monitor);
 
-    /// <summary>Whether this is <see cref="WinlandService.ActiveWindow"/>.</summary>
     public bool Activated => Read(_activated);
 
-    /// <summary>Whether Winland marked the window urgent. It clears when the window is activated or its Workspace is focused.</summary>
     public bool Urgent => Read(_urgent);
 
-    /// <summary>The window's entry from Winland's last window list. Null before the first one.</summary>
     public JsonElement? LastIpcObject => Read(_lastIpcObject);
 
     internal ulong RawAddress => _address;

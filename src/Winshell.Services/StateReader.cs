@@ -1,10 +1,5 @@
 namespace Winshell;
 
-/// <summary>
-/// Reads a Windows state for one service and hands each reading to the service's loop. One read runs at a time. A
-/// request during a read reads once more when it ends, however many requests came, so the last reading is never older
-/// than the last request. A read starts on the requesting thread; a backend whose read blocks moves it off that thread.
-/// </summary>
 internal sealed class StateReader<T>(
     Func<CancellationToken, Task<T>> read,
     Action<T> apply,
@@ -13,7 +8,6 @@ internal sealed class StateReader<T>(
 {
     private readonly Lock _gate = new();
 
-    // Ends with the reader, so a read that Windows does not cancel ends at its next check.
     private readonly CancellationTokenSource _stopping = new();
 
     private TaskCompletionSource? _next;
@@ -24,21 +18,17 @@ internal sealed class StateReader<T>(
 
     private long _revision;
 
-    /// <summary>Reads the state soon.</summary>
     public void Request()
     {
         _ = ReadAsync();
     }
 
-    /// <summary>Reads the state, and ends once a read that started after this call has handed its reading to the loop.</summary>
     public Task ReadAsync()
     {
         TaskCompletionSource next;
         bool start;
         lock (_gate)
         {
-            // From the moment Stop begins, so a Windows callback never starts a read that closes the backend on its
-            // own thread.
             if (Volatile.Read(ref _stopRequested) != 0)
                 return Task.CompletedTask;
             next = _next ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -51,16 +41,11 @@ internal sealed class StateReader<T>(
         return next.Task;
     }
 
-    /// <summary>Drops the reading of a read already running, because something since has made it stale.</summary>
     public void Invalidate()
     {
         Interlocked.Increment(ref _revision);
     }
 
-    /// <summary>
-    /// Stops reading and drops a reading not yet applied. <paramref name="idle"/> runs once no read is running: now, or
-    /// when the running read ends.
-    /// </summary>
     public void Stop(Action? idle = null)
     {
         if (Interlocked.Exchange(ref _stopRequested, 1) == 1)
@@ -143,7 +128,7 @@ internal sealed class StateReader<T>(
         {
             return;
         }
-#pragma warning disable CA1031 // Nobody awaits a requested read, and one failed read must not stop the next.
+#pragma warning disable CA1031
         catch (Exception e)
 #pragma warning restore CA1031
         {
@@ -164,7 +149,7 @@ internal sealed class StateReader<T>(
         {
             idle?.Invoke();
         }
-#pragma warning disable CA1031 // Closing runs as its service is disposed; a failure there must not stop the rest.
+#pragma warning disable CA1031
         catch (Exception e)
 #pragma warning restore CA1031
         {

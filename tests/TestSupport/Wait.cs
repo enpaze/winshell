@@ -1,28 +1,16 @@
 namespace Winshell.TestSupport;
 
-// Each test project compiles this file, so a use in another project is invisible here.
-/// <summary>
-/// The one way a test waits on time. An event, a task or <c>ManualEventLoop.Advance</c> is better when there is one.
-/// This is for what gives no signal: a file, a window, another process. Every wait ends with the test, at its deadline.
-/// </summary>
 internal static class Wait
 {
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan FirstPause = TimeSpan.FromMilliseconds(5);
     private static readonly TimeSpan LongestPause = TimeSpan.FromMilliseconds(100);
 
-    /// <summary>Returns as soon as <paramref name="done"/> is true, and fails the test if it never is.</summary>
-    /// <param name="done">What to wait for.</param>
-    /// <param name="what">What the test was waiting for, in its failure message.</param>
-    /// <param name="between">Runs between checks, usually to pump a loop.</param>
     internal static void Until(Func<bool> done, string what, Action? between = null)
     {
         Until(done, what, Patience, between);
     }
 
-    /// <summary>
-    /// <see cref="Until(Func{bool}, string, Action)"/> for what takes longer than a test should, such as a first build.
-    /// </summary>
     internal static void Until(Func<bool> done, string what, TimeSpan patience, Action? between = null)
     {
         var token = TestContext.Current.CancellationToken;
@@ -38,9 +26,6 @@ internal static class Wait
         }
     }
 
-    /// <summary>
-    /// <see cref="Until(Func{bool}, string, Action)"/> for a test that must not block its thread, so what it awaits can run.
-    /// </summary>
     internal static Task UntilAsync(Func<bool> done, string what, Action? between = null)
     {
         return UntilAsync(done, what, () =>
@@ -50,9 +35,6 @@ internal static class Wait
         });
     }
 
-    /// <summary>
-    /// <see cref="Until(Func{bool}, string, Action)"/> with something to await between checks.
-    /// </summary>
     internal static async Task UntilAsync(Func<bool> done, string what, Func<Task> between)
     {
         var token = TestContext.Current.CancellationToken;
@@ -61,14 +43,12 @@ internal static class Wait
         while (!done())
         {
             Assert.True(TimeProvider.System.GetElapsedTime(started) < Patience, $"Timed out: {what}");
-            // This is the one place a test waits on time.
             await Task.Delay(pause, token);
             pause = Next(pause);
             await between();
         }
     }
 
-    /// <summary>Waits on an asynchronous observation, such as a request to another process's control pipe.</summary>
     internal static async Task UntilAsync(Func<Task<bool>> done, string what, TimeSpan? patience = null)
     {
         var token = TestContext.Current.CancellationToken;
@@ -77,17 +57,11 @@ internal static class Wait
         while (!await done())
         {
             Assert.True(TimeProvider.System.GetElapsedTime(started) < (patience ?? Patience), $"Timed out: {what}");
-            // This is the one place a test waits on time.
             await Task.Delay(pause, token);
             pause = Next(pause);
         }
     }
 
-    /// <summary>
-    /// Gives something that must not happen the time to happen. On a slow machine this can miss a bug, but it can't fail
-    /// a test that should pass. Never use it to wait for something that should happen: that is
-    /// <see cref="Until(Func{bool}, string, Action)"/>.
-    /// </summary>
     internal static void ForNothingToHappen(TimeSpan time)
     {
         var token = TestContext.Current.CancellationToken;

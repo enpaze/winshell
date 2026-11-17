@@ -6,7 +6,6 @@ namespace Winshell.Tests;
 
 public class MsixLogoTests
 {
-    // Windows looks up these scale qualifiers next to the manifest's logos.
     private static readonly int[] Scales = [125, 150, 200];
 
     [Fact]
@@ -29,7 +28,6 @@ public class MsixLogoTests
         Assert.Contains(files, name => name!.Contains(".targetsize-", StringComparison.Ordinal));
     }
 
-    /// <summary>The side a file name states, or the base image's side for a Store logo.</summary>
     private static int Side(string assets, string name)
     {
         var target = name.IndexOf(".targetsize-", StringComparison.Ordinal);

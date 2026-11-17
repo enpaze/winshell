@@ -29,11 +29,6 @@ internal static class RunCommand
         Run = static parsed => Task.FromResult(Execute(parsed))
     };
 
-    /// <summary>
-    /// What a <c>-d</c> child runs. Empty unless <paramref name="parsed"/> daemonizes. The flag itself is gone, and a
-    /// <c>-d</c> that is the value of <c>-c</c> or <c>-p</c> stays. <c>--no-build</c> is added when this process builds,
-    /// so the child does not build again. A line with no command word is named <c>run</c>.
-    /// </summary>
     internal static ImmutableArray<string> ChildArguments(Invocation parsed)
     {
         if (!parsed.IsSet(CliFlags.Daemonize))
@@ -50,7 +45,6 @@ internal static class RunCommand
                 break;
             }
 
-            // Only run's own value options take the next word. A shared flag is one token.
             var option = Entry.Options.FirstOrDefault(candidate => candidate.Word.Is(token));
             if (option == CliFlags.Daemonize)
                 continue;
@@ -73,7 +67,6 @@ internal static class RunCommand
         var project = ConfigurationProject.Find(path, config, ShellLocations.Current.ConfigRoot, out var error);
         if (error is not null)
         {
-            // Before any instance log exists. An attached console prints it. Start and sign-in have no window.
             StartupError.Report(error, StartupError.FolderFor(path, ShellLocations.Current.ConfigRoot));
             return 1;
         }
@@ -91,8 +84,6 @@ internal static class RunCommand
             return 1;
         }
 
-        // -d leaves the program to a child that supervises it. The build is done, and its errors were in this console.
-        // The child runs run's own argument list, so a -d that is the value of -c or -p is not dropped.
         if (parsed.IsSet(CliFlags.Daemonize))
             return Detach(ChildArguments(parsed));
 
@@ -102,26 +93,19 @@ internal static class RunCommand
         return Supervise(program, project);
     }
 
-    /// <summary>Starts <c>winshell.exe</c> again with <paramref name="childArgs"/>. The child supervises the shell.</summary>
     private static int Detach(IEnumerable<string> childArgs)
     {
-        var exe = Environment.ProcessPath!; // The CLI runs from its apphost.
+        var exe = Environment.ProcessPath!;
         if (InstanceStart.Detach(exe, childArgs) is not { } error)
             return 0;
         StartupError.Report(error, null);
         return 1;
     }
 
-    /// <summary>
-    /// Runs the shell <paramref name="shell"/> starts under a <see cref="ShellSupervisor"/>, and returns its last exit code.
-    /// <paramref name="project"/> is the configuration project whose program that is.
-    /// </summary>
     private static int Supervise(ProcessStartInfo shell, ConfigurationProject project)
     {
         IShellChild? Start()
         {
-            // A reload can build beside a program that still runs, so each start asks for the last build. A dialog about
-            // a start that failed offers its folder.
             shell.FileName = project.Program;
             return ShellProcess.Start(shell, Path.GetDirectoryName(shell.FileName));
         }
@@ -131,22 +115,14 @@ internal static class RunCommand
         using var stop = new CancellationTokenSource();
         Task<int>? supervision = null;
 
-        // Ctrl+C and Ctrl+Break stop the shell and supervision. Closing the console and the end of the session end this
-        // process once the handler returns, so it waits for the shell to stop and the taskbar to come back. The session's
-        // end is a window message: Windows sends no console signal for it to a process that has loaded user32. SystemEvents
-        // makes its window on the thread that first subscribes when that thread is STA, and this one pumps no messages, so a
-        // pool thread subscribes and SystemEvents makes a thread of its own.
         void Stop()
         {
-            // The handler has to cancel this source, which is disposed only as this method leaves.
             stop.Cancel();
-            // Registered before the task exists, so this wait has to see the assignment below.
             ConsoleEnding.Wait(supervision);
         }
 
         void Signal(PosixSignalContext context)
         {
-            // Return the shell's exit code. Cancelling the signal keeps Windows from ending this process first.
             context.Cancel = true;
             Stop();
         }
@@ -157,8 +133,7 @@ internal static class RunCommand
         }
 
         using var ending = ConsoleEnding.Listen(Signal);
-        // A cancelled token would skip the session subscription and throw, which this startup never did.
-#pragma warning disable VSTHRD002 // The session subscription and the supervised run both have to finish on this thread.
+#pragma warning disable VSTHRD002
         Task.Run(() => SystemEvents.SessionEnded += SessionEnded).GetAwaiter().GetResult();
         try
         {

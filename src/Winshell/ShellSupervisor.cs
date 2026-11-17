@@ -1,27 +1,7 @@
 namespace Winshell;
 
-/// <summary>
-/// Whether a failed child must leave Explorer's taskbar hidden. <paramref name="childPid"/> is that child.
-/// <paramref name="hiddenAtStart"/> is whether a taskbar window was already hidden before the child started.
-/// True leaves the taskbar hidden.
-/// </summary>
 internal delegate bool LeaveTaskbar(int childPid, bool hiddenAtStart);
 
-/// <summary>
-/// Runs a shell in a child process and starts it again when it crashes. Exit code 0 is a stop that was asked for, such
-/// as <c>winshell kill</c>, a reload that handed over to a new process, Ctrl+C, or a duplicate that left.
-/// <see cref="InstanceStart.CouldNotStart"/> is a shell that could not start and said why, which a new start would only
-/// repeat. Any other exit is a crash, unless <c>winshell kill</c> had asked the shell to stop. The next start waits 1,
-/// 2, 4, 8 and then 10 seconds, and the sixth crash in a row ends supervision. A shell that ran for a minute was
-/// running well, so its crash counts as the first. A shell <c>winshell reload</c> asked to quit for its supervisor
-/// starts again at once, however it exits, and counts its crashes from none, as the first did.
-/// </summary>
-/// <remarks>
-/// A shell that exits 0 has put Explorer's taskbar back, or left the record of what it hid for the shell that
-/// replaces it. After any other exit, the supervisor puts that record back when this child owned it or its owner has
-/// gone. A record left for the next shell stays hidden. A taskbar that was already hidden when the child started,
-/// and that this start did not record, stays hidden. Recovery deletes a record it puts back.
-/// </remarks>
 internal sealed class ShellSupervisor(
     Func<IShellChild?> start,
     Func<bool> taskbarHidden,
@@ -37,10 +17,6 @@ internal sealed class ShellSupervisor(
 
     private static readonly TimeSpan RunningWell = TimeSpan.FromMinutes(1);
 
-    /// <summary>
-    /// Runs shells until one stops as asked, cannot start, or crashes too often, and returns its exit code.
-    /// <paramref name="stop"/> stops the running shell and ends supervision.
-    /// </summary>
     public async Task<int> RunAsync(CancellationToken stop)
     {
         var crashes = 0;
@@ -94,10 +70,6 @@ internal sealed class ShellSupervisor(
         }
     }
 
-    /// <summary>
-    /// One child, to its exit. <see cref="InstanceStart.CouldNotStart"/> when it did not start, and the start has
-    /// said why.
-    /// </summary>
     private async Task<(int Code, ExitIntent Intent, int Pid)> RunOnceAsync(CancellationToken stop)
     {
         using var child = start();

@@ -4,18 +4,8 @@ using Winshell.Native;
 
 namespace Winshell.Tray;
 
-/// <summary>
-/// The notification area the way an alternative Windows shell has it. Apps send their icons to the first
-/// <c>Shell_TrayWnd</c> window they find, so this makes one, and passes every message on to Explorer so its own tray
-/// and the app bars keep working.
-/// </summary>
-/// <param name="loop">The loop the settings are watched on.</param>
-/// <param name="log">Where the backend writes its warnings.</param>
-/// <param name="names">The window class, the taskbar class and the owner name; tests pass their own.</param>
 internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : ITrayBackend
 {
-    // Apps send their icons to one window, so one instance in the session at a time is the notification area. The
-    // others wait, and the first to notice takes over when it exits, even if it crashed.
     private readonly Mutex _owner = new(false, names.Owner);
     private readonly List<WinEventHook> _eventHooks = [];
     private bool _owned;
@@ -29,10 +19,8 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
 
     public event Action? SettingsChanged;
 
-    /// <summary>The notification area window, or 0 while it is closed.</summary>
     public nint Window => _window?.Handle ?? 0;
 
-    /// <summary>Explorer's own taskbar window, found past this one.</summary>
     public nint Explorer
     {
         get
@@ -62,7 +50,6 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
         }
         catch (AbandonedMutexException)
         {
-            // The instance that had it ended without letting go; this thread owns it now.
             _owned = true;
         }
 
@@ -108,7 +95,6 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
     {
         var explorer = Explorer;
         if (explorer != 0 && PInvoke.GetWindowRect((HWND)explorer, out var r))
-            // Apps that read the taskbar's position from this window get Explorer's.
             PInvoke.SetWindowPos((HWND)Window, HWND.HWND_TOPMOST, r.left, r.top, r.right - r.left, r.bottom - r.top,
                 SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
         else
@@ -168,10 +154,8 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
 
     public void LetAppTakeForeground(nint window, uint processId)
     {
-        // A click on a shell window is input this process just received, which lets it pass the right on.
         if (TrayApp.AllowForeground(processId))
             return;
-        // A click from IPC or a timer is not. Take the window, then pass the right on in case the app asks too.
         Focus.Take(window);
         TrayApp.AllowForeground(processId);
     }
@@ -181,18 +165,15 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
         TrayApp.Notify(window, message, wParam, lParam);
     }
 
-    // Out-of-context events run on the thread that installed the hook, the loop's.
     private void OnOrderChanged(uint eventType, nint hwnd, int idObject, int idChild)
     {
         if (idChild != (int)PInvoke.CHILDID_SELF || Window == 0)
             return;
         var explorer = Explorer;
-        // Top-level z-order changes name the desktop's client object, not a child window's OBJID_WINDOW.
         var desktopOrder = eventType == PInvoke.EVENT_OBJECT_REORDER && idObject == (int)OBJECT_IDENTIFIER.OBJID_CLIENT &&
                            hwnd == WindowTree.Desktop;
         if (explorer == 0 || (!desktopOrder && (hwnd != explorer || idObject != (int)OBJECT_IDENTIFIER.OBJID_WINDOW)))
             return;
-        // A raise causes another reorder event. Only signal when Explorer is actually above this window.
         for (var above = PInvoke.GetWindow((HWND)explorer, GET_WINDOW_CMD.GW_HWNDPREV);
              above != 0;
              above = PInvoke.GetWindow(above, GET_WINDOW_CMD.GW_HWNDPREV))
@@ -211,13 +192,9 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
         var answer = 1;
         if (data.Kind == TrayProtocol.NotifyIconData && TrayProtocol.Read(data.Payload) is { } call)
             answer = _apply!(call) ? 1 : 0;
-        // Explorer keeps its own tray, app bars and icon positions: it gets every message. Its answer is the answer to an
-        // app bar message; an icon is answered here, by a tray which may not have an icon Explorer has.
         var explorer = Explorer;
         if (explorer == 0)
             return answer;
-        // Apps animate their icons several times a second, so a busy Explorer holds the shell up only briefly for one.
-        // An app bar needs Explorer's answer.
         var icon = data.Kind == TrayProtocol.NotifyIconData;
         var result = data.Forward(explorer, icon ? 200u : 2000u);
         return icon ? answer : result;
@@ -231,8 +208,6 @@ internal sealed class TrayBackend(IEventLoop loop, Log log, TrayNames names) : I
             return true;
         }
 
-        // Apps that post a menu command to the taskbar, such as minimizing every window, find this window first.
-        // These carry no pointers. Private WM_USER messages have no shared layout and cannot be forwarded safely.
         if (msg == PInvoke.WM_SYSCOMMAND || (msg == PInvoke.WM_COMMAND && lParam == 0))
         {
             var explorer = Explorer;

@@ -4,7 +4,6 @@ using System.Text.Json;
 
 namespace Winshell.Tests;
 
-/// <summary><c>winshell doctor</c> as a process. Every config is under a temp folder this class creates. It never builds.</summary>
 public sealed partial class DoctorCommandTests : IDisposable
 {
     private static readonly string[] Ids =
@@ -108,7 +107,6 @@ public sealed partial class DoctorCommandTests : IDisposable
         Assert.Contains("starts nothing", project.GetProperty("message").GetString(), StringComparison.Ordinal);
         Assert.Equal("pass", checks.Single(c => c.GetProperty("id").GetString() == "crashes").GetProperty("status")
             .GetString());
-        // Every check runs on this PC, a problem says how to fix it, and no message names the user's folder.
         var messages = checks.Select(c => c.GetProperty("message").GetString()!).ToList();
         Assert.DoesNotContain(messages, m => m.StartsWith("Could not check", StringComparison.Ordinal));
         Assert.All(checks.Where(c => c.GetProperty("status").GetString() != "pass"),
@@ -157,10 +155,9 @@ public sealed partial class DoctorCommandTests : IDisposable
         return RunIn(_root, args);
     }
 
-    /// <summary>Runs winshell.exe with the config folder overridden to a folder of this class's.</summary>
     private static ChildProcess RunIn(string configRoot, params string[] args)
     {
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         return WinshellCli.Run(args, (ShellLocations.ConfigVariable, configRoot));
 #pragma warning restore CsWinRT1030
     }

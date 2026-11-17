@@ -4,14 +4,6 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>
-/// Handles a click outside the popups that grab focus and the XAML flyouts. Such a popup is dismissed by a click
-/// outside it, and a flyout closes on one: WinUI closes a flyout when its window loses activation, and a panel that
-/// never activates has none to lose. A click inside an open flyout counts as inside the window that owns it, so a menu
-/// that reaches past its popup leaves the popup open. A flyout shows in a window of its own, so a WinEvent hook
-/// notices when one of this process's flyout windows shows. The mouse hook runs only while a popup grabs or a flyout
-/// is open.
-/// </summary>
 internal sealed partial class OutsideClicks : IDisposable
 {
     private const string PopupClass = "Microsoft.UI.Content.PopupWindowSiteBridge";
@@ -44,7 +36,6 @@ internal sealed partial class OutsideClicks : IDisposable
         _platform.Log.Warn("shell", e.Message);
     }
 
-    /// <summary>A flyout's window in this process. The hook sees every process's windows.</summary>
     private static bool IsPopupWindow(nint hwnd)
     {
         return PInvoke.GetWindowThreadProcessId((HWND)hwnd, out var process) != 0 && process == Environment.ProcessId
@@ -52,7 +43,6 @@ internal sealed partial class OutsideClicks : IDisposable
                                                                           PopupClass;
     }
 
-    /// <summary>Starts or stops dismissing a popup on a click outside it.</summary>
     internal void Grab(HostWindow window, bool on)
     {
         if (on && window.Handle != 0)
@@ -74,16 +64,11 @@ internal sealed partial class OutsideClicks : IDisposable
         _mouse = null;
     }
 
-    // This runs on the hook thread, so it only posts the click to the loop.
     private void OnPress(POINT pt)
     {
         _platform.Loop.Post(() => Click(pt));
     }
 
-    /// <summary>
-    /// Closes every open flyout the click landed outside of, then dismisses every grabbing popup it landed outside of,
-    /// where a popup's open flyouts count as the popup.
-    /// </summary>
     internal void Click(POINT pt)
     {
         HashSet<HostWindow> inside = [];

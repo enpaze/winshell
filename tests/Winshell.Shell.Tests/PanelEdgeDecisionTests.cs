@@ -2,10 +2,6 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-/// <summary>
-/// Where a panel sits and which edge it holds, against a stand-in for the desktop. What a real window does with those
-/// answers is covered by the native panel tests.
-/// </summary>
 public class PanelEdgeDecisionTests
 {
     private static readonly PanelMonitor PrimaryMonitor = new("primary", new RECT(0, 0, 1920, 1080),
@@ -17,11 +13,9 @@ public class PanelEdgeDecisionTests
     private static readonly PanelMonitor Scaled =
         new("scaled", new RECT(0, 0, 1920, 1080), new RECT(0, 80, 1920, 1080), 2);
 
-    // A 150% 2560×1440 monitor to the right of a 1920×1080 primary, and its work area above a 48 px taskbar.
     private static readonly RECT Wide = new(1920, 0, 4480, 1440);
     private static readonly RECT WideWork = new(1920, 0, 4480, 1392);
 
-    /// <summary>A desktop that records the edge it was asked for and where the window went.</summary>
     private sealed class Desktop : IPanelDesktop
     {
         public bool Fullscreen { get; set; }
@@ -34,7 +28,6 @@ public class PanelEdgeDecisionTests
 
         public RECT? Asked { get; private set; }
 
-        /// <summary>What Explorer grants for a request. Null grants what was asked.</summary>
         public RECT? Grant { get; init; }
 
         public int Moves { get; private set; }
@@ -133,7 +126,6 @@ public class PanelEdgeDecisionTests
         return edge;
     }
 
-    /// <summary>Where a panel that reserves nothing goes on a monitor with this work area, in physical pixels.</summary>
     private static RECT PlacedIn(RECT bounds, RECT area, double scale, PanelPlacement panel)
     {
         var desktop = new Desktop();
@@ -142,7 +134,6 @@ public class PanelEdgeDecisionTests
         return desktop.Moved!.Value;
     }
 
-    // The panel names Second, which is away from the origin, so an edge's coordinates are never its depth.
     [Theory]
     [InlineData(Edges.Top | Edges.Left | Edges.Right, 2560, 1080, 5120, 1128)]
     [InlineData(Edges.Bottom | Edges.Left | Edges.Right, 2560, 2472, 5120, 2520)]
@@ -178,8 +169,6 @@ public class PanelEdgeDecisionTests
         Assert.Null(desktop.Asked);
     }
 
-    // Explorer grants less than was asked: beside a taskbar on the same edge, or shortened by one on a neighboring
-    // edge. The bar sits in what it got.
     [Theory]
     [InlineData(null, Edges.Top, 0, 48, 1920, 96)]
     [InlineData(null, Edges.Bottom, 0, 984, 1920, 1032)]
@@ -195,7 +184,6 @@ public class PanelEdgeDecisionTests
         var grant = new RECT(left, top, right, bottom);
         var desktop = new Desktop { Grant = grant };
         var edge = Shown(desktop);
-        // A bar 48 pixels deep that spans the edge it holds.
         var across = along is Edges.Top or Edges.Bottom ? Edges.Left | Edges.Right : Edges.Top | Edges.Bottom;
 
         edge.Set(new PanelPlacement(screen is null ? null : Screen(screen), along | across, 0, 0, 0, 0, 48, 48, false,
@@ -213,7 +201,6 @@ public class PanelEdgeDecisionTests
 
         edge.Set(Panel(Edges.Top | Edges.Left, Scaled.Id));
 
-        // 320 by 48 logical pixels at scale 2, against the work area's top.
         Assert.Equal(2, desktop.Scale);
         Assert.Equal(new RECT(0, 80, 640, 176), desktop.Moved);
     }
@@ -277,7 +264,6 @@ public class PanelEdgeDecisionTests
         var panel = Panel(Edges.Top | Edges.Left | Edges.Right);
 
         edge.Set(panel);
-        // The monitor's scale changes, which places the panel again later, and the panel goes before then.
         edge.OnDpiChanged(default, false);
         edge.Release();
         Assert.Equal(1, desktop.Removes);
@@ -335,7 +321,6 @@ public class PanelEdgeDecisionTests
         var bar = Anchored(Edges.Bottom | Edges.Left | Edges.Right, height: 40);
         Assert.Equal(new RECT(1920, 1332, 4480, 1392), PlacedIn(Wide, WideWork, 1.5, bar));
 
-        // The taskbar auto-hides: the work area is the whole monitor, and the bar moves down to its edge.
         Assert.Equal(new RECT(1920, 1380, 4480, 1440), PlacedIn(Wide, Wide, 1.5, bar));
     }
 
@@ -356,7 +341,6 @@ public class PanelEdgeDecisionTests
     [Fact]
     public void The_same_panel_is_placed_again_at_a_new_scale()
     {
-        // The monitor's scale goes from 100% to 150%: the bar keeps 32 logical pixels.
         var bar = Anchored(Edges.Top | Edges.Left | Edges.Right, height: 32);
         Assert.Equal(32, PlacedIn(Wide, Wide, 1, bar).Height);
         Assert.Equal(48, PlacedIn(Wide, Wide, 1.5, bar).Height);

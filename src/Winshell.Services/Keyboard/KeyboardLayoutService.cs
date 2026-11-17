@@ -2,12 +2,6 @@ using System.ComponentModel;
 
 namespace Winshell.Keyboard;
 
-/// <summary>
-/// The keyboard layouts Windows has installed. Each has a short label, such as EN, and the name Windows shows.
-/// The current layout is the foreground window's, so a shell window that does not take the foreground does not change
-/// it. Windows tells only the focused window when a layout changes, so while something listens the foreground window's
-/// layout is read twice a second, and not at all while nothing does.
-/// </summary>
 public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
 {
     private static readonly TimeSpan Interval = TimeSpan.FromMilliseconds(500);
@@ -27,16 +21,10 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
         _backend = backend ?? new KeyboardLayoutBackend();
     }
 
-    /// <summary>The installed layouts, in the order Windows cycles them. Empty while nothing listens.</summary>
     public IReadOnlyList<KeyboardLayout> Layouts => _layouts;
 
-    /// <summary>The layout the foreground window is using, or null when it has none or nothing is listening.</summary>
     public KeyboardLayout? Current => _current;
 
-    /// <summary>
-    /// Raised on the loop's thread when <see cref="Layouts"/> or <see cref="Current"/> changes. The first handler
-    /// added starts reading Windows, and removing the last stops it. Add and remove handlers on the loop's thread.
-    /// </summary>
     public event PropertyChangedEventHandler? PropertyChanged
     {
         add
@@ -54,11 +42,6 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
         }
     }
 
-    /// <summary>
-    /// Asks the foreground window to use <paramref name="layout"/>, as the input indicator does. A layout that is not
-    /// installed is ignored, and so is the one already in use. Returns whether the window was asked. Call it on the
-    /// loop's thread.
-    /// </summary>
     public bool Use(KeyboardLayout layout)
     {
         ArgumentNullException.ThrowIfNull(layout);
@@ -70,10 +53,6 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
         return _backend.Use(layout.Id);
     }
 
-    /// <summary>
-    /// Asks the foreground window to use the next installed layout, as Win+Space does. Does nothing when that layout
-    /// is already in use. Returns whether the window was asked. Call it on the loop's thread.
-    /// </summary>
     public bool Next()
     {
         if (_disposed)
@@ -81,7 +60,6 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
         var snapshot = Snapshot();
         if (snapshot.Layouts.Count == 0)
             return false;
-        // A foreground layout that is not installed starts the cycle at the first one.
         var index = -1;
         for (var i = 0; i < snapshot.Layouts.Count; i++)
             if (snapshot.Layouts[i].Id == snapshot.CurrentId)
@@ -92,7 +70,6 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
         return _backend.Use(next.Id);
     }
 
-    /// <summary>Stops reading Windows, and a handler added later does not start it again.</summary>
     public void Dispose()
     {
         _disposed = true;
@@ -117,7 +94,6 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
                 current = layouts[i];
         }
 
-        // Kept before listeners hear it, so one that stops listening, or throws, cannot leave it stale.
         var layoutsChanged = !Same(_layouts, layouts);
         var currentChanged = !Same(_current, current);
         _layouts = layouts;
@@ -138,7 +114,6 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
         _current = null;
     }
 
-    /// <summary>The last reading while something listens. Otherwise one reading, which does not start the watch.</summary>
     private KeyboardSnapshot Snapshot()
     {
         return _listeners is null || _last is null ? _backend.Read() : _last;
@@ -152,10 +127,6 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
         return false;
     }
 
-    /// <summary>
-    /// A short label, such as EN: the language code, or the name's first word when Windows reports no code, without a
-    /// script suffix, and at most three characters.
-    /// </summary>
     private static string Label(string language, string name)
     {
         var source = language.Length > 0 ? language : FirstWord(name);

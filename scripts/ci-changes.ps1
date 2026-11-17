@@ -1,12 +1,9 @@
 #requires -Version 7.0
-# Decides which checks a change needs, from GitHub changed-file JSON read at the checkout root. stdout is ready for
-# GITHUB_OUTPUT.
 param(
     [string] $Files,
     [ValidateRange(1, 3000)][int] $MaxFiles = 3000
 )
 
-# Prose is what no build, test or package in CI reads.
 function Test-Prose {
     param([string] $Path)
     $Path -match '^docs/(?!samples/)|^\.github/ISSUE_TEMPLATE/|\.md$|^(LICENSE|\.gitignore)$'
@@ -27,9 +24,6 @@ function Test-Changed {
     param([string] $Pattern)
     $unknown -or @($nonProse -match $Pattern).Count -gt 0
 }
-# What no test shard reads: the tooling scripts and their suites, the workflows other than ci.yml, and the release files.
-# Still code: the suite's own machinery (scripts/lib/, build-template.ps1, the reference program and its page
-# writer, render-logo.cs), and the files the suite reads (install.ps1, the icon the build embeds, the MSIX logos).
 $noShard = '^scripts/(?!lib/|build-template\.ps1$|generate-reference\.cs$|reference-pages\.cs$|render-logo\.cs$|install\.ps1$)|^tests/Scripts/',
     '^\.github/workflows/(?!ci\.yml$)|^\.github/dependabot\.yml$',
     '^packaging/(?!winshell\.ico$|msix/Assets/)' -join '|'
@@ -37,10 +31,7 @@ $checks = [ordered]@{
     code = $unknown -or @($nonProse -notmatch $noShard).Count -gt 0
     docs = $unknown
     scripts = Test-Changed '^scripts/|^tests/Scripts/|^\.github/(workflows/ci\.yml$|actions/)'
-    # The pin file is not a workflow, but the actionlint job installs actionlint and zizmor from it.
     workflows = Test-Changed '^\.github/(workflows|actions)/|^\.github/dependabot\.yml$|^scripts/tool-pins\.psd1$'
-    # What package.yml's jobs read: the release files, the template, the library's project and build files, the package
-    # tests and the support they compile, and the scripts and actions that pack, package and test them.
     package = Test-Changed (
         '^(packaging|templates|src/Winshell\.Package|tests/(Winshell\.Package\.Tests|TestSupport)|scripts/lib|\.github/actions)/',
         '^src/[^/]+/[^/]+\.csproj$',
@@ -48,10 +39,8 @@ $checks = [ordered]@{
         '^(global\.json|nuget\.config|release-please-config\.json|\.release-please-manifest\.json)$',
         '^scripts/(check|pack|package|publish-release)\.ps1$',
         '^\.github/workflows/(package|release-please)\.yml$',
-        # package.ps1 and the release job install the winget downloads named here.
         '^scripts/tool-pins\.psd1$' -join '|')
 }
-# quality's formatting check and PowerShell suites.
 $checks.powershell = $checks.code -or $checks.scripts -or $checks.workflows
 
 if (-not $checks.code) {
@@ -61,7 +50,6 @@ if (-not $checks.code) {
             $checks.docs = $true
             break
         }
-        # These are the pages DocsTests reads. A removed fence can disappear from the checkout, so inspect the patch too.
         $pages = @($names | Where-Object { $_ -eq 'README.md' -or ($_ -match '^docs/.*\.md$' -and $_ -notmatch '^docs/agents/') })
         if ($pages.Count -eq 0) { continue }
         if ($null -eq $file['patch'] -or $file['patch'].Contains('```csharp')) {

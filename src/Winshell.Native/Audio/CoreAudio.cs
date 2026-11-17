@@ -5,15 +5,8 @@ using Windows.Win32.System.Com;
 
 namespace Winshell.Native;
 
-// The Windows Core Audio COM interfaces the audio service uses, declared for classic COM interop: the service
-// implements the notification interfaces, and CsWin32 generates these only as unmanaged structs. Deleting or
-// reordering a method shifts later COM slots, so a method the service never calls, and an unused parameter or
-// HRESULT, keeps its place with a placeholder signature.
-
-/// <summary>Creates, activates and releases the Windows Core Audio objects the audio service uses.</summary>
 internal static class CoreAudio
 {
-    /// <summary>The class of <see cref="IPolicyConfig"/>, which Windows does not document.</summary>
     private static readonly Guid PolicyConfigClsid = new("870AF99C-171D-4F9E-AF0D-E63DF40C2BC9");
 
     public static readonly PROPERTYKEY DeviceFriendlyName = new(new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 14);
@@ -22,16 +15,11 @@ internal static class CoreAudio
     public static readonly PROPERTYKEY EndpointFormFactor = new(new Guid("1DA5D803-D492-4EDD-8C23-E0C0FFEE7F0E"), 0);
     public static readonly PROPERTYKEY EngineDeviceFormat = new(new Guid("F19F064D-082C-4E27-BC73-6882A1BB8E4C"), 0);
 
-    /// <summary>The device enumerator. Throws <see cref="COMException"/> when Windows audio is not available.</summary>
     public static IMMDeviceEnumerator CreateEnumerator()
     {
         return Create<IMMDeviceEnumerator>(typeof(MMDeviceEnumerator).GUID);
     }
 
-    /// <summary>
-    /// Makes a device the Windows default for the console and multimedia roles. Throws <see cref="COMException"/>
-    /// when Windows refuses, or <see cref="InvalidCastException"/> when this Windows has no policy interface.
-    /// </summary>
     public static void SetDefaultEndpoint(string deviceId)
     {
         var policy = Create<IPolicyConfig>(PolicyConfigClsid);
@@ -46,7 +34,6 @@ internal static class CoreAudio
         }
     }
 
-    /// <summary>One of a device's interfaces, such as its endpoint volume.</summary>
     public static T Activate<T>(IMMDevice device)
         where T : class
     {
@@ -55,17 +42,12 @@ internal static class CoreAudio
         return (T)obj;
     }
 
-    /// <summary>
-    /// Opens a shared recording stream on a device and starts it, or returns null when Windows refuses. Stop the
-    /// stream and release it to close it.
-    /// </summary>
     public static IAudioClient? StartSharedStream(IMMDevice device)
     {
         var client = Activate<IAudioClient>(device);
         if (client.GetMixFormat(out var format) == 0)
             try
             {
-                // A 100 ms buffer. Nothing reads it; overruns are harmless.
                 if (client.Initialize(AUDCLNT_SHAREMODE.AUDCLNT_SHAREMODE_SHARED, 0, 1_000_000, 0, format, 0) == 0 &&
                     client.Start() == 0)
                     return client;
@@ -79,7 +61,6 @@ internal static class CoreAudio
         return null;
     }
 
-    /// <summary>Resolves a string like <c>@%SystemRoot%\System32\AudioSrv.Dll,-202</c> to its text.</summary>
     public static string LoadIndirectString(string text)
     {
         if (!text.StartsWith('@'))
@@ -88,17 +69,12 @@ internal static class CoreAudio
         return PInvoke.SHLoadIndirectString(text, buffer).Value == 0 ? new string(buffer).TrimEnd('\0') : "";
     }
 
-    /// <summary>
-    /// Throws <see cref="InvalidCastException"/> for a class without the interface, and <see cref="COMException"/>
-    /// when Windows cannot create it.
-    /// </summary>
     private static T Create<T>(Guid clsid)
         where T : class
     {
         var created = Com.Create<T>(clsid, CLSCTX.CLSCTX_SERVER, out var hr);
         if (created is not null)
             return created;
-        // E_NOINTERFACE becomes InvalidCastException.
         Marshal.ThrowExceptionForHR(hr);
         throw new InvalidCastException();
     }
@@ -284,7 +260,6 @@ internal interface IAudioSessionEnumerator
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioSessionControl2
 {
-    // IAudioSessionControl
     void GetState(out AudioSessionState state);
 
     void GetDisplayName([MarshalAs(UnmanagedType.LPWStr)] out string name);
@@ -303,7 +278,6 @@ internal interface IAudioSessionControl2
 
     void UnregisterAudioSessionNotification(IAudioSessionEvents events);
 
-    // IAudioSessionControl2
     void GetSessionIdentifier([MarshalAs(UnmanagedType.LPWStr)] out string id);
 
     void GetSessionInstanceIdentifier([MarshalAs(UnmanagedType.LPWStr)] out string id);
@@ -364,10 +338,6 @@ internal interface ISimpleAudioVolume
     void GetMute([MarshalAs(UnmanagedType.Bool)] out bool mute);
 }
 
-/// <summary>
-/// The undocumented policy interface Windows' own sound settings use to change the default device. It has been
-/// stable since Windows 7; when it is missing, setting the default device does nothing.
-/// </summary>
 [ComImport]
 [Guid("F8679F50-850A-41CF-9C72-430F290290C8")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

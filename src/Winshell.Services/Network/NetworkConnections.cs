@@ -1,12 +1,9 @@
 namespace Winshell.Network;
 
-/// <summary>A Windows connection profile, with the SSID and security it connects with when it is a Wi-Fi one.</summary>
 internal sealed record NetworkConnectionInfo(NetworkProfileInfo Profile, string? Ssid, WifiSecurityType Security);
 
-/// <summary>The connection profiles connected on an adapter now, and the Wi-Fi networks each adapter sees.</summary>
 internal sealed class NetworkConnections(IEnumerable<NetworkConnectionInfo> profiles)
 {
-    // Windows also lists saved profiles that are not connected, each with its adapter.
     private readonly NetworkConnectionInfo[] _connected =
         profiles.Where(p => p.Profile.Connectivity != NetworkConnectivity.None).ToArray();
 
@@ -17,10 +14,6 @@ internal sealed class NetworkConnections(IEnumerable<NetworkConnectionInfo> prof
         return _connected.FirstOrDefault(p => p.Profile.AdapterId == id);
     }
 
-    /// <summary>
-    /// The scanned networks, strongest first after the connected one. The connected network is added from its
-    /// profile when the scan misses it.
-    /// </summary>
     public List<NetworkInfo> WifiNetworks(Guid id, ConnectionState deviceState, IEnumerable<NetworkInfo> scanned,
         IReadOnlyList<WifiProfileInfo> saved)
     {
@@ -29,7 +22,6 @@ internal sealed class NetworkConnections(IEnumerable<NetworkConnectionInfo> prof
         var networks = new Dictionary<string, NetworkInfo>(StringComparer.Ordinal);
         foreach (var network in scanned)
         {
-            // A hidden network has no name to show or connect by.
             if (string.IsNullOrEmpty(network.Name))
                 continue;
             if (networks.TryGetValue(network.Name, out var seen) && seen.SignalStrength >= network.SignalStrength)

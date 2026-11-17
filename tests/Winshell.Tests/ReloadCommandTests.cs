@@ -5,15 +5,8 @@ using Xunit.Sdk;
 
 namespace Winshell.Tests;
 
-/// <summary>
-/// <c>winshell reload</c> builds a configuration project and then asks the instance to start the next process, or under
-/// <c>winshell run</c> asks it to quit for its supervisor to start. A build that fails leaves that instance running and
-/// tells it to show the notice. These tests edit and rebuild the probe, so they build one of their own that no other test
-/// starts.
-/// </summary>
 public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<ReloadCommandTests.OwnProbe>
 {
-    // Each test runs a build, which can take minutes on a busy runner.
     private const int BuildTimeout = 600_000;
 
     private readonly string _dir = TempFolder.NewPath();
@@ -22,11 +15,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
     private readonly OwnProbe _probe;
     private readonly List<Process> _started = [];
 
-    /// <summary>
-    /// The probe these tests build and edit, once for the class. The shared one is built first, so that no other build
-    /// of the src/ projects is still to come when <c>winshell reload</c> runs one.
-    /// </summary>
-    // xUnit constructs this class fixture.
     public sealed partial class OwnProbe : IDisposable
     {
         private readonly string _dir = TempFolder.NewPath();
@@ -62,7 +50,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         Directory.CreateDirectory(_config);
     }
 
-    // The instance shows the notice, which is a window.
     [Fact(Timeout = BuildTimeout)]
     [Trait("Category", "Window")]
     public void A_build_that_fails_leaves_the_instance_running()
@@ -99,7 +86,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         var process = StartProbe();
         try
         {
-            // The probe's shell id says which code runs. The first reload builds beside the running program, the second into bin\shell.
             var first = ReloadTo(process, original, "first");
             var second = ReloadTo(first, original, "second");
 
@@ -111,10 +97,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         }
     }
 
-    /// <summary>
-    /// The supervisor starts the edit a reload built, beside the program that ran, and owns it: it starts it again after
-    /// a crash.
-    /// </summary>
     [Fact(Timeout = BuildTimeout)]
     public void A_reload_under_winshell_run_stays_supervised()
     {
@@ -130,7 +112,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
             Reload(first);
 
             var second = NextPid(first, "reloaded");
-            // Ended without its cleanup, as a crash would end it.
             using (var crashed = Process.GetProcessById(second))
             {
                 crashed.Kill();
@@ -146,7 +127,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         }
     }
 
-    /// <summary>A reload ends a shell that does not finish quitting, so its supervisor can start the next one.</summary>
     [Fact(Timeout = BuildTimeout)]
     public void A_reload_under_winshell_run_ends_a_shell_that_hangs_on_its_way_out()
     {
@@ -157,7 +137,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         var shell = NextPid(0, null);
         var pidFile = Path.Combine(_config, "child.pid");
         Wait.Until(() => File.Exists(pidFile), "the shell's program to start");
-        // Only this shell hangs.
         File.Delete(hang);
         using var program = Process.GetProcessById(int.Parse(File.ReadAllText(pidFile), CultureInfo.InvariantCulture));
         using var hung = Process.GetProcessById(shell);
@@ -176,7 +155,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         }
     }
 
-    /// <summary>Its supervisor starts only a project's last build, so without the project the shell keeps running.</summary>
     [Fact]
     public void A_reload_under_winshell_run_without_its_project_is_refused()
     {
@@ -202,7 +180,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         }
     }
 
-    /// <summary>Starts <c>winshell run</c> on this class's probe, which runs its last build.</summary>
     private Process Supervise()
     {
         var info = WinshellCli.StartInfo(["run", "--no-build", "-p", _probe.Folder]);
@@ -210,7 +187,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         info.Environment["WINSHELL_LOCAL_DIR"] = _local;
         var run = Process.Start(info)!;
         _started.Add(run);
-        // Read the output so the supervisor never blocks on a full pipe.
         run.ErrorDataReceived += (_, _) => { };
         run.OutputDataReceived += (_, _) => { };
         run.BeginErrorReadLine();
@@ -218,7 +194,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         return run;
     }
 
-    /// <summary>The process id of a listed shell other than <paramref name="previous"/>, with <paramref name="shellId"/> when it is given.</summary>
     private int NextPid(int previous, string? shellId)
     {
         var pid = 0;
@@ -257,7 +232,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         return next;
     }
 
-    /// <summary>Reloads the shell <paramref name="pid"/>, failing with what the reload printed unless it exits 0.</summary>
     private ChildProcess Reload(int pid)
     {
         var result = Run("reload", "--pid", pid.ToString(CultureInfo.InvariantCulture));
@@ -282,7 +256,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
 
     private ChildProcess Run(params string[] args)
     {
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         return WinshellCli.Run(args, ("WINSHELL_CONFIG_DIR", _config), ("WINSHELL_LOCAL_DIR", _local));
 #pragma warning restore CsWinRT1030
     }
@@ -316,7 +290,6 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
                 {
                     process.Kill(true);
                 }
-                // The process can exit between the check and Kill.
                 catch (Exception)
                 {
                 }

@@ -2,13 +2,8 @@ using Windows.UI.Notifications.Management;
 
 namespace Winshell.Notifications;
 
-/// <summary>
-/// Whether Windows lets this process read notifications. <see cref="WindowsNotificationBackend"/> maps the answers it
-/// reports through <see cref="Map"/>, and the doctor calls <see cref="Read"/>, which needs no shell services.
-/// </summary>
 internal static class NotificationListenerAccess
 {
-    /// <summary>Asks Windows without a prompt. Unavailable when Windows cannot answer, as without package identity.</summary>
     public static NotificationAccessStatus Read()
     {
         try

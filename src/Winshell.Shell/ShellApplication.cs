@@ -6,10 +6,6 @@ using Microsoft.UI.Xaml.XamlTypeInfo;
 
 namespace Winshell;
 
-/// <summary>
-/// The WinUI application every shell runs in. A configuration has no App.xaml, so this finds the XAML type
-/// information its assemblies were compiled with, which a custom control in XAML is looked up in.
-/// </summary>
 internal sealed partial class ShellApplication(Action started) : Application, IXamlMetadataProvider
 {
     private readonly List<IXamlMetadataProvider> _providers =

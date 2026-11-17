@@ -2,11 +2,6 @@ using Windows.Devices.Radios;
 
 namespace Winshell.Bluetooth;
 
-/// <summary>
-/// The default adapter and the paired and nearby devices. Reading it never pairs, connects or changes a radio. While
-/// monitoring is on, Windows' device and radio events read the state again, and so does a slow timer, because Windows
-/// announces no change to discoverable and incoming-connection state, or to a battery level.
-/// </summary>
 public sealed class BluetoothService : ObservableObject, IDisposable
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(30);
@@ -39,39 +34,26 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         Backend.Changed += Refresh;
     }
 
-    /// <summary>Starting or stopping discovery failed.</summary>
     public event Action<string>? OperationFailed;
 
     internal IBluetoothBackend Backend { get; }
 
-    /// <summary>The default adapter Windows returns, or null when there is none.</summary>
     public BluetoothAdapter? DefaultAdapter => Read(_adapter);
 
-    /// <summary>Only the <see cref="DefaultAdapter"/>, or empty when there is none.</summary>
     public ObservableList<BluetoothAdapter> Adapters { get => Read(field); } = [];
 
-    /// <summary>
-    /// The paired devices and the nearby ones found during discovery: connected first, then paired, then by name.
-    /// Empty when there is no adapter.
-    /// </summary>
     public ObservableList<BluetoothDevice> Devices { get => Read(field); } = [];
 
-    /// <summary>The paired devices, in the order of <see cref="Devices"/>.</summary>
     public ObservableList<BluetoothDevice> PairedDevices { get => Read(field); } = [];
 
-    /// <summary>The present unpaired devices found during discovery.</summary>
     public ObservableList<BluetoothDevice> NearbyDevices { get => Read(field); } = [];
 
-    /// <summary>A read has completed. A completed read can have no adapter.</summary>
     public bool Ready => Read(_snapshot).Ready;
 
-    /// <summary>Whether Windows is looking for nearby devices, after <see cref="StartDiscovery"/>.</summary>
     public bool Discovering => Read(_snapshot).Discovering;
 
-    /// <summary>Why the last read, or starting or stopping discovery, failed. Empty when it succeeded.</summary>
     public string Error => Read(_error);
 
-    /// <summary>Reads adapter and device state, and again at every change Windows reports, until <see cref="StopMonitoring"/>. Nothing is read before this.</summary>
     public void StartMonitoring()
     {
         if (_disposed)
@@ -93,7 +75,6 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         Refresh();
     }
 
-    // Called under the gate. A tick of a timer that was stopped, or replaced, does nothing.
     private IDisposable SchedulePoll()
     {
         IDisposable? timer = null;
@@ -111,7 +92,6 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         return timer;
     }
 
-    /// <summary>Stops watching Windows. A later <see cref="StartMonitoring"/> starts again.</summary>
     public void StopMonitoring()
     {
         IDisposable? poll;
@@ -139,7 +119,6 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         _reader.Invalidate();
     }
 
-    /// <summary>Reads the state now, rather than at the next change Windows reports.</summary>
     public void Refresh()
     {
         _reader.Request();
@@ -162,13 +141,11 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Starts looking for nearby devices. Needs an adapter that is on.</summary>
     public void StartDiscovery()
     {
         SetDiscovery(true);
     }
 
-    /// <summary>Stops looking, and clears the unpaired devices it found.</summary>
     public void StopDiscovery()
     {
         SetDiscovery(false);
@@ -206,7 +183,6 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         Refresh();
     }
 
-    // Returns before Windows answers. Enabled changes only when a later read reports the radio did.
     internal async Task SetAdapterEnabledAsync(BluetoothAdapter adapter, bool enabled)
     {
         if (_disposed || !ReferenceEquals(adapter, _adapter) || adapter.ReportsOn == enabled)
@@ -222,8 +198,6 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         }).ConfigureAwait(false);
     }
 
-    // Windows accepts discovery only while incoming connections are on, and turning those off
-    // requires discovery off first. The property changes when a later read reports it.
     internal async Task SetDiscoverableAsync(BluetoothAdapter adapter, bool discoverable)
     {
         if (_disposed || !ReferenceEquals(adapter, _adapter) || adapter.Discoverable == discoverable)
@@ -337,7 +311,6 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         return true;
     }
 
-    /// <summary>Stops monitoring and discovery, and cancels a running pairing.</summary>
     public void Dispose()
     {
         lock (_gate)

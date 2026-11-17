@@ -4,38 +4,24 @@ using Winshell.Native;
 
 namespace Winshell.ExplorerTaskbar;
 
-/// <summary>
-/// The Explorer taskbar windows one shell hid, kept in the local folder so the next shell can put them back.
-/// The shell that hides them writes the file. A shell that is replaced leaves the file with no owner. The shell
-/// that takes over writes its own process id, and puts the windows back when it exits. A crash of the owner does
-/// the same from the supervisor.
-/// </summary>
 internal static partial class ExplorerTaskbarLease
 {
     private const string FileName = "explorer-taskbar.json";
 
-    /// <summary>Whether <paramref name="locations"/> has a lease. This does not say who owns it.</summary>
     internal static bool Exists(ShellLocations locations)
     {
         return File.Exists(PathFor(locations));
     }
 
-    /// <summary>
-    /// True when a crash of <paramref name="childPid"/> must leave the taskbar hidden, including when that child
-    /// gave way to the shell that replaces it. <paramref name="hiddenAtStart"/> is whether a window was already
-    /// hidden before that child started, which belongs to another shell when this folder has no lease for the child.
-    /// </summary>
     internal static bool LeaveHidden(int childPid, bool hiddenAtStart)
     {
         return LeaveHidden(ShellLocations.Current, childPid, hiddenAtStart);
     }
 
-    /// <inheritdoc cref="LeaveHidden(int, bool)"/>
     internal static bool LeaveHidden(ShellLocations locations, int childPid, bool hiddenAtStart)
     {
         if (!TryRead(locations, out var lease))
             return hiddenAtStart;
-        // No owner means the child gave way. The next shell puts the taskbar back.
         if (lease.Owner == 0)
             return true;
         if (lease.Owner == childPid || !Instances.ProcessAlive(lease.Owner))
@@ -43,7 +29,6 @@ internal static partial class ExplorerTaskbarLease
         return true;
     }
 
-    /// <summary>Puts back the lease in the current local folder, or every hidden taskbar window when there is none.</summary>
     internal static void Recover()
     {
         var locations = ShellLocations.Current;
@@ -56,16 +41,11 @@ internal static partial class ExplorerTaskbarLease
         Restore(locations, lease);
     }
 
-    /// <inheritdoc cref="ReleaseUnclaimed(ShellLocations)"/>
     internal static void ReleaseUnclaimed()
     {
         ReleaseUnclaimed(ShellLocations.Current);
     }
 
-    /// <summary>
-    /// Puts the leased windows back when this process may. A live owner that is not this process keeps them.
-    /// A shell calls this after it starts when it is not going to hide the taskbar itself.
-    /// </summary>
     internal static void ReleaseUnclaimed(ShellLocations locations)
     {
         if (!TryRead(locations, out var lease))
@@ -75,20 +55,17 @@ internal static partial class ExplorerTaskbarLease
         Restore(locations, lease);
     }
 
-    /// <summary>The windows <paramref name="locations"/> remembers, or none when the file is missing or unreadable.</summary>
     internal static List<ExplorerTaskbarWindow.Saved> Windows(ShellLocations locations)
     {
         return TryRead(locations, out var lease) ? lease.Windows.Select(ToSaved).ToList() : [];
     }
 
-    /// <summary>Remembers <paramref name="windows"/> as hidden by <paramref name="owner"/>.</summary>
     internal static bool Write(ShellLocations locations, int owner, IReadOnlyList<ExplorerTaskbarWindow.Saved> windows)
     {
         var file = new TaskbarLeaseFile(owner, windows.Select(FromSaved).ToList());
         return Save(locations, file);
     }
 
-    /// <summary>Leaves the windows hidden and names no owner, so the next shell puts them back. Does nothing when there is no lease.</summary>
     internal static void HandOff(ShellLocations locations)
     {
         if (!TryRead(locations, out var lease) || lease.Owner == 0)
@@ -96,13 +73,11 @@ internal static partial class ExplorerTaskbarLease
         Save(locations, lease with { Owner = 0 });
     }
 
-    /// <summary>Leaves the current lease for the next shell.</summary>
     internal static void HandOff()
     {
         HandOff(ShellLocations.Current);
     }
 
-    /// <summary>Deletes the lease. A missing file is the same as a deleted one.</summary>
     internal static void Forget(ShellLocations locations)
     {
         try

@@ -5,13 +5,8 @@ using System.Xml.Linq;
 
 namespace Winshell;
 
-/// <summary>
-/// A configuration <c>winshell new</c> can copy: the starter, or a folder under <c>examples</c>. Each
-/// is built into winshell.exe, so it is always this release's.
-/// </summary>
 internal sealed class Example
 {
-    /// <summary>The marker, the first line under a README heading that isn't blank, that leaves that section out of a copy.</summary>
     internal const string RepoOnly = "<!-- winshell new leaves this section out -->";
 
     private const string ResourcePrefix = "new/";
@@ -25,20 +20,12 @@ internal sealed class Example
         _files = files;
     }
 
-    /// <summary>The starter, then every example by name.</summary>
     public static ImmutableArray<Example> All { get; } = Load();
 
     public string Name { get; }
 
-    /// <summary>The title of its README, or for the starter what the starter is.</summary>
     public string Description { get; }
 
-    /// <summary>
-    /// Writes this configuration into <paramref name="folder"/>. Its project references the Winshell package at
-    /// <paramref name="version"/> instead of Winshell's source, and README sections marked <see cref="RepoOnly"/> are
-    /// left out. When <paramref name="packages"/> holds that package, a <c>nuget.config</c> adds it as a source.
-    /// </summary>
-    /// <returns>Whether that <c>nuget.config</c> was written.</returns>
     public bool CopyTo(string folder, string version, string packages)
     {
         Directory.CreateDirectory(folder);
@@ -68,10 +55,6 @@ internal sealed class Example
         return true;
     }
 
-    /// <summary>
-    /// The resources are <c>new/&lt;name&gt;/&lt;path&gt;</c>. Winshell.csproj names them, from <c>templates/winshell</c>
-    /// as <c>starter</c> and from each folder under <c>examples</c>.
-    /// </summary>
     private static ImmutableArray<Example> Load()
     {
         var byName = new SortedDictionary<string, List<(string, string)>>(StringComparer.OrdinalIgnoreCase);
@@ -107,11 +90,6 @@ internal sealed class Example
         return title is not { } heading ? "" : heading[2..].Trim();
     }
 
-    /// <summary>
-    /// In the repo a project imports <c>Winshell.props</c> and references <c>Winshell.Shell</c>'s source; the starter
-    /// has a version placeholder. A copy references the package instead. A comment right above the import explains
-    /// it, and goes with it.
-    /// </summary>
     private static string Project(string text, string version)
     {
         var root = XDocument.Parse(text).Root!;
@@ -151,10 +129,6 @@ internal sealed class Example
         return output.Append('\n').ToString();
     }
 
-    /// <summary>
-    /// Leaves out each section whose first line that isn't blank is <see cref="RepoOnly"/>, from its heading up to the
-    /// next heading as high.
-    /// </summary>
     private static string WithoutRepoOnly(string text)
     {
         var lines = text.Split('\n');

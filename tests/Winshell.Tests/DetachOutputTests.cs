@@ -2,10 +2,6 @@ using System.Globalization;
 
 namespace Winshell.Tests;
 
-/// <summary>
-/// A <c>-d</c> start returns at once, and the shell it leaves behind holds nothing of its caller: output read to the end
-/// ends when the start does. The probe has no windows.
-/// </summary>
 public sealed partial class DetachOutputTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
@@ -25,10 +21,8 @@ public sealed partial class DetachOutputTests : IDisposable, IClassFixture<Probe
     [Fact]
     public void The_output_of_run_d_ends_when_it_returns()
     {
-        // The probe's program is <project>\bin\shell\<name>.exe.
         var project = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(ProbeShell.Program)))!;
 
-        // WinshellCli reads both streams to their end, and fails if they stay open after the process exits.
         var result = WinshellCli.Run(["run", "-d", "--no-build", "-p", project], Folders);
 
         result.AssertExitCode(0);
@@ -43,7 +37,6 @@ public sealed partial class DetachOutputTests : IDisposable, IClassFixture<Probe
 
     public void Dispose()
     {
-        // Asked, not ended: the winshell run that supervises the shell would start an ended one again.
         foreach (var pid in Running())
             WinshellCli.Run(["kill", "--force", "--pid", pid.ToString(CultureInfo.InvariantCulture)], Folders);
         Wait.Until(Removed, "the test folder to be free");

@@ -1,6 +1,5 @@
 namespace Winshell.Tests;
 
-/// <summary>Reads what <c>dotnet watch</c> really printed, from a run on a WinUI shell.</summary>
 public sealed class DevOutputTests
 {
     private const string Broken = @"C:\Shells\Mine\Marker.cs(4,45): error CS1002: ; expected";

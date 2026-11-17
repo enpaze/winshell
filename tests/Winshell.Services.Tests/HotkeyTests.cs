@@ -2,9 +2,6 @@ using Winshell.Input;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// A hotkey over a stand-in for Windows, so no chord is registered and no hook is installed. The claim rules run for real.
-/// </summary>
 public sealed class HotkeyTests : IDisposable
 {
     private readonly ManualEventLoop _loop = new();
@@ -276,9 +273,7 @@ public sealed class HotkeyTests : IDisposable
         using var hotkey = Create();
         hotkey.Sequence = "Ctrl+K";
         var events = new List<string>();
-        // IsPressed is read when the event is raised, before this method disposes the hotkey.
         hotkey.Pressed += (_, _) => events.Add($"pressed {hotkey.IsPressed}");
-        // IsPressed is read when the event is raised, before this method disposes the hotkey.
         hotkey.Released += (_, _) => events.Add($"released {hotkey.IsPressed}");
         IHotkeyListener listener = hotkey;
 
@@ -413,7 +408,6 @@ public sealed class HotkeyTests : IDisposable
             ChordPressed?.Invoke(chord);
         }
 
-        // Whether the hook swallowed the key.
         public bool Key(int virtualKey, bool up)
         {
             return HookInstalled && _onKey!(virtualKey, up);

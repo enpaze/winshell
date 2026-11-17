@@ -6,22 +6,17 @@ on:
   push:
     branches:
       - main
-  # A run by hand, on any branch, runs every check: gh workflow run ci.yml --ref <branch>.
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# The main build, test and lint jobs live here. changes selects what a PR or main push needs, so prose runs only links.
-#
-# A new push cancels the superseded run on the same branch, including main and manual runs.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
   changes:
-    # Only false skips, so a failed comparison still runs everything. Job-level skips satisfy required checks.
     name: changes
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -35,10 +30,9 @@ jobs:
       scripts: ${{ steps.changes.outputs.scripts }}
       workflows: ${{ steps.changes.outputs.workflows }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      # The pinned actionlint cannot parse self-repository syntax; local actions use this checkout.
       - uses: ./.github/actions/changes # zizmor: ignore[self-repository]
         id: changes
 
@@ -49,11 +43,9 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      # Offline, so only links to files in the repo and their headings: links.yml checks other sites. The lychee release
-      # archive is checked against its SHA-256 before it runs. Dependabot does not see a raw download.
       - name: Check links between pages
         shell: pwsh
         run: |
@@ -70,7 +62,6 @@ jobs:
           Expand-Archive -LiteralPath $archive -DestinationPath $env:RUNNER_TEMP
           & (Join-Path $env:RUNNER_TEMP 'lychee-x86_64-pc-windows-msvc\lychee.exe') --offline --include-fragments --no-progress '**/*.md' '.github/**/*.md'
           exit $LASTEXITCODE
-      # The pinned actionlint cannot parse self-repository syntax; local actions use this checkout.
       - uses: ./.github/actions/prepare # zizmor: ignore[self-repository]
         if: needs.changes.outputs.powershell != 'false' || needs.changes.outputs.docs == 'true'
       - uses: ./.github/actions/powershell # zizmor: ignore[self-repository]
@@ -104,10 +95,9 @@ jobs:
     env:
       TEST_SHARD: ${{ matrix.shard }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      # The pinned actionlint cannot parse self-repository syntax; local actions use this checkout.
       - uses: ./.github/actions/prepare # zizmor: ignore[self-repository]
       - name: Build the suite shard
         shell: pwsh
@@ -118,7 +108,6 @@ jobs:
             dotnet build $project -warnaserror --nologo
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          # Quality verifies files without loading the project graph.
           if ($testRun.CompileTemplateSamplesReferenceAndLogo) {
             ./scripts/build-template.ps1
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -139,17 +128,30 @@ jobs:
           exit (Invoke-TestRun -Shard $env:TEST_SHARD -ResultsDirectory (Join-Path $env:RUNNER_TEMP 'test-results'))
       - name: Keep test timings and failure evidence
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: test-results-${{ matrix.shard }}
           path: ${{ runner.temp }}/test-results/
           retention-days: 7
           if-no-files-found: ignore
 
+  comments:
+    name: comments
+    if: ${{ github.event.pull_request.draft != true }}
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/prepare # zizmor: ignore[self-repository]
+      - name: Check that the code has no comments
+        shell: pwsh
+        run: ./scripts/comments.ps1 -VerifyNoChanges
+
   ci:
-    # The single required test check fails if any suite shard or quality check failed or was cancelled.
     name: ci
-    needs: [quality, tests, installer]
+    needs: [quality, tests, installer, comments]
     if: ${{ always() && github.event.pull_request.draft != true }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -159,30 +161,26 @@ jobs:
           QUALITY_RESULT: ${{ needs.quality.result }}
           TEST_RESULT: ${{ needs.tests.result }}
           INSTALLER_RESULT: ${{ needs.installer.result }}
+          COMMENTS_RESULT: ${{ needs.comments.result }}
         run: |
           test "$QUALITY_RESULT" = success
           test "$TEST_RESULT" = success || test "$TEST_RESULT" = skipped
           test "$INSTALLER_RESULT" = success || test "$INSTALLER_RESULT" = skipped
+          test "$COMMENTS_RESULT" = success
 
   actionlint:
-    # actionlint catches broken expressions, typos and shell errors in .github/workflows/. zizmor audits .github/ for
-    # unpinned actions, risky triggers, leaked credentials and template injection. A finding that is safe on purpose gets
-    # a `# zizmor: ignore[<audit>]` comment explaining why. The ruleset requires this job by name.
     name: actionlint
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.workflows != 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
-      contents: read # checkout
-      security-events: write # publishes the SARIF to the Security tab
+      contents: read
+      security-events: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      # actionlint and zizmor take their versions as inputs, so this step exports the pin. The actions' default is
-      # latest: actionlint would download whatever rhysd/actionlint just published, and zizmor follows a lock that
-      # moves when its action pin moves.
       - name: Read the tool pins
         id: pins
         shell: pwsh
@@ -190,36 +188,28 @@ jobs:
           $pins = Import-PowerShellDataFile ./scripts/tool-pins.psd1
           "actionlint=$($pins.actionlint.version)" >> $env:GITHUB_OUTPUT
           "zizmor=$($pins.zizmor.version)" >> $env:GITHUB_OUTPUT
-      - uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
+      - uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7
         with:
           version: "${{ steps.pins.outputs.actionlint }}"
-      - uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+      - uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd
         with:
           version: "${{ steps.pins.outputs.zizmor }}"
-          # This repository is public, so code scanning accepts the SARIF. The action rejects annotations
-          # at the same time.
           advanced-security: true
           annotations: false
 
   trim-caches:
-    # CodeQL's default setup saves a database per language on each push to main and reads only the newest, which fills
-    # the 10 GB GitHub keeps. It is a separate job so that the job that runs the code under test gets no token that can
-    # delete caches.
     name: trim-caches
     needs: ci
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
-      actions: write # deletes cache entries
+      actions: write
     steps:
       - name: Delete all but the newest databases
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        # Two per language and CodeQL version, which the key names before the commit: this push's may still be saving
-        # while the last push's is the one read. Two pushes can race to delete the same entry, and nothing needs this
-        # step to pass.
         continue-on-error: true
         run: |
           gh api --paginate "repos/$GH_REPO/actions/caches?key=codeql-overlay-base-database-&sort=created_at&direction=desc&per_page=100" \
@@ -233,10 +223,9 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      # The pinned actionlint cannot parse self-repository syntax; local actions use this checkout.
       - uses: ./.github/actions/powershell # zizmor: ignore[self-repository]
       - name: Pester (Windows PowerShell 5.1)
         shell: powershell

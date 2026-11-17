@@ -3,10 +3,6 @@ using Microsoft.UI.Xaml;
 
 namespace Winshell;
 
-/// <summary>
-/// The style dictionary on an element. It is inserted first, so a dictionary merged later wins, and replacing the
-/// style removes only this dictionary. Each element gets its own dictionary: a resource dictionary has one parent.
-/// </summary>
 internal static class StyleHost
 {
     private sealed class Mark
@@ -18,10 +14,6 @@ internal static class StyleHost
 
     private static readonly ConditionalWeakTable<FrameworkElement, Mark> Marks = new();
 
-    /// <summary>
-    /// Shows <paramref name="own"/>, or the shell's style when it is null, on <paramref name="element"/>.
-    /// Returns whether that resolved style changed.
-    /// </summary>
     public static bool Show(FrameworkElement element, ShellStyle? own)
     {
         var resolved = own ?? Shell.Current.Style;

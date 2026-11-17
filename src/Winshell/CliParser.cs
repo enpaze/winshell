@@ -5,10 +5,6 @@ using Winshell.Commands;
 
 namespace Winshell;
 
-/// <summary>
-/// Reads a command line through <see cref="CommandLine"/> and explains it from the command entries. Each entry owns
-/// its words, its flags, its checks and its handler, so the overview is those entries' lines.
-/// </summary>
 internal static class CliParser
 {
     internal static IReadOnlyList<CommandEntry> Entries => Registered;
@@ -41,7 +37,6 @@ internal static class CliParser
             .TrimEnd();
     }
 
-    /// <summary>The two overview lines for a run that names no command. The front door owns that path.</summary>
     private const string NoCommandOverview =
         "       winshell                            print this help\n" +
         "       winshell <command> --help           help for that command, which does not run";
@@ -68,7 +63,6 @@ internal static class CliParser
                                         Exit codes: 0 done, 1 the command failed, 2 the command line was wrong.
                                         """;
 
-    /// <summary><c>help</c> prints the overview. It has no usage of its own.</summary>
     private static readonly CommandEntry HelpEntry = new()
     {
         Name = "help",
@@ -188,7 +182,6 @@ internal static class CliParser
         return invocation;
     }
 
-    /// <summary>The flags the line set. The first problem wins, and a flag no subcommand of this command owns is named.</summary>
     private static Dictionary<CommandOption, object?> Apply(Line line)
     {
         var values = new Dictionary<CommandOption, object?>();
@@ -249,7 +242,6 @@ internal static class CliParser
         return match;
     }
 
-    /// <summary>A flag that belongs to a different subcommand is named after this one.</summary>
     private static void RejectSiblingFlags(CommandEntry command, CommandEntry sub, Line line)
     {
         foreach (var use in line.Uses)
@@ -271,10 +263,8 @@ internal static class CliParser
         return new ArgumentException($"Unexpected argument \"{argument}\".");
     }
 
-    /// <summary>An option on the line. <see cref="Option"/> is null when no option is spelled <see cref="Token"/>.</summary>
     private readonly record struct Use(string Token, CommandOption? Option, string? Value, bool Missing);
 
-    /// <summary>One walk over the arguments. The command is known by the end, including when it comes after its options.</summary>
     private sealed class Line(IReadOnlyList<string> args)
     {
         public IReadOnlyList<string> Args { get; } = args;
@@ -365,7 +355,6 @@ internal static class CliParser
             }
         }
 
-        /// <summary>A negative number is a word once this line's subcommand says so. <c>inspect scroll</c> is that subcommand.</summary>
         private bool SignedStep(string token)
         {
             if (CommandName is not { } name || Positional.Count == 0)

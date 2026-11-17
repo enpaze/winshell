@@ -5,7 +5,6 @@ namespace Winshell.Services.Tests;
 
 public sealed class ImageHeaderTests
 {
-    // 3 by 2 pictures from real encoders: Skia for the PNG, the JPEG and the lossy WebP.
     private const string Png =
         "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAYAAACddGYaAAAABHNCSVQICAgIfAhkiAAAAB5JREFUCJkFwcEJAAAIBCAvgl7tP25pcCNGtA0O5QEeFQIkjAn5PAAAAABJRU5ErkJggg==";
 
@@ -68,13 +67,11 @@ public sealed class ImageHeaderTests
         return data;
     }
 
-    // Width 9000 less one is 0x2327, and height 2 less one is 1, packed into 14 bits each.
     private static byte[] LosslessWebP()
     {
         return Riff("VP8L", "/\u0027c\0\0"u8.ToArray());
     }
 
-    // A 3-byte width 20000 less one, 0x4E1F, and a 3-byte height 3 less one.
     private static byte[] ExtendedWebP()
     {
         return Riff("VP8X", 0, 0, 0, 0, 0x1F, 0x4E, 0, 2, 0, 0);
@@ -154,9 +151,9 @@ public sealed class ImageHeaderTests
     }
 
     [Theory]
-    [InlineData(0xC4)] // DHT
-    [InlineData(0xC8)] // JPG
-    [InlineData(0xCC)] // DAC
+    [InlineData(0xC4)]
+    [InlineData(0xC8)]
+    [InlineData(0xCC)]
     public void A_marker_inside_the_frame_range_is_not_a_frame(byte marker)
     {
         byte[] jpeg = [0xFF, 0xD8, .. Segment(marker, 8, 1, 1, 1, 1, 3), .. JpegFrame(0xC0, 32, 16)];

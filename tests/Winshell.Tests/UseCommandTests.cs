@@ -4,10 +4,6 @@ using Winshell.Commands;
 
 namespace Winshell.Tests;
 
-/// <summary>
-/// <c>winshell use</c> builds a configuration that needs it, records it only when it built, and switches the running
-/// shell to it. The switch starts the probe, which holds no taskbar, edge or window.
-/// </summary>
 public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private static readonly DateTime Long = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -59,7 +55,6 @@ public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
         var other = ProbeShell.Start(Config, Local);
         _started.Add(other);
         var otherId = Running().Single().Id;
-        // b is the probe's program: its bin folder is the probe's, and its project is older than that program.
         var b = Project("b", "<Project><PropertyGroup><AssemblyName>Probe</AssemblyName></PropertyGroup></Project>");
         File.SetLastWriteTimeUtc(b, Long);
         var probeBin = Path.GetDirectoryName(Path.GetDirectoryName(ProbeShell.Program))!;
@@ -110,14 +105,13 @@ public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
 
     private ChildProcess Cli(params string[] args)
     {
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         return WinshellCli.Run(args, ("WINSHELL_CONFIG_DIR", Config), ("WINSHELL_LOCAL_DIR", Local));
 #pragma warning restore CsWinRT1030
     }
 
     public void Dispose()
     {
-        // Asked, not ended: the winshell run that supervises the chosen shell would start an ended one again.
         foreach (var info in Running())
             Cli("kill", "--force", "--pid", info.Pid.ToString(CultureInfo.InvariantCulture));
         foreach (var process in _started)
@@ -127,7 +121,6 @@ public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
             process.Dispose();
         }
 
-        // The junction goes first, so nothing deletes the probe's own build through it.
         var junction = Path.Combine(Config, "b", "bin");
         if (Directory.Exists(junction) && File.GetAttributes(junction).HasFlag(FileAttributes.ReparsePoint))
             Directory.Delete(junction);

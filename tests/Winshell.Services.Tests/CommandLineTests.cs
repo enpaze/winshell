@@ -2,7 +2,6 @@ using Winshell.Apps;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>One command line parses and writes the words sign-in, a shell's reload and an app launch share.</summary>
 public sealed class CommandLineTests
 {
     [Fact]
@@ -23,7 +22,6 @@ public sealed class CommandLineTests
     [InlineData("")]
     public void A_quoted_argument_parses_back_to_itself(string argument)
     {
-        // The program name is argv[0], which Windows parses without backslash escapes. The quoted text is an argument.
         var written = CommandLine.Join(argument, "");
         Assert.Equal(argument, CommandLine.Parse("winshell.exe " + written).Arguments[1]);
     }

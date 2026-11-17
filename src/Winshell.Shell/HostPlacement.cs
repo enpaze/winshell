@@ -6,10 +6,6 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>
-/// Where a native window is and whether it shows: its scale, size and place, its z-order, and the parts of it that
-/// take clicks. Where its kind puts it is its <see cref="HostWindow.Placer"/>.
-/// </summary>
 internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
 {
     private bool _visible;
@@ -23,7 +19,6 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
 
     public double Scale { get; internal set; } = 1;
 
-    /// <summary>Whether <see cref="Move"/> is placing the window, so the messages it sends come from that placement.</summary>
     internal bool Placing { get; private set; }
 
     private nint Handle => host.Handle;
@@ -35,17 +30,14 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
         return (pt.X, pt.Y);
     }
 
-    /// <summary>Whether a point on the virtual desktop, in physical pixels, is inside this window.</summary>
     internal bool ContainsScreenPoint(POINT pt)
     {
         PInvoke.GetWindowRect((HWND)Handle, out var r);
         return pt.X >= r.left && pt.X < r.right && pt.Y >= r.top && pt.Y < r.bottom;
     }
 
-    /// <summary>Moves the window to a rectangle in physical pixels, then tells its client the size and place it got.</summary>
     internal void Move(RECT rect, nint after, SET_WINDOW_POS_FLAGS flags)
     {
-        // Moving onto a monitor of another DPI sends WM_DPICHANGED from inside SetWindowPos; this rect is already right for it.
         Placing = true;
         try
         {
@@ -96,7 +88,6 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
         {
             host.Placer.Show();
             host.Focus.Show();
-            // Showing a window can put it above the windows it owns. Put those back above it.
             if (!PInvoke.IsIconic((HWND)Handle))
                 OwnedWindows.Raise(Handle, platform.Windows);
         }
@@ -119,7 +110,6 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
 
         if (rects.Count == 0)
         {
-            // Nothing takes input: let every click through, but keep drawing.
             _ = PInvoke.SetWindowRgn((HWND)Handle, default, true);
             SetClickThrough(true);
             return;
@@ -135,7 +125,6 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
             PInvoke.DeleteObject(part);
         }
 
-        // The window owns the region once it is set.
         _ = PInvoke.SetWindowRgn((HWND)Handle, region, true);
     }
 
@@ -164,7 +153,6 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
 
     public void StartSystemResize(Edges edges)
     {
-        // SC_SIZE + WMSZ_* edge code.
         var code = edges switch
         {
             Edges.Left => 1,
@@ -180,7 +168,6 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
         PInvoke.SendMessage((HWND)Handle, PInvoke.WM_SYSCOMMAND, (WPARAM)(nuint)(PInvoke.SC_SIZE + code), 0);
     }
 
-    /// <summary>Gives back what the window holds while it is placed: a popup's grab on clicks and a panel's edge.</summary>
     internal void Release()
     {
         host.Focus.Release();

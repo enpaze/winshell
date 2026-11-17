@@ -1,12 +1,7 @@
 namespace Winshell;
 
-/// <summary>Brings a collection of live objects to a new snapshot.</summary>
 internal static class ObservableSync
 {
-    /// <summary>
-    /// Makes <paramref name="items"/> match <paramref name="next"/> in order. An object whose key is still there is
-    /// kept and updated, because a UI holds on to it. <paramref name="removed"/> hears about each object that goes.
-    /// </summary>
     public static void Sync<T, TInfo, TKey>(this ObservableList<T> items, IEnumerable<TInfo> next,
         Func<T, TKey> key, Func<TInfo, TKey> infoKey,
         Func<TInfo, T> create, Action<T, TInfo> update, Action<T>? removed = null)

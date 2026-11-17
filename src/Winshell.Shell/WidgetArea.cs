@@ -9,31 +9,16 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
-/// <summary>
-/// What a <see cref="WidgetArea"/> shows. <paramref name="Name"/> selects the area's section of the preferences file.
-/// That section holds one <c>widgets</c> list, which replaces <paramref name="Defaults"/> while the file has it. An
-/// empty name uses only the defaults. The component reads the section when it renders and follows later saves.
-/// </summary>
-/// <param name="Name">The section, or <c>""</c> to use only <paramref name="Defaults"/>.</param>
-/// <param name="Defaults">The author's ordered placements. A missing list is none.</param>
-/// <param name="Orientation">The direction the placements run.</param>
-/// <param name="Style">This area's own style, which wins over the shell's, or null for the shell's.</param>
 public sealed record WidgetAreaProps(
     string Name = "",
     ImmutableArray<Placement>? Defaults = null,
     Orientation Orientation = Orientation.Horizontal,
     ShellStyle? Style = null);
 
-/// <summary>
-/// An ordered area of widgets, in one direction. A bar shows three of these in one tree. The shell's
-/// <see cref="Shell.Style"/>, or the area's own, styles the plain controls a widget renders; area-sensitive XAML uses
-/// ThemeResource. Unloading the host leaves the widgets mounted; disposing the host unmounts them.
-/// </summary>
 public sealed class WidgetArea : Component<WidgetAreaProps>
 {
     private static readonly IReadOnlyDictionary<string, object> EmptySettings = new Dictionary<string, object>();
 
-    /// <summary>The placements, in order. A widget whose name stays is the same component.</summary>
     public override Element Render()
     {
         var props = Props;
@@ -160,7 +145,6 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
 
     private sealed record SlotProps(WidgetContext Context, string Widget, string Area);
 
-    /// <summary>One placement. It stops styling popups when the area drops it, and a render error stays in its place.</summary>
     private sealed class Slot : Component<SlotProps>
     {
         public override Element Render()
@@ -185,7 +169,6 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
 
     private sealed record Failure(string Verb, string Name, string Area, Exception Error);
 
-    /// <summary>The placeholder and the log line for one placement that could not be shown.</summary>
     private sealed class FailedPlacement : Component<Failure>
     {
         public override Element Render()
@@ -201,7 +184,6 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         }
     }
 
-    /// <summary>The area's section, read while the component renders and released when the name changes or it unmounts.</summary>
     private sealed class SectionStore : IDisposable
     {
         private readonly Func<ImmutableArray<Placement>> _defaults;
@@ -222,7 +204,6 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
 
         public ImmutableArray<Placement> Snapshot => _shown;
 
-        /// <summary>The author's list, when the file has none. A file list keeps the screen as it is.</summary>
         public void NoteDefaults()
         {
             if (_section?.Placements is not null)
@@ -232,7 +213,6 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
                 _shown = next;
         }
 
-        /// <summary>Reads the section again. Returns whether the list on screen changed.</summary>
         public bool Refresh()
         {
             var next = _section?.Placements ?? _defaults();
@@ -278,7 +258,6 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         }
     }
 
-    /// <summary>A named area's section: the <c>widgets</c> list that replaces its defaults while the file has it.</summary>
     private sealed class AreaPreferences(string name, Func<ImmutableArray<Placement>> defaults)
         : Preferences(name, (_, value) => Placement.Check(value))
     {
@@ -291,15 +270,12 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             set => Set(ref field, value);
         }
 
-        /// <summary>The list as placements, or null when the file has none.</summary>
         public ImmutableArray<Placement>? Placements => Widgets is { } rows ? Placement.Parse(rows) : null;
 
-        /// <summary>A missing file shows the area's defaults, which are what the list replaces.</summary>
         internal override object? Commented(TomlKey key) => Placement.Format(defaults());
     }
 }
 
-/// <summary>The area panels on screen, so a hot reload can make one area's widgets again without rebuilding the tree.</summary>
 internal static class AreaSessions
 {
     private static readonly ConditionalWeakTable<FrameworkElement, Action> Areas = new();

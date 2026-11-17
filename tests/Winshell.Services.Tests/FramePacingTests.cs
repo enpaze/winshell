@@ -2,7 +2,6 @@ using Winshell.Capture;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>How a recording keeps frames by <c>--fps</c>, and paces the kept ones into a constant-rate video.</summary>
 public sealed class FramePacingTests
 {
     private static TimeSpan Ms(double milliseconds)
@@ -13,7 +12,6 @@ public sealed class FramePacingTests
     [Fact]
     public void A_cap_keeps_the_first_frame_in_each_slot_by_its_timestamp()
     {
-        // 10 a second: slots of 100 ms. A long gap does not let a burst through after it.
         var cap = new FrameCap(10);
         double[] times = [0, 40, 99, 100, 150, 250, 260, 520, 530];
 
@@ -36,9 +34,9 @@ public sealed class FramePacingTests
         var shown = new List<(string Frame, int Count)>();
         var pace = new ConstantRate<string>(10, (frame, count) => shown.Add((frame, count)));
 
-        pace.Add("a", Ms(30)); // the first, so it also fills the video frames before it
+        pace.Add("a", Ms(30));
         pace.Add("b", Ms(250));
-        pace.Add("c", Ms(260)); // in b's video frame, so it replaces b
+        pace.Add("c", Ms(260));
         pace.Add("d", Ms(410));
         pace.Finish(Ms(1000));
 

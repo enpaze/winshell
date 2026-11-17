@@ -1,21 +1,15 @@
 #requires -Version 7.0
-# Builds the files a release ships into one folder, and checks them. See docs/development.md#package-a-release.
 param(
     [switch] $Publish,
     [switch] $Pack,
     [switch] $Verify,
-    # With -Verify: Winshell's own binaries in each zip must carry a valid Authenticode signature, as after SignPath.
     [switch] $Signed,
     [string] $Out = 'artifacts',
     [ValidateSet('win-x64', 'win-arm64')]
     [string[]] $Runtime = @('win-x64', 'win-arm64'),
-    # Defaults to the release in .release-please-manifest.json.
     [string] $Version,
-    # A release tag, such as v1.2.3: the script stops unless the checked-out version is that release.
     [string] $Tag,
-    # The GitHub repository the release, and so the winget installer URLs, belong to.
     [string] $Repository = 'enpaze/winshell',
-    # The package identity Partner Center reserved for the Store. Empty is a test identity.
     [string] $IdentityName,
     [string] $Publisher,
     [string] $PublisherDisplayName
@@ -38,18 +32,14 @@ if (-not $PublisherDisplayName) { $PublisherDisplayName = $publisherName }
 $Out = [IO.Path]::GetFullPath($Out, $root)
 $publishRoot = Join-Path $Out 'publish'
 $id = 'DanteSparras.Winshell'
-# The newest manifest schema the pinned wingetcreate validates and submits. winget-pkgs merges it too.
-# scripts/tool-pins.psd1 names that wingetcreate and the validator package it is built with.
 $schema = '1.12.0'
 $pins = Import-PowerShellDataFile (Join-Path $PSScriptRoot 'tool-pins.psd1')
 $wingetDir = Join-Path $Out "winget/$Version"
-# The day of the commit packed, so a later repair of a release packs the same bytes.
 $day = (git -C $root log -1 --format=%cs)
 if ($LASTEXITCODE -ne 0) { throw 'git could not read the date of the commit' }
 $releaseDay = [datetime]::ParseExact($day.Trim(), 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
 Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 
-# A folder this script deletes, which must be inside the given one.
 function Assert-Inside([string] $path, [string] $parent) {
     $full = [IO.Path]::GetFullPath($path)
     if (-not $full.StartsWith([IO.Path]::GetFullPath($parent).TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
@@ -58,8 +48,6 @@ function Assert-Inside([string] $path, [string] $parent) {
     $full
 }
 
-# The Store package version of this release. The first part is one more than Winshell's, because the Store takes no 0
-# there and always installs the highest version. The fourth part is the Store's.
 function Get-PackageVersion {
     $parts = $Version.Split('.')
     "$([int] $parts[0] + 1).$($parts[1]).$($parts[2]).0"
@@ -68,8 +56,6 @@ function Get-PackageVersion {
 function Get-Sha256([string] $path) { (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() }
 
 if ($Publish) {
-    # The Winshell package a configuration builds against, for packages/ next to winshell.exe. NuGet dates its entries
-    # by the clock and the files' times, so they are dated the day of the commit, as the zips' are.
     $packed = Assert-Inside (Join-Path $Out 'pack') $Out
     if (Test-Path -LiteralPath $packed) { Remove-Item -LiteralPath $packed -Recurse -Force }
     & (Join-Path $PSScriptRoot 'pack.ps1') -Out $packed -Version $Version
@@ -85,10 +71,6 @@ if ($Publish) {
             -p:PublishReadyToRun=true "-p:Version=$Version" -o $dir
         if ($LASTEXITCODE -ne 0) { throw "dotnet publish for $rid failed with $LASTEXITCODE" }
         Remove-ReleaseFile $dir
-        # winshellw.exe: the same apphost, marked as a Windows app so it opens no console, as the Store package's Start
-        # entry runs it. It runs winshell.dll as winshell.exe does; the SDK makes a WinExe's apphost the same way. It is
-        # made here, before anything signs the folder: the subsystem is inside a signature's hash. WinUI loads the main
-        # resource index named after the exe, so the Windows app gets a copy of winshell.pri.
         $gui = [IO.File]::ReadAllBytes((Join-Path $dir 'winshell.exe'))
         $subsystem = (Get-PeLayout $gui).Subsystem
         if ([BitConverter]::ToUInt16($gui, $subsystem) -ne 3) { throw 'winshell.exe is not a console app' }
@@ -110,11 +92,9 @@ if ($Pack) {
         New-Zip $dir $zip $releaseDay
         $sums[(Split-Path -Leaf $zip)] = Get-Sha256 $zip
     }
-    # The format sha256sum -c reads: the hash, two spaces, the file name.
     ($sums.GetEnumerator() | ForEach-Object { "$($_.Value)  $($_.Key)" }) -join "`n" |
         Set-Content -LiteralPath (Join-Path $Out 'SHA256SUMS.txt') -NoNewline
 
-    # winget manifests, ready for wingetcreate submit: https://github.com/microsoft/winget-pkgs
     $wingetDir = Assert-Inside $wingetDir $Out
     if (Test-Path -LiteralPath $wingetDir) { Remove-Item -LiteralPath $wingetDir -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $wingetDir | Out-Null
@@ -193,7 +173,6 @@ ManifestVersion: $schema
     New-Zip $wingetDir (Join-Path $Out 'winget-manifests.zip') $releaseDay
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'install.ps1'), (Join-Path $PSScriptRoot 'uninstall.ps1') -Destination $Out
 
-    # The Microsoft Store package: one .msix per architecture, bundled. The Store signs it.
     $makeappx = Get-WindowsSdkTool makeappx.exe
     $packages = Assert-Inside (Join-Path $Out 'msix') $Out
     if (Test-Path -LiteralPath $packages) { Remove-Item -LiteralPath $packages -Recurse -Force }
@@ -244,8 +223,6 @@ if ($Verify) {
             $machine = [BitConverter]::ToUInt16($bytes, (Get-PeLayout $bytes).Machine)
             if ($machine -ne $machines[$rid]) { throw "$binary in $name is for machine 0x$($machine.ToString('X4')), not $rid" }
         }
-        # Every other binary is that architecture too, or plain IL, which says 0x014C. One built for the other
-        # architecture stops the program from starting, and this machine would never run it to find out.
         foreach ($file in Get-ChildItem -LiteralPath $dir -Recurse -File -Include '*.dll', '*.exe') {
             $bytes = [IO.File]::ReadAllBytes($file.FullName)
             if ($bytes.Length -lt 0x40 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { continue }
@@ -254,13 +231,11 @@ if ($Verify) {
                 throw "$($file.Name) in $name is for machine 0x$($machine.ToString('X4')), not $rid"
             }
         }
-        # arm64 runs only on arm64 hardware; this checks it on an x64 machine, as CI is.
         if ($rid -eq 'win-x64' -and [Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'X64') {
             $reported = Assert-WinshellRuns (Join-Path $dir 'winshell.exe') $Version (Join-Path $verifyRoot 'doctor')
             Write-Output "$name runs: $reported"
             Write-Output "$name runs every winshell doctor check"
         }
-        # The product name and version SignPath's artifact configuration requires of each binary it signs.
         $ownBinaries = $signedPaths | Where-Object { $_.StartsWith("$rid/", [StringComparison]::Ordinal) } | ForEach-Object { $_.Substring($rid.Length + 1) }
         if (-not $ownBinaries) { throw "packaging/signpath/artifact-configuration.xml signs nothing in $rid" }
         foreach ($binary in $ownBinaries) {
@@ -280,8 +255,6 @@ if ($Verify) {
     }
     if (Test-Path -LiteralPath $verifyRoot) { Remove-Item -LiteralPath $verifyRoot -Recurse -Force }
 
-    # The manifests carry the same hashes, and pass WinGetUtil.dll from the validator package the pinned
-    # wingetcreate is built with. scripts/tool-pins.psd1 has that download.
     $installer = Get-Content -LiteralPath (Join-Path $wingetDir "$id.installer.yaml") -Raw
     foreach ($rid in $Runtime) {
         if ($installer -notmatch "(?m)^\s+InstallerSha256: $($listed[(Get-ReleaseZipName $Version $rid)].ToUpperInvariant())\r?$") {
@@ -307,7 +280,6 @@ if ($Verify) {
             [IO.Compression.ZipFileExtensions]::ExtractToFile($package.GetEntry("runtimes/$arch/native/WinGetUtil.dll"), $dll)
         } finally { $package.Dispose() }
     }
-    # Loaded by its path first, so the DllImport by name finds this one.
     [Runtime.InteropServices.NativeLibrary]::Load($dll) | Out-Null
     if (-not ('WinshellPackage.WinGetUtil' -as [type])) {
         Add-Type -Namespace WinshellPackage -Name WinGetUtil -MemberDefinition @'
@@ -333,7 +305,6 @@ public static extern IntPtr WinGetValidateManifest(string manifestPath, [Marshal
         $actual = "$($identity.Name)|$($identity.Publisher)|$($identity.Version)|$($identity.ProcessorArchitecture)"
         if ($actual -cne $expected) { throw "The $rid package's identity is $actual, not $expected" }
         Assert-WinshellPackage $dir $Version "The $rid package"
-        # 3 is a console app and 2 opens no console, the marks written onto winshell.exe and winshellw.exe above.
         foreach ($pair in @(@('winshell.exe', 3), @('winshellw.exe', 2))) {
             $bytes = [IO.File]::ReadAllBytes((Join-Path $dir $pair[0]))
             $subsystem = [BitConverter]::ToUInt16($bytes, (Get-PeLayout $bytes).Subsystem)

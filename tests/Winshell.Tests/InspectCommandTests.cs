@@ -4,7 +4,6 @@ using System.Text.Json;
 
 namespace Winshell.Tests;
 
-/// <summary>The real <c>winshell inspect</c> against the probe's panel, over the control pipe.</summary>
 [Trait("Category", "Window")]
 public sealed partial class InspectCommandTests : IDisposable, IClassFixture<ProbeBuild>
 {
@@ -80,7 +79,6 @@ public sealed partial class InspectCommandTests : IDisposable, IClassFixture<Pro
     {
         Assert.Equal(0, Count(Run("tree").Output, "ProbePopup"));
 
-        // The window is named as well as the element, as a shell with a bar on each display must.
         var result = Run("click", "Open", "ProbePage");
 
         result.AssertNoError();
@@ -112,13 +110,11 @@ public sealed partial class InspectCommandTests : IDisposable, IClassFixture<Pro
 
         result.AssertNoError();
         result.AssertExitCode(0);
-        // An MP4 is playable only once the writer has finished it: its index, the moov box, is written last.
         var bytes = File.ReadAllBytes(video);
         Assert.Equal("ftyp"u8.ToArray(), bytes[4..8]);
         Assert.True(bytes.AsSpan().IndexOf("moov"u8) > 0);
         var pngs = Directory.GetFiles(frames, "*.png").Select(Path.GetFileName).ToList();
         Assert.Contains("contact-sheet.png", pngs);
-        // The window is drawn when capture starts, so at least that frame is kept, named by its milliseconds.
         Assert.Contains(pngs, name => name!.Length == "000000.png".Length && name[..6].All(char.IsAsciiDigit));
     }
 

@@ -2,7 +2,6 @@ using System.Diagnostics;
 
 namespace Winshell.Core.Tests;
 
-/// <summary>A save follows a symbolic link, writes through a hard link, and loses to a hand edit that lands during the replace.</summary>
 public sealed class AtomicFileTests
 {
     [Fact]
@@ -56,8 +55,6 @@ public sealed class AtomicFileTests
         File.WriteAllText(other, "other");
         File.WriteAllText(junk, "junk");
 
-        // Windows reuses a process id only after every handle to it has closed. This one stays open through the
-        // save, so the id cannot be taken by a live process and a correct deletion cannot look like a failure.
         using var exited = Process.Start(new ProcessStartInfo("cmd.exe", "/d /c exit")
         {
             UseShellExecute = false,

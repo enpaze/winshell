@@ -1,35 +1,10 @@
 #requires -Version 5.1
-<#
-.SYNOPSIS
-    Installs the portable Winshell build for the current user.
 
-.DESCRIPTION
-    No administrator rights. Downloads the x64 or arm64 zip from GitHub Releases, checks it against
-    SHA256SUMS.txt, and stops without changing an existing install if the hash does not match.
-    Installs into %LOCALAPPDATA%\Programs\winshell\bin, adds that folder to the user PATH, and creates
-    a Start menu shortcut. Refuses to replace an install while that Winshell is running.
-    irm | iex, and running this file with the call operator, also add that folder to this session's
-    PATH and tell you to run winshell. pwsh -File leaves the caller unchanged and tells you to open
-    a new terminal.
-    If a Microsoft Store copy is also installed, it says so and still finishes.
-    If that query fails, it says the Store check was skipped and still finishes.
-
-    iex cannot pass parameters. WINSHELL_VERSION (x.y.z) and WINSHELL_AUTOSTART (1, true, or yes)
-    are the same choices as -Version and -AutoStart.
-
-        irm https://github.com/enpaze/winshell/releases/latest/download/install.ps1 | iex
-        & ([scriptblock]::Create((irm https://github.com/enpaze/winshell/releases/latest/download/install.ps1))) -Version x.y.z -AutoStart
-
-    This file is a release asset, fetched on its own. It does not dot-source a neighbor, and it does not
-    run downloaded text. docs/development.md describes the variables its tests set.
-#>
 param(
     [string] $Version,
     [switch] $AutoStart
 )
 
-# uninstall.ps1 has the same copy of the helpers both scripts need, since each is fetched alone. Install.Tests.ps1 fails
-# when the copies differ.
 function Write-WinshellLine([string] $Message) { [Console]::Out.WriteLine($Message) }
 
 function Assert-WinshellTestIsolation {
@@ -47,7 +22,6 @@ function Assert-WinshellTestIsolation {
 
 function Assert-WinshellNotRunning([string] $Root, [string] $Again) {
     $prefix = $Root.TrimEnd('\') + '\'
-    # A process whose path Windows will not tell us could be this install.
     $ids = @(Get-CimInstance Win32_Process -Filter "Name = 'winshell.exe' OR Name = 'winshellw.exe'" |
             Where-Object { -not $_.ExecutablePath -or $_.ExecutablePath.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) } |
             ForEach-Object { $_.ProcessId })
@@ -57,14 +31,12 @@ function Assert-WinshellNotRunning([string] $Root, [string] $Again) {
 function Remove-WinshellFolder([string] $Path) {
     $item = Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
     if (-not $item) { return $false }
-    # Windows PowerShell's Remove-Item -Recurse can follow a junction out of the folder.
     if ($item.Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)) { throw "Refusing to delete $Path because it is a link." }
     Remove-Item -LiteralPath $Path -Recurse -Force
     return $true
 }
 
 function Get-WinshellUserPath {
-    # Tests read and write a file instead of HKCU\Environment.
     if ($env:WINSHELL_USER_PATH_FILE) {
         if (Test-Path -LiteralPath $env:WINSHELL_USER_PATH_FILE) { return [IO.File]::ReadAllText($env:WINSHELL_USER_PATH_FILE) }
         return ''
@@ -81,12 +53,10 @@ function Set-WinshellUserPath([string] $Value) {
     }
     $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')
     try {
-        # REG_EXPAND_SZ stays, so an entry such as %USERPROFILE%\bin still expands.
         $kind = 'ExpandString'
         if ($key.GetValueNames() -contains 'Path' -and $key.GetValueKind('Path') -eq 'String') { $kind = 'String' }
         $key.SetValue('Path', $Value, $kind)
     } finally { $key.Dispose() }
-    # WM_SETTINGCHANGE, so a terminal Explorer starts next sees the new PATH.
     if (-not ('Winshell.Install.Native' -as [type])) {
         Add-Type -Namespace Winshell.Install -Name Native -MemberDefinition '[DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr SendMessageTimeout(IntPtr hWnd, int msg, UIntPtr wParam, string lParam, uint flags, uint timeout, out UIntPtr result);'
     }
@@ -102,8 +72,6 @@ function Receive-WinshellFile([string] $Uri, [string] $Path) {
     }
 }
 
-# The command Winshell's SignInEntry.CommandFor writes for $Exe with no arguments, so Winshell reads this entry as its
-# own. StartupRegistryTests runs this function and compares the two. It quotes only what has a space.
 function Get-WinshellSignInCommand([string] $Exe) {
     @((Join-Path $env:SystemRoot 'System32\conhost.exe'), '--headless', $Exe, '--no-build', '--no-duplicate' |
             ForEach-Object { if ($_ -match '\s') { '"' + $_ + '"' } else { $_ } }) -join ' '
@@ -127,7 +95,6 @@ function Install-Winshell([string] $Version, [switch] $AutoStart, [switch] $Sess
     }
     $base = 'https://github.com/enpaze/winshell/releases'
     if ($env:WINSHELL_RELEASE_BASE) {
-        # Tests serve a release from this PC. Nothing else stands in for GitHub.
         $base = $env:WINSHELL_RELEASE_BASE.Trim().TrimEnd('/')
         if ($base -ne 'https://github.com/enpaze/winshell/releases' -and
             $base -notmatch '^http://(127\.0\.0\.1|localhost)(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?$') {
@@ -145,7 +112,6 @@ function Install-Winshell([string] $Version, [switch] $AutoStart, [switch] $Sess
         Write-WinshellLine "Installing the latest Winshell (win-$arch)."
     }
     if ($PSVersionTable.PSVersion.Major -lt 6) {
-        # Windows PowerShell can default to TLS 1.0, which GitHub refuses.
         [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     }
     $release = if ($Version) { "$base/download/v$Version" } else { "$base/latest/download" }
@@ -159,7 +125,6 @@ function Install-Winshell([string] $Version, [switch] $AutoStart, [switch] $Sess
         if (-not $line.Success) { throw "That release lists no win-$arch zip in SHA256SUMS.txt." }
         $package = $line.Groups[2].Value
         $installed = $package.Split('-')[1]
-        # latest/download moves when a release is published, so the zip comes from the release its checksum names.
         Write-WinshellLine "Downloading $package."
         $zip = Join-Path $temp $package
         Receive-WinshellFile "$base/download/v$installed/$package" $zip
@@ -169,8 +134,6 @@ function Install-Winshell([string] $Version, [switch] $AutoStart, [switch] $Sess
         if ($actual -ne $expected) {
             throw "SHA256 mismatch for $package.`nExpected: $expected`nActual:   $actual`nThe download was discarded. Nothing was installed."
         }
-        # The stage is next to bin, on the same volume, so the old copy goes aside and the new one in by renaming.
-        # A file still open in bin fails the first rename, before anything changed.
         Remove-WinshellFolder $stage | Out-Null
         Remove-WinshellFolder $old | Out-Null
         Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -198,7 +161,6 @@ function Install-Winshell([string] $Version, [switch] $AutoStart, [switch] $Sess
         Write-WinshellLine "Adding $bin to your PATH."
         Set-WinshellUserPath (($parts + $bin) -join ';')
     }
-    # This session's PATH is separate from the stored one. Tests leave it alone.
     if (-not $env:WINSHELL_USER_PATH_FILE -and -not ("$env:Path".Split(';') | Where-Object { $_.TrimEnd('\') -eq $bin })) {
         $env:Path = "$env:Path".TrimEnd(';') + ';' + $bin
     }
@@ -229,7 +191,6 @@ function Install-Winshell([string] $Version, [switch] $AutoStart, [switch] $Sess
     } else {
         Write-WinshellLine "Winshell $installed is installed. Open a new terminal and run winshell."
     }
-    # A test must not ask this PC which packages it has.
     $store = @()
     if ($env:WINSHELL_INSTALL_TEST -ne '1') {
         try { $store = @(Get-AppxPackage -Name '*Winshell*' -ErrorAction Stop) } catch {
@@ -242,18 +203,15 @@ function Install-Winshell([string] $Version, [switch] $AutoStart, [switch] $Sess
     }
 }
 
-# WDAC and AppLocker can hold a session in Constrained Language Mode, where the .NET calls above fail.
 if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
     Write-Error -ErrorAction Continue "install.ps1 needs PowerShell's full language mode, and a system policy such as WDAC or AppLocker keeps this session in $($ExecutionContext.SessionState.LanguageMode). Download the portable zip from https://github.com/enpaze/winshell/releases instead."
     if ($PSCommandPath) { exit 1 }
 } else {
     try {
-        # iex has no script path, and `& .\install.ps1` returns to this session, so either keeps the PATH just added.
         $keeps = -not $PSCommandPath -or $MyInvocation.InvocationName -eq '&'
         Install-Winshell -Version $Version -AutoStart:$AutoStart -SessionKeepsPath:$keeps
     } catch {
         [Console]::Error.WriteLine($_.Exception.Message)
-        # exit would close the window iex runs in.
         if ($PSCommandPath) { exit 1 }
     }
 }

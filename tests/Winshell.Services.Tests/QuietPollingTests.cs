@@ -2,7 +2,6 @@ using Winshell.Winland;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>Looking for Winland waits longer each time it is not there, and never more often than every 30 s.</summary>
 public sealed class QuietPollingTests
 {
     private static readonly TimeSpan Tick = TimeSpan.FromTicks(1);
@@ -29,7 +28,6 @@ public sealed class QuietPollingTests
         Assert.Equal(new double[] { 3, 6, 12, 24, 30, 30 }, waits);
     }
 
-    /// <summary>A dropped stream is tried again after 250 ms, and the next search starts from 3 s rather than the wait it had reached.</summary>
     [Fact]
     public async Task A_lost_stream_waits_250_ms_and_the_search_starts_from_3_seconds()
     {
@@ -60,7 +58,6 @@ public sealed class QuietPollingTests
         await pending;
     }
 
-    /// <summary>A fake clock that tells when the backoff waits, and for how long.</summary>
     private sealed class Clock() : FakeTimeProvider(new DateTimeOffset(2026, 11, 5, 12, 0, 0, TimeSpan.Zero))
     {
         private readonly SemaphoreSlim _waits = new(0);

@@ -1,42 +1,32 @@
-# Baseline
-# OS
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Editors
 .idea/
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
 *.swp
 
-# Environment and secrets
 .env
 .env.*
 !.env.example
 
-# Logs
 *.log
 
-# Personal agent settings
 .claude/settings.local.json
 .claude/worktrees/
 CLAUDE.local.md
 AGENTS.override.md
 
-# .NET
 bin/
 obj/
 .vs/
 *.user
 TestResults/
 
-# Invoke-Pester -CI, as the installer job runs it
 testResults.xml
 
-# Status files agent tooling writes.
 out/
 
-# Release builds from scripts/package.ps1
 artifacts/

@@ -6,12 +6,6 @@ using Winshell.Native;
 
 namespace Winshell.Capture;
 
-/// <summary>
-/// Every frame Windows Graphics Capture delivers for a target, in memory, for a recording. Unlike the sampling
-/// <see cref="WindowsCaptureBackend"/>, it copies each frame out of the pool as it arrives, on the pool's own thread,
-/// and gives it back at once, so held buffers never stall capture. Windows delivers a frame when the target changes.
-/// The capture item, pool, cursor, border and device are one <see cref="CaptureLifetime"/>.
-/// </summary>
 internal sealed class FrameStream : IDisposable
 {
     private readonly Lock _gate = new();
@@ -22,17 +16,8 @@ internal sealed class FrameStream : IDisposable
     private ID3D11Texture2D? _staging;
     private SizeInt32 _poolSize;
 
-    // The window's place on its screen, when Windows refused the window and its screen is captured instead.
     private RECT? _crop;
 
-    /// <summary>Starts capturing <paramref name="target"/>, with the pointer in the picture.</summary>
-    /// <param name="target">The window or screen.</param>
-    /// <param name="log">Where a teardown that fails is reported.</param>
-    /// <param name="frame">
-    /// Each frame, premultiplied, with the time the compositor drew it on the clock <see cref="TimeProvider.GetTimestamp"/>
-    /// reads. Called on the pool's thread, one frame at a time.
-    /// </param>
-    /// <param name="ended">Called when the target closes, with null, or when a frame can't be read, with why.</param>
     public FrameStream(CaptureTarget target, Log log, Action<PixelImage, TimeSpan> frame, Action<Exception?> ended)
     {
         _log = log;
@@ -49,7 +34,6 @@ internal sealed class FrameStream : IDisposable
             _poolSize = item.Size;
             if (_poolSize.Width <= 0 || _poolSize.Height <= 0)
                 throw new WindowsRefusal("The window or screen has nothing to capture.");
-            // Stored before capture starts, so a frame delivered on the pool's thread can see the lifetime.
             _life = CaptureLifetime.Create(item, true, _log, OnFrameArrived, OnClosed);
             _life.Start();
         }
@@ -60,18 +44,9 @@ internal sealed class FrameStream : IDisposable
         }
     }
 
-    /// <summary>
-    /// Whether Windows refused to capture the window by itself, so its place on its screen is captured instead, with
-    /// whatever covers it, from where it was when the capture started.
-    /// </summary>
     public bool OnScreen =>
-        // The crop is written once before this object is returned, so this read never overlaps that write.
         _crop is not null;
 
-    /// <summary>
-    /// A capture item for the window, or for its screen when Windows refuses the window. Windows Server 2025 refuses
-    /// every tool window, which every Winshell panel is, though Windows 11 build 26200 takes them.
-    /// </summary>
     private GraphicsCaptureItem WindowItem(nint window)
     {
         try
@@ -89,16 +64,11 @@ internal sealed class FrameStream : IDisposable
             if (crop.Width <= 0 || crop.Height <= 0)
                 throw new WindowsRefusal(
                     "Windows refused to capture the window by itself, and it is on no screen to capture instead.");
-            // Written once before StartCapture, so no frame callback can read the crop during this store.
             _crop = crop;
             return CaptureLifetime.CaptureItem(0, screen.Handle);
         }
     }
 
-    /// <summary>
-    /// Starts again at the target's new size, off the pool's thread. A static source may not draw again after the pool
-    /// alone is recreated, so the session starts again too, as sampling does.
-    /// </summary>
     private void Restart()
     {
         try
@@ -132,7 +102,6 @@ internal sealed class FrameStream : IDisposable
                 using var frame = pool.TryGetNextFrame();
                 if (frame is null)
                     return;
-                // A resized target draws into the old buffers until the pool takes the new size.
                 var size = frame.ContentSize;
                 if (size is { Width: > 0, Height: > 0 } &&
                     (size.Width != _poolSize.Width || size.Height != _poolSize.Height))
@@ -147,15 +116,10 @@ internal sealed class FrameStream : IDisposable
         }
         catch (Exception e)
         {
-            // Nothing may go back into Windows' thread. The recording ends and says why.
             _ended(e);
         }
     }
 
-    /// <summary>
-    /// The frame's content in memory, or the window's place in it, or null when its buffer, made for an older size, cuts
-    /// that off. The next frame comes at the new size.
-    /// </summary>
     private PixelImage? Copy(CaptureLifetime life, Direct3D11CaptureFrame frame)
     {
         using var texture = CaptureInterop.Texture(frame.Surface);
@@ -187,7 +151,6 @@ internal sealed class FrameStream : IDisposable
         return pixels is null ? null : new PixelImage(width, height, pixels, true);
     }
 
-    /// <summary>Stops capture. A frame being copied is delivered first, and none comes after this returns.</summary>
     public void Dispose()
     {
         IDisposable? release;

@@ -1,7 +1,4 @@
 #requires -Version 5.1
-# Pester tests for scripts/install.ps1 and scripts/uninstall.ps1. Each test runs a script in a new PowerShell of the
-# same kind as this one, against releases served from this PC, with a profile of its own. WINSHELL_INSTALL_TEST makes
-# the scripts refuse the real profile, and the PATH and sign-in files stand in for HKCU.
 
 Describe 'install.ps1 and uninstall.ps1' {
     BeforeAll {
@@ -59,7 +56,6 @@ Describe 'install.ps1 and uninstall.ps1' {
             }
         }
 
-        # The folder has a space, so the sign-in command quotes the exe the way Winshell's own Settings does.
         function New-TestProfile {
             $root = Join-Path $TestDrive ('User ' + [guid]::NewGuid().ToString('n'))
             $p = [pscustomobject]@{
@@ -135,14 +131,11 @@ Describe 'install.ps1 and uninstall.ps1' {
     }
 
     It 'refuse constrained language with the same top-level guard, since each script carries its own' {
-        # The refusal names the script, and the try block calls that script's entry point. Everything else is one copy.
         function Get-GuardShape([string] $Path) {
             $tokens = $null
             $parseErrors = $null
             $tree = [Management.Automation.Language.Parser]::ParseFile((Resolve-Path -LiteralPath $Path).Path, [ref]$tokens, [ref]$parseErrors)
             if ($parseErrors) { throw "Could not parse ${Path}: $parseErrors" }
-            $comment = @($tokens | Where-Object { $_.Kind -eq 'Comment' -and $_.Text -match 'Constrained Language Mode' })
-            $comment.Count | Should -Be 1 -Because $Path
             $guards = @($tree.FindAll({
                         param($node)
                         $node -is [Management.Automation.Language.IfStatementAst] -and
@@ -160,7 +153,7 @@ Describe 'install.ps1 and uninstall.ps1' {
             $leaf = Split-Path -Leaf $Path
             $messages[0].Extent.Text | Should -Match ([regex]::Escape("$leaf needs PowerShell's full language mode, and a system policy such as WDAC or AppLocker keeps this session in"))
             $shape = $guard.Extent.Text.Replace($messages[0].Extent.Text, 'REFUSAL').Replace($tries[0].Body.Extent.Text, 'ENTRY')
-            return ($comment[0].Text + "`n" + $shape) -replace "`r`n", "`n"
+            return $shape -replace "`r`n", "`n"
         }
 
         (Get-GuardShape $Install) | Should -BeExactly (Get-GuardShape $Uninstall)
@@ -197,8 +190,6 @@ function Get-AppxPackage {
         $result = Invoke-Script $p -Command $command
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match 'Could not check for a Microsoft Store copy of Winshell, so that check was skipped\. Store query failed\.'
-        # Windows PowerShell 5.1 writes Appx's "Preparing modules for first use." as CLIXML when this
-        # process's error stream is redirected. The script itself writes failures as plain text.
         ($result.Error -replace '(?s)#< CLIXML.*', '').Trim() | Should -BeNullOrEmpty
         Get-Text (Join-Path $p.Bin 'winshell.exe') | Should -Be '0.5.0'
     }
@@ -228,7 +219,6 @@ function Get-AppxPackage {
     It 'changes nothing while Winshell runs from the install' {
         $p = New-TestProfile
         (Invoke-Script $p -File $Install).ExitCode | Should -Be 0
-        # Any console program named winshell.exe in bin is a running Winshell to the scripts.
         Copy-Item -LiteralPath "$env:SystemRoot\System32\PING.EXE" -Destination (Join-Path $p.Bin 'winshell.exe') -Force
         $psi = [Diagnostics.ProcessStartInfo]::new((Join-Path $p.Bin 'winshell.exe'), '-n 600 127.0.0.1')
         $psi.UseShellExecute = $false

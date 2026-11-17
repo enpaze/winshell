@@ -26,7 +26,6 @@ internal static class KillCommand
             return code;
 
         var force = parsed.IsSet(CliFlags.Force);
-        // Its supervisor must not start it again, even after a crash on the way out or the end --force gives it.
         var quit = await ShellExit.QuitAsync(info, ExitIntent.Stop, ShellExit.Patience.Interactive,
             force ? ShellExit.Ending.Always : ShellExit.Ending.Never);
         if (!quit.Exited)

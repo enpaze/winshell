@@ -1,7 +1,4 @@
 <Project>
-  <!-- Sealed interop: only Winshell.Native has hand-written unsafe code (docs/architecture.md).
-       This file runs after each project file, so setting AllowUnsafeBlocks there has no effect.
-       A WinUI project keeps unsafe compilation: CsWinRT generates its trim-safe marshalling only with it. -->
   <PropertyGroup Condition="'$(MSBuildProjectFullPath)' != '$(MSBuildThisFileDirectory)src\Winshell.Native\Winshell.Native.csproj'">
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     <AllowUnsafeBlocks Condition="'$(UseWinUI)' == 'true'">true</AllowUnsafeBlocks>

@@ -38,7 +38,6 @@ public sealed class PixelImageSourceTests
             popup.Content = new Grid { Children = { image } };
             popup.Visible = true;
             await loaded.Task.WaitAsync(TestContext.Current.CancellationToken);
-            // Loaded precedes composition. Capture only once the visual has reached a render pass.
             var composing = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
             void Rendering(object? sender, object args)

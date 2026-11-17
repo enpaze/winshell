@@ -1,20 +1,11 @@
 namespace Winshell.Apps;
 
-/// <summary>
-/// What <see cref="IJumpListBackend"/> returned for one app. <see cref="Available"/> is false when the lists cannot
-/// be read. An empty <see cref="Names"/> with <see cref="Available"/> true was read and has no documents.
-/// </summary>
 internal readonly record struct JumpListRead(bool Available, IReadOnlyList<string> Names)
 {
-    /// <summary>How many names one category contributes. The menu shows at most twice this, recent first.</summary>
     public const int PerCategory = 10;
 
     public static JumpListRead Missing => new(false, []);
 
-    /// <summary>
-    /// Recent names first, then frequent names not already listed. A null category was not read. When both are
-    /// null, the list cannot be read. A name that is only whitespace is left out.
-    /// </summary>
     public static JumpListRead From(IReadOnlyList<string>? recent, IReadOnlyList<string>? frequent)
     {
         if (recent is null && frequent is null)
@@ -45,7 +36,6 @@ internal readonly record struct JumpListRead(bool Available, IReadOnlyList<strin
     }
 }
 
-/// <summary>Reads recent and frequent destinations for an AppUserModelID. It does not launch or change them.</summary>
 internal interface IJumpListBackend
 {
     JumpListRead Read(string appUserModelId);

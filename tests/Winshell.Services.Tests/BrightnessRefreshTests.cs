@@ -4,10 +4,6 @@ using Winshell.Power;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// A monitor stays when one read of it fails, and a monitor that comes, goes or changes, or a burst of writes, asks for
-/// one new read. A fake write stands in for Windows, so the PC's brightness never changes.
-/// </summary>
 public class BrightnessRefreshTests
 {
     [Fact]
@@ -62,7 +58,6 @@ public class BrightnessRefreshTests
     [Fact]
     public void A_new_screen_field_has_to_say_whether_it_re_reads_brightness()
     {
-        // WorkAreaOnly names every field but the work area. Add the new one there, then here.
         Assert.Equal(
             ["DevicePixelRatio", "Geometry", "Id", "IsPrimary", "Manufacturer", "Model", "Name",
                 "PhysicalHeightMm", "PhysicalWidthMm", "RefreshRate", "SerialNumber", "WorkArea"],
@@ -79,16 +74,12 @@ public class BrightnessRefreshTests
         var writer = new BrightnessWriter(
             (_, _) =>
             {
-                // The writer and the test share writes; the test only sets the initial zero.
                 Interlocked.Increment(ref writes);
-                // The writer thread signals started before either handle is disposed.
                 started.Release();
-                // The writer thread blocks on release and finishes before it is disposed.
                 release.Wait(TimeSpan.FromSeconds(10));
                 return null;
             },
             Log.Default,
-            // The writer increments drained when the queue empties; the test only sets the initial zero.
             () => Interlocked.Increment(ref drained));
 
         writer.Request("DISPLAY1", 10, _ => { });

@@ -3,10 +3,8 @@ using Winshell.Native;
 
 namespace Winshell.Diagnostics;
 
-/// <summary>The doctor's two screen checks, App bars and DPI, judged from the facts it reads about each screen.</summary>
 internal static class DoctorScreens
 {
-    /// <summary>A screen: its name, its bounds and its work area, in physical pixels.</summary>
     internal sealed record MonitorFacts(
         string Name,
         int Left,
@@ -19,14 +17,12 @@ internal static class DoctorScreens
         int WorkBottom,
         double Scale);
 
-    /// <summary>A visible top-level window: its class, its bounds in physical pixels, and its program.</summary>
     internal sealed record WindowFacts(string ClassName, int Left, int Top, int Right, int Bottom, string Program);
 
     internal const string TaskbarClass = TaskbarWindows.PrimaryClass;
     internal const string SecondaryTaskbarClass = TaskbarWindows.SecondaryClass;
     internal const string WinshellClass = "WinshellHostWindow";
 
-    /// <summary>How thick a window must be to be named as an app bar beside a Winshell panel; thinner ones are borders and edge helpers.</summary>
     private const int MinAppBar = 8;
 
     internal static DoctorCheck AppBars(IReadOnlyList<MonitorFacts> monitors, IReadOnlyList<WindowFacts> windows)
@@ -50,9 +46,6 @@ internal static class DoctorScreens
                         w.ClassName is TaskbarClass or SecondaryTaskbarClass && SitsOn(m, w, side) &&
                         Within(Depth(m, w, edge), reserved))
                     .ToList();
-                // A Winshell panel also reserves its margins, which its window does not cover, and its zone can differ
-                // from its size. A window that starts in the strip explains those pixels, but another app's window
-                // in the same strip is still named, even when it overlaps the panel and nothing is left over.
                 var winshell = onScreen
                     .Where(w => w.ClassName == WinshellClass && SitsOn(m, w, side) &&
                                 Starts(m, Depth(m, w, edge), edge, reserved)).ToList();
@@ -96,7 +89,6 @@ internal static class DoctorScreens
         return new DoctorCheck("appBars", "App bars", CheckStatus.Pass, "No other app reserves an edge of a screen");
     }
 
-    /// <summary>The edge's name in a doctor's sentence, such as "bottom".</summary>
     private static string Name(AppBarEdge edge)
     {
         return edge switch
@@ -108,7 +100,6 @@ internal static class DoctorScreens
         };
     }
 
-    /// <summary>Whether <paramref name="window"/> sits on <paramref name="edge"/> of <paramref name="monitor"/>, the same rule the Explorer taskbar uses.</summary>
     private static bool SitsOn(MonitorFacts monitor, WindowFacts window, AppBarEdge edge)
     {
         var bounds = new RECT { left = window.Left, top = window.Top, right = window.Right, bottom = window.Bottom };
@@ -122,7 +113,6 @@ internal static class DoctorScreens
         return ExplorerTaskbarWindow.EdgeOf(bounds, screen) == edge;
     }
 
-    /// <summary>How far into the screen from an edge a window starts and ends.</summary>
     private static (int Start, int End) Depth(MonitorFacts m, WindowFacts w, string edge)
     {
         return edge switch
@@ -134,20 +124,17 @@ internal static class DoctorScreens
         };
     }
 
-    /// <summary>Whether a window lies in the strip an edge reserves, as app bars stacked on one edge each do.</summary>
     private static bool Within((int Start, int End) depth, int reserved)
     {
         return depth.Start >= -2 && depth.End <= reserved + 2;
     }
 
-    /// <summary>Whether a window starts in the strip an edge reserves and reaches less than halfway across the screen, as a panel does.</summary>
     private static bool Starts(MonitorFacts m, (int Start, int End) depth, string edge, int reserved)
     {
         return depth.Start >= -2 && depth.Start < reserved &&
                depth.End <= (edge is "top" or "bottom" ? m.Bottom - m.Top : m.Right - m.Left) / 2;
     }
 
-    /// <summary>How much of the strip the windows cover together: windows side by side on one edge count once.</summary>
     private static int Covered(IEnumerable<(int Start, int End)> depths, int reserved)
     {
         var covered = 0;
@@ -188,7 +175,6 @@ internal static class DoctorScreens
 
         var messages = new List<string>();
         var fixes = new List<string>();
-        // "Scaling performed by: Application" and "Program DPI": Winshell already scales itself on each screen.
         var highDpiFlags = flags
             .Where(f => f is "HIGHDPIAWARE" or "PERPROCESSSYSTEMDPIFORCEON" or "PERPROCESSSYSTEMDPIFORCEOFF").ToList();
         if (highDpiFlags.Count > 0)

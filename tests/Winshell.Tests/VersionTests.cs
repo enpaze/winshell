@@ -5,14 +5,13 @@ namespace Winshell.Tests;
 
 public class VersionTests
 {
-    // list only reads, so a version option it ignored could not change this PC.
     [Theory]
     [InlineData("--version")]
     [InlineData("list -V")]
     public void The_cli_prints_the_release_please_version(string line)
     {
         var manifest = ManifestVersion();
-#pragma warning disable CsWinRT1030 // Not marshalled across the WinRT ABI.
+#pragma warning disable CsWinRT1030
         var result = WinshellCli.Run(line.Split(' '));
 #pragma warning restore CsWinRT1030
         result.AssertExitCode(0);

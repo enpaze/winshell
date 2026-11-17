@@ -1,9 +1,5 @@
 namespace Winshell.Tests;
 
-/// <summary>
-/// The supervisor's policy against fake shells and a fake clock. Supervision runs on a pool thread, so a test waits for a
-/// shell to start, for the supervisor to wait on the clock, or for supervision to end before it acts or asserts.
-/// </summary>
 public sealed partial class ShellSupervisorTests
 {
     private const int AccessViolation = -1073741819;
@@ -78,7 +74,6 @@ public sealed partial class ShellSupervisorTests
         Assert.Equal(0, await run);
     }
 
-    /// <summary>A shell that exits 0 has put the taskbar back itself, and a restore could only take it from a shell that hid it since.</summary>
     [Fact]
     public async Task A_clean_exit_ends_supervision_and_leaves_the_taskbar_to_the_shell()
     {
@@ -92,7 +87,6 @@ public sealed partial class ShellSupervisorTests
         Assert.Equal(1, _shells.Count);
     }
 
-    /// <summary>1 is a shell that could not start and said why, or one Task Manager ended.</summary>
     [Fact]
     public async Task Exit_code_1_ends_supervision_with_the_taskbar_back()
     {
@@ -106,7 +100,6 @@ public sealed partial class ShellSupervisorTests
         Assert.Equal(1, _shells.Count);
     }
 
-    /// <summary><c>winshell kill</c> asked it to stop, and it crashed on the way out or <c>--force</c> ended it.</summary>
     [Fact]
     public async Task A_crash_after_a_stop_was_asked_for_ends_supervision_with_the_taskbar_back()
     {
@@ -120,10 +113,6 @@ public sealed partial class ShellSupervisorTests
         Assert.Equal(1, _shells.Count);
     }
 
-    /// <summary>
-    /// <c>winshell reload</c> asked the shell to quit for its supervisor. One that crashed on the way out could not put
-    /// the taskbar back.
-    /// </summary>
     [Theory]
     [InlineData(0, new[] { "start", "start" })]
     [InlineData(AccessViolation, new[] { "start", "restore", "start" })]
@@ -162,7 +151,6 @@ public sealed partial class ShellSupervisorTests
         Assert.Equal(0, await run);
     }
 
-    /// <summary>The supervisor owns a shell a reload started as it owned the first, so its crash brings the taskbar back too.</summary>
     [Fact]
     public async Task A_crash_of_a_shell_a_reload_started_brings_the_taskbar_back()
     {
@@ -216,7 +204,6 @@ public sealed partial class ShellSupervisorTests
         Assert.Equal(["start", "restore"], _shells.Events);
     }
 
-    /// <summary>Another shell had hidden the taskbar before this one started, and it belongs to that shell.</summary>
     [Fact]
     public async Task A_taskbar_that_was_hidden_when_the_shell_started_stays_hidden()
     {
@@ -236,7 +223,6 @@ public sealed partial class ShellSupervisorTests
         return Task.Run(() => supervisor.RunAsync(stop), TestContext.Current.CancellationToken);
     }
 
-    /// <summary>A fake clock that tells when the supervisor waits on it.</summary>
     private sealed class Clock() : FakeTimeProvider(new DateTimeOffset(2026, 11, 5, 12, 0, 0, TimeSpan.Zero))
     {
         private readonly SemaphoreSlim _waits = new(0);
@@ -248,14 +234,12 @@ public sealed partial class ShellSupervisorTests
             return timer;
         }
 
-        /// <summary>Completes once the supervisor has handled an exit and waits to start the next shell.</summary>
         public Task Waiting()
         {
             return _waits.WaitAsync(TestContext.Current.CancellationToken);
         }
     }
 
-    /// <summary>What the supervisor started, stopped and restored, in order.</summary>
     private sealed class Shells
     {
         private readonly Lock _gate = new();
@@ -309,7 +293,6 @@ public sealed partial class ShellSupervisorTests
             Add("restore");
         }
 
-        /// <summary>The <paramref name="number"/>th shell, once it has started.</summary>
         public async Task<Child> Started(int number)
         {
             while (Count < number)
@@ -345,7 +328,6 @@ public sealed partial class ShellSupervisorTests
             _exit.SetResult(code);
         }
 
-        /// <summary>A shell asked to quit quits cleanly.</summary>
         public Task StopAsync()
         {
             shells.Add("stop");

@@ -3,38 +3,26 @@ using System.Text;
 
 namespace Winshell;
 
-/// <summary>One parameter of a function or a signal <c>ipc show</c> can list.</summary>
 internal sealed record IpcParameterView(string Name, string? Type);
 
-/// <summary>A function <c>ipc show</c> can call.</summary>
 internal sealed record IpcFunctionView(string Name, IReadOnlyList<IpcParameterView> Parameters, string Returns);
 
-/// <summary>A property <c>ipc show</c> can read.</summary>
 internal sealed record IpcPropertyView(string Name, string Type);
 
-/// <summary>A signal <c>ipc wait</c> and <c>ipc listen</c> can follow.</summary>
 internal sealed record IpcSignalView(string Name, IReadOnlyList<IpcParameterView> Parameters);
 
-/// <summary>One IPC target, as <c>ipc show</c> knows it. <c>ipc show -j</c> prints these records as they are.</summary>
 internal sealed record IpcTargetView(
     string Target,
     IReadOnlyList<IpcFunctionView> Functions,
     IReadOnlyList<IpcPropertyView> Properties,
     IReadOnlyList<IpcSignalView> Signals);
 
-/// <summary>
-/// A refused IPC request. A handler throws it to refuse a call: its message goes to the client as it is, where another
-/// exception arrives with its type name.
-/// </summary>
 public sealed class IpcException(string message) : Exception(message);
 
-/// <summary>The rules a value follows across the pipe.</summary>
 internal static class IpcValues
 {
-    /// <summary>The most parameters a function can take.</summary>
     public const int MaxParameters = 10;
 
-    /// <summary>Every target with its functions, properties and signals, as <c>ipc show</c> prints them.</summary>
     public static string Show(this ShellIpc ipc)
     {
         var sb = new StringBuilder();
@@ -91,7 +79,6 @@ internal static class IpcValues
         };
     }
 
-    /// <summary>A color can come without its <c>#</c>, so a hotkey need not quote it.</summary>
     public static string ColorText(string text)
     {
         return text.StartsWith('#') || !IsHex(text) ? text : "#" + text;

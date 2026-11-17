@@ -2,10 +2,6 @@ using Winshell.Power;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// Setting a brightness does not wait for the slow write, and a drag writes only the newest value.
-/// A fake write stands in for Windows, so the PC's brightness never changes.
-/// </summary>
 public class BrightnessWriteTests
 {
     [Fact]
@@ -21,16 +17,13 @@ public class BrightnessWriteTests
                 written.Add(value);
             }
 
-            // The writer thread signals started before either handle is disposed.
             started.Release();
-            // The writer thread blocks on release and finishes before it is disposed.
             release.Wait(TestContext.Current.CancellationToken);
             return null;
         }, Log.Default);
         var monitor = new BrightnessMonitor(writer, Log.Default);
         monitor.Update(new BrightnessInfo("DISPLAY1", "Panel", BrightnessConnection.Internal, 0, 100, 40));
 
-        // The write is held until release is set below, so a setter that waited for it would never return.
         monitor.Brightness = 50;
         Assert.Equal(50, monitor.Brightness);
 
@@ -39,7 +32,6 @@ public class BrightnessWriteTests
             monitor.Brightness = value;
         Assert.Equal(80, monitor.Brightness);
 
-        // A read that arrives while writes are still running does not move the value back.
         monitor.Update(new BrightnessInfo("DISPLAY1", "Panel", BrightnessConnection.Internal, 0, 100, 40));
         Assert.Equal(80, monitor.Brightness);
 
@@ -50,7 +42,6 @@ public class BrightnessWriteTests
             Assert.Equal([50, 80], written);
         }
 
-        // After the writes, the next read is what the property shows.
         monitor.Update(new BrightnessInfo("DISPLAY1", "Panel", BrightnessConnection.Internal, 0, 100, 78));
         Assert.Equal(78, monitor.Brightness);
     }
@@ -72,9 +63,7 @@ public class BrightnessWriteTests
 
             if (value == 10)
             {
-                // The writer thread signals started before either handle is disposed.
                 started.Release();
-                // The writer thread blocks on release and finishes before it is disposed.
                 release.Wait(TestContext.Current.CancellationToken);
                 throw new InvalidOperationException("the panel refused 10");
             }

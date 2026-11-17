@@ -2,13 +2,8 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>The area a window on a monitor is placed in, in physical pixels, and the scale that turns those pixels into logical ones.</summary>
 internal readonly record struct MonitorFrame(int Left, int Top, int Right, int Bottom, double Scale);
 
-/// <summary>
-/// A window about to be placed. <see cref="Shown"/> is the rectangle on screen.
-/// <see cref="Restored"/> is the placement's rectangle, in workspace coordinates unless <see cref="ToolWindow"/> is set.
-/// </summary>
 internal readonly record struct WindowToMove(
     RECT Shown,
     RECT Restored,
@@ -17,23 +12,10 @@ internal readonly record struct WindowToMove(
     bool Maximized,
     bool ToolWindow);
 
-/// <summary>
-/// Where a window goes. <see cref="Screen"/> is screen pixels. <see cref="Workspace"/> is the restored rectangle a
-/// placement stores, and equals <see cref="Screen"/> when the window has no placement.
-/// </summary>
 internal readonly record struct WindowPlace(RECT Screen, RECT Workspace);
 
-/// <summary>
-/// Places a window on a screen: the restored rectangle, workspace and screen coordinates, and the same logical size
-/// and offset on another screen. Callers read the window and the monitors; this decides the rectangles.
-/// </summary>
 internal static class WindowOnScreen
 {
-    /// <summary>
-    /// The restored rectangle in screen pixels. A normal window is already there. A minimized or maximized one is
-    /// stored in workspace coordinates, which start at the primary monitor's work area, unless it is a tool window.
-    /// The shown rectangle when the restored one has no size. A rectangle that hangs off the monitor is left there.
-    /// </summary>
     public static RECT Restored(WindowToMove window, RECT primaryMonitor, RECT primaryWork)
     {
         var bias = Bias(window, primaryMonitor, primaryWork);
@@ -41,11 +23,6 @@ internal static class WindowOnScreen
             Shift(window.Restored, bias.X, bias.Y));
     }
 
-    /// <summary>
-    /// Where <paramref name="window"/> goes on <paramref name="to"/>, keeping its logical size and its offset in the
-    /// work area. False when there is no rectangle to move. A window that would hang off the target is slid back,
-    /// and one that is larger is shrunk to fit.
-    /// </summary>
     public static bool TryMove(WindowToMove window, MonitorFrame from, MonitorFrame to, RECT primaryMonitor,
         RECT primaryWork, out WindowPlace place)
     {
@@ -62,10 +39,6 @@ internal static class WindowOnScreen
         return true;
     }
 
-    /// <summary>
-    /// How far the placement's rectangle is from screen coordinates. A window that is showing reports the gap.
-    /// A minimized or maximized one cannot, so the gap is the primary work area, and a tool window has none.
-    /// </summary>
     private static (int X, int Y) Bias(WindowToMove window, RECT primaryMonitor, RECT primaryWork)
     {
         if (window is { HasPlacement: true, Minimized: false, Maximized: false })
@@ -75,7 +48,6 @@ internal static class WindowOnScreen
         return (0, 0);
     }
 
-    /// <summary>A minimized or maximized window moves by its restored rectangle. A normal window moves by its current one.</summary>
     private static RECT RectangleToMove(bool minimized, bool maximized, RECT current, RECT restored)
     {
         if ((minimized || maximized) && restored is { Width: > 0, Height: > 0 })
@@ -83,10 +55,6 @@ internal static class WindowOnScreen
         return current;
     }
 
-    /// <summary>
-    /// How far a window's restored rectangle is offset from screen coordinates. Windows reports it in workspace
-    /// coordinates, which start at the primary monitor's work area, unless the window is a tool window.
-    /// </summary>
     private static (int X, int Y) WorkspaceOffset(RECT primaryMonitor, RECT primaryWork, bool toolWindow)
     {
         return toolWindow || primaryWork is not { Width: > 0, Height: > 0 }
@@ -99,11 +67,6 @@ internal static class WindowOnScreen
         return new RECT(rect.left + x, rect.top + y, rect.right + x, rect.bottom + y);
     }
 
-    /// <summary>
-    /// Where a window goes on another monitor: the same logical offset and size, in the target's physical pixels.
-    /// A window that would hang off the target is slid back, and one that is larger is shrunk to fit. The size is
-    /// rounded on its own, so it does not depend on where the window sits.
-    /// </summary>
     private static RECT MoveOnto(RECT window, MonitorFrame from, MonitorFrame to)
     {
         if (from.Scale <= 0 || to.Scale <= 0 || from.Right <= from.Left || from.Bottom <= from.Top)

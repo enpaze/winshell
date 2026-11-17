@@ -3,13 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Winshell.Native;
 
-/// <summary>
-/// The body of every <c>[UnmanagedCallersOnly]</c> callback. An exception that reaches Windows ends the process with no
-/// log, so none does. A callback Windows makes on its own schedule hands its failure to the reporter its caller gave,
-/// and returns as if nothing had happened. With no reporter, it still returns. A callback inside an enumeration stops
-/// it, and the enumeration throws the failure to its caller once Windows has returned.
-/// </summary>
-#pragma warning disable CA1031 // Windows called in; nothing above this frame can catch it.
+#pragma warning disable CA1031
 internal static class Callback
 {
     internal static void Run(Action<Exception>? failed, Action body)
@@ -39,7 +33,6 @@ internal static class Callback
 
     private static void Report(Action<Exception>? failed, Exception e)
     {
-        // With no reporter the callback still returns, and nothing reaches Windows.
         if (failed is null)
             return;
         try
@@ -48,14 +41,9 @@ internal static class Callback
         }
         catch (Exception)
         {
-            // The callback must return. A failing reporter cannot strand it.
         }
     }
 
-    /// <summary>
-    /// The handles an enumeration passes to its callback, in order. <paramref name="enumerate"/> starts it with the
-    /// context its callback passes to <see cref="Collected"/>.
-    /// </summary>
     internal static List<nint> Collect(Action<nint> enumerate)
     {
         var collection = new Collection();
@@ -73,7 +61,6 @@ internal static class Callback
         return collection.Handles;
     }
 
-    /// <summary>The body of an enumeration callback. Returns 1 to go on, 0 to stop.</summary>
     internal static int Collected(nint context, nint handle)
     {
         var collection = (Collection)GCHandle.FromIntPtr(context).Target!;

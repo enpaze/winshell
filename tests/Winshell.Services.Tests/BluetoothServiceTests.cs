@@ -182,7 +182,6 @@ public sealed class BluetoothServiceTests
     {
         using var session = await Session.OpenAsync(Snapshot(DeviceInfo()));
         var device = session.Device;
-        // A bug, not a failure Windows reports. The shell reports the task that failed; the action still ends.
         var bug = new NullReferenceException("A bug");
         session.Backend.Failure = bug;
 
@@ -673,7 +672,6 @@ public sealed class BluetoothServiceTests
         var third = service.RefreshAsync();
         Assert.Equal(1, backend.Reads);
         Assert.False(second.IsCompleted);
-        // Resumes the read on this thread, so the refresh finishes without a pool thread.
         backend.Gate.SetResult();
         await first.WaitAsync(TestContext.Current.CancellationToken);
         await Task.WhenAll(second, third).WaitAsync(TestContext.Current.CancellationToken);
@@ -736,7 +734,6 @@ public sealed class BluetoothServiceTests
         }
     }
 
-    /// <summary>A backend that does nothing but read, for the tests of the read loop.</summary>
     private abstract class ReadBackend : IBluetoothBackend
     {
         public event Action? Changed;
@@ -831,8 +828,6 @@ public sealed class BluetoothServiceTests
 
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        // Completing the gate resumes the read on this thread. Queuing that resume on the thread pool
-        // left the refresh unfinished when the pool was busy.
         public TaskCompletionSource Gate { get; } = new();
 
         public override async Task<BluetoothSnapshot> ReadAsync(CancellationToken cancellation)
@@ -844,7 +839,6 @@ public sealed class BluetoothServiceTests
         }
     }
 
-    /// <summary>A Windows call that does not honor cancellation.</summary>
     private sealed class StubbornBackend : ReadBackend
     {
         private volatile bool _reading;
@@ -934,7 +928,6 @@ public sealed class BluetoothServiceTests
                 return Task.FromException<BluetoothSnapshot>(e);
             if (ReadTask is { } task)
                 return task;
-            // Each read asks the adapter's radio again, as a Windows read does.
             return Task.FromResult(Current.Adapter is { } adapter
                 ? Current with { Adapter = adapter with { Radio = RadioReading.Read(adapter.Radio.Radios) } }
                 : Current);

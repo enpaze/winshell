@@ -1,12 +1,10 @@
 namespace Winshell.Services.Tests;
 
-/// <summary>How a monitor device id becomes <c>ShellScreen.manufacturer</c> and <c>serialNumber</c>.</summary>
 public class MonitorIdentityTests
 {
     [Fact]
     public void A_monitor_interface_path_splits_into_the_model_manufacturer_and_instance()
     {
-        // What EnumDisplayDevicesW returned with flag 1 for a real monitor.
         var id = @"\\?\DISPLAY#AUS32A8#5&15335277&0&UID184582#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}";
         Assert.Equal("AUS32A8", Screens.ModelCode(id));
         Assert.Equal("AUS", Screens.Manufacturer(Screens.ModelCode(id)));
@@ -16,7 +14,6 @@ public class MonitorIdentityTests
     [Fact]
     public void A_wmi_instance_name_has_the_same_model_code_as_the_interface_path()
     {
-        // The same monitor as above. WMI names it with backslashes and a "_0" suffix.
         var id = @"\\?\DISPLAY#AUS32A8#5&15335277&0&UID184582#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}";
         var instance = @"DISPLAY\AUS32A8\5&15335277&0&UID184582_0";
 

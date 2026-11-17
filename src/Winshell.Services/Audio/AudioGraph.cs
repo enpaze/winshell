@@ -4,10 +4,6 @@ using Winshell.Native;
 
 namespace Winshell.Audio;
 
-/// <summary>
-/// The Windows playback and recording devices, and each app's audio session on a device. It lives on the UI thread;
-/// Windows' callbacks are posted to it.
-/// </summary>
 internal sealed class AudioGraph : IAudioBackend
 {
     private readonly IEventLoop _loop;
@@ -20,7 +16,6 @@ internal sealed class AudioGraph : IAudioBackend
     private int _nextId = 1;
     private bool _disposed;
 
-    /// <summary>Reads the devices and starts hearing about changes to them. Call on the UI thread.</summary>
     public AudioGraph(IEventLoop loop, Log log)
     {
         _loop = loop;
@@ -95,7 +90,6 @@ internal sealed class AudioGraph : IAudioBackend
         }
     }
 
-    /// <summary>Stops hearing from Windows and releases every device and session. Call on the UI thread.</summary>
     public void Dispose()
     {
         if (_disposed)
@@ -108,7 +102,6 @@ internal sealed class AudioGraph : IAudioBackend
         }
         catch (COMException)
         {
-            // Windows audio failed before the callback was registered.
         }
 
         foreach (var endpoint in _endpoints.Values)
@@ -121,7 +114,6 @@ internal sealed class AudioGraph : IAudioBackend
         Winshell.Native.Com.Release(_enumerator);
     }
 
-    /// <summary>Asks for the device list to be read again, once, on the UI thread.</summary>
     internal void RequestSync()
     {
         if (Interlocked.Exchange(ref _syncPending, 1) != 0)
@@ -170,7 +162,6 @@ internal sealed class AudioGraph : IAudioBackend
         }
     }
 
-    /// <summary>Whether a new endpoint node now holds <paramref name="device"/>.</summary>
     private bool Open(IMMDevice device, bool render, HashSet<string> present)
     {
         device.GetId(out var id);
@@ -223,10 +214,6 @@ internal sealed class AudioGraph : IAudioBackend
         }
     }
 
-    /// <summary>
-    /// Shows a session the endpoint started tracking. Windows keeps a System Sounds session on every playback
-    /// device, though only the default one plays them, so only that one is shown, as one stream.
-    /// </summary>
     internal void AddSession(SessionNode session)
     {
         SetShown(session, !session.IsSystem || session.Endpoint == DefaultPlayback);
@@ -262,7 +249,6 @@ internal sealed class AudioGraph : IAudioBackend
         NodeRemoved?.Invoke(node);
     }
 
-    /// <summary>Hears about devices being added, removed, enabled or made the default.</summary>
     private sealed class DeviceNotifications(AudioGraph graph) : IMMNotificationClient
     {
         public void OnDeviceStateChanged(string deviceId, uint newState)

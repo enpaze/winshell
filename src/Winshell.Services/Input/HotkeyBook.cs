@@ -1,29 +1,18 @@
 namespace Winshell.Input;
 
-/// <summary>An armed later step. <see cref="DeadlineMs"/> is when it expires if the next chord never arrives.</summary>
 internal readonly record struct ArmNotice(IHotkeyListener Listener, long Token, long DeadlineMs);
 
-/// <summary>Who a chord or a key event woke, and whether the event should be swallowed.</summary>
 internal sealed class BookResult
 {
     public List<IHotkeyListener> Pressed { get; } = [];
 
     public List<ArmNotice> Armed { get; } = [];
 
-    /// <summary>Eat the event. A handled Windows-key tap sets this and <see cref="MaskWin"/>; the hook masks instead of eating the key-up.</summary>
     public bool Swallow { get; set; }
 
-    /// <summary>
-    /// The Windows key came up and this shell handled the tap. Inject a masking key, then let the real key-up through.
-    /// Eating that key-up leaves the key logically down, because the key-down already reached the system.
-    /// </summary>
     public bool MaskWin { get; set; }
 }
 
-/// <summary>
-/// Which listeners own which chords, and which key sequences are waiting for their next chord.
-/// Windows registration lives outside this type.
-/// </summary>
 internal sealed class HotkeyBook
 {
     private const long TimeoutMs = 1000;
@@ -38,7 +27,6 @@ internal sealed class HotkeyBook
     private bool _leftUsed;
     private bool _rightUsed;
 
-    /// <summary>True while a Windows-key hotkey is claimed or a sequence is waiting for its next chord.</summary>
     public bool NeedsHook => _win.Count > 0 || _armed.Count > 0;
 
     public bool HasOs(OsChord chord)
@@ -46,7 +34,6 @@ internal sealed class HotkeyBook
         return _os.ContainsKey(chord);
     }
 
-    /// <summary>Adds a listener the book does not hold.</summary>
     public void Add(IHotkeyListener listener, HotkeySequence sequence)
     {
         _sequences.Add(listener, sequence);
@@ -57,7 +44,6 @@ internal sealed class HotkeyBook
             AddTo(_os, first.OsKey, listener);
     }
 
-    /// <summary>Drops a listener. Returns the chord it was the last to hold, which Windows can have back.</summary>
     public OsChord? Remove(IHotkeyListener listener)
     {
         _armed.RemoveAll(armed => armed.Listener == listener);
@@ -91,7 +77,6 @@ internal sealed class HotkeyBook
         return result;
     }
 
-    /// <summary>Drops one armed step when its token is still current. A newer step keeps its own token.</summary>
     public void Disarm(IHotkeyListener listener, long token)
     {
         _armed.RemoveAll(armed => armed.Listener == listener && armed.Token == token);
@@ -167,8 +152,6 @@ internal sealed class HotkeyBook
         FireWin(WinKeySide.Either, nowMs, result, skip);
         var handled = result.Pressed.Count > 0 || result.Armed.Count > 0;
         result.Swallow = handled;
-        // The key-down was not eaten, so the key-up must reach Windows or the key stays held.
-        // MaskWin tells the hook to inject an unused key first, which uses the press so Start stays closed.
         result.MaskWin = handled;
     }
 
@@ -267,7 +250,6 @@ internal sealed class HotkeyBook
         list.Add(listener);
     }
 
-    // True when the listener was the last one under the key.
     private static bool RemoveFrom<TKey>(Dictionary<TKey, List<IHotkeyListener>> map, TKey key,
         IHotkeyListener listener)
         where TKey : notnull

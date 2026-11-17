@@ -4,9 +4,6 @@ using System.Text.Json;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// Bounds on the control pipe. Clients are this process talking to a pipe created here, not a shell running on the PC.
-/// </summary>
 public class IpcBoundsTests
 {
     [Fact]
@@ -27,7 +24,6 @@ public class IpcBoundsTests
             {
                 try
                 {
-                    // The write is awaited before this method disposes the client.
                     client.Write(payload);
                 }
                 catch (IOException)
@@ -69,7 +65,6 @@ public class IpcBoundsTests
         }
         finally
         {
-            // The read above already shut the server down. This covers a failure before that.
             if (!shutDown)
                 server.Dispose();
         }
@@ -85,7 +80,6 @@ public class IpcBoundsTests
             await Fill(probe, held, IpcServer.MaxClients);
             await held[0].DisposeAsync();
 
-            // The place is free once the server sees the client gone, with no signal to tell it. Until then a new client is closed.
             var taken = false;
             await Wait.UntilAsync(() => taken, "The place of the listener that left was never freed.", async () =>
             {
@@ -103,7 +97,6 @@ public class IpcBoundsTests
                 }
                 catch (IOException)
                 {
-                    // At the cap the server can close the pipe before this probe finishes writing or reading.
                 }
             });
         }
@@ -147,8 +140,6 @@ public class IpcBoundsTests
             for (var i = 0; i < IpcServer.MaxClients; i++)
                 idle.Add(await ConnectWhenFree(name));
 
-            // The server starts each timer as it takes its client, which this test cannot see. So it advances until a request is answered.
-            // The request runs on the loop, which this test pumps between checks.
             var answered = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             var asking = Task.CompletedTask;
             await Wait.UntilAsync(() => answered.Task.IsCompleted, "The idle clients never gave their slots back.",
@@ -177,14 +168,12 @@ public class IpcBoundsTests
         await using var client = await Connect(probe.Pipe);
         await Subscribe(probe, client);
 
-        // Larger than the pipe buffer, so the server stays inside this write until the client reads it.
         var value = new string('a', 128 * 1024);
         probe.Ping.Emit(value);
         var first = new byte[1];
         Assert.Equal(1,
             await client.ReadAsync(first, TestContext.Current.CancellationToken).AsTask()
                 .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
-        // Short, so the test reads a full queue quickly. Only the first has to hold the server in its write.
         for (var i = 0; i < IpcServer.MaxQueuedSignals + 20; i++)
             probe.Ping.Emit("queued");
 
@@ -207,10 +196,6 @@ public class IpcBoundsTests
     private static readonly byte[] ListenRequest =
         "{\"op\":\"listen\",\"target\":\"probe\",\"name\":\"ping\"}\n"u8.ToArray();
 
-    /// <summary>
-    /// Listens, then returns once the server is following the signal and the stream is empty. A signal before that is
-    /// lost, so this emits until one arrives, then emits a last one and reads up to it.
-    /// </summary>
     private static async Task Subscribe(Probe probe, Stream client)
     {
         await client.WriteAsync(ListenRequest, TestContext.Current.CancellationToken);
@@ -229,7 +214,6 @@ public class IpcBoundsTests
         }
     }
 
-    /// <summary>Holds <paramref name="count"/> listeners, one after the other, so each is served before the next connects.</summary>
     private static async Task Fill(Probe probe, List<NamedPipeClientStream> held, int count)
     {
         for (var i = 0; i < count; i++)
@@ -240,7 +224,6 @@ public class IpcBoundsTests
         }
     }
 
-    /// <summary>The value of the next response line, or null when the server closed the stream.</summary>
     private static async Task<string?> ReadLine(Stream stream)
     {
         var line = new List<byte>();
@@ -283,17 +266,14 @@ public class IpcBoundsTests
             await using var client = await Connect(name);
             await client.WriteAsync("{\"op\":\"show\"}\n"u8.ToArray());
             using var reader = new StreamReader(client, Encoding.UTF8, false, leaveOpen: true);
-            // No time limit: a full server, or one whose idle timer ran first, closes the connection, which ends the read.
             if (await reader.ReadLineAsync(TestContext.Current.CancellationToken) is { } line)
                 answered.TrySetResult(line);
         }
         catch (Exception e) when (e is IOException or TimeoutException or OperationCanceledException)
         {
-            // The server was full and closed this connection. The next try comes after more time passes.
         }
     }
 
-    /// <summary>A burst of connects can find both waiting instances taken, so each try is short and the next one looks again.</summary>
     private static async Task<NamedPipeClientStream> ConnectWhenFree(string name)
     {
         NamedPipeClientStream? client = null;
@@ -349,7 +329,6 @@ public class IpcBoundsTests
         return lines;
     }
 
-    /// <summary>One signal and its control pipe, in this process. Nothing is installed or replaced.</summary>
     private sealed class Probe : IDisposable
     {
         public Probe()

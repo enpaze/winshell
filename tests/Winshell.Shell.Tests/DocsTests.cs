@@ -2,12 +2,6 @@ using Winshell.Docs;
 
 namespace Winshell.ShellTests;
 
-/// <summary>
-/// Each reference page is generated from the public API of <c>Winshell.Shell</c>, <c>Winshell.Services</c> and
-/// <c>Winshell.Core</c>. Each <c>csharp</c> sample in the docs and the README is text from <see cref="GuideSamples"/>,
-/// which this project builds, from the message widget, which the solution builds, or from the starter in
-/// <c>templates/winshell</c>, which <c>scripts/build-template.ps1</c> builds.
-/// </summary>
 public sealed class DocsTests
 {
     private static readonly string Repo = TestSupport.Repo.Root;
@@ -30,10 +24,6 @@ public sealed class DocsTests
         Assert.True(problems.Count == 0, "C# examples that are not compiled:\n" + string.Join("\n", problems));
     }
 
-    /// <summary>
-    /// The starter, the configuration guide and the samples teach components. A <c>Watch</c> call or a XAML file in
-    /// the message sample would put the old widget shape back in front of an author.
-    /// </summary>
     [Fact]
     public void The_starter_the_guide_and_the_samples_call_no_Watch_and_the_message_sample_has_no_xaml()
     {
@@ -53,7 +43,6 @@ public sealed class DocsTests
             "Watch calls:\n" + string.Join("\n", watched) + "\nXAML:\n" + string.Join("\n", xaml));
     }
 
-    /// <summary>Source under <paramref name="root"/>, leaving out build output a compiled sample leaves behind.</summary>
     private static IEnumerable<string> SourceFiles(string root)
     {
         var bin = $"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}";
@@ -63,11 +52,6 @@ public sealed class DocsTests
                 && !file.Contains(obj, StringComparison.OrdinalIgnoreCase));
     }
 
-    /// <summary>
-    /// Each <c>docs/reference/winshell*.md</c> page is what <c>scripts/generate-reference.cs</c> writes from the
-    /// public API and its /// comments. This project compiles the page writer, <c>scripts/reference-pages.cs</c>, so
-    /// the pages can't drift from the code.
-    /// </summary>
     [Fact]
     public void The_reference_is_what_the_generator_writes()
     {
@@ -77,7 +61,6 @@ public sealed class DocsTests
             $"Out of date in docs/reference: {string.Join(", ", stale)}. Run: dotnet run scripts/generate-reference.cs");
     }
 
-    /// <summary>The <c>```csharp</c> blocks of every page, with the line each one starts on.</summary>
     private static IEnumerable<(string File, int Line, string Code)> Examples()
     {
         foreach (var file in Pages())
@@ -97,7 +80,6 @@ public sealed class DocsTests
         }
     }
 
-    /// <summary>The pages in <c>docs/</c>, outside <c>docs/agents/</c>, and the README.</summary>
     private static IEnumerable<string> Pages()
     {
         var agents = Path.Combine(Repo, "docs", "agents") + Path.DirectorySeparatorChar;

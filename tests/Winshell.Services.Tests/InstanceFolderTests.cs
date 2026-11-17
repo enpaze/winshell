@@ -2,10 +2,6 @@ using System.Text.Json;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>
-/// An instance's file keeps what <c>winshell list</c> leaves out. A clean exit keeps the instance folder, and a later
-/// start deletes it once it is a day old.
-/// </summary>
 public sealed class InstanceFolderTests : IDisposable
 {
     private readonly string _root = TempFolder.NewPath();

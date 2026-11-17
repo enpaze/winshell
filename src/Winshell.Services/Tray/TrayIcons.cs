@@ -2,12 +2,6 @@ using Windows.Win32;
 
 namespace Winshell.Tray;
 
-/// <summary>
-/// The icons apps added with <c>Shell_NotifyIcon</c>, kept the way Explorer keeps them: one icon whether an app names
-/// it by GUID or by window and id, and in the hidden icons flyout as Windows' settings choose.
-/// </summary>
-/// <param name="readIcon">Reads an app's icon handle while the app still has it.</param>
-/// <param name="ownerOf">The process that owns a window, and its program's path.</param>
 internal sealed class TrayIcons(
     Func<nint, (PixelImage? Image, IconResource? Resource)> readIcon,
     Func<nint, (int ProcessId, string ProgramPath)> ownerOf)
@@ -25,18 +19,12 @@ internal sealed class TrayIcons(
 
     public event Action<TrayIcon>? Removed;
 
-    /// <summary>The app asked for a balloon notification: its title, its text, and its <c>NIIF_</c> flags.</summary>
     public event Action<TrayIcon, string, string, uint>? Balloon;
 
-    /// <summary>
-    /// Applies a call. A change to an icon this table does not have fails, as in Explorer, so an app that changes its icon
-    /// when asked to add it again, as Windows Security does, adds it. Every other call succeeds.
-    /// </summary>
     public bool Apply(NotifyIconCall call)
     {
         var hasGuid = call.Guid != Guid.Empty;
         var window = call.Window;
-        // NIM_SETVERSION often leaves the GUID flag off, so an icon added by GUID is also found by its window.
         var icon = Lookup(window, call.Id, call.Guid);
         var key = icon?.Key ?? (hasGuid ? call.Guid.ToString("N") : $"{(uint)window:x}-{call.Id}");
         switch (call.Message)
@@ -56,7 +44,6 @@ internal sealed class TrayIcons(
 
                     if (hasGuid)
                         icon.Guid = call.Guid;
-                    // A system message such as WM_CLOSE is no app's callback, and is never sent.
                     if ((call.Flags & TrayProtocol.NIF_MESSAGE) != 0)
                         icon.CallbackMessage = call.CallbackMessage >= PInvoke.WM_USER ? call.CallbackMessage : 0;
                     if ((call.Flags & TrayProtocol.NIF_TIP) != 0)
@@ -64,7 +51,6 @@ internal sealed class TrayIcons(
                     if ((call.Flags & TrayProtocol.NIF_STATE) != 0 && (call.StateMask & TrayProtocol.NIS_HIDDEN) != 0)
                         icon.Hidden = (call.State & TrayProtocol.NIS_HIDDEN) != 0;
                     if ((call.Flags & TrayProtocol.NIF_ICON) != 0)
-                        // The app may destroy the icon once this returns, so it is read now.
                         (icon.Image, icon.Resource) = readIcon(call.Icon);
                     Index(icon);
                     var added = !_icons.ContainsKey(icon.Key);
@@ -79,7 +65,6 @@ internal sealed class TrayIcons(
                         Added?.Invoke(icon);
                     else
                         Changed?.Invoke(icon);
-                    // An empty text takes a balloon down; Explorer does that itself.
                     if ((call.Flags & TrayProtocol.NIF_INFO) != 0 && call.Info.Length > 0)
                         Balloon?.Invoke(icon, call.InfoTitle, call.Info, call.InfoFlags);
                     break;
@@ -89,7 +74,6 @@ internal sealed class TrayIcons(
                     Remove(icon.Key);
                 break;
             case TrayProtocol.SetVersion:
-                // The only message where this field is a version; elsewhere it is a balloon timeout.
                 if (icon is not null)
                     icon.Version = call.TimeoutOrVersion;
                 break;
@@ -98,7 +82,6 @@ internal sealed class TrayIcons(
         return true;
     }
 
-    /// <summary>Takes Windows' choices for which icons the taskbar shows, and updates the icons they changed.</summary>
     public void UseSettings(IReadOnlyList<TrayIconSetting> settings)
     {
         _settings = settings;
@@ -120,7 +103,6 @@ internal sealed class TrayIcons(
         Removed?.Invoke(icon);
     }
 
-    /// <summary>An icon added by GUID and later addressed by its window, or the other way around, is the same icon.</summary>
     private TrayIcon? Lookup(nint window, uint id, Guid guid)
     {
         if (guid != Guid.Empty && _byGuid.TryGetValue(guid, out var byGuid))

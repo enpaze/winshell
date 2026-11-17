@@ -2,13 +2,8 @@ using Windows.Win32.Foundation;
 
 namespace Winshell.Native;
 
-/// <summary>What a failed file operation says about the file.</summary>
 internal static class FileErrors
 {
-    /// <summary>
-    /// True when access was denied, or the file was shared or locked against this process. Antivirus and indexers do
-    /// this to a file that was just written.
-    /// </summary>
     internal static bool IsLock(Exception exception)
     {
         var code = (WIN32_ERROR)(exception.HResult & 0xFFFF);

@@ -2,10 +2,6 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>
-/// <c>winshell.exe</c> and <c>winshellw.exe</c>, one program built twice. The second has no console: Start runs it,
-/// and it still starts a shell when given no command.
-/// </summary>
 internal static class WinshellHost
 {
     private const string ConsoleName = "winshell.exe";
@@ -22,7 +18,6 @@ internal static class WinshellHost
         return path is not null && Named(path, WindowlessName);
     }
 
-    /// <summary>The console host beside a <c>winshellw.exe</c>. Any other path is unchanged.</summary>
     public static string ConsoleOf(string path)
     {
         if (!IsWindowless(path))
@@ -31,7 +26,6 @@ internal static class WinshellHost
         return string.IsNullOrEmpty(folder) ? ConsoleName : Path.Combine(folder, ConsoleName);
     }
 
-    /// <summary>The host that started this process, or null when none did. A configuration's program is not a host.</summary>
     public static string? Supervising()
     {
         return ProcessImage.Ancestor(Is);

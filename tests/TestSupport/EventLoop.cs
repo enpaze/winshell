@@ -3,12 +3,6 @@ using Xunit.Sdk;
 
 namespace Winshell.TestSupport;
 
-// Partial so TimerEntry can cross the WinRT ABI. CsWinRT1028 requires its parent type to be partial too.
-/// <summary>
-/// Posted work and timers for tests, on real time unless a clock is given. A test calls <see cref="RunDue"/> when
-/// work may be ready, and reads <see cref="NextDue"/> to see when the next timer is due. <see cref="ManualEventLoop"/>
-/// moves time itself.
-/// </summary>
 internal partial class EventQueue(TimeProvider time) : IEventLoop
 {
     private readonly ConcurrentQueue<Action> _posted = new();
@@ -18,7 +12,6 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
     private long _sequence;
     private int _cancelled;
 
-    // Each test project compiles this file, so a use in another project is invisible here.
     public EventQueue() : this(TimeProvider.System)
     {
     }
@@ -27,16 +20,10 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
 
     public TimeProvider Time => time;
 
-    /// <summary>Time since the loop was made, which <see cref="NextDue"/> counts from.</summary>
     public TimeSpan Now => time.GetElapsedTime(_started);
 
-    // EventLoopContractTests assigns this when it constructs the loop.
     public Log Log { get; init; } = Log.Default;
 
-    /// <summary>
-    /// Raised with what posted work or a timer threw, after it is logged. The loop goes on.
-    /// An xUnit assertion is not caught: it fails the caller, so a test does not hang until the job times out.
-    /// </summary>
     public event Action<Exception>? Failed;
 
     public void Post(Action action)
@@ -57,7 +44,6 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
         return entry;
     }
 
-    /// <summary>When the next timer is due, or null when there is none.</summary>
     public TimeSpan? NextDue
     {
         get
@@ -77,11 +63,6 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
         }
     }
 
-    /// <summary>
-    /// Runs one batch of posted work and timers that were already due. Work queued by that batch waits for the
-    /// next pass, so a handler that posts itself or a timer that fires slower than its interval cannot starve
-    /// the caller. Returns whether anything ran.
-    /// </summary>
     public bool RunDue()
     {
         var ran = RunPosted();
@@ -115,10 +96,6 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
         return ran;
     }
 
-    /// <summary>
-    /// Runs the posted work queued so far and leaves timers for <see cref="RunDue"/>. Work posted by this batch
-    /// waits for the next pass. A handler that calls back in runs the rest of its own batch in order.
-    /// </summary>
     private bool RunPosted()
     {
         if (_batch.Count == 0)
@@ -130,7 +107,6 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
         return ran;
     }
 
-    /// <summary>Whether a later pass still has posted work, or a timer that was due at <paramref name="now"/>.</summary>
     private bool HasQueuedWork(TimeSpan now)
     {
         if (!_posted.IsEmpty)
@@ -149,10 +125,6 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
         return false;
     }
 
-    /// <summary>
-    /// Cancels a timer that has not fired. It leaves the heap when it reaches the top, or sooner when cancelled
-    /// timers pass half the heap, so a timer restarted on every keystroke does not pile up until its due time.
-    /// </summary>
     private void Cancel(TimerEntry entry)
     {
         lock (_timers)
@@ -160,8 +132,6 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
             if (entry.Cancelled)
                 return;
             entry.Cancelled = true;
-            // The entry stays in the heap until it is due when other timers are still live. The action closes over
-            // the object that scheduled it, so leaving it there keeps that object until the due time.
             entry.DropAction();
             if (++_cancelled <= _timers.Count / 2)
                 return;
@@ -178,7 +148,7 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
         {
             action();
         }
-#pragma warning disable CA1031 // A callback that fails is reported and the loop goes on. An assertion fails the test.
+#pragma warning disable CA1031
         catch (Exception e) when (!IsAssertion(e))
 #pragma warning restore CA1031
         {
@@ -187,7 +157,6 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
         }
     }
 
-    /// <summary>An assertion leaves the loop. Every other exception is logged, and the loop goes on.</summary>
     private static bool IsAssertion(Exception exception)
     {
         for (var current = exception; current is not null; current = current.InnerException)
@@ -197,14 +166,12 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
         return false;
     }
 
-    // CsWinRT1028 requires partial. The WinUI test projects generate the other part.
     private sealed partial class TimerEntry(EventQueue queue, Action action) : IDisposable
     {
         private static readonly Action Dropped = static () => { };
 
         public Action Action { get; private set; } = action;
 
-        /// <summary>Set under the timer lock when the timer is cancelled or taken off the heap to fire.</summary>
         public bool Cancelled { get; set; }
 
         public void DropAction()
@@ -219,8 +186,6 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
     }
 }
 
-// Each test project compiles this file, so a use in another project is invisible here.
-/// <summary>An event loop for tests: time moves only when the test advances it. It starts at 2026-01-01 UTC.</summary>
 internal sealed class ManualEventLoop : EventQueue
 {
     private const int TurnCap = 1000;
@@ -236,7 +201,6 @@ internal sealed class ManualEventLoop : EventQueue
         _clock = clock;
     }
 
-    /// <summary>Runs everything that is due now. Fails when that takes more turns than the cap.</summary>
     public void Process()
     {
         for (var i = 0; i < TurnCap; i++)
@@ -246,10 +210,6 @@ internal sealed class ManualEventLoop : EventQueue
         throw new InvalidOperationException($"The event loop hit its turn cap of {TurnCap}.");
     }
 
-    /// <summary>
-    /// Moves time forward, running each timer when its time comes. Timers made by <see cref="EventQueue.Time"/> fire
-    /// on this thread as the clock passes them.
-    /// </summary>
     public void Advance(TimeSpan by)
     {
         var end = Now + by;

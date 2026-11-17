@@ -9,17 +9,8 @@ using Winshell;
 
 namespace Winshell;
 
-/// <summary>
-/// Called by .NET when <c>dotnet watch</c> applies an edit to the running program. An edited method already runs its new
-/// code. What a constructor built does not, so a widget area showing an edited type makes its widgets again, and
-/// anywhere else the outermost of the configuration's own controls around one, a type from an edited assembly, is made
-/// again in its place. Its constructor builds what it shows. A Winshell or WinUI control around it, such as a grid
-/// filled in code, is filled by whoever made it, which its constructor can't repeat, so it stays with
-/// the rest of what it holds.
-/// </summary>
 internal static class PanelReload
 {
-    /// <summary>Called by name by .NET, on no thread of ours.</summary>
     internal static void UpdateApplication(Type[]? updated)
     {
         if (updated is null || Shell.Running is not { } shell)
@@ -45,7 +36,6 @@ internal static class PanelReload
         }
     }
 
-    /// <summary>An edit reports the closures and state machines the compiler made, which are nested in the type it changed.</summary>
     private static Type Written(Type type)
     {
         while (type.Name.StartsWith('<') && type.DeclaringType is { } outer)
@@ -53,12 +43,6 @@ internal static class PanelReload
         return type;
     }
 
-    /// <summary>
-    /// Finds what to make again in <paramref name="element"/>. A widget area that shows an edited type goes in
-    /// <paramref name="remakes"/>. So does one inside the outermost control of a type from an edited assembly, the
-    /// configuration's own, unless that control shows an edited type outside every area: then it goes in
-    /// <paramref name="controls"/>.
-    /// </summary>
     private static void Find(DependencyObject element, HashSet<Type> edited, HashSet<Assembly> own,
         List<UIElement> controls, List<Action> remakes)
     {
@@ -82,10 +66,6 @@ internal static class PanelReload
             Find(VisualTreeHelper.GetChild(element, i), edited, own, controls, remakes);
     }
 
-    /// <summary>
-    /// Whether <paramref name="element"/> shows an edited type outside a widget area. Each outermost area that shows one
-    /// goes in <paramref name="remakes"/> instead, since an area can make its widgets again.
-    /// </summary>
     private static bool Shows(DependencyObject element, HashSet<Type> edited, List<Action> remakes)
     {
         if (edited.Contains(element.GetType()))
@@ -133,7 +113,6 @@ internal static class PanelReload
         }
         catch (TargetInvocationException e)
         {
-            // Half-typed code is normal here. The last version keeps running until the next edit.
             shell.Log.Warn("dev", $"Could not rebuild {type.Name}: {e.InnerException?.Message}");
             return;
         }

@@ -4,17 +4,8 @@ using Windows.ApplicationModel;
 
 namespace Winshell.Session;
 
-/// <summary>
-/// The sign-in entry. Tests use a fake, or a key of their own, and never touch the user's Run key. A packaged task
-/// is faked the same way: tests never call <see cref="WindowsStartupTasks.Open"/>.
-/// </summary>
 internal interface IStartupRegistry
 {
-    /// <summary>
-    /// The sign-in answer. <see cref="SignInVerdict.HasEntry"/> is whether an entry is there,
-    /// <see cref="SignInVerdict.PointsElsewhere"/> whether it starts something other than this command, and
-    /// <see cref="SignInVerdict.OffInWindows"/> the raw off bit, which stays set when the Run value is absent.
-    /// </summary>
     SignInVerdict Read();
 
     bool Register();
@@ -22,10 +13,6 @@ internal interface IStartupRegistry
     bool Unregister();
 }
 
-/// <summary>
-/// What a sign-in registry treats as Windows refusing. Anything else is a bug: it is logged and left to surface,
-/// not reported as Windows refusing.
-/// </summary>
 internal static class SignInAccess
 {
     internal static bool IsExpected(Exception exception)
@@ -52,12 +39,6 @@ internal static class SignInAccess
     }
 }
 
-/// <summary>A value under <c>HKCU\Software\Microsoft\Windows\CurrentVersion\Run</c>, for the current user only.</summary>
-/// <param name="command">The command this entry starts.</param>
-/// <param name="configRoot">The config folder a sign-in command's <c>-c</c>, or its lack of <c>-p</c> and <c>-c</c>, is read against.</param>
-/// <param name="runKey">The <c>Run</c> key, or a key of a test's own.</param>
-/// <param name="approvedKey">Where Startup apps keeps its on and off for <paramref name="runKey"/>.</param>
-/// <param name="log">Where a bug while reading or writing the entry is logged. Windows refusing is not.</param>
 internal sealed class WindowsStartupRegistry(
     string command,
     string configRoot,
@@ -94,8 +75,6 @@ internal sealed class WindowsStartupRegistry(
 
     private SignInVerdict Classify()
     {
-        // Each read refuses on its own. A Startup apps key Windows will not open leaves the Run value, and a Run
-        // key it will not open leaves the off bit. One refusal of both would report no entry and not off.
         var registered = OrRefusal(() => SignInEntry.RegisteredCommand(runKey), null);
         var off = OrRefusal(() => SignInEntry.TurnedOffInWindows(approvedKey), false);
         if (registered is null)
@@ -121,18 +100,9 @@ internal sealed class WindowsStartupRegistry(
         var project = wanted.NamesConfiguration ? SignInEntry.ProjectOf(wanted, configRoot, _log) : null;
         var verdict = SignInVerdict.FromRun(registered, off, wanted.Program ?? "", configRoot, File.Exists,
             SignInEntry.Resolve, project, _log);
-        // Kind follows the doctor's order, so a missing program stays a missing program. The service's elsewhere is
-        // whether this command would start: when it names no configuration, that is its arguments, not the project
-        // the doctor was asked about. Those two readings already differed, and both stay.
         return verdict with { HasEntry = true, OffInWindows = off, PointsElsewhere = !Starts(registered) };
     }
 
-    /// <summary>
-    /// Whether <paramref name="actual"/> starts what this entry's command starts. The windowed name counts as the
-    /// console name. When the command names a configuration, <paramref name="actual"/> starts it when it runs the
-    /// same install and <c>winshell run</c> would choose the same project for it, read now: adding a configuration
-    /// while a shell is open changes which project the installer's command, with no <c>-p</c> and no <c>-c</c>, starts.
-    /// </summary>
     private bool Starts(string actual)
     {
         var wantedLine = CommandLine.Parse(command);
@@ -147,10 +117,6 @@ internal sealed class WindowsStartupRegistry(
     }
 }
 
-/// <summary>
-/// The package's <c>windows.startupTask</c>. Windows starts the package, so there is no path to go stale and
-/// nothing points elsewhere. Tests pass a fake. <see cref="WindowsStartupTasks.Open"/> is the real task.
-/// </summary>
 internal sealed class StartupTaskRegistry(IStartupTask task, Log? log = null) : IStartupRegistry
 {
     private readonly Log _log = log ?? Log.Default;
@@ -167,7 +133,6 @@ internal sealed class StartupTaskRegistry(IStartupTask task, Log? log = null) : 
             var state = task.State;
             if (state is StartupTaskState.Enabled or StartupTaskState.EnabledByPolicy)
                 return true;
-            // DisabledByUser and DisabledByPolicy stay as Windows left them. RequestEnable would not change that.
             if (state is not StartupTaskState.Disabled)
                 return false;
             var next = task.RequestEnable();
@@ -181,7 +146,6 @@ internal sealed class StartupTaskRegistry(IStartupTask task, Log? log = null) : 
         {
             if (task.State is StartupTaskState.Disabled)
                 return true;
-            // Only a task this shell enabled can be disabled here. Policy and the Startup apps page are Windows'.
             if (task.State is not StartupTaskState.Enabled)
                 return false;
             return task.Disable();
@@ -189,22 +153,15 @@ internal sealed class StartupTaskRegistry(IStartupTask task, Log? log = null) : 
     }
 }
 
-/// <summary>What <see cref="StartupTaskRegistry"/> asks Windows. A test fakes it. The real calls are <see cref="WindowsStartupTasks"/>.</summary>
 internal interface IStartupTask
 {
     StartupTaskState State { get; }
 
-    /// <summary>Asks Windows to enable the task. Returns the state afterwards.</summary>
     StartupTaskState RequestEnable();
 
-    /// <summary>Turns the task off. Returns whether it is now disabled.</summary>
     bool Disable();
 }
 
-/// <summary>
-/// The real <c>StartupTask</c> that <see cref="SignInEntry.OpenTask"/> reads. Enabling or disabling it has no test:
-/// that would change an installed package's sign-in.
-/// </summary>
 internal static class WindowsStartupTasks
 {
     public static IStartupTask? Open()
@@ -216,9 +173,8 @@ internal static class WindowsStartupTasks
     {
         public StartupTaskState State => task.State;
 
-        // Off the caller. Completing a WinRT async call on the shell's thread can deadlock it.
         public StartupTaskState RequestEnable() =>
-#pragma warning disable VSTHRD002 // Task.Run leaves the caller, so its context is not what it waits for.
+#pragma warning disable VSTHRD002
             Task.Run(async () => await task.RequestEnableAsync().AsTask().ConfigureAwait(false)).GetAwaiter()
                 .GetResult();
 #pragma warning restore VSTHRD002

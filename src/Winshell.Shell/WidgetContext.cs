@@ -4,36 +4,15 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Winshell;
 
-/// <summary>
-/// One entry in a widget area. Several placements may name the same widget. A string converts to a placement with no
-/// settings, so a list of placements can be written <c>["clock", "battery"]</c>.
-/// </summary>
-/// <param name="Widget">The case-sensitive name registered with <see cref="Widgets.Register"/>.</param>
-/// <param name="Settings">This placement's settings, or null for no settings. Widgets should treat nested values as read-only too.</param>
 public sealed record Placement(string Widget, IReadOnlyDictionary<string, object>? Settings = null)
 {
     private const string NotAList = "must be a list of tables that each name a widget";
     private const string MissingName = "must name a widget in each of its tables";
 
-    /// <summary>A placement of a widget with no settings, so a list of placements can name widgets as plain strings.</summary>
     public static implicit operator Placement(string widget) => new(widget);
 
-    /// <summary>
-    /// Why <paramref name="value"/> is not a list of placement tables, or <c>""</c> when each table names a widget.
-    /// A placement table is <c>{ widget, ...settings }</c>: <c>widget</c> is the widget's name, and every other key is
-    /// one setting. A list of tables that misses a name is <c>must name a widget in each of its tables</c>. Any other
-    /// value is <c>must be a list of tables that each name a widget</c>.
-    /// </summary>
-    /// <param name="value">The list, as a preferences key or a screen row holds it.</param>
     public static string Check(object value) => Reason(Tables(value));
 
-    /// <summary>
-    /// The placements in a list of tables <see cref="Check"/> accepted, in that order. <c>widget</c> names each one and
-    /// the other keys are its settings. A table with no other keys still has empty settings, which is not the null of
-    /// a placement written with no settings in code.
-    /// </summary>
-    /// <param name="tables">A value <see cref="Check"/> returned <c>""</c> for.</param>
-    /// <exception cref="ArgumentException">The value is not a list of tables that each name a widget.</exception>
     public static ImmutableArray<Placement> Parse(object tables)
     {
         ArgumentNullException.ThrowIfNull(tables);
@@ -44,10 +23,6 @@ public sealed record Placement(string Widget, IReadOnlyDictionary<string, object
         return [.. rows.Select(Read)];
     }
 
-    /// <summary>
-    /// The tables a preferences file writes for <paramref name="placements"/>. Each is <c>{ widget, ...settings }</c>,
-    /// with <c>widget</c> first. A setting named <c>widget</c> is left out, so the placement's own name is the one written.
-    /// </summary>
     public static IReadOnlyList<IReadOnlyDictionary<string, object?>> Format(ImmutableArray<Placement> placements) =>
         placements.Select(Write).ToArray();
 
@@ -92,11 +67,6 @@ public sealed record Placement(string Widget, IReadOnlyDictionary<string, object
     }
 }
 
-/// <summary>
-/// The props of one placement: the shell, the shell window the area is drawn in, the placement's settings and the
-/// area's orientation, plus the styling of a popup the widget opens. A widget reads them as <c>Props</c>. A changed
-/// placement, or the area moving into a window, is a new value of this record, and the component renders again.
-/// </summary>
 public sealed record WidgetContext
 {
     private readonly PopupStyles _popups;
@@ -112,58 +82,31 @@ public sealed record WidgetContext
         _popups = new PopupStyles(anchor);
     }
 
-    /// <summary>The shell that owns the area.</summary>
     public Shell Shell { get; }
 
-    /// <summary>
-    /// The shell window this area is drawn in, and so the screen that window is on, or null before the area is in a
-    /// window. The area renders the widget again once it is.
-    /// </summary>
     public ShellWindow? Window { get; internal init; }
 
-    /// <summary>The direction in which the area arranges its placements.</summary>
     public Orientation Orientation { get; internal init; }
 
-    /// <summary>This placement's settings. Empty when the placement supplied none.</summary>
     public IReadOnlyDictionary<string, object> Settings { get; internal init; }
 
-    /// <summary>The widget this placement shows. A new name is a new component.</summary>
     internal string Widget { get; init; }
 
-    /// <summary>
-    /// The style this placement shows: the area's own, or the shell's, or null for the built-in style. A widget reads
-    /// <see cref="ShellStyle.Alert"/> from it when something needs attention.
-    /// </summary>
     public ShellStyle? Style => _popups.Style;
 
-    /// <summary>
-    /// Wraps content for a PopupWindow or a flyout in the area's styling. Assign the result to the popup's Content on
-    /// the shell's thread. A widget may call it as soon as it has its context, before the area is in a host. Each call
-    /// loads a fresh dictionary of the area's style, preserving the content's own resources, so the popup's plain
-    /// controls and a component hosted in it look like the area's. The wrapper follows later changes to that style at
-    /// once, until the area removes the widget or is disposed. The widget still owns and disposes its popup windows.
-    /// </summary>
-    /// <param name="content">The popup's unparented content.</param>
-    /// <returns>A new wrapper to use as the popup window's content.</returns>
     public FrameworkElement StylePopup(UIElement content)
     {
         ObjectDisposedException.ThrowIf(_popups.Stopped, this);
         return _popups.Wrap(content);
     }
 
-    /// <summary>The same placement with new settings and orientation. Popup styling and the window stay with it.</summary>
     internal WidgetContext Next(IReadOnlyDictionary<string, object> settings, Orientation orientation) =>
         this with { Settings = settings, Orientation = orientation };
 
-    /// <summary>The same placement drawn in <paramref name="window"/>. Popup styling stays with this placement.</summary>
     internal WidgetContext In(ShellWindow? window) => this with { Window = window };
 
     internal void StopStyling() => _popups.Stop();
 
-    /// <summary>
-    /// Popup wrappers for one placement. A new props record shares this, so a popup opened earlier keeps following the
-    /// area after the placement's settings change.
-    /// </summary>
     private sealed class PopupStyles
     {
         private readonly PopupAnchor _anchor;
@@ -224,7 +167,6 @@ public sealed record WidgetContext
     }
 }
 
-/// <summary>The style an area's popups load. One placement's wrappers share it, and disposing the area stops them.</summary>
 internal sealed class PopupAnchor
 {
     public Func<ShellStyle?> Style { get; set; } = () => null;
@@ -246,6 +188,4 @@ internal sealed class PopupAnchor
     }
 }
 
-/// <summary>A widget throws this with the reason it cannot run in this placement.</summary>
-/// <param name="message">The reason shown beside the widget's name in the area's placeholder.</param>
 public sealed class UnsupportedWidgetException(string message) : Exception(message);

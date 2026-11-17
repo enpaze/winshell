@@ -4,7 +4,6 @@ using Windows.Win32.System.Com;
 
 namespace Winshell.Native;
 
-/// <summary>What a <c>.lnk</c> shortcut holds.</summary>
 internal sealed record ShellLinkInfo(
     string Target,
     string Arguments,
@@ -12,7 +11,6 @@ internal sealed record ShellLinkInfo(
     string Description,
     string AppUserModelId);
 
-/// <summary>Reads <c>.lnk</c> files with the shell's own ShellLink object.</summary>
 internal static class ShellLink
 {
     private static readonly Guid ClsidShellLink = new("00021401-0000-0000-C000-000000000046");
@@ -24,12 +22,10 @@ internal static class ShellLink
             return null;
         try
         {
-            // The cast queries IPersistFile on this shell link. No type implements both.
             if (shell is not IPersistFile file)
                 return null;
             file.Load(path, 0);
             var buffer = new StringBuilder(1024);
-            // SLGP_RAWPATH is not asked for, so environment variables in the target are expanded.
             shell.GetPath(buffer, buffer.Capacity, 0, 0);
             var target = buffer.ToString();
             buffer.Clear();
@@ -41,7 +37,6 @@ internal static class ShellLink
             buffer.Clear();
             shell.GetDescription(buffer, buffer.Capacity);
             var description = buffer.ToString();
-            // The cast queries IPropertyStore on this shell link. No type implements both.
             var aumid = shell is IPropertyStore store
                 ? PropertyStore.ReadString(store, PropertyStore.AppUserModelId) ?? ""
                 : "";
@@ -58,11 +53,6 @@ internal static class ShellLink
         }
     }
 
-    /// <summary>
-    /// IPersistFile, for the same object as the shared <see cref="IShellLinkW"/>. CsWin32's struct form cannot be
-    /// cast from that runtime-callable wrapper.
-    /// </summary>
-    // Every method keeps its place in the IPersistFile vtable.
     [ComImport]
     [Guid("0000010b-0000-0000-C000-000000000046")]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

@@ -4,13 +4,6 @@ using Winshell.Native;
 
 namespace Winshell.Capture;
 
-/// <summary>What to record, where to, and for how long.</summary>
-/// <param name="Target">The window or screen.</param>
-/// <param name="Video">The MP4 file to create or replace.</param>
-/// <param name="Length">How long to record.</param>
-/// <param name="Rate">The video's frames a second, when the encoder takes that many for the frames' size.</param>
-/// <param name="Fps">The most frames to keep a second, or null to keep every frame Windows delivers.</param>
-/// <param name="Frames">A new or empty folder for each kept frame as a PNG and the contact sheet, or null for none.</param>
 internal sealed record Recording(
     CaptureTarget Target,
     string Video,
@@ -19,21 +12,6 @@ internal sealed record Recording(
     int? Fps,
     string? Frames);
 
-/// <summary>What a recording wrote.</summary>
-/// <param name="Width">The video's width in pixels: the first frame's, rounded up to an even number.</param>
-/// <param name="Height">The video's height in pixels, the same way.</param>
-/// <param name="Rate">The video's frames a second: <see cref="Recording.Rate"/>, or less when the encoder refused it.</param>
-/// <param name="Length">How long it recorded: the length asked for, or less when the target closed first.</param>
-/// <param name="Captured">The frames Windows delivered.</param>
-/// <param name="Kept">
-/// The frames <see cref="Recording.Fps"/> kept, each in the frames folder. The video shows the last of those that fall in
-/// one of its frames.
-/// </param>
-/// <param name="VideoFrames">The video's frames, with repeats.</param>
-/// <param name="Closed">Whether the target closed before the end.</param>
-/// <param name="OnScreen">
-/// Whether Windows refused to capture the window by itself, so its place on its screen was recorded instead.
-/// </param>
 internal sealed record Recorded(
     int Width,
     int Height,
@@ -45,20 +23,10 @@ internal sealed record Recorded(
     bool Closed,
     bool OnScreen);
 
-/// <summary>
-/// <c>winshell inspect record</c>: captures a window or a screen for a while, keeps frames by <c>--fps</c>, and writes
-/// them as a constant-rate MP4 and, with <c>--frames</c>, as PNGs and a contact sheet. Frames are timed from the start.
-/// </summary>
 internal static class Recorder
 {
-    /// <summary>The name of the contact sheet in the frames folder.</summary>
     public const string SheetName = "contact-sheet.png";
 
-    /// <summary>
-    /// Records until <see cref="Recording.Length"/> has passed on <paramref name="time"/>, or the target closes. The
-    /// capture runs on Windows' thread and the encoding on the thread pool, so a slow encoder delays only the end.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">No frame arrived, or the frames folder has files in it.</exception>
     public static async Task<Recorded> RecordAsync(Recording recording, TimeProvider time, Log log)
     {
         if (recording.Frames is { } folder)
@@ -89,8 +57,6 @@ internal static class Recorder
                        frames.Writer.TryWrite((frame, at));
                }, e => ended.TrySetResult(e)))
         {
-            // An encoder that fails ends the recording at once, rather than after frames nobody reads pile up.
-            // The timer stops as soon as the recording ends some other way.
             using var timer = new CancellationTokenSource();
             var finished = await Task.WhenAny(Task.Delay(recording.Length, time, timer.Token), ended.Task, encoding);
             await timer.CancelAsync();
@@ -130,8 +96,6 @@ internal static class Recorder
             {
                 if (video is null)
                 {
-                    // H.264 halves the color resolution, and the encoder refuses an odd height, such as a 26 px
-                    // panel's 39 at 150%. The video takes the next even size, and the extra row or column is black.
                     var videoWidth = (frame.Width + 1) & ~1;
                     var videoHeight = (frame.Height + 1) & ~1;
                     var (writer, openedRate) = OpenVideo(recording.Video, videoWidth, videoHeight, recording.Rate);
@@ -151,7 +115,6 @@ internal static class Recorder
                 if (recording.Frames is { } folder)
                 {
                     thumbnails.Add((ContactSheet.Thumbnail(frame), at));
-                    // Two frames can share a millisecond. The second is 000123_2.png, which sorts after the first.
                     var name = FileName(at);
                     repeats = name == lastName ? repeats + 1 : 1;
                     lastName = name;
@@ -179,11 +142,6 @@ internal static class Recorder
         }
     }
 
-    /// <summary>
-    /// A video at <paramref name="rate"/> frames a second, or at the most of 120, 60 and 30 below it that the encoder
-    /// takes. H.264's levels cap the frames a second by the frame size: a 250 Hz screen is over them, and the encoder
-    /// picks a low level for a thin panel. The frames folder still keeps every frame.
-    /// </summary>
     private static (Mp4Writer Video, int Rate) OpenVideo(string path, int width, int height, int rate)
     {
         List<int> rates = [rate];
@@ -199,7 +157,6 @@ internal static class Recorder
         return (new Mp4Writer(path, width, height, rates[^1]), rates[^1]);
     }
 
-    /// <summary>A video at <paramref name="rate"/>, or null when the encoder refuses that rate.</summary>
     private static (Mp4Writer Video, int Rate)? TryOpen(string path, int width, int height, int rate)
     {
         try
@@ -212,17 +169,11 @@ internal static class Recorder
         }
     }
 
-    /// <summary>A kept frame's name: its milliseconds since the start, six digits or more, so the names sort in order.</summary>
     private static string FileName(TimeSpan at)
     {
         return $"{ContactSheet.Milliseconds(at):D6}";
     }
 
-    /// <summary>
-    /// <paramref name="frame"/>'s pixels in a <paramref name="width"/> by <paramref name="height"/> picture, from its
-    /// top-left corner: cut or filled with black to the video's size, which is even, and stays the first frame's when a
-    /// window changes size.
-    /// </summary>
     private static ReadOnlySpan<byte> Fitted(PixelImage frame, int width, int height)
     {
         if (frame.Width == width && frame.Height == height)
@@ -234,7 +185,6 @@ internal static class Recorder
         return fitted;
     }
 
-    /// <summary>A timestamp of <paramref name="time"/> as the time since the system started, as a capture times frames.</summary>
     private static TimeSpan Since(TimeProvider time, long timestamp)
     {
         return TimeSpan.FromTicks((long)((Int128)timestamp * TimeSpan.TicksPerSecond / time.TimestampFrequency));

@@ -2,13 +2,8 @@ using System.Globalization;
 
 namespace Winshell.Notifications;
 
-/// <summary>A view of Windows Notification Center. Making one never prompts for access.</summary>
 public sealed class NotificationListener : ObservableObject, IDisposable
 {
-    /// <summary>
-    /// How often Focus, Do Not Disturb and access are read. Windows announces none of them, and announces toast changes
-    /// only with package identity.
-    /// </summary>
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(10);
 
     private readonly IEventLoop _loop;
@@ -20,10 +15,6 @@ public sealed class NotificationListener : ObservableObject, IDisposable
     private readonly StateReader<NotificationSnapshot> _reader;
     private IDisposable _poll;
 
-    /// <summary>
-    /// The toasts of the last read. A poll sees the same toasts, each of which costs Windows milliseconds to name its
-    /// app, and an app that changes a toast replaces it, which gives it a new creation time.
-    /// </summary>
     private Dictionary<(uint Id, DateTimeOffset Created), IncomingToast> _read = [];
 
     private IReadOnlyList<IncomingToast> _toasts = [];
@@ -55,28 +46,20 @@ public sealed class NotificationListener : ObservableObject, IDisposable
         _reader.Request();
     }
 
-    /// <summary>Raised after <see cref="Notifications"/> holds a newly seen notification, including those in the first read.</summary>
     public event Action<Notification>? NotificationAdded;
 
-    /// <summary>An access request or a dismissal failed. The text is <see cref="Error"/>.</summary>
     public event Action<string>? OperationFailed;
 
-    /// <summary>Every readable notification, newest first. Empty without access.</summary>
     public ObservableList<Notification> Notifications { get => Read(field); } = [];
 
-    /// <summary>The notifications in one group per app, newest first.</summary>
     public ObservableList<NotificationGroup> Groups { get => Read(field); } = [];
 
-    /// <summary>Whether the shell may read the notifications. Ask with <see cref="RequestAccess"/>.</summary>
     public NotificationAccessStatus AccessStatus => Read(_accessStatus);
 
-    /// <summary>Whether a Focus session is on.</summary>
     public NotificationState FocusState => Read(_focusState);
 
-    /// <summary>Windows' current notification restriction.</summary>
     public NotificationMode NotificationMode => Read(_notificationMode);
 
-    /// <summary>On for priority-only or alarms-only, Off for unrestricted.</summary>
     public NotificationState DoNotDisturbState => Read(_notificationMode) switch
     {
         NotificationMode.Unrestricted => NotificationState.Off,
@@ -84,10 +67,8 @@ public sealed class NotificationListener : ObservableObject, IDisposable
         _ => NotificationState.Unknown
     };
 
-    /// <summary>Why access or the last operation failed.</summary>
     public string Error => Read(_error);
 
-    /// <summary>Asks Windows for access and returns at once. Call from a button in a foreground window.</summary>
     public void RequestAccess()
     {
         _ = RequestAccessAsync();
@@ -103,7 +84,6 @@ public sealed class NotificationListener : ObservableObject, IDisposable
         Set(ref _error, "", nameof(Error));
         try
         {
-            // Windows requires the UI thread for the permission prompt; do not use Task.Run here.
             var status = await _backend.RequestAccessAsync().ConfigureAwait(false);
             Post(() =>
             {
@@ -112,7 +92,7 @@ public sealed class NotificationListener : ObservableObject, IDisposable
                 SetAccess(status);
             });
         }
-#pragma warning disable CA1031 // Nobody awaits this; a failure left unhandled would keep _requesting set and stop every read.
+#pragma warning disable CA1031
         catch (Exception e)
 #pragma warning restore CA1031
         {
@@ -153,9 +133,7 @@ public sealed class NotificationListener : ObservableObject, IDisposable
     private NotificationSnapshot Read(CancellationToken cancellation)
     {
         cancellation.ThrowIfCancellationRequested();
-        // With package identity and access Windows reports toast changes; until then each read tries again.
         _unwatch ??= _backend.WatchToasts(OnToastsChanged);
-        // Focus and notification restriction mode do not require listener permission.
         var focus = _backend.ReadFocus();
         var mode = _backend.ReadMode();
         try
@@ -169,11 +147,10 @@ public sealed class NotificationListener : ObservableObject, IDisposable
 
             if (!_changes.Due(out var stamp))
                 return new NotificationSnapshot(access, _toasts, focus, mode);
-#pragma warning disable VSTHRD002 // This thread waits so the toast reads that follow stay on it, not on the pool.
+#pragma warning disable VSTHRD002
             var listed = _backend.ListToastsAsync(cancellation).GetAwaiter().GetResult();
 #pragma warning restore VSTHRD002
             cancellation.ThrowIfCancellationRequested();
-            // Access may be revoked while the asynchronous read is in progress.
             access = _backend.ReadAccess();
             if (access != NotificationAccessStatus.Allowed)
             {
@@ -195,7 +172,6 @@ public sealed class NotificationListener : ObservableObject, IDisposable
                 }
                 catch (Exception e) when (WindowsFailure.IsExpected(e))
                 {
-                    // An app can disappear between enumeration and reading its toast.
                     _log.Warn("notifications", e.Message);
                 }
 
@@ -267,7 +243,6 @@ public sealed class NotificationListener : ObservableObject, IDisposable
             (group, items) => group.Update([.. items]));
     }
 
-    /// <summary>Dismisses this listener's current snapshot. Returns whether every removal succeeded; failed ones stay.</summary>
     public bool ClearAll()
     {
         return DismissMany(Notifications.ToArray());
@@ -326,7 +301,6 @@ public sealed class NotificationListener : ObservableObject, IDisposable
         });
     }
 
-    /// <summary>Stops watching Notification Center and releases the app logos it read.</summary>
     public void Dispose()
     {
         if (_disposed)
@@ -341,10 +315,6 @@ public sealed class NotificationListener : ObservableObject, IDisposable
     }
 }
 
-/// <summary>
-/// A notification in Notification Center. The object stays the same while its content changes. It stays usable after
-/// it leaves the center, so a UI can finish an exit transition, but its logo is gone by then.
-/// </summary>
 public sealed class Notification : ObservableObject
 {
     private readonly NotificationListener _listener;
@@ -361,37 +331,27 @@ public sealed class Notification : ObservableObject
         _toast = toast;
     }
 
-    /// <summary>The Windows notification id.</summary>
     public uint Id => Read(_toast).Id;
 
-    /// <summary>The AppUserModelID of the app that sent it. Can be empty.</summary>
     public string AppId => Read(_toast).AppId;
 
-    /// <summary>The display name of the app that sent it. Can be empty.</summary>
     public string AppName => Read(_toast).AppName;
 
-    /// <summary>A <c>file:///</c> url of the sending app's logo. Empty until the read finishes, and when Windows gives none.</summary>
     public string AppIcon => Read(_appIcon);
 
-    /// <summary>The first line of text. Can be empty.</summary>
     public string Title => Read(_toast).Title;
 
-    /// <summary>The lines of text after the title, joined by line breaks. Can be empty.</summary>
     public string Body => Read(_toast).Body;
 
-    /// <summary>When the notification was created.</summary>
     public DateTimeOffset CreatedAt => Read(_toast).CreatedAt;
 
-    /// <summary>When it expires, or null when Windows supplied no expiry.</summary>
     public DateTimeOffset? ExpiresAt => Read(_toast).ExpiresAt;
 
-    /// <summary>Removes the notification from Windows. Returns true only when Windows accepted the removal.</summary>
     public bool Dismiss()
     {
         return _listener.DismissMany([this]);
     }
 
-    /// <summary>The sending app, or this notification alone when it has no app identity.</summary>
     internal string AppKey => AppId.Length > 0 ? AppId : "notification:" + Id.ToString(CultureInfo.InvariantCulture);
 
     internal void Update(IncomingToast toast)
@@ -407,7 +367,6 @@ public sealed class Notification : ObservableObject
         SyncIcon();
     }
 
-    /// <summary>Starts a logo read when this notification's logo source or app changes.</summary>
     private void SyncIcon()
     {
         var source = _toast.Logo;
@@ -435,7 +394,6 @@ public sealed class Notification : ObservableObject
         Set(ref _appIcon, url, nameof(AppIcon));
     }
 
-    /// <summary>Drops a finished read, and makes an in-flight one release itself when it lands.</summary>
     internal void LetGo()
     {
         _iconRequest++;
@@ -445,7 +403,6 @@ public sealed class Notification : ObservableObject
     }
 }
 
-/// <summary>The notifications of one app. Notifications without an app identity each get a group of their own.</summary>
 public sealed class NotificationGroup : ObservableObject
 {
     private readonly NotificationListener _listener;
@@ -460,16 +417,12 @@ public sealed class NotificationGroup : ObservableObject
 
     internal string Key { get; }
 
-    /// <summary>The AppUserModelID of the app that sent the notifications. Empty when the app has none.</summary>
     public string AppId => Read(_appId);
 
-    /// <summary>The display name of the app that sent the notifications. Can be empty.</summary>
     public string AppName => Read(_appName);
 
-    /// <summary>The app's notifications, newest first.</summary>
     public ObservableList<Notification> Notifications { get => Read(field); } = [];
 
-    /// <summary>Dismisses the group's current notifications. Returns whether every removal succeeded; failed ones stay.</summary>
     public bool Dismiss()
     {
         return _listener.DismissMany(Notifications.ToArray());

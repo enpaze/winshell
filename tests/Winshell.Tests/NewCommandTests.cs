@@ -3,10 +3,6 @@ using Winshell.Commands;
 
 namespace Winshell.Tests;
 
-/// <summary>
-/// <c>winshell new</c> copies the starter or an example from winshell.exe into a temp folder this class owns. The
-/// packages folder beside winshell.exe is a temp folder too, so nothing here depends on how the CLI was built.
-/// </summary>
 public sealed partial class NewCommandTests : IDisposable
 {
     private readonly TempFolder _root = new();

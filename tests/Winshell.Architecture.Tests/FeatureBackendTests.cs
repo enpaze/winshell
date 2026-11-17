@@ -4,10 +4,6 @@ using System.Text.RegularExpressions;
 
 namespace Winshell.Architecture.Tests;
 
-/// <summary>
-/// Only the Services feature that owns a backend uses it: its <c>I*Backend</c> interface and the types that implement
-/// it. Other features and Shell use the service. The feature is the backend interface's namespace.
-/// </summary>
 public partial class FeatureBackendTests
 {
     private const BindingFlags Declared =
@@ -45,7 +41,6 @@ public partial class FeatureBackendTests
     [GeneratedRegex("^I[A-Z].*Backend$")]
     private static partial Regex BackendName();
 
-    // What a type's declaration, signatures and method bodies name. A property or event is its accessor methods.
     private static IEnumerable<Type> Uses(Type type)
     {
         if (type.BaseType is { } baseType)
@@ -76,10 +71,6 @@ public partial class FeatureBackendTests
                         yield return field.DeclaringType!;
                         yield return field.FieldType;
                         break;
-                    // A call names what it calls, its type arguments, what it returns and the types it accepts.
-                    // A helper whose own signature is wider still uses a backend when the method it calls accepts one.
-                    // A constructor's parameters are not a use: Shell builds a service with the optional backend
-                    // argument left at the default, so the service builds its own.
                     case MethodInfo called:
                         yield return called.DeclaringType!;
                         yield return called.ReturnType;
@@ -95,7 +86,6 @@ public partial class FeatureBackendTests
         }
     }
 
-    // The metadata tokens the instructions name: types, fields and methods.
     private static IEnumerable<int> Tokens(byte[] il)
     {
         for (var i = 0; i < il.Length;)
@@ -118,7 +108,6 @@ public partial class FeatureBackendTests
         }
     }
 
-    // A type with its element and generic argument types: a List<IAppsBackend> uses IAppsBackend.
     private static IEnumerable<Type> Parts(Type type)
     {
         return type.HasElementType

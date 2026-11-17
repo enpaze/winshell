@@ -353,7 +353,6 @@ public sealed partial class ShellNoticeTests : IDisposable
         Assert.Equal("NoticeComponent", type);
     }
 
-    /// <summary>The notice, once it has measured itself and shown.</summary>
     private static async Task<Grid> Shown(PanelWindow panel)
     {
         var host = (ReactorHostControl)panel.Content!;
@@ -363,10 +362,6 @@ public sealed partial class ShellNoticeTests : IDisposable
         return NoticeRoot(host);
     }
 
-    /// <summary>
-    /// The padded notice. Found from its dismiss button, so the name and live-region assertions can still fail. The
-    /// outermost padded grid is the notice, so a padded grid inside it is not.
-    /// </summary>
     private static Grid NoticeRoot(DependencyObject node)
     {
         Grid? root = null;
@@ -383,7 +378,6 @@ public sealed partial class ShellNoticeTests : IDisposable
         FindButton(node, name => name == "Dismiss")
         ?? throw new InvalidOperationException("The notice has no dismiss button.");
 
-    /// <summary>The button that opens the file. The dismiss button is the other one.</summary>
     private static Button ActionButton(DependencyObject node) =>
         FindButton(node, name => name != "Dismiss")
         ?? throw new InvalidOperationException("The notice has no action button.");

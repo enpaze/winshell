@@ -10,12 +10,10 @@ public sealed class WindowScanTests
     {
         using var release = new ManualResetEventSlim();
         var made = new TaskCompletionSource<nint>(TaskCreationOptions.RunContinuationsAsynchronously);
-        // As SystemEvents is while it waits for the loop: it owns a hidden window, and it is not pumping.
         var owner = new Thread(() =>
             {
                 var hwnd = NativeWindow.OfClass("STATIC", "", 0, 0, 0, 1, 1, 0, PInvoke.GetModuleHandle(null));
                 made.SetResult(hwnd);
-                // The owner thread is joined before the event is disposed, so this wait has returned.
                 release.Wait();
                 PInvoke.DestroyWindow((HWND)hwnd);
             })

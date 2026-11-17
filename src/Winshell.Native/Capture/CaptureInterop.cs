@@ -15,12 +15,10 @@ using ResultCode = Vortice.DXGI.ResultCode;
 
 namespace Winshell.Native;
 
-/// <summary>The desktop capture, DXGI and Direct3D readback bridges. Every ABI pointer has one explicit release.</summary>
 internal static unsafe class CaptureInterop
 {
     private static readonly Guid GraphicsCaptureItemId = new("79c3f95b-31f7-4ec2-a464-632ef5d30760");
 
-    /// <summary>A capture item for <paramref name="window"/>, or for <paramref name="monitor"/> when the window is zero.</summary>
     public static GraphicsCaptureItem CreateItem(nint window, nint monitor)
     {
         using var factory = ActivationFactory.Get("Windows.Graphics.Capture.GraphicsCaptureItem",
@@ -43,7 +41,6 @@ internal static unsafe class CaptureInterop
         }
     }
 
-    /// <summary>A WinRT Direct3D device over <paramref name="device"/>, which the caller keeps owning.</summary>
     public static IDirect3DDevice CreateDevice(ID3D11Device device)
     {
         using var dxgi = device.QueryInterface<IDXGIDevice>();
@@ -60,7 +57,6 @@ internal static unsafe class CaptureInterop
         }
     }
 
-    /// <summary>The texture behind a capture frame's surface. The caller disposes it.</summary>
     public static ID3D11Texture2D Texture(IDirect3DSurface surface)
     {
         using var marshaler = MarshalInspectable<IDirect3DSurface>.CreateMarshaler(surface);
@@ -80,10 +76,6 @@ internal static unsafe class CaptureInterop
         }
     }
 
-    /// <summary>
-    /// The <paramref name="width"/> by <paramref name="height"/> 32-bit pixels of <paramref name="staging"/>, a CPU-readable
-    /// texture, or null while the GPU is still writing it. Waits for the GPU only when <paramref name="wait"/> is set.
-    /// </summary>
     public static byte[]? Read(ID3D11DeviceContext context, ID3D11Texture2D staging, int width, int height,
         bool wait = false)
     {
@@ -103,10 +95,6 @@ internal static unsafe class CaptureInterop
         }
     }
 
-    /// <summary>
-    /// Copies <paramref name="height"/> rows of <paramref name="width"/> 32-bit pixels from mapped memory at
-    /// <paramref name="source"/> into <paramref name="destination"/>, stepping each by its own row pitch.
-    /// </summary>
     public static void CopyRows(nint source, int sourcePitch, Span<byte> destination, int destinationPitch, int width,
         int height)
     {

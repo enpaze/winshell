@@ -90,7 +90,6 @@ public sealed class TempImageStoreTests
         var url = Claim(store, png);
         Assert.NotNull(url);
         var path = new Uri(url).LocalPath;
-        // Another instance deleting its copy of the same picture must not take this one's.
         Assert.Equal(Environment.ProcessId.ToString(CultureInfo.InvariantCulture),
             Path.GetFileName(Path.GetDirectoryName(path)));
         Assert.EndsWith(".png", path, StringComparison.OrdinalIgnoreCase);

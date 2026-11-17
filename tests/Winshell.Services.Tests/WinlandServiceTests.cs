@@ -4,7 +4,6 @@ using Winshell.Winland;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>The Winland service over a fake backend: no pipe is opened, and replies come from a dictionary.</summary>
 public sealed class WinlandServiceTests
 {
     private const string Monitors = """
@@ -537,7 +536,6 @@ public sealed class WinlandServiceTests
         Assert.Equal(@"D:\work.conf", service.ConfigPath);
         Assert.Null(service.LogPath);
 
-        // A reload with debug:disable_logs false starts the log.
         _backend.Replies["j/files"] = """{"config":"D:\\work.conf","log":"D:\\state\\winland.log"}""";
         Raise("configreloaded>>");
         Assert.Equal(@"D:\state\winland.log", service.LogPath);

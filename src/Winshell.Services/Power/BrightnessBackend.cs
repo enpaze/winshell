@@ -5,13 +5,10 @@ using Winshell.Native;
 
 namespace Winshell.Power;
 
-/// <summary>How Winshell reaches a monitor to read and set its brightness.</summary>
 public enum BrightnessConnection
 {
-    /// <summary>A built-in panel, such as a laptop screen, set through WMI.</summary>
     Internal = 0,
 
-    /// <summary>An external monitor, set over DDC/CI.</summary>
     External = 1
 }
 
@@ -27,26 +24,13 @@ internal sealed record BrightnessSnapshot(bool Ready, IReadOnlyList<BrightnessIn
 
 internal interface IBrightnessBackend : IDisposable
 {
-    /// <summary>Windows reported a change to a built-in panel's brightness. Raised on any thread.</summary>
     event Action? Changed;
 
-    /// <summary>Reads the monitors. The first read starts watching Windows until the backend is disposed.</summary>
     Task<BrightnessSnapshot> ReadAsync(CancellationToken cancellation);
 
-    /// <summary>
-    /// Sets one monitor to a brightness already in its range. Returns why Windows did not, or null. One write can take
-    /// hundreds of milliseconds.
-    /// </summary>
     string? Set(string deviceName, int brightness);
 }
 
-/// <summary>
-/// Monitor brightness. An internal panel comes from WMI. An external monitor comes from one DDC/CI read.
-/// Reads happen when the shell starts, when the shell's screens change, when an internal panel reports a change, and
-/// after a burst of writes ends, so external monitors are not polled. A monitor whose read fails stays at its
-/// last reading while it is connected.
-/// </summary>
-/// <param name="log">Where a WMI failure is reported.</param>
 internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
 {
     private volatile IReadOnlyList<BrightnessInfo> _monitors = [];
@@ -65,7 +49,6 @@ internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
         if (!_watching)
         {
             _watching = true;
-            // Starting a WMI watcher takes a few hundred milliseconds, so it starts here, off the loop.
             WatchInternal();
         }
 
@@ -73,7 +56,6 @@ internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
         return new BrightnessSnapshot(true, _monitors);
     }
 
-    /// <summary>Stops watching Windows.</summary>
     public void Dispose()
     {
         if (!_watching)
@@ -109,11 +91,6 @@ internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
         }
     }
 
-    /// <summary>
-    /// The monitors with a brightness. A screen whose model code matches a WMI panel is that panel, named by the
-    /// screen's model. Any other screen is read with <paramref name="readExternal"/>. A panel no screen matches is
-    /// named by its WMI instance.
-    /// </summary>
     internal static List<BrightnessInfo> Combine(IReadOnlyList<ConnectedMonitor> screens,
         IReadOnlyList<WmiPanel> panels, Func<nint, (int Minimum, int Current, int Maximum)?> readExternal,
         IReadOnlyList<BrightnessInfo> previous)
@@ -148,7 +125,6 @@ internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
             panel.Current);
     }
 
-    /// <summary>An external monitor's info. A failed read (<paramref name="reading"/> is null) keeps the monitor's last reading, so one bad read does not remove it.</summary>
     internal static BrightnessInfo? External(string id, string name, (int Minimum, int Current, int Maximum)? reading,
         IReadOnlyList<BrightnessInfo> previous)
     {
@@ -209,10 +185,6 @@ internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
         return panels;
     }
 
-    /// <summary>
-    /// Logs a WMI failure, except the "not supported" Windows answers when no monitor takes brightness through WMI, as
-    /// on most desktops.
-    /// </summary>
     private void WmiFailed(string doing, Exception ex)
     {
         if (ex is ManagementException { ErrorCode: ManagementStatus.NotSupported })
@@ -224,13 +196,11 @@ internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
     {
         using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM WmiMonitorBrightnessMethods");
         using var results = searcher.Get();
-        // This instance query yields ManagementObject; a class object would be a schema query.
         foreach (ManagementObject monitor in results)
             using (monitor)
             {
                 if (!string.Equals(monitor["InstanceName"] as string, instance, StringComparison.OrdinalIgnoreCase))
                     continue;
-                // A timeout in seconds, then the level; WmiMonitorBrightness levels run from 0 to 100.
                 monitor.InvokeMethod("WmiSetBrightness", [1u, (byte)brightness]);
                 return null;
             }
@@ -258,19 +228,12 @@ internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
     }
 }
 
-/// <summary>
-/// Writes each monitor's brightness on a background thread, one write at a time. A value asked for while a
-/// write runs replaces the one waiting, so a slider drag writes the newest value and drops the steps between.
-/// <paramref name="drained"/> runs each time a monitor's writes end. A write that throws is reported to
-/// <paramref name="log"/>, and the newest level still waiting is written.
-/// </summary>
 internal sealed class BrightnessWriter(Func<string, int, string?> write, Log log, Action? drained = null)
 {
     private readonly Lock _lock = new();
     private readonly Dictionary<string, (int Brightness, Action<string> Failed)> _pending = [];
     private readonly HashSet<string> _running = [];
 
-    /// <summary>Whether a write for the monitor is running or waiting.</summary>
     public bool IsWriting(string deviceName)
     {
         lock (_lock)
@@ -279,7 +242,6 @@ internal sealed class BrightnessWriter(Func<string, int, string?> write, Log log
         }
     }
 
-    /// <summary>Writes <paramref name="brightness"/> soon, and calls <paramref name="failed"/> with the reason if Windows refuses it.</summary>
     public void Request(string deviceName, int brightness, Action<string> failed)
     {
         lock (_lock)
@@ -317,7 +279,7 @@ internal sealed class BrightnessWriter(Func<string, int, string?> write, Log log
                     if (write(deviceName, next.Brightness) is { } reason)
                         next.Failed(reason);
                 }
-#pragma warning disable CA1031 // A write that fails is reported, and the newest level still waiting is written.
+#pragma warning disable CA1031
                 catch (Exception e)
 #pragma warning restore CA1031
                 {
@@ -327,7 +289,7 @@ internal sealed class BrightnessWriter(Func<string, int, string?> write, Log log
 
             drained?.Invoke();
         }
-#pragma warning disable CA1031 // Anything else is reported. A monitor left running would never write again.
+#pragma warning disable CA1031
         catch (Exception e)
 #pragma warning restore CA1031
         {

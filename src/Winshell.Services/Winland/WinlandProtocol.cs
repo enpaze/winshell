@@ -4,18 +4,10 @@ using System.Text.Json;
 
 namespace Winshell.Winland;
 
-/// <summary>
-/// How Winland's pipe speaks. A request is one line. A reply is one line, or a <c>#&lt;length&gt;</c> line and then
-/// that many bytes. An <c>events</c> request gets no reply and stays open, one <c>name&gt;&gt;data</c> line per event.
-/// </summary>
 internal static class WinlandProtocol
 {
     public const int ReplyLimit = 1024 * 1024;
 
-    /// <summary>
-    /// The pipe names to try, in order. <c>WINLAND_PIPE</c> names it; otherwise it is <c>winland-&lt;session&gt;</c>,
-    /// and older builds of Winland used plain <c>winland</c>.
-    /// </summary>
     public static IReadOnlyList<string> PipeNames(string? overrideName, int sessionId)
     {
         return string.IsNullOrWhiteSpace(overrideName)
@@ -23,17 +15,12 @@ internal static class WinlandProtocol
             : [overrideName.Trim()];
     }
 
-    /// <summary>An event line split into its name and its data.</summary>
     public static (string Name, string Data) SplitEvent(string line)
     {
         var split = line.IndexOf(">>", StringComparison.Ordinal);
         return split < 0 ? (line, "") : (line[..split], line[(split + 2)..]);
     }
 
-    /// <summary>
-    /// The event <paramref name="name"/> names. Its fields are taken from <paramref name="data"/> in the order Winland
-    /// sends them. Null when this build does not read that event.
-    /// </summary>
     public static Event? ReadEvent(string name, string data)
     {
         switch (name)
@@ -100,7 +87,6 @@ internal static class WinlandProtocol
         }
     }
 
-    /// <summary>A JSON reply, or null when there is none or it is not JSON.</summary>
     public static JsonElement? ParseJson(string? reply)
     {
         if (string.IsNullOrWhiteSpace(reply))
@@ -116,17 +102,12 @@ internal static class WinlandProtocol
         }
     }
 
-    // id, name, monitor. The same three fields name a Workspace on the events that carry one.
     private static (int Id, string Name, string Monitor) Workspace(string data)
     {
         var args = ParseArgs(data, 3);
         return (WorkspaceId(args[0], args[1]), args[1], args[2]);
     }
 
-    /// <summary>
-    /// The data of an event split into <paramref name="count"/> arguments: the last one keeps any
-    /// commas, and missing ones are empty.
-    /// </summary>
     public static string[] ParseArgs(string data, int count)
     {
         var args = new List<string>(Math.Max(count, 1));
@@ -147,7 +128,6 @@ internal static class WinlandProtocol
         return [.. args];
     }
 
-    /// <summary>A window address from an event or a reply, with or without <c>0x</c>. Zero when it is not one.</summary>
     public static ulong ParseAddress(string text)
     {
         var s = text.AsSpan().Trim();
@@ -160,18 +140,14 @@ internal static class WinlandProtocol
 
     private const string DefaultSpecial = "special:special";
 
-    // The ids Winland gives Workspaces that have no number: the default special one is -99, other special ones count up
-    // from -98, and named ones count down from -1.
     private const int DefaultSpecialId = -99;
     private const int FirstNamedId = -1;
 
-    /// <summary>A whole number in an event or a reply, or null when the text is not one.</summary>
     public static int? Integer(string text)
     {
         return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : null;
     }
 
-    /// <summary>The id Winland gives each Workspace in events when the JSON leaves it out.</summary>
     public static Dictionary<string, int> UnnumberedIds(IEnumerable<string> names)
     {
         var ids = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -190,19 +166,16 @@ internal static class WinlandProtocol
         return name.StartsWith("special:", StringComparison.Ordinal);
     }
 
-    /// <summary>The id of a Workspace known only by its name.</summary>
     public static int IdFromName(string name)
     {
         return Integer(name) ?? (name == DefaultSpecial ? DefaultSpecialId : FirstNamedId);
     }
 
-    /// <summary>A Workspace's id from an event: its number, or the id its name gives when Winland sends none.</summary>
     public static int WorkspaceId(string id, string name)
     {
         return Integer(id) ?? IdFromName(name);
     }
 
-    /// <summary>A JSON value as maps and lists: objects become maps, arrays lists.</summary>
     public static object? ToObject(JsonElement element)
     {
         return element.ValueKind switch
@@ -260,17 +233,14 @@ internal static class WinlandProtocol
 
     internal sealed record MonitorAdded(int Id, string Name, string Description) : Event;
 
-    /// <summary>The whole data is the display name. This event is not a comma-separated list.</summary>
     internal sealed record MonitorRemoved(string Name) : Event;
 
     internal sealed record WorkspaceCreated(int Id, string Name, string Monitor) : Event;
 
     internal sealed record WorkspaceDestroyed(int Id, string Name, string Monitor) : Event;
 
-    /// <summary><paramref name="Workspace"/> is null when Winland sends <c>?</c>.</summary>
     internal sealed record MonitorFocused(string Monitor, string? Workspace) : Event;
 
-    /// <summary>An empty <paramref name="Monitor"/> means the focused Monitor.</summary>
     internal sealed record WorkspaceShown(int Id, string Name, string Monitor) : Event;
 
     internal sealed record WorkspaceMoved(int Id, string Name, string Monitor) : Event;
@@ -290,14 +260,12 @@ internal static class WinlandProtocol
     internal sealed record WindowUrgent(ulong Address) : Event;
 }
 
-/// <summary>Reads Winland's lines and framed replies from a stream, with a buffer of its own.</summary>
 internal sealed class WinlandReader(Stream stream)
 {
     private readonly byte[] _buffer = new byte[8192];
     private int _start;
     private int _end;
 
-    /// <summary>The text up to the next newline, without a carriage return. Null when the stream ends before any byte.</summary>
     public async Task<string?> ReadLineAsync(CancellationToken cancel = default)
     {
         using var line = new MemoryStream();
@@ -316,7 +284,6 @@ internal sealed class WinlandReader(Stream stream)
         }
     }
 
-    /// <summary>One reply: a line, or the body a <c>#length</c> line frames. Empty when the stream ends first.</summary>
     public async Task<string> ReadReplyAsync(CancellationToken cancel = default)
     {
         if (await ReadLineAsync(cancel).ConfigureAwait(false) is not { } first)

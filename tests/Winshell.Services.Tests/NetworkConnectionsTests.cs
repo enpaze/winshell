@@ -6,8 +6,6 @@ public sealed class NetworkConnectionsTests
 {
     private static readonly Guid AdapterId = Guid.Parse("0b0f2811-87b5-48d6-9d7a-7a26ae12ff33");
 
-    // Windows lists a saved Wi-Fi profile on the adapter that saved it, before the connected one, with no
-    // connectivity, no signal and its name standing in for the SSID.
     private static readonly NetworkConnectionInfo Saved = new(
         new NetworkProfileInfo("saved", "Old network", AdapterId, NetworkConnectivity.None, NetworkCost.Unrestricted,
             false, false, 0), "Old network", WifiSecurityType.Unknown);

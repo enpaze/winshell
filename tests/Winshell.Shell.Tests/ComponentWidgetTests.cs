@@ -9,7 +9,6 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
-/// <summary>A widget is a Reactor component, placed by name in an area or a bar.</summary>
 public sealed class ComponentWidgetTests
 {
     [Fact]
@@ -302,7 +301,6 @@ public sealed class ComponentWidgetTests
         });
     }
 
-    /// <summary>Records the window its area is drawn in.</summary>
     private sealed class WindowWidget : Component<WidgetContext>
     {
         public static ShellWindow? Seen;
@@ -314,13 +312,11 @@ public sealed class ComponentWidgetTests
         }
     }
 
-    /// <summary>A line of text that stays while the placement beside it fails.</summary>
     private sealed class SurvivorWidget : Component<WidgetContext>
     {
         public override Element Render() => TextBlock("survivor");
     }
 
-    /// <summary>Shows its <c>text</c> setting and a button, so a test can see the controls a placement rendered.</summary>
     private sealed class LabelWidget : Component<WidgetContext>
     {
         public override Element Render()
@@ -330,7 +326,6 @@ public sealed class ComponentWidgetTests
         }
     }
 
-    /// <summary>Keeps the settings it was born with, so a new instance would show a different line.</summary>
     private sealed class RememberingWidget : Component<WidgetContext>
     {
         public override Element Render()
@@ -341,13 +336,11 @@ public sealed class ComponentWidgetTests
         }
     }
 
-    /// <summary>Fails while rendering, which the area shows and logs.</summary>
     private sealed class ThrowingWidget : Component<WidgetContext>
     {
         public override Element Render() => throw new InvalidOperationException("Render failed");
     }
 
-    /// <summary>Opens a popup whose content is a component styled with the shell.</summary>
     private sealed class PopupWidget : Component<WidgetContext>
     {
         public override Element Render()
@@ -376,7 +369,6 @@ public sealed class ComponentWidgetTests
         public override Element Render() => TextBlock("popup");
     }
 
-    /// <summary>Opens a flyout whose content is a component styled with the shell.</summary>
     private sealed class FlyoutWidget : Component<WidgetContext>
     {
         public override Element Render()

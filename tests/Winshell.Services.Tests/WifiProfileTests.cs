@@ -11,7 +11,6 @@ public sealed class WifiProfileTests
     private const string Secret = "winshell-profile-key-9f3a";
     private const string Marker = "winshell-profile-marker";
 
-    // Tabs are the bytes Windows stores. A raw string would depend on the file keeping them.
     private static readonly string Saved =
         "<?xml version=\"1.0\"?>\n"
         + "<WLANProfile xmlns=\"http://www.microsoft.com/networking/WLAN/profile/v1\">\n"
@@ -286,7 +285,6 @@ public sealed class WifiProfileTests
     [Fact]
     public void Profile_reads_request_no_plaintext_key()
     {
-        // WLAN_PROFILE_GET_PLAINTEXT_KEY is 0x4; no flag is asked for.
         Assert.Equal(0u, Wlan.ProfileReadFlags());
     }
 
@@ -349,7 +347,6 @@ public sealed class WifiProfileTests
             } while (now > seen && Interlocked.CompareExchange(ref max.Value, now, seen) != seen);
 
             inside.SetResult();
-            // Both queued writes have returned from this wait before the event is disposed.
             hold.Wait(TestContext.Current.CancellationToken);
             Interlocked.Decrement(ref inFlight.Value);
             return now;

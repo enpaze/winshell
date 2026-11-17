@@ -1,6 +1,5 @@
 namespace Winshell;
 
-/// <summary>The build-error notice a reload or a dev session asks a running instance to show.</summary>
 internal static class BuildNotice
 {
     internal static async Task Show(InstanceInfo info, string error, string projectFile)

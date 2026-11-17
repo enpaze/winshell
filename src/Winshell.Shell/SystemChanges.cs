@@ -2,7 +2,6 @@ using Winshell.Native;
 
 namespace Winshell;
 
-/// <summary>What the shell redoes after a system change.</summary>
 [Flags]
 internal enum SystemChange
 {
@@ -12,21 +11,15 @@ internal enum SystemChange
     WorkArea = 4
 }
 
-/// <summary>
-/// One change in Windows can send several broadcasts, such as a setting change, a theme change and a color change.
-/// They add up here until the event loop follows them, once.
-/// </summary>
 internal sealed class SystemChanges
 {
     private SystemChange _pending;
 
-    /// <summary>What a broadcast asks the shell to redo. None for any other message.</summary>
     public static SystemChange From(uint message, nint wParam)
     {
         return message switch
         {
             PInvoke.WM_DISPLAYCHANGE => SystemChange.Screens,
-            // The taskbar moved, resized, or started or stopped hiding.
             PInvoke.WM_SETTINGCHANGE when wParam == (nint)SYSTEM_PARAMETERS_INFO_ACTION.SPI_SETWORKAREA =>
                 SystemChange.WorkArea | SystemChange.Theme,
             PInvoke.WM_SETTINGCHANGE => SystemChange.Screens | SystemChange.Theme,
@@ -36,7 +29,6 @@ internal sealed class SystemChanges
         };
     }
 
-    /// <summary>Adds a change. True when nothing was pending, so the caller has to post a <see cref="Take"/>.</summary>
     public bool Add(SystemChange change)
     {
         var first = _pending == SystemChange.None;

@@ -1,25 +1,5 @@
 #requires -Version 5.1
-<#
-.SYNOPSIS
-    Removes the per-user Winshell install created by install.ps1.
 
-.DESCRIPTION
-    Removes %LOCALAPPDATA%\Programs\winshell, that bin folder's user PATH entry, the Winshell Start
-    menu shortcut, and the Winshell sign-in entry when it starts that install. It does not remove
-    configuration under %APPDATA%\winshell, or logs and state under %LOCALAPPDATA%\winshell.
-    irm | iex removes that folder from this session's PATH and leaves every other entry.
-
-    Stops without changing anything while that Winshell is running. Safe to run when Winshell is
-    already gone.
-
-        irm https://github.com/enpaze/winshell/releases/latest/download/uninstall.ps1 | iex
-
-    This file is a release asset, fetched on its own. It does not dot-source a neighbor, and it does not
-    run downloaded text. docs/development.md describes the variables its tests set.
-#>
-
-# install.ps1 has the same copy of the helpers both scripts need, since each is fetched alone. Install.Tests.ps1 fails
-# when the copies differ.
 function Write-WinshellLine([string] $Message) { [Console]::Out.WriteLine($Message) }
 
 function Assert-WinshellTestIsolation {
@@ -37,7 +17,6 @@ function Assert-WinshellTestIsolation {
 
 function Assert-WinshellNotRunning([string] $Root, [string] $Again) {
     $prefix = $Root.TrimEnd('\') + '\'
-    # A process whose path Windows will not tell us could be this install.
     $ids = @(Get-CimInstance Win32_Process -Filter "Name = 'winshell.exe' OR Name = 'winshellw.exe'" |
             Where-Object { -not $_.ExecutablePath -or $_.ExecutablePath.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) } |
             ForEach-Object { $_.ProcessId })
@@ -47,14 +26,12 @@ function Assert-WinshellNotRunning([string] $Root, [string] $Again) {
 function Remove-WinshellFolder([string] $Path) {
     $item = Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
     if (-not $item) { return $false }
-    # Windows PowerShell's Remove-Item -Recurse can follow a junction out of the folder.
     if ($item.Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)) { throw "Refusing to delete $Path because it is a link." }
     Remove-Item -LiteralPath $Path -Recurse -Force
     return $true
 }
 
 function Get-WinshellUserPath {
-    # Tests read and write a file instead of HKCU\Environment.
     if ($env:WINSHELL_USER_PATH_FILE) {
         if (Test-Path -LiteralPath $env:WINSHELL_USER_PATH_FILE) { return [IO.File]::ReadAllText($env:WINSHELL_USER_PATH_FILE) }
         return ''
@@ -71,12 +48,10 @@ function Set-WinshellUserPath([string] $Value) {
     }
     $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')
     try {
-        # REG_EXPAND_SZ stays, so an entry such as %USERPROFILE%\bin still expands.
         $kind = 'ExpandString'
         if ($key.GetValueNames() -contains 'Path' -and $key.GetValueKind('Path') -eq 'String') { $kind = 'String' }
         $key.SetValue('Path', $Value, $kind)
     } finally { $key.Dispose() }
-    # WM_SETTINGCHANGE, so a terminal Explorer starts next sees the new PATH.
     if (-not ('Winshell.Install.Native' -as [type])) {
         Add-Type -Namespace Winshell.Install -Name Native -MemberDefinition '[DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr SendMessageTimeout(IntPtr hWnd, int msg, UIntPtr wParam, string lParam, uint flags, uint timeout, out UIntPtr result);'
     }
@@ -100,12 +75,10 @@ function Uninstall-Winshell {
         Set-WinshellUserPath ($kept -join ';')
         $removed = $true
     }
-    # This session's PATH is separate from the stored one. Tests leave it alone.
     $session = @("$env:Path".Split(';') | Where-Object { $_ })
     $keptSession = @($session | Where-Object { $_.TrimEnd('\') -ne $bin })
     if (-not $env:WINSHELL_USER_PATH_FILE -and $keptSession.Count -ne $session.Count) { $env:Path = $keptSession -join ';' }
 
-    # Another install's shortcut and sign-in entry stay. Either exe in this bin is this install.
     $shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Winshell.lnk'
     if ((Test-Path -LiteralPath $shortcut) -and
         (New-Object -ComObject WScript.Shell).CreateShortcut($shortcut).TargetPath -in (Join-Path $bin 'winshell.exe'), (Join-Path $bin 'winshellw.exe')) {
@@ -140,7 +113,6 @@ function Uninstall-Winshell {
     }
 }
 
-# WDAC and AppLocker can hold a session in Constrained Language Mode, where the .NET calls above fail.
 if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
     Write-Error -ErrorAction Continue "uninstall.ps1 needs PowerShell's full language mode, and a system policy such as WDAC or AppLocker keeps this session in $($ExecutionContext.SessionState.LanguageMode). Delete %LOCALAPPDATA%\Programs\winshell by hand, then remove its PATH entry and Start menu shortcut."
     if ($PSCommandPath) { exit 1 }
@@ -149,7 +121,6 @@ if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
         Uninstall-Winshell
     } catch {
         [Console]::Error.WriteLine($_.Exception.Message)
-        # exit would close the window iex runs in.
         if ($PSCommandPath) { exit 1 }
     }
 }

@@ -2,7 +2,6 @@ using Winshell.Capture;
 
 namespace Winshell.Services.Tests;
 
-/// <summary>A recording's contact sheet: every frame in a numbered grid, read like text.</summary>
 public sealed class ContactSheetTests
 {
     private static PixelImage Solid(int width, int height, byte blue, byte green, byte red)
@@ -75,7 +74,6 @@ public sealed class ContactSheetTests
         var sheet = ContactSheet.Render(
             [.. frames.Select((frame, i) => (frame, TimeSpan.FromMilliseconds(i * 16)))]);
 
-        // Read like text, a row at a time: where each color first shows, and how much of it there is.
         var first = new int[3];
         var area = new int[3];
         var labels = 0;

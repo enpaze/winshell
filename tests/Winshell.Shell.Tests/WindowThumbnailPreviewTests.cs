@@ -2,16 +2,13 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-/// <summary>Which part of a window a thumbnail shows, and where in its box.</summary>
 public sealed class WindowThumbnailPreviewTests
 {
     [Fact]
     public void A_preview_leaves_out_the_invisible_resize_borders()
     {
-        // A 1280x720 frame with 7-pixel borders on the left, right and bottom, as Windows 11 draws a normal window.
         Assert.Equal(new RECT(7, 0, 1287, 720),
             WindowThumbnail.PreviewSource(new RECT(93, 100, 1387, 827), new RECT(100, 100, 1380, 820)));
-        // A maximized window hangs over the monitor by its borders; the frame is the monitor.
         Assert.Equal(new RECT(8, 8, 1928, 1048),
             WindowThumbnail.PreviewSource(new RECT(-8, -8, 1928, 1048), new RECT(0, 0, 1920, 1040)));
     }
