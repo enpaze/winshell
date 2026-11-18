@@ -53,7 +53,7 @@ Describe 'C# file formatting' {
     }
 
     It 'includes untracked source paths with spaces, leaves ignored output alone and tolerates deleted sources' {
-        $folder = Join-Path $script:Fixture 'docs/samples/new widget'
+        $folder = Join-Path $script:Fixture 'examples/new widget'
         $ignored = Join-Path $folder 'obj/Ignored.cs'
         New-Item -ItemType Directory -Path (Split-Path -Parent $ignored) -Force | Out-Null
         $added = Join-Path $folder 'Added.cs'

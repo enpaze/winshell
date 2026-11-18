@@ -1,6 +1,6 @@
 # Releasing
 
-Winshell and Winland cut, tag, and stamp a version the same way. What a user installs is Winshell's, and that is the rest of this page. The decision is [Winshell and Winland are siblings](adr/0009-winshell-and-winland-are-siblings.md).
+Winshell and Winland cut, tag, and stamp a version the same way. What a user installs is Winshell's, and that is the rest of this page.
 
 ## The version
 

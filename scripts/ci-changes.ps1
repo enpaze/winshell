@@ -6,7 +6,7 @@ param(
 
 function Test-Prose {
     param([string] $Path)
-    $Path -match '^docs/(?!samples/)|^\.github/ISSUE_TEMPLATE/|\.md$|^(LICENSE|\.gitignore)$'
+    $Path -match '^docs/|^\.github/ISSUE_TEMPLATE/|\.md$|^(LICENSE|\.gitignore)$'
 }
 
 $ErrorActionPreference = 'Stop'

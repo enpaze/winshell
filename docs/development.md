@@ -69,7 +69,7 @@ dotnet run --project src/Winshell -- kill -i <id>
 
 `scripts/format.ps1` runs `dotnet format whitespace --folder`: folder mode, without loading projects, restoring packages or building. It requires Git, .NET and PowerShell 7.
 
-- Git supplies the existing tracked and untracked C# files under `src/`, `tests/`, `examples/`, `templates/` and `docs/samples/`, plus `scripts/generate-reference.cs`, `scripts/reference-pages.cs`, `scripts/render-logo.cs` and the C# under `scripts/lib/`. Ignored build outputs are excluded.
+- Git supplies the existing tracked and untracked C# files under `src/`, `tests/`, `examples/` and `templates/`, plus `scripts/generate-reference.cs`, `scripts/reference-pages.cs`, `scripts/render-logo.cs` and the C# under `scripts/lib/`. Ignored build outputs are excluded.
 - Other standalone C# scripts are not formatted.
 - Verification leaves source files, project references and the Git index unchanged. It fails on formatting drift or tool errors.
 
@@ -172,7 +172,7 @@ Choose checks for the complete change, including renamed and deleted files.
 
 | Change | Checks |
 | --- | --- |
-| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/` outside `docs/samples/`, Markdown, `LICENSE` and `.gitignore`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`. No application build, formatting or test suite is needed. |
+| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/`, Markdown, `LICENSE` and `.gitignore`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`. No application build, formatting or test suite is needed. |
 | A page in `docs/` (outside `docs/agents/`) or `README.md` containing or removing a C# example fence, or a generated `docs/reference/winshell*.md` page | Lint, then `pwsh scripts/check.ps1 -Tier Docs`. This builds the samples and checks the generated reference, without unrelated tests or windows. |
 | Only tooling: `scripts/` and `tests/Scripts/`, except the files that [count as code](#how-checks-are-selected) | `Invoke-Pester -Path tests/Scripts`, and `pwsh -NoProfile scripts/format.ps1 -VerifyNoChanges`. Windows PowerShell 5.1 also runs `tests/Scripts/Install.Tests.ps1`, as the `installer` job does for every such change. |
 | Only workflows: `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | Lint, `pwsh -NoProfile scripts/format.ps1 -VerifyNoChanges`, then `Invoke-Pester -Path tests/Scripts`. |
@@ -314,7 +314,7 @@ The `changes` job selects checks for PRs and pushes to `main`. Each kind of chan
 
 | Kind | Paths | What runs |
 | --- | --- | --- |
-| Prose | Markdown, `docs/` outside `docs/samples/`, `.github/ISSUE_TEMPLATE/`, `LICENSE` and `.gitignore` | The link check in `quality`, and `DocsTests` when a page has C# examples or is generated reference |
+| Prose | Markdown, `docs/`, `.github/ISSUE_TEMPLATE/`, `LICENSE` and `.gitignore` | The link check in `quality`, and `DocsTests` when a page has C# examples or is generated reference |
 | Tooling | `scripts/` and `tests/Scripts/`, except the files that count as code | The formatting check and the PowerShell suites in `quality`, and `installer` |
 | Workflows | `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | `actionlint`, and the formatting check and the PowerShell suites in `quality` |
 | Packaging | `packaging/`, except the files that count as code | The Package workflow |
@@ -349,7 +349,7 @@ CI calls `Get-TestRun -Shard <1..4>` and `Invoke-TestRun -Shard <1..4>` from `sc
 - Together they run every test project, the category `Window` included, so they don't watch for windows as the full check does.
 - CLI, Shell and Services use the first three workers. Other test projects share the fourth.
 - New projects join the fourth, and new CLI classes join the first.
-- Shard 2 also compiles the template against source libraries, the solution's projects under `examples/` and `docs/samples/`, and the reference generator as a program, sharing the Shell libraries it already builds.
+- Shard 2 also compiles the template against source libraries, the solution's projects under `examples/`, and the reference generator as a program, sharing the Shell libraries it already builds.
 - Each worker prints its ten slowest tests.
 - `Invoke-TestRun -ResultsDirectory <folder>` retains results in a unique child folder; CI uploads them as `test-results-<shard>` for seven days, including failed runs. Without that argument, local runs clean up their results.
 
@@ -365,7 +365,7 @@ The docs are plain Markdown, read on GitHub or in an editor. `docs/agents/` is f
 
 - **A new reference page** goes into the list in `docs/reference/index.md`.
 - **Links between pages** are relative `.md` links, also to files outside `docs/`, such as `../GLOSSARY.md`. The `ci` job runs lychee offline over every Markdown file, with `--include-fragments`, and fails on a link to a file or a heading that isn't there.
-- **C# examples** in a `csharp` code block are checked by `DocsTests`: each one is text from a file the build compiles. Those files are `tests/Winshell.Shell.Tests/GuideSamples.cs`, which the test project builds, the template's `.cs` files in `templates/winshell`, which `scripts/build-template.ps1` builds, and the message-widget sample `docs/samples/message-widget/Message.cs`, which the solution builds.
+- **C# examples** in a `csharp` code block are checked by `DocsTests`: each one is text from a file the build compiles. Those files are `tests/Winshell.Shell.Tests/GuideSamples.cs`, which the test project builds, the template's `.cs` files in `templates/winshell`, which `scripts/build-template.ps1` builds.
 - **The reference** in `docs/reference/` has a page per namespace of the `Winshell` package (the public types of `Winshell.Shell`, `Winshell.Services` and `Winshell.Core`), `winshell.md` for `Winshell` and `winshell-<namespace>.md` for the others, starting with `# <namespace>` and an intro written by hand. `dotnet run scripts/generate-reference.cs` writes the rest, a `## Type` section for each public type with its members, and `DocsTests` fails when a page is not what it writes.
 - **Links to other sites** are checked by `links.yml`, on `main` and every Monday. That job isn't part of `check.ps1`.
 
@@ -479,12 +479,9 @@ How a version is cut, tagged, stamped, and published is [Releasing](releasing.md
 .
 ├── .github/                         # CI, issue templates, Dependabot
 ├── docs/
-│   ├── adr/                         # Architecture decision records
 │   ├── agents/                      # How agents work on this repo
 │   ├── reference/                   # A page per namespace
-│   ├── research/                    # Research notes that a tracked decision builds on
 │   ├── releasing.md                 # How a version is cut, tagged, stamped, and published
-│   ├── samples/message-widget/      # The message widget the configuration guide builds; not a shell
 │   ├── *.md                         # The configuration guide and troubleshooting
 │   └── development.md               # Setup, environment, and every command
 ├── examples/

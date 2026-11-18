@@ -10,8 +10,7 @@ public sealed class DocsTests
     public void Every_csharp_example_is_compiled()
     {
         var files = Directory.GetFiles(Path.Combine(Repo, "templates", "winshell"), "*.cs")
-            .Append(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs"))
-            .Append(Path.Combine(Repo, "docs", "samples", "message-widget", "Message.cs"));
+            .Append(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs"));
         var source = string.Join('\n', files.Select(File.ReadAllText)).Replace("\r\n", "\n", StringComparison.Ordinal);
         var examples = Examples().ToList();
         Assert.NotEmpty(examples);
@@ -25,22 +24,16 @@ public sealed class DocsTests
     }
 
     [Fact]
-    public void The_starter_the_guide_and_the_samples_call_no_Watch_and_the_message_sample_has_no_xaml()
+    public void The_starter_and_the_guide_call_no_Watch()
     {
         var files = SourceFiles(Path.Combine(Repo, "templates", "winshell"))
             .Append(Path.Combine(Repo, "docs", "configuration.md"))
-            .Append(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs"))
-            .Concat(SourceFiles(Path.Combine(Repo, "docs", "samples")));
+            .Append(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs"));
         var watched = files
             .Where(file => File.ReadAllText(file).Contains(".Watch(", StringComparison.Ordinal))
             .Select(file => Path.GetRelativePath(Repo, file))
             .ToList();
-        var xaml = SourceFiles(Path.Combine(Repo, "docs", "samples", "message-widget"))
-            .Where(file => file.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))
-            .Select(file => Path.GetRelativePath(Repo, file))
-            .ToList();
-        Assert.True(watched.Count == 0 && xaml.Count == 0,
-            "Watch calls:\n" + string.Join("\n", watched) + "\nXAML:\n" + string.Join("\n", xaml));
+        Assert.True(watched.Count == 0, "Watch calls:\n" + string.Join("\n", watched));
     }
 
     private static IEnumerable<string> SourceFiles(string root)
