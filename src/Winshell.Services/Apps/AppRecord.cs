@@ -39,12 +39,27 @@ internal static class AppRank
         var text = query.Trim();
         if (text.Length == 0)
             return 0;
+        var best = Name(text, app.Name);
+        if (app.Description.Contains(text, StringComparison.OrdinalIgnoreCase))
+            best = Math.Max(best, Description);
+        if (ContainsTarget(app, text))
+            best = Math.Max(best, Target);
+        if (app.Folders.Any(folder => folder.Contains(text, StringComparison.OrdinalIgnoreCase)))
+            best = Math.Max(best, Folder);
+        return best == 0 ? 0 : best + UsageBoost(usage, nowUnixMilliseconds);
+    }
+
+    public static int Name(string query, string name)
+    {
+        var text = query.Trim();
+        if (text.Length == 0)
+            return 0;
         var best = 0;
-        if (app.Name.Equals(text, StringComparison.OrdinalIgnoreCase))
+        if (name.Equals(text, StringComparison.OrdinalIgnoreCase))
             best = Exact;
-        else if (app.Name.StartsWith(text, StringComparison.OrdinalIgnoreCase))
-            best = Prefix + Closeness(app.Name.Length - text.Length);
-        var words = Words(app.Name);
+        else if (name.StartsWith(text, StringComparison.OrdinalIgnoreCase))
+            best = Prefix + Closeness(name.Length - text.Length);
+        var words = Words(name);
         foreach (var word in words)
             if (word.StartsWith(text, StringComparison.OrdinalIgnoreCase))
                 best = Math.Max(best, Word + Closeness(word.Length - text.Length));
@@ -55,18 +70,12 @@ internal static class AppRank
                 best = Math.Max(best, Acronym + Closeness(initials.Length - text.Length));
         }
 
-        var at = app.Name.IndexOf(text, StringComparison.OrdinalIgnoreCase);
+        var at = name.IndexOf(text, StringComparison.OrdinalIgnoreCase);
         if (at >= 0)
             best = Math.Max(best, Contains - Math.Min(at, 200) * 10);
-        if (FuzzyMatch(text, app.Name, out var skipped))
+        if (FuzzyMatch(text, name, out var skipped))
             best = Math.Max(best, Fuzzy - Math.Min(skipped, 50) * 1_000);
-        if (app.Description.Contains(text, StringComparison.OrdinalIgnoreCase))
-            best = Math.Max(best, Description);
-        if (ContainsTarget(app, text))
-            best = Math.Max(best, Target);
-        if (app.Folders.Any(folder => folder.Contains(text, StringComparison.OrdinalIgnoreCase)))
-            best = Math.Max(best, Folder);
-        return best == 0 ? 0 : best + UsageBoost(usage, nowUnixMilliseconds);
+        return best;
     }
 
     private static int Closeness(int extra)
