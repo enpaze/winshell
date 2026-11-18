@@ -220,7 +220,13 @@ public sealed class BarTests
             try
             {
                 using var first = new Reader();
-                using var bar = new Bar { Name = name, Edge = Edges.Left, Reserve = false, End = [widget] };
+                using var bar = new Bar
+                {
+                    Name = name,
+                    Edge = Edges.Left,
+                    Reserve = false,
+                    End = [widget, new Placement(widget, new Dictionary<string, object> { ["text"] = "Hi" })]
+                };
                 await Wait.UntilAsync(
                     () => File.Exists(path) && File.ReadAllText(path).Contains($"[{name}]", StringComparison.Ordinal),
                     "the missing file to be written with the bar's section");
@@ -228,7 +234,14 @@ public sealed class BarTests
                 var text = File.ReadAllText(path);
                 Assert.Contains($"[{name}]", text, StringComparison.Ordinal);
                 Assert.Contains("# edge = \"left\"", text, StringComparison.Ordinal);
-                Assert.Contains($"# end = [\"{widget}\"]", text, StringComparison.Ordinal);
+                var end = Assert.Single(text.Split('\n'), line => line.StartsWith("# end = ", StringComparison.Ordinal));
+                Assert.Equal($"# end = [\"{widget}\", {{ widget = \"{widget}\", text = \"Hi\" }}]", end);
+                Assert.True(TomlDocument.TryParse(path, end[2..], out var document, out var error), error);
+                var placements = Placement.Parse(document.Values["end"]!);
+                Assert.Equal([widget, widget], placements.Select(placement => placement.Widget));
+                Assert.Empty(placements[0].Settings!);
+                Assert.Equal(["text"], placements[1].Settings!.Keys);
+                Assert.Equal("Hi", placements[1].Settings!["text"]);
             }
             finally
             {
