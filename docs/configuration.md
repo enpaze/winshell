@@ -90,6 +90,8 @@ public sealed class Battery : Component<WidgetContext>
 
 `Program.cs` starts the shell, and you won't need to change it.
 
+The files have no `using` line for Winshell or Reactor. The package adds them, as [The package's usings](#the-packages-usings) says.
+
 ### Change it
 
 Close the bar with `winshell kill`, and run the starter under `winshell dev` instead. It applies each edit to the running bar as you save it, until you press Ctrl+C:
@@ -377,10 +379,10 @@ A widget is a `Component<WidgetContext>`. `Render` reads `Props.Shell`, `Props.W
 ```
 
 ```csharp
-public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
+public sealed class ClockWidget : Component<WidgetContext>
 {
-    public override Microsoft.UI.Reactor.Core.Element Render() =>
-        Microsoft.UI.Reactor.Factories.TextBlock((string)Props.Settings["text"]);
+    public override Element Render() =>
+        TextBlock((string)Props.Settings["text"]);
 }
 ```
 
@@ -616,13 +618,13 @@ It opens off the shell's thread, so a slow app does not hold up the shell. What 
 `UseObservableTree` follows a service: a component renders again when anything that service holds changes, including an item in one of its lists. `UseObservable` follows one service object or one list. Both take an `INotifyPropertyChanged` source, which a service object and an [ObservableList](reference/winshell.md#observablelist) are, and return that source:
 
 ```csharp
-public sealed class BatteryLabel : Microsoft.UI.Reactor.Core.Component<WidgetContext>
+public sealed class BatteryLabel : Component<WidgetContext>
 {
-    public override Microsoft.UI.Reactor.Core.Element Render()
+    public override Element Render()
     {
         var battery = UseObservable(Props.Shell.Power.DisplayDevice);
         var charge = battery.IsPresent ? $"{battery.Percentage:P0}" : "";
-        return Microsoft.UI.Reactor.Factories.TextBlock(charge);
+        return TextBlock(charge);
     }
 }
 ```
@@ -679,15 +681,15 @@ public sealed class DockPreferences(string name) : Preferences(name, Check)
 Make one on the shell's thread, and dispose it when its component goes. It reads its section when it is made. [UseObservable](#keep-a-component-current) renders again when a key changes:
 
 ```csharp
-public sealed class ClockLabel : Microsoft.UI.Reactor.Core.Component
+public sealed class ClockLabel : Component
 {
     private readonly ShellPreferences _preferences = new();
 
-    public override Microsoft.UI.Reactor.Core.Element Render()
+    public override Element Render()
     {
         var preferences = UseObservable(_preferences);
         UseEffect(() => () => _preferences.Dispose(), false);
-        return Microsoft.UI.Reactor.Factories.TextBlock(preferences.Clock24 ? "13:00" : "1:00 PM");
+        return TextBlock(preferences.Clock24 ? "13:00" : "1:00 PM");
     }
 }
 ```

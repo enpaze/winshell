@@ -1,8 +1,4 @@
 using Microsoft.UI.Dispatching;
-using Microsoft.UI.Reactor;
-using Microsoft.UI.Reactor.Core;
-using Winshell;
-using static Microsoft.UI.Reactor.Factories;
 
 namespace MyShell;
 

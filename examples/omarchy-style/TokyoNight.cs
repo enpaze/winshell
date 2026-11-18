@@ -1,6 +1,5 @@
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
-using Winshell;
 
 namespace OmarchyStyle;
 

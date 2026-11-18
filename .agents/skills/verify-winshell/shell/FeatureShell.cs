@@ -1,7 +1,6 @@
 using System.Globalization;
 using Microsoft.UI.Reactor.Hosting;
 using Windows.Foundation;
-using Winshell;
 
 namespace FeatureMap;
 
@@ -58,7 +57,7 @@ public sealed class FeatureShell : ShellConfiguration
         floating.Visible = true;
     }
 
-    private static ReactorHostControl Host<TProps>(Func<Microsoft.UI.Reactor.Core.Component> make, TProps props)
+    private static ReactorHostControl Host<TProps>(Func<Component> make, TProps props)
     {
         return new ReactorHostControl { ComponentFactory = make, Props = props };
     }

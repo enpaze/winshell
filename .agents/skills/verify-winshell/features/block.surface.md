@@ -12,7 +12,7 @@ A `Surface` is a component that paints the style's background behind its content
 
 ## How to get to it (user POV)
 
-- In a Reactor component, return `Surface(content, new Thickness(4))` with `using static Winshell.Elements`, and mount the component in a window with a `ReactorHostControl`.
+- In a Reactor component, return `Surface(content, new Thickness(4))`, and mount the component in a window with a `ReactorHostControl`.
 - Every `Bar` shows its three areas in a surface, so `winshell inspect tree` names a bar window's content type `Surface`.
 - In the `features` shell, the surface is the box under the `Click` and `Popup` buttons.
 

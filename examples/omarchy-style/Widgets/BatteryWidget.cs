@@ -1,8 +1,4 @@
-using Microsoft.UI.Reactor;
-using Microsoft.UI.Reactor.Core;
-using Winshell;
 using Winshell.Power;
-using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 

@@ -1,11 +1,7 @@
-using Microsoft.UI.Reactor;
-using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
-using Winshell;
 using Winshell.Capture;
 using Winshell.Windows;
-using static Microsoft.UI.Reactor.Factories;
 
 namespace FeatureMap;
 

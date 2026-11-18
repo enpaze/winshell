@@ -14,7 +14,7 @@ A `WidgetArea` is a component that makes a widget for each placement in its list
 
 ## How to get to it (user POV)
 
-- In a Reactor component, return `WidgetArea("end", [new("message", new Dictionary<string, object> { ["text"] = "Hello" })])` with `using static Winshell.Elements`.
+- In a Reactor component, return `WidgetArea("end", [new("message", new Dictionary<string, object> { ["text"] = "Hello" })])`.
 - Register each widget it places with `Widgets.Register<T>("name")` in `Start`.
 - Every `Bar` has a start, a center and an end area, from its `Start`, `Center` and `End` lists.
 - Edit the area's section of `preferences\<shell id>.toml`, such as `[end]` with `widgets = [...]`, and save it.

@@ -1,5 +1,3 @@
-using Winshell;
-
 namespace MyShell;
 
 public sealed class AppShell : ShellConfiguration

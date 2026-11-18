@@ -1,8 +1,3 @@
-using Microsoft.UI.Reactor;
-using Microsoft.UI.Reactor.Core;
-using Winshell;
-using static Microsoft.UI.Reactor.Factories;
-
 namespace MyShell;
 
 public sealed class Battery : Component<WidgetContext>

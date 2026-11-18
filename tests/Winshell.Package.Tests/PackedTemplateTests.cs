@@ -100,15 +100,11 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             </Project>
             """);
         File.WriteAllText(Path.Combine(libDir, "ClockWidget.cs"), """
-            using Microsoft.UI.Xaml.Controls;
-            using Winshell;
-
             namespace WidgetLib;
 
-            public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
+            public sealed class ClockWidget : Component<WidgetContext>
             {
-                public override Microsoft.UI.Reactor.Core.Element Render() =>
-                    Microsoft.UI.Reactor.Factories.TextBlock("library:" + (string)Props.Settings["value"]);
+                public override Element Render() => TextBlock("library:" + (string)Props.Settings["value"]);
             }
             """);
         var shell = XDocument.Load(projectFile);
@@ -116,11 +112,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             new XElement("ProjectReference", new XAttribute("Include", @"..\lib\WidgetLib.csproj"))));
         shell.Save(projectFile);
         File.WriteAllText(Path.Combine(shellDir, "AppShell.cs"), """
-            using Microsoft.UI.Reactor.Core;
             using Microsoft.UI.Reactor.Hosting;
-            using Microsoft.UI.Xaml.Controls;
-            using Winshell;
-            using static Microsoft.UI.Reactor.Factories;
 
             namespace MyShell;
 

@@ -49,8 +49,6 @@ public sealed partial class DevCommandTests : IDisposable
                                                                 </Project>
                                                                 """);
         File.WriteAllText(Path.Combine(Project, "Program.cs"), """
-                                                               using Winshell;
-
                                                                internal sealed class Bare : ShellConfiguration
                                                                {
                                                                    public override void Start(Shell shell)
