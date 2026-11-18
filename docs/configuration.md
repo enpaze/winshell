@@ -791,7 +791,7 @@ winshell dev --path .
 What each kind of edit does:
 
 - **A C# edit**, including a component's `Render`, reaches the running shell in about a second. Reactor's hot reload applies it without a restart. The first one takes a little longer, while the compiler warms up. An edited method runs its new code at its next call.
-- **A new widget class** is found when the shell next starts, not by hot reload.
+- **A new widget class** can be placed once its save is applied. If another widget has its name, the error goes to the log, the shell keeps running, and the next start stops with that error.
 - **A widget that shows an edited type** is made again, with the rest of its widget area, so a change to its constructor shows too. The window, its other areas and every other window stay as they are.
 - **Your own control that shows an edited type** anywhere else is made again in its place, so a change to a constructor shows there too. That is the outermost of your controls around it, because its constructor builds everything inside. A Winshell or WinUI control around it, such as a `Grid` you fill in code, stays with everything else it holds. A control in a place a new one can't go, such as a template, stays. The window keeps its place, and every other window keeps its content and its state. A control whose constructor takes arguments stays, and its edited methods still run. Keep state that must survive in a model that control is given.
 - **An edit .NET can't apply to running code**, such as a new base class, restarts the shell. That takes as long as a build, and the state of every window goes with it.

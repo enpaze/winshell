@@ -1,7 +1,9 @@
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
+using System.Runtime.Loader;
 
 namespace Winshell.ShellTests;
 
@@ -39,5 +41,23 @@ internal static class GeneratedAssembly
         using var file = File.Create(path);
         image.WriteContentTo(file);
         return path;
+    }
+
+    internal static Assembly Load(string name, Type baseType, params string[] typeNames)
+    {
+        var builder = new PersistedAssemblyBuilder(new AssemblyName(name), typeof(object).Assembly);
+        var module = builder.DefineDynamicModule(name);
+        foreach (var typeName in typeNames)
+        {
+            var type = module.DefineType($"{name}.{typeName}", TypeAttributes.Public | TypeAttributes.Sealed,
+                baseType);
+            type.DefineDefaultConstructor(MethodAttributes.Public);
+            type.CreateType();
+        }
+
+        using var image = new MemoryStream();
+        builder.Save(image);
+        image.Position = 0;
+        return AssemblyLoadContext.Default.LoadFromStream(image);
     }
 }

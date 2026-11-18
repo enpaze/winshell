@@ -139,6 +139,30 @@ public sealed class WidgetRegistryTests
         }
     }
 
+    [Fact]
+    public async Task A_widget_class_added_by_hot_reload_can_be_placed_and_a_clash_is_logged()
+    {
+        var name = "Added" + Guid.NewGuid().ToString("N");
+        var added = GeneratedAssembly.Load(name, typeof(LaterWidget), "Fresh", "Clock");
+
+        var mounts = await ShellFixture.On(async shell =>
+        {
+            var logLength = ShellFixture.ReadLog(shell).Length;
+            LaterWidget.Mounts = 0;
+
+            HotReload.Apply(shell, [added.GetType($"{name}.Fresh")!]);
+
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = ["fresh"] });
+            await Wait.UntilAsync(() => LaterWidget.Mounts == 1, "the added widget to mount");
+            await Wait.UntilAsync(() => ShellFixture.ReadLog(shell)[logLength..].Contains(
+                    $"Two widgets are named clock: OmarchyStyle.ClockWidget and {name}.Clock", StringComparison.Ordinal),
+                "the clash to be logged");
+            return LaterWidget.Mounts;
+        });
+
+        Assert.Equal(1, mounts);
+    }
+
     private static string[] Names(params Type[] types) =>
         [.. WidgetRegistry.Of(types).Names.Order(StringComparer.Ordinal)];
 
@@ -176,6 +200,21 @@ public sealed class WidgetRegistryTests
     }
 
     private abstract class AbstractWidget : Widget;
+
+    public abstract class LaterWidget : Widget
+    {
+        public static int Mounts { get; set; }
+
+        public override Element Render()
+        {
+            UseEffect(() =>
+            {
+                Mounts++;
+                return () => { };
+            }, false);
+            return TextBlock("later");
+        }
+    }
 
     private sealed class GenericWidget<T> : Widget
     {

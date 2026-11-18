@@ -16,6 +16,8 @@ internal sealed partial class WidgetRegistry
     private readonly Dictionary<string, (Type Type, Func<WidgetContext, Element> Create)> _widgets =
         new(StringComparer.Ordinal);
 
+    private readonly HashSet<Assembly> _assemblies = [];
+
     internal IEnumerable<string> Names => _widgets.Keys;
 
     internal static WidgetRegistry Discover(Log log)
@@ -35,6 +37,7 @@ internal sealed partial class WidgetRegistry
                     continue;
                 var assembly = context.LoadFromAssemblyName(name);
                 found.AddRange(WidgetsIn(assembly));
+                registry._assemblies.Add(assembly);
             }
             catch (Exception e) when (Unreadable(e))
             {
@@ -57,6 +60,24 @@ internal sealed partial class WidgetRegistry
     {
         if (Add(name, typeof(TWidget)) is { } problem)
             throw new InvalidOperationException(problem);
+    }
+
+    internal void AddNew(IEnumerable<Assembly> changed, Log log)
+    {
+        var known = _widgets.Values.Select(widget => widget.Type).ToHashSet();
+        List<Type> found = [];
+        foreach (var assembly in _assemblies.Union(changed))
+            try
+            {
+                found.AddRange(WidgetsIn(assembly).Where(type => !known.Contains(type)));
+            }
+            catch (Exception e) when (Unreadable(e))
+            {
+                log.Warn("widgets", $"Skipped {assembly.GetName().Name} while looking for new widgets: {e.Message}");
+            }
+
+        foreach (var problem in Add(found))
+            log.Error("widgets", problem);
     }
 
     internal Element Create(string name, WidgetContext context)
