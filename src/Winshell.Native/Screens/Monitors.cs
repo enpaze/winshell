@@ -42,11 +42,4 @@ internal static unsafe class Monitors
             ? mode.dmDisplayFrequency
             : null;
     }
-
-    internal static string Text(char* buffer, int capacity)
-    {
-        var text = new ReadOnlySpan<char>(buffer, capacity);
-        var end = text.IndexOf('\0');
-        return new string(end < 0 ? text : text[..end]);
-    }
 }

@@ -138,7 +138,7 @@ TRACK_POPUP_MENU_FLAGS
 TrackPopupMenuEx
 WM_NCDESTROY
 
-// Process snapshots find the winshell.exe that started a configuration, and the process that started a test program.
+// Process snapshots find the winshell.exe that started a shell, and the process that started a test program.
 // No .NET API reads a parent process id.
 // GetConsoleProcessList and GenerateConsoleCtrlEvent only let a test check it has a console and send winshell dev a
 // Ctrl+Break, which no .NET API does.
@@ -221,7 +221,6 @@ GetKeyboardLayout
 GetKeyboardLayoutList
 GetLocaleInfoEx
 LCIDToLocaleName
-GetGUIThreadInfo
 
 // Desktop wallpaper: each screen's image, the fit and the background color. One block, so later
 // NativeMethods.txt edits can rebase around it. IDesktopWallpaper is declared in Wallpaper/DesktopWallpaper.cs:
@@ -234,7 +233,7 @@ DESKTOP_WALLPAPER_POSITION
 GetPackageFamilyName
 
 // Windows and messages: the window, its class, its placement and the messages it is sent. One block, so later
-// NativeMethods.txt edits can rebase around it. Power and the clipboard stay hand-written until their own tickets.
+// NativeMethods.txt edits can rebase around it.
 RECT
 MSG
 WNDCLASSEXW
@@ -324,7 +323,7 @@ AdjustWindowRectExForDpi
 
 // Hooks, keyboard and pointer input, the cursor and system metrics. One block, so later
 // NativeMethods.txt edits can rebase around it. The copied metric indexes live on SYSTEM_METRICS_INDEX.
-// CsWin32 will not generate POINT; Winshell keeps its own, and these calls convert at the boundary.
+// CsWin32 will not generate POINT; Winshell keeps its own in Win32.cs, and these calls convert at the boundary.
 SetWindowsHookEx
 UnhookWindowsHookEx
 CallNextHookEx
@@ -362,9 +361,9 @@ AttachThreadInput
 GetSystemMetrics
 SYSTEM_METRICS_INDEX
 
-// Power, the clipboard, monitors, the app bar and the rest of the hand-written Win32 set. One block, so later
-// NativeMethods.txt edits can rebase around it. POINT stays in Win32.cs: CsWin32 will not generate it. The live
-// preview export stays hand-written: dwmapi exports it by ordinal 113, which CsWin32 cannot name.
+// Power, the clipboard, monitors, the app bar and the rest of the Win32 set. One block, so later
+// NativeMethods.txt edits can rebase around it. The live preview export stays hand-written: dwmapi exports it by
+// ordinal 113, which CsWin32 cannot name.
 SystemParametersInfo
 SYSTEM_PARAMETERS_INFO_ACTION
 HIGHCONTRASTW
@@ -372,7 +371,6 @@ HIGHCONTRASTW_FLAGS
 GetCurrentThreadId
 LoadImage
 GDI_IMAGE_TYPE
-IMAGE_FLAGS
 IDI_APPLICATION
 MonitorFromWindow
 MONITOR_FROM_FLAGS
@@ -396,12 +394,8 @@ ABE_LEFT
 ABE_TOP
 ABE_RIGHT
 ABE_BOTTOM
-ABN_STATECHANGE
 ABN_POSCHANGED
-ABN_FULLSCREENAPP
-ABN_WINDOWARRANGE
 ABS_AUTOHIDE
-ABS_ALWAYSONTOP
 SetWindowRgn
 CreateRectRgn
 CombineRgn
@@ -416,7 +410,6 @@ MARGINS
 DWMWA_COLOR_NONE
 DWMWA_COLOR_DEFAULT
 SHQueryUserNotificationState
-QUERY_USER_NOTIFICATION_STATE
 GetModuleHandle
 CommandLineToArgv
 LocalFree
