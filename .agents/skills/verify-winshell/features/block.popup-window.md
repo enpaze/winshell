@@ -4,7 +4,7 @@ A `PopupWindow` is a frameless window over the others, such as a launcher, a men
 
 ## Sub-features
 
-- `place` opens the popup at its `Position` when `Visible` is set to true: `PopupPosition.Center` or `Top` on the screen with the active app window, or `At` a point. `Width` and `Height` size it.
+- `place` opens the popup at its `Position` when `Visible` is set to true: `PopupPosition.Center` or `Top` on the screen with the active app window, or on the primary screen when no app window is active, or `At` a point. `Width` and `Height` size it, 100 by 100 when unset. A popup reopened later follows the active app window to its screen.
 - `toggle` shows a hidden popup and hides a shown one with `Toggle()`.
 - `grab-focus` gives the popup the keyboard with `GrabFocus`.
 - `dismiss` closes a popup that grabs focus when the user clicks outside it or presses Esc, and raises `Dismissed`.

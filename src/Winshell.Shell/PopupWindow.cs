@@ -4,7 +4,7 @@ public partial class PopupWindow : ShellWindow
 {
     private readonly Shell _shell;
     private PopupPosition _position = PopupPosition.Center;
-    private ScreenInfo? _shownOn;
+    private string? _shownOn;
     private bool _grabFocus;
     private PopupPlacer? _placer;
 
@@ -50,15 +50,15 @@ public partial class PopupWindow : ShellWindow
 
     private protected override void ApplyPlace()
     {
-        if (!Host!.Place.IsVisible)
-            _shownOn = _position.FollowsActiveWindow && _shell.WindowList.ActiveWindow?.Screens is [var active, ..]
-                ? active
-                : null;
-        _placer!.Set(new PopupPlace(
-            Screen ?? _shownOn,
-            _position,
-            double.IsNaN(Width) ? 100 : Width,
-            double.IsNaN(Height) ? 100 : Height));
+        _shownOn = ShownOn(!Host!.Place.IsVisible, _shownOn, _shell.WindowList.ActiveWindow?.Screens);
+        _placer!.Set(new PopupPlace(Screen?.Id, _shownOn, _position, Width, Height));
+    }
+
+    internal static string? ShownOn(bool opening, string? shownOn, IReadOnlyList<ScreenInfo>? active)
+    {
+        if (!opening)
+            return shownOn;
+        return active is [var screen, ..] ? screen.Id : null;
     }
 
     private protected override void ApplyFocus()
