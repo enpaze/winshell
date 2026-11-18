@@ -15,7 +15,7 @@ This folder is the maintained source for verifying what a Winshell user can reac
 | Shell | Source | What it shows |
 | --- | --- | --- |
 | `none` | No shell | Commands that need no running shell. |
-| `features` | [`../shell`](../shell/FeatureShell.cs) | One window with a row for each service and an element for each building block, each with the feature's id as its automation id, plus `features.click`, `features.clicks` and `features.popup`. It registers the IPC target `features` with the function `echo`, the property `name` and the signal `ticked`, which it raises once a second. |
+| `features` | [`../shell`](../shell/FeatureShell.cs) | One window with a row for each service and an element for each building block, each with the feature's id as its automation id, plus `features.click`, `features.clicks`, `features.popup`, `features.text` and `features.typed`. It registers the IPC target `features` with the function `echo`, the property `name` and the signal `ticked`, which it raises once a second. |
 | `starter` | [`templates/winshell`](../../../../templates/winshell/Program.cs) | The project `winshell new starter` copies: a bar with a clock and a battery. |
 | `omarchy-style` | [`examples/omarchy-style`](../../../../examples/omarchy-style/Program.cs) | A top bar in the style of Omarchy, with its own widgets. |
 
@@ -23,7 +23,7 @@ The driver copies each shell into the session's config folder, points it at this
 
 ## Driving conventions
 
-- Drive with `winshell inspect` only. `tree`, `screenshot`, `record`, `click` and `hover` read and act inside the shell, through its automation peers. They need no mouse and no keyboard, and they do not move the user's pointer or focus. Use no other UI automation and no screenshot from another tool.
+- Drive with `winshell inspect` only. `tree`, `screenshot`, `record`, `click`, `hover` and `type` read and act inside the shell, through its automation peers. They need no mouse and no keyboard, and they do not move the user's pointer or focus. Use no other UI automation and no screenshot from another tool.
 - No step sends real input. `inspect focus`, `point`, `leave`, `press`, `scroll` and `key` move the real cursor or press real keys, so their features prove only a refusal that sends nothing.
 - Run a command under test as a user types it, through the session's `winshell`: `scripts/winshell.ps1 -Session <folder> <words>`.
 - Find an element by its automation id, `x:Name` or automation name. Never use a position or the order of the tree.
@@ -84,6 +84,7 @@ A step is one of two objects. Each takes `within`, the seconds to retry it until
 - [winshell inspect screenshot](./command.inspect-screenshot.md) saves a window or an open popup as a PNG.
 - [winshell inspect scroll](./command.inspect-scroll.md) turns the real mouse wheel over an element.
 - [winshell inspect tree](./command.inspect-tree.md) prints the shell's open windows and their elements as JSON.
+- [winshell inspect type](./command.inspect-type.md) replaces the text in a text box without pressing keys.
 - [winshell ipc call](./command.ipc-call.md) calls a function a shell registered and prints what it returns.
 - [winshell ipc get](./command.ipc-get.md) prints the current value of a property a shell registered.
 - [winshell ipc listen](./command.ipc-listen.md) prints each signal a shell raises until Ctrl+C.

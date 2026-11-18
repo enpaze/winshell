@@ -15,6 +15,7 @@ public sealed class FeatureWindow : Component<FeatureWindowProps>
     {
         var clicks = UseRef(0);
         var (shown, setShown) = UseState(0);
+        var (typed, setTyped) = UseState("");
         Element[] rows = [.. Props.Services.Select(row => Component<Row, RowProps>(row).WithKey(row.Id))];
         return ScrollViewer(VStack(2,
         [
@@ -23,6 +24,10 @@ public sealed class FeatureWindow : Component<FeatureWindowProps>
                 Button("Click", () => setShown(++clicks.Current)).AutomationId("features.click"),
                 TextBlock($"clicks: {shown}").AutomationId("features.clicks").VAlign(VerticalAlignment.Center),
                 Button("Popup", Props.OpenPopup).AutomationId("features.popup")),
+            HStack(8,
+                TextBox(typed, setTyped, "Type here").AutomationId("features.text").AutomationName("Type here")
+                    .Width(160),
+                TextBlock($"typed: {typed}").AutomationId("features.typed").VAlign(VerticalAlignment.Center)),
             Elements.Surface(VStack(2,
                     TextBlock("surface: painted").AutomationId("block.surface"),
                     Elements.WidgetArea(defaults: ImmutableArray.Create(
