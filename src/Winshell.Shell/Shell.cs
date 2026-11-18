@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.ExceptionServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -7,17 +8,6 @@ using WinRT;
 using Winshell.ExplorerTaskbar;
 
 namespace Winshell;
-
-public sealed record ShellOptions
-{
-    public string? ShellId { get; init; }
-
-    public string? DataDir { get; init; }
-
-    public string? StateDir { get; init; }
-
-    public string? CacheDir { get; init; }
-}
 
 public sealed partial class Shell : IDisposable
 {
@@ -30,12 +20,11 @@ public sealed partial class Shell : IDisposable
     private bool _disposed;
     private RealInput? _input;
 
-    private Shell(IEventLoop loop, ShellOptions options, InstanceSession session)
+    private Shell(IEventLoop loop, InstanceSession session)
     {
         var log = session.Log;
         Loop = loop;
         Log = log;
-        Options = options;
         _identity = session.Identity;
         _instance = session.Instance;
         _arguments = session.Arguments;
@@ -62,8 +51,6 @@ public sealed partial class Shell : IDisposable
     public IEventLoop Loop { get; }
 
     public Log Log { get; }
-
-    public ShellOptions Options { get; }
 
     internal ShellPlatform Platform { get; }
 
@@ -109,11 +96,11 @@ public sealed partial class Shell : IDisposable
 
     public string LogPath { get; }
 
-    public string DataDir => Ensure(_identity.DataDir);
+    public string DataDir => Ensure(_identity.Data);
 
-    public string StateDir => Ensure(_identity.StateDir);
+    public string StateDir => Ensure(_identity.State);
 
-    public string CacheDir => Ensure(_identity.CacheDir);
+    public string CacheDir => Ensure(_identity.Cache);
 
     public ObservableList<ScreenInfo> Screens => Platform.Screens;
 
@@ -174,30 +161,26 @@ public sealed partial class Shell : IDisposable
         return dir;
     }
 
-    public static void Run(Action<Shell> start, ShellOptions? options = null)
+    public static void Run(Action<Shell> start)
     {
         ArgumentNullException.ThrowIfNull(start);
-        options ??= new ShellOptions();
-        StaThread.Run(() => Start(start, options));
+        StaThread.Run(() => Start(start));
     }
 
-    private static void Start(Action<Shell> start, ShellOptions options)
+    private static void Start(Action<Shell> start)
     {
         var code = InstanceStart.Run(new InstanceLaunch(
                 Environment.ProcessPath!,
                 (string[])[.. Environment.GetCommandLineArgs().Skip(1)],
-                options.ShellId,
-                options.DataDir,
-                options.StateDir,
-                options.CacheDir,
+                ShellProperties.Of(Assembly.GetEntryAssembly()),
                 Log.Default,
                 instance => instance.Crashing = () => _current?.ReleaseForCrash()),
-            session => RunHost(start, options, session));
+            session => RunHost(start, session));
         if (code != 0)
             Environment.ExitCode = code;
     }
 
-    private static void RunHost(Action<Shell> start, ShellOptions options, InstanceSession session)
+    private static void RunHost(Action<Shell> start, InstanceSession session)
     {
         var instance = session.Instance;
         Exception? failed = null;
@@ -214,7 +197,7 @@ public sealed partial class Shell : IDisposable
                     var loop = new DispatcherLoop(queue, session.Log);
                     loop.Failed += e => instance.Reported(instance.Crashes.WriteOnce("event loop", e, "Winshell",
                         "Something in Winshell failed. It is still running."));
-                    shell = new Shell(loop, options, session);
+                    shell = new Shell(loop, session);
                     _current = shell;
                     if (Environment.GetEnvironmentVariable(DevProjectVariable) is { Length: > 0 })
                         shell.Notices.FollowFileErrors();

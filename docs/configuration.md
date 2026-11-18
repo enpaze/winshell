@@ -170,20 +170,27 @@ A project that references the `Winshell` package and has `ImplicitUsings` on, as
 
 ## The program
 
-`Shell.Run` runs until the shell quits. Call it from top-level statements, as the starter's `Program.cs` does. The function you pass runs once the shell is up, with that shell, which `Shell.Current` also returns. With a `ShellId`, the call reads:
+`Shell.Run` runs until the shell quits. Call it from top-level statements, as the starter's `Program.cs` does. The function you pass runs once the shell is up, with that shell, which `Shell.Current` also returns:
 
 ```csharp
-Shell.Run(shell => _ = new Bar { Center = ["clock"] }, new ShellOptions { ShellId = "MyShell" });
+Shell.Run(shell => _ = new Bar { Center = ["clock"] });
 ```
 
 WinUI needs a single-threaded apartment (STA) thread. When the thread that calls `Shell.Run` is not one, as a top-level program's is not, the shell runs on a new STA thread with the caller's culture, and `Shell.Run` waits for it.
 
 When `start` throws, Winshell writes a crash report and closes the shell. `Shell.Run` then returns without an exception, and the program exits with code 1, which `winshell run` does not restart. An exception that escapes the shell outside `start` comes back out of `Shell.Run` with its original stack.
 
-`ShellOptions` names where the shell keeps its files:
+Properties in the project file name the shell and where it keeps its files. The package puts them in the program when it builds:
 
-- **`ShellId`** names the data, state and cache folders. Without it, as in the starter, a configuration in the config folder is named after its folder, and any other after its path.
-- **`DataDir`, `StateDir` and `CacheDir`** replace those folders. A relative path is in the project folder, so `data` is `<project>\data`, and a rebuild of `bin\shell` leaves it there. A program a reload built in `bin\shell.next` uses that same folder. A program in neither keeps a relative path next to itself. `%NAME%` expands, and `$BASE` is the folder above `by-shell`, such as `%LOCALAPPDATA%\winshell\data`.
+```xml
+<PropertyGroup>
+  <ShellName>my-shell</ShellName>
+  <ShellDataDir>data</ShellDataDir>
+</PropertyGroup>
+```
+
+- **`ShellName`** names the data, state and cache folders. Without it, as in the starter, a shell project in the config folder is named after its folder, and any other after its path.
+- **`ShellDataDir`, `ShellStateDir` and `ShellCacheDir`** replace those folders. A relative path is in the project folder, so `data` is `<project>\data`, and a rebuild of `bin\shell` leaves it there. A program a reload built in `bin\shell.next` uses that same folder. A program in neither keeps a relative path next to itself. `%NAME%` expands when the shell starts, and `$BASE` is the folder above `by-shell`, such as `%LOCALAPPDATA%\winshell\data`. MSBuild reads `%` and two hexadecimal digits as one escaped character, so write `%25DEVROOT%` for `%DEVROOT%`.
 
 ## A window
 
@@ -723,7 +730,7 @@ What can't be used is logged under `preferences`, with its line, and the values 
 - An unknown key that differs from a key the class reads only in case, by a letter, or by two in a longer key is logged with that key.
 - A file past 1 MiB, or nested past 64 levels, is not read.
 
-`winshell doctor` checks the file of the configuration it checks for TOML errors, and names the line. It finds the file by the shell id the configuration has without a `ShellId` in its `ShellOptions`, as [The program](#the-program) describes. For a program that sets one, it checks that default file, not the one the shell reads.
+`winshell doctor` checks the file of the configuration it checks for TOML errors, and names the line. It finds the file by the shell name the project has without a `ShellName` property, as [The program](#the-program) describes. For a project that sets one, it checks that default file, not the one the shell reads.
 
 ### Data, state and cache
 

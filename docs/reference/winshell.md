@@ -330,7 +330,6 @@ Has the members of [ObservableObject](#observableobject).
 | `Media` | [MediaService](winshell-media.md#mediaservice), read-only |
 | `Networking` | [NetworkingService](winshell-network.md#networkingservice), read-only |
 | `Notifications` | [NotificationListener](winshell-notifications.md#notificationlistener), read-only |
-| `Options` | [ShellOptions](#shelloptions), read-only |
 | `Power` | [PowerService](winshell-power.md#powerservice), read-only |
 | `PowerMode` | [PowerModeService](winshell-power.md#powermodeservice), read-only |
 | `Privacy` | [PrivacyService](winshell-privacy.md#privacyservice), read-only |
@@ -358,7 +357,7 @@ Has the members of [ObservableObject](#observableobject).
 | `Open(string target)` | void |
 | `Quit()` | void |
 | `Reload()` | bool |
-| `Run(Action of [Shell](#shell) start, [ShellOptions](#shelloptions)? options = null)` | void, static |
+| `Run(Action of [Shell](#shell) start)` | void, static |
 | `StatePath(string path)` | string |
 
 ## ShellImage
@@ -374,16 +373,6 @@ Has the members of [ObservableObject](#observableobject).
 | `Handle(string target, string function, Delegate handler)` | IDisposable |
 | `Property<T>(string target, string property, Func of T read)` | IDisposable |
 | `Signal(string target, string signal)` | [IpcSignal](#ipcsignal) |
-
-## ShellOptions
-
-| Member | Type |
-| --- | --- |
-| `ShellOptions()` | constructor |
-| `CacheDir` | string?, init |
-| `DataDir` | string?, init |
-| `ShellId` | string?, init |
-| `StateDir` | string?, init |
 
 ## ShellStyle
 

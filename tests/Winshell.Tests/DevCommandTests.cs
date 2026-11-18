@@ -42,6 +42,7 @@ public sealed partial class DevCommandTests : IDisposable
                                                                     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
                                                                     <SelfContained>true</SelfContained>
                                                                     <AssemblyName>Dev</AssemblyName>
+                                                                    <ShellName>dev-probe</ShellName>
                                                                   </PropertyGroup>
                                                                   <ItemGroup>
                                                                     <ProjectReference Include="{Path.Combine(Repo.Root, "src", "Winshell.Shell", "Winshell.Shell.csproj")}" />
@@ -62,7 +63,7 @@ public sealed partial class DevCommandTests : IDisposable
                                                                        app.Launch();
                                                                        return "launched";
                                                                    });
-                                                               }, new ShellOptions { ShellId = "dev-probe" });
+                                                               });
                                                                """);
         File.WriteAllText(Path.Combine(Project, "PanelView.cs"), """
                                                                  using Microsoft.UI.Xaml.Controls;

@@ -5,7 +5,7 @@ using Xunit.Sdk;
 
 namespace Winshell.Tests;
 
-public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<ProbeBuild>
+public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<ProbeBuild>, IClassFixture<OtherProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<(Process Process, string Local)> _started = [];
@@ -30,7 +30,7 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
         var locals = new[] { Path.Combine(_dir, "local-a"), Path.Combine(_dir, "local-b"), Path.Combine(_dir, "local-c") };
         var a = Start(Config("a"), locals[0]);
         var b = Start(Config("b"), locals[1]);
-        var c = Start(Config("c"), locals[2], "other");
+        var c = Start(Config("c"), locals[2], ProbeShell.Other);
         var infos = new[] { Info(a, locals[0]), Info(b, locals[1]), Info(c, locals[2]) };
 
         Assert.Equal(3, infos.Select(i => i.GetProperty("id").GetString()).Distinct().Count());
@@ -80,9 +80,9 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
         Assert.Equal(liveId, rows[0].GetProperty("id").GetString());
     }
 
-    private Process Start(string configDir, string local, string? shellId = null)
+    private Process Start(string configDir, string local, string? program = null)
     {
-        var process = ProbeShell.Start(configDir, local, shellId);
+        var process = ProbeShell.Start(configDir, local, program);
         _started.Add((process, local));
         return process;
     }

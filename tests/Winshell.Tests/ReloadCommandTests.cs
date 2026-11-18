@@ -21,7 +21,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
 
         public OwnProbe()
         {
-            ProbeShell.Ensure();
+            _ = ProbeShell.Program;
             Program = ProbeShell.Build(Folder);
         }
 
@@ -81,8 +81,8 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
     public void A_second_reload_runs_the_second_edit()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        var source = Path.Combine(_probe.Folder, "Program.cs");
-        var original = File.ReadAllText(source);
+        var project = Path.Combine(_probe.Folder, "Probe.csproj");
+        var original = File.ReadAllText(project);
         var process = StartProbe();
         try
         {
@@ -93,7 +93,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         }
         finally
         {
-            File.WriteAllText(source, original);
+            File.WriteAllText(project, original);
         }
     }
 
@@ -101,13 +101,13 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
     public void A_reload_under_winshell_run_stays_supervised()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        var source = Path.Combine(_probe.Folder, "Program.cs");
-        var original = File.ReadAllText(source);
+        var project = Path.Combine(_probe.Folder, "Probe.csproj");
+        var original = File.ReadAllText(project);
         var run = Supervise();
         try
         {
             var first = NextPid(0, null);
-            File.WriteAllText(source, original.Replace("?? \"probe\"", "?? \"reloaded\"", StringComparison.Ordinal));
+            File.WriteAllText(project, Named(original, "reloaded"));
 
             Reload(first);
 
@@ -123,7 +123,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         }
         finally
         {
-            File.WriteAllText(source, original);
+            File.WriteAllText(project, original);
         }
     }
 
@@ -206,10 +206,17 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         return pid;
     }
 
+    private static string Named(string project, string shellName)
+    {
+        var named = project.Replace("<ShellName>probe</ShellName>", $"<ShellName>{shellName}</ShellName>",
+            StringComparison.Ordinal);
+        Assert.NotEqual(project, named);
+        return named;
+    }
+
     private Process ReloadTo(Process running, string original, string shellId)
     {
-        File.WriteAllText(Path.Combine(_probe.Folder, "Program.cs"),
-            original.Replace("?? \"probe\"", $"?? \"{shellId}\"", StringComparison.Ordinal));
+        File.WriteAllText(Path.Combine(_probe.Folder, "Probe.csproj"), Named(original, shellId));
         var result = Reload(running.Id);
         result.AssertNoError();
         Assert.StartsWith("Reloaded ", result.Output, StringComparison.Ordinal);

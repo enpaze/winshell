@@ -4,6 +4,7 @@
     <RootNamespace>Winshell.ShellTests</RootNamespace>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
+    <ShellName>winshell-tests</ShellName>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\scripts\reference-pages.cs" Link="ReferencePages.cs" />

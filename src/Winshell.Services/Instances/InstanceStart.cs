@@ -7,10 +7,7 @@ namespace Winshell;
 internal sealed record InstanceLaunch(
     string Program,
     IReadOnlyList<string> Arguments,
-    string? ShellId,
-    string? DataDir,
-    string? StateDir,
-    string? CacheDir,
+    ShellProperties Properties,
     Log Log,
     Action<ShellInstance>? Prepare = null);
 
@@ -55,8 +52,7 @@ internal static class InstanceStart
             Instances.WaitForExit(previous);
 
         var locations = ShellLocations.Current;
-        var identity = ShellIdentity.Resolve(launch.Program, locations, launch.ShellId, launch.DataDir,
-            launch.StateDir, launch.CacheDir);
+        var identity = ShellIdentity.Resolve(launch.Program, locations, launch.Properties);
         using var duplicate = arguments.NoDuplicate
             ? HeldMutex.TryClaim(HeldMutex.NoDuplicateName(locations, identity.ShellId))
             : default;

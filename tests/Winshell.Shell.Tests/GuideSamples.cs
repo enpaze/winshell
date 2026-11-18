@@ -11,7 +11,7 @@ public static class GuideSamples
 
     public static void RunTheShell()
     {
-        Shell.Run(shell => _ = new Bar { Center = ["clock"] }, new ShellOptions { ShellId = "MyShell" });
+        Shell.Run(shell => _ = new Bar { Center = ["clock"] });
     }
 
     public static void APanel()

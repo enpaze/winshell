@@ -13,8 +13,7 @@ public sealed class PreferencesStartTests : IDisposable, IClassFixture<ProbeBuil
         var config = Path.Combine(_dir, "config");
         Directory.CreateDirectory(config);
         File.WriteAllText(Path.Combine(config, ProbeShell.PreferencesMarker), "");
-        var shellId = Guid.NewGuid().ToString("N");
-        _started = ProbeShell.Start(config, Path.Combine(_dir, "local"), shellId);
+        _started = ProbeShell.Start(config, Path.Combine(_dir, "local"));
 
         var report = Path.Combine(config, "preferences-report.txt");
         string? said = null;

@@ -20,7 +20,7 @@ public sealed class InstanceStartTests
     private static InstanceLaunch Launch(string shellId, string program, IReadOnlyList<string> args,
         Action<ShellInstance>? prepare = null)
     {
-        return new InstanceLaunch(program, args, shellId, null, null, null, new Log(), prepare);
+        return new InstanceLaunch(program, args, new ShellProperties(shellId), new Log(), prepare);
     }
 
     private static (int Code, string[] Error) Start(InstanceLaunch launch, Action<InstanceSession> host)
@@ -244,7 +244,7 @@ public sealed class InstanceStartTests
         var error = new InvalidOperationException("SENTINEL host");
 
         var thrown = Assert.Throws<InvalidOperationException>(() =>
-            Start(new InstanceLaunch(Program, [], ShellId(), null, null, null, log), session =>
+            Start(new InstanceLaunch(Program, [], new ShellProperties(ShellId()), log), session =>
             {
                 instance = session.Instance;
                 throw error;

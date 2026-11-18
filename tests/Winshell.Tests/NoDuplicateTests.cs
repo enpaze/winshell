@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace Winshell.Tests;
 
-public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>
+public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>, IClassFixture<OtherProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly string _local;
@@ -31,7 +31,7 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
         await AssertExitedQuietly(same);
         Assert.False(first.HasExited);
 
-        var second = Start(true, "other");
+        var second = Start(true, ProbeShell.Other);
         Assert.True(first.HasExited);
         Assert.Equal(0, first.ExitCode);
         Assert.False(second.HasExited);
@@ -47,6 +47,17 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
 
         await AssertExitedQuietly(Launch(true));
         Assert.False(first.HasExited);
+    }
+
+    [Fact]
+    public async Task A_copy_of_the_shell_at_another_path_is_still_a_duplicate()
+    {
+        var first = Start(false);
+        Assert.NotEqual(Path.GetFullPath(ProbeShell.Program), Path.GetFullPath(ProbeShell.Copy));
+
+        await AssertExitedQuietly(Launch(true, ProbeShell.Copy));
+        Assert.False(first.HasExited);
+        Assert.Equal(first.Id, Assert.Single(Running()).Pid);
     }
 
     [Fact]
@@ -82,18 +93,18 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
         Assert.False(child.HasExited);
     }
 
-    private Process Start(bool duplicate, string? shellId = null)
+    private Process Start(bool duplicate, string? program = null)
     {
-        var process = Launch(duplicate, shellId);
+        var process = Launch(duplicate, program);
         Wait.Until(() => Running().Any(i => i.Pid == process.Id),
             $"instance {process.Id} in winshell list");
         return process;
     }
 
-    private Process Launch(bool duplicate, string? shellId = null)
+    private Process Launch(bool duplicate, string? program = null)
     {
         var printed = new StringBuilder();
-        var process = ProbeShell.Launch(_config, _local, duplicate ? ["--no-duplicate"] : [], shellId, printed);
+        var process = ProbeShell.Launch(_config, _local, duplicate ? ["--no-duplicate"] : [], printed, program);
         _started.Add(process);
         _printed[process.Id] = printed;
         return process;
