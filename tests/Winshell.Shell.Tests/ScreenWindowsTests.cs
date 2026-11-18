@@ -5,6 +5,37 @@ namespace Winshell.ShellTests;
 public sealed class ScreenWindowsTests
 {
     [Fact]
+    public Task A_screen_read_that_one_action_asks_for_is_done_before_the_next_action_starts()
+    {
+        return ReadBeforeTheNextAction(platform => platform.ScreensMayHaveChanged());
+    }
+
+    [Fact]
+    public Task A_work_area_relayout_that_one_action_asks_for_is_done_before_the_next_action_starts()
+    {
+        return ReadBeforeTheNextAction(platform => platform.WorkAreaMayHaveChanged());
+    }
+
+    private static async Task ReadBeforeTheNextAction(Action<ShellPlatform> ask)
+    {
+        var madeUp = Screen("TST", "Only", "1");
+        await ShellFixture.On(shell =>
+        {
+            shell.Platform.Screens.Add(madeUp);
+            ask(shell.Platform);
+            return true;
+        });
+
+        await ShellFixture.On(shell =>
+        {
+            var notRead = shell.Platform.Screens.Contains(madeUp);
+            shell.Platform.Screens.Remove(madeUp);
+            Assert.False(notRead, "The screen read the first action asked for had not run when the next action started.");
+            return true;
+        });
+    }
+
+    [Fact]
     public async Task A_screen_has_a_window_from_when_it_appears_until_it_goes_or_another_monitor_takes_its_id()
     {
         await ShellFixture.On(shell =>

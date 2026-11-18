@@ -168,8 +168,14 @@ internal sealed partial class ShellPlatform : IDisposable
     internal void ScreensMayHaveChanged()
     {
         _screenRefresh?.Dispose();
-        _screenRefresh = Loop.Schedule(TimeSpan.FromMilliseconds(200), RefreshScreens);
+        _screenRefresh = Loop.Schedule(TimeSpan.FromMilliseconds(200), () =>
+        {
+            _screenRefresh = null;
+            RefreshScreens();
+        });
     }
+
+    internal bool ScreenReadPending => _screenRefresh is not null || _relayout is not null;
 
     internal void WorkAreaMayHaveChanged()
     {

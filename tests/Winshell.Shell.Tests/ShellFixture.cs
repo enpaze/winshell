@@ -74,6 +74,7 @@ internal static class ShellFixture
             finally
             {
                 await CloseLeft(shell, before);
+                await ScreensRead(shell);
             }
         }
         finally
@@ -102,6 +103,18 @@ internal static class ShellFixture
             });
             if (left.Count > 0 && TestContext.Current.Test is { } test)
                 Left.AddOrUpdate(test.UniqueID, left, (_, earlier) => [.. earlier, .. left]);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private static async Task ScreensRead(Shell shell)
+    {
+        try
+        {
+            await Wait.UntilAsync(() => OnThread(shell, s => Task.FromResult(!s.Platform.ScreenReadPending)),
+                "the screen read the action asked for to finish before the next action starts");
         }
         catch (OperationCanceledException)
         {
