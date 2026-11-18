@@ -17,7 +17,7 @@ public sealed class AudioServiceTests
 
     private AudioService Service()
     {
-        return new AudioService(_graph, _log);
+        return new AudioService(_loop, _log, _graph);
     }
 
     private static List<string> Watch(INotifyPropertyChanged source)

@@ -87,7 +87,7 @@ internal sealed class WindowsStartupRegistry(
 
     private SignInVerdict Classified(string registered, bool off)
     {
-        var wanted = CommandLine.Parse(command).ReadSignIn();
+        var wanted = CommandLine.ReadSignIn(command);
         var project = wanted.NamesConfiguration ? SignInEntry.ProjectOf(wanted, configRoot, _log) : null;
         var verdict = SignInVerdict.FromRun(registered, off, wanted.Program ?? "", configRoot, File.Exists,
             SignInEntry.Resolve, project, _log);
@@ -97,7 +97,7 @@ internal sealed class WindowsStartupRegistry(
     private bool Starts(string actual)
     {
         var wantedLine = CommandLine.Parse(command);
-        var wanted = wantedLine.ReadSignIn();
+        var wanted = CommandLine.ReadSignIn(command);
         if (!wanted.NamesConfiguration)
             return wantedLine.SameArguments(CommandLine.Parse(actual));
         var seen = CommandLine.ReadSignIn(actual);

@@ -174,7 +174,7 @@ internal sealed class PrivacyBackend : IPrivacyBackend
         try
         {
             if (!packaged)
-                return AppsService.ProgramDescription(identity.Replace('#', '\\')) ?? "";
+                return AppIdentity.ProgramDescription(identity.Replace('#', '\\')) ?? "";
 
             if (_packageNames.TryGetValue(identity, out var cached))
                 return cached;

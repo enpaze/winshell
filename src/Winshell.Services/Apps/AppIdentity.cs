@@ -52,6 +52,29 @@ internal static class AppIdentity
         return ProgramName(appId) ?? appId;
     }
 
+    public static string? ProgramDescription(string path)
+    {
+        try
+        {
+            return FileVersionInfo.GetVersionInfo(path).FileDescription?.Trim() is { Length: > 0 } description
+                ? description
+                : null;
+        }
+        catch (Exception e) when (e is FileNotFoundException or IOException or UnauthorizedAccessException
+                                      or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    public static string DisplayName(string appId)
+    {
+        var name = appId.Length == 0 ? null : ShellItems.Name(AppsFolderPath(appId));
+        if (string.IsNullOrWhiteSpace(name) && ProgramName(appId) is { } program)
+            name = RunningProgramDescription(program);
+        return string.IsNullOrWhiteSpace(name) ? FallbackName(appId) : name;
+    }
+
     public static string ExpandKnownFolder(string path)
     {
         if (path.Length < 3 || path[0] != '{')
@@ -63,5 +86,24 @@ internal static class AppIdentity
             return path;
         var rest = path[(end + 1)..].TrimStart('\\', '/');
         return rest.Length == 0 ? folder : Path.Combine(folder, rest);
+    }
+
+    private static string? RunningProgramDescription(string processName)
+    {
+        foreach (var process in Process.GetProcessesByName(processName))
+            using (process)
+            {
+                try
+                {
+                    if (process.MainModule?.FileName is { } path &&
+                        ProgramDescription(path) is { } description)
+                        return description;
+                }
+                catch (Exception e) when (e is Win32Exception or InvalidOperationException)
+                {
+                }
+            }
+
+        return null;
     }
 }

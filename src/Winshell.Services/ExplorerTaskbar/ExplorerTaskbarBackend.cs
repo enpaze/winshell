@@ -82,7 +82,7 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
         var saved = ExplorerTaskbarWindow.Saved.Of(hwnd, primary, autohide, PInvoke.IsWindowVisible((HWND)hwnd));
         _saved.Add(saved);
         if (saved.Reserves)
-            saved.Removed = ExplorerTaskbarWindow.Remove(hwnd);
+            saved.Removed = AppBarMessages.Remove(hwnd);
         PInvoke.ShowWindow((HWND)hwnd, SHOW_WINDOW_CMD.SW_HIDE);
     }
 
@@ -91,7 +91,7 @@ internal sealed class ExplorerTaskbarBackend : IExplorerTaskbarBackend
         if (!PInvoke.IsWindow((HWND)saved.Hwnd))
             return;
         if (saved.Reserves && !saved.Removed)
-            saved.Removed = ExplorerTaskbarWindow.Remove(saved.Hwnd);
+            saved.Removed = AppBarMessages.Remove(saved.Hwnd);
         PInvoke.ShowWindow((HWND)saved.Hwnd, SHOW_WINDOW_CMD.SW_HIDE);
     }
 

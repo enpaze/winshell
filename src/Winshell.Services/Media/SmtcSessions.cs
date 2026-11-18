@@ -27,7 +27,7 @@ internal sealed class SmtcSessions : IMediaBackend
             Subscribe(manager);
             Read(manager.GetSessions());
         });
-        _names = new AppNames(loop, log, AppsService.DisplayName, _poll.Refresh);
+        _names = new AppNames(loop, log, AppIdentity.DisplayName, _poll.Refresh);
         loop.Post(_poll.Refresh);
     }
 

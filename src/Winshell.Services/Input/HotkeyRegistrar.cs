@@ -12,17 +12,12 @@ internal sealed class HotkeyRegistrar : IDisposable
     private int _syncPosted;
     private bool _disposed;
 
-    public HotkeyRegistrar(IEventLoop loop, Log log)
-        : this(loop, log, new HotkeyBackend(loop, e => log.Warn("hotkey", e.Message)))
+    internal HotkeyRegistrar(IEventLoop loop, Log log, IHotkeyBackend? backend = null)
     {
-    }
-
-    internal HotkeyRegistrar(IEventLoop loop, Log log, IHotkeyBackend backend)
-    {
+        _backend = backend ?? new HotkeyBackend(loop, e => log.Warn("hotkey", e.Message));
         _loop = loop;
         _log = log;
         _started = loop.Time.GetTimestamp();
-        _backend = backend;
         _backend.ChordPressed += OnChord;
     }
 

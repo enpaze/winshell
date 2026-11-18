@@ -1,63 +1,35 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using Winshell.Native;
 
-namespace Winshell;
+namespace Winshell.ExplorerTaskbar;
 
 internal static class ExplorerTaskbarWindow
 {
-    private static readonly ConcurrentDictionary<object, (Func<bool> Lower, Action Raise)> Trays = new();
     private static uint _callback;
-
-    internal static void Opened(object tray, Func<bool> lower, Action raise)
-    {
-        Trays[tray] = (lower, raise);
-    }
-
-    internal static void Closed(object tray)
-    {
-        Trays.TryRemove(tray, out _);
-    }
-
-    internal static bool Register(nint window, uint callback)
-    {
-        return Send(() => AppBars.Register(window, callback));
-    }
-
-    internal static RECT Query(nint window, AppBarEdge edge, RECT proposed)
-    {
-        return Send(() => AppBars.Query(window, edge, proposed));
-    }
-
-    internal static RECT Reserve(nint window, AppBarEdge edge, RECT desired)
-    {
-        return Send(() => AppBars.Reserve(window, edge, desired));
-    }
-
-    internal static bool Remove(nint window)
-    {
-        return Send(() => AppBars.Remove(window));
-    }
-
-    internal static bool Autohide(nint window)
-    {
-        return Send(() => AppBars.Autohide(window));
-    }
-
-    internal static bool TryPosition(nint window, out AppBarEdge edge, out RECT bounds)
-    {
-        var (found, foundEdge, foundBounds) = Send(() =>
-            (AppBars.TryPosition(window, out var e, out var b), e, b));
-        edge = foundEdge;
-        bounds = foundBounds;
-        return found;
-    }
 
     internal static (List<(nint Hwnd, bool Primary)> Windows, bool Autohide) Find()
     {
         var windows = Windows(TaskbarWindows.PrimaryClass).Select(hwnd => (Hwnd: hwnd, Primary: true))
             .Concat(Windows(TaskbarWindows.SecondaryClass).Select(hwnd => (Hwnd: hwnd, Primary: false))).ToList();
-        return (windows, windows.Count > 0 && Autohide(windows[0].Hwnd));
+        return (windows, windows.Count > 0 && AppBarMessages.Autohide(windows[0].Hwnd));
+    }
+
+    internal static bool AnyHidden()
+    {
+        return Find().Windows.Any(taskbar => !PInvoke.IsWindowVisible((HWND)taskbar.Hwnd));
+    }
+
+    internal static void RestoreHidden()
+    {
+        var (windows, autohide) = Find();
+        foreach (var (hwnd, primary) in windows)
+        {
+            if (PInvoke.IsWindowVisible((HWND)hwnd))
+                continue;
+            var saved = Saved.Of(hwnd, primary, autohide, true);
+            saved.Removed = saved.Reserves;
+            PutBack(saved);
+        }
     }
 
     internal static void PutBack(Saved saved)
@@ -68,10 +40,10 @@ internal static class ExplorerTaskbarWindow
             PInvoke.ShowWindow((HWND)saved.Hwnd, SHOW_WINDOW_CMD.SW_SHOWNA);
         if (!saved.Removed)
             return;
-        if (!Register(saved.Hwnd, Callback()))
+        if (!AppBarMessages.Register(saved.Hwnd, Callback()))
             return;
-        var offered = Query(saved.Hwnd, saved.Edge, saved.Rect);
-        Reserve(saved.Hwnd, saved.Edge, offered);
+        var offered = AppBarMessages.Query(saved.Hwnd, saved.Edge, saved.Rect);
+        AppBarMessages.Reserve(saved.Hwnd, saved.Edge, offered);
     }
 
     internal static AppBarEdge EdgeOf(RECT window, RECT monitor)
@@ -111,27 +83,9 @@ internal static class ExplorerTaskbarWindow
         }
     }
 
-    private static T Send<T>(Func<T> message)
-    {
-        List<object> lowered = [];
-        foreach (var (tray, step) in Trays)
-            if (step.Lower())
-                lowered.Add(tray);
-        try
-        {
-            return message();
-        }
-        finally
-        {
-            foreach (var tray in lowered)
-                if (Trays.TryGetValue(tray, out var step))
-                    step.Raise();
-        }
-    }
-
     private static bool TryPlace(nint hwnd, bool primary, out AppBarEdge edge, out RECT rect)
     {
-        if (primary && TryPosition(hwnd, out edge, out rect))
+        if (primary && AppBarMessages.TryPosition(hwnd, out edge, out rect))
             return true;
 
         if (PInvoke.GetWindowRect((HWND)hwnd, out rect) && rect is { Width: > 0, Height: > 0 })

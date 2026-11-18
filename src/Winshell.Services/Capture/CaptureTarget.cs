@@ -27,10 +27,3 @@ public sealed record CaptureTarget(nint Window, string MonitorId)
         return new CaptureTarget(0, screen.Id);
     }
 }
-
-internal interface ICaptureBackend : IDisposable
-{
-    void Start(CaptureTarget target, bool includeCursor, Action closed);
-
-    PixelImage? ReadLatest();
-}

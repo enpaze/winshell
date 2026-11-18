@@ -10,7 +10,7 @@ internal sealed class AppNames(IEventLoop loop, Log log, Func<string, string> de
     {
         if (_names.TryGetValue(appId, out var name))
             return name;
-        name = _names[appId] = AppsService.FallbackName(appId);
+        name = _names[appId] = AppIdentity.FallbackName(appId);
         _ = LookUpAsync(appId);
         return name;
     }

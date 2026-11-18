@@ -53,7 +53,7 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
     [Trait("Category", "Window")]
     public void Replacing_a_shell_keeps_the_taskbar_hidden_until_the_new_one_exits()
     {
-        var hidden = ExplorerTaskbarRecovery.AnyHidden();
+        var hidden = ExplorerTaskbarWindow.AnyHidden();
         _restoreTaskbar = !hidden;
         Assert.False(hidden, "Explorer's taskbar was hidden before the test.");
         var local = Folder("local-taskbar");
@@ -64,7 +64,7 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
         File.WriteAllText(markerA, "");
         File.WriteAllText(markerB, "");
         var first = Start(firstConfig, local);
-        Wait.Until(() => !File.Exists(markerA) && ExplorerTaskbarRecovery.AnyHidden(),
+        Wait.Until(() => !File.Exists(markerA) && ExplorerTaskbarWindow.AnyHidden(),
             "the first shell to hide the taskbar");
 
         var printed = new StringBuilder();
@@ -74,7 +74,7 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
         var ready = false;
         while (TimeProvider.System.GetElapsedTime(started) < TimeSpan.FromSeconds(30))
         {
-            if (!ExplorerTaskbarRecovery.AnyHidden())
+            if (!ExplorerTaskbarWindow.AnyHidden())
                 flashed = true;
             ready = !File.Exists(markerB) && Running(local).Any(info => info.Pid == second.Id);
             if (second.HasExited || (ready && first.HasExited))
@@ -86,7 +86,7 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
         Assert.True(ready);
         Assert.True(first.HasExited);
         Assert.False(flashed, "Explorer's taskbar was shown while the shell was replaced.");
-        Assert.True(ExplorerTaskbarRecovery.AnyHidden());
+        Assert.True(ExplorerTaskbarWindow.AnyHidden());
 
 #pragma warning disable CsWinRT1030
         var killed = WinshellCli.Run(["kill", "--pid", second.Id.ToString(CultureInfo.InvariantCulture)],
@@ -94,7 +94,7 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
 #pragma warning restore CsWinRT1030
         killed.AssertExitCode(0);
         Wait.Until(() => second.HasExited, "the replacement to exit");
-        Assert.False(ExplorerTaskbarRecovery.AnyHidden());
+        Assert.False(ExplorerTaskbarWindow.AnyHidden());
     }
 
     private string Folder(string name)
@@ -157,7 +157,7 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
         }
 
         if (_restoreTaskbar)
-            ExplorerTaskbarRecovery.RestoreHidden();
+            ExplorerTaskbarWindow.RestoreHidden();
         try
         {
             Directory.Delete(_dir, true);

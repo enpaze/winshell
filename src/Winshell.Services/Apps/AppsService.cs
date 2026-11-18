@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 
 namespace Winshell.Apps;
 
@@ -64,17 +63,7 @@ public sealed class AppsService : ObservableObject, IDisposable
 
     public static string? ProgramDescription(string path)
     {
-        try
-        {
-            return FileVersionInfo.GetVersionInfo(path).FileDescription?.Trim() is { Length: > 0 } description
-                ? description
-                : null;
-        }
-        catch (Exception e) when (e is FileNotFoundException or IOException or UnauthorizedAccessException
-                                      or ArgumentException)
-        {
-            return null;
-        }
+        return AppIdentity.ProgramDescription(path);
     }
 
     public static string FallbackName(string appId)
@@ -84,7 +73,7 @@ public sealed class AppsService : ObservableObject, IDisposable
 
     public static string DisplayName(string appId)
     {
-        return AppDisplayName.Find(appId);
+        return AppIdentity.DisplayName(appId);
     }
 
     private void OnChanged()

@@ -213,7 +213,7 @@ internal sealed class MicrophoneWatch : IDisposable
 
     private static string Description(string path)
     {
-        return path.Length == 0 ? "" : AppsService.ProgramDescription(path) ?? "";
+        return path.Length == 0 ? "" : AppIdentity.ProgramDescription(path) ?? "";
     }
 
     private void ReleaseDevices()

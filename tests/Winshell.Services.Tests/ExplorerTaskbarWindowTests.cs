@@ -1,3 +1,4 @@
+using Winshell.ExplorerTaskbar;
 using Winshell.Native;
 
 namespace Winshell.Services.Tests;

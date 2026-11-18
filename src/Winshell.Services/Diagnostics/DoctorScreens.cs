@@ -1,4 +1,5 @@
 using System.Globalization;
+using Winshell.ExplorerTaskbar;
 using Winshell.Native;
 
 namespace Winshell.Diagnostics;

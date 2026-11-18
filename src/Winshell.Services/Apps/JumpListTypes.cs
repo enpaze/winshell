@@ -35,8 +35,3 @@ internal readonly record struct JumpListRead(bool Available, IReadOnlyList<strin
         }
     }
 }
-
-internal interface IJumpListBackend
-{
-    JumpListRead Read(string appUserModelId);
-}

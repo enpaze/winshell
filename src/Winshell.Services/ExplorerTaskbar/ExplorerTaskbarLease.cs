@@ -24,7 +24,7 @@ internal static partial class ExplorerTaskbarLease
         var locations = ShellLocations.Current;
         if (!TryRead(locations, out var lease))
         {
-            ExplorerTaskbarRecovery.RestoreHidden();
+            ExplorerTaskbarWindow.RestoreHidden();
             return;
         }
 

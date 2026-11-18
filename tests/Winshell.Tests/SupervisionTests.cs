@@ -97,14 +97,14 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
     [Trait("Category", "Window")]
     public void A_crashed_shell_starts_again_with_the_taskbar_back()
     {
-        _taskbarHidden = ExplorerTaskbarRecovery.AnyHidden();
+        _taskbarHidden = ExplorerTaskbarWindow.AnyHidden();
         Assert.False(_taskbarHidden, "Explorer's taskbar was hidden before the test.");
         var marker = Path.Combine(_dir, "config", ProbeShell.HideTaskbarMarker);
         File.WriteAllText(marker, "");
         var run = Supervise();
         var first = NextShell(0);
         Wait.Until(() => !File.Exists(marker), "the shell to hide the taskbar");
-        Assert.True(ExplorerTaskbarRecovery.AnyHidden());
+        Assert.True(ExplorerTaskbarWindow.AnyHidden());
 
         using (var crashed = Process.GetProcessById(first))
         {
@@ -114,7 +114,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
 
         NextShell(first);
 
-        Assert.False(ExplorerTaskbarRecovery.AnyHidden());
+        Assert.False(ExplorerTaskbarWindow.AnyHidden());
         Assert.False(run.HasExited);
     }
 
@@ -193,7 +193,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         }
 
         if (_taskbarHidden == false)
-            ExplorerTaskbarRecovery.RestoreHidden();
+            ExplorerTaskbarWindow.RestoreHidden();
         try
         {
             Directory.Delete(_dir, true);
