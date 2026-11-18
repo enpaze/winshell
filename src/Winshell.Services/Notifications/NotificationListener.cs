@@ -35,7 +35,7 @@ public sealed class NotificationListener : ObservableObject, IDisposable
         _changes = new ToastChanges(_backend.ToastStamp, loop.Time);
         _icons = new NotificationAppIcons(loop, log, _stop.Token);
         _reader = new StateReader<NotificationSnapshot>(c => OwnThread.Run(() => Read(c)), Apply, loop,
-            new MonitorWarning(log, "notifications"));
+            new FailureWarning(log, "notifications"));
         _poll = SchedulePoll();
         _reader.Request();
         if (backend is null)

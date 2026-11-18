@@ -6,7 +6,7 @@ namespace Winshell.Services.Tests;
 public sealed class AudioServiceTests
 {
     private readonly ManualEventLoop _loop = new();
-    private readonly FakeAudioGraph _graph = new();
+    private readonly FakeAudioBackend _graph = new();
     private readonly List<string> _warnings = [];
     private readonly Log _log;
 

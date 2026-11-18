@@ -2,7 +2,7 @@ using Winshell.Native;
 
 namespace Winshell.Apps;
 
-internal sealed class WindowsJumpListBackend : IJumpListBackend
+internal sealed class JumpListBackend : IJumpListBackend
 {
     public JumpListRead Read(string appUserModelId)
     {

@@ -1,13 +1,13 @@
 namespace Winshell.Services.Tests;
 
-public sealed class MonitorWarningTests
+public sealed class FailureWarningTests
 {
     [Fact]
     public void A_failure_that_lasts_is_warned_once_until_a_poll_succeeds()
     {
         var messages = new List<string>();
         var log = new Log { Sink = (_, category, message) => messages.Add($"{category}: {message}") };
-        var warning = new MonitorWarning(log, "bluetooth");
+        var warning = new FailureWarning(log, "bluetooth");
 
         warning.Failed(new InvalidOperationException("radio broke"));
         warning.Failed(new InvalidOperationException("radio broke"));

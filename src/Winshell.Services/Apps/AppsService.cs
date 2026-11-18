@@ -24,9 +24,9 @@ public sealed class AppsService : ObservableObject, IDisposable
     {
         _loop = loop;
         _log = log;
-        _backend = backend ?? new AppCatalog(log, AppCatalog.ProgramsFolders(), () => PackagedApps.Read(log),
+        _backend = backend ?? new AppsBackend(log, AppsBackend.ProgramsFolders(), () => PackagedApps.Read(log),
             () => AppUsageReader.Read(loop.Time.GetUtcNow()));
-        _reader = new StateReader<AppSnapshot>(_ => _backend.ReadAsync(), Apply, loop, new MonitorWarning(log, "apps"));
+        _reader = new StateReader<AppSnapshot>(_ => _backend.ReadAsync(), Apply, loop, new FailureWarning(log, "apps"));
         _backend.Changed += OnChanged;
         _backend.Start();
         _reader.Request();

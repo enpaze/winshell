@@ -1,6 +1,6 @@
 namespace Winshell;
 
-internal sealed class MonitorWarning(Log log, string category, string what = "")
+internal sealed class FailureWarning(Log log, string category, string what = "")
 {
     private string? _last;
 

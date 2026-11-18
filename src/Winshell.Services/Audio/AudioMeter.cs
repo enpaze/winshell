@@ -1,11 +1,11 @@
 namespace Winshell.Audio;
 
-internal interface IAudioMeterInformation
+internal interface IAudioMeter
 {
     float[] ReadPeaks();
 }
 
-internal sealed class WindowsAudioMeter(Native.IAudioMeterInformation meter) : IAudioMeterInformation
+internal sealed class WindowsAudioMeter(Native.IAudioMeterInformation meter) : IAudioMeter
 {
     public float[] ReadPeaks()
     {

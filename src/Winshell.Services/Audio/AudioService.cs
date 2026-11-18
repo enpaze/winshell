@@ -153,7 +153,7 @@ public sealed class AudioService : ObservableObject, IDisposable
 
     internal AudioService(IEventLoop loop, Log log, IAudioBackend? backend = null)
     {
-        _backend = backend ?? new AudioGraph(loop, log);
+        _backend = backend ?? new AudioBackend(loop, log);
         _log = log;
         Refresh();
         OnDefaultsChanged();

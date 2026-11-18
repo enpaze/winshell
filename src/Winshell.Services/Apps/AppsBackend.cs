@@ -20,7 +20,7 @@ internal sealed class AppSnapshot(
     public IReadOnlyDictionary<string, AppUsage> Usage { get; } = usage;
 }
 
-internal sealed class AppCatalog(
+internal sealed class AppsBackend(
     Log log,
     IReadOnlyList<string> folders,
     Func<IReadOnlyList<AppRecord>> packaged,
@@ -227,7 +227,7 @@ internal sealed class AppCatalog(
 
     private sealed class Source<T>(Log log, string what, Func<T> read, T empty)
     {
-        private readonly MonitorWarning _warning = new(log, "apps", what);
+        private readonly FailureWarning _warning = new(log, "apps", what);
         private T _found = empty;
 
         public T Read()

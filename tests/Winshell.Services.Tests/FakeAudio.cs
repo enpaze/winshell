@@ -3,7 +3,7 @@ using Winshell.Audio;
 
 namespace Winshell.Services.Tests;
 
-internal sealed class FakeAudioGraph : IAudioBackend
+internal sealed class FakeAudioBackend : IAudioBackend
 {
     private readonly List<AudioGraphNode> _nodes = [];
 
@@ -77,7 +77,7 @@ internal sealed class FakeAudioNode : AudioGraphNode
 
     public int Running { get; private set; }
 
-    public override IAudioMeterInformation? Meter => FakeMeter;
+    public override IAudioMeter? Meter => FakeMeter;
 
     public void SetAudio(float[] volumes, bool muted)
     {
@@ -120,7 +120,7 @@ internal sealed class FakeAudioNode : AudioGraphNode
     }
 }
 
-internal sealed class FakeMeter(params float[] peaks) : IAudioMeterInformation
+internal sealed class FakeMeter(params float[] peaks) : IAudioMeter
 {
     public float[] Peaks { get; set; } = peaks;
 

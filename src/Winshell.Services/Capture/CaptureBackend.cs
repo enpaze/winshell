@@ -6,7 +6,7 @@ using Winshell.Native;
 
 namespace Winshell.Capture;
 
-internal sealed class WindowsCaptureBackend(Log log) : ICaptureBackend
+internal sealed class CaptureBackend(Log log) : ICaptureBackend
 {
     private CaptureLifetime? _life;
     private ID3D11Texture2D? _staging;

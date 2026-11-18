@@ -4,7 +4,7 @@ using Winshell.Native;
 
 namespace Winshell.Audio;
 
-internal sealed class AudioGraph : IAudioBackend
+internal sealed class AudioBackend : IAudioBackend
 {
     private readonly IEventLoop _loop;
     private readonly Log _log;
@@ -16,7 +16,7 @@ internal sealed class AudioGraph : IAudioBackend
     private int _nextId = 1;
     private bool _disposed;
 
-    public AudioGraph(IEventLoop loop, Log log)
+    public AudioBackend(IEventLoop loop, Log log)
     {
         _loop = loop;
         _log = log;
@@ -249,7 +249,7 @@ internal sealed class AudioGraph : IAudioBackend
         NodeRemoved?.Invoke(node);
     }
 
-    private sealed class DeviceNotifications(AudioGraph graph) : IMMNotificationClient
+    private sealed class DeviceNotifications(AudioBackend graph) : IMMNotificationClient
     {
         public void OnDeviceStateChanged(string deviceId, uint newState)
         {

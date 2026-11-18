@@ -15,7 +15,7 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
     private bool _disposed;
     private IDisposable? _timer;
     private IDisposable? _keepRunning;
-    private IAudioMeterInformation? _meter;
+    private IAudioMeter? _meter;
 
     public AudioPeakMonitor(IEventLoop loop)
     {

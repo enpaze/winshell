@@ -8,7 +8,7 @@ public sealed class BluetoothService : ObservableObject, IDisposable
 
     private readonly IEventLoop _loop;
 
-    private readonly MonitorWarning _warning;
+    private readonly FailureWarning _warning;
 
     private readonly Lock _gate = new();
 
@@ -26,7 +26,7 @@ public sealed class BluetoothService : ObservableObject, IDisposable
     internal BluetoothService(IEventLoop loop, Log log, IBluetoothBackend? backend = null)
     {
         _loop = loop;
-        _warning = new MonitorWarning(log, "bluetooth");
+        _warning = new FailureWarning(log, "bluetooth");
         _radioChange = new DeviceAction(Post);
         _visibilityChange = new DeviceAction(Post);
         Backend = backend ?? new BluetoothBackend(loop.Time);

@@ -6,18 +6,18 @@ namespace Winshell.Audio;
 
 internal sealed class EndpointNode : AudioGraphNode
 {
-    private readonly AudioGraph _graph;
+    private readonly AudioBackend _graph;
     private readonly IMMDevice _device;
     private readonly IAudioEndpointVolume _volume;
     private readonly VolumeNotifications _volumeNotifications;
     private IAudioSessionManager2? _sessionManager;
     private SessionNotifications? _sessionNotifications;
-    private Native.IAudioMeterInformation? _meter;
+    private IAudioMeterInformation? _meter;
     private IAudioClient? _keepAlive;
     private int _keepAliveCount;
     private int _refreshPending;
 
-    public EndpointNode(AudioGraph graph, IMMDevice device, string deviceId, bool render)
+    public EndpointNode(AudioBackend graph, IMMDevice device, string deviceId, bool render)
         : base(graph.NextId())
     {
         _graph = graph;
@@ -66,7 +66,7 @@ internal sealed class EndpointNode : AudioGraphNode
 
     public List<SessionNode> Sessions { get; } = [];
 
-    public override IAudioMeterInformation? Meter
+    public override IAudioMeter? Meter
     {
         get
         {
@@ -74,7 +74,7 @@ internal sealed class EndpointNode : AudioGraphNode
                 return null;
             try
             {
-                _meter ??= CoreAudio.Activate<Native.IAudioMeterInformation>(_device);
+                _meter ??= CoreAudio.Activate<IAudioMeterInformation>(_device);
             }
             catch (COMException)
             {

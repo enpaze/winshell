@@ -73,7 +73,7 @@ public sealed class BrightnessService : ObservableObject, IDisposable
         _screens = screens;
         _backend = backend ?? new BrightnessBackend(log);
         _reader = new StateReader<BrightnessSnapshot>(_backend.ReadAsync, Apply, loop,
-            new MonitorWarning(log, "power"));
+            new FailureWarning(log, "power"));
         _writer = new BrightnessWriter(_backend.Set, log, _reader.Request);
         _backend.Changed += _reader.Request;
         _screens.CollectionChanged += OnScreensChanged;

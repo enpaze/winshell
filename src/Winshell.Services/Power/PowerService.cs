@@ -80,7 +80,7 @@ public sealed class PowerService : ObservableObject, IDisposable
     {
         _backend = backend ?? new PowerBackend(log);
         _reader = new StateReader<PowerSnapshot>(_backend.ReadAsync, Apply, loop,
-            new MonitorWarning(log, "power"));
+            new FailureWarning(log, "power"));
         _backend.Changed += _reader.Request;
         _reader.Request();
     }
@@ -121,7 +121,7 @@ public sealed class PowerModeService : ObservableObject, IDisposable
         _log = log;
         _backend = backend ?? new PowerModeBackend(log);
         _reader = new StateReader<PowerModeSnapshot>(_backend.ReadAsync, Apply, loop,
-            new MonitorWarning(log, "power"));
+            new FailureWarning(log, "power"));
         _backend.Changed += _reader.Request;
         _reader.Request();
     }

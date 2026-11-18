@@ -19,7 +19,7 @@ internal sealed class SessionManagerPoll(
     private const string NotAnswering =
         "Windows' media session service (Now Playing Session Manager) is not answering, so no media session can be listed. Signing out, or restarting that service, brings it back.";
 
-    private readonly MonitorWarning _warning = new(log, "media");
+    private readonly FailureWarning _warning = new(log, "media");
     private IAsyncOperation<GlobalSystemMediaTransportControlsSessionManager>? _pending;
     private IDisposable? _refresh;
     private IDisposable? _timeout;
