@@ -35,7 +35,7 @@ public class BrightnessRefreshTests
             new Rect(0, 0, 1920, 1080), 1, 0, 0, 60, true);
         var screens = new ObservableCollection<ScreenInfo> { screen };
         var source = new FakeBrightnessBackend(
-            new BrightnessSnapshot(true,
+            new BrightnessSnapshot(
                 [new BrightnessInfo("d", "Monitor", BrightnessConnection.External, 0, 100, 10)]),
             (_, _) => null);
         using var brightness = new BrightnessService(loop, Log.Default, screens, source);

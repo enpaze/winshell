@@ -17,13 +17,13 @@ public sealed partial class ShellExitTests : IDisposable
             RedirectStandardOutput = true
         })!;
 
-    private readonly ShellExit.Supervision _supervision;
+    private readonly ExitIntentEvents _supervision;
 
-    private static readonly ShellExit.Patience Patient = new(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+    private static readonly QuitPatience Patient = new(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
 
     public ShellExitTests()
     {
-        _supervision = new ShellExit.Supervision(_process.Id);
+        _supervision = new ExitIntentEvents(_process.Id);
     }
 
     private InstanceInfo Instance => new(

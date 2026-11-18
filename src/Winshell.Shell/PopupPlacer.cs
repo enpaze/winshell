@@ -4,25 +4,25 @@ using Winshell.Native;
 
 namespace Winshell;
 
-internal sealed record PopupPlacement(ScreenInfo? Screen, Rect Rect);
+internal sealed record PopupPlace(ScreenInfo? Screen, Rect Rect);
 
 internal sealed class PopupPlacer(HostWindow host, ShellPlatform platform) : IWindowPlacer
 {
-    private PopupPlacement? _placement;
+    private PopupPlace? _place;
 
-    internal void Set(PopupPlacement placement)
+    internal void Set(PopupPlace place)
     {
-        _placement = placement;
+        _place = place;
         var monitors = Screens.List();
-        var at = DesktopSpace.MonitorAt(new Point(placement.Rect.X, placement.Rect.Y),
+        var at = DesktopSpace.MonitorAt(new Point(place.Rect.X, place.Rect.Y),
             monitors.Select(m => m.Logical).ToList());
-        var monitor = monitors.FirstOrDefault(m => m.Id == placement.Screen?.Id) ??
+        var monitor = monitors.FirstOrDefault(m => m.Id == place.Screen?.Id) ??
                       (at is { } i ? monitors[i] : Screens.Primary());
         if (monitor is null)
             return;
-        host.Placement.Scale = monitor.Scale;
-        var r = DesktopSpace.ToPhysical(placement.Rect, monitor.Bounds, monitor.Scale);
-        host.Placement.Move(r, HWND.HWND_TOPMOST,
+        host.Place.Scale = monitor.Scale;
+        var r = DesktopSpace.ToPhysical(place.Rect, monitor.Bounds, monitor.Scale);
+        host.Place.Move(r, HWND.HWND_TOPMOST,
             (SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_NOOWNERZORDER));
     }
 
@@ -34,7 +34,7 @@ internal sealed class PopupPlacer(HostWindow host, ShellPlatform platform) : IWi
 
     private void Replace()
     {
-        if (host.Handle != 0 && _placement is { } placement)
-            Set(placement);
+        if (host.Handle != 0 && _place is { } place)
+            Set(place);
     }
 }

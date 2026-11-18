@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.WindowsAndMessaging;
@@ -12,7 +10,7 @@ internal static unsafe class WindowTree
 
     internal static HashSet<nint> Descendants(nint parent)
     {
-        return [.. Callback.Collect(context => PInvoke.EnumChildWindows((HWND)parent, &Collect, context))];
+        return [.. Callback.Collect(context => PInvoke.EnumChildWindows((HWND)parent, &Callback.CollectWindow, context))];
     }
 
     internal static HashSet<nint> MessageOnly()
@@ -26,11 +24,5 @@ internal static unsafe class WindowTree
         var windows = parent != 0 ? Descendants(parent) : [];
         windows.RemoveWhere(hwnd => (nint)PInvoke.GetAncestor((HWND)hwnd, GET_ANCESTOR_FLAGS.GA_PARENT) != parent);
         return windows;
-    }
-
-    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
-    private static BOOL Collect(HWND hwnd, LPARAM context)
-    {
-        return (BOOL)Callback.Collected(context, hwnd);
     }
 }

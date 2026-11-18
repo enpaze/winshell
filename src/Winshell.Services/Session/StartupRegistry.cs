@@ -4,15 +4,6 @@ using Windows.ApplicationModel;
 
 namespace Winshell.Session;
 
-internal interface IStartupRegistry
-{
-    SignInVerdict Read();
-
-    bool Register();
-
-    bool Unregister();
-}
-
 internal static class SignInAccess
 {
     internal static bool IsExpected(Exception exception)
@@ -44,7 +35,7 @@ internal sealed class WindowsStartupRegistry(
     string configRoot,
     string runKey = SignInEntry.RunKey,
     string approvedKey = SignInEntry.ApprovedKey,
-    Log? log = null) : IStartupRegistry
+    Log? log = null) : IStartupBackend
 {
     private readonly Log _log = log ?? Log.Default;
 
@@ -96,7 +87,7 @@ internal sealed class WindowsStartupRegistry(
 
     private SignInVerdict Classified(string registered, bool off)
     {
-        var wanted = CommandLine.Parse(command).ReadSignIn();
+        var wanted = CommandLine.ReadSignIn(command);
         var project = wanted.NamesConfiguration ? SignInEntry.ProjectOf(wanted, configRoot, _log) : null;
         var verdict = SignInVerdict.FromRun(registered, off, wanted.Program ?? "", configRoot, File.Exists,
             SignInEntry.Resolve, project, _log);
@@ -106,7 +97,7 @@ internal sealed class WindowsStartupRegistry(
     private bool Starts(string actual)
     {
         var wantedLine = CommandLine.Parse(command);
-        var wanted = wantedLine.ReadSignIn();
+        var wanted = CommandLine.ReadSignIn(command);
         if (!wanted.NamesConfiguration)
             return wantedLine.SameArguments(CommandLine.Parse(actual));
         var seen = CommandLine.ReadSignIn(actual);
@@ -117,7 +108,7 @@ internal sealed class WindowsStartupRegistry(
     }
 }
 
-internal sealed class StartupTaskRegistry(IStartupTask task, Log? log = null) : IStartupRegistry
+internal sealed class StartupTaskRegistry(IStartupTask task, Log? log = null) : IStartupBackend
 {
     private readonly Log _log = log ?? Log.Default;
 

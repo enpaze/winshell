@@ -2,11 +2,8 @@ namespace Winshell.Wallpaper;
 
 public sealed class WallpaperService : ObservableObject, IDisposable
 {
-    private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(100);
-
-    private readonly IEventLoop _loop;
     private readonly IWallpaperBackend _backend;
-    private IDisposable? _settle;
+    private readonly SettleTimer _settle;
     private IReadOnlyList<WallpaperScreen> _screens = [];
     private WallpaperFit _fit = WallpaperFit.Fill;
     private WallpaperColor _background;
@@ -15,9 +12,9 @@ public sealed class WallpaperService : ObservableObject, IDisposable
 
     internal WallpaperService(IEventLoop loop, Log log, IWallpaperBackend? backend = null)
     {
-        _loop = loop;
         _backend = backend ?? new WallpaperBackend(log);
-        _backend.Changed += OnChanged;
+        _settle = new SettleTimer(loop, () => Apply(_backend.Read()));
+        _backend.Changed += _settle.Signal;
         Apply(_backend.Read());
     }
 
@@ -79,30 +76,9 @@ public sealed class WallpaperService : ObservableObject, IDisposable
         if (_disposed)
             return;
         _disposed = true;
-        _settle?.Dispose();
-        _settle = null;
-        _backend.Changed -= OnChanged;
+        _settle.Dispose();
+        _backend.Changed -= _settle.Signal;
         _backend.Dispose();
-    }
-
-    private void OnChanged()
-    {
-        if (_disposed)
-            return;
-        _loop.Post(Schedule);
-    }
-
-    private void Schedule()
-    {
-        if (_disposed)
-            return;
-        _settle?.Dispose();
-        _settle = _loop.Schedule(Settle, () =>
-        {
-            _settle = null;
-            if (!_disposed)
-                Apply(_backend.Read());
-        });
     }
 
     private void Apply(WallpaperSnapshot snapshot)
@@ -110,13 +86,7 @@ public sealed class WallpaperService : ObservableObject, IDisposable
         if (!snapshot.Available)
             return;
         _known = true;
-        var screens = new WallpaperScreen[snapshot.Monitors.Count];
-        for (var i = 0; i < screens.Length; i++)
-        {
-            var monitor = snapshot.Monitors[i];
-            screens[i] = new WallpaperScreen(monitor.Id, monitor.MonitorId, monitor.Image, monitor.IsPrimary);
-        }
-
+        var screens = snapshot.Screens;
         var screensChanged = !Same(_screens, screens);
         var fitChanged = _fit != snapshot.Fit;
         var colorChanged = _background != snapshot.Background;

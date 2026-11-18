@@ -24,10 +24,10 @@ internal sealed partial class DevOutput(string projectFolder)
     public string? Read(string line)
     {
         var text = line.StartsWith(Prefix, StringComparison.Ordinal) ? line[Prefix.Length..] : line.Trim();
-        if (ConfigurationProject.IsErrorLine(text))
+        if (ShellProject.IsErrorLine(text))
         {
-            var error = ConfigurationProject.ErrorLine(text, projectFolder);
-            if (_errors.Contains(error) || _errors.Count == ConfigurationProject.MostErrors)
+            var error = ShellProject.ErrorLine(text, projectFolder);
+            if (_errors.Contains(error) || _errors.Count == ShellProject.MostErrors)
                 return null;
             _errors.Add(error);
             return string.Join('\n', _errors);

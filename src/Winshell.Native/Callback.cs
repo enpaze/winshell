@@ -1,5 +1,7 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using Windows.Win32.Foundation;
 
 namespace Winshell.Native;
 
@@ -74,6 +76,12 @@ internal static class Callback
             collection.Failure = ExceptionDispatchInfo.Capture(e);
             return 0;
         }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
+    internal static BOOL CollectWindow(HWND hwnd, LPARAM context)
+    {
+        return (BOOL)Collected(context, hwnd);
     }
 
     private sealed class Collection

@@ -22,30 +22,30 @@ internal sealed class HostPanelDesktop(HostWindow host, ShellPlatform platform) 
 
     public bool Register(uint callback)
     {
-        return ExplorerTaskbarWindow.Register(host.Handle, callback);
+        return AppBarMessages.Register(host.Handle, callback);
     }
 
     public RECT Query(AppBarEdge edge, RECT proposed)
     {
-        return ExplorerTaskbarWindow.Query(host.Handle, edge, proposed);
+        return AppBarMessages.Query(host.Handle, edge, proposed);
     }
 
     public RECT Reserve(AppBarEdge edge, RECT desired)
     {
-        return ExplorerTaskbarWindow.Reserve(host.Handle, edge, desired);
+        return AppBarMessages.Reserve(host.Handle, edge, desired);
     }
 
     public void Remove()
     {
-        ExplorerTaskbarWindow.Remove(host.Handle);
+        AppBarMessages.Remove(host.Handle);
     }
 
     public void Move(RECT rect, bool topmost, double scale)
     {
-        host.Placement.Scale = scale;
-        host.Placement.SetExStyle((uint)WINDOW_EX_STYLE.WS_EX_TOPMOST, topmost);
+        host.Place.Scale = scale;
+        host.Place.SetExStyle((uint)WINDOW_EX_STYLE.WS_EX_TOPMOST, topmost);
         var after = topmost ? HWND.HWND_TOPMOST : HWND.HWND_BOTTOM;
-        host.Placement.Move(rect, after,
+        host.Place.Move(rect, after,
             (SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_NOOWNERZORDER));
     }
 

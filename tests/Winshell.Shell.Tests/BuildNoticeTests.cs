@@ -42,13 +42,13 @@ public sealed partial class BuildNoticeTests : IDisposable
     }
 
     [Fact]
-    public void A_build_that_works_leaves_a_config_file_error_on_screen()
+    public void A_build_that_works_leaves_a_file_error_on_screen()
     {
-        _notices.ShowConfigError(@"C:\mine\preferences.toml", "preferences.toml[3:1]: expected a value");
+        _notices.ShowFileError(@"C:\mine\preferences.toml", "preferences.toml[3:1]: expected a value");
 
         _notices.ShowBuildError("", Mine);
 
-        Assert.Equal(NoticeKind.ConfigError, _notices.Current?.Kind);
+        Assert.Equal(NoticeKind.FileError, _notices.Current?.Kind);
     }
 
     private sealed partial class Window : IDisposable

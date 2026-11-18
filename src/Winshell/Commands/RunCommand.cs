@@ -64,7 +64,7 @@ internal static class RunCommand
     {
         var path = parsed.Text(CliFlags.Path);
         var config = parsed.Text(CliFlags.Config);
-        var project = ConfigurationProject.Find(path, config, ShellLocations.Current.ConfigRoot, out var error);
+        var project = ShellProject.Find(path, config, ShellLocations.Current.ConfigRoot, out var error);
         if (error is not null)
         {
             StartupError.Report(error, StartupError.FolderFor(path, ShellLocations.Current.ConfigRoot));
@@ -74,10 +74,10 @@ internal static class RunCommand
         if (project is null)
             return 0;
         if (parsed.IsSet(CliFlags.NoDuplicate) &&
-            project.InstancesOf(ConfigurationBuild.Run,
-                ShellLocations.Current.Instances.List(false).Select(i => i.Info)).Any())
+            project.InstancesOf(ShellProjectBuild.Run,
+                ShellLocations.Current.Instances.Running()).Any())
             return 0;
-        var reason = project.Prepare(parsed.IsSet(CliFlags.NoBuild), ConfigurationProject.Run);
+        var reason = project.Prepare(parsed.IsSet(CliFlags.NoBuild), ShellProject.Run);
         if (reason is not null)
         {
             StartupError.Report(reason, project.Folder);
@@ -102,7 +102,7 @@ internal static class RunCommand
         return 1;
     }
 
-    private static int Supervise(ProcessStartInfo shell, ConfigurationProject project)
+    private static int Supervise(ProcessStartInfo shell, ShellProject project)
     {
         IShellChild? Start()
         {
@@ -110,15 +110,16 @@ internal static class RunCommand
             return ShellProcess.Start(shell, Path.GetDirectoryName(shell.FileName));
         }
 
-        var supervisor = new ShellSupervisor(Start, ExplorerTaskbarRecovery.AnyHidden,
-            ExplorerTaskbarLease.LeaveHidden, ExplorerTaskbarLease.Recover, TimeProvider.System);
+        var supervisor = new ShellSupervisor(Start, ExplorerTaskbarWindow.AnyHidden,
+            (childPid, hiddenAtStart) => ExplorerTaskbarLease.LeaveHidden(ShellLocations.Current, childPid, hiddenAtStart),
+            ExplorerTaskbarLease.Recover, TimeProvider.System);
         using var stop = new CancellationTokenSource();
         Task<int>? supervision = null;
 
         void Stop()
         {
             stop.Cancel();
-            ConsoleEnding.Wait(supervision);
+            Wait(supervision);
         }
 
         void Signal(PosixSignalContext context)
@@ -145,5 +146,18 @@ internal static class RunCommand
             SystemEvents.SessionEnded -= SessionEnded;
         }
 #pragma warning restore VSTHRD002
+    }
+
+    private static void Wait(Task? task)
+    {
+        try
+        {
+#pragma warning disable VSTHRD002
+            task?.Wait(TimeSpan.FromSeconds(4));
+#pragma warning restore VSTHRD002
+        }
+        catch (AggregateException)
+        {
+        }
     }
 }

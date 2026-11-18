@@ -3,7 +3,6 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $script:Kinds = @('command', 'service', 'widget', 'block')
-$script:ShellNames = @('none', 'features', 'starter', 'omarchy-style')
 $script:Sections = @('Sub-features', 'How to get to it (user POV)', 'Driving it with winshell inspect', 'Gotchas')
 $script:WinshellKeys = @('winshell', 'exit', 'output', 'file', 'within', 'background', 'for')
 $script:ElementKeys = @('element', 'window', 'has', 'within')
@@ -101,8 +100,8 @@ function Read-Feature([string] $Path) {
     $body = @($sections[$driving])
     if ($body -notcontains 'Preconditions:') { $problems.Add("$driving starts with a `"Preconditions:`" line.") }
     $shells = @($body | Where-Object { $_ -match '^- Shell: `([^`]+)`' } | ForEach-Object { [regex]::Match($_, '^- Shell: `([^`]+)`').Groups[1].Value })
-    if ($shells.Count -ne 1 -or $script:ShellNames -notcontains $shells[0]) {
-        $problems.Add("Preconditions has one `"- Shell: ``<name>``.`" bullet, where the name is one of $($script:ShellNames -join ', ').")
+    if ($shells.Count -ne 1 -or $script:Shells.Keys -notcontains $shells[0]) {
+        $problems.Add("Preconditions has one `"- Shell: ``<name>``.`" bullet, where the name is one of $($script:Shells.Keys -join ', ').")
     }
     else {
         $feature.shell = $shells[0]

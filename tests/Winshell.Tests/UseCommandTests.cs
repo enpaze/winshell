@@ -30,13 +30,13 @@ public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
         Assert.NotNull(UseCommand.Choose("a", Config, Fails, out _));
         Assert.Null(UseCommand.Choose("b", Config, Fails, out var error));
 
-        Assert.Equal("a", ConfigurationProject.Chosen(Config));
+        Assert.Equal("a", ShellProject.Chosen(Config));
         Assert.Contains("error CS1002", error, StringComparison.Ordinal);
         Assert.EndsWith("\nNothing changed.", error, StringComparison.Ordinal);
 
         Assert.NotNull(UseCommand.Choose("b", Config, Builds, out _));
 
-        Assert.Equal("b", ConfigurationProject.Chosen(Config));
+        Assert.Equal("b", ShellProject.Chosen(Config));
         Assert.True(File.Exists(Path.Combine(Config, "b", "bin", "shell", "b.exe")));
         return;
 
@@ -70,7 +70,7 @@ public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
         Assert.True(other.HasExited);
         Wait.Until(() => Running().Count == 1, "the chosen shell");
         var started = Running().Single();
-        Assert.Equal(Path.Combine(Config, "b", "bin", "shell", "Probe.exe"), started.ConfigPath, true);
+        Assert.Equal(Path.Combine(Config, "b", "bin", "shell", "Probe.exe"), started.Program, true);
         using var process = Process.GetProcessById(started.Pid);
         Assert.True(other.ExitTime <= process.StartTime);
         Assert.Equal($"* b{newLine}", Cli("use").Output);
@@ -100,13 +100,13 @@ public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
 
     private List<InstanceInfo> Running()
     {
-        return new Instances(Path.Combine(Local, "run")).List(false).Select(row => row.Info).ToList();
+        return new Instances(Path.Combine(Local, "run")).Running();
     }
 
     private ChildProcess Cli(params string[] args)
     {
 #pragma warning disable CsWinRT1030
-        return WinshellCli.Run(args, ("WINSHELL_CONFIG_DIR", Config), ("WINSHELL_LOCAL_DIR", Local));
+        return WinshellCli.Run(args, IsolatedFolders.Of(Config, Local));
 #pragma warning restore CsWinRT1030
     }
 

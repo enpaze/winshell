@@ -11,6 +11,6 @@ public sealed class NotificationMappingTests
     [InlineData(19, NotificationMode.Unknown)]
     public void Native_notification_mode_mapping_preserves_unknown_values(int native, NotificationMode expected)
     {
-        Assert.Equal(expected, WindowsNotificationBackend.MapMode(native));
+        Assert.Equal(expected, NotificationBackend.MapMode(native));
     }
 }

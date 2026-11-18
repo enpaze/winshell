@@ -37,4 +37,9 @@ internal static class WinshellCli
             info.Environment[name] = value;
         return ChildProcess.Run(info, Patience);
     }
+
+    internal static ChildProcess RunWithEmptyConfig(params string[] args)
+    {
+        return Run(args, ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));
+    }
 }

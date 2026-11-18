@@ -71,9 +71,7 @@ public class DevStartTests
 #pragma warning disable CsWinRT1030
         return WinshellCli.Run(
             ["dev", "-p", project],
-            ("WINSHELL_CONFIG_DIR", Path.Combine(Path.GetDirectoryName(project)!, "config")),
-            ("WINSHELL_LOCAL_DIR", Path.Combine(Path.GetDirectoryName(project)!, "local")),
-            ("PATH", path));
+            [.. IsolatedFolders.Under(Path.GetDirectoryName(project)!), ("PATH", path)]);
 #pragma warning restore CsWinRT1030
     }
 }

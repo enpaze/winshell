@@ -11,7 +11,7 @@ internal sealed record InstanceInfo(
     [property: JsonPropertyName("shellId")]
     string ShellId,
     [property: JsonPropertyName("configPath")]
-    string ConfigPath,
+    string Program,
     [property: JsonPropertyName("launchTime")]
     DateTime LaunchTime,
     [property: JsonPropertyName("pipe")] string Pipe,
@@ -63,18 +63,20 @@ internal sealed class Instances(string folder)
         }
     }
 
-    public List<(InstanceInfo Info, bool Alive)> List(bool includeDead)
+    public List<InstanceInfo> Running()
+    {
+        return [.. All().Where(row => row.Alive).Select(row => row.Info)];
+    }
+
+    public List<(InstanceInfo Info, bool Alive)> All()
     {
         var result = new List<(InstanceInfo Info, bool Alive)>();
         if (!Directory.Exists(folder))
             return result;
         foreach (var dir in Directory.EnumerateDirectories(folder))
         {
-            if (Read(dir) is not { } info)
-                continue;
-            var alive = IsRunning(info);
-            if (alive || includeDead)
-                result.Add((info, alive));
+            if (Read(dir) is { } info)
+                result.Add((info, IsRunning(info)));
         }
 
         return result.Where(row => !row.Alive)
@@ -109,6 +111,23 @@ internal sealed class Instances(string folder)
         {
             return false;
         }
+    }
+
+    internal static Process? OpenProcess(InstanceInfo info)
+    {
+        Process? process = null;
+        try
+        {
+            process = Process.GetProcessById(info.Pid);
+            if (!process.HasExited && Wrote(info, process))
+                return process;
+        }
+        catch (Exception e) when (e is ArgumentException or InvalidOperationException or Win32Exception)
+        {
+        }
+
+        process?.Dispose();
+        return null;
     }
 
     internal static bool IsRunning(InstanceInfo info)

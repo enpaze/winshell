@@ -14,6 +14,8 @@ internal enum TokenRead
     Failed
 }
 
+internal unsafe delegate WIN32_ERROR ProcessTextQuery(HANDLE process, uint* length, char* text);
+
 internal readonly unsafe ref struct ProcessHandle
 {
     private ProcessHandle(HANDLE handle)
@@ -29,6 +31,24 @@ internal readonly unsafe ref struct ProcessHandle
     {
         return new ProcessHandle(
             PInvoke.OpenProcess(PROCESS_ACCESS_RIGHTS.PROCESS_QUERY_LIMITED_INFORMATION, false, processId));
+    }
+
+    internal static string ReadText(uint processId, int maxCharacters, ProcessTextQuery query)
+    {
+        if (processId == 0)
+            return "";
+        using var process = Open(processId);
+        if (!process.IsOpen)
+            return "";
+        var handle = process.Handle;
+        return TextBuffer.ReadTerminated(maxCharacters, buffer =>
+        {
+            var length = (uint)buffer.Length;
+            fixed (char* text = buffer)
+            {
+                return new TextBuffer.Terminated(query(handle, &length, text), length);
+            }
+        });
     }
 
     internal TokenRead ReadToken(TOKEN_INFORMATION_CLASS info, Span<byte> buffer)

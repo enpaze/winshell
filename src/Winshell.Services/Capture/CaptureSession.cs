@@ -19,7 +19,7 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     private bool _disposed;
 
     public CaptureSession(IEventLoop loop, Log log)
-        : this(loop, () => new WindowsCaptureBackend(log))
+        : this(loop, () => new CaptureBackend(log))
     {
     }
 

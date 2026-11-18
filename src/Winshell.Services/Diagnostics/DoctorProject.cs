@@ -2,7 +2,7 @@ namespace Winshell.Diagnostics;
 
 internal static class DoctorProject
 {
-    internal static IReadOnlyList<DoctorCheck> Configuration(ConfigurationProject? project, string? problem)
+    internal static IReadOnlyList<DoctorCheck> Checks(ShellProject? project, string? problem)
     {
         return
         [
@@ -12,7 +12,7 @@ internal static class DoctorProject
         ];
     }
 
-    private static DoctorCheck Project(ConfigurationProject? project, string? problem)
+    private static DoctorCheck Project(ShellProject? project, string? problem)
     {
         if (problem is not null)
             return new DoctorCheck("project", "Project", CheckStatus.Fail, problem,
@@ -24,7 +24,7 @@ internal static class DoctorProject
         return new DoctorCheck("project", "Project", CheckStatus.Pass, project.ProjectFile);
     }
 
-    private static DoctorCheck Built(ConfigurationProject? project)
+    private static DoctorCheck Built(ShellProject? project)
     {
         if (project is null)
             return new DoctorCheck("built", "Built", CheckStatus.Pass, "No configuration project to build.");
@@ -34,7 +34,7 @@ internal static class DoctorProject
         return new DoctorCheck("built", "Built", CheckStatus.Pass, project.Program);
     }
 
-    private static DoctorCheck BuildNeeded(ConfigurationProject? project)
+    private static DoctorCheck BuildNeeded(ShellProject? project)
     {
         if (project is null)
             return new DoctorCheck("build", "Build", CheckStatus.Pass, "No configuration project to build.");

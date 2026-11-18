@@ -8,16 +8,6 @@ internal static partial class ExplorerTaskbarLease
 {
     private const string FileName = "explorer-taskbar.json";
 
-    internal static bool Exists(ShellLocations locations)
-    {
-        return File.Exists(PathFor(locations));
-    }
-
-    internal static bool LeaveHidden(int childPid, bool hiddenAtStart)
-    {
-        return LeaveHidden(ShellLocations.Current, childPid, hiddenAtStart);
-    }
-
     internal static bool LeaveHidden(ShellLocations locations, int childPid, bool hiddenAtStart)
     {
         if (!TryRead(locations, out var lease))
@@ -34,16 +24,11 @@ internal static partial class ExplorerTaskbarLease
         var locations = ShellLocations.Current;
         if (!TryRead(locations, out var lease))
         {
-            ExplorerTaskbarRecovery.RestoreHidden();
+            ExplorerTaskbarWindow.RestoreHidden();
             return;
         }
 
         Restore(locations, lease);
-    }
-
-    internal static void ReleaseUnclaimed()
-    {
-        ReleaseUnclaimed(ShellLocations.Current);
     }
 
     internal static void ReleaseUnclaimed(ShellLocations locations)
@@ -71,11 +56,6 @@ internal static partial class ExplorerTaskbarLease
         if (!TryRead(locations, out var lease) || lease.Owner == 0)
             return;
         Save(locations, lease with { Owner = 0 });
-    }
-
-    internal static void HandOff()
-    {
-        HandOff(ShellLocations.Current);
     }
 
     internal static void Forget(ShellLocations locations)

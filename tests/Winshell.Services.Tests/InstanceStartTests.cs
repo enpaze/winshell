@@ -55,7 +55,7 @@ public sealed class InstanceStartTests
         using var release = new ManualResetEventSlim();
         var holder = new Thread(() =>
             {
-                using var mutex = new Mutex(false, DuplicateHold.ShellMutexName(ShellLocations.Current, shellId));
+                using var mutex = new Mutex(false, HeldMutex.NoDuplicateName(ShellLocations.Current, shellId));
                 mutex.WaitOne();
                 taken.Set();
                 release.Wait();
@@ -274,7 +274,8 @@ public sealed class InstanceStartTests
     public void A_running_shell_quits_before_the_next_one_starts()
     {
         using var other = Hold("running", out var control, out var loop, out var server, out var id);
-        using var asked = new EventWaitHandle(false, EventResetMode.ManualReset, SupervisionStop.EventName(other.Id));
+        using var asked = new EventWaitHandle(false, EventResetMode.ManualReset,
+            ExitIntentEvents.Name(ExitIntent.Stop, other.Id));
         using var stop = new CancellationTokenSource();
         var pump = Pump(loop, stop.Token);
         var hosted = false;
@@ -313,7 +314,8 @@ public sealed class InstanceStartTests
     public void A_shell_that_does_not_quit_stays_and_the_start_says_why()
     {
         using var other = Hold("running", out var control, out var loop, out var server, out var id);
-        using var asked = new EventWaitHandle(false, EventResetMode.ManualReset, SupervisionStop.EventName(other.Id));
+        using var asked = new EventWaitHandle(false, EventResetMode.ManualReset,
+            ExitIntentEvents.Name(ExitIntent.Stop, other.Id));
         using var stop = new CancellationTokenSource();
         var pump = Pump(loop, stop.Token);
         var hosted = false;

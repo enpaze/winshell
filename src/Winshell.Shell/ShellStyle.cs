@@ -37,7 +37,7 @@ public sealed record ShellStyle
     internal string ToXaml()
     {
         var colors = ThemeColors
-            ? ""
+            ? BuiltInColors
             : string.Create(CultureInfo.InvariantCulture,
                 $"""
                        <SolidColorBrush x:Key="ShellBackgroundBrush" Color="{Hex(Background)}" />
@@ -54,7 +54,7 @@ public sealed record ShellStyle
                    <x:Double x:Key="ShellSlotSize">{Number(SlotSize)}</x:Double>
                    {padding}
              """);
-        return Page(ThemeColors ? BuiltInBrushes + Contrast : Themes(colors), metrics);
+        return Page(Themes(colors), metrics);
     }
 
     private static string Hex(Color color) => string.Create(CultureInfo.InvariantCulture,
@@ -101,17 +101,10 @@ public sealed record ShellStyle
           </Style>
         """;
 
-    private const string BuiltInBrushes = """
-            <ResourceDictionary x:Key="Default">
+    private const string BuiltInColors = """
               <SolidColorBrush x:Key="ShellBackgroundBrush" Color="{ThemeResource SolidBackgroundFillColorBase}" />
               <SolidColorBrush x:Key="ShellForegroundBrush" Color="{ThemeResource TextFillColorPrimary}" />
               <SolidColorBrush x:Key="ShellAlertBrush" Color="{ThemeResource SystemFillColorCritical}" />
-            </ResourceDictionary>
-            <ResourceDictionary x:Key="Light">
-              <SolidColorBrush x:Key="ShellBackgroundBrush" Color="{ThemeResource SolidBackgroundFillColorBase}" />
-              <SolidColorBrush x:Key="ShellForegroundBrush" Color="{ThemeResource TextFillColorPrimary}" />
-              <SolidColorBrush x:Key="ShellAlertBrush" Color="{ThemeResource SystemFillColorCritical}" />
-            </ResourceDictionary>
         """;
 
     private static string Themes(string colors) =>
@@ -170,7 +163,5 @@ public sealed partial class Shell
     }
 
     internal static ResourceDictionary LoadStyle(ShellStyle? style) =>
-        (ResourceDictionary)XamlReader.Load(DictionaryXaml(style));
-
-    internal static string DictionaryXaml(ShellStyle? style) => (style ?? ShellStyle.BuiltIn).ToXaml();
+        (ResourceDictionary)XamlReader.Load((style ?? ShellStyle.BuiltIn).ToXaml());
 }

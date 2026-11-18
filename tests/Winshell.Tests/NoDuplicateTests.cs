@@ -130,7 +130,7 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
 
     private string MutexName(string shellId)
     {
-        return DuplicateHold.ShellMutexName(new ShellLocations(_config, _local), shellId);
+        return HeldMutex.NoDuplicateName(new ShellLocations(_config, _local), shellId);
     }
 
     private List<JsonElement> Listed()
@@ -143,13 +143,13 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
 
     private List<InstanceInfo> Running()
     {
-        return new Instances(Path.Combine(_local, "run")).List(false).Select(row => row.Info).ToList();
+        return new Instances(Path.Combine(_local, "run")).Running();
     }
 
     private ChildProcess Run(params string[] args)
     {
 #pragma warning disable CsWinRT1030
-        return WinshellCli.Run(args, ("WINSHELL_CONFIG_DIR", _config), ("WINSHELL_LOCAL_DIR", _local));
+        return WinshellCli.Run(args, IsolatedFolders.Of(_config, _local));
 #pragma warning restore CsWinRT1030
     }
 

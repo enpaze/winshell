@@ -12,7 +12,7 @@ public sealed partial class FloatingWindow : ShellWindow
     private bool _fullscreen;
     private bool _stateRequested;
     private FloatingWindow? _owner;
-    private FloatingFrame? _frame;
+    private FloatingPlacer? _placer;
 
     public FloatingWindow()
         : this(Shell.Current)
@@ -32,7 +32,7 @@ public sealed partial class FloatingWindow : ShellWindow
         set
         {
             if (Set(ref _title, value))
-                OnPlacementChanged();
+                OnPlaceChanged();
         }
     }
 
@@ -42,7 +42,7 @@ public sealed partial class FloatingWindow : ShellWindow
         set
         {
             if (Set(ref _minimumSize, value))
-                OnPlacementChanged();
+                OnPlaceChanged();
         }
     }
 
@@ -52,7 +52,7 @@ public sealed partial class FloatingWindow : ShellWindow
         set
         {
             if (Set(ref _maximumSize, value))
-                OnPlacementChanged();
+                OnPlaceChanged();
         }
     }
 
@@ -70,7 +70,7 @@ public sealed partial class FloatingWindow : ShellWindow
                 _stateRequested = true;
             }
 
-            OnPlacementChanged();
+            OnPlaceChanged();
         }
     }
 
@@ -80,7 +80,7 @@ public sealed partial class FloatingWindow : ShellWindow
         set
         {
             if (Set(ref _minimized, value))
-                OnPlacementChanged();
+                OnPlaceChanged();
         }
     }
 
@@ -90,7 +90,7 @@ public sealed partial class FloatingWindow : ShellWindow
         set
         {
             if (Set(ref _fullscreen, value))
-                OnPlacementChanged();
+                OnPlaceChanged();
         }
     }
 
@@ -103,19 +103,19 @@ public sealed partial class FloatingWindow : ShellWindow
                 return;
             if (_owner is { } previous)
             {
-                previous.HostCreated -= OnPlacementChanged;
+                previous.HostCreated -= OnPlaceChanged;
                 previous.Disposing -= OnOwnerDisposing;
             }
 
             _owner = value;
             if (value is not null)
             {
-                value.HostCreated += OnPlacementChanged;
+                value.HostCreated += OnPlaceChanged;
                 value.Disposing += OnOwnerDisposing;
             }
 
             Changed();
-            OnPlacementChanged();
+            OnPlaceChanged();
         }
     }
 
@@ -123,7 +123,7 @@ public sealed partial class FloatingWindow : ShellWindow
     {
         if (_owner is not { } owner)
             return;
-        owner.HostCreated -= OnPlacementChanged;
+        owner.HostCreated -= OnPlaceChanged;
         owner.Disposing -= OnOwnerDisposing;
         _owner = null;
         Changed(nameof(Owner));
@@ -139,12 +139,12 @@ public sealed partial class FloatingWindow : ShellWindow
 
     internal override IWindowPlacer CreatePlacer(HostWindow host, ShellPlatform platform)
     {
-        return _frame = new FloatingFrame(host, platform);
+        return _placer = new FloatingPlacer(host, platform, this);
     }
 
-    private protected override void ApplyPlacement()
+    private protected override void ApplyPlace()
     {
-        _frame!.Apply(new FloatingPlacement(
+        _placer!.Set(new FloatingPlace(
             Screen,
             _title,
             double.IsNaN(Width) ? 640 : Width,
@@ -159,13 +159,13 @@ public sealed partial class FloatingWindow : ShellWindow
         _stateRequested = false;
     }
 
-    internal override void OnStateChanged(bool maximized, bool minimized)
+    internal void OnStateChanged(bool maximized, bool minimized)
     {
         Set(ref _maximized, maximized, nameof(Maximized));
         Set(ref _minimized, minimized, nameof(Minimized));
     }
 
-    internal override void OnFullscreenChanged(bool fullscreen)
+    internal void OnFullscreenChanged(bool fullscreen)
     {
         Set(ref _fullscreen, fullscreen, nameof(Fullscreen));
     }

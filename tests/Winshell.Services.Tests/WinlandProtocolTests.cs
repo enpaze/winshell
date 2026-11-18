@@ -155,22 +155,10 @@ public class WinlandProtocolTests
     }
 
     [Fact]
-    public void Json_becomes_maps_and_lists()
+    public void A_missing_number_reads_as_null()
     {
-        using var doc = JsonDocument.Parse("""
-                                           {"id":0,"name":"\\\\.\\DISPLAY2","scale":1.25,"focused":true,"reserved":[0,0,0,48],
-                                            "activeWorkspace":{"address":"1","id":1,"type":"normal","name":"1","monitor":"\\\\.\\DISPLAY2"},
-                                            "specialWorkspace":{"address":"","type":"","name":"","monitor":""},"solitaryBlockedBy":null}
-                                           """);
-        var map = Assert.IsType<Dictionary<string, object?>>(WinlandProtocol.ToObject(doc.RootElement));
-        Assert.Equal(0, map["id"]);
-        Assert.Equal(@"\\.\DISPLAY2", map["name"]);
-        Assert.Equal(1.25, map["scale"]);
-        Assert.Equal(true, map["focused"]);
-        Assert.Equal([0, 0, 0, 48], Assert.IsType<List<object?>>(map["reserved"]));
-        Assert.Equal("1", Assert.IsType<Dictionary<string, object?>>(map["activeWorkspace"])["name"]);
-        Assert.Null(map["solitaryBlockedBy"]);
-        Assert.Null(WinlandProtocol.Int(doc.RootElement.GetProperty("specialWorkspace"), "id"));
+        using var doc = JsonDocument.Parse("""{"address":"","type":"","name":"","monitor":""}""");
+        Assert.Null(WinlandProtocol.Int(doc.RootElement, "id"));
     }
 
     private static MemoryStream Stream(string text)

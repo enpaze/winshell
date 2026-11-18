@@ -20,12 +20,12 @@ public sealed partial class CaptureView : Panel
 
     private readonly Image _image = new() { Stretch = Stretch.Uniform };
     private CaptureSession? _subscribed;
-    private readonly ShellWindowSubscription _shell;
+    private readonly ShellWindowSubscription _shellWindow;
     private WriteableBitmap? _bitmap;
 
     public CaptureView()
     {
-        _shell = new ShellWindowSubscription(OnShellChanged);
+        _shellWindow = new ShellWindowSubscription(OnShellWindowChanged);
         Children.Add(_image);
         Loaded += (_, _) => OnLoaded();
         Unloaded += (_, _) => OnUnloaded();
@@ -62,14 +62,14 @@ public sealed partial class CaptureView : Panel
 
     private void OnLoaded()
     {
-        _shell.Attach(this);
+        _shellWindow.Attach(this);
         Subscribe(Session);
     }
 
     private void OnUnloaded()
     {
         Subscribe(null);
-        _shell.Detach();
+        _shellWindow.Detach();
     }
 
     private void OnSessionChanged(CaptureSession? next)
@@ -132,13 +132,13 @@ public sealed partial class CaptureView : Panel
 
     private double ScaleOf()
     {
-        var scale = _shell.Window?.Scale ?? 0;
+        var scale = _shellWindow.Window?.Scale ?? 0;
         if (scale <= 0)
             scale = XamlRoot?.RasterizationScale ?? 1;
         return scale > 0 ? scale : 1;
     }
 
-    private void OnShellChanged(object? sender, PropertyChangedEventArgs e)
+    private void OnShellWindowChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(ShellWindow.Scale))
             InvalidateMeasure();

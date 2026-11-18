@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Dwm;
@@ -15,13 +13,7 @@ internal static unsafe class TopLevelWindows
 
     internal static List<nint> List()
     {
-        return Callback.Collect(context => PInvoke.EnumWindows(&Collect, context));
-    }
-
-    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
-    private static BOOL Collect(HWND hwnd, LPARAM context)
-    {
-        return (BOOL)Callback.Collected(context, hwnd);
+        return Callback.Collect(context => PInvoke.EnumWindows(&Callback.CollectWindow, context));
     }
 
     internal static string Title(nint hwnd)

@@ -7,7 +7,7 @@ public sealed class JumpListService
 
     internal JumpListService(IJumpListBackend? backend = null)
     {
-        _backend = backend ?? new WindowsJumpListBackend();
+        _backend = backend ?? new JumpListBackend();
     }
 
     public AppJumpList ForApp(string appId)

@@ -40,7 +40,7 @@ public sealed class InstanceLogTests : IDisposable
         var cancel = TestContext.Current.CancellationToken;
         using var log = new InstanceLog(path, 20, new FakeTimeProvider());
         log.Write(LogLevel.Warn, "first-line");
-        await using var stream = InstanceLog.OpenToRead(path);
+        await using var stream = SharedFile.OpenToRead(path);
         using var reader = new StreamReader(stream);
         Assert.Equal("first-line", await reader.ReadLineAsync(cancel));
         await using var lines = InstanceLog.Follow(reader, cancel: cancel).GetAsyncEnumerator(cancel);
@@ -63,7 +63,7 @@ public sealed class InstanceLogTests : IDisposable
         var cancel = TestContext.Current.CancellationToken;
         using var log = new InstanceLog(path, time: clock);
         log.Write(LogLevel.Warn, "first");
-        await using var stream = InstanceLog.OpenToRead(path);
+        await using var stream = SharedFile.OpenToRead(path);
         using var reader = new StreamReader(stream);
         Assert.Equal("first", await reader.ReadLineAsync(cancel));
         await using var lines = InstanceLog.Follow(reader, clock, cancel).GetAsyncEnumerator(cancel);

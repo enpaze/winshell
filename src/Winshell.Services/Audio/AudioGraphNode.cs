@@ -40,7 +40,7 @@ internal abstract class AudioGraphNode(int id)
 
     public abstract void SetMuted(bool muted);
 
-    public abstract IAudioMeterInformation? Meter { get; }
+    public abstract IAudioMeter? Meter { get; }
 
     public virtual IDisposable? KeepRunning()
     {

@@ -24,13 +24,13 @@ internal static class UseCommand
         Run = Execute
     };
 
-    internal static async Task<int> Execute(Invocation parsed)
+    private static async Task<int> Execute(Invocation parsed)
     {
         var locations = ShellLocations.Current;
         if (parsed.Positional.IsEmpty)
             return List(locations.ConfigRoot);
         var name = parsed.Positional[0];
-        if (Choose(name, locations.ConfigRoot, ConfigurationProject.Run, out var error) is not { } project)
+        if (Choose(name, locations.ConfigRoot, ShellProject.Run, out var error) is not { } project)
         {
             await Console.Error.WriteLineAsync(error);
             return 1;
@@ -40,9 +40,9 @@ internal static class UseCommand
         return await SwitchAsync(project, name, locations.Instances);
     }
 
-    internal static ConfigurationProject? Choose(string name, string root, RunProcess run, out string? error)
+    internal static ShellProject? Choose(string name, string root, RunProcess run, out string? error)
     {
-        var project = ConfigurationProject.Find(null, name, root, out error);
+        var project = ShellProject.Find(null, name, root, out error);
         if (project is null)
             return null;
         if (project.Prepare(false, run) is { } reason)
@@ -51,20 +51,20 @@ internal static class UseCommand
             return null;
         }
 
-        ConfigurationProject.Record(root, name);
+        ShellProject.Record(root, name);
         return project;
     }
 
     private static int List(string root)
     {
-        var names = ConfigurationProject.Names(root);
+        var names = ShellProject.Names(root);
         if (names.Count == 0)
         {
             Console.WriteLine($"No configs in {root}. Run winshell new to make one.");
             return 0;
         }
 
-        var started = ConfigurationProject.Find(null, null, root, out _)?.Folder;
+        var started = ShellProject.Find(null, null, root, out _)?.Folder;
         foreach (var name in names)
         {
             var chosen = string.Equals(started, Path.Combine(root, name), StringComparison.OrdinalIgnoreCase);
@@ -74,20 +74,16 @@ internal static class UseCommand
         return 0;
     }
 
-    private static async Task<int> SwitchAsync(ConfigurationProject project, string name, Instances instances)
+    private static async Task<int> SwitchAsync(ShellProject project, string name, Instances instances)
     {
-        var running = instances.List(false).Select(row => row.Info).ToList();
-        var own = project.InstancesOf(ConfigurationBuild.Run, running)
-            .Concat(project.InstancesOf(ConfigurationBuild.Dev, running)).ToList();
+        var running = instances.Running();
+        var own = project.InstancesOf(ShellProjectBuild.Run, running)
+            .Concat(project.InstancesOf(ShellProjectBuild.Dev, running)).ToList();
         var others = running.Except(own).ToList();
         foreach (var info in others)
         {
-            var quit = await ShellExit.QuitAsync(info, ExitIntent.Stop, ShellExit.Patience.Interactive,
-                ShellExit.Ending.Never);
-            if (!quit.Exited)
+            if (!await KillCommand.StopAsync(info, false))
             {
-                if (quit.Answer.Problem($"Instance {info.Id} refused") is { } problem)
-                    await Console.Error.WriteLineAsync(problem);
                 await Console.Error.WriteLineAsync(
                     $"Instance {info.Id} is still running, so {name} was not started. winshell kill --force -i {info.Id} ends it.");
                 return 1;

@@ -27,14 +27,6 @@ internal static unsafe class TaskbarWindows
             return null;
         PInvoke.ChangeWindowMessageFilterEx((HWND)window.Handle, Created, WINDOW_MESSAGE_FILTER_ACTION.MSGFLT_ALLOW,
             null);
-        return new Watcher(window);
-    }
-
-    private sealed class Watcher(NativeWindow window) : IDisposable
-    {
-        public void Dispose()
-        {
-            window.Release(true);
-        }
+        return window;
     }
 }

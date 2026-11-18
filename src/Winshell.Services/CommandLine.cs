@@ -67,7 +67,7 @@ internal sealed class CommandLine
         return words;
     }
 
-    public SignInEntry.SignInLaunch ReadSignIn()
+    private SignInEntry.SignInLaunch ReadSignIn()
     {
         if (_arguments.Length == 0)
             return default;
@@ -101,7 +101,7 @@ internal sealed class CommandLine
         return new SignInEntry.SignInLaunch(program, path, name);
     }
 
-    public string ForSignIn(string exe)
+    private string ForSignIn(string exe)
     {
         var end = Array.IndexOf(_arguments, CommandWords.End);
         var words = end < 0 ? _arguments : _arguments[..end];
@@ -131,7 +131,7 @@ internal sealed class CommandLine
         return string.Join(' ', new[] { conhost, Headless, WinshellHost.ConsoleOf(exe) }.Concat(kept).Select(Quote));
     }
 
-    public ShellArguments ReadProgram()
+    private ShellArguments ReadProgram()
     {
         int? after = null;
         var noDuplicate = false;

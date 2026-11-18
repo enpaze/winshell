@@ -24,8 +24,7 @@ public sealed partial class IpcGetTests : IDisposable, IClassFixture<ProbeBuild>
     private ChildProcess Run(params string[] args)
     {
 #pragma warning disable CsWinRT1030
-        return WinshellCli.Run(args, ("WINSHELL_LOCAL_DIR", Path.Combine(_dir, "local")),
-            ("WINSHELL_CONFIG_DIR", Path.Combine(_dir, "config")));
+        return WinshellCli.Run(args, IsolatedFolders.Under(_dir));
 #pragma warning restore CsWinRT1030
     }
 

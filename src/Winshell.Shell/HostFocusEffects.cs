@@ -7,7 +7,7 @@ internal sealed class HostFocusEffects(HostWindow host, ShellPlatform platform) 
 {
     public void AllowActivation(bool allow)
     {
-        host.Placement.SetExStyle((uint)WINDOW_EX_STYLE.WS_EX_NOACTIVATE, !allow);
+        host.Place.SetExStyle((uint)WINDOW_EX_STYLE.WS_EX_NOACTIVATE, !allow);
     }
 
     public void Show(bool activate)

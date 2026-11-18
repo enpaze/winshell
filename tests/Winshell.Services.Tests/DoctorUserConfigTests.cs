@@ -148,9 +148,9 @@ public sealed class DoctorUserConfigTests : IDisposable
         return path;
     }
 
-    private static ConfigurationProject Project(string folder)
+    private static ShellProject Project(string folder)
     {
-        var project = ConfigurationProject.Find(folder, null, folder, out var error);
+        var project = ShellProject.Find(folder, null, folder, out var error);
         Assert.NotNull(project);
         Assert.Null(error);
         return project;

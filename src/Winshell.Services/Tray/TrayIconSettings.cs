@@ -1,6 +1,5 @@
 using Microsoft.Win32;
 using Winshell.Apps;
-using Winshell.Native;
 
 namespace Winshell.Tray;
 
@@ -51,56 +50,12 @@ internal static class TrayIconSettings
 
     public static IDisposable Watch(IEventLoop loop, Action changed)
     {
-        return new Watcher(loop, changed);
-    }
-
-    private sealed class Watcher : IDisposable
-    {
-        private readonly IEventLoop _loop;
-        private readonly Action _changed;
-        private readonly RegistryKey? _key;
-        private readonly AutoResetEvent _event = new(false);
-        private readonly RegisteredWaitHandle? _wait;
-        private IDisposable? _settle;
-        private bool _disposed;
-
-        public Watcher(IEventLoop loop, Action changed)
+        var settle = new SettleTimer(loop, changed);
+        var watch = new RegistryWatch([KeyPath], settle.Signal);
+        return new DisposeAction(() =>
         {
-            _loop = loop;
-            _changed = changed;
-            _key = Registry.CurrentUser.OpenSubKey(KeyPath);
-            if (_key is null || !Arm())
-                return;
-            _wait = ThreadPool.RegisterWaitForSingleObject(_event, (_, _) => _loop.Post(OnChanged), null,
-                Timeout.Infinite, false);
-        }
-
-        private bool Arm()
-        {
-            return RegistryChange.Notify(_key!.Handle, _event.SafeWaitHandle);
-        }
-
-        private void OnChanged()
-        {
-            if (_disposed)
-                return;
-            Arm();
-            _settle?.Dispose();
-            _settle = _loop.Schedule(TimeSpan.FromMilliseconds(100), () =>
-            {
-                _settle = null;
-                if (!_disposed)
-                    _changed();
-            });
-        }
-
-        public void Dispose()
-        {
-            _disposed = true;
-            _settle?.Dispose();
-            _wait?.Unregister(null);
-            _key?.Dispose();
-            _event.Dispose();
-        }
+            settle.Dispose();
+            watch.Dispose();
+        });
     }
 }

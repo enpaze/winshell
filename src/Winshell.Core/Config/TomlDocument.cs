@@ -52,9 +52,7 @@ internal readonly struct TomlLoad
 
     public string Describe(string where)
     {
-        return Line > 0
-            ? string.Create(CultureInfo.InvariantCulture, $"{where}[{Line}:{Column}]: {Message}")
-            : $"{where}: {Message}";
+        return TomlDocument.Problem(where, Message, Line, Column);
     }
 
     public static TomlLoad Missing()
@@ -104,9 +102,8 @@ internal sealed partial class TomlDocument
         bool bom;
         try
         {
-            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete);
-            if (FileBytes(stream.Length, MaxTextBytes) is { } why)
+            using var stream = SharedFile.OpenToRead(path);
+            if (FileBytes(stream.Length) is { } why)
                 return TomlLoad.TooLarge(why);
             Span<byte> start = stackalloc byte[3];
             bom = stream.Read(start) == 3 && start[0] == 0xEF && start[1] == 0xBB && start[2] == 0xBF;
@@ -152,9 +149,7 @@ internal sealed partial class TomlDocument
         document = null;
         if (!TryLoad(text, out var syntax, out var table, out var message, out var line, out var column))
         {
-            error = line > 0
-                ? string.Create(CultureInfo.InvariantCulture, $"{where}[{line}:{column}]: {message}")
-                : $"{where}: {message}";
+            error = Problem(where, message, line, column);
             return false;
         }
 

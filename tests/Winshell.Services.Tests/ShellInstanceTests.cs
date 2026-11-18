@@ -11,7 +11,7 @@ public sealed class ShellInstanceTests
 
     private static List<(InstanceInfo Info, bool Alive)> Rows(ShellInstance instance)
     {
-        return ShellLocations.Current.Instances.List(true).Where(i => i.Info.Id == instance.Id).ToList();
+        return ShellLocations.Current.Instances.All().Where(i => i.Info.Id == instance.Id).ToList();
     }
 
     private static async Task<IpcResponse> Ask(string pipe, IpcRequest request)
@@ -62,7 +62,7 @@ public sealed class ShellInstanceTests
 
         var row = Assert.Single(Rows(instance));
         Assert.True(row.Alive);
-        Assert.Equal(("mine", Program, instance.Pipe), (row.Info.ShellId, row.Info.ConfigPath, row.Info.Pipe));
+        Assert.Equal(("mine", Program, instance.Pipe), (row.Info.ShellId, row.Info.Program, row.Info.Pipe));
         Assert.Equal(Environment.ProcessId, row.Info.Pid);
 
         instance.Close();
@@ -152,8 +152,8 @@ public sealed class ShellInstanceTests
         var error = new InvalidOperationException("SENTINEL crash");
         var before = File.Exists(ShellInstance.ExitState) ? File.ReadAllText(ShellInstance.ExitState) : null;
 
-        Assert.False(instance.ReportFatal(error));
-        Assert.False(instance.ReportFatal(error));
+        instance.ReportFatal(error);
+        instance.ReportFatal(error);
         instance.MarkCleanExit();
         instance.Close();
 

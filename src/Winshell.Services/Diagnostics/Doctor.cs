@@ -14,7 +14,7 @@ public sealed record DoctorCheck(
     string Message,
     string? Fix = null);
 
-internal sealed record DoctorInstance(string Id, int Pid, string ConfigPath, string LogPath);
+internal sealed record DoctorInstance(string Id, int Pid, string Program, string LogPath);
 
 internal sealed record DoctorContext(ShellLocations Locations, string? Path, string? Config);
 
@@ -30,14 +30,14 @@ public static class Doctor
     }
 
     private readonly record struct Chosen(
-        ConfigurationProject? Project,
+        ShellProject? Project,
         string? Problem,
         string Folder,
         string? SignInProject);
 
     private static Chosen ChooseUser(string configRoot, string? path, string? config)
     {
-        var project = ConfigurationProject.Find(path, config, configRoot, out var problem);
+        var project = ShellProject.Find(path, config, configRoot, out var problem);
         var folder = project?.Folder ?? AskedFolder(configRoot, path, config);
         return new Chosen(project, problem, folder, project?.ProjectFile);
     }
@@ -46,14 +46,14 @@ public static class Doctor
     {
         try
         {
-            if (ConfigurationProject.ForProgram(program) is { } own)
+            if (ShellProject.ForProgram(program) is { } own)
                 return new Chosen(own, null, own.Folder, own.ProjectFile);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
         }
 
-        var project = ConfigurationProject.Find(null, null, configRoot, out var problem);
+        var project = ShellProject.Find(null, null, configRoot, out var problem);
         return new Chosen(project, problem, configRoot, null);
     }
 
@@ -71,10 +71,10 @@ public static class Doctor
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         var process = Environment.ProcessPath ?? "";
         var configFolder = chosen.Folder;
-        var configuration = DoctorProject.Configuration(chosen.Project, chosen.Problem).ToList();
-        if (configuration[0].Status == CheckStatus.Pass && chosen.Project is { } project &&
+        var projectChecks = DoctorProject.Checks(chosen.Project, chosen.Problem).ToList();
+        if (projectChecks[0].Status == CheckStatus.Pass && chosen.Project is { } project &&
             DoctorProbe.PreferencesProblem(context.Locations, project) is { } preferences)
-            configuration[0] = WithPreferences(configuration[0], preferences);
+            projectChecks[0] = WithPreferences(projectChecks[0], preferences);
         var instances = ListedInstances(context.Locations.Instances);
         var monitors = new Lazy<IReadOnlyList<DoctorScreens.MonitorFacts>>(DoctorProbe.Monitors);
         DoctorCheck[] checks =
@@ -86,7 +86,7 @@ public static class Doctor
             Guard("dotnet", ".NET",
                 () => DotNet(Environment.Version, RuntimeInformation.FrameworkDescription,
                     DoctorProbe.SelfContained(process))),
-            .. configuration,
+            .. projectChecks,
             Guard("folders", "Folders", () => Folders(
                 [
                     ("the config folder", configFolder, DoctorProbe.CanWrite(configFolder)),
@@ -200,8 +200,8 @@ public static class Doctor
     {
         try
         {
-            return instances.List(false)
-                .Select(i => new DoctorInstance(i.Info.Id, i.Info.Pid, i.Info.ConfigPath, i.Info.Log)).ToList();
+            return instances.Running()
+                .Select(i => new DoctorInstance(i.Id, i.Pid, i.Program, i.Log)).ToList();
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -255,7 +255,7 @@ public static class Doctor
             return new DoctorCheck("instances", "Running", CheckStatus.Pass, "No Winshell is running");
         var list = string.Join("; ",
             instances.Select(i => string.Create(CultureInfo.InvariantCulture,
-                $"{i.Id} (process {i.Pid}) runs {i.ConfigPath}, log {i.LogPath}")));
+                $"{i.Id} (process {i.Pid}) runs {i.Program}, log {i.LogPath}")));
         return new DoctorCheck("instances", "Running", CheckStatus.Pass, list);
     }
 

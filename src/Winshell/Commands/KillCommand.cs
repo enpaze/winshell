@@ -20,18 +20,14 @@ internal static class KillCommand
         Run = Execute
     };
 
-    internal static async Task<int> Execute(Invocation parsed)
+    private static async Task<int> Execute(Invocation parsed)
     {
         if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Kill, out var code) is not { } info)
             return code;
 
         var force = parsed.IsSet(CliFlags.Force);
-        var quit = await ShellExit.QuitAsync(info, ExitIntent.Stop, ShellExit.Patience.Interactive,
-            force ? ShellExit.Ending.Always : ShellExit.Ending.Never);
-        if (!quit.Exited)
+        if (!await StopAsync(info, force))
         {
-            if (quit.Answer.Problem($"Instance {info.Id} refused") is { } problem)
-                await Console.Error.WriteLineAsync(problem);
             await Console.Error.WriteLineAsync(force
                 ? $"Could not end instance {info.Id}."
                 : $"Instance {info.Id} is still running. Use --force to end it.");
@@ -40,5 +36,14 @@ internal static class KillCommand
 
         Console.WriteLine($"Killed {info.Id}");
         return 0;
+    }
+
+    internal static async Task<bool> StopAsync(InstanceInfo info, bool force)
+    {
+        var quit = await ShellExit.QuitAsync(info, ExitIntent.Stop, QuitPatience.Interactive,
+            force ? ShellExit.Ending.Always : ShellExit.Ending.Never);
+        if (!quit.Exited && quit.Answer.Problem($"Instance {info.Id} refused") is { } problem)
+            await Console.Error.WriteLineAsync(problem);
+        return quit.Exited;
     }
 }

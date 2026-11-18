@@ -6,11 +6,7 @@ public sealed partial class DetachOutputTests : IDisposable, IClassFixture<Probe
 {
     private readonly string _dir = TempFolder.NewPath();
 
-    private (string, string)[] Folders =>
-    [
-        ("WINSHELL_CONFIG_DIR", Path.Combine(_dir, "config")),
-        ("WINSHELL_LOCAL_DIR", Path.Combine(_dir, "local"))
-    ];
+    private (string, string)[] Folders => IsolatedFolders.Under(_dir);
 
     public DetachOutputTests()
     {
@@ -32,7 +28,7 @@ public sealed partial class DetachOutputTests : IDisposable, IClassFixture<Probe
 
     private List<int> Running()
     {
-        return new Instances(Path.Combine(_dir, "local", "run")).List(false).Select(row => row.Info.Pid).ToList();
+        return new Instances(Path.Combine(_dir, "local", "run")).Running().Select(info => info.Pid).ToList();
     }
 
     public void Dispose()

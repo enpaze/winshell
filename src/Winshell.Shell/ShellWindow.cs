@@ -43,7 +43,7 @@ public abstract class ShellWindow : ObservableObject, IDisposable
             if (!Set(ref _content, value))
                 return;
             if (_host is not null)
-                _host.Presentation.Content = value;
+                _host.Presentation.SetContent(value);
         }
     }
 
@@ -58,8 +58,8 @@ public abstract class ShellWindow : ObservableObject, IDisposable
                 EnsureHost();
             if (_host is not null)
             {
-                ApplyPlacement();
-                _host.Placement.SetVisible(value);
+                ApplyPlace();
+                _host.Place.SetVisible(value);
             }
         }
     }
@@ -72,7 +72,7 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         set
         {
             if (Set(ref field, value))
-                OnPlacementChanged();
+                OnPlaceChanged();
         }
     } = double.NaN;
 
@@ -82,7 +82,7 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         set
         {
             if (Set(ref field, value))
-                OnPlacementChanged();
+                OnPlaceChanged();
         }
     } = double.NaN;
 
@@ -92,7 +92,7 @@ public abstract class ShellWindow : ObservableObject, IDisposable
 
     public double Scale => _scale;
 
-    public Point Origin => _host?.Placement.Origin ?? default;
+    public Point Origin => _host?.Place.Origin ?? default;
 
     public ScreenInfo? Screen
     {
@@ -100,7 +100,7 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         set
         {
             if (Set(ref _screen, value))
-                OnPlacementChanged();
+                OnPlaceChanged();
         }
     }
 
@@ -141,7 +141,7 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         {
             _inputRegion = value;
             Changed();
-            _host?.Placement.SetInputRegion(value);
+            _host?.Place.SetInputRegion(value);
         }
     }
 
@@ -170,22 +170,22 @@ public abstract class ShellWindow : ObservableObject, IDisposable
 
     public void Raise()
     {
-        _host?.Placement.Raise();
+        _host?.Place.Raise();
     }
 
     public void StartSystemMove()
     {
-        _host?.Placement.StartSystemMove();
+        _host?.Place.StartSystemMove();
     }
 
     public void StartSystemResize(Edges edges)
     {
-        _host?.Placement.StartSystemResize(edges);
+        _host?.Place.StartSystemResize(edges);
     }
 
     public (int X, int Y) MapToScreen(double x, double y)
     {
-        return _host?.Placement.MapToScreen(x, y) ?? ((int)x, (int)y);
+        return _host?.Place.MapToScreen(x, y) ?? ((int)x, (int)y);
     }
 
     private void EnsureHost()
@@ -193,12 +193,12 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         if (_host is not null)
             return;
         _host = _shell.Platform.CreateWindow(Kind, this);
-        _host.Presentation.Content = _content;
+        _host.Presentation.SetContent(_content);
         _host.Presentation.SetBackdrop(_backdrop, _corners);
         if (_opacity != 1)
             _host.Presentation.SetOpacity(_opacity);
         if (_inputRegion is not null)
-            _host.Placement.SetInputRegion(_inputRegion);
+            _host.Place.SetInputRegion(_inputRegion);
         if (_visibleMask is { } mask)
             _host.Presentation.SetVisibleMask(mask);
         ApplyFocus();
@@ -207,27 +207,19 @@ public abstract class ShellWindow : ObservableObject, IDisposable
 
     internal abstract IWindowPlacer CreatePlacer(HostWindow host, ShellPlatform platform);
 
-    private protected abstract void ApplyPlacement();
+    private protected abstract void ApplyPlace();
 
     private protected virtual void ApplyFocus()
     {
     }
 
-    private protected void OnPlacementChanged()
+    private protected void OnPlaceChanged()
     {
         if (_host is not null)
-            ApplyPlacement();
+            ApplyPlace();
     }
 
     internal virtual void OnDismissed()
-    {
-    }
-
-    internal virtual void OnStateChanged(bool maximized, bool minimized)
-    {
-    }
-
-    internal virtual void OnFullscreenChanged(bool fullscreen)
     {
     }
 
@@ -277,8 +269,8 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         if (_visible && !_disposed)
         {
             EnsureHost();
-            ApplyPlacement();
-            _host!.Placement.SetVisible(true);
+            ApplyPlace();
+            _host!.Place.SetVisible(true);
         }
     }
 

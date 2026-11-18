@@ -183,14 +183,10 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
     private Process Supervise()
     {
         var info = WinshellCli.StartInfo(["run", "--no-build", "-p", _probe.Folder]);
-        info.Environment["WINSHELL_CONFIG_DIR"] = _config;
-        info.Environment["WINSHELL_LOCAL_DIR"] = _local;
-        var run = Process.Start(info)!;
+        foreach (var (name, value) in IsolatedFolders.Of(_config, _local))
+            info.Environment[name] = value;
+        var run = ChildProcess.Start(info, null);
         _started.Add(run);
-        run.ErrorDataReceived += (_, _) => { };
-        run.OutputDataReceived += (_, _) => { };
-        run.BeginErrorReadLine();
-        run.BeginOutputReadLine();
         return run;
     }
 
@@ -200,9 +196,9 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         Wait.Until(
             () =>
             {
-                pid = new Instances(Path.Combine(_local, "run")).List(false)
-                    .Where(row => row.Info.Pid != previous && (shellId is null || row.Info.ShellId == shellId))
-                    .Select(row => row.Info.Pid)
+                pid = new Instances(Path.Combine(_local, "run")).Running()
+                    .Where(info => info.Pid != previous && (shellId is null || info.ShellId == shellId))
+                    .Select(info => info.Pid)
                     .FirstOrDefault();
                 return pid != 0;
             },
@@ -222,8 +218,8 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         Wait.Until(
             () =>
             {
-                pid = new Instances(Path.Combine(_local, "run")).List(false).Where(row => row.Info.ShellId == shellId)
-                    .Select(row => row.Info.Pid).FirstOrDefault();
+                pid = new Instances(Path.Combine(_local, "run")).Running().Where(info => info.ShellId == shellId)
+                    .Select(info => info.Pid).FirstOrDefault();
                 return pid != 0;
             },
             $"the process that runs the {shellId} edit");
@@ -257,7 +253,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
     private ChildProcess Run(params string[] args)
     {
 #pragma warning disable CsWinRT1030
-        return WinshellCli.Run(args, ("WINSHELL_CONFIG_DIR", _config), ("WINSHELL_LOCAL_DIR", _local));
+        return WinshellCli.Run(args, IsolatedFolders.Of(_config, _local));
 #pragma warning restore CsWinRT1030
     }
 

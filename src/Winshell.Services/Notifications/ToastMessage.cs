@@ -9,7 +9,7 @@ public sealed class ToastMessage : ObservableObject
     private string _error = "";
 
     public ToastMessage(IEventLoop loop)
-        : this(loop, new WindowsNotificationBackend())
+        : this(loop, new NotificationBackend())
     {
     }
 

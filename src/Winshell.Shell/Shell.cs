@@ -73,27 +73,28 @@ public sealed partial class Shell : IDisposable
     internal ShellPlatform Platform { get; }
 
     private PreferencesFile? _preferencesFile;
-    private bool _configurationStarted;
+    private bool _startReturned;
 
-    internal PreferencesFile PreferencesFile => OpenPreferences();
-
-    private PreferencesFile OpenPreferences()
+    internal PreferencesFile PreferencesFile
     {
-        if (_preferencesFile is null)
+        get
         {
-            _preferencesFile = new PreferencesFile(Path.Combine(ConfigRoot, "preferences", ShellId + ".toml"), Loop, Log);
-            if (_configurationStarted)
-                _preferencesFile.StartReturned();
-        }
+            if (_preferencesFile is null)
+            {
+                _preferencesFile = new PreferencesFile(Path.Combine(ConfigRoot, "preferences", ShellId + ".toml"), Loop, Log);
+                if (_startReturned)
+                    _preferencesFile.StartReturned();
+            }
 
-        return _preferencesFile;
+            return _preferencesFile;
+        }
     }
 
-    private void ConfigurationStarted()
+    private void StartReturned()
     {
-        if (_configurationStarted)
+        if (_startReturned)
             return;
-        _configurationStarted = true;
+        _startReturned = true;
         _preferencesFile?.StartReturned();
     }
 
@@ -229,14 +230,14 @@ public sealed partial class Shell : IDisposable
                         loop.Post(shell.Quit);
                     };
                     configuration.Start(shell);
-                    shell.ConfigurationStarted();
+                    shell.StartReturned();
                     shell.ReleaseUnclaimedTaskbar();
                     ShellInstance.Quietly(() => shell.Notices.ShowPrevious(ShellInstance.ExitState));
                 }
                 catch (Exception e) when (e is not OutOfMemoryException)
                 {
                     if (shell is null)
-                        ExplorerTaskbarLease.ReleaseUnclaimed();
+                        ExplorerTaskbarLease.ReleaseUnclaimed(ShellLocations.Current);
                     else
                         shell.ReleaseUnclaimedTaskbar();
                     instance.ReportFatal(e);
@@ -312,18 +313,13 @@ public sealed partial class Shell : IDisposable
     {
         if (_explorerTaskbar is { Hidden: true })
             return;
-        ExplorerTaskbarLease.ReleaseUnclaimed();
-    }
-
-    private void Yield()
-    {
-        _explorerTaskbar?.Yield();
+        ExplorerTaskbarLease.ReleaseUnclaimed(ShellLocations.Current);
     }
 
     private void ReleaseForCrash()
     {
         _explorerTaskbar?.Restore();
-        PanelEdge.ReleaseAll();
+        PanelPlacer.ReleaseAll();
     }
 
     public void Dispose()
@@ -369,7 +365,7 @@ public sealed partial class Shell : IDisposable
 
         public void Yield()
         {
-            shell.Yield();
+            shell._explorerTaskbar?.Yield();
         }
 
         public void ShowBuildError(string error, string projectFile)

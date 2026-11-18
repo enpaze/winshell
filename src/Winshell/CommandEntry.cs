@@ -16,8 +16,6 @@ internal sealed record CommandEntry
 
     public int MinWords { get; init; }
 
-    public int? MaxWords { get; init; }
-
     public string? Missing { get; init; }
 
     public bool RawAfter { get; init; }
@@ -27,6 +25,11 @@ internal sealed record CommandEntry
     public Action<Invocation>? Check { get; init; }
 
     public Func<Invocation, Task<int>>? Run { get; init; }
+
+    public CommandEntry? Subcommand(string name)
+    {
+        return Array.Find(Subcommands, sub => sub.Name == name);
+    }
 
     public bool Accepts(CommandOption? option)
     {

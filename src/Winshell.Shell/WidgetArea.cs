@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
@@ -30,29 +29,21 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         var window = UseRef<ShellWindow?>(null);
         var defaultsRef = UseRef<ImmutableArray<Placement>>(defaults);
         var styleRef = UseRef<ShellStyle?>(props.Style);
-        var anchor = UseRef<PopupAnchor?>(null);
+        var popupStyle = UseRef<AreaPopupStyle?>(null);
         var slot = UseRef<SectionStore?>(null);
         defaultsRef.Current = defaults;
         styleRef.Current = props.Style;
-        if (anchor.Current is null)
+        if (popupStyle.Current is null)
         {
-            var created = new PopupAnchor { Style = () => styleRef.Current ?? Shell.Current.Style };
-            anchor.Current = created;
+            var created = new AreaPopupStyle { Style = () => styleRef.Current ?? Shell.Current.Style };
+            popupStyle.Current = created;
         }
 
         var (_, bumpWindow) = UseReducer(0);
         var (_, bumpRemake) = UseReducer(0);
         var (_, bumpFile) = UseReducer(0);
-        UseEffect(() => () => anchor.Current?.Stop(), false);
-        UseEffect(() =>
-        {
-            if (props.Style is not null)
-                return () => { };
-            void Follow() => bumpFile(pulse => pulse + 1);
-            var shell = Shell.Current;
-            shell.StyleChanged += Follow;
-            return () => shell.StyleChanged -= Follow;
-        }, props.Style);
+        UseEffect(() => () => popupStyle.Current?.Stop(), false);
+        UseEffect(StyleHost.FollowShellStyle(props.Style, () => bumpFile(pulse => pulse + 1)), props.Style);
 
         if (slot.Current is null || slot.Current.Name != props.Name)
             slot.Current = new SectionStore(props.Name, () => defaultsRef.Current);
@@ -91,11 +82,11 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             var settings = placement.Settings ?? EmptySettings;
             WidgetContext context;
             if (i < shown.Count && shown[i].Widget == placement.Widget)
-                context = shown[i] = shown[i].Next(settings, props.Orientation).In(window.Current);
+                context = shown[i] = shown[i] with { Settings = settings, Orientation = props.Orientation, Window = window.Current };
             else
             {
                 context = new WidgetContext(Shell.Current, settings, props.Orientation, window.Current,
-                    anchor.Current!, placement.Widget);
+                    popupStyle.Current!, placement.Widget);
                 if (i < shown.Count)
                     shown[i] = context;
                 else
@@ -115,7 +106,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             root.Current = element;
             if (element is FrameworkElement panel)
             {
-                AreaSessions.Attach(panel, () =>
+                HotReload.Register(panel, () =>
                 {
                     generation.Current++;
                     bumpRemake(pulse => pulse + 1);
@@ -138,7 +129,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
 
         void Restyle(FrameworkElement element)
         {
-            if (StyleHost.Show(element, props.Style) && anchor.Current is { } live)
+            if (StyleHost.Show(element, props.Style) && popupStyle.Current is { } live)
                 live.RaiseStyleChanged();
         }
     }
@@ -273,24 +264,5 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         public ImmutableArray<Placement>? Placements => Widgets is { } rows ? Placement.Parse(rows) : null;
 
         internal override object? Commented(TomlKey key) => Placement.Format(defaults());
-    }
-}
-
-internal static class AreaSessions
-{
-    private static readonly ConditionalWeakTable<FrameworkElement, Action> Areas = new();
-
-    public static void Attach(FrameworkElement panel, Action remake)
-    {
-        if (!Areas.TryGetValue(panel, out _))
-            Areas.Add(panel, remake);
-    }
-
-    public static bool TryGet(DependencyObject element, out Action remake)
-    {
-        if (element is FrameworkElement panel && Areas.TryGetValue(panel, out remake!))
-            return true;
-        remake = null!;
-        return false;
     }
 }

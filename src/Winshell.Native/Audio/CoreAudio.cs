@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using Windows.Win32;
 using Windows.Win32.Media.Audio;
 using Windows.Win32.System.Com;
 
@@ -61,14 +60,6 @@ internal static class CoreAudio
         return null;
     }
 
-    public static string LoadIndirectString(string text)
-    {
-        if (!text.StartsWith('@'))
-            return text;
-        var buffer = new char[512];
-        return PInvoke.SHLoadIndirectString(text, buffer).Value == 0 ? new string(buffer).TrimEnd('\0') : "";
-    }
-
     private static T Create<T>(Guid clsid)
         where T : class
     {
@@ -77,6 +68,35 @@ internal static class CoreAudio
             return created;
         Marshal.ThrowExceptionForHR(hr);
         throw new InvalidCastException();
+    }
+
+    [ComImport]
+    [Guid("F8679F50-850A-41CF-9C72-430F290290C8")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IPolicyConfig
+    {
+        void GetMixFormat();
+
+        void GetDeviceFormat();
+
+        void ResetDeviceFormat();
+
+        void SetDeviceFormat();
+
+        void GetProcessingPeriod();
+
+        void SetProcessingPeriod();
+
+        void GetShareMode();
+
+        void SetShareMode();
+
+        void GetPropertyValue();
+
+        void SetPropertyValue();
+
+        [PreserveSig]
+        int SetDefaultEndpoint([MarshalAs(UnmanagedType.LPWStr)] string deviceId, ERole role);
     }
 }
 
@@ -336,33 +356,4 @@ internal interface ISimpleAudioVolume
     void SetMute([MarshalAs(UnmanagedType.Bool)] bool mute, ref Guid context);
 
     void GetMute([MarshalAs(UnmanagedType.Bool)] out bool mute);
-}
-
-[ComImport]
-[Guid("F8679F50-850A-41CF-9C72-430F290290C8")]
-[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-internal interface IPolicyConfig
-{
-    void GetMixFormat();
-
-    void GetDeviceFormat();
-
-    void ResetDeviceFormat();
-
-    void SetDeviceFormat();
-
-    void GetProcessingPeriod();
-
-    void SetProcessingPeriod();
-
-    void GetShareMode();
-
-    void SetShareMode();
-
-    void GetPropertyValue();
-
-    void SetPropertyValue();
-
-    [PreserveSig]
-    int SetDefaultEndpoint([MarshalAs(UnmanagedType.LPWStr)] string deviceId, ERole role);
 }

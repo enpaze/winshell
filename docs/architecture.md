@@ -19,7 +19,7 @@ Winshell.Shell -> Winshell.Services -> Winshell.Core -> Winshell.Native
 | --- | --- |
 | `Winshell.Native` | Native declarations, COM contracts, unsafe interop, marshaling, native resource ownership and safe managed operations. |
 | `Winshell.Core` | `IEventLoop`, `Log`, `ObservableObject` and `ObservableList`, which raise property and collection changes, TOML and Crashes, with the file and version helpers they use. Shared infrastructure has no dependency on a service feature or WinUI. |
-| `Winshell.Services` | One assembly of feature folders. Services apply policy and publish state on the event loop; feature backends perform platform work. Configuration builds live here (`ConfigurationProject`), which the CLI commands, sign-in and doctor call. |
+| `Winshell.Services` | One assembly of feature folders. Services apply policy and publish state on the event loop; feature backends perform platform work. Shell project builds live here (`ShellProject`), which the CLI commands, sign-in and doctor call. |
 | `Winshell.Shell` | WinUI hosting, the production event loop, window lifecycle, and a window whose content is one `UIElement`. |
 | CLI (`src/Winshell`) | The commands that invoke those builds, and shell process supervision. |
 
@@ -63,7 +63,7 @@ Media keeps one type per job, the split from #1102. `ISmtcLink` (#1306) stays th
 
 ## Shell
 
-Keep `HostWindow` split by responsibility, with explicit owners for window lifetime, placement, native message handling and presentation. Keep `Shell.cs` and `ShellServices.cs` thin: they compose focused types instead of collecting feature behavior. Preserve disposal order, event-loop affinity and cancellation.
+Keep `HostWindow` split by responsibility, with explicit owners for window lifetime, where the window is placed, native message handling and presentation. Keep `Shell.cs` and `ShellServices.cs` thin: they compose focused types instead of collecting feature behavior. Preserve disposal order, event-loop affinity and cancellation.
 
 A window's content is one `UIElement`. Shell UI is one component tree mounted with a `ReactorHostControl`. A bar's host shows a surface, and that surface shows three widget areas, and each area shows its widgets: one tree, not a control per placement. `CaptureView` and `WindowThumbnail` are public controls, for a picture Reactor has no element for, embedded in that tree. A surface and a widget area take immutable props, written as elements in that tree. An area stays subscribed to its preferences section until it unmounts or its name changes, and disposing the Reactor host unmounts the tree. A shell author builds from primitives, building blocks and compositions such as `Bar`, and a composition uses only public API. Widgets, widget areas and surfaces are Reactor components.
 

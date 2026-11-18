@@ -6,7 +6,7 @@ namespace Winshell.Services.Tests;
 public sealed class AudioServiceTests
 {
     private readonly ManualEventLoop _loop = new();
-    private readonly FakeAudioGraph _graph = new();
+    private readonly FakeAudioBackend _graph = new();
     private readonly List<string> _warnings = [];
     private readonly Log _log;
 
@@ -17,7 +17,7 @@ public sealed class AudioServiceTests
 
     private AudioService Service()
     {
-        return new AudioService(_graph, _log);
+        return new AudioService(_loop, _log, _graph);
     }
 
     private static List<string> Watch(INotifyPropertyChanged source)

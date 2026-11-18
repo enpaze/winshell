@@ -2,11 +2,7 @@ using Winshell.Native;
 
 namespace Winshell.Power;
 
-internal sealed record PowerModeSnapshot(bool Ready, PowerModeLevel Mode, EffectivePowerMode Effective, bool Available)
-{
-    public static readonly PowerModeSnapshot Initial = new(false, PowerModeLevel.Unknown, EffectivePowerMode.Unknown,
-        false);
-}
+internal sealed record PowerModeSnapshot(PowerModeLevel Mode, EffectivePowerMode Effective, bool Available);
 
 internal interface IPowerModeBackend : IDisposable
 {
@@ -44,7 +40,7 @@ internal sealed class PowerModeBackend(Log log) : IPowerModeBackend
 
         var effective = EffectiveFrom(Volatile.Read(ref _effective));
         var error = PowerMode.GetUserConfigured(PowerBackend.OnBattery(), out var guid);
-        return new PowerModeSnapshot(true, LevelFrom(error, guid), effective, error == 0);
+        return new PowerModeSnapshot(LevelFrom(error, guid), effective, error == 0);
     }
 
     public uint Set(PowerModeLevel mode)

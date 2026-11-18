@@ -29,4 +29,19 @@ internal sealed class WindowDesktopManager
     {
         return _manager.MoveWindowToDesktop(hwnd, in desktop);
     }
+
+    [ComImport]
+    [Guid("A5CD92FF-29BE-454C-8D04-D82879FB3F1B")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IVirtualDesktopManager
+    {
+        [PreserveSig]
+        int IsWindowOnCurrentVirtualDesktop(nint hwnd, out int onCurrent);
+
+        [PreserveSig]
+        int GetWindowDesktopId(nint hwnd, out Guid desktopId);
+
+        [PreserveSig]
+        int MoveWindowToDesktop(nint hwnd, in Guid desktopId);
+    }
 }

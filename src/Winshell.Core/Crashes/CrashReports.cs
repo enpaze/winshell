@@ -274,8 +274,7 @@ internal sealed partial class CrashReports(
         List<string> lines;
         try
         {
-            using var stream = new FileStream(logPath, FileMode.Open, FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete);
+            using var stream = SharedFile.OpenToRead(logPath);
             var start = Math.Max(0, stream.Length - LogBytes);
             stream.Seek(start, SeekOrigin.Begin);
             using var reader = new StreamReader(stream);
@@ -365,8 +364,7 @@ internal sealed partial class CrashReports(
     {
         try
         {
-            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete);
+            using var stream = SharedFile.OpenToRead(path);
             using var reader = new StreamReader(stream);
             if (!IsHeading(reader.ReadLine()))
                 return default;
@@ -399,8 +397,7 @@ internal sealed partial class CrashReports(
     {
         try
         {
-            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete);
+            using var stream = SharedFile.OpenToRead(path);
             using var reader = new StreamReader(stream);
             return IsHeading(reader.ReadLine());
         }

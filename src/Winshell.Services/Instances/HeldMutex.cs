@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+
 namespace Winshell;
 
 internal readonly struct HeldMutex : IDisposable
@@ -10,6 +13,21 @@ internal readonly struct HeldMutex : IDisposable
     }
 
     public bool Acquired => _mutex is not null;
+
+    public static string OneShellName(ShellLocations locations)
+    {
+        return @"Local\winshell-one-shell-" + Hash(locations.LocalRoot);
+    }
+
+    public static string NoDuplicateName(ShellLocations locations, string shellId)
+    {
+        return @"Local\winshell-shell-" + Hash(locations.LocalRoot + "\n" + shellId);
+    }
+
+    private static string Hash(string text)
+    {
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToUpperInvariant())));
+    }
 
     public static HeldMutex TryClaim(string name)
     {

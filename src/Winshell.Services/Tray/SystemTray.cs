@@ -73,7 +73,7 @@ public sealed class SystemTray : ObservableObject, IDisposable
         }
 
         _open = true;
-        ExplorerTaskbarWindow.Opened(_backend, _backend.Lower, _backend.Raise);
+        AppBarMessages.Opened(_backend, _backend.Lower, _backend.Raise);
         _answered = _backend.Explorer;
         UseSettings();
         KeepInFront();
@@ -168,7 +168,7 @@ public sealed class SystemTray : ObservableObject, IDisposable
         _answer?.Dispose();
         _timer = _answer = null;
         _clicker.Dispose();
-        ExplorerTaskbarWindow.Closed(_backend);
+        AppBarMessages.Closed(_backend);
         _backend.Close();
         if (_open)
             _backend.Broadcast();
@@ -198,7 +198,7 @@ public sealed class SystemTrayItem : ObservableObject
         ProcessId = icon.ProcessId;
         var file = Executable.Length > 0 ? Path.GetFileNameWithoutExtension(Executable) : icon.Key;
         Id = Executable.Length > 0 ? AppIdentity.DesktopId(Executable) : icon.Key;
-        AppName = Executable.Length > 0 && AppsService.ProgramDescription(Executable) is { } description
+        AppName = Executable.Length > 0 && AppIdentity.ProgramDescription(Executable) is { } description
             ? description
             : file;
     }

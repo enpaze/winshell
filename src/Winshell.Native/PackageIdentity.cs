@@ -15,22 +15,7 @@ internal static unsafe class PackageIdentity
 
     internal static string FamilyName(uint processId)
     {
-        if (processId == 0)
-            return "";
-        using var process = ProcessHandle.Open(processId);
-        if (!process.IsOpen)
-            return "";
-        var handle = process.Handle;
-        return TextBuffer.Read(0, MaxFamilyName, buffer =>
-        {
-            var length = (uint)buffer.Length;
-            fixed (char* text = buffer)
-            {
-                var code = PInvoke.GetPackageFamilyName(handle, &length, text);
-                if (code != WIN32_ERROR.ERROR_SUCCESS)
-                    return new TextBuffer.Answer(code, (int)length);
-                return new TextBuffer.Answer(code, length > (uint)buffer.Length ? -1 : (int)length - 1);
-            }
-        }) ?? "";
+        return ProcessHandle.ReadText(processId, MaxFamilyName,
+            (process, length, text) => PInvoke.GetPackageFamilyName(process, length, text));
     }
 }

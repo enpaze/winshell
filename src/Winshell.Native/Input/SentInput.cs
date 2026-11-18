@@ -3,7 +3,7 @@ using Windows.Win32.UI.Input.KeyboardAndMouse;
 
 namespace Winshell.Native;
 
-internal readonly record struct Send(uint Start, uint End, uint Before);
+internal readonly record struct InjectedInput(uint Start, uint End, uint Before);
 
 internal static unsafe class SentInput
 {
@@ -15,9 +15,9 @@ internal static unsafe class SentInput
 
     private const int Most = 256;
     private static readonly Lock Gate = new();
-    private static readonly Queue<Send> Sends = new();
+    private static readonly Queue<InjectedInput> Sends = new();
 
-    internal static IReadOnlyList<Send> Recent
+    internal static IReadOnlyList<InjectedInput> Recent
     {
         get
         {
@@ -48,19 +48,19 @@ internal static unsafe class SentInput
         return WithinQuiet(InputClock(), last, Recent);
     }
 
-    internal static bool WithinQuiet(uint now, uint lastInput, IReadOnlyList<Send> sent)
+    internal static bool WithinQuiet(uint now, uint lastInput, IReadOnlyList<InjectedInput> sent)
     {
         return unchecked(now - LastPersonUse(lastInput, sent)) < Quiet.TotalMilliseconds;
     }
 
-    internal static uint LastPersonUse(uint lastInput, IReadOnlyList<Send> sent)
+    internal static uint LastPersonUse(uint lastInput, IReadOnlyList<InjectedInput> sent)
     {
         var stamp = lastInput;
         for (var step = 0; step <= sent.Count; step++)
         {
             var own = sent.Where(send => unchecked((int)(stamp - send.Start)) >= 0 &&
                                          unchecked((int)(stamp - send.End)) <= OwnInputSlack)
-                .Select(send => (Send?)send).FirstOrDefault();
+                .Select(send => (InjectedInput?)send).FirstOrDefault();
             if (own is not { } hid)
                 break;
             stamp = hid.Before;
@@ -101,7 +101,7 @@ internal static unsafe class SentInput
             var end = InputClock();
             lock (Gate)
             {
-                Sends.Enqueue(new Send(start, end, before ?? start));
+                Sends.Enqueue(new InjectedInput(start, end, before ?? start));
                 while (Sends.Count > Most || unchecked(end - Sends.Peek().End) > KeptFor)
                     Sends.Dequeue();
             }

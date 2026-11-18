@@ -4,7 +4,7 @@ internal sealed class StateReader<T>(
     Func<CancellationToken, Task<T>> read,
     Action<T> apply,
     IEventLoop loop,
-    MonitorWarning warning)
+    FailureWarning warning)
 {
     private readonly Lock _gate = new();
 

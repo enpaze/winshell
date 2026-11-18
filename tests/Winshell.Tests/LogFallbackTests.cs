@@ -74,16 +74,16 @@ public sealed partial class LogFallbackTests : IDisposable
     private InstanceSelection.Result Ask(params string[] args)
     {
         return InstanceSelection.Select(CliParser.Parse(args).Instance, InstanceSelection.Question.Log,
-            new Instances(_run).List(true));
+            new Instances(_run).All());
     }
 
-    private void Write(string id, string configPath, int pid, DateTime launched)
+    private void Write(string id, string program, int pid, DateTime launched)
     {
         var dir = Path.Combine(_run, id);
         Directory.CreateDirectory(dir);
         var log = Path.Combine(dir, "log.txt");
         File.WriteAllText(log, id + "\n");
-        var info = new InstanceInfo(id, pid, "stopped", configPath, launched, "winshell-" + id, log,
+        var info = new InstanceInfo(id, pid, "stopped", program, launched, "winshell-" + id, log,
             1, DateTime.Now.AddMinutes(-30));
         File.WriteAllText(Path.Combine(dir, "instance.json"),
             JsonSerializer.Serialize(info, InstanceJson.Default.InstanceInfo));

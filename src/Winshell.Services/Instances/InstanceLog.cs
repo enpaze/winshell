@@ -134,11 +134,6 @@ internal sealed class InstanceLog : IDisposable
         };
     }
 
-    public static FileStream OpenToRead(string path)
-    {
-        return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-    }
-
     public static async IAsyncEnumerable<string> Follow(StreamReader reader, TimeProvider? time = null,
         [EnumeratorCancellation] CancellationToken cancel = default)
     {
@@ -171,7 +166,7 @@ internal sealed class InstanceLog : IDisposable
         var lines = new List<string>();
         try
         {
-            using var stream = OpenToRead(file);
+            using var stream = SharedFile.OpenToRead(file);
             if (stream.Length <= from)
                 return lines;
             stream.Position = from;

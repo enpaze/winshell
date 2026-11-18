@@ -65,7 +65,7 @@ internal static class Inspector
 
     private static List<ShellWindow> Windows(Shell shell)
     {
-        return [.. shell.Platform.Windows.Where(host => host.Placement.IsVisible).Select(host => host.Client)];
+        return [.. shell.Platform.Windows.Where(host => host.Place.IsVisible).Select(host => host.Client)];
     }
 
     private static string Tree(Shell shell)
@@ -301,7 +301,7 @@ internal static class Inspector
 
     private static string Click(FrameworkElement element, string name)
     {
-        ShellWindow.Of(element)?.Host?.Messages.Press();
+        ShellWindow.Of(element)?.Host?.Messages.DismissNativeMenus();
         var peer = FrameworkElementAutomationPeer.FromElement(element) ??
                    FrameworkElementAutomationPeer.CreatePeerForElement(element);
         switch (peer?.GetPattern(PatternInterface.Invoke), peer?.GetPattern(PatternInterface.Toggle),

@@ -113,8 +113,8 @@ public sealed class DoctorTests : IDisposable
         IReadOnlyList<DoctorCheck> checks;
         try
         {
-            var project = ConfigurationProject.Find(null, null, unreadable, out var problem);
-            checks = DoctorProject.Configuration(project, problem);
+            var project = ShellProject.Find(null, null, unreadable, out var problem);
+            checks = DoctorProject.Checks(project, problem);
         }
         finally
         {
@@ -304,7 +304,7 @@ public sealed class DoctorTests : IDisposable
             File.WriteAllText(Path.Combine(_dir, name, $"{name}.csproj"), "<Project />");
         }
 
-        ConfigurationProject.Record(_dir, "b");
+        ShellProject.Record(_dir, "b");
 
         Assert.Equal(CheckStatus.Pass,
             SignIn(command, false, here, _dir, _ => true, projectFile: Path.Combine(_dir, "b", "b.csproj")).Status);

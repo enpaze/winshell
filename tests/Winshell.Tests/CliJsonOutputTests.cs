@@ -51,8 +51,7 @@ public sealed partial class CliJsonOutputTests : IDisposable, IClassFixture<Prob
     private ChildProcess Run(params string[] args)
     {
 #pragma warning disable CsWinRT1030
-        return WinshellCli.Run(args, ("WINSHELL_LOCAL_DIR", Local),
-            ("WINSHELL_CONFIG_DIR", Path.Combine(_dir, "config")));
+        return WinshellCli.Run(args, IsolatedFolders.Of(Path.Combine(_dir, "config"), Local));
 #pragma warning restore CsWinRT1030
     }
 

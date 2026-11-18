@@ -8,7 +8,7 @@ public sealed class BluetoothService : ObservableObject, IDisposable
 
     private readonly IEventLoop _loop;
 
-    private readonly MonitorWarning _warning;
+    private readonly FailureWarning _warning;
 
     private readonly Lock _gate = new();
 
@@ -26,7 +26,7 @@ public sealed class BluetoothService : ObservableObject, IDisposable
     internal BluetoothService(IEventLoop loop, Log log, IBluetoothBackend? backend = null)
     {
         _loop = loop;
-        _warning = new MonitorWarning(log, "bluetooth");
+        _warning = new FailureWarning(log, "bluetooth");
         _radioChange = new DeviceAction(Post);
         _visibilityChange = new DeviceAction(Post);
         Backend = backend ?? new BluetoothBackend(loop.Time);
@@ -281,8 +281,8 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         var incoming = adapter is null ? [] : snapshot.Devices;
         Devices.Sync(incoming, d => d.Key, i => i.Key, i => new BluetoothDevice(this, i, adapter!),
             (d, i) => d.Update(i), d => d.Remove());
-        Mirror(PairedDevices, Devices.Where(d => d.Paired));
-        Mirror(NearbyDevices, Devices.Where(d => d is { Paired: false, Present: true }));
+        PairedDevices.Mirror(Devices.Where(d => d.Paired));
+        NearbyDevices.Mirror(Devices.Where(d => d is { Paired: false, Present: true }));
     }
 
     private void RemoveDevices()
@@ -292,11 +292,6 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         Devices.Clear();
         PairedDevices.Clear();
         NearbyDevices.Clear();
-    }
-
-    private static void Mirror(ObservableList<BluetoothDevice> list, IEnumerable<BluetoothDevice> next)
-    {
-        list.Sync(next, d => d, d => d, d => d, (_, _) => { });
     }
 
     private static bool SameSnapshot(BluetoothSnapshot left, BluetoothSnapshot right)

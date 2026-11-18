@@ -268,7 +268,7 @@ public sealed class AppIndexTests
         using var reading = new ManualResetEventSlim();
         using var release = new ManualResetEventSlim();
         var ended = false;
-        var catalog = new AppCatalog(new Log(), [], () =>
+        var catalog = new AppsBackend(new Log(), [], () =>
         {
             reading.Set();
             release.Wait(TimeSpan.FromSeconds(10));
@@ -305,7 +305,7 @@ public sealed class AppIndexTests
         var reads = 0;
         try
         {
-            using var catalog = new AppCatalog(log, [root], () =>
+            using var catalog = new AppsBackend(log, [root], () =>
             {
                 if (packagesFail && ++reads > 1)
                     throw new COMException("no packages");
@@ -343,7 +343,7 @@ public sealed class AppIndexTests
         Directory.CreateDirectory(open);
         try
         {
-            using var catalog = new AppCatalog(log, [locked, open], () => [],
+            using var catalog = new AppsBackend(log, [locked, open], () => [],
                 () => new Dictionary<string, AppUsage>(StringComparer.OrdinalIgnoreCase));
             Assert.True(Listed(await catalog.ReadAsync(), "Kept"));
 
@@ -394,9 +394,9 @@ public sealed class AppIndexTests
         Wait.Until(done, what, () => loop.Advance(TimeSpan.FromSeconds(1)));
     }
 
-    private static AppCatalog Catalog(params string[] folders)
+    private static AppsBackend Catalog(params string[] folders)
     {
-        return new AppCatalog(new Log(), folders, () => [],
+        return new AppsBackend(new Log(), folders, () => [],
             () => new Dictionary<string, AppUsage>(StringComparer.OrdinalIgnoreCase));
     }
 

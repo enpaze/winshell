@@ -5,7 +5,7 @@ public class CliErrorTests
     [Fact]
     public void An_empty_path_on_kill_is_one_sentence()
     {
-        var result = Run("kill", "-p", "");
+        var result = WinshellCli.RunWithEmptyConfig("kill", "-p", "");
 
         result.AssertExitCode(1);
         Assert.Equal("", result.Output);
@@ -16,7 +16,7 @@ public class CliErrorTests
     [Fact]
     public void Verbose_includes_the_stack()
     {
-        var result = Run("-v", "kill", "-p", "");
+        var result = WinshellCli.RunWithEmptyConfig("-v", "kill", "-p", "");
 
         result.AssertExitCode(1);
         Assert.Contains("winshell kill:", result.Error, StringComparison.Ordinal);
@@ -33,14 +33,5 @@ public class CliErrorTests
         Assert.Equal((0, "No running instances. Start one with winshell run." + Environment.NewLine, ""),
             (list.Code, list.Output, list.Error));
         Assert.Equal((1, "", "No running instances." + Environment.NewLine), (kill.Code, kill.Output, kill.Error));
-    }
-
-    private static ChildProcess Run(params string[] args)
-    {
-#pragma warning disable CsWinRT1030
-        return WinshellCli.Run(
-            args,
-            ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));
-#pragma warning restore CsWinRT1030
     }
 }

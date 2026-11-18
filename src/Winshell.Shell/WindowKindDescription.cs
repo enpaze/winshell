@@ -18,6 +18,8 @@ internal readonly record struct WindowKindDescription
 
     public bool ReplacesSystemFrame { get; init; }
 
+    public bool DismissesMenusOnPress { get; init; }
+
     public WindowCorners CornersBare { get; init; }
 
     public WindowCorners CornersWithBackdrop { get; init; }
@@ -43,6 +45,7 @@ internal readonly record struct WindowKindDescription
         StartsWithoutFocus = true,
         TakesFocusWhileArmed = true,
         ReplacesSystemFrame = true,
+        DismissesMenusOnPress = true,
         CornersBare = WindowCorners.Square,
         CornersWithBackdrop = WindowCorners.Square
     };
@@ -63,6 +66,7 @@ internal readonly record struct WindowKindDescription
         GrabsOutsideClicksWhileArmed = true,
         TakesFocusOnShowWhileArmed = true,
         ReplacesSystemFrame = true,
+        DismissesMenusOnPress = true,
         CornersBare = WindowCorners.Square,
         CornersWithBackdrop = WindowCorners.Round,
         HairlineBorderWithBackdrop = true

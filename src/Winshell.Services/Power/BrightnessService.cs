@@ -73,7 +73,7 @@ public sealed class BrightnessService : ObservableObject, IDisposable
         _screens = screens;
         _backend = backend ?? new BrightnessBackend(log);
         _reader = new StateReader<BrightnessSnapshot>(_backend.ReadAsync, Apply, loop,
-            new MonitorWarning(log, "power"));
+            new FailureWarning(log, "power"));
         _writer = new BrightnessWriter(_backend.Set, log, _reader.Request);
         _backend.Changed += _reader.Request;
         _screens.CollectionChanged += OnScreensChanged;
@@ -88,7 +88,7 @@ public sealed class BrightnessService : ObservableObject, IDisposable
     {
         Monitors.Sync(snapshot.Monitors, m => m.DeviceName, i => i.DeviceName,
             _ => new BrightnessMonitor(_writer, _log), (m, i) => m.Update(i));
-        Set(ref _ready, snapshot.Ready, nameof(Ready));
+        Set(ref _ready, true, nameof(Ready));
     }
 
     private void OnScreensChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -105,17 +105,7 @@ public sealed class BrightnessService : ObservableObject, IDisposable
 
     private static bool WorkAreaOnly(ScreenInfo old, ScreenInfo now)
     {
-        return old.Id == now.Id
-               && old.Name == now.Name
-               && old.Model == now.Model
-               && old.Manufacturer == now.Manufacturer
-               && old.SerialNumber == now.SerialNumber
-               && old.Geometry == now.Geometry
-               && old.DevicePixelRatio == now.DevicePixelRatio
-               && old.PhysicalWidthMm == now.PhysicalWidthMm
-               && old.PhysicalHeightMm == now.PhysicalHeightMm
-               && old.RefreshRate == now.RefreshRate
-               && old.IsPrimary == now.IsPrimary;
+        return old with { WorkArea = now.WorkArea } == now;
     }
 
     public void Dispose()

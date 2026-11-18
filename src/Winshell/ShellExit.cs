@@ -3,25 +3,8 @@ using System.Diagnostics;
 
 namespace Winshell;
 
-internal enum ExitIntent
+internal static class ShellExit
 {
-    None,
-
-    Reload,
-
-    Stop
-}
-
-internal static partial class ShellExit
-{
-    internal sealed record Patience(TimeSpan Ask, TimeSpan Wait)
-    {
-        public static readonly Patience Interactive =
-            new(IpcClient.ConnectLimit + TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5));
-
-        public static readonly Patience Closing = new(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2));
-    }
-
     internal enum Ending
     {
         Never,
@@ -33,43 +16,18 @@ internal static partial class ShellExit
 
     internal readonly record struct Outcome(bool Exited, InstanceCall.Answer Answer);
 
-    internal sealed partial class Supervision(int pid) : IDisposable
+    public static async Task<Outcome> QuitAsync(InstanceInfo info, ExitIntent intent, QuitPatience patience,
+        Ending ending)
     {
-        private readonly EventWaitHandle
-            _stop = new(false, EventResetMode.ManualReset, EventName(ExitIntent.Stop, pid));
-
-        private readonly EventWaitHandle _reload = new(false, EventResetMode.ManualReset,
-            EventName(ExitIntent.Reload, pid));
-
-        public ExitIntent Intent =>
-            _stop.WaitOne(0) ? ExitIntent.Stop : _reload.WaitOne(0) ? ExitIntent.Reload : ExitIntent.None;
-
-        public void Dispose()
-        {
-            _stop.Dispose();
-            _reload.Dispose();
-        }
-    }
-
-    public static bool IsSupervised(int pid)
-    {
-        if (!EventWaitHandle.TryOpenExisting(EventName(ExitIntent.Stop, pid), out var handle))
-            return false;
-        handle.Dispose();
-        return true;
-    }
-
-    public static async Task<Outcome> QuitAsync(InstanceInfo info, ExitIntent intent, Patience patience, Ending ending)
-    {
-        using var process = Open(info);
+        using var process = Instances.OpenProcess(info);
         return process is null ? new Outcome(true, default) : await QuitAsync(process, info, intent, patience, ending);
     }
 
     public static async Task<Outcome> QuitAsync(Process process, InstanceInfo? info, ExitIntent intent,
-        Patience patience, Ending ending)
+        QuitPatience patience, Ending ending)
     {
         if (intent != ExitIntent.None)
-            Tell(process.Id, intent, true);
+            ExitIntentEvents.Ask(process.Id, intent);
         var exited = false;
         try
         {
@@ -96,25 +54,8 @@ internal static partial class ShellExit
         finally
         {
             if (intent != ExitIntent.None && !exited && !process.HasExited)
-                Tell(process.Id, intent, false);
+                ExitIntentEvents.Withdraw(process.Id, intent);
         }
-    }
-
-    private static Process? Open(InstanceInfo info)
-    {
-        Process? process = null;
-        try
-        {
-            process = Process.GetProcessById(info.Pid);
-            if (!process.HasExited && Instances.Wrote(info, process))
-                return process;
-        }
-        catch (Exception e) when (e is ArgumentException or InvalidOperationException or Win32Exception)
-        {
-        }
-
-        process?.Dispose();
-        return null;
     }
 
     private static async Task<bool> WaitAsync(Process process, TimeSpan timeout)
@@ -149,25 +90,5 @@ internal static partial class ShellExit
         }
 
         return await WaitAsync(process, TimeSpan.FromSeconds(1));
-    }
-
-    private static void Tell(int pid, ExitIntent intent, bool asked)
-    {
-        if (!EventWaitHandle.TryOpenExisting(EventName(intent, pid), out var handle))
-            return;
-        using (handle)
-        {
-            if (asked)
-                handle.Set();
-            else
-                handle.Reset();
-        }
-    }
-
-    private static string EventName(ExitIntent intent, int pid)
-    {
-        return intent == ExitIntent.Stop
-            ? SupervisionStop.EventName(pid)
-            : $@"Local\winshell-reload-asked-{pid}";
     }
 }

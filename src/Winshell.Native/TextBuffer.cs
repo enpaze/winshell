@@ -6,6 +6,8 @@ internal static class TextBuffer
 {
     internal readonly record struct Answer(WIN32_ERROR Code, int Length);
 
+    internal readonly record struct Terminated(WIN32_ERROR Code, uint Length);
+
     internal static string? Read(int firstCapacity, int maxCharacters, Func<char[], Answer> query)
     {
         var capacity = firstCapacity;
@@ -22,5 +24,16 @@ internal static class TextBuffer
         }
 
         return null;
+    }
+
+    internal static string ReadTerminated(int maxCharacters, Func<char[], Terminated> query)
+    {
+        return Read(0, maxCharacters, buffer =>
+        {
+            var answer = query(buffer);
+            if (answer.Code != WIN32_ERROR.ERROR_SUCCESS)
+                return new Answer(answer.Code, (int)answer.Length);
+            return new Answer(answer.Code, answer.Length > (uint)buffer.Length ? -1 : (int)answer.Length - 1);
+        }) ?? "";
     }
 }

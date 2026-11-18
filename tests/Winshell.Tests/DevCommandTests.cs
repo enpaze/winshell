@@ -23,11 +23,7 @@ public sealed partial class DevCommandTests : IDisposable
 
     private string Project => Path.Combine(_dir, "project");
 
-    private (string, string)[] Folders =>
-    [
-        ("WINSHELL_CONFIG_DIR", Path.Combine(_dir, "config")),
-        ("WINSHELL_LOCAL_DIR", Path.Combine(_dir, "local"))
-    ];
+    private (string, string)[] Folders => IsolatedFolders.Under(_dir);
 
     public DevCommandTests()
     {
@@ -150,7 +146,7 @@ public sealed partial class DevCommandTests : IDisposable
 
     private async Task<(int Code, string Text)> ReadValue(string member)
     {
-        var instance = new Instances(Path.Combine(_dir, "local", "run")).List(false).SingleOrDefault().Info;
+        var instance = new Instances(Path.Combine(_dir, "local", "run")).Running().SingleOrDefault();
         if (instance is null)
             return (1, "");
         var answer = await InstanceCall.AskAsync(instance, IpcRequest.ForCall("probe", member, []),
@@ -165,12 +161,12 @@ public sealed partial class DevCommandTests : IDisposable
 
     private string InstanceId()
     {
-        return new Instances(Path.Combine(_dir, "local", "run")).List(false).Single().Info.Id;
+        return new Instances(Path.Combine(_dir, "local", "run")).Running().Single().Id;
     }
 
     private int ShellProcess()
     {
-        return new Instances(Path.Combine(_dir, "local", "run")).List(false).Single().Info.Pid;
+        return new Instances(Path.Combine(_dir, "local", "run")).Running().Single().Pid;
     }
 
     private void StartDev(bool ownGroup = false)
@@ -400,7 +396,7 @@ public sealed partial class DevCommandTests : IDisposable
 
     private async Task<string> LaunchProbe()
     {
-        var instance = new Instances(Path.Combine(_dir, "local", "run")).List(false).SingleOrDefault().Info;
+        var instance = new Instances(Path.Combine(_dir, "local", "run")).Running().SingleOrDefault();
         if (instance is null)
             return "";
         var answer = await InstanceCall.AskAsync(instance, IpcRequest.ForCall("probe", "launch", [ProbeApp]),

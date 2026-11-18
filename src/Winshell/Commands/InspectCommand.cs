@@ -102,7 +102,7 @@ internal static class InspectCommand
 
     private static async Task<int> Execute(Invocation parsed)
     {
-        if (!TrySelect(parsed, out var info, out var code))
+        if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Running, out var code) is not { } info)
             return code;
         var args = parsed.Positional;
         return await InstanceCall.PrintAsync(info, IpcRequest.ForInspect(args[0], args.Skip(1).ToList()));
@@ -110,7 +110,7 @@ internal static class InspectCommand
 
     private static async Task<int> ScreenshotAsync(Invocation parsed)
     {
-        if (!TrySelect(parsed, out var info, out var code))
+        if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Running, out var code) is not { } info)
             return code;
         var rest = parsed.Positional.Skip(1).Select((arg, i) => i == 0 ? Path.GetFullPath(arg) : arg).ToList();
         return await InstanceCall.PrintAsync(info, IpcRequest.ForInspect("screenshot", rest));
@@ -118,19 +118,12 @@ internal static class InspectCommand
 
     private static async Task<int> PressAsync(Invocation parsed)
     {
-        if (!TrySelect(parsed, out var info, out var code))
+        if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Running, out var code) is not { } info)
             return code;
         var rest = parsed.Positional.Skip(1).ToList();
         if (parsed.IsSet(CliFlags.Right))
             rest.Insert(0, "--right");
         return await InstanceCall.PrintAsync(info, IpcRequest.ForInspect("press", rest));
-    }
-
-    private static bool TrySelect(Invocation parsed, out InstanceInfo info, out int code)
-    {
-        var selected = InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Running, out code);
-        info = selected!;
-        return selected is not null;
     }
 
     private static void CheckRecord(Invocation parsed)
@@ -165,7 +158,7 @@ internal static class InspectCommand
 
     private static async Task<int> RecordAsync(Invocation parsed)
     {
-        if (!TrySelect(parsed, out var info, out var code))
+        if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Running, out var code) is not { } info)
             return code;
         List<string> named = parsed.Number(CliFlags.Screen) is { } screen
             ? ["--screen", screen.ToString(CultureInfo.InvariantCulture)]

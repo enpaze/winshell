@@ -155,6 +155,39 @@ public sealed class NetworkingServiceTests
     }
 
     [Fact]
+    public async Task A_failed_action_ends_busy_then_sets_the_error_then_reports_it()
+    {
+        using var session = new Session(Snapshot(Wifi()));
+        var network = session.Network;
+        var device = session.Device;
+        var heard = new List<string>();
+        network.PropertyChanged += (_, e) => heard.Add("network " + e.PropertyName);
+        network.OperationFailed += error => heard.Add("network failed " + error);
+        device.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(WifiDevice.Scanning) or nameof(WifiDevice.Error))
+                heard.Add("device " + e.PropertyName);
+        };
+        device.OperationFailed += error => heard.Add("device failed " + error);
+        session.Backend.Failure = new UnauthorizedAccessException("Access revoked");
+
+        await network.ConnectAsync(null);
+        session.Loop.Process();
+        await device.ScanAsync();
+        session.Loop.Process();
+        session.Backend.Failure = null;
+        await network.DisconnectAsync();
+        session.Loop.Process();
+
+        Assert.Equal(
+        [
+            "network Busy", "network Busy", "network Error", "network failed Access revoked",
+            "device Scanning", "device Scanning", "device Error", "device failed Access revoked",
+            "network Busy", "network Error", "network Busy"
+        ], heard);
+    }
+
+    [Fact]
     public async Task Actions_call_the_backend_and_report_failure()
     {
         using var session = new Session(Snapshot(Wifi()));

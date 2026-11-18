@@ -29,15 +29,11 @@ internal sealed partial class HostPresentation(HostWindow host, ShellPlatform pl
 
     private nint Handle => host.Handle;
 
-    public UIElement? Content
+    public void SetContent(UIElement? content)
     {
-        get => _root.Children.Count > 0 ? _root.Children[0] : null;
-        set
-        {
-            _root.Children.Clear();
-            if (value is not null)
-                _root.Children.Add(value);
-        }
+        _root.Children.Clear();
+        if (content is not null)
+            _root.Children.Add(content);
     }
 
     public XamlRoot? XamlRoot => _root.XamlRoot;

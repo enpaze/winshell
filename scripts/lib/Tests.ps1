@@ -9,7 +9,6 @@ function Get-TestRun {
         default { @{ Project = 'winshell.slnx'; Filter = 'Category!=Package' } }
     }
     $run.Projects = @($run.Project)
-    $run.ProjectCount = 1
     $run.CompileTemplateExamplesReferenceAndLogo = $false
     if ($run.Project -like '*.slnx') {
         $solution = [xml] (Get-Content -LiteralPath (Join-Path $script:Root $run.Project) -Raw)
@@ -25,14 +24,12 @@ function Get-TestRun {
                 $owner -eq $Shard
             })
             if ($run.Projects.Count -eq 0) { throw "Test shard $Shard has no projects." }
-            $run.ProjectCount = $run.Projects.Count
             $run.CompileTemplateExamplesReferenceAndLogo = @($run.Projects | Where-Object {
                 [IO.Path]::GetFileNameWithoutExtension($_) -eq 'Winshell.Shell.Tests'
             }).Count -gt 0
         }
         else {
             $run.Projects = $projects
-            $run.ProjectCount = $run.Projects.Count
             $run.Filter += '&Category!=Window'
         }
     }
@@ -113,7 +110,7 @@ function Invoke-TestRun {
                 $windows += @($watcher.Stop() | ForEach-Object { "$name showed a window: $_. Give the test that shows it the category Window: [Trait(`"Category`", `"Window`")]." })
             }
         }
-        $outcome = try { Read-TestResult -Directory $results -ProjectCount $run.ProjectCount } catch { if ($exit -eq 0) { throw } }
+        $outcome = try { Read-TestResult -Directory $results -ProjectCount $run.Projects.Count } catch { if ($exit -eq 0) { throw } }
         if ($outcome) { foreach ($skip in $outcome.Skipped) { Write-Host "Skipped $skip" } }
         if ($outcome) { foreach ($test in $outcome.Slowest) { Write-Host "Slow test $($test.Duration): $($test.Name)" } }
         foreach ($window in $windows) { Write-Host $window }

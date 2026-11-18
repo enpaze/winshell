@@ -8,7 +8,7 @@ public class CliRunCommandTests
     [Fact]
     public void No_arguments_print_help_and_do_not_start_a_shell()
     {
-        var result = Run([]);
+        var result = WinshellCli.RunWithEmptyConfig([]);
 
         result.AssertExitCode(0);
         result.AssertNoError();
@@ -19,7 +19,7 @@ public class CliRunCommandTests
     public void Run_with_a_missing_path_fails_before_a_shell_starts()
     {
         var missing = TempFolder.NewPath();
-        var result = Run(["run", "-p", missing]);
+        var result = WinshellCli.RunWithEmptyConfig(["run", "-p", missing]);
 
         result.AssertExitCode(1);
         Assert.Equal("", result.Output);
@@ -40,13 +40,11 @@ public class CliRunCommandTests
         try
         {
 #pragma warning disable CsWinRT1030
-            var result = WinshellCli.Run(args.Split(' '), ("WINSHELL_CONFIG_DIR", config),
-                ("WINSHELL_LOCAL_DIR", local));
+            var result = WinshellCli.Run(args.Split(' '), IsolatedFolders.Of(config, local));
 #pragma warning restore CsWinRT1030
 
             Assert.Equal((0, "", ""), (result.Code, result.Output, result.Error));
-            var listed = WinshellCli.Run(["list", "--json"], ("WINSHELL_CONFIG_DIR", config),
-                ("WINSHELL_LOCAL_DIR", local));
+            var listed = WinshellCli.Run(["list", "--json"], IsolatedFolders.Of(config, local));
             listed.AssertExitCode(0);
             Assert.Equal("[]", listed.Output.Trim());
         }
@@ -93,14 +91,5 @@ public class CliRunCommandTests
         {
             Directory.Delete(root, true);
         }
-    }
-
-    private static ChildProcess Run(string[] args)
-    {
-#pragma warning disable CsWinRT1030
-        return WinshellCli.Run(
-            args,
-            ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));
-#pragma warning restore CsWinRT1030
     }
 }

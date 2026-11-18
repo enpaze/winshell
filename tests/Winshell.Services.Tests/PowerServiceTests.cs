@@ -15,7 +15,7 @@ public sealed class PowerServiceTests
 
     private static PowerSnapshot Snapshot(params PowerDeviceInfo[] devices)
     {
-        return new PowerSnapshot(true, devices.FirstOrDefault() ?? PowerDeviceInfo.NoBattery, devices,
+        return new PowerSnapshot(devices.FirstOrDefault() ?? PowerDeviceInfo.NoBattery, devices,
             devices.Length > 0);
     }
 
@@ -160,7 +160,7 @@ public sealed class PowerServiceTests
     {
         var loop = new ManualEventLoop();
         var written = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var source = new FakeBrightnessBackend(new BrightnessSnapshot(true, [Monitor(10)]), (_, value) =>
+        var source = new FakeBrightnessBackend(new BrightnessSnapshot([Monitor(10)]), (_, value) =>
         {
             written.TrySetResult(value);
             return null;
@@ -174,7 +174,7 @@ public sealed class PowerServiceTests
         Assert.Equal(100, monitor.Brightness);
         Assert.Equal(100, await written.Task.WaitAsync(TestContext.Current.CancellationToken));
         await Wait.UntilAsync(() => source.Reads == 2, "the write to end");
-        source.Push(new BrightnessSnapshot(true, [Monitor(60)]));
+        source.Push(new BrightnessSnapshot([Monitor(60)]));
         loop.Process();
         Assert.Equal(60, monitor.Brightness);
     }

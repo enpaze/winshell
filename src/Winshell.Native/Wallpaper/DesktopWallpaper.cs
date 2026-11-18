@@ -149,14 +149,8 @@ internal static class DesktopWallpaper
         }
         finally
         {
-            Free(pointer);
-        }
-    }
-
-    private static void Free(nint pointer)
-    {
-        if (pointer != 0)
             Marshal.FreeCoTaskMem(pointer);
+        }
     }
 
     [ComImport]

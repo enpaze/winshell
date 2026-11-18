@@ -146,25 +146,20 @@ public sealed class AudioNode : ObservableObject
 
 public sealed class AudioService : ObservableObject, IDisposable
 {
-    private readonly IAudioBackend _graph;
+    private readonly IAudioBackend _backend;
     private readonly Log _log;
     private AudioNode? _defaultPlayback;
     private AudioNode? _defaultRecording;
 
-    internal AudioService(IEventLoop loop, Log log)
-        : this(new AudioGraph(loop, log), log)
+    internal AudioService(IEventLoop loop, Log log, IAudioBackend? backend = null)
     {
-    }
-
-    internal AudioService(IAudioBackend graph, Log log)
-    {
+        _backend = backend ?? new AudioBackend(loop, log);
         _log = log;
-        _graph = graph;
         Refresh();
         OnDefaultsChanged();
-        _graph.NodeAdded += OnNodeChanged;
-        _graph.NodeRemoved += OnNodeChanged;
-        _graph.DefaultsChanged += OnDefaultsChanged;
+        _backend.NodeAdded += OnNodeChanged;
+        _backend.NodeRemoved += OnNodeChanged;
+        _backend.DefaultsChanged += OnDefaultsChanged;
     }
 
     public ObservableList<AudioNode> Nodes { get => Read(field); } = [];
@@ -181,7 +176,7 @@ public sealed class AudioService : ObservableObject, IDisposable
         set => SetDefault(value, false);
     }
 
-    public bool Ready => Read(_graph).Ready;
+    public bool Ready => Read(_backend).Ready;
 
     internal AudioNode? Find(AudioGraphNode? node)
     {
@@ -199,7 +194,7 @@ public sealed class AudioService : ObservableObject, IDisposable
             return;
         }
 
-        _graph.SetDefault(node.Name);
+        _backend.SetDefault(node.Name);
     }
 
     private void OnNodeChanged(AudioGraphNode _)
@@ -209,23 +204,23 @@ public sealed class AudioService : ObservableObject, IDisposable
 
     private void Refresh()
     {
-        Nodes.Sync(_graph.Nodes, n => n.Node, n => n, n => new AudioNode(this, n, _log), static (_, _) => { },
+        Nodes.Sync(_backend.Nodes, n => n.Node, n => n, n => new AudioNode(this, n, _log), static (_, _) => { },
             n => n.Remove());
     }
 
     private void OnDefaultsChanged()
     {
-        Set(ref _defaultPlayback, Find(_graph.DefaultPlayback), nameof(DefaultPlaybackDevice));
-        Set(ref _defaultRecording, Find(_graph.DefaultRecording), nameof(DefaultRecordingDevice));
+        Set(ref _defaultPlayback, Find(_backend.DefaultPlayback), nameof(DefaultPlaybackDevice));
+        Set(ref _defaultRecording, Find(_backend.DefaultRecording), nameof(DefaultRecordingDevice));
     }
 
     public void Dispose()
     {
-        _graph.NodeAdded -= OnNodeChanged;
-        _graph.NodeRemoved -= OnNodeChanged;
-        _graph.DefaultsChanged -= OnDefaultsChanged;
+        _backend.NodeAdded -= OnNodeChanged;
+        _backend.NodeRemoved -= OnNodeChanged;
+        _backend.DefaultsChanged -= OnDefaultsChanged;
         foreach (var node in Nodes)
             node.Remove();
-        _graph.Dispose();
+        _backend.Dispose();
     }
 }

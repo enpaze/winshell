@@ -15,12 +15,12 @@ internal static class ListCommand
         Run = static parsed => Task.FromResult(Execute(parsed))
     };
 
-    internal static int Execute(Invocation parsed)
+    private static int Execute(Invocation parsed)
     {
-        var instances = ShellLocations.Current.Instances.List(false);
+        var instances = ShellLocations.Current.Instances.Running();
         if (parsed.IsSet(CliFlags.Json))
         {
-            Console.WriteLine(CliJson.Instances(instances.Select(i => i.Info)));
+            Console.WriteLine(CliJson.Instances(instances));
             return 0;
         }
 
@@ -30,12 +30,12 @@ internal static class ListCommand
             return 0;
         }
 
-        foreach (var (info, _) in instances)
+        foreach (var info in instances)
         {
             Console.WriteLine($"Instance {info.Id}:");
             Console.WriteLine($"  Process ID: {info.Pid}");
             Console.WriteLine($"  Shell ID: {info.ShellId}");
-            Console.WriteLine($"  Config path: {info.ConfigPath}");
+            Console.WriteLine($"  Config path: {info.Program}");
             Console.WriteLine($"  Launch time: {info.LaunchTime:yyyy-MM-dd HH:mm:ss}");
             Console.WriteLine($"  Log file: {info.Log}");
         }

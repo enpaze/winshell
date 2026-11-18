@@ -20,7 +20,7 @@ internal sealed record BrightnessInfo(
     int Maximum,
     int Current);
 
-internal sealed record BrightnessSnapshot(bool Ready, IReadOnlyList<BrightnessInfo> Monitors);
+internal sealed record BrightnessSnapshot(IReadOnlyList<BrightnessInfo> Monitors);
 
 internal interface IBrightnessBackend : IDisposable
 {
@@ -53,7 +53,7 @@ internal sealed class BrightnessBackend(Log log) : IBrightnessBackend
         }
 
         _monitors = Combine(Screens.Enumerate(), ReadWmi(), ReadExternal, _monitors);
-        return new BrightnessSnapshot(true, _monitors);
+        return new BrightnessSnapshot(_monitors);
     }
 
     public void Dispose()

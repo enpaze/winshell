@@ -16,7 +16,7 @@ public class CliHelpTests
     public void Help_exits_0_and_does_not_run_the_command(string command, string? help, string expected)
     {
         var args = help is null ? new[] { command } : new[] { command, help };
-        var result = Run(args);
+        var result = WinshellCli.RunWithEmptyConfig(args);
 
         result.AssertExitCode(0);
         Assert.Contains(expected, result.Output, StringComparison.Ordinal);
@@ -24,14 +24,5 @@ public class CliHelpTests
         if (command == "--help")
             Assert.Contains("2 the command line was wrong", result.Output, StringComparison.Ordinal);
         result.AssertNoError();
-    }
-
-    private static ChildProcess Run(string[] args)
-    {
-#pragma warning disable CsWinRT1030
-        return WinshellCli.Run(
-            args,
-            ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));
-#pragma warning restore CsWinRT1030
     }
 }

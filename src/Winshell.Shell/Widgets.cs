@@ -12,13 +12,8 @@ public static class Widgets
         where TWidget : Component<WidgetContext>, new()
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        Add(name, context => Component<TWidget, WidgetContext>(context));
-    }
-
-    private static void Add(string name, Func<WidgetContext, Element> create)
-    {
         lock (Gate)
-            Registered.Add(name, create);
+            Registered.Add(name, context => Component<TWidget, WidgetContext>(context));
     }
 
     internal static Element Create(string name, WidgetContext context)

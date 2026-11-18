@@ -24,7 +24,7 @@ internal static class NewCommand
         Run = static parsed => Task.FromResult(Execute(parsed))
     };
 
-    internal static int Execute(Invocation parsed)
+    private static int Execute(Invocation parsed)
     {
         var packages = Path.Combine(Path.GetDirectoryName(Environment.ProcessPath)!, "packages");
         var result = Make(parsed, ShellLocations.Current.ConfigRoot, packages);

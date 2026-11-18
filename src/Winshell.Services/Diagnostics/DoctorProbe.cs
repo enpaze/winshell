@@ -60,7 +60,7 @@ internal static class DoctorProbe
                    StringComparison.OrdinalIgnoreCase);
     }
 
-    public static string? PreferencesProblem(ShellLocations locations, ConfigurationProject project)
+    public static string? PreferencesProblem(ShellLocations locations, ShellProject project)
     {
         if (string.IsNullOrEmpty(locations.ConfigRoot))
             return null;

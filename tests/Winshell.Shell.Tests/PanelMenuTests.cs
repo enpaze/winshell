@@ -32,7 +32,7 @@ public sealed class PanelMenuTests
                     Assert.Equal((nint)PInvoke.MA_NOACTIVATE,
                         (nint)PInvoke.SendMessage((HWND)host.Handle, PInvoke.WM_MOUSEACTIVATE, 0, 0));
                 else
-                    host.Messages.Press();
+                    host.Messages.DismissNativeMenus();
 
                 Assert.Equal(foreground, PInvoke.GetForegroundWindow());
                 return true;

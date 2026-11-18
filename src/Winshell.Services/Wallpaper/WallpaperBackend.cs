@@ -2,11 +2,9 @@ using Winshell.Native;
 
 namespace Winshell.Wallpaper;
 
-internal readonly record struct WallpaperMonitor(string Id, string MonitorId, string Image, bool IsPrimary);
-
 internal sealed record WallpaperSnapshot(
     bool Available,
-    IReadOnlyList<WallpaperMonitor> Monitors,
+    IReadOnlyList<WallpaperScreen> Screens,
     WallpaperFit Fit,
     WallpaperColor Background)
 {
@@ -59,14 +57,14 @@ internal sealed class WallpaperBackend : IWallpaperBackend
         }
 
         Interlocked.Exchange(ref _loggedUnavailable, 0);
-        var monitors = new WallpaperMonitor[state.Monitors.Count];
-        for (var i = 0; i < monitors.Length; i++)
+        var screens = new WallpaperScreen[state.Monitors.Count];
+        for (var i = 0; i < screens.Length; i++)
         {
             var monitor = state.Monitors[i];
-            monitors[i] = new WallpaperMonitor(monitor.Id, monitor.MonitorId, monitor.Image, monitor.IsPrimary);
+            screens[i] = new WallpaperScreen(monitor.Id, monitor.MonitorId, monitor.Image, monitor.IsPrimary);
         }
 
-        return new WallpaperSnapshot(true, monitors, Fit(state.Position), Color(state.Color));
+        return new WallpaperSnapshot(true, screens, Fit(state.Position), Color(state.Color));
     }
 
     public bool SetImage(string? monitorId, string image)

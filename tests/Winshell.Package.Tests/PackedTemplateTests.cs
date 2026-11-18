@@ -61,7 +61,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
                 new XAttribute("Type", "Missing.Widget()"))));
         document.Save(projectFile);
 
-        var built = ConfigurationProject.Run(
+        var built = ShellProject.Run(
             "dotnet", ["build", projectFile, "-c", "Release", "-warnaserror", "--nologo"], folder.Path);
 
         Assert.True(built.ExitCode == 0, built.Output);
@@ -143,7 +143,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             }
             """);
 
-        var library = ConfigurationProject.Run(
+        var library = ShellProject.Run(
             "dotnet", ["build", libProject, "-warnaserror", "--nologo"], libDir);
         Assert.True(library.ExitCode == 0, library.Output);
 
@@ -172,17 +172,13 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
 
     private void Run(string projectFile, Action<string, (string Name, string Value)[]>? inspect = null)
     {
-        var project = ConfigurationProject.Find(projectFile, null, Path.GetDirectoryName(projectFile)!, out var error);
+        var project = ShellProject.Find(projectFile, null, Path.GetDirectoryName(projectFile)!, out var error);
         Assert.Null(error);
-        var why = project!.Prepare(false, ConfigurationProject.Run);
+        var why = project!.Prepare(false, ShellProject.Run);
         Assert.True(why is null, why);
 
         var dir = TempFolder.NewPath();
-        (string Name, string Value)[] folders =
-        [
-            ("WINSHELL_CONFIG_DIR", Path.Combine(dir, "config")),
-            ("WINSHELL_LOCAL_DIR", Path.Combine(dir, "local"))
-        ];
+        var folders = IsolatedFolders.Under(dir);
         Directory.CreateDirectory(folders[0].Value);
         Directory.CreateDirectory(folders[1].Value);
         var output = new StringBuilder();
@@ -237,31 +233,12 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     {
         var info = new ProcessStartInfo(exe)
         {
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
             StandardOutputEncoding = Encoding.UTF8,
             StandardErrorEncoding = Encoding.UTF8
         };
         foreach (var (name, value) in environment)
             info.Environment[name] = value;
-        var process = Process.Start(info)!;
-
-        void Add(object sender, DataReceivedEventArgs e)
-        {
-            if (e.Data is not null)
-                lock (output)
-                {
-                    output.AppendLine(e.Data);
-                }
-        }
-
-        process.OutputDataReceived += Add;
-        process.ErrorDataReceived += Add;
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        return process;
+        return ChildProcess.Start(info, output);
     }
 
     private static List<JsonElement> Listed((string Name, string Value)[] environment)
@@ -282,12 +259,9 @@ public sealed class PackedTemplates : IDisposable
     {
         UserPathBefore = UserPath();
         var root = Repo.Root;
-        var manifest = File.ReadAllText(Path.Combine(root, ".release-please-manifest.json"));
-        using var manifestJson = JsonDocument.Parse(manifest);
-        var release = manifestJson.RootElement.GetProperty(".").GetString()!;
-        Version = release + "-test." + Guid.NewGuid().ToString("N")[..12];
+        Version = Repo.ReleaseVersion() + "-test." + Guid.NewGuid().ToString("N")[..12];
         var packages = Path.Combine(_work, "packages");
-        var packed = ConfigurationProject.Run("pwsh",
+        var packed = ShellProject.Run("pwsh",
             ["-NoProfile", "-File", Path.Combine(root, "scripts", "pack.ps1"), "-Out", packages, "-Version", Version],
             root);
         Assert.True(packed.ExitCode == 0, packed.Output);
@@ -376,7 +350,7 @@ public sealed class PackedTemplates : IDisposable
             zip.GetEntry(library)!.ExtractToFile(dll);
             Assert.Equal(version, InformationalVersion(dll));
             if (Path.GetFileName(library) == "Winshell.Services.dll")
-                Assert.False(IsPublic(dll, "Winshell", "ConfigurationProject"));
+                Assert.False(IsPublic(dll, "Winshell", "ShellProject"));
         }
 
         Directory.Delete(extracted, true);

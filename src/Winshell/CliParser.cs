@@ -9,19 +9,14 @@ internal static class CliParser
 {
     internal static IReadOnlyList<CommandEntry> Entries => Registered;
 
-    internal static Invocation Parse(string[] args)
+    internal static Invocation Parse(IReadOnlyList<string> args)
     {
-        return Parse(CommandLine.Parse(args));
-    }
-
-    internal static Invocation Parse(CommandLine commandLine)
-    {
-        var line = new Line(commandLine.Arguments);
+        var line = new Line(args);
         line.Read();
         if (line.RequestsHelp)
-            return new Invocation(line.CommandName, true, false, false, false, [], [], []);
+            return new Invocation(line.CommandName, true, false, false, [], [], []);
         if (line.CommandName is not (null or "help") && line.Version)
-            return new Invocation(line.CommandName, false, true, false, false, [], [], []);
+            return new Invocation(line.CommandName, false, true, false, [], [], []);
         return Finish(line);
     }
 
@@ -130,6 +125,7 @@ internal static class CliParser
     {
         var values = Apply(line);
         var positional = line.Positional;
+        CommandEntry? command = null;
         CommandEntry? sub = null;
         if (line.CommandName is not { } name)
         {
@@ -138,7 +134,7 @@ internal static class CliParser
         }
         else
         {
-            var command = ByName[name];
+            command = ByName[name];
             switch (command.Words)
             {
                 case WordRule.None:
@@ -155,7 +151,7 @@ internal static class CliParser
                     var topic = positional.FirstOrDefault();
                     if (topic is not null && !ByName.ContainsKey(topic))
                         throw UnknownCommand(topic);
-                    return new Invocation(topic, true, false, false, false, [], [], []);
+                    return new Invocation(topic, true, false, false, [], [], []);
                 case WordRule.Subcommand:
                     sub = RequireSubcommand(command, positional);
                     RejectSiblingFlags(command, sub, line);
@@ -168,16 +164,13 @@ internal static class CliParser
             false,
             line.Version,
             line.CommandName is null && line.Uses.All(use => ByName[CommandWords.Run].Accepts(use.Option)),
-            values.ContainsKey(CliFlags.Verbose),
             [.. line.Args],
             [.. positional],
             [.. line.Rest],
-            values);
-        if (line.CommandName is { } commandName)
-        {
-            ByName[commandName].Check?.Invoke(invocation);
-            sub?.Check?.Invoke(invocation);
-        }
+            values,
+            sub?.Run ?? command?.Run);
+        command?.Check?.Invoke(invocation);
+        sub?.Check?.Invoke(invocation);
 
         return invocation;
     }
@@ -230,15 +223,12 @@ internal static class CliParser
             throw new ArgumentException(
                 $"winshell {command.Name} needs a command. Run winshell {command.Name} --help.");
         var name = positional[0];
-        var match = command.Subcommands.FirstOrDefault(sub => sub.Name == name);
+        var match = command.Subcommand(name);
         if (match is null)
             throw new ArgumentException(
                 $"Unknown {command.Name} command \"{name}\". Run winshell {command.Name} --help.");
-        var words = positional.Count - 1;
-        if (words < match.MinWords)
+        if (positional.Count - 1 < match.MinWords)
             throw new ArgumentException($"winshell {command.Name} {name} needs {match.Missing}.");
-        if (match.MaxWords is int most && words > most)
-            throw Unexpected(positional[most + 1]);
         return match;
     }
 
@@ -346,24 +336,17 @@ internal static class CliParser
                 }
 
                 Positional.Add(token);
-                if (CommandName is { } name && ByName[name].Words == WordRule.Subcommand)
-                {
-                    var sub = ByName[name].Subcommands.FirstOrDefault(candidate => candidate.Name == Positional[0]);
-                    if (sub is { RawAfter: true } && Positional.Count >= sub.MinWords + 1)
-                        _raw = true;
-                }
+                if (Sub is { RawAfter: true } sub && Positional.Count >= sub.MinWords + 1)
+                    _raw = true;
             }
         }
 
+        private CommandEntry? Sub =>
+            CommandName is { } name && Positional.Count > 0 ? ByName[name].Subcommand(Positional[0]) : null;
+
         private bool SignedStep(string token)
         {
-            if (CommandName is not { } name || Positional.Count == 0)
-                return false;
-            var command = ByName[name];
-            if (command.Words != WordRule.Subcommand)
-                return false;
-            var sub = command.Subcommands.FirstOrDefault(candidate => candidate.Name == Positional[0]);
-            return sub is { SignedNumberIsWord: true } && int.TryParse(token, NumberStyles.AllowLeadingSign,
+            return Sub is { SignedNumberIsWord: true } && int.TryParse(token, NumberStyles.AllowLeadingSign,
                 CultureInfo.InvariantCulture, out _);
         }
     }

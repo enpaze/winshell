@@ -221,10 +221,10 @@ public sealed class StartupRegistryTests : IDisposable
         var program = written + @"\bin\shell\work.exe";
 
         Assert.Equal(command, CommandLine.ForSignIn(winshell, ["run", "-p", written]));
-        Assert.Equal(command, StartupService.SignInCommand(program, winshell));
-        Assert.Equal(command, StartupService.SignInCommand(written + @"\bin\shell.next\work.exe", windowed));
-        Assert.Null(StartupService.SignInCommand(program, null));
-        Assert.Null(StartupService.SignInCommand(program, @"C:\Program Files\dotnet\dotnet.exe"));
+        Assert.Equal(command, SignInEntry.Command(program, winshell));
+        Assert.Equal(command, SignInEntry.Command(written + @"\bin\shell.next\work.exe", windowed));
+        Assert.Null(SignInEntry.Command(program, null));
+        Assert.Null(SignInEntry.Command(program, @"C:\Program Files\dotnet\dotnet.exe"));
 
         var root = _configRoot.Path;
         var project = Configuration(root, "work");
@@ -363,7 +363,7 @@ public sealed class StartupRegistryTests : IDisposable
     {
         const string winshell = @"C:\Program Files\Winshell\winshell.exe";
         var folder = Configuration(_configRoot.Path, "work");
-        var alone = StartupService.SignInCommand(Path.Combine(folder, "bin", "shell", "work.exe"), winshell)!;
+        var alone = SignInEntry.Command(Path.Combine(folder, "bin", "shell", "work.exe"), winshell)!;
         var play = Path.Combine(folder, "play.csproj");
         File.WriteAllText(play, "<Project />");
         var run = _testKey + @"\Run";
@@ -371,7 +371,7 @@ public sealed class StartupRegistryTests : IDisposable
 
         StartupService Startup(string program)
         {
-            var command = StartupService.SignInCommand(Path.Combine(folder, "bin", "shell", program), winshell)!;
+            var command = SignInEntry.Command(Path.Combine(folder, "bin", "shell", program), winshell)!;
             return new StartupService(_log, new WindowsStartupRegistry(command, _configRoot.Path, run, approved));
         }
 
@@ -383,7 +383,7 @@ public sealed class StartupRegistryTests : IDisposable
         using (var key = Registry.CurrentUser.OpenSubKey(run)!)
         {
             var launch = CommandLine.ReadSignIn((string)key.GetValue(SignInEntry.Name)!);
-            Assert.Equal(play, ConfigurationProject.Find(launch.Path, null, _configRoot.Path, out _)?.ProjectFile);
+            Assert.Equal(play, ShellProject.Find(launch.Path, null, _configRoot.Path, out _)?.ProjectFile);
         }
 
         Assert.True(playing.RunAtSignIn);

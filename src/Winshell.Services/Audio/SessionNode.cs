@@ -10,7 +10,7 @@ namespace Winshell.Audio;
 
 internal sealed class SessionNode : AudioGraphNode
 {
-    private readonly AudioGraph _graph;
+    private readonly AudioBackend _graph;
     private readonly IAudioSessionControl2 _control;
     private readonly ISimpleAudioVolume _volume;
     private readonly SessionEvents _events;
@@ -19,7 +19,7 @@ internal sealed class SessionNode : AudioGraphNode
     private EventHandler? _exited;
     private bool _released;
 
-    public SessionNode(AudioGraph graph, EndpointNode endpoint, IAudioSessionControl2 control, string instanceId,
+    public SessionNode(AudioBackend graph, EndpointNode endpoint, IAudioSessionControl2 control, string instanceId,
         AudioSessionState state)
         : base(graph.NextId())
     {
@@ -47,8 +47,8 @@ internal sealed class SessionNode : AudioGraphNode
 
     public bool IsSystem { get; }
 
-    public override IAudioMeterInformation? Meter =>
-        _released || _control is not Native.IAudioMeterInformation meter ? null : new WindowsAudioMeter(meter);
+    public override IAudioMeter? Meter =>
+        _released || _control is not IAudioMeterInformation meter ? null : new WindowsAudioMeter(meter);
 
     public override void SetVolumes(IReadOnlyList<float> volumes)
     {
@@ -129,13 +129,13 @@ internal sealed class SessionNode : AudioGraphNode
     {
         var system = IsSystem;
         _control.GetDisplayName(out var displayName);
-        displayName = CoreAudio.LoadIndirectString(displayName ?? "");
+        displayName = IndirectString.Load(displayName ?? "");
         var path = _processId == 0 ? null : ProcessImage.TryRead(_processId);
         var binary = path is null ? "" : Path.GetFileName(path);
         var programName = path is null ? "" : Path.GetFileNameWithoutExtension(path);
         var appName = system ? "System Sounds"
             : displayName.Length > 0 ? displayName
-            : path is not null && AppsService.ProgramDescription(path) is { } description ? description
+            : path is not null && AppIdentity.ProgramDescription(path) is { } description ? description
             : programName;
         Name = system ? "system-sounds" : programName.Length > 0 ? programName : $"session-{Id}";
         Description = appName;

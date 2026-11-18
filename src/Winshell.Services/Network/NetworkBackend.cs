@@ -89,8 +89,7 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         WinNetworkInformation.NetworkStatusChanged += OnNetworkStatusChanged;
         NetworkChange.NetworkAddressChanged += OnNetworkChanged;
         NetworkChange.NetworkAvailabilityChanged += OnNetworkChanged;
-        if (!Wlan.Listen(Refresh, e => log.Warn("network", e.Message)))
-            return;
+        Wlan.Listen(Refresh, e => log.Warn("network", e.Message));
     }
 
     public void Dispose()
@@ -166,12 +165,16 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
             }
 
             if (adapters is not null && _access == NetworkAccessStatus.Allowed)
-            {
-                _wifiAdapters.Clear();
-                foreach (var adapter in adapters)
-                    _wifiAdapters[adapter.NetworkAdapter.NetworkAdapterId] = adapter;
-            }
+                SetAdapters(adapters);
         }
+    }
+
+    private void SetAdapters(IReadOnlyList<WiFiAdapter>? adapters)
+    {
+        _wifiAdapters.Clear();
+        if (adapters is not null)
+            foreach (var adapter in adapters)
+                _wifiAdapters[adapter.NetworkAdapter.NetworkAdapterId] = adapter;
     }
 
     private void OnRadioStateChanged(Radio sender, object args)
@@ -188,11 +191,7 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
             var adapters = access == WiFiAccessStatus.Allowed ? await WiFiAdapter.FindAllAdaptersAsync() : null;
             lock (_lock)
             {
-                _wifiAdapters.Clear();
-                if (adapters is not null)
-                    foreach (var adapter in adapters)
-                        _wifiAdapters[adapter.NetworkAdapter.NetworkAdapterId] = adapter;
-
+                SetAdapters(adapters);
                 _access = MapAccess(access);
             }
         }
@@ -349,13 +348,7 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
     private List<NetworkInfo> ReadWifiNetworks(Guid id, ConnectionState deviceState, NetworkConnections connections)
     {
         var saved = ReadSavedProfiles(id);
-        WiFiAdapter? adapter;
-        lock (_lock)
-        {
-            _wifiAdapters.TryGetValue(id, out adapter);
-        }
-
-        var scanned = adapter?.NetworkReport.AvailableNetworks.Select(network => new NetworkInfo(network.Ssid,
+        var scanned = Adapter(id)?.NetworkReport.AvailableNetworks.Select(network => new NetworkInfo(network.Ssid,
             ConnectionState.Disconnected, false, WifiFields.Rssi(network.NetworkRssiInDecibelMilliwatts),
             WifiFields.Security(network.SecuritySettings))) ?? [];
         return connections.WifiNetworks(id, deviceState, scanned, saved);
