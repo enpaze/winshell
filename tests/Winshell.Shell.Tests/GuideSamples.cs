@@ -143,11 +143,6 @@ public static class GuideSamples
         return dock;
     }
 
-    public static void RegisterAComponentWidget()
-    {
-        Widgets.Register<ClockWidget>("clock");
-    }
-
     public static void Reload(Shell shell)
     {
         if (!shell.Reload())
@@ -180,10 +175,11 @@ public sealed class EndArea : Component
     ]);
 }
 
-public sealed class ClockWidget : Widget
+[WidgetName("hello")]
+public sealed class Greeting : Widget
 {
     public override Element Render() =>
-        TextBlock(Setting("text", ""));
+        TextBlock(Setting("text", "Hello"));
 }
 
 public sealed class AlertLabel : Widget

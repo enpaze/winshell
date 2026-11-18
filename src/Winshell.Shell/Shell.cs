@@ -20,10 +20,11 @@ public sealed partial class Shell : IDisposable
     private bool _disposed;
     private RealInput? _input;
 
-    private Shell(IEventLoop loop, InstanceSession session)
+    private Shell(IEventLoop loop, InstanceSession session, WidgetRegistry widgets)
     {
         var log = session.Log;
         Loop = loop;
+        WidgetRegistry = widgets;
         Log = log;
         _identity = session.Identity;
         _instance = session.Instance;
@@ -54,6 +55,8 @@ public sealed partial class Shell : IDisposable
     public Log Log { get; }
 
     internal ShellPlatform Platform { get; }
+
+    internal WidgetRegistry WidgetRegistry { get; }
 
     private PreferencesFile? _preferencesFile;
     private bool _startReturned;
@@ -159,10 +162,11 @@ public sealed partial class Shell : IDisposable
                 Shell? shell = null;
                 try
                 {
+                    var widgets = WidgetRegistry.Discover();
                     var loop = new DispatcherLoop(queue, session.Log);
                     loop.Failed += e => instance.Reported(instance.Crashes.WriteOnce("event loop", e, "Winshell",
                         "Something in Winshell failed. It is still running."));
-                    shell = new Shell(loop, session);
+                    shell = new Shell(loop, session, widgets);
                     _current = shell;
                     if (Environment.GetEnvironmentVariable(DevProjectVariable) is { Length: > 0 })
                         shell.Notices.FollowFileErrors();

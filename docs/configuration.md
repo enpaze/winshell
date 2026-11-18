@@ -24,8 +24,6 @@ A bar shows along the top of every screen, with the time in the middle and the b
 ```csharp
 Shell.Run(shell =>
 {
-    Widgets.Register<Clock>("clock");
-    Widgets.Register<Battery>("battery");
     _ = new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] };
 });
 ```
@@ -34,7 +32,7 @@ The bar keeps itself on screen, so nothing needs to hold it. `Edges.Bottom` puts
 
 ### A clock
 
-A widget is a class that derives from `Widget`, registered by name, as [Widgets](#widgets) describes. `Render` returns the controls it shows. The clock renders one text block. The time is not a service, so `UseNow` asks it to render again each second and returns the time:
+A widget is a public class that derives from `Widget`. The shell finds it when it starts and names it after its class, so `Clock` is the widget `clock`, as [Widgets](#widgets) describes. `Render` returns the controls it shows. The clock renders one text block. The time is not a service, so `UseNow` asks it to render again each second and returns the time:
 
 ```csharp
 public sealed class Clock : Widget
@@ -73,9 +71,9 @@ public sealed class Battery : Widget
 
 `shell.PowerMode.Mode` and `Effective` are `Unknown` when Windows did not report a power mode. Setting `Mode` to `Unknown` does nothing: that is not a position of the slider.
 
-### Register the widgets
+### Widget names
 
-`Program.cs` registers each component under the name the bar places. Register a component from a referenced library the same way, as [Widgets](#widgets) describes.
+The bar places `clock` and `battery`, the names of the classes `Clock` and `Battery`. `Program.cs` names no widget class: the shell finds each one when it starts, in your project and in the projects and packages it references, as [Widgets](#widgets) describes.
 
 The files have no `using` line for Winshell or Reactor. The package adds them, as [The package's usings](#the-packages-usings) says.
 
@@ -90,7 +88,7 @@ winshell dev -c starter
 
 Change `{time:t}` in `Clock.cs` to `{time:T}` and save it, and the clock shows the seconds. The bar stays where it is, and so does the battery.
 
-`Start = ["battery"]` in place of `End` moves the battery to the left. Or write a widget of your own: a component like these, and a `Widgets.Register` line for it. [Widgets](#widgets) has the rest, and [A service](#a-service) lists what else the shell can read. Whoever uses the shell can rearrange the bar without a build, in the `[bar]` section of its [preferences file](#preferences), which applies as it is saved.
+`Start = ["battery"]` in place of `End` moves the battery to the left. Or write a widget of your own: a class like these, placed by its name. [Widgets](#widgets) has the rest, and [A service](#a-service) lists what else the shell can read. Whoever uses the shell can rearrange the bar without a build, in the `[bar]` section of its [preferences file](#preferences), which applies as it is saved.
 
 ## Create one
 
@@ -290,7 +288,7 @@ It is a shortcut: a configuration can still make any window on any screen itself
 
 ## A bar on every screen
 
-A [Bar](reference/winshell.md#bar) is a panel along one edge of every screen, with three [widget areas](#widgets): start, center and end. Each list names widgets by the names they are registered under. A plain string is a placement with no settings:
+A [Bar](reference/winshell.md#bar) is a panel along one edge of every screen, with three [widget areas](#widgets): start, center and end. Each list names widgets by their [names](#widgets). A plain string is a placement with no settings:
 
 ```csharp
         var bar = new Bar
@@ -391,7 +389,11 @@ hotkey = "Ctrl+Shift+Space"
 
 ## Widgets
 
-A [widget area](reference/winshell.md#widgetarea) is a component. A window mounts the component that renders it, and the same element can sit inside a surface. In the function passed to `Shell.Run`, register each widget under the case-sensitive name the area places. Use `Widgets.Register<T>` for your project's widgets and those from a referenced project or package alike. The widget needs a public parameterless constructor.
+A [widget area](reference/winshell.md#widgetarea) is a component. A window mounts the component that renders it, and the same element can sit inside a surface. It places widgets by name.
+
+The shell finds the widgets when it starts, before the function passed to `Shell.Run` runs. A widget is a public class that derives from `Widget` and has a public parameterless constructor, in your project or in a project or package it references that references Winshell. An abstract or generic class is not a widget, and neither is a class that is not public.
+
+A widget's name is its class name in kebab case, without a trailing `Widget`: `ClockWidget` and `Clock` are both `clock`, `NetworkSpeed` is `network-speed`, and `CPUUsage` is `cpu-usage`. Names are case-sensitive. `[WidgetName]` gives a widget another name. Two widgets with one name stop the shell when it starts, with an error that names both classes, and so does a widget with no public parameterless constructor.
 
 A widget derives from [Widget](reference/winshell.md#widget), a component whose props are a `WidgetContext`. `Render` reads them without `Props`:
 
@@ -403,25 +405,24 @@ A widget derives from [Widget](reference/winshell.md#widget), a component whose 
 - `UseScreen()` returns the screen of `Window` and renders the widget again when it changes. It is null until the area is in a window, and for a window that names no screen, which sits on the primary screen.
 - `StylePopup(content)` styles a [popup](#place-widgets-in-an-area).
 
-```csharp
-        Widgets.Register<ClockWidget>("clock");
-```
+This widget is `hello`, not `greeting`:
 
 ```csharp
-public sealed class ClockWidget : Widget
+[WidgetName("hello")]
+public sealed class Greeting : Widget
 {
     public override Element Render() =>
-        TextBlock(Setting("text", ""));
+        TextBlock(Setting("text", "Hello"));
 }
 ```
 
-For a [widget library](#write-a-widget), add a project or package reference and register its widget in `Program.cs`, such as `Widgets.Register<MessageWidget.Message>("message")`. A name registered twice fails when the shell starts.
+For a [widget library](#write-a-widget), add a project or package reference. Its widgets have names the same way, so the library's `Message` is `message`.
 
 ### Move a configuration
 
-This release registers only widgets that derive from `Widget`. Three things move, and nothing reads the old shape.
+This release finds only widgets that derive from `Widget`. Three things move, and nothing reads the old shape.
 
-A widget was a control whose constructor took a `WidgetContext` and built its elements there. It is a `Widget` whose `Render` returns those elements, registered with `Widgets.Register<T>`. The old constructor argument is now the widget's own: `Shell`, `Settings` and `Orientation`, and `Window` for the shell window the area is in.
+A widget was a control whose constructor took a `WidgetContext` and built its elements there. It is a public `Widget` whose `Render` returns those elements, and the shell finds it by its class name. The old constructor argument is now the widget's own: `Shell`, `Settings` and `Orientation`, and `Window` for the shell window the area is in.
 
 A Watch block read services and then wrote the controls. That read moves into `Render`. `UseObservable` or `UseObservableTree` names the service, and the elements `Render` returns already show what it holds. The [battery](#a-battery) is that shape: it reads `Shell.Power.DisplayDevice` and returns a text block, collapsed when no battery is present.
 
@@ -540,7 +541,7 @@ public sealed class AlertLabel : Widget
 
 ## Write a widget
 
-A widget other people use can be a class library: a WinUI library that references the Winshell package. The package imports the props the library needs and adds [its usings](#the-packages-usings). A configuration references the library and registers its widget the way [Widgets](#widgets) does. The example on this page is `Message`, a widget that shows one line of text, with one `text` setting.
+A widget other people use can be a class library: a WinUI library that references the Winshell package. The package imports the props the library needs and adds [its usings](#the-packages-usings). A configuration references the library and places its widget by name, as [Widgets](#widgets) describes. The example on this page is `Message`, a widget that shows one line of text, with one `text` setting.
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -790,6 +791,7 @@ winshell dev --path .
 What each kind of edit does:
 
 - **A C# edit**, including a component's `Render`, reaches the running shell in about a second. Reactor's hot reload applies it without a restart. The first one takes a little longer, while the compiler warms up. An edited method runs its new code at its next call.
+- **A new widget class** is found when the shell next starts, not by hot reload.
 - **A widget that shows an edited type** is made again, with the rest of its widget area, so a change to its constructor shows too. The window, its other areas and every other window stay as they are.
 - **Your own control that shows an edited type** anywhere else is made again in its place, so a change to a constructor shows there too. That is the outermost of your controls around it, because its constructor builds everything inside. A Winshell or WinUI control around it, such as a `Grid` you fill in code, stays with everything else it holds. A control in a place a new one can't go, such as a template, stays. The window keeps its place, and every other window keeps its content and its state. A control whose constructor takes arguments stays, and its edited methods still run. Keep state that must survive in a model that control is given.
 - **An edit .NET can't apply to running code**, such as a new base class, restarts the shell. That takes as long as a build, and the state of every window goes with it.

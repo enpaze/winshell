@@ -249,7 +249,7 @@ public sealed class PreferencesTests
             var bar = "bar" + Guid.NewGuid().ToString("N");
             var name = "area" + Guid.NewGuid().ToString("N");
             var widget = Guid.NewGuid().ToString();
-            Widgets.Register<DefaultWidget>(widget);
+            Shell.Current.WidgetRegistry.Add<DefaultWidget>(widget);
             try
             {
                 using var own = new Own();

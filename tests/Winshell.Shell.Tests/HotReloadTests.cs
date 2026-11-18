@@ -240,7 +240,7 @@ public sealed partial class HotReloadTests
         var (keptView, disposed, old, made) = await ShellFixture.On(async shell =>
         {
             var name = Guid.NewGuid().ToString();
-            Widgets.Register<EditedHost>(name);
+            Shell.Current.WidgetRegistry.Add<EditedHost>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [name] });
             var host = area.Host;
             var view = new NestedRoot(host);
@@ -267,9 +267,9 @@ public sealed partial class HotReloadTests
         var (before, after) = await ShellFixture.On(async shell =>
         {
             var edited = Guid.NewGuid().ToString();
-            Widgets.Register<EditedHost>(edited);
+            Shell.Current.WidgetRegistry.Add<EditedHost>(edited);
             var unchanged = Guid.NewGuid().ToString();
-            Widgets.Register<UnchangedHost>(unchanged);
+            Shell.Current.WidgetRegistry.Add<UnchangedHost>(unchanged);
             var screen = ScreenWindowsTests.Screen("TST", "Reload", "1");
             shell.Platform.Screens.Add(screen);
             try

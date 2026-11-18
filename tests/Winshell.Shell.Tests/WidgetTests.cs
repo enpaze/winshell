@@ -14,7 +14,7 @@ public sealed class WidgetTests
         {
             var name = Guid.NewGuid().ToString();
             PlacementWidget.Seen = null;
-            Widgets.Register<PlacementWidget>(name);
+            Shell.Current.WidgetRegistry.Add<PlacementWidget>(name);
             var style = TestStyles.Marked();
             var settings = new Dictionary<string, object> { ["text"] = "placed" };
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
@@ -42,7 +42,7 @@ public sealed class WidgetTests
         await ShellFixture.On(async shell =>
         {
             var name = Guid.NewGuid().ToString();
-            Widgets.Register<SettingWidget>(name);
+            Shell.Current.WidgetRegistry.Add<SettingWidget>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
             {
                 Defaults =
@@ -74,7 +74,7 @@ public sealed class WidgetTests
         await ShellFixture.On(async shell =>
         {
             var name = Guid.NewGuid().ToString();
-            Widgets.Register<SwitchWidget>(name);
+            Shell.Current.WidgetRegistry.Add<SwitchWidget>(name);
             object[] values = [true, false, 2L, 0L, 0.5, "yes"];
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
             {
@@ -104,7 +104,7 @@ public sealed class WidgetTests
             var name = Guid.NewGuid().ToString();
             TickingWidget.Renders.Clear();
             TickingWidget.Times.Clear();
-            Widgets.Register<TickingWidget>(name);
+            Shell.Current.WidgetRegistry.Add<TickingWidget>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
             {
                 Defaults = [Ticking(name, "fast", 60), Ticking(name, "slow", 300)]
@@ -138,7 +138,7 @@ public sealed class WidgetTests
             var name = Guid.NewGuid().ToString();
             TickingWidget.Renders.Clear();
             TickingWidget.Times.Clear();
-            Widgets.Register<TickingWidget>(name);
+            Shell.Current.WidgetRegistry.Add<TickingWidget>(name);
             var gone = TimeSpan.FromMilliseconds(431);
             var stays = TimeSpan.FromMilliseconds(433);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
@@ -170,7 +170,7 @@ public sealed class WidgetTests
         {
             var name = Guid.NewGuid().ToString();
             ScreenNameWidget.Seen.Clear();
-            Widgets.Register<ScreenNameWidget>(name);
+            Shell.Current.WidgetRegistry.Add<ScreenNameWidget>(name);
             var screen = ScreenWindowsTests.Screen("TST", "UseScreen", "1");
             shell.Platform.Screens.Add(screen);
             try
@@ -202,11 +202,9 @@ public sealed class WidgetTests
     {
         await ShellFixture.On(async _ =>
         {
-            var name = Guid.NewGuid().ToString();
-            Widgets.Register<MessageWidget.Message>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
             {
-                Defaults = [name, new(name, new Dictionary<string, object> { ["text"] = "Hi" })]
+                Defaults = ["message", new("message", new Dictionary<string, object> { ["text"] = "Hi" })]
             });
             using var window = new PanelWindow { Width = 320, Height = 60, Content = area.Host, Visible = true };
             string[] text = [];
@@ -227,14 +225,12 @@ public sealed class WidgetTests
     {
         await ShellFixture.On(async shell =>
         {
-            var name = Guid.NewGuid().ToString();
-            Widgets.Register<OmarchyStyle.ClockWidget>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
             {
-                Defaults = [new(name, new Dictionary<string, object> { ["timezone"] = 5L })]
+                Defaults = [new("clock", new Dictionary<string, object> { ["timezone"] = 5L })]
             });
             using var window = new PanelWindow { Width = 420, Height = 60, Content = area.Host, Visible = true };
-            await Wait.UntilAsync(() => Texts(area.Host).Contains($"{name}: timezone must be a string."),
+            await Wait.UntilAsync(() => Texts(area.Host).Contains("clock: timezone must be a string."),
                 "the clock's placeholder");
 
             Assert.Contains("UnsupportedWidgetException: timezone must be a string.", ShellFixture.ReadLog(shell),

@@ -93,7 +93,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     }
 
     [Fact(Timeout = PatienceMs)]
-    public void A_library_widget_registered_in_code_shows_in_an_area()
+    public void A_library_widget_the_program_never_names_is_found_and_shows_in_an_area()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         using var root = new TempFolder();
@@ -122,10 +122,10 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
               </ItemGroup>
             </Project>
             """);
-        File.WriteAllText(Path.Combine(libDir, "ClockWidget.cs"), """
+        File.WriteAllText(Path.Combine(libDir, "LibraryClockWidget.cs"), """
             namespace WidgetLib;
 
-            public sealed class ClockWidget : Widget
+            public sealed class LibraryClockWidget : Widget
             {
                 public override Element Render() => TextBlock("library:" + Setting("value", ""));
             }
@@ -137,7 +137,6 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         File.WriteAllText(Path.Combine(shellDir, "Program.cs"), """
             Shell.Run(shell =>
             {
-                Widgets.Register<WidgetLib.ClockWidget>("library-clock");
                 _ = new PanelWindow<Placements> { Width = 250, Height = 80, Visible = true };
             });
 

@@ -15,6 +15,7 @@
     <PackageReference Include="Microsoft.UI.Reactor" />
     <InternalsVisibleTo Include="Winshell" />
     <InternalsVisibleTo Include="Winshell.Shell.Tests" />
+    <InternalsVisibleTo Include="Winshell.Tests" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Winshell.Services\Winshell.Services.csproj" />

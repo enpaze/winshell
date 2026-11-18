@@ -135,16 +135,18 @@ public sealed partial class FeatureMapTests
 
     private static List<string> WidgetNames()
     {
-        var names = Registered(Path.Combine(Repo.Root, "templates", "winshell")).Select(name => "starter/" + name);
+        var names = WidgetsIn(Path.Combine(Repo.Root, "templates", "winshell")).Select(name => "starter/" + name);
         foreach (var example in Directory.EnumerateDirectories(Path.Combine(Repo.Root, "examples")))
-            names = names.Concat(Registered(example).Select(name => $"{Path.GetFileName(example)}/{name}"));
+            names = names.Concat(WidgetsIn(example).Select(name => $"{Path.GetFileName(example)}/{name}"));
         return [.. names.Order(StringComparer.Ordinal)];
     }
 
-    private static IEnumerable<string> Registered(string folder)
+    private static IEnumerable<string> WidgetsIn(string folder)
     {
-        return Sources(folder).SelectMany(file => RegisterPattern().Matches(File.ReadAllText(file)))
-            .Select(match => match.Groups[1].Value);
+        return Sources(folder).SelectMany(file => WidgetPattern().Matches(File.ReadAllText(file)))
+            .Select(match => match.Groups["name"].Success
+                ? match.Groups["name"].Value
+                : WidgetRegistry.NameOf(match.Groups["type"].Value));
     }
 
     private static IEnumerable<string> Sources(string folder)
@@ -183,8 +185,9 @@ public sealed partial class FeatureMapTests
         return SlugPattern().Replace(name.Replace('/', '-').Replace(' ', '-'), "$1-$2").ToLowerInvariant();
     }
 
-    [GeneratedRegex("""Widgets\.Register<\w+>\("([^"]+)"\)""")]
-    private static partial Regex RegisterPattern();
+    [GeneratedRegex("""(?:^\[WidgetName\("(?<name>[^"]+)"\)\]\s*)?^public\s+(?:sealed\s+|partial\s+)*class\s+(?<type>\w+)\s*:\s*Widget\b""",
+        RegexOptions.Multiline)]
+    private static partial Regex WidgetPattern();
 
     [GeneratedRegex(@"^public\s+(?:sealed\s+|static\s+|partial\s+)*(?:class|record)\s+(\w+)", RegexOptions.Multiline)]
     private static partial Regex PublicTypePattern();

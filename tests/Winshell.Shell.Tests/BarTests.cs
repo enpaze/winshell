@@ -586,7 +586,7 @@ public sealed class BarTests
     {
         var name = Guid.NewGuid().ToString();
         TextSettingWidget.Views = made = [];
-        Widgets.Register<TextSettingWidget>(name);
+        Shell.Current.WidgetRegistry.Add<TextSettingWidget>(name);
         return name;
     }
 
@@ -613,7 +613,7 @@ public sealed class BarTests
             var name = Guid.NewGuid().ToString();
             Views = made = [];
             Live = null;
-            Widgets.Register<CountingWidget>(name);
+            Shell.Current.WidgetRegistry.Add<CountingWidget>(name);
             return name;
         }
 
