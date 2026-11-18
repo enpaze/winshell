@@ -5,7 +5,7 @@ public class CliUsageTests
     [Fact]
     public void A_whole_number_pid_that_is_not_an_instance_exits_1()
     {
-        var result = Run(["kill", "--pid", "0"]);
+        var result = WinshellCli.RunWithEmptyConfig(["kill", "--pid", "0"]);
 
         result.AssertExitCode(1);
         Assert.Equal("", result.Output);
@@ -19,19 +19,10 @@ public class CliUsageTests
         var path = Path.Combine(dir.Path, "usage.log");
         File.WriteAllText(path, "one\r\ntwo\r\n");
 
-        var result = Run(["log", path, "--tail", "2147483647"]);
+        var result = WinshellCli.RunWithEmptyConfig(["log", path, "--tail", "2147483647"]);
 
         result.AssertExitCode(0);
         result.AssertNoError();
         Assert.Equal("one" + Environment.NewLine + "two" + Environment.NewLine, result.Output);
-    }
-
-    private static ChildProcess Run(string[] args)
-    {
-#pragma warning disable CsWinRT1030
-        return WinshellCli.Run(
-            args,
-            ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));
-#pragma warning restore CsWinRT1030
     }
 }

@@ -90,7 +90,7 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
 
 #pragma warning disable CsWinRT1030
         var killed = WinshellCli.Run(["kill", "--pid", second.Id.ToString(CultureInfo.InvariantCulture)],
-            ("WINSHELL_LOCAL_DIR", local), ("WINSHELL_CONFIG_DIR", secondConfig));
+            IsolatedFolders.Of(secondConfig, local));
 #pragma warning restore CsWinRT1030
         killed.AssertExitCode(0);
         Wait.Until(() => second.HasExited, "the replacement to exit");

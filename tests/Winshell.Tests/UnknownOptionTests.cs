@@ -7,8 +7,7 @@ public class UnknownOptionTests
     {
         var missing = TempFolder.NewPath();
 
-        var result = WinshellCli.Run(["run", "-p", missing, "--pth"],
-            ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));
+        var result = WinshellCli.RunWithEmptyConfig(["run", "-p", missing, "--pth"]);
 
         result.AssertExitCode(2);
         Assert.Equal("", result.Output);

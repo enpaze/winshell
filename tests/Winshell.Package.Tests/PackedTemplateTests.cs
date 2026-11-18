@@ -178,11 +178,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         Assert.True(why is null, why);
 
         var dir = TempFolder.NewPath();
-        (string Name, string Value)[] folders =
-        [
-            ("WINSHELL_CONFIG_DIR", Path.Combine(dir, "config")),
-            ("WINSHELL_LOCAL_DIR", Path.Combine(dir, "local"))
-        ];
+        var folders = IsolatedFolders.Under(dir);
         Directory.CreateDirectory(folders[0].Value);
         Directory.CreateDirectory(folders[1].Value);
         var output = new StringBuilder();
@@ -237,31 +233,12 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     {
         var info = new ProcessStartInfo(exe)
         {
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
             StandardOutputEncoding = Encoding.UTF8,
             StandardErrorEncoding = Encoding.UTF8
         };
         foreach (var (name, value) in environment)
             info.Environment[name] = value;
-        var process = Process.Start(info)!;
-
-        void Add(object sender, DataReceivedEventArgs e)
-        {
-            if (e.Data is not null)
-                lock (output)
-                {
-                    output.AppendLine(e.Data);
-                }
-        }
-
-        process.OutputDataReceived += Add;
-        process.ErrorDataReceived += Add;
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        return process;
+        return ChildProcess.Start(info, output);
     }
 
     private static List<JsonElement> Listed((string Name, string Value)[] environment)
@@ -282,10 +259,7 @@ public sealed class PackedTemplates : IDisposable
     {
         UserPathBefore = UserPath();
         var root = Repo.Root;
-        var manifest = File.ReadAllText(Path.Combine(root, ".release-please-manifest.json"));
-        using var manifestJson = JsonDocument.Parse(manifest);
-        var release = manifestJson.RootElement.GetProperty(".").GetString()!;
-        Version = release + "-test." + Guid.NewGuid().ToString("N")[..12];
+        Version = Repo.ReleaseVersion() + "-test." + Guid.NewGuid().ToString("N")[..12];
         var packages = Path.Combine(_work, "packages");
         var packed = ConfigurationProject.Run("pwsh",
             ["-NoProfile", "-File", Path.Combine(root, "scripts", "pack.ps1"), "-Out", packages, "-Version", Version],

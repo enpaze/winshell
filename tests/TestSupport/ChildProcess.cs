@@ -44,6 +44,30 @@ internal sealed record ChildProcess(int Code, string Output, string Error)
         return Run(info, TimeSpan.FromMinutes(1));
     }
 
+    internal static Process Start(ProcessStartInfo info, StringBuilder? printed)
+    {
+        info.UseShellExecute = false;
+        info.CreateNoWindow = true;
+        info.RedirectStandardOutput = true;
+        info.RedirectStandardError = true;
+        var process = Process.Start(info)!;
+
+        void Print(object sender, DataReceivedEventArgs e)
+        {
+            if (printed is not null && e.Data is not null)
+                lock (printed)
+                {
+                    printed.AppendLine(e.Data);
+                }
+        }
+
+        process.ErrorDataReceived += Print;
+        process.OutputDataReceived += Print;
+        process.BeginErrorReadLine();
+        process.BeginOutputReadLine();
+        return process;
+    }
+
     internal static ChildProcess Exited(string command, Process process, StringBuilder printed)
     {
         lock (printed)

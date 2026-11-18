@@ -20,11 +20,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         Directory.CreateDirectory(Path.Combine(_dir, "local"));
     }
 
-    private (string, string)[] Folders =>
-    [
-        ("WINSHELL_CONFIG_DIR", Path.Combine(_dir, "config")),
-        ("WINSHELL_LOCAL_DIR", Path.Combine(_dir, "local"))
-    ];
+    private (string, string)[] Folders => IsolatedFolders.Under(_dir);
 
     [GeneratedRegex(@"^Log: (?<path>.+), last \d+ lines\r?$", RegexOptions.Multiline)]
     private static partial Regex LogLine();
@@ -152,22 +148,8 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         var info = WinshellCli.StartInfo(["run", "--no-build", "-p", Project]);
         foreach (var (name, value) in Folders)
             info.Environment[name] = value;
-        var run = Process.Start(info)!;
+        var run = ChildProcess.Start(info, _printed);
         _started.Add(run);
-
-        void Print(object sender, DataReceivedEventArgs e)
-        {
-            if (e.Data is not null)
-                lock (_printed)
-                {
-                    _printed.AppendLine(e.Data);
-                }
-        }
-
-        run.ErrorDataReceived += Print;
-        run.OutputDataReceived += Print;
-        run.BeginErrorReadLine();
-        run.BeginOutputReadLine();
         return run;
     }
 

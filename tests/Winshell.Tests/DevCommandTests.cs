@@ -23,11 +23,7 @@ public sealed partial class DevCommandTests : IDisposable
 
     private string Project => Path.Combine(_dir, "project");
 
-    private (string, string)[] Folders =>
-    [
-        ("WINSHELL_CONFIG_DIR", Path.Combine(_dir, "config")),
-        ("WINSHELL_LOCAL_DIR", Path.Combine(_dir, "local"))
-    ];
+    private (string, string)[] Folders => IsolatedFolders.Under(_dir);
 
     public DevCommandTests()
     {

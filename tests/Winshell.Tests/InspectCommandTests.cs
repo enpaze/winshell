@@ -11,11 +11,7 @@ public sealed partial class InspectCommandTests : IDisposable, IClassFixture<Pro
     private readonly Process _shell;
     private readonly string _pid;
 
-    private (string, string)[] Folders =>
-    [
-        ("WINSHELL_CONFIG_DIR", Path.Combine(_dir, "config")),
-        ("WINSHELL_LOCAL_DIR", Path.Combine(_dir, "local"))
-    ];
+    private (string, string)[] Folders => IsolatedFolders.Under(_dir);
 
     public InspectCommandTests()
     {

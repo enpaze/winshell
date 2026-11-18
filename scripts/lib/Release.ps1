@@ -1,12 +1,12 @@
-function Get-RepoRoot { Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
+$script:Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 function Get-ReleaseVersion {
-    $manifest = Join-Path (Get-RepoRoot) '.release-please-manifest.json'
+    $manifest = Join-Path $script:Root '.release-please-manifest.json'
     (Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).'.'
 }
 
 function Get-ProductName {
-    $props = Join-Path (Get-RepoRoot) 'Directory.Build.props'
+    $props = Join-Path $script:Root 'Directory.Build.props'
     $match = [regex]::Match((Get-Content -LiteralPath $props -Raw), '<Product>([^<]+)</Product>')
     if (-not $match.Success) { throw 'Directory.Build.props does not set Product.' }
     $match.Groups[1].Value
@@ -52,21 +52,18 @@ function Get-WindowsSdkTool([string] $Name) {
     $found
 }
 
-function Get-DoctorGuardPrefix {
-    $doctor = Join-Path (Get-RepoRoot) 'src/Winshell.Services/Diagnostics/Doctor.cs'
+function Test-DoctorCouldNotCheck([string] $Message) {
+    if (-not $Message) { return $false }
+    $doctor = Join-Path $script:Root 'src/Winshell.Services/Diagnostics/Doctor.cs'
     $match = [regex]::Match(
         (Get-Content -LiteralPath $doctor -Raw),
         '\$"(Could not check: )\{e\.GetType\(\)\.Name\}: \{e\.Message\}"')
     if (-not $match.Success) { throw 'Doctor.Guard does not return its could-not-check sentence.' }
-    $match.Groups[1].Value
-}
-
-function Test-DoctorCouldNotCheck([string] $Message) {
-    $Message -and $Message.StartsWith((Get-DoctorGuardPrefix), [StringComparison]::Ordinal)
+    $Message.StartsWith($match.Groups[1].Value, [StringComparison]::Ordinal)
 }
 
 function Remove-ReleaseFile([string] $Dir) {
-    $project = Join-Path (Get-RepoRoot) 'src/Winshell/Winshell.csproj'
+    $project = Join-Path $script:Root 'src/Winshell/Winshell.csproj'
     $match = [regex]::Match(
         (Get-Content -LiteralPath $project -Raw),
         '<WinshellReleaseRemoved>([^<]+)</WinshellReleaseRemoved>')
@@ -81,9 +78,11 @@ function Remove-ReleaseFile([string] $Dir) {
     } | Remove-Item -Force
 }
 
-function Assert-WinshellDoctor([string] $Exe, [string] $Directory) {
-    $config = Join-Path $Directory 'config'
-    $local = Join-Path $Directory 'local'
+function Assert-WinshellRuns([string] $Exe, [string] $Version, [string] $DoctorDirectory) {
+    $reported = Assert-WinshellVersion $Exe $Version
+    if (-not $DoctorDirectory) { return $reported }
+    $config = Join-Path $DoctorDirectory 'config'
+    $local = Join-Path $DoctorDirectory 'local'
     New-Item -ItemType Directory -Force -Path $config, $local | Out-Null
     $savedConfig = $env:WINSHELL_CONFIG_DIR
     $savedLocal = $env:WINSHELL_LOCAL_DIR
@@ -102,11 +101,6 @@ function Assert-WinshellDoctor([string] $Exe, [string] $Directory) {
         if ($null -eq $savedLocal) { Remove-Item Env:WINSHELL_LOCAL_DIR -ErrorAction SilentlyContinue }
         else { $env:WINSHELL_LOCAL_DIR = $savedLocal }
     }
-}
-
-function Assert-WinshellRuns([string] $Exe, [string] $Version, [string] $DoctorDirectory) {
-    $reported = Assert-WinshellVersion $Exe $Version
-    if ($DoctorDirectory) { Assert-WinshellDoctor $Exe $DoctorDirectory }
     $reported
 }
 

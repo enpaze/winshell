@@ -33,35 +33,14 @@ internal static class ProbeShell
     internal static Process Launch(string config, string local, string[] args, string? shellId = null,
         StringBuilder? printed = null, string? program = null)
     {
-        var info = new ProcessStartInfo(program ?? Program)
-        {
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
+        var info = new ProcessStartInfo(program ?? Program);
         foreach (var arg in args)
             info.ArgumentList.Add(arg);
-        info.Environment["WINSHELL_CONFIG_DIR"] = config;
-        info.Environment["WINSHELL_LOCAL_DIR"] = local;
+        foreach (var (name, value) in IsolatedFolders.Of(config, local))
+            info.Environment[name] = value;
         if (shellId is not null)
             info.Environment[ShellIdVariable] = shellId;
-        var process = Process.Start(info)!;
-
-        void Print(object sender, DataReceivedEventArgs e)
-        {
-            if (printed is not null && e.Data is not null)
-                lock (printed)
-                {
-                    printed.AppendLine(e.Data);
-                }
-        }
-
-        process.ErrorDataReceived += Print;
-        process.OutputDataReceived += Print;
-        process.BeginErrorReadLine();
-        process.BeginOutputReadLine();
-        return process;
+        return ChildProcess.Start(info, printed);
     }
 
     internal static ChildProcess Detach(string config, string local, string[] args)
@@ -69,8 +48,8 @@ internal static class ProbeShell
         var info = new ProcessStartInfo(Program);
         foreach (var arg in args)
             info.ArgumentList.Add(arg);
-        info.Environment["WINSHELL_CONFIG_DIR"] = config;
-        info.Environment["WINSHELL_LOCAL_DIR"] = local;
+        foreach (var (name, value) in IsolatedFolders.Of(config, local))
+            info.Environment[name] = value;
         return ChildProcess.Run(info, TimeSpan.FromSeconds(20));
     }
 

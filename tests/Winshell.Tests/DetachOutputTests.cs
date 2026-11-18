@@ -6,11 +6,7 @@ public sealed partial class DetachOutputTests : IDisposable, IClassFixture<Probe
 {
     private readonly string _dir = TempFolder.NewPath();
 
-    private (string, string)[] Folders =>
-    [
-        ("WINSHELL_CONFIG_DIR", Path.Combine(_dir, "config")),
-        ("WINSHELL_LOCAL_DIR", Path.Combine(_dir, "local"))
-    ];
+    private (string, string)[] Folders => IsolatedFolders.Under(_dir);
 
     public DetachOutputTests()
     {

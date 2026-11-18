@@ -149,7 +149,7 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
     private ChildProcess Run(params string[] args)
     {
 #pragma warning disable CsWinRT1030
-        return WinshellCli.Run(args, ("WINSHELL_CONFIG_DIR", _config), ("WINSHELL_LOCAL_DIR", _local));
+        return WinshellCli.Run(args, IsolatedFolders.Of(_config, _local));
 #pragma warning restore CsWinRT1030
     }
 
