@@ -21,6 +21,7 @@ public sealed class BluetoothWidget : Component<WidgetContext>
         return Button(glyph, () => Props.Shell.Open("ms-settings:bluetooth"))
             .ToolTip(tip)
             .AutomationName(tip)
+            .AutomationId("bluetooth")
             .IsVisible(adapter is not null)
             .HAlign(HorizontalAlignment.Left);
     }

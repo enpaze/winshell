@@ -22,6 +22,7 @@ public sealed class BatteryWidget : Component<WidgetContext>
         return Button(Glyphs.Power(battery, power.OnBattery), () => Props.Shell.Open("ms-settings:powersleep"))
             .ToolTip(tip)
             .AutomationName(tip)
+            .AutomationId("battery")
             .IsVisible(battery.IsPresent);
     }
 }

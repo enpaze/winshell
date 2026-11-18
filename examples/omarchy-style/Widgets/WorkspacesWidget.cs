@@ -14,7 +14,7 @@ public sealed class WorkspacesWidget : Component<WidgetContext>
     public override Element Render()
     {
         if (Props.Window is null)
-            return TextBlock("").IsVisible(false);
+            return TextBlock("").IsVisible(false).AutomationId("workspaces");
         return Component<Workspaces, WorkspacesProps>(new(Props.Window, Props));
     }
 
@@ -29,7 +29,7 @@ public sealed class WorkspacesWidget : Component<WidgetContext>
             var vertical = Props.Context.Orientation == Orientation.Vertical;
             var monitor = winland.ProcessId > 0 ? winland.MonitorFor(window.Screen) : null;
             if (monitor is null)
-                return TextBlock("").IsVisible(false);
+                return TextBlock("").IsVisible(false).AutomationId("workspaces");
             return Buttons(monitor, winland, vertical);
         }
 
@@ -51,8 +51,8 @@ public sealed class WorkspacesWidget : Component<WidgetContext>
                 .ToArray();
             var row = BarLayout.Along(vertical ? Orientation.Vertical : Orientation.Horizontal, 1, buttons);
             return vertical
-                ? row.HAlign(HorizontalAlignment.Center)
-                : row.Margin(0, 0, 1.5, 0).HAlign(HorizontalAlignment.Left);
+                ? row.HAlign(HorizontalAlignment.Center).AutomationId("workspaces")
+                : row.Margin(0, 0, 1.5, 0).HAlign(HorizontalAlignment.Left).AutomationId("workspaces");
         }
     }
 }

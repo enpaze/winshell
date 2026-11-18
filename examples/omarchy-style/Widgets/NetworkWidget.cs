@@ -30,6 +30,7 @@ public sealed class NetworkWidget : Component<WidgetContext>
                 () => Props.Shell.Open("ms-settings:network-status"))
             .ToolTip(tip)
             .AutomationName(tip)
+            .AutomationId("network")
             .Set(control =>
             {
                 if (alert is { } color)
