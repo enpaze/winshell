@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Windows.Win32.Media.Audio;
 using Winshell.Audio;
 
 namespace Winshell.Services.Tests;
@@ -84,6 +85,29 @@ public sealed class AudioServiceTests
         using var audio = Service();
 
         Assert.Equal(AudioFormFactor.Headphones, audio.PlaybackDevices[0].FormFactor);
+    }
+
+    [Theory]
+    [InlineData((uint)EndpointFormFactor.RemoteNetworkDevice, AudioFormFactor.Network)]
+    [InlineData((uint)EndpointFormFactor.Speakers, AudioFormFactor.Speakers)]
+    [InlineData((uint)EndpointFormFactor.LineLevel, AudioFormFactor.Line)]
+    [InlineData((uint)EndpointFormFactor.Headphones, AudioFormFactor.Headphones)]
+    [InlineData((uint)EndpointFormFactor.Microphone, AudioFormFactor.Microphone)]
+    [InlineData((uint)EndpointFormFactor.Headset, AudioFormFactor.Headset)]
+    [InlineData((uint)EndpointFormFactor.Handset, AudioFormFactor.Handset)]
+    [InlineData((uint)EndpointFormFactor.UnknownDigitalPassthrough, AudioFormFactor.Unknown)]
+    [InlineData((uint)EndpointFormFactor.SPDIF, AudioFormFactor.Spdif)]
+    [InlineData((uint)EndpointFormFactor.DigitalAudioDisplayDevice, AudioFormFactor.Hdmi)]
+    [InlineData((uint)EndpointFormFactor.UnknownFormFactor, AudioFormFactor.Unknown)]
+    public void A_windows_endpoint_form_factor_becomes_its_audio_form_factor(uint windows, AudioFormFactor expected)
+    {
+        Assert.Equal(expected, EndpointNode.FormFactorOf(windows));
+    }
+
+    [Fact]
+    public void An_endpoint_without_a_form_factor_is_unknown()
+    {
+        Assert.Equal(AudioFormFactor.Unknown, EndpointNode.FormFactorOf(null));
     }
 
     [Fact]

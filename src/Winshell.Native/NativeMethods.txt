@@ -15,6 +15,7 @@ SHGetKnownFolderPath
 EDataFlow
 ERole
 AudioSessionState
+EndpointFormFactor
 DEVICE_STATE
 CLSCTX
 AUDCLNT_SHAREMODE

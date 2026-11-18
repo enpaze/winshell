@@ -247,19 +247,19 @@ internal sealed class EndpointNode : AudioGraphNode
         Winshell.Native.Com.Release(_device);
     }
 
-    private static AudioFormFactor FormFactorOf(uint? formFactor)
+    internal static AudioFormFactor FormFactorOf(uint? formFactor)
     {
-        return formFactor switch
+        return (EndpointFormFactor?)formFactor switch
         {
-            0 => AudioFormFactor.Network,
-            1 => AudioFormFactor.Speakers,
-            2 => AudioFormFactor.Line,
-            3 => AudioFormFactor.Headphones,
-            4 => AudioFormFactor.Microphone,
-            5 => AudioFormFactor.Headset,
-            6 => AudioFormFactor.Handset,
-            8 => AudioFormFactor.Spdif,
-            9 => AudioFormFactor.Hdmi,
+            EndpointFormFactor.RemoteNetworkDevice => AudioFormFactor.Network,
+            EndpointFormFactor.Speakers => AudioFormFactor.Speakers,
+            EndpointFormFactor.LineLevel => AudioFormFactor.Line,
+            EndpointFormFactor.Headphones => AudioFormFactor.Headphones,
+            EndpointFormFactor.Microphone => AudioFormFactor.Microphone,
+            EndpointFormFactor.Headset => AudioFormFactor.Headset,
+            EndpointFormFactor.Handset => AudioFormFactor.Handset,
+            EndpointFormFactor.SPDIF => AudioFormFactor.Spdif,
+            EndpointFormFactor.DigitalAudioDisplayDevice => AudioFormFactor.Hdmi,
             _ => AudioFormFactor.Unknown
         };
     }
