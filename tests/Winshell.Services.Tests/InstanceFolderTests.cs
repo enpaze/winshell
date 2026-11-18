@@ -42,8 +42,8 @@ public sealed class InstanceFolderTests : IDisposable
         var written = JsonSerializer.Deserialize(File.ReadAllText(Path.Combine(dir, "instance.json")),
             InstanceJson.Default.InstanceInfo);
         Assert.NotNull(written!.ExitedAt);
-        Assert.DoesNotContain(Instances.List(false), row => row.Info.Id == id);
-        Assert.Contains(Instances.List(true), row => row.Info.Id == id && !row.Alive);
+        Assert.DoesNotContain(Instances.Running(), info => info.Id == id);
+        Assert.Contains(Instances.All(), row => row.Info.Id == id && !row.Alive);
     }
 
     [Fact]

@@ -26,6 +26,11 @@ internal sealed record CommandEntry
 
     public Func<Invocation, Task<int>>? Run { get; init; }
 
+    public CommandEntry? Subcommand(string name)
+    {
+        return Array.Find(Subcommands, sub => sub.Name == name);
+    }
+
     public bool Accepts(CommandOption? option)
     {
         return option is not null && Array.IndexOf(Options, option) >= 0;

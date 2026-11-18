@@ -6,12 +6,12 @@ namespace Winshell;
 internal sealed class ShellProcess : IShellChild
 {
     private readonly Process _process;
-    private readonly ShellExit.Supervision _supervision;
+    private readonly ExitIntentEvents _supervision;
 
     private ShellProcess(Process process)
     {
         _process = process;
-        _supervision = new ShellExit.Supervision(process.Id);
+        _supervision = new ExitIntentEvents(process.Id);
         Exited = ExitAsync();
     }
 
@@ -36,9 +36,9 @@ internal sealed class ShellProcess : IShellChild
 
     public async Task StopAsync()
     {
-        var info = ShellLocations.Current.Instances.List(false).Select(row => row.Info)
+        var info = ShellLocations.Current.Instances.Running()
             .FirstOrDefault(candidate => candidate.Pid == _process.Id);
-        _ = await ShellExit.QuitAsync(_process, info, ExitIntent.None, ShellExit.Patience.Closing,
+        _ = await ShellExit.QuitAsync(_process, info, ExitIntent.None, QuitPatience.Closing,
             ShellExit.Ending.Always);
     }
 

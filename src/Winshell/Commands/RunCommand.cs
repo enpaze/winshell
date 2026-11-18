@@ -75,7 +75,7 @@ internal static class RunCommand
             return 0;
         if (parsed.IsSet(CliFlags.NoDuplicate) &&
             project.InstancesOf(ShellProjectBuild.Run,
-                ShellLocations.Current.Instances.List(false).Select(i => i.Info)).Any())
+                ShellLocations.Current.Instances.Running()).Any())
             return 0;
         var reason = project.Prepare(parsed.IsSet(CliFlags.NoBuild), ShellProject.Run);
         if (reason is not null)
@@ -119,7 +119,7 @@ internal static class RunCommand
         void Stop()
         {
             stop.Cancel();
-            ConsoleEnding.Wait(supervision);
+            Wait(supervision);
         }
 
         void Signal(PosixSignalContext context)
@@ -146,5 +146,18 @@ internal static class RunCommand
             SystemEvents.SessionEnded -= SessionEnded;
         }
 #pragma warning restore VSTHRD002
+    }
+
+    private static void Wait(Task? task)
+    {
+        try
+        {
+#pragma warning disable VSTHRD002
+            task?.Wait(TimeSpan.FromSeconds(4));
+#pragma warning restore VSTHRD002
+        }
+        catch (AggregateException)
+        {
+        }
     }
 }

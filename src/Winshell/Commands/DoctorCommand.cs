@@ -22,7 +22,7 @@ internal static class DoctorCommand
         Run = static parsed => Task.FromResult(Execute(parsed))
     };
 
-    internal static int Execute(Invocation parsed)
+    private static int Execute(Invocation parsed)
     {
         var checks = Doctor.Run(new DoctorContext(ShellLocations.Current, parsed.Text(CliFlags.Path),
             parsed.Text(CliFlags.Config)));

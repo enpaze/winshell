@@ -74,7 +74,7 @@ public sealed partial class LogFallbackTests : IDisposable
     private InstanceSelection.Result Ask(params string[] args)
     {
         return InstanceSelection.Select(CliParser.Parse(args).Instance, InstanceSelection.Question.Log,
-            new Instances(_run).List(true));
+            new Instances(_run).All());
     }
 
     private void Write(string id, string configPath, int pid, DateTime launched)

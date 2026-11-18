@@ -58,9 +58,9 @@ internal static class InstanceStart
         var identity = ShellIdentity.Resolve(launch.Program, locations, launch.ShellId, launch.DataDir,
             launch.StateDir, launch.CacheDir);
         using var duplicate = arguments.NoDuplicate
-            ? DuplicateHold.TryClaim(locations, identity.ShellId)
+            ? HeldMutex.TryClaim(HeldMutex.NoDuplicateName(locations, identity.ShellId))
             : default;
-        if (arguments.NoDuplicate && !duplicate.Acquired)
+        if (arguments.NoDuplicate && (!duplicate.Acquired || IsRunning(locations, identity.ShellId)))
             return 0;
 
         using var oneShell = ShellReplacement.Claim(locations, arguments.After, out var blocked);
@@ -97,6 +97,12 @@ internal static class InstanceStart
         }
 
         return session.Failure is { } failure ? Reported(failure.Message) : 0;
+    }
+
+    private static bool IsRunning(ShellLocations locations, string shellId)
+    {
+        return locations.Instances.Running()
+            .Any(info => string.Equals(info.ShellId, shellId, StringComparison.OrdinalIgnoreCase));
     }
 
     private static int Reported(string reason)

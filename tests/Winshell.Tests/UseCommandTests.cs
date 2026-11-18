@@ -100,7 +100,7 @@ public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
 
     private List<InstanceInfo> Running()
     {
-        return new Instances(Path.Combine(Local, "run")).List(false).Select(row => row.Info).ToList();
+        return new Instances(Path.Combine(Local, "run")).Running();
     }
 
     private ChildProcess Cli(params string[] args)

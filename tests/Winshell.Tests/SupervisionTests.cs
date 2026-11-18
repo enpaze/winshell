@@ -156,8 +156,8 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
     private int NextShell(int previous)
     {
         var pid = 0;
-        Wait.Until(() => (pid = new Instances(Path.Combine(_dir, "local", "run")).List(false)
-            .Select(row => row.Info.Pid).FirstOrDefault(p => p != previous)) != 0, "the shell to publish its instance");
+        Wait.Until(() => (pid = new Instances(Path.Combine(_dir, "local", "run")).Running()
+            .Select(info => info.Pid).FirstOrDefault(p => p != previous)) != 0, "the shell to publish its instance");
         return pid;
     }
 

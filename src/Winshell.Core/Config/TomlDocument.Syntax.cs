@@ -11,11 +11,21 @@ internal sealed partial class TomlDocument
 {
     private const int MaxTextBytes = 1024 * 1024;
 
-    private static string? FileBytes(long bytes, int maxBytes)
+    private static string? FileBytes(long bytes)
     {
-        return bytes > maxBytes
-            ? string.Create(CultureInfo.InvariantCulture, $"file is {bytes} bytes, above the limit of {maxBytes}")
+        return bytes > MaxTextBytes
+            ? string.Create(CultureInfo.InvariantCulture, $"file is {bytes} bytes, above the limit of {MaxTextBytes}")
             : null;
+    }
+
+    internal static string Problem(string where, string message, int line, int column)
+    {
+        return line > 0 ? $"{At(where, line, column)}: {message}" : $"{where}: {message}";
+    }
+
+    private static string At(string where, int line, int column)
+    {
+        return string.Create(CultureInfo.InvariantCulture, $"{where}[{line}:{column}]");
     }
 
     private static (string Message, int Line, int Column) Locate(DiagnosticMessage diagnostic)
@@ -29,7 +39,7 @@ internal sealed partial class TomlDocument
         SyntaxNode? first = owned.KeyValues.Count > 0 ? owned.KeyValues[0] : owned.Tables.FirstOrDefault();
         if (first?.Span.Start is not { } start)
             return where;
-        return string.Create(CultureInfo.InvariantCulture, $"{where}[{start.Line + 1}:{start.Column + 1}]");
+        return At(where, start.Line + 1, start.Column + 1);
     }
 
     private static string KeyAt(string where, DocumentSyntax document, string table, string key)
@@ -37,7 +47,7 @@ internal sealed partial class TomlDocument
         foreach (var header in FindOwned(document, table).Tables)
             if (header is TableSyntax && IsSimple(header.Name) && FindItem(header.Items, key) is
                 { Span.Start: var start })
-                return string.Create(CultureInfo.InvariantCulture, $"{where}[{start.Line + 1}:{start.Column + 1}]");
+                return At(where, start.Line + 1, start.Column + 1);
         return KeyAt(where, document, table);
     }
 
@@ -48,7 +58,7 @@ internal sealed partial class TomlDocument
         table = [];
         line = 0;
         column = 0;
-        if (FileBytes(Encoding.UTF8.GetByteCount(text), MaxTextBytes) is { } why)
+        if (FileBytes(Encoding.UTF8.GetByteCount(text)) is { } why)
         {
             message = why;
             return false;

@@ -4,7 +4,7 @@ internal static class InstanceCall
 {
     internal static InstanceInfo? Select(InstanceChoice choice, InstanceSelection.Question question, out int code)
     {
-        var selected = InstanceSelection.Select(choice, question, ShellLocations.Current.Instances.List(true));
+        var selected = InstanceSelection.Select(choice, question, ShellLocations.Current.Instances.All());
         code = selected.Code;
         if (selected.Info is null)
             Console.Error.WriteLine(selected.Error);

@@ -20,7 +20,7 @@ internal static class ReloadCommand
         Run = Execute
     };
 
-    internal static async Task<int> Execute(Invocation parsed)
+    private static async Task<int> Execute(Invocation parsed)
     {
         if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Running, out var code) is not { } info)
             return code;
@@ -34,7 +34,7 @@ internal static class ReloadCommand
                 return 1;
             }
 
-        if (ShellExit.IsSupervised(info.Pid))
+        if (ExitIntentEvents.IsSupervised(info.Pid))
         {
             if (project is null)
             {
@@ -43,7 +43,7 @@ internal static class ReloadCommand
                 return 1;
             }
 
-            var quit = await ShellExit.QuitAsync(info, ExitIntent.Reload, ShellExit.Patience.Interactive,
+            var quit = await ShellExit.QuitAsync(info, ExitIntent.Reload, QuitPatience.Interactive,
                 ShellExit.Ending.IfAccepted);
             if (!quit.Exited)
             {

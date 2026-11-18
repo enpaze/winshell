@@ -200,8 +200,8 @@ public static class Doctor
     {
         try
         {
-            return instances.List(false)
-                .Select(i => new DoctorInstance(i.Info.Id, i.Info.Pid, i.Info.ConfigPath, i.Info.Log)).ToList();
+            return instances.Running()
+                .Select(i => new DoctorInstance(i.Id, i.Pid, i.ConfigPath, i.Log)).ToList();
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {

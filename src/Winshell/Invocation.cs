@@ -11,21 +11,21 @@ internal sealed class Invocation
         bool showHelp,
         bool showVersion,
         bool shellStartAllowed,
-        bool verbose,
         ImmutableArray<string> arguments,
         ImmutableArray<string> positional,
         ImmutableArray<string> rest,
-        Dictionary<CommandOption, object?>? values = null)
+        Dictionary<CommandOption, object?>? values = null,
+        Func<Invocation, Task<int>>? run = null)
     {
         Command = command;
         ShowHelp = showHelp;
         ShowVersion = showVersion;
         ShellStartAllowed = shellStartAllowed;
-        Verbose = verbose;
         Arguments = arguments;
         Positional = positional;
         Rest = rest;
         _values = values ?? [];
+        Run = run;
     }
 
     public string? Command { get; }
@@ -36,7 +36,9 @@ internal sealed class Invocation
 
     public bool ShellStartAllowed { get; }
 
-    public bool Verbose { get; }
+    public bool Verbose => IsSet(CliFlags.Verbose);
+
+    public Func<Invocation, Task<int>>? Run { get; }
 
     public ImmutableArray<string> Arguments { get; }
 

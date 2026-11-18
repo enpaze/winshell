@@ -28,7 +28,7 @@ public sealed partial class DetachOutputTests : IDisposable, IClassFixture<Probe
 
     private List<int> Running()
     {
-        return new Instances(Path.Combine(_dir, "local", "run")).List(false).Select(row => row.Info.Pid).ToList();
+        return new Instances(Path.Combine(_dir, "local", "run")).Running().Select(info => info.Pid).ToList();
     }
 
     public void Dispose()

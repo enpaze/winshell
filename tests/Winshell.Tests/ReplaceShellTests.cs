@@ -120,7 +120,7 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
 
     private static List<InstanceInfo> Running(string local)
     {
-        return new Instances(Path.Combine(local, "run")).List(false).Select(row => row.Info).ToList();
+        return new Instances(Path.Combine(local, "run")).Running();
     }
 
     public void Dispose()

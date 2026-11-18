@@ -37,8 +37,7 @@ internal static class AtomicFile
     {
         try
         {
-            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete);
+            using var stream = SharedFile.OpenToRead(path);
             using var reader = new StreamReader(stream, Encoding.UTF8, true);
             return reader.ReadToEnd();
         }
@@ -184,8 +183,7 @@ internal static class AtomicFile
     {
         try
         {
-            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete);
+            using var stream = SharedFile.OpenToRead(path);
             return FileLinks.Count(stream.SafeFileHandle) ?? 1;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)

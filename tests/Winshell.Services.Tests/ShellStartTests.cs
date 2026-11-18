@@ -180,7 +180,7 @@ public sealed class ShellStartTests
     [Fact]
     public void A_shell_id_names_its_mutex_in_any_case()
     {
-        Assert.Equal(DuplicateHold.ShellMutexName(Locations, "Mine"), DuplicateHold.ShellMutexName(Locations, "mine"));
+        Assert.Equal(HeldMutex.NoDuplicateName(Locations, "Mine"), HeldMutex.NoDuplicateName(Locations, "mine"));
     }
 
     private static string IdOf(string program)

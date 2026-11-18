@@ -11,7 +11,7 @@ internal static class Cli
         Invocation parsed;
         try
         {
-            parsed = CliParser.Parse(CommandLine.Parse(args));
+            parsed = CliParser.Parse(args);
         }
         catch (ArgumentException e)
         {
@@ -52,7 +52,7 @@ internal static class Cli
                 return RunCommand.Execute(parsed);
             }
 
-            return await Dispatch(parsed);
+            return await parsed.Run!(parsed);
         }
         catch (Exception e) when (e is not OutOfMemoryException && command is not (null or CommandWords.Run))
         {
@@ -61,19 +61,6 @@ internal static class Cli
                 : $"winshell {command}: {e.Message}");
             return 1;
         }
-    }
-
-    private static Task<int> Dispatch(Invocation parsed)
-    {
-        var entry = CliParser.Entries.First(candidate => candidate.Name == parsed.Command);
-        if (entry.Words == WordRule.Subcommand)
-        {
-            var sub = entry.Subcommands.First(candidate => candidate.Name == parsed.Positional[0]);
-            if (sub.Run is not null)
-                return sub.Run(parsed);
-        }
-
-        return entry.Run!(parsed);
     }
 
     private static void WriteUtf8WhenRedirected()

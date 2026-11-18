@@ -24,7 +24,7 @@ internal static class UseCommand
         Run = Execute
     };
 
-    internal static async Task<int> Execute(Invocation parsed)
+    private static async Task<int> Execute(Invocation parsed)
     {
         var locations = ShellLocations.Current;
         if (parsed.Positional.IsEmpty)
@@ -76,18 +76,14 @@ internal static class UseCommand
 
     private static async Task<int> SwitchAsync(ShellProject project, string name, Instances instances)
     {
-        var running = instances.List(false).Select(row => row.Info).ToList();
+        var running = instances.Running();
         var own = project.InstancesOf(ShellProjectBuild.Run, running)
             .Concat(project.InstancesOf(ShellProjectBuild.Dev, running)).ToList();
         var others = running.Except(own).ToList();
         foreach (var info in others)
         {
-            var quit = await ShellExit.QuitAsync(info, ExitIntent.Stop, ShellExit.Patience.Interactive,
-                ShellExit.Ending.Never);
-            if (!quit.Exited)
+            if (!await KillCommand.StopAsync(info, false))
             {
-                if (quit.Answer.Problem($"Instance {info.Id} refused") is { } problem)
-                    await Console.Error.WriteLineAsync(problem);
                 await Console.Error.WriteLineAsync(
                     $"Instance {info.Id} is still running, so {name} was not started. winshell kill --force -i {info.Id} ends it.");
                 return 1;

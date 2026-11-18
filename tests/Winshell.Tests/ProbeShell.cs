@@ -25,7 +25,7 @@ internal static class ProbeShell
     internal static Process Start(string config, string local, string? shellId = null, string? program = null)
     {
         var process = Launch(config, local, [], shellId, program: program);
-        Wait.Until(() => new Instances(Path.Combine(local, "run")).List(false).Any(row => row.Info.Pid == process.Id),
+        Wait.Until(() => new Instances(Path.Combine(local, "run")).Running().Any(info => info.Pid == process.Id),
             $"probe {process.Id} to publish its instance");
         return process;
     }

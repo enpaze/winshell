@@ -42,9 +42,16 @@ internal static class IpcCommand
         ]
     };
 
-    private static Task<int> Show(Invocation parsed)
+    private static async Task<int> Show(Invocation parsed)
     {
-        return Send(parsed, IpcRequest.ForShow(parsed.IsSet(CliFlags.Json)));
+        if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Running, out var code) is not { } info)
+            return code;
+        var json = parsed.IsSet(CliFlags.Json);
+        var answer = await InstanceCall.AskAsync(info, IpcRequest.ForShow(json));
+        if (!json || answer.Response is not { Ok: true, Value: { } value })
+            return InstanceCall.Print(answer);
+        Console.WriteLine(CliJson.IpcShow(value));
+        return 0;
     }
 
     private static Task<int> Call(Invocation parsed)
@@ -65,34 +72,22 @@ internal static class IpcCommand
         return Send(parsed, IpcRequest.ForWait(args[1], args[2]));
     }
 
-    private static Task<int> Listen(Invocation parsed)
-    {
-        var args = parsed.Positional;
-        return Send(parsed, IpcRequest.ForListen(args[1], args[2]));
-    }
-
-    private static async Task<int> Send(Invocation parsed, IpcRequest request)
+    private static async Task<int> Listen(Invocation parsed)
     {
         if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Running, out var code) is not { } info)
             return code;
-        if (request.Op == IpcOps.Show && request.Json)
-            return await PrintShowJson(info, request);
-        if (request.Op != IpcOps.Listen)
-            return await InstanceCall.PrintAsync(info, request);
-
-        await foreach (var reply in IpcClient.Request(info.Pipe, request))
+        var args = parsed.Positional;
+        await foreach (var reply in IpcClient.Request(info.Pipe, IpcRequest.ForListen(args[1], args[2])))
             if (InstanceCall.Print(InstanceCall.Answer.Of(reply, info.Id)) != 0)
                 return 1;
 
         return 0;
     }
 
-    private static async Task<int> PrintShowJson(InstanceInfo info, IpcRequest request)
+    private static async Task<int> Send(Invocation parsed, IpcRequest request)
     {
-        var answer = await InstanceCall.AskAsync(info, request);
-        if (answer.Response is not { Ok: true, Value: { } value })
-            return InstanceCall.Print(answer);
-        Console.WriteLine(CliJson.IpcShow(value));
-        return 0;
+        if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Running, out var code) is not { } info)
+            return code;
+        return await InstanceCall.PrintAsync(info, request);
     }
 }

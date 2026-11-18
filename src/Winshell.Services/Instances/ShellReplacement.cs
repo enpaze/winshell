@@ -5,13 +5,9 @@ namespace Winshell;
 
 internal static class ShellReplacement
 {
-    private static readonly TimeSpan AskLimit = IpcClient.ConnectLimit + TimeSpan.FromSeconds(2);
-
-    private static readonly TimeSpan ExitLimit = TimeSpan.FromSeconds(5);
-
     private static readonly TimeSpan StartLimit = TimeSpan.FromSeconds(20);
 
-    internal static OneShellHold Claim(ShellLocations locations, int? leaving, out string? blocked)
+    internal static HeldMutex Claim(ShellLocations locations, int? leaving, out string? blocked)
     {
         var started = TimeProvider.System.GetTimestamp();
         while (true)
@@ -28,7 +24,7 @@ internal static class ShellReplacement
             if (Others(locations, leaving).Count > 0)
                 continue;
 
-            var hold = OneShellHold.TryClaim(locations);
+            var hold = HeldMutex.TryClaim(HeldMutex.OneShellName(locations));
             if (hold.Acquired)
             {
                 if (Others(locations, leaving).Count == 0)
@@ -59,15 +55,15 @@ internal static class ShellReplacement
 
     private static List<InstanceInfo> Others(ShellLocations locations, int? leaving)
     {
-        return locations.Instances.List(false).Select(row => row.Info)
+        return locations.Instances.Running()
             .Where(info => info.Pid != Environment.ProcessId && info.Pid != leaving)
             .ToList();
     }
 
     private static string? Ask(InstanceInfo info)
     {
-        SupervisionStop.Ask(info.Pid);
-        using var process = Open(info);
+        ExitIntentEvents.Ask(info.Pid, ExitIntent.Stop);
+        using var process = Instances.OpenProcess(info);
         if (process is null)
             return null;
 
@@ -77,7 +73,7 @@ internal static class ShellReplacement
 #pragma warning disable VSTHRD002
             reply = Task.Run(async () =>
             {
-                using var cancel = new CancellationTokenSource(AskLimit);
+                using var cancel = new CancellationTokenSource(QuitPatience.Interactive.Ask);
                 await foreach (var next in IpcClient.Request(info.Pipe, IpcRequest.ForYield(), cancel.Token)
                                    .ConfigureAwait(false))
                     return next;
@@ -93,7 +89,7 @@ internal static class ShellReplacement
             return null;
 
         if (!process.HasExited)
-            SupervisionStop.Withdraw(info.Pid);
+            ExitIntentEvents.Withdraw(info.Pid, ExitIntent.Stop);
 
         var why = reply switch
         {
@@ -104,28 +100,11 @@ internal static class ShellReplacement
         return $"Shell {info.ShellId} did not quit ({why}), so this one was not started.";
     }
 
-    private static Process? Open(InstanceInfo info)
-    {
-        Process? process = null;
-        try
-        {
-            process = Process.GetProcessById(info.Pid);
-            if (!process.HasExited && Instances.Wrote(info, process))
-                return process;
-        }
-        catch (Exception e) when (e is ArgumentException or InvalidOperationException or Win32Exception)
-        {
-        }
-
-        process?.Dispose();
-        return null;
-    }
-
     private static bool Exited(Process process)
     {
         try
         {
-            return process.WaitForExit(ExitLimit);
+            return process.WaitForExit(QuitPatience.Interactive.Wait);
         }
         catch (Win32Exception)
         {

@@ -196,9 +196,9 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         Wait.Until(
             () =>
             {
-                pid = new Instances(Path.Combine(_local, "run")).List(false)
-                    .Where(row => row.Info.Pid != previous && (shellId is null || row.Info.ShellId == shellId))
-                    .Select(row => row.Info.Pid)
+                pid = new Instances(Path.Combine(_local, "run")).Running()
+                    .Where(info => info.Pid != previous && (shellId is null || info.ShellId == shellId))
+                    .Select(info => info.Pid)
                     .FirstOrDefault();
                 return pid != 0;
             },
@@ -218,8 +218,8 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         Wait.Until(
             () =>
             {
-                pid = new Instances(Path.Combine(_local, "run")).List(false).Where(row => row.Info.ShellId == shellId)
-                    .Select(row => row.Info.Pid).FirstOrDefault();
+                pid = new Instances(Path.Combine(_local, "run")).Running().Where(info => info.ShellId == shellId)
+                    .Select(info => info.Pid).FirstOrDefault();
                 return pid != 0;
             },
             $"the process that runs the {shellId} edit");

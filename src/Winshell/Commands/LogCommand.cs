@@ -19,7 +19,7 @@ internal static class LogCommand
         Run = Execute
     };
 
-    internal static async Task<int> Execute(Invocation parsed)
+    private static async Task<int> Execute(Invocation parsed)
     {
         var path = parsed.Positional.FirstOrDefault();
         if (path is null)
@@ -35,7 +35,7 @@ internal static class LogCommand
             return 1;
         }
 
-        await using var stream = InstanceLog.OpenToRead(path);
+        await using var stream = SharedFile.OpenToRead(path);
         using var reader = new StreamReader(stream);
         var all = (await reader.ReadToEndAsync()).TrimEnd('\n').Split('\n');
         foreach (var line in parsed.Number(CliFlags.Tail) is { } n ? all.TakeLast(n) : all)

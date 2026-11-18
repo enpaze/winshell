@@ -5,7 +5,7 @@ public sealed class ShellInstanceTests
     private static async Task<InstanceInfo> Own()
     {
         await ShellFixture.Current();
-        return ShellLocations.Current.Instances.List(false).Single(i => i.Info.Pid == Environment.ProcessId).Info;
+        return ShellLocations.Current.Instances.Running().Single(i => i.Pid == Environment.ProcessId);
     }
 
     private static async Task<List<IpcResponse>> Ask(IpcRequest request)

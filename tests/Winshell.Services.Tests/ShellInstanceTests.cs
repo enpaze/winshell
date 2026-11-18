@@ -11,7 +11,7 @@ public sealed class ShellInstanceTests
 
     private static List<(InstanceInfo Info, bool Alive)> Rows(ShellInstance instance)
     {
-        return ShellLocations.Current.Instances.List(true).Where(i => i.Info.Id == instance.Id).ToList();
+        return ShellLocations.Current.Instances.All().Where(i => i.Info.Id == instance.Id).ToList();
     }
 
     private static async Task<IpcResponse> Ask(string pipe, IpcRequest request)
