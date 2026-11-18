@@ -40,6 +40,7 @@ public sealed class Surface : Component<SurfaceProps>
                     return border;
                 }).Grid(0, 0),
                 content.Grid(0, 0))
+            .Provide(StyleHost.InEffect, props.Style ?? Shell.Current.Style)
             .OnMount(element =>
             {
                 root.Current = element;

@@ -1,6 +1,4 @@
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using Winshell.Network;
 
 namespace OmarchyStyle;
@@ -26,13 +24,7 @@ public sealed class NetworkWidget : Widget
             .ToolTip(tip)
             .AutomationName(tip)
             .AutomationId("network")
-            .Set(control =>
-            {
-                if (restricted)
-                    control.Foreground = new SolidColorBrush(Style.AlertIn(control));
-                else
-                    control.ClearValue(Control.ForegroundProperty);
-            })
-            .HAlign(HorizontalAlignment.Left);
+            .HAlign(HorizontalAlignment.Left)
+            .Alert(restricted);
     }
 }

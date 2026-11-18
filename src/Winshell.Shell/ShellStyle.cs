@@ -24,21 +24,7 @@ public sealed record ShellStyle
 
     public double? Padding { get; init; } = 4;
 
-    public Color AlertIn(FrameworkElement element)
-    {
-        ArgumentNullException.ThrowIfNull(element);
-        if (Shell.Current.Platform.IsHighContrast)
-            return WindowsColor("HighContrast", "SystemColorHighlightColor");
-        return Alert ?? WindowsColor(element.ActualTheme == ElementTheme.Light ? "Light" : "Default", "SystemFillColorCritical");
-    }
-
-    private static Color WindowsColor(string theme, string key)
-    {
-        var controls = Application.Current.Resources.MergedDictionaries.OfType<XamlControlsResources>().Single();
-        return (Color)((ResourceDictionary)controls.ThemeDictionaries[theme])[key];
-    }
-
-    internal string ToXaml()
+    internal string ToXaml(bool alert = false)
     {
         var colors = string.Create(CultureInfo.InvariantCulture,
             $"""
@@ -56,7 +42,7 @@ public sealed record ShellStyle
                    <x:Double x:Key="ShellSlotSize">{Number(SlotSize)}</x:Double>
                    {padding}
              """);
-        return Page(Themes(colors), metrics);
+        return Page(Themes(colors), metrics, Controls(alert));
     }
 
     private static string Value(Color? color, string windows) => color is { } set
@@ -73,7 +59,11 @@ public sealed record ShellStyle
             </ResourceDictionary>
         """;
 
-    private const string Controls = """
+    private static string Controls(bool alert)
+    {
+        var foreground = alert ? "ShellAlertBrush" : "ShellForegroundBrush";
+        var icon = alert ? $$"""<Setter Property="Foreground" Value="{ThemeResource {{foreground}}}" />""" : "";
+        return $$"""
           <Style TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -83,12 +73,12 @@ public sealed record ShellStyle
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Foreground" Value="{ThemeResource ShellForegroundBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource {{foreground}}}" />
             <Setter Property="FontFamily" Value="{ThemeResource ShellFontFamily}" />
             <Setter Property="FontSize" Value="{ThemeResource ShellFontSize}" />
           </Style>
           <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{ThemeResource ShellForegroundBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource {{foreground}}}" />
             <Setter Property="FontFamily" Value="{ThemeResource ShellFontFamily}" />
             <Setter Property="FontSize" Value="{ThemeResource ShellFontSize}" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -96,6 +86,7 @@ public sealed record ShellStyle
           <Style TargetType="FontIcon">
             <Setter Property="FontFamily" Value="Segoe Fluent Icons,Segoe MDL2 Assets" />
             <Setter Property="FontSize" Value="16" />
+            {{icon}}
           </Style>
           <Style TargetType="ToolTip">
             <Setter Property="Background" Value="{ThemeResource ShellBackgroundBrush}" />
@@ -103,6 +94,7 @@ public sealed record ShellStyle
             <Setter Property="FontFamily" Value="{ThemeResource ShellFontFamily}" />
           </Style>
         """;
+    }
 
     private static string Themes(string colors) =>
         $"""
@@ -114,7 +106,7 @@ public sealed record ShellStyle
             </ResourceDictionary>
         """ + Contrast;
 
-    private static string Page(string themes, string metrics) =>
+    private static string Page(string themes, string metrics, string controls) =>
         $"""
         <ResourceDictionary
           xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -123,7 +115,7 @@ public sealed record ShellStyle
         {themes}
           </ResourceDictionary.ThemeDictionaries>
         {metrics}
-        {Controls}
+        {controls}
         </ResourceDictionary>
         """;
 }
@@ -160,6 +152,6 @@ public sealed partial class Shell
             _toolTipStyle[typeof(ToolTip)] = toolTip;
     }
 
-    internal static ResourceDictionary LoadStyle(ShellStyle style) =>
-        (ResourceDictionary)XamlReader.Load(style.ToXaml());
+    internal static ResourceDictionary LoadStyle(ShellStyle style, bool alert = false) =>
+        (ResourceDictionary)XamlReader.Load(style.ToXaml(alert));
 }

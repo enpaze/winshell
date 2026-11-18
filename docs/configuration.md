@@ -497,11 +497,16 @@ It also builds the implicit styles, with no `x:Key`, for the plain controls a wi
 - `FontIcon`: Segoe Fluent Icons at 16. Its color comes from what holds it, so a button's pressed and disabled colors reach the glyph.
 - `ToolTip`: the style's background, foreground and font. A tooltip opens in a popup of its own, outside the area, and WinUI looks up its style only in the app's resources, so Winshell puts the `ToolTip` entry of `shell.Style` there. It styles every tooltip in the shell, in your own windows too, and an area's own `Style` does not change it. A `ToolTip` style you put in `Application.Current.Resources` yourself wins over it.
 
-`Style` is the style in effect for the widget's area, never null. A widget reads the alert color with `AlertIn`, which gives the style's `Alert`, Windows' critical color in the element's light or dark theme when `Alert` is null, and Windows' highlight color in a contrast theme:
+To show an element in the alert color, call `.Alert()` on it. The buttons, text blocks and glyphs in it take `ShellAlertBrush` in place of `ShellForegroundBrush`, and keep the rest of their implicit styles. The color is the area style's `Alert`, Windows' critical color in light and in dark when `Alert` is null, or Windows' highlight color in a contrast theme, and it changes when the theme does:
 
 ```csharp
-        label.Foreground = new SolidColorBrush(Style.AlertIn(label));
+public sealed class AlertLabel : Widget
+{
+    public override Element Render() => TextBlock("!").Alert();
+}
 ```
+
+`.Alert(false)` shows the element in its usual color, so `.Alert(restricted)` shows it in the alert color only while `restricted` holds.
 
 ## Write a widget
 

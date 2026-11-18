@@ -52,6 +52,7 @@ A WinUI Panel. The members here are the ones Winshell adds.
 
 | Member | Type |
 | --- | --- |
+| `Alert(Element element, bool on = true)` | Element, static |
 | `Surface(Element? content = null, Thickness padding = default, [ShellStyle](#shellstyle)? style = null)` | Element, static |
 | `WidgetArea(string name = "", ImmutableArray of [Placement](#placement)? defaults = null, Orientation orientation = Orientation.Horizontal, [ShellStyle](#shellstyle)? style = null)` | Element, static |
 
@@ -340,7 +341,6 @@ Has the members of [ObservableObject](#observableobject).
 | `Foreground` | Color?, init |
 | `Padding` | double?, init |
 | `SlotSize` | double, init |
-| `AlertIn(FrameworkElement element)` | Color |
 
 ## ShellWindow
 

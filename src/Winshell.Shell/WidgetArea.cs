@@ -101,7 +101,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             shown.RemoveRange(placements.Length, shown.Count - placements.Length);
 
         var stack = props.Orientation == Orientation.Vertical ? VStack(0, slots) : HStack(0, slots);
-        return stack.OnMount(element =>
+        return stack.Provide(StyleHost.InEffect, props.Style ?? Shell.Current.Style).OnMount(element =>
         {
             root.Current = element;
             if (element is FrameworkElement panel)

@@ -540,19 +540,51 @@ public sealed class WidgetAreaTests
     }
 
     [Fact]
-    public async Task The_alert_color_is_the_styles_or_windows_in_the_elements_theme()
+    [Trait("Category", "Window")]
+    public async Task An_alert_takes_windows_critical_color_in_light_and_dark_and_follows_a_switch_while_mounted()
     {
-        await ShellFixture.On(shell =>
+        await ShellFixture.On(async shell =>
         {
-            Assert.SkipWhen(shell.Platform.IsHighContrast, "A contrast theme is on, so every alert is Windows' highlight.");
-            var label = new TextBlock();
-            foreach (var (requested, theme) in new[] { (ElementTheme.Light, "Light"), (ElementTheme.Dark, "Default") })
+            var controls = new AlertControls();
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [new(controls.Name)] });
+            var host = area.Host;
+            host.RequestedTheme = ElementTheme.Light;
+            using var window = new PanelWindow { Width = 240, Height = 60, Content = host, Visible = true };
+            await Wait.UntilAsync(() => controls.Button is not null && controls.Text is not null && controls.Plain is not null,
+                "the alert controls to render");
+            var (button, text, plain) = (controls.Button!, controls.Text!, controls.Plain!);
+            await ShellFixture.LaidOut(text).WaitAsync(TestContext.Current.CancellationToken);
+
+            if (shell.Platform.IsHighContrast)
             {
-                label.RequestedTheme = requested;
-                var windows = WindowsColor(theme, "SystemFillColorCritical");
-                Assert.Equal(windows, new ShellStyle { FontSize = 12 }.AlertIn(label));
-                Assert.Equal(windows, new ShellStyle { Foreground = Microsoft.UI.Colors.Crimson }.AlertIn(label));
-                Assert.Equal(Microsoft.UI.Colors.Orange, TestStyles.Other().AlertIn(label));
+                var highlight = WindowsColor("HighContrast", "SystemColorHighlightColor");
+                Assert.Equal((highlight, highlight), (ColorOf(text.Foreground), ColorOf(button.Foreground)));
+                Assert.Equal(WindowsColor("HighContrast", "SystemColorWindowTextColor"), ColorOf(plain.Foreground));
+                return true;
+            }
+
+            foreach (var (requested, theme) in new[] { (ElementTheme.Light, "Light"), (ElementTheme.Dark, "Default"), (ElementTheme.Light, "Light") })
+            {
+                host.RequestedTheme = requested;
+                var critical = WindowsColor(theme, "SystemFillColorCritical");
+                await Wait.UntilAsync(() => ColorOf(text.Foreground) == critical, "the alert to take Windows' critical color");
+                Assert.Equal(critical, ColorOf(button.Foreground));
+                Assert.Equal(WindowsText(theme), ColorOf(plain.Foreground));
+                Assert.Equal(("Segoe UI Variable Text,Segoe UI", 14.0), (text.FontFamily.Source, text.FontSize));
+                Assert.Equal((32d, 32d), (button.ActualWidth, button.ActualHeight));
+            }
+
+            area.Set(area.Props with { Style = TestStyles.Other() });
+            foreach (var theme in new[] { ElementTheme.Dark, ElementTheme.Light })
+            {
+                host.RequestedTheme = theme;
+                await Wait.UntilAsync(
+                    () => ColorOf(text.Foreground) == Microsoft.UI.Colors.Orange && button.ActualWidth == 40,
+                    "the alert to take the area style's alert color");
+                Assert.Equal(Microsoft.UI.Colors.Orange, ColorOf(button.Foreground));
+                Assert.Equal(Microsoft.UI.Colors.Crimson, ColorOf(plain.Foreground));
+                Assert.Equal(("Consolas", 18.0), (text.FontFamily.Source, text.FontSize));
+                Assert.Equal((40d, 40d), (button.ActualWidth, button.ActualHeight));
             }
 
             return true;
@@ -826,7 +858,7 @@ public sealed class WidgetAreaTests
     [Trait("Category", "Window")]
     public async Task A_widget_reads_the_alert_color_from_the_style()
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             var name = Guid.NewGuid().ToString();
             AlertWidget.Alert = null;
@@ -837,7 +869,10 @@ public sealed class WidgetAreaTests
             var alert = AlertWidget.Alert!;
             await ShellFixture.LaidOut(alert).WaitAsync(TestContext.Current.CancellationToken);
 
-            Assert.Equal(Microsoft.UI.Colors.Orange, ColorOf(alert!.Foreground));
+            var expected = shell.Platform.IsHighContrast
+                ? WindowsColor("HighContrast", "SystemColorHighlightColor")
+                : Microsoft.UI.Colors.Orange;
+            Assert.Equal(expected, ColorOf(alert.Foreground));
             return true;
         });
     }
@@ -1037,11 +1072,38 @@ public sealed class WidgetAreaTests
     {
         public static TextBlock? Alert;
 
-        public override Element Render() => XamlHost(() =>
+        public override Element Render() =>
+            TextBlock("alert").OnMount(element => Alert = (TextBlock)element).Alert();
+    }
+
+    private sealed class AlertControls
+    {
+        public AlertControls()
         {
-            Alert = new TextBlock { Text = "alert" };
-            Alert.Foreground = new SolidColorBrush(Style.AlertIn(Alert));
-            return Alert;
-        });
+            Current = this;
+            Widgets.Register<AlertControlsWidget>(Name);
+        }
+
+        public static AlertControls Current { get; private set; } = null!;
+
+        public string Name { get; } = Guid.NewGuid().ToString();
+
+        public Button? Button { get; set; }
+
+        public TextBlock? Text { get; set; }
+
+        public TextBlock? Plain { get; set; }
+    }
+
+    private sealed class AlertControlsWidget : Widget
+    {
+        public override Element Render()
+        {
+            var shown = AlertControls.Current;
+            return HStack(
+                Button("B").OnMount(element => shown.Button = (Button)element).Alert(),
+                TextBlock("alert").OnMount(element => shown.Text = (TextBlock)element).Alert(),
+                TextBlock("plain").OnMount(element => shown.Plain = (TextBlock)element).Alert(false));
+        }
     }
 }

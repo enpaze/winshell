@@ -169,12 +169,7 @@ public sealed class ClockWidget : Widget
 
 public sealed class AlertLabel : Widget
 {
-    public override Element Render() => TextBlock("!").Set(Alert);
-
-    private void Alert(TextBlock label)
-    {
-        label.Foreground = new SolidColorBrush(Style.AlertIn(label));
-    }
+    public override Element Render() => TextBlock("!").Alert();
 }
 
 public sealed class BatteryLabel : Widget
