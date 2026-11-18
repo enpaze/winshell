@@ -4,15 +4,6 @@ using Windows.ApplicationModel;
 
 namespace Winshell.Session;
 
-internal interface IStartupRegistry
-{
-    SignInVerdict Read();
-
-    bool Register();
-
-    bool Unregister();
-}
-
 internal static class SignInAccess
 {
     internal static bool IsExpected(Exception exception)
@@ -44,7 +35,7 @@ internal sealed class WindowsStartupRegistry(
     string configRoot,
     string runKey = SignInEntry.RunKey,
     string approvedKey = SignInEntry.ApprovedKey,
-    Log? log = null) : IStartupRegistry
+    Log? log = null) : IStartupBackend
 {
     private readonly Log _log = log ?? Log.Default;
 
@@ -117,7 +108,7 @@ internal sealed class WindowsStartupRegistry(
     }
 }
 
-internal sealed class StartupTaskRegistry(IStartupTask task, Log? log = null) : IStartupRegistry
+internal sealed class StartupTaskRegistry(IStartupTask task, Log? log = null) : IStartupBackend
 {
     private readonly Log _log = log ?? Log.Default;
 

@@ -14,7 +14,7 @@ internal sealed class WinlandBackend : IWinlandBackend
     private static readonly IReadOnlyList<string> Candidates =
         WinlandProtocol.PipeNames(Environment.GetEnvironmentVariable("WINLAND_PIPE"), SessionId);
 
-    public static readonly WinlandBackend Instance = new(TimeProvider.System);
+    public static WinlandBackend Shared { get; } = new(TimeProvider.System);
 
     private readonly TimeProvider _time;
     private readonly Listeners<Handlers> _listeners = new();

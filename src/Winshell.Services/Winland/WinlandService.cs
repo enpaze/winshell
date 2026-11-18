@@ -29,7 +29,7 @@ public sealed class WinlandService : ObservableObject, IDisposable
     {
         _loop = loop;
         _log = log;
-        _backend = backend ?? WinlandBackend.Instance;
+        _backend = backend ?? WinlandBackend.Shared;
         _listening = _backend.Listen(OnConnectionChanged, OnEventReceived, e => _log.Warn("winland", e.ToString()));
         if (_backend.IsConnected)
             RefreshAll();

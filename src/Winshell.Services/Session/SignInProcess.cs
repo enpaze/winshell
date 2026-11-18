@@ -2,19 +2,19 @@ namespace Winshell.Session;
 
 internal static class SignInProcess
 {
-    internal static IStartupRegistry? Registry(Log log)
+    internal static IStartupBackend? Registry(Log log)
     {
-        return Choose<IStartupRegistry?>(
+        return Choose<IStartupBackend?>(
             task => task is null ? null : new StartupTaskRegistry(task, log),
             Unpackaged);
 
-        IStartupRegistry? Unpackaged()
+        IStartupBackend? Unpackaged()
         {
             if (Environment.ProcessPath is not { } exe)
                 return null;
             var command = ConfigurationProject.FolderOf(exe) is null
                 ? CommandLine.ForSignIn(exe, Environment.GetCommandLineArgs().Skip(1))
-                : StartupService.SignInCommand(exe, WinshellHost.Supervising());
+                : SignInEntry.Command(exe, WinshellHost.Supervising());
             return command is null
                 ? null
                 : new WindowsStartupRegistry(command, ShellLocations.Current.ConfigRoot, log: log);

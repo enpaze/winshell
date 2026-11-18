@@ -14,7 +14,7 @@ public sealed record WinlandEvent(string Name, string Data)
 
 public sealed class WinlandMonitor : ObservableObject
 {
-    private readonly WinlandService _ipc;
+    private readonly WinlandService _service;
     private int _id = -1;
     private string _name = "";
     private string _description = "";
@@ -24,9 +24,9 @@ public sealed class WinlandMonitor : ObservableObject
     private WinlandWorkspace? _activeWorkspace;
     private JsonElement? _lastIpcObject;
 
-    internal WinlandMonitor(WinlandService ipc)
+    internal WinlandMonitor(WinlandService service)
     {
-        _ipc = ipc;
+        _service = service;
     }
 
     public int Id => Read(_id);
@@ -59,11 +59,11 @@ public sealed class WinlandMonitor : ObservableObject
 
     internal void ActivateWorkspace(string name)
     {
-        if (this != _ipc.FocusedMonitor)
-            _ipc.Send(
+        if (this != _service.FocusedMonitor)
+            _service.Send(
                 $"[[BATCH]]dispatch focusmonitor {(_id >= 0 ? _id.ToString(CultureInfo.InvariantCulture) : _name)};dispatch workspace {name}");
         else
-            _ipc.Dispatch("workspace " + name);
+            _service.Dispatch("workspace " + name);
     }
 
     internal void UpdateInitial(int id, string name, string description)
@@ -102,16 +102,16 @@ public sealed class WinlandMonitor : ObservableObject
 
 public sealed class WinlandWorkspace : ObservableObject
 {
-    private readonly WinlandService _ipc;
+    private readonly WinlandService _service;
     private int _id = -1;
     private string _name = "";
     private WinlandMonitor? _monitor;
     private bool _active, _focused, _urgent, _hasFullscreen;
     private JsonElement? _lastIpcObject;
 
-    internal WinlandWorkspace(WinlandService ipc)
+    internal WinlandWorkspace(WinlandService service)
     {
-        _ipc = ipc;
+        _service = service;
     }
 
     public int Id => Read(_id);
@@ -139,7 +139,7 @@ public sealed class WinlandWorkspace : ObservableObject
         if (!IsSpecial && _monitor is { Id: >= 0 } monitor)
             monitor.ActivateWorkspace(_name);
         else
-            _ipc.Dispatch("workspace " + _name);
+            _service.Dispatch("workspace " + _name);
     }
 
     internal void UpdateInitial(int id, string name)

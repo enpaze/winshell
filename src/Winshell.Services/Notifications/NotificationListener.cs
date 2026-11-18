@@ -31,7 +31,7 @@ public sealed class NotificationListener : ObservableObject, IDisposable
     {
         _loop = loop;
         _log = log;
-        _backend = backend ?? new WindowsNotificationBackend();
+        _backend = backend ?? new NotificationBackend();
         _changes = new ToastChanges(_backend.ToastStamp, loop.Time);
         _icons = new NotificationAppIcons(loop, log, _stop.Token);
         _reader = new StateReader<NotificationSnapshot>(c => OwnThread.Run(() => Read(c)), Apply, loop,

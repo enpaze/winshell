@@ -213,7 +213,7 @@ public sealed class SessionServiceTests
         }
     }
 
-    private sealed class FakeRegistry : IStartupRegistry
+    private sealed class FakeRegistry : IStartupBackend
     {
         public bool Registered { get; set; }
 
