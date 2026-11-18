@@ -13,6 +13,34 @@ Describe 'The files a release uploads' {
         $downloaded | Should -Not -BeNullOrEmpty
         foreach ($name in $downloaded) { Get-ReleaseAssetName '1.2.3' | Should -Contain $name }
     }
+
+    It 'include version.json' {
+        Get-ReleaseAssetName '1.2.3' | Should -Contain 'version.json'
+    }
+}
+
+Describe 'The version a release records' {
+    It 'writes the version, the full commit, and a UTC date, and ends with a newline' {
+        $path = Join-Path $TestDrive 'version.json'
+        $when = [datetimeoffset]::new(2026, 11, 18, 6, 5, 6, [timespan]::FromHours(2))
+        Write-ReleaseVersionFile $path '1.2.3' '0123456789ABCDEF0123456789abcdef01234567' $when
+
+        $text = [IO.File]::ReadAllText($path)
+        $text.EndsWith("`n") | Should -BeTrue
+        $text.Contains("`r") | Should -BeFalse
+        $text.StartsWith('{"version":') | Should -BeTrue
+        $root = [Text.Json.JsonDocument]::Parse($text).RootElement
+        $root.GetProperty('version').GetString() | Should -Be '1.2.3'
+        $root.GetProperty('commit').GetString() | Should -Be '0123456789abcdef0123456789abcdef01234567'
+        $date = [datetimeoffset]::Parse($root.GetProperty('date').GetString(), [Globalization.CultureInfo]::InvariantCulture)
+        $date.Offset | Should -Be ([timespan]::Zero)
+        $date.UtcDateTime | Should -Be ([datetime]::new(2026, 11, 18, 4, 5, 6, [DateTimeKind]::Utc))
+    }
+
+    It 'refuses a commit that is not 40 hex digits' {
+        { Write-ReleaseVersionFile (Join-Path $TestDrive 'version.json') '1.2.3' 'abc' ([datetimeoffset]::UtcNow) } |
+            Should -Throw '*40 hex digits*'
+    }
 }
 
 Describe 'Finding a Windows SDK tool' {

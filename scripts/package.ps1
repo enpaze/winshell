@@ -84,14 +84,20 @@ if ($Publish) {
 }
 
 if ($Pack) {
+    $commit = (git -C $root rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0) { throw 'git could not read the commit of HEAD' }
+    $versionFile = Join-Path $Out 'version.json'
+    Write-ReleaseVersionFile $versionFile $Version $commit ([datetimeoffset]::UtcNow)
     $sums = [ordered]@{}
     foreach ($rid in $Runtime) {
         $dir = Join-Path $publishRoot $rid
         if (-not (Test-Path -LiteralPath (Join-Path $dir 'winshell.exe'))) { throw "No winshell.exe in $dir. Run with -Publish first." }
+        Copy-Item -LiteralPath $versionFile -Destination (Join-Path $dir 'version.json') -Force
         $zip = Join-Path $Out (Get-ReleaseZipName $Version $rid)
         New-Zip $dir $zip $releaseDay
         $sums[(Split-Path -Leaf $zip)] = Get-Sha256 $zip
     }
+    $sums['version.json'] = Get-Sha256 $versionFile
     ($sums.GetEnumerator() | ForEach-Object { "$($_.Value)  $($_.Key)" }) -join "`n" |
         Set-Content -LiteralPath (Join-Path $Out 'SHA256SUMS.txt') -NoNewline
 
@@ -206,6 +212,10 @@ if ($Verify) {
     $machines = @{ 'win-x64' = 0x8664; 'win-arm64' = 0xAA64 }
     [xml] $signing = Get-Content -Raw -LiteralPath (Join-Path $root 'packaging/signpath/artifact-configuration.xml')
     $signedPaths = $signing.'artifact-configuration'.'zip-file'.'pe-file-set'.include.path
+    $versionFile = Join-Path $Out 'version.json'
+    if (-not $listed.ContainsKey('version.json') -or $listed['version.json'] -ne (Get-Sha256 $versionFile)) {
+        throw 'version.json does not match its line in SHA256SUMS.txt'
+    }
     $verifyRoot = Join-Path $Out 'verify'
     foreach ($rid in $Runtime) {
         $name = Get-ReleaseZipName $Version $rid
@@ -215,6 +225,8 @@ if ($Verify) {
         $dir = Assert-Inside (Join-Path $verifyRoot $rid) $Out
         if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force }
         [IO.Compression.ZipFile]::ExtractToDirectory($zip, $dir)
+        $recorded = Get-Content -Raw -LiteralPath (Join-Path $dir 'version.json') | ConvertFrom-Json
+        if ($recorded.version -cne $Version) { throw "$name records version $($recorded.version), not $Version" }
         Assert-WinshellPackage $dir $Version $name
         foreach ($binary in 'winshell.exe', 'hostfxr.dll', 'coreclr.dll', 'winshell.dll') {
             $path = Join-Path $dir $binary

@@ -38,7 +38,19 @@ function Get-ReleaseZipName([string] $Version, [string] $Runtime) { "winshell-$V
 
 function Get-ReleaseAssetName([string] $Version, [string[]] $Runtime = @('win-x64', 'win-arm64')) {
     @($Runtime | ForEach-Object { Get-ReleaseZipName $Version $_ }) +
-    @('SHA256SUMS.txt', 'winget-manifests.zip', 'install.ps1', 'uninstall.ps1')
+    @('SHA256SUMS.txt', 'version.json', 'winget-manifests.zip', 'install.ps1', 'uninstall.ps1')
+}
+
+function Write-ReleaseVersionFile([string] $Path, [string] $Version, [string] $Commit, [datetimeoffset] $Date) {
+    if ($Commit -notmatch '^[0-9a-fA-F]{40}$') { throw "The release commit must be 40 hex digits, not '$Commit'." }
+    $json = [ordered]@{
+        version = $Version
+        commit = $Commit.ToLowerInvariant()
+        date = $Date.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ', [Globalization.CultureInfo]::InvariantCulture)
+    } | ConvertTo-Json -Compress
+    $directory = Split-Path -Parent $Path
+    if ($directory -and -not (Test-Path -LiteralPath $directory)) { New-Item -ItemType Directory -Force -Path $directory | Out-Null }
+    [IO.File]::WriteAllText($Path, $json + "`n")
 }
 
 function Get-WindowsSdkTool([string] $Name) {
