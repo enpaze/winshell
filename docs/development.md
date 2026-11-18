@@ -481,7 +481,6 @@ How a version is cut, tagged, stamped, and published is [Releasing](releasing.md
 ├── docs/
 │   ├── agents/                      # How agents work on this repo
 │   ├── reference/                   # A page per namespace
-│   ├── research/                    # Research notes that a tracked decision builds on
 │   ├── releasing.md                 # How a version is cut, tagged, stamped, and published
 │   ├── samples/message-widget/      # The message widget the configuration guide builds; not a shell
 │   ├── *.md                         # The configuration guide and troubleshooting
