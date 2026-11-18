@@ -20,7 +20,7 @@ internal static class ShellHookWindow
         _window = NativeWindow.TryCreate(ClassName, 0, 0, OnMessage, null, true);
         if (_window is not null && _message != 0 && PInvoke.RegisterShellHookWindow((HWND)_window.Handle))
             return true;
-        _window?.Release(true);
+        _window?.Dispose();
         _window = null;
         return false;
     }

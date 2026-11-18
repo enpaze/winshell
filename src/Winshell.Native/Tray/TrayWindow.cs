@@ -60,7 +60,7 @@ internal sealed unsafe class TrayWindow : IDisposable
 
     public void Dispose()
     {
-        _window.Release(true);
+        _window.Dispose();
     }
 
     private static WindowMessageHandler OnMessage(CopyDataHandler copyData, Func<uint, nint, nint, bool> message)

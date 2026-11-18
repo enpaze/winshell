@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Media.MediaFoundation;
 
@@ -159,33 +160,10 @@ internal sealed unsafe class Mp4Writer : IDisposable
         return (uint)Math.Clamp((long)width * height * rate / 10, 1_000_000, 50_000_000);
     }
 
-    private static void Release(IMFAttributes* pointer)
+    private static void Release<T>(T* pointer)
+        where T : unmanaged
     {
         if (pointer is not null)
-            pointer->Release();
-    }
-
-    private static void Release(IMFMediaType* pointer)
-    {
-        if (pointer is not null)
-            pointer->Release();
-    }
-
-    private static void Release(IMFMediaBuffer* pointer)
-    {
-        if (pointer is not null)
-            pointer->Release();
-    }
-
-    private static void Release(IMFSample* pointer)
-    {
-        if (pointer is not null)
-            pointer->Release();
-    }
-
-    private static void Release(IMFSinkWriter* pointer)
-    {
-        if (pointer is not null)
-            pointer->Release();
+            Marshal.Release((nint)pointer);
     }
 }

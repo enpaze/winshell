@@ -11,22 +11,22 @@ public class WindowAppIdTests
     public void A_package_id_is_read_only_when_the_process_has_one_that_fits()
     {
         Assert.Equal(Terminal, Read(Terminal));
-        Assert.Equal("", AppUserModelIds.Read(_ =>
-            new AppUserModelIds.Query(WIN32_ERROR.APPMODEL_ERROR_NO_APPLICATION, 0)));
-        Assert.Equal("", AppUserModelIds.Read(_ =>
-            new AppUserModelIds.Query(
+        Assert.Equal("", TextBuffer.ReadTerminated(AppUserModelIds.MaxCharacters, _ =>
+            new TextBuffer.Terminated(WIN32_ERROR.APPMODEL_ERROR_NO_APPLICATION, 0)));
+        Assert.Equal("", TextBuffer.ReadTerminated(AppUserModelIds.MaxCharacters, _ =>
+            new TextBuffer.Terminated(
                 WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER,
                 (uint)AppUserModelIds.MaxCharacters + 1)));
     }
 
     private static string Read(string id)
     {
-        return AppUserModelIds.Read(buffer =>
+        return TextBuffer.ReadTerminated(AppUserModelIds.MaxCharacters, buffer =>
         {
             if (buffer.Length == 0)
-                return new AppUserModelIds.Query(WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER, (uint)id.Length + 1);
+                return new TextBuffer.Terminated(WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER, (uint)id.Length + 1);
             id.CopyTo(buffer);
-            return new AppUserModelIds.Query(WIN32_ERROR.ERROR_SUCCESS, (uint)id.Length + 1);
+            return new TextBuffer.Terminated(WIN32_ERROR.ERROR_SUCCESS, (uint)id.Length + 1);
         });
     }
 }

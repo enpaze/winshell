@@ -97,7 +97,7 @@ internal sealed unsafe class KeyboardLayouts
 
     private string IdOf(nint handle)
     {
-        var bits = Bits(handle);
+        var bits = unchecked((uint)handle);
         var low = (ushort)bits;
         var high = (ushort)(bits >> 16);
         if ((high & 0xF000) == 0xF000)
@@ -147,16 +147,8 @@ internal sealed unsafe class KeyboardLayouts
         var text = key.GetValue("Layout Text") as string ?? "";
         if (key.GetValue("Layout Display Name") is not string display || display.Length == 0)
             return text;
-        var resolved = Indirect(display);
+        var resolved = IndirectString.Load(display);
         return resolved.Length > 0 ? resolved : text;
-    }
-
-    private static string Indirect(string text)
-    {
-        if (text[0] != '@')
-            return text;
-        var buffer = new char[512];
-        return PInvoke.SHLoadIndirectString(text, buffer).Value == 0 ? new string(buffer).TrimEnd('\0') : "";
     }
 
     private string Language(ushort langId)
@@ -220,10 +212,5 @@ internal sealed unsafe class KeyboardLayouts
         for (var i = 0; i < written; i++)
             handles[i] = (nint)buffer[i].Value;
         return handles;
-    }
-
-    private static uint Bits(nint handle)
-    {
-        return unchecked((uint)handle);
     }
 }

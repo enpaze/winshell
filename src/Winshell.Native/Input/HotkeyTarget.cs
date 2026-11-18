@@ -45,6 +45,6 @@ internal sealed class HotkeyTarget : IDisposable
 
     public void Dispose()
     {
-        _window.Release(true);
+        _window.Dispose();
     }
 }

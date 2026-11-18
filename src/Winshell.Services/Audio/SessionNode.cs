@@ -129,7 +129,7 @@ internal sealed class SessionNode : AudioGraphNode
     {
         var system = IsSystem;
         _control.GetDisplayName(out var displayName);
-        displayName = CoreAudio.LoadIndirectString(displayName ?? "");
+        displayName = IndirectString.Load(displayName ?? "");
         var path = _processId == 0 ? null : ProcessImage.TryRead(_processId);
         var binary = path is null ? "" : Path.GetFileName(path);
         var programName = path is null ? "" : Path.GetFileNameWithoutExtension(path);

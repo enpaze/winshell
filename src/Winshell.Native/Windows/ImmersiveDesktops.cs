@@ -97,111 +97,107 @@ internal static class ImmersiveDesktops
 
     internal static bool SwitchTo(Guid id, out string problem)
     {
-        if (!TryInternal(out var manager, out var error))
+        return Use(false, out problem, (IVirtualDesktopManagerInternal manager, out string problem) =>
         {
-            problem = $"did not run ({error})";
-            return false;
-        }
-
-        nint pointer = 0;
-        try
-        {
-            if (!TryFind(manager, id, out pointer))
+            nint pointer = 0;
+            try
             {
-                problem = "could not find that desktop";
-                return false;
-            }
+                if (!TryFind(manager, id, out pointer))
+                {
+                    problem = "could not find that desktop";
+                    return false;
+                }
 
-            var hr = manager.SwitchDesktop(pointer);
-            problem = hr < 0 ? $"failed ({Hex(hr)})" : "";
-            return hr >= 0;
-        }
-        catch (Exception ex) when (ex is COMException or InvalidCastException or InvalidComObjectException)
-        {
-            problem = $"failed ({ex.GetType().Name})";
-            return false;
-        }
-        finally
-        {
-            if (pointer != 0)
-                Marshal.Release(pointer);
-            Com.Release(manager);
-        }
+                var hr = manager.SwitchDesktop(pointer);
+                problem = hr < 0 ? $"failed ({Hex(hr)})" : "";
+                return hr >= 0;
+            }
+            finally
+            {
+                if (pointer != 0)
+                    Marshal.Release(pointer);
+            }
+        });
     }
 
     internal static Guid? Create(out string problem)
     {
-        if (!TryInternal(out var manager, out var error))
+        return Use<Guid?>(null, out problem, (IVirtualDesktopManagerInternal manager, out string problem) =>
         {
-            problem = $"did not run ({error})";
-            return null;
-        }
-
-        IVirtualDesktop? created = null;
-        try
-        {
-            var hr = manager.CreateDesktop(out var pointer);
-            created = Com.Wrap<IVirtualDesktop>(pointer);
-            if (hr < 0 || created is null)
+            IVirtualDesktop? created = null;
+            try
             {
-                problem = $"failed ({Hex(hr)})";
-                return null;
-            }
+                var hr = manager.CreateDesktop(out var pointer);
+                created = Com.Wrap<IVirtualDesktop>(pointer);
+                if (hr < 0 || created is null)
+                {
+                    problem = $"failed ({Hex(hr)})";
+                    return null;
+                }
 
-            hr = created.GetId(out var id);
-            if (hr < 0 || id == Guid.Empty)
+                hr = created.GetId(out var id);
+                if (hr < 0 || id == Guid.Empty)
+                {
+                    problem = $"returned a desktop with no id ({Hex(hr)})";
+                    return null;
+                }
+
+                problem = "";
+                return id;
+            }
+            finally
             {
-                problem = $"returned a desktop with no id ({Hex(hr)})";
-                return null;
+                Com.Release(created);
             }
-
-            problem = "";
-            return id;
-        }
-        catch (Exception ex) when (ex is COMException or InvalidCastException or InvalidComObjectException)
-        {
-            problem = $"failed ({ex.GetType().Name})";
-            return null;
-        }
-        finally
-        {
-            Com.Release(created);
-            Com.Release(manager);
-        }
+        });
     }
 
     internal static bool Remove(Guid id, Guid fallback, out string problem)
     {
+        return Use(false, out problem, (IVirtualDesktopManagerInternal manager, out string problem) =>
+        {
+            nint destroy = 0, onto = 0;
+            try
+            {
+                if (!TryFind(manager, id, out destroy) || !TryFind(manager, fallback, out onto))
+                {
+                    problem = "could not find the desktop or its fallback";
+                    return false;
+                }
+
+                var hr = manager.RemoveDesktop(destroy, onto);
+                problem = hr < 0 ? $"failed ({Hex(hr)})" : "";
+                return hr >= 0;
+            }
+            finally
+            {
+                if (destroy != 0)
+                    Marshal.Release(destroy);
+                if (onto != 0)
+                    Marshal.Release(onto);
+            }
+        });
+    }
+
+    private static T Use<T>(T failed, out string problem, ManagerCall<T> call)
+    {
         if (!TryInternal(out var manager, out var error))
         {
             problem = $"did not run ({error})";
-            return false;
+            return failed;
         }
 
-        nint destroy = 0, onto = 0;
         try
         {
-            if (!TryFind(manager, id, out destroy) || !TryFind(manager, fallback, out onto))
-            {
-                problem = "could not find the desktop or its fallback";
-                return false;
-            }
-
-            var hr = manager.RemoveDesktop(destroy, onto);
-            problem = hr < 0 ? $"failed ({Hex(hr)})" : "";
-            return hr >= 0;
+            return call(manager, out problem);
         }
         catch (Exception ex) when (ex is COMException or InvalidCastException or InvalidComObjectException)
         {
             problem = $"failed ({ex.GetType().Name})";
-            return false;
+            return failed;
         }
         finally
         {
-            if (destroy != 0)
-                Marshal.Release(destroy);
-            if (onto != 0)
-                Marshal.Release(onto);
             Com.Release(manager);
         }
     }
@@ -350,5 +346,70 @@ internal static class ImmersiveDesktops
     private static string Hex(int hr)
     {
         return $"0x{hr:X8}";
+    }
+
+    private delegate T ManagerCall<T>(IVirtualDesktopManagerInternal manager, out string problem);
+
+    [ComImport]
+    [Guid("6D5140C1-7436-11CE-8034-00AA006009FA")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IServiceProvider
+    {
+        [PreserveSig]
+        int QueryService(in Guid service, in Guid iid, out nint instance);
+    }
+
+    [ComImport]
+    [Guid("53F5CA0B-158F-4124-900C-057158060B27")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IVirtualDesktopManagerInternal
+    {
+        [PreserveSig]
+        int GetCount(out uint count);
+
+        [PreserveSig]
+        int MoveViewToDesktop(nint view, nint desktop);
+
+        [PreserveSig]
+        int CanViewMoveDesktops(nint view, out int canMove);
+
+        [PreserveSig]
+        int GetCurrentDesktop(out nint desktop);
+
+        [PreserveSig]
+        int GetDesktops(out nint desktops);
+
+        [PreserveSig]
+        int GetAdjacentDesktop(nint desktop, int direction, out nint adjacent);
+
+        [PreserveSig]
+        int SwitchDesktop(nint desktop);
+
+        [PreserveSig]
+        int SwitchDesktopAndMoveForegroundView(nint desktop);
+
+        [PreserveSig]
+        int CreateDesktop(out nint desktop);
+
+        [PreserveSig]
+        int MoveDesktop(nint desktop, int index);
+
+        [PreserveSig]
+        int RemoveDesktop(nint destroy, nint fallback);
+    }
+
+    [ComImport]
+    [Guid("3F07F4BE-B107-441A-AF0F-39D82529072C")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IVirtualDesktop
+    {
+        [PreserveSig]
+        int IsViewVisible(nint view, out int visible);
+
+        [PreserveSig]
+        int GetId(out Guid id);
+
+        [PreserveSig]
+        int GetName(out nint name);
     }
 }

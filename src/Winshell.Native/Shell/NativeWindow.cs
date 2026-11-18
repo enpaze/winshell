@@ -49,7 +49,7 @@ internal readonly unsafe ref struct WindowMessage
 
 internal delegate nint? WindowMessageHandler(WindowMessage message);
 
-internal sealed unsafe class NativeWindow
+internal sealed unsafe class NativeWindow : IDisposable
 {
     private const int ErrorClassAlreadyExists = 1410;
 
@@ -112,6 +112,11 @@ internal sealed unsafe class NativeWindow
         Forget(hwnd);
         if (destroy)
             PInvoke.DestroyWindow((HWND)hwnd);
+    }
+
+    public void Dispose()
+    {
+        Release(true);
     }
 
     private void Forget(nint hwnd)
