@@ -18,22 +18,24 @@ internal sealed class WinlandBackend : IWinlandBackend
 
     private readonly TimeProvider _time;
     private readonly Listeners<Handlers> _listeners = new();
+    private readonly IReadOnlyList<string> _candidates;
     private TimeSpan _poll = FirstPoll;
     private int _started;
     private volatile string? _pipeName;
     private volatile int _processId;
     private volatile bool _connected;
 
-    internal WinlandBackend(TimeProvider time)
+    internal WinlandBackend(TimeProvider time, IReadOnlyList<string>? pipes = null)
     {
         _time = time;
+        _candidates = pipes ?? Candidates;
     }
 
     public bool IsConnected => _connected;
 
     public int ProcessId => _processId;
 
-    public string PipePath => @"\\.\pipe\" + (_pipeName ?? Candidates[0]);
+    public string PipePath => @"\\.\pipe\" + (_pipeName ?? _candidates[0]);
 
     public IDisposable Listen(Action<bool> connectionChanged, Action<string> eventReceived, Action<Exception> failed)
     {
@@ -48,7 +50,7 @@ internal sealed class WinlandBackend : IWinlandBackend
         while (true)
         {
             var lost = false;
-            foreach (var name in Candidates)
+            foreach (var name in _candidates)
             {
                 var pipe = await ConnectAsync(name, 250).ConfigureAwait(false);
                 if (pipe is null)
@@ -103,7 +105,7 @@ internal sealed class WinlandBackend : IWinlandBackend
 
     public async Task<string?> RequestAsync(string command)
     {
-        var names = _pipeName is { } known ? [known] : Candidates;
+        var names = _pipeName is { } known ? [known] : _candidates;
         foreach (var name in names)
         {
             await using var pipe = await ConnectAsync(name, 1000).ConfigureAwait(false);
