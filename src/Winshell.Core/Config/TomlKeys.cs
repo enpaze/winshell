@@ -105,7 +105,7 @@ internal sealed class TomlKeys
         _warn($"{where}: {key.Name} {reason}, so it was left unchanged");
     }
 
-    private static string Expected(Type type)
+    internal static string Expected(Type type)
     {
         var target = Nullable.GetUnderlyingType(type) ?? type;
         if (target.IsGenericType && target.GetGenericTypeDefinition() == typeof(IReadOnlyList<>))
@@ -147,7 +147,7 @@ internal sealed class TomlKeys
         return text[..(char.IsHighSurrogate(text[99]) ? 99 : 100)] + "…";
     }
 
-    private static bool TryConvert(object value, Type type, [NotNullWhen(true)] out object? converted)
+    internal static bool TryConvert(object value, Type type, [NotNullWhen(true)] out object? converted)
     {
         var target = Nullable.GetUnderlyingType(type) ?? type;
         converted = null;

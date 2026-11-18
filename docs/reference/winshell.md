@@ -413,6 +413,22 @@ An exception.
 | --- | --- |
 | `UnsupportedWidgetException(string message)` | constructor |
 
+## Widget
+
+A WinUI Component. The members here are the ones Winshell adds.
+
+| Member | Type |
+| --- | --- |
+| `Orientation` | Orientation, protected, read-only |
+| `Settings` | IReadOnlyDictionary of string, object, protected, read-only |
+| `Shell` | [Shell](#shell), protected, read-only |
+| `Style` | [ShellStyle](#shellstyle)?, protected, read-only |
+| `Window` | [ShellWindow](#shellwindow)?, protected, read-only |
+| `Setting<T>(string key, T? fallback)` | T?, protected |
+| `StylePopup(UIElement content)` | FrameworkElement, protected |
+| `UseNow(TimeSpan every)` | DateTime, protected |
+| `UseScreen()` | [ScreenInfo](#screeninfo)?, protected |
+
 ## WidgetArea
 
 A WinUI Component. The members here are the ones Winshell adds.
