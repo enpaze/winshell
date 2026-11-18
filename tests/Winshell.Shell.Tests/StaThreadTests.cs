@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.CompilerServices;
 
 namespace Winshell.ShellTests;
@@ -33,6 +34,27 @@ public sealed class StaThreadTests
 
         Assert.Same(thrown, caught);
         Assert.Contains(nameof(Fail), thrown.StackTrace, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void From_an_MTA_thread_the_body_keeps_the_callers_culture_and_UI_culture()
+    {
+        var culture = CultureInfo.GetCultureInfo("fr-FR");
+        var uiCulture = CultureInfo.GetCultureInfo("ja-JP");
+
+        var ran = On(ApartmentState.MTA, () =>
+        {
+            CultureInfo.CurrentCulture = culture;
+            CultureInfo.CurrentUICulture = uiCulture;
+            (CultureInfo Culture, CultureInfo UICulture, int Thread) seen = default;
+            StaThread.Run(() => seen = (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture,
+                Environment.CurrentManagedThreadId));
+            return (Caller: Environment.CurrentManagedThreadId, Seen: seen);
+        });
+
+        Assert.NotEqual(ran.Caller, ran.Seen.Thread);
+        Assert.Equal(culture, ran.Seen.Culture);
+        Assert.Equal(uiCulture, ran.Seen.UICulture);
     }
 
     private static (int Caller, Ran Ran) Run()
