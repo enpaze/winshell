@@ -14,6 +14,15 @@ internal static class StyleHost
 
     private static readonly ConditionalWeakTable<FrameworkElement, Mark> Marks = new();
 
+    public static Func<Action> FollowShellStyle(ShellStyle? own, Action changed) => () =>
+    {
+        if (own is not null)
+            return () => { };
+        var shell = Shell.Current;
+        shell.StyleChanged += changed;
+        return () => shell.StyleChanged -= changed;
+    };
+
     public static bool Show(FrameworkElement element, ShellStyle? own)
     {
         var resolved = own ?? Shell.Current.Style;

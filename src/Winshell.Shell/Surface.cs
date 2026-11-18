@@ -19,15 +19,7 @@ public sealed class Surface : Component<SurfaceProps>
         var shown = UseRef(props.Style);
         shown.Current = props.Style;
         var (_, bump) = UseReducer(0);
-        UseEffect(() =>
-        {
-            if (props.Style is not null)
-                return () => { };
-            void Follow() => bump(_ => _ + 1);
-            var shell = Shell.Current;
-            shell.StyleChanged += Follow;
-            return () => shell.StyleChanged -= Follow;
-        }, props.Style);
+        UseEffect(StyleHost.FollowShellStyle(props.Style, () => bump(_ => _ + 1)), props.Style);
 
         if (root.Current is { } mounted)
             Paint(mounted);

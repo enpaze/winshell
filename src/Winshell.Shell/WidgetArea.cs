@@ -44,15 +44,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         var (_, bumpRemake) = UseReducer(0);
         var (_, bumpFile) = UseReducer(0);
         UseEffect(() => () => anchor.Current?.Stop(), false);
-        UseEffect(() =>
-        {
-            if (props.Style is not null)
-                return () => { };
-            void Follow() => bumpFile(pulse => pulse + 1);
-            var shell = Shell.Current;
-            shell.StyleChanged += Follow;
-            return () => shell.StyleChanged -= Follow;
-        }, props.Style);
+        UseEffect(StyleHost.FollowShellStyle(props.Style, () => bumpFile(pulse => pulse + 1)), props.Style);
 
         if (slot.Current is null || slot.Current.Name != props.Name)
             slot.Current = new SectionStore(props.Name, () => defaultsRef.Current);
