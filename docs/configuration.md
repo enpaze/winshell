@@ -369,7 +369,7 @@ A widget derives from [Widget](reference/winshell.md#widget), a component whose 
 - `Shell` is the running shell, and `Settings` the placement's settings.
 - `Orientation` is the area's, and `Style` the style in effect for it, or null when the shell sets none.
 - `Window` is the shell window the area is in, and null until it is in one.
-- `Setting(key, fallback)` reads one setting the way a [preferences](#preferences) key of the fallback's type is read: the fallback when the placement has no such key, and an `UnsupportedWidgetException` that names the key and the type it must be when the value does not convert. `Setting("icons", false)` takes `true` or `false`, or a number, which is `false` when it is zero. A string is refused with `icons must be true or false.`
+- `Setting(key, fallback)` reads one setting the way a [preferences](#preferences) key of the fallback's type is read: the fallback when the placement has no such key, and an `UnsupportedWidgetException` that names the key and the type it must be when the value does not convert. `Setting("icons", false)` takes `true` or `false`, or a number, which is true unless it is zero or `nan`. Any other value is refused with `icons must be true or false.`
 - `UseNow(every)` renders the widget again every `every` and returns the local time.
 - `UseScreen()` returns the screen of `Window` and renders the widget again when it changes. It is null until the area is in a window, and for a window that names no screen, which sits on the primary screen.
 - `StylePopup(content)` styles a [popup](#place-widgets-in-an-area).
