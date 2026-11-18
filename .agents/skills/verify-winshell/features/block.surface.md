@@ -12,7 +12,8 @@ A `Surface` is a component that paints the style's background behind its content
 
 ## How to get to it (user POV)
 
-- In a Reactor component, return `Surface(content, new Thickness(4))`, and mount the component in a window with a `ReactorHostControl`.
+- Show a component in a `PanelWindow<T>`, `PopupWindow<T>` or `FloatingWindow<T>`, or a component with props in their `<T, TProps>` forms, which puts it on a surface.
+- In a Reactor component, return `Surface(content, new Thickness(4))` for a part in a style of its own.
 - Every `Bar` shows its three areas in a surface, so `winshell inspect tree` names a bar window's content type `Surface`.
 - In the `features` shell, the surface is the box under the `Click` and `Popup` buttons.
 
@@ -33,6 +34,6 @@ Preconditions:
 ## Gotchas
 
 - The text is the surface's content, so the step proves that the surface renders what it holds. It does not prove the background color. Take a screenshot and look at it for that.
-- A brush that code reads from the style comes back in the theme the app started in. Give a window of your own a surface so its background follows a theme switch.
+- A brush that code reads from the style comes back in the theme the app started in. A component window's surface follows a theme switch, so paint with a surface rather than the brush.
 - A style that leaves `Background` null paints Windows' solid background, in the window's light or dark theme.
 - A contrast theme wins over the style's colors: the background becomes Windows' window color.

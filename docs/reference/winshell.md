@@ -71,6 +71,22 @@ Has the members of [ShellWindow](#shellwindow).
 | `Owner` | [FloatingWindow](#floatingwindow)? |
 | `Title` | string |
 
+## FloatingWindow of T
+
+Has the members of [FloatingWindow](#floatingwindow).
+
+| Member | Type |
+| --- | --- |
+| `FloatingWindow<T>()` | constructor |
+
+## FloatingWindow of T, TProps
+
+Has the members of [FloatingWindow](#floatingwindow).
+
+| Member | Type |
+| --- | --- |
+| `FloatingWindow<T, TProps>(TProps? props)` | constructor |
+
 ## IEventLoop
 
 | Member | Type |
@@ -139,7 +155,7 @@ Has the members of [ObservableObject](#observableobject).
 | `Error` | 3 |
 | `Fatal` | 4 |
 
-## ObservableList
+## ObservableList of T
 
 | Member | Type |
 | --- | --- |
@@ -175,6 +191,22 @@ Has the members of [ShellWindow](#shellwindow).
 | `Margins` | Thickness |
 | `ReservedSize` | double |
 
+## PanelWindow of T
+
+Has the members of [PanelWindow](#panelwindow).
+
+| Member | Type |
+| --- | --- |
+| `PanelWindow<T>()` | constructor |
+
+## PanelWindow of T, TProps
+
+Has the members of [PanelWindow](#panelwindow).
+
+| Member | Type |
+| --- | --- |
+| `PanelWindow<T, TProps>(TProps? props)` | constructor |
+
 ## PixelImage
 
 | Member | Type |
@@ -203,6 +235,14 @@ Has the members of [ShellWindow](#shellwindow).
 | `Format(ImmutableArray of [Placement](#placement) placements)` | IReadOnlyList of object, static |
 | `Parse(object items)` | ImmutableArray of [Placement](#placement), static |
 
+## PopupPosition
+
+| Member | Type |
+| --- | --- |
+| `Center` | [PopupPosition](#popupposition), static, read-only |
+| `Top` | [PopupPosition](#popupposition), static, read-only |
+| `At(Point origin)` | [PopupPosition](#popupposition), static |
+
 ## PopupWindow
 
 Has the members of [ShellWindow](#shellwindow).
@@ -211,8 +251,24 @@ Has the members of [ShellWindow](#shellwindow).
 | --- | --- |
 | `PopupWindow()` | constructor |
 | `GrabFocus` | bool |
-| `Rect` | Rect |
+| `Position` | [PopupPosition](#popupposition) |
 | `Dismissed` | Action |
+
+## PopupWindow of T
+
+Has the members of [PopupWindow](#popupwindow).
+
+| Member | Type |
+| --- | --- |
+| `PopupWindow<T>()` | constructor |
+
+## PopupWindow of T, TProps
+
+Has the members of [PopupWindow](#popupwindow).
+
+| Member | Type |
+| --- | --- |
+| `PopupWindow<T, TProps>(TProps? props)` | constructor |
 
 ## Preferences
 
@@ -372,6 +428,7 @@ Has the members of [ObservableObject](#observableobject).
 | `Raise()` | void |
 | `StartSystemMove()` | void |
 | `StartSystemResize([Edges](#edges) edges)` | void |
+| `Toggle()` | void |
 
 ## Surface
 

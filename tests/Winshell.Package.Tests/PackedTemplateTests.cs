@@ -135,14 +135,10 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             new XElement("ProjectReference", new XAttribute("Include", @"..\lib\WidgetLib.csproj"))));
         shell.Save(projectFile);
         File.WriteAllText(Path.Combine(shellDir, "Program.cs"), """
-            using Microsoft.UI.Reactor.Hosting;
-
             Shell.Run(shell =>
             {
                 Widgets.Register<WidgetLib.ClockWidget>("library-clock");
-                var host = new ReactorHostControl { ComponentFactory = () => new Placements() };
-                var window = new PanelWindow { Width = 250, Height = 80, Content = host, Visible = true };
-                window.Closed += host.Dispose;
+                _ = new PanelWindow<Placements> { Width = 250, Height = 80, Visible = true };
             });
 
             public sealed class Placements : Component

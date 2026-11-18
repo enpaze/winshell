@@ -80,7 +80,7 @@ internal static class Inspector
                 var window = windows[i];
                 json.WriteStartObject();
                 json.WriteNumber("window", i);
-                json.WriteString("kind", window.GetType().Name);
+                json.WriteString("kind", KindName(window.Host!.Kind));
                 json.WriteNumber("x", window.Origin.X);
                 json.WriteNumber("y", window.Origin.Y);
                 json.WriteNumber("width", window.ActualWidth);
@@ -223,8 +223,21 @@ internal static class Inspector
         ]);
     }
 
+    private static string KindName(WindowKind kind)
+    {
+        return kind switch
+        {
+            WindowKind.Panel => nameof(PanelWindow),
+            WindowKind.Floating => nameof(FloatingWindow),
+            WindowKind.Popup => nameof(PopupWindow),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind))
+        };
+    }
+
     private static string ContentName(UIElement content)
     {
+        if (ComponentHost.ShownBy(content) is { } shown)
+            return shown.Name;
         if (content is ReactorHostControl host)
         {
             var component = ReactorDiagnostics.GetHosts()

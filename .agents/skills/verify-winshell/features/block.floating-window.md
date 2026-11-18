@@ -8,12 +8,13 @@ A `FloatingWindow` is a normal window with a title bar, which the user can move,
 - `size` opens at `Width` and `Height`, kept between `MinimumSize` and `MaximumSize`.
 - `state` minimizes, maximizes or fills the screen with `Minimized`, `Maximized` and `Fullscreen`.
 - `owner` makes the window owned by another `FloatingWindow` with `Owner`.
-- `content` shows any WinUI element as its `Content`, such as a `ReactorHostControl`.
+- `content` shows any WinUI element as its `Content`.
+- `component` shows the component `T` of a `FloatingWindow<T>`, or of a `FloatingWindow<T, TProps>` with the props it was given, on a surface, and unmounts it when the window is disposed.
 - `look` takes a `Backdrop` of Mica, Acrylic or MicaAlt, and rounded or square `Corners`.
 
 ## How to get to it (user POV)
 
-- In the function a shell passes to `Shell.Run`, write `new FloatingWindow { Title = "...", Width = 460, Height = 760, Content = ..., Visible = true }`.
+- In the function a shell passes to `Shell.Run`, write `new FloatingWindow<T> { Title = "...", Width = 460, Height = 760, Visible = true }` for a component `T`, or `new FloatingWindow { ..., Content = ... }` for any WinUI element.
 - Start the `features` shell. Its window is the one titled `Winshell features`.
 
 ## Driving it with winshell inspect

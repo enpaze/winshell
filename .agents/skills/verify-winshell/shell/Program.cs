@@ -1,6 +1,4 @@
 using System.Globalization;
-using Microsoft.UI.Reactor.Hosting;
-using Windows.Foundation;
 
 Shell.Run(shell =>
 {
@@ -26,8 +24,11 @@ Shell.Run(shell =>
     var launcher = new Launcher { Hotkey = "Ctrl+Alt+Shift+F14" };
     var launched = new Launched(shell, launcher);
 
-    var floating = new FloatingWindow { Title = "Winshell features", Width = 460, Height = 760 };
-    var panel = new PanelWindow
+    FloatingWindow<FeatureWindow, FeatureWindowProps> floating = null!;
+    PanelWindow<PanelRow, WindowRowProps> panel = null!;
+    PopupWindow<PopupRow, WindowRowProps> popup = null!;
+    popup = new(new WindowRowProps("block.popup-window", () => popup)) { Width = 240, Height = 32 };
+    panel = new(new WindowRowProps("block.panel-window", () => panel))
     {
         Anchors = Edges.Top | Edges.Left,
         Width = 240,
@@ -35,24 +36,20 @@ Shell.Run(shell =>
         ReservedSize = 0,
         AboveWindows = false
     };
-    var popup = new PopupWindow();
-    panel.Content = Host(() => new Row(), Rows.Window("block.panel-window", panel));
-    popup.Content = Host(() => new Row(), Rows.Window("block.popup-window", popup));
+    floating = new(new FeatureWindowProps(
+        [Rows.Launcher(launched), .. Rows.Services(shell, hotkey, idle, jumpList)],
+        new WindowRowProps("block.floating-window", () => floating), OpenPopup, launcher.Show))
+    {
+        Title = "Winshell features",
+        Width = 460,
+        Height = 760
+    };
     void OpenPopup()
     {
-        popup.Rect = new Rect(floating.Origin.X, floating.Origin.Y, 240, 32);
+        popup.Position = PopupPosition.At(floating.Origin);
         popup.Visible = true;
     }
 
-    floating.Content = Host(() => new FeatureWindow(),
-        new FeatureWindowProps(
-            [Rows.Launcher(launched), .. Rows.Services(shell, hotkey, idle, jumpList)],
-            Rows.Window("block.floating-window", floating), OpenPopup, launcher.Show));
     panel.Visible = true;
     floating.Visible = true;
 });
-
-static ReactorHostControl Host<TProps>(Func<Component> make, TProps props)
-{
-    return new ReactorHostControl { ComponentFactory = make, Props = props };
-}

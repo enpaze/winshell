@@ -17,15 +17,31 @@ public sealed class Row : Component<RowProps>
     }
 }
 
+public sealed record WindowRowProps(string Id, Func<ShellWindow> Window);
+
+public class WindowRow : Component<WindowRowProps>
+{
+    public override Element Render()
+    {
+        var window = Props.Window();
+        UseObservableTree(window);
+        var kind = Props.Id["block.".Length..].Replace('-', ' ');
+        return TextBlock($"{kind}: {Size(window.ActualWidth)}x{Size(window.ActualHeight)}").AutomationId(Props.Id);
+    }
+
+    private static string Size(double value)
+    {
+        return Math.Round(value).ToString(CultureInfo.InvariantCulture);
+    }
+}
+
+public sealed class PanelRow : WindowRow;
+
+public sealed class PopupRow : WindowRow;
+
 internal static class Rows
 {
     private static readonly INotifyPropertyChanged Unwatched = new Fixed();
-
-    public static RowProps Window(string id, ShellWindow window)
-    {
-        var kind = id["block.".Length..].Replace('-', ' ');
-        return new RowProps(id, window, () => $"{kind}: {Size(window.ActualWidth)}x{Size(window.ActualHeight)}");
-    }
 
     public static RowProps Launcher(Launched launched)
     {
@@ -86,11 +102,6 @@ internal static class Rows
         return device.IsPresent
             ? $"{Math.Round(device.Percentage * 100).ToString(CultureInfo.InvariantCulture)}%"
             : "none";
-    }
-
-    private static string Size(double value)
-    {
-        return Math.Round(value).ToString(CultureInfo.InvariantCulture);
     }
 
     private sealed class Fixed : ObservableObject;

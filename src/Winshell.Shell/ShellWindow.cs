@@ -163,6 +163,11 @@ public abstract class ShellWindow : ObservableObject, IDisposable
 
     public event Action<Exception>? Failed;
 
+    public void Toggle()
+    {
+        Visible = !_visible;
+    }
+
     public void Focus()
     {
         _host?.Focus.TakeKeyboard();

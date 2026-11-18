@@ -11,6 +11,16 @@ public sealed partial class FeatureMapTests
 
     private static readonly string MapFolder = Path.Combine(Repo.Root, RelativeMap);
 
+    private static readonly Dictionary<Type, Type> ComponentWindows = new()
+    {
+        [typeof(PanelWindow<>)] = typeof(PanelWindow),
+        [typeof(PanelWindow<,>)] = typeof(PanelWindow),
+        [typeof(PopupWindow<>)] = typeof(PopupWindow),
+        [typeof(PopupWindow<,>)] = typeof(PopupWindow),
+        [typeof(FloatingWindow<>)] = typeof(FloatingWindow),
+        [typeof(FloatingWindow<,>)] = typeof(FloatingWindow)
+    };
+
     [Fact]
     public void Every_command_has_a_feature_file()
     {
@@ -51,6 +61,24 @@ public sealed partial class FeatureMapTests
         Assert.Equal(
             ["Bar", "CaptureView", "FloatingWindow", "Launcher", "PanelWindow", "PopupWindow", "Surface", "WidgetArea", "WindowThumbnail"],
             Blocks());
+    }
+
+    [Fact]
+    public void Every_component_window_is_a_component_sub_feature_of_its_windows_feature_file()
+    {
+        var problems = new List<string>();
+        foreach (var (window, block) in ComponentWindows)
+        {
+            var file = $"{RelativeMap}/block.{Slug(block.Name)}.md";
+            var shown = $"`{block.Name}<{string.Join(", ", window.GetGenericArguments().Select(type => type.Name))}>`";
+            var line = File.ReadLines(Path.Combine(Repo.Root, file))
+                .FirstOrDefault(line => line.StartsWith("- `component` ", StringComparison.Ordinal));
+            if (line is null || !line.Contains(shown, StringComparison.Ordinal))
+                problems.Add(
+                    $"{file} does not name {shown} in its `component` sub-feature. Add it to the line that starts with - `component`.");
+        }
+
+        Assert.True(problems.Count == 0, string.Join('\n', problems));
     }
 
     private static void AssertMatches(string kind, IReadOnlyCollection<string> inventory)
@@ -144,7 +172,8 @@ public sealed partial class FeatureMapTests
                 .Where(type => type is { IsClass: true, IsAbstract: false } &&
                                (type.IsSubclassOf(typeof(ShellWindow)) || type.IsSubclassOf(typeof(UIElement)) ||
                                 type.IsSubclassOf(typeof(ReactorComponent)) || compositions.Contains(type.Name)))
-                .Select(type => type.Name)
+                .Select(type => ComponentWindows.GetValueOrDefault(type, type).Name)
+                .Distinct()
                 .Order(StringComparer.Ordinal)
         ];
     }

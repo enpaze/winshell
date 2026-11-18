@@ -64,7 +64,7 @@ internal static class ReferencePages
 
         public string Section(Type type)
         {
-            var text = new StringBuilder($"\n## {Bare(type.Name)}\n\n");
+            var text = new StringBuilder($"\n## {Title(type)}\n\n");
             if (type.IsEnum)
             {
                 text.Append("| Value | Number |\n| --- | --- |\n");
@@ -108,7 +108,7 @@ internal static class ReferencePages
         private IEnumerable<(string Cell, string Kind)> Rows(Type type)
         {
             foreach (var ctor in type.GetConstructors(Declared).OrderBy(ctor => ctor.GetParameters().Length))
-                yield return ($"{type.Name}({Parameters(ctor)})", "constructor");
+                yield return ($"{CodeName(type)}({Parameters(ctor)})", "constructor");
             foreach (var property in type.GetProperties(Declared | BindingFlags.NonPublic)
                          .Where(member => !Skip(member) && Shown(member.GetMethod ?? member.SetMethod!))
                          .OrderBy(member => member.Name, StringComparer.Ordinal))
@@ -228,6 +228,20 @@ internal static class ReferencePages
         [typeof(double)] = "double",
         [typeof(decimal)] = "decimal"
     };
+
+    private static string Title(Type type)
+    {
+        return type.IsGenericTypeDefinition
+            ? Bare(type.Name) + " of " + string.Join(", ", type.GetGenericArguments().Select(t => t.Name))
+            : type.Name;
+    }
+
+    private static string CodeName(Type type)
+    {
+        return type.IsGenericTypeDefinition
+            ? Bare(type.Name) + "<" + string.Join(", ", type.GetGenericArguments().Select(t => t.Name)) + ">"
+            : type.Name;
+    }
 
     private static string Bare(string name)
     {

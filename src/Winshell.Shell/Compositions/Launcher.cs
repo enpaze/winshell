@@ -5,7 +5,6 @@ using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Windows.Foundation;
 using Windows.System;
 using Winshell.Apps;
 using Winshell.Input;
@@ -53,14 +52,6 @@ public sealed class Launcher : ObservableObject, IDisposable
         var window = _window ??= MakeWindow();
         _opened++;
         _host!.Props = new LauncherViewProps(_opened, Commands, Run, Hide);
-        var screen = Where();
-        window.Screen = screen;
-        if (screen is not null)
-        {
-            var area = screen.WorkArea;
-            window.Rect = new Rect(area.X + (area.Width - Width) / 2, area.Y + area.Height / 5, Width, Height);
-        }
-
         window.Visible = true;
         window.Focus();
         Set(ref _visible, true, nameof(Visible));
@@ -91,21 +82,6 @@ public sealed class Launcher : ObservableObject, IDisposable
         _preferences.PropertyChanged += (_, _) => _hotkey.Sequence = _preferences.Hotkey;
     }
 
-    private ScreenInfo? Where()
-    {
-        if (_shell.WindowList.ActiveWindow?.Screens is [var active, ..])
-            return active;
-        ScreenInfo? first = null;
-        foreach (var screen in _shell.Screens)
-        {
-            if (screen.IsPrimary)
-                return screen;
-            first ??= screen;
-        }
-
-        return first;
-    }
-
     private PopupWindow MakeWindow()
     {
         _host = new ReactorHostControl
@@ -119,6 +95,9 @@ public sealed class Launcher : ObservableObject, IDisposable
         };
         var window = new PopupWindow
         {
+            Position = PopupPosition.Top,
+            Width = Width,
+            Height = Height,
             GrabFocus = true,
             Corners = WindowCorners.Round,
             Content = _host

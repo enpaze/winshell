@@ -12,10 +12,11 @@ A `PanelWindow` is a frameless window that sits on the edges of a screen, such a
 - `margins` keeps `Margins` between the panel and its edges.
 - `focusable` lets the panel take the keyboard with `Focusable`.
 - `per-screen` keeps one panel on each screen with `ScreenWindows`.
+- `component` shows the component `T` of a `PanelWindow<T>`, or of a `PanelWindow<T, TProps>` with the props it was given, on a surface, and unmounts it when the panel is disposed.
 
 ## How to get to it (user POV)
 
-- In the function a shell passes to `Shell.Run`, write `new PanelWindow { Anchors = Edges.Left | Edges.Right | Edges.Bottom, Height = 48, ReservedSize = 48, Content = ..., Visible = true }`.
+- In the function a shell passes to `Shell.Run`, write `new PanelWindow<T> { Anchors = Edges.Left | Edges.Right | Edges.Bottom, Height = 48, ReservedSize = 48, Visible = true }` for a component `T`, or `new PanelWindow { ..., Content = ... }` for any WinUI element.
 - Make one per screen with `new ScreenWindows("name", (screen, row) => new PanelWindow { Screen = screen, ... })`.
 - Every `Bar` is a `PanelWindow` on each screen.
 - Start the `features` shell. Its panel is at the top left of the primary screen, behind other windows.

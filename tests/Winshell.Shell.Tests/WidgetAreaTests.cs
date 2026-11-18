@@ -36,8 +36,22 @@ public sealed class WidgetAreaTests
             text.Resources["widget-owned"] = "keep";
             var root = input!.StylePopup(content);
             var second = input.StylePopup(new TextBlock { Text = "second popup" });
-            using var popup = new PopupWindow { Rect = new Rect(200, 100, 200, 90), Content = root, Visible = true };
-            using var another = new PopupWindow { Rect = new Rect(410, 100, 200, 90), Content = second, Visible = true };
+            using var popup = new PopupWindow
+            {
+                Position = PopupPosition.At(new Point(200, 100)),
+                Width = 200,
+                Height = 90,
+                Content = root,
+                Visible = true
+            };
+            using var another = new PopupWindow
+            {
+                Position = PopupPosition.At(new Point(410, 100)),
+                Width = 200,
+                Height = 90,
+                Content = second,
+                Visible = true
+            };
             await ShellFixture.LaidOut(text).WaitAsync(TestContext.Current.CancellationToken);
 
             Assert.Equal(36d, root.Resources["ShellSlotSize"]);
@@ -94,7 +108,14 @@ public sealed class WidgetAreaTests
 
             var host = area.Host;
             using var window = new PanelWindow { Width = 180, Height = 90, Content = host, Visible = true };
-            using var popup = new PopupWindow { Rect = new Rect(200, 100, 200, 90), Content = root, Visible = true };
+            using var popup = new PopupWindow
+            {
+                Position = PopupPosition.At(new Point(200, 100)),
+                Width = 200,
+                Height = 90,
+                Content = root,
+                Visible = true
+            };
             await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
             Assert.Equal(36d, root.Resources["ShellSlotSize"]);
             return true;
@@ -771,7 +792,9 @@ public sealed class WidgetAreaTests
             var popupText = new TextBlock { Text = "popup" };
             using var popup = new PopupWindow
             {
-                Rect = new Rect(200, 100, 200, 90),
+                Position = PopupPosition.At(new Point(200, 100)),
+                Width = 200,
+                Height = 90,
                 Content = PopupCapture.Context!.StylePopup(popupText),
                 Visible = true
             };

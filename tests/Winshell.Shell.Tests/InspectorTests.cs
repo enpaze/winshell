@@ -107,6 +107,35 @@ public sealed partial class InspectorTests : IDisposable
         Assert.DoesNotContain("hunter2", tree, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [Trait("Category", "Window")]
+    [InlineData("PanelWindow")]
+    [InlineData("PopupWindow")]
+    [InlineData("FloatingWindow")]
+    public async Task A_component_window_is_named_after_its_component_and_its_kind(string kind)
+    {
+        var (tree, found) = await ShellFixture.On(async shell =>
+        {
+            using ShellWindow window = kind switch
+            {
+                "PanelWindow" => new PanelWindow<Named> { Width = 220, Height = 40, Visible = true },
+                "PopupWindow" => new PopupWindow<Named> { Width = 220, Height = 40, Visible = true },
+                _ => new FloatingWindow<Named> { Title = "Winshell test", Width = 220, Height = 120, Visible = true }
+            };
+            await ShellFixture.LaidOut((FrameworkElement)window.Content!);
+            return (await Inspector.Run(shell, "tree", []), await Inspector.Run(shell, "click", ["Named", "Named"]));
+        });
+
+        Assert.Equal(kind, OpenWindow(tree, nameof(Named)).GetProperty("kind").GetString());
+        Assert.Equal("Clicked Named", found);
+    }
+
+    private sealed class Named : Microsoft.UI.Reactor.Core.Component
+    {
+        public override Microsoft.UI.Reactor.Core.Element Render() =>
+            Microsoft.UI.Reactor.Factories.Button("Named", () => { }).AutomationName("Named");
+    }
+
     [Fact]
     [Trait("Category", "Window")]
     public async Task A_click_runs_the_buttons_handler_through_its_own_event()

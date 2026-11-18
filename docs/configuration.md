@@ -201,7 +201,7 @@ Windows stay Winshell's. The content is any `UIElement`. Sizes are logical pixel
 ```
 
 - **[PanelWindow](reference/winshell.md#panelwindow)** sits on the edges of a screen. `Anchors` chooses the edges. `ReservedSize` reserves that edge, so maximized windows stop short of it. A `ReservedSize` of 0 reserves nothing. `AboveWindows` set false puts it behind other windows.
-- **[PopupWindow](reference/winshell.md#popupwindow)** is a frameless window placed next to another. `GrabFocus` gives it the keyboard. `Dismissed` fires when it closes.
+- **[PopupWindow](reference/winshell.md#popupwindow)** is a frameless window over the others, placed as [Place a popup window](#place-a-popup-window) describes. `GrabFocus` gives it the keyboard. `Dismissed` fires when it closes.
 - **[FloatingWindow](reference/winshell.md#floatingwindow)** is a normal window with a title bar.
 
 On any window:
@@ -209,8 +209,35 @@ On any window:
 - **`Backdrop`** is `WindowBackdrop.Mica`, `Acrylic`, `MicaAlt` or `None`.
 - **`Corners`** rounds the window.
 - **A flyout** is a WinUI `Flyout` in the window's content. Winshell closes an open flyout on a window that does not activate.
+- **`Toggle()`** shows a hidden window and hides a shown one.
 
-The Winshell package carries Reactor, so a configuration adds no Reactor reference. Set `new ReactorHostControl(component)` as a panel or popup window's content. The component renders again when a service object it observes with `UseObservable` changes. `UseObservableTree` follows a whole service, as [Keep a component current](#keep-a-component-current) describes.
+### Show a component
+
+`PanelWindow<T>`, `PopupWindow<T>` and `FloatingWindow<T>` show the component `T`. The window makes one `T` and puts it on a [surface](#a-surface-of-your-own). Hiding the window keeps the component, and disposing the window unmounts it. The Winshell package carries Reactor, so a shell adds no Reactor reference.
+
+```csharp
+        var calendar = new PopupWindow<Calendar> { Position = PopupPosition.Top, Width = 320, Height = 240 };
+        var hotkey = shell.Hotkey("Win+Alt+C", calendar.Toggle);
+```
+
+A component with props, a `Component<TProps>`, goes in a `PanelWindow<T, TProps>`, `PopupWindow<T, TProps>` or `FloatingWindow<T, TProps>`, which is given the props. Two windows of one component can show different things:
+
+```csharp
+        var today = new PopupWindow<Note, string>("Stand-up at 10") { Position = PopupPosition.Top };
+        var later = new PopupWindow<Note, string>("Pay the rent");
+```
+
+The component renders again when a service object it observes with `UseObservable` changes. `UseObservableTree` follows a whole service, as [Keep a component current](#keep-a-component-current) describes.
+
+### Place a popup window
+
+A popup window's `Position` says where it goes. Its `Width` and `Height` size it, and without them it is 100 by 100:
+
+- **`PopupPosition.Center`**, the default, centers it on the screen with the active app window.
+- **`PopupPosition.Top`** centers it across that screen, a fifth of the way down the work area. A launcher opens there.
+- **`PopupPosition.At(point)`** puts its top-left corner at a point on the desktop in logical pixels, such as a window's `Origin`.
+
+With no active app window, `Center` and `Top` use the primary screen. A `Screen` set on the window chooses the screen instead.
 
 ### One panel per screen
 
@@ -233,7 +260,7 @@ A [ScreenWindows](reference/winshell.md#screenwindows) keeps one window on each 
 - It makes a window for each screen when it is made, makes one for a screen that is connected, and disposes the window of a screen that is removed. The other screens' windows stay as they are, and so do their widgets.
 - A screen whose resolution or scale changes keeps its window, made with the screen as it was then: `shell.Screens` has it as it is now.
 - `Dispose` removes every window.
-- The function can return anything disposable that holds the window, such as an object that also disposes the window's host, which unmounts its widgets.
+- The function can return anything disposable that holds the window, such as the window itself. A [component window](#show-a-component) unmounts its component when it is disposed.
 - A function that throws is logged under the component's name, and that screen has no window until the screens or the rows change.
 
 A screen that differs from the rest has a row in the component's section of the [preferences file](#preferences), and the function is given that row, or null:
@@ -310,23 +337,21 @@ Saving applies it live:
 
 ### A surface of your own
 
-A bar's areas sit in one [Surface](reference/winshell.md#surface) component, which paints the [style's](#style) `ShellBackgroundBrush` behind them in the window's light or dark theme, and follows a switch while the shell runs. A window's content is one `ReactorHostControl`, and that host mounts the component you write. A brush your code reads from the style comes back in the theme the app started in, so give a window of your own a surface too:
+A bar's areas sit in one [Surface](reference/winshell.md#surface) component, which paints the [style's](#style) `ShellBackgroundBrush` behind them in the window's light or dark theme, and follows a switch while the shell runs. A brush your code reads from the style comes back in the theme the app started in, so a [component window](#show-a-component) puts its component on a surface too:
 
 ```csharp
 public sealed class Dock : Component
 {
     public override Element Render() =>
-        Surface(WidgetArea("dock", ["start", "tasks"]), new Thickness(4));
+        WidgetArea("dock", ["start", "tasks"]).Padding(4);
 }
 ```
 
 ```csharp
-        var host = new ReactorHostControl { ComponentFactory = () => new Dock() };
-        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = host, Visible = true };
-        dock.Closed += host.Dispose;
+        var dock = new PanelWindow<Dock> { Anchors = Edges.Bottom, Height = 56, Visible = true };
 ```
 
-`Surface` and `WidgetArea` come from `Winshell.Elements`, one of [the package's usings](#the-packages-usings). The props are immutable: rendering the component again with a new record is how the tree changes, and disposing the host unmounts it. What a surface holds stays loaded when the style changes. Its own style wins over the shell's, as an area's does. The area inside the tree is an element, not a second host.
+`Surface(content, padding, style)` paints part of a component in a style of its own. `Surface` and `WidgetArea` come from `Winshell.Elements`, one of [the package's usings](#the-packages-usings). The props are immutable: rendering the component again with a new record is how the tree changes, and disposing the window unmounts it. What a surface holds stays loaded when the style changes. Its own style wins over the shell's, as an area's does. The area inside the tree is an element, not a second host.
 
 ## A launcher
 
@@ -426,13 +451,11 @@ public sealed class EndArea : Component
 ```
 
 ```csharp
-        var host = new ReactorHostControl { ComponentFactory = () => new EndArea() };
-        var panel = new PanelWindow { Height = 48, Content = host, Visible = true };
-        panel.Closed += host.Dispose;
+        var panel = new PanelWindow<EndArea> { Height = 48, Visible = true };
 ```
 
 - **Replacing widgets.** Render the area again with a new list, unless the [preferences file](#preferences) has a list for it. A widget whose name is no longer in that place is disposed and made again. A widget that stays is rendered again with the new props, and a new orientation does the same.
-- **Disposing an area.** The example treats a user closing the panel as permanent: `Closed` normally only hides a window, and here it disposes the host, which unmounts the widgets. When your code tears the panel down with `panel.Dispose()`, dispose the host too. Removing or reparenting the host does not dispose widgets.
+- **Disposing an area.** `panel.Dispose()` unmounts the area, which disposes its widgets. Hiding the panel, or a user closing it, keeps them.
 - **Settings.** Treat placement settings, including nested tables, as read-only.
 - **Styling.** The [shell style](#style) styles the plain controls in an area, including the ones a component renders, so a component names no brush of its own. A widget that still has XAML uses `{ThemeResource}` for area-sensitive resources: `{StaticResource}` resolves at construction, before the area owns the widget.
 - **Popups.** Assign `StylePopup(content)` to a `PopupWindow.Content`, or to a flyout's content. A widget may call it as soon as it renders, before the area is in a host. The call loads a fresh dictionary of the area's style at once and follows later changes to that style, until the area removes the widget or is disposed. `content` may be a plain element or a `ReactorHostControl` showing a component. The widget still owns its popup windows.
@@ -599,7 +622,7 @@ It opens off the shell's thread, so a slow app does not hold up the shell. What 
 
 ### Keep a component current
 
-`UseObservableTree` follows a service: a component renders again when anything that service holds changes, including an item in one of its lists. `UseObservable` follows one service object or one list. Both take an `INotifyPropertyChanged` source, which a service object and an [ObservableList](reference/winshell.md#observablelist) are, and return that source:
+`UseObservableTree` follows a service: a component renders again when anything that service holds changes, including an item in one of its lists. `UseObservable` follows one service object or one list. Both take an `INotifyPropertyChanged` source, which a service object and an [ObservableList](reference/winshell.md#observablelist-of-t) are, and return that source:
 
 ```csharp
 public sealed class BatteryLabel : Widget

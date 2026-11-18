@@ -2,7 +2,7 @@ using Microsoft.UI.Xaml;
 
 namespace Winshell;
 
-public sealed partial class PanelWindow : ShellWindow
+public partial class PanelWindow : ShellWindow
 {
     private Edges _anchors;
     private Thickness _margins;
