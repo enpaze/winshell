@@ -52,7 +52,7 @@ internal static class Rows
             new("service.media", shell.Media, () => $"sessions: {shell.Media.Sessions.Count}"),
             new("service.networking", shell.Networking, () =>
                 $"ready: {shell.Networking.Ready}; connectivity: {shell.Networking.Connectivity}; devices: {shell.Networking.Devices.Count}"),
-            new("service.new-hotkey", hotkey, () =>
+            new("service.hotkey", hotkey, () =>
                 $"sequence: {hotkey.Sequence}; active: {hotkey.Active}; taken: {hotkey.Taken}"),
             new("service.new-idle-monitor", idle, () =>
                 $"enabled: {idle.Enabled}; idle: {idle.IsIdle}; timeout: {idle.Timeout.ToString(CultureInfo.InvariantCulture)}"),

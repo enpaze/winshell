@@ -31,7 +31,7 @@ The driver copies each shell into the session's config folder, points it at this
 
 ## Feature entry contract
 
-A feature file is named `<kind>.<slug>.md`. The kind is `command`, `service`, `widget` or `block`, and the slug is the inventory name in lowercase with hyphens, such as `command.inspect-click.md` for `winshell inspect click` or `service.new-hotkey.md` for `Shell.NewHotkey`.
+A feature file is named `<kind>.<slug>.md`. The kind is `command`, `service`, `widget` or `block`, and the slug is the inventory name in lowercase with hyphens, such as `command.inspect-click.md` for `winshell inspect click` or `service.hotkey.md` for `Shell.Hotkey`.
 
 Each file starts with an H1 title and one paragraph that says what the user sees. It then uses exactly four H2 sections in this order.
 
@@ -105,11 +105,11 @@ A step is one of two objects. Each takes `within`, the seconds to retry it until
 - [Brightness](./service.brightness.md) reads and sets the brightness of the monitors that support it.
 - [CPU](./service.cpu.md) reads how busy the processor is.
 - [Explorer taskbar](./service.explorer-taskbar.md) hides and shows Explorer's taskbar.
+- [Hotkeys (Hotkey)](./service.hotkey.md) registers a global hotkey.
 - [Jump lists](./service.jump-lists.md) reads an app's recent and frequent destinations.
 - [Keyboard layouts](./service.keyboard-layouts.md) reads and switches the input languages.
 - [Media](./service.media.md) reads and controls the media sessions Windows shares.
 - [Networking](./service.networking.md) reads connectivity, adapters and Wi-Fi, and connects to networks.
-- [Hotkeys (NewHotkey)](./service.new-hotkey.md) registers a global hotkey.
 - [Idle monitor (NewIdleMonitor)](./service.new-idle-monitor.md) reports when the user is idle.
 - [Notifications](./service.notifications.md) reads and dismisses notifications, and sends toasts.
 - [Power](./service.power.md) reads the battery and the power source.

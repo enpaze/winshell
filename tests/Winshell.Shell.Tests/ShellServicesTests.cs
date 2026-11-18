@@ -1,4 +1,6 @@
+using Windows.Win32.UI.Input.KeyboardAndMouse;
 using Windows.Win32.UI.WindowsAndMessaging;
+using Winshell.Input;
 using Winshell.Native;
 
 namespace Winshell.ShellTests;
@@ -6,6 +8,29 @@ namespace Winshell.ShellTests;
 [Trait("Category", "Window")]
 public sealed class ShellServicesTests
 {
+    [Fact]
+    public async Task A_hotkey_claims_its_sequence_runs_its_action_and_gives_the_chord_back()
+    {
+        var (active, presses, freed) = await ShellFixture.On(shell =>
+        {
+            var presses = 0;
+            var hotkey = shell.Hotkey("Ctrl+Alt+Shift+F24", () => presses++);
+            var active = hotkey.Active;
+            ((IHotkeyListener)hotkey).OnPressed();
+            hotkey.Dispose();
+            const HOT_KEY_MODIFIERS modifiers = HOT_KEY_MODIFIERS.MOD_CONTROL | HOT_KEY_MODIFIERS.MOD_ALT |
+                HOT_KEY_MODIFIERS.MOD_SHIFT;
+            bool freed = PInvoke.RegisterHotKey(default, 1, modifiers, 0x87);
+            if (freed)
+                PInvoke.UnregisterHotKey(default, 1);
+            return (active, presses, freed);
+        });
+
+        Assert.True(active);
+        Assert.Equal(1, presses);
+        Assert.True(freed);
+    }
+
     [Fact]
     public async Task Winland_resolves_windows_from_the_shells_window_list()
     {

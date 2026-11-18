@@ -599,12 +599,10 @@ Services hang off `Shell`, created when first read. `shell.Audio`, `shell.Power`
 
 Reading does not ask for permission and does not change anything. Wi-Fi scanning, notification access and Bluetooth pairing ask Windows only when the configuration calls the method, from a user's action. `shell.Session` can ask Windows to lock. Windows' own lock screen takes over.
 
-`shell.NewHotkey()` is a hotkey that works anywhere in Windows. `Sequence` uses `Win`, `Ctrl`, `Alt` and `Shift`.
+`shell.Hotkey(sequence, pressed)` is a hotkey that works anywhere in Windows. The sequence uses `Win`, `Ctrl`, `Alt` and `Shift`, and `pressed` runs each time the user presses it. Dispose the hotkey to give the keys back.
 
 ```csharp
-        var hotkey = shell.NewHotkey();
-        hotkey.Sequence = "Win+E";
-        hotkey.Pressed += (_, _) => { };
+        var hotkey = shell.Hotkey("Win+E", () => { });
 ```
 
 `shell.Open` opens a Settings page, an app or a URL as Windows would: `ms-settings:sound`, `https://example.com` or an app's path. It takes a URI or a path as a string, not a command line.

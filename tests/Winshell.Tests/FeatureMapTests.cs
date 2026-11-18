@@ -95,8 +95,7 @@ public sealed partial class FeatureMapTests
         var properties = typeof(Shell).GetProperties(members).Where(property => InSubNamespace(property.PropertyType))
             .Select(property => property.Name);
         var factories = typeof(Shell).GetMethods(members)
-            .Where(method => method.Name.StartsWith("New", StringComparison.Ordinal) && !method.IsSpecialName &&
-                             InSubNamespace(method.ReturnType))
+            .Where(method => !method.IsSpecialName && InSubNamespace(method.ReturnType))
             .Select(method => method.Name);
         return [.. properties.Concat(factories).Order(StringComparer.Ordinal)];
     }

@@ -22,8 +22,7 @@ public sealed class FeatureShell : ShellConfiguration
         shell.Loop.Schedule(TimeSpan.FromSeconds(1), Tick);
         Widgets.Register<FeatureWidget>("feature");
 
-        var hotkey = shell.NewHotkey();
-        hotkey.Sequence = "Ctrl+Alt+Shift+F13";
+        var hotkey = shell.Hotkey("Ctrl+Alt+Shift+F13");
         var idle = shell.NewIdleMonitor();
         idle.Timeout = 600;
         idle.Enabled = true;
