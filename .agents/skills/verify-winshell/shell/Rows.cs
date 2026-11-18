@@ -38,7 +38,7 @@ internal static class Rows
         [
             new("service.apps", shell.Apps, () => $"apps: {shell.Apps.Apps.Count}"),
             new("service.audio", shell.Audio, () =>
-                $"ready: {shell.Audio.Ready}; playback: {shell.Audio.DefaultPlaybackDevice?.Description ?? "none"}; recording: {shell.Audio.DefaultRecordingDevice?.Description ?? "none"}"),
+                $"ready: {shell.Audio.Ready}; playback: {shell.Audio.DefaultPlaybackDevice?.Name ?? "none"}; recording: {shell.Audio.DefaultRecordingDevice?.Name ?? "none"}"),
             new("service.bluetooth", shell.Bluetooth, () =>
                 $"ready: {shell.Bluetooth.Ready}; adapter: {shell.Bluetooth.DefaultAdapter?.Name ?? "none"}; devices: {shell.Bluetooth.Devices.Count}"),
             new("service.brightness", shell.Brightness, () =>

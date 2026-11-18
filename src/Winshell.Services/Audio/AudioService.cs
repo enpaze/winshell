@@ -1,155 +1,11 @@
-using System.Collections.ObjectModel;
-using System.Runtime.InteropServices;
-
 namespace Winshell.Audio;
-
-public sealed class AudioNode : ObservableObject
-{
-    private readonly AudioGraphNode _node;
-    private readonly Log _log;
-    private string _description;
-    private IReadOnlyList<float> _volumes;
-    private bool _muted;
-    private bool _active;
-
-    internal AudioNode(AudioService service, AudioGraphNode node, Log log)
-    {
-        Service = service;
-        _node = node;
-        _log = log;
-        _description = node.Description;
-        _volumes = node.Volumes;
-        _muted = node.Muted;
-        _active = node.Active;
-        Channels = node.Channels;
-        node.PropertiesChanged += OnPropertiesChanged;
-        node.AudioChanged += OnAudioChanged;
-        node.ActiveChanged += OnActiveChanged;
-    }
-
-    private AudioService Service { get; }
-
-    internal AudioGraphNode Node => _node;
-
-    internal bool IsRemoved { get; private set; }
-
-    internal event Action? Removed;
-
-    public int Id => Read(_node).Id;
-
-    public string Name => Read(_node).Name;
-
-    public string Description => Read(_description);
-
-    public string InterfaceName => Read(_node).InterfaceName;
-
-    public bool IsPlayback => Read(_node).IsPlayback;
-
-    public bool IsSession => Read(_node).IsSession;
-
-    public AudioNode? Device => Service.Find(Read(_node).Device);
-
-    public bool Active => Read(_active);
-
-    public IReadOnlyDictionary<string, string> Properties => Read(_node).Properties;
-
-    public bool Muted
-    {
-        get => Read(_muted);
-        set => Apply(() => _node.SetMuted(value));
-    }
-
-    public double Volume
-    {
-        get => Average(Read(_volumes));
-        set
-        {
-            var old = Average(_volumes);
-            if (old == 0)
-                SetLevels(Enumerable.Repeat(value, _volumes.Count).ToArray());
-            else
-                SetLevels([.. _volumes.Select(level => level * (value / old))]);
-        }
-    }
-
-    public IReadOnlyList<double> Volumes
-    {
-        get => [.. Read(_volumes).Select(v => (double)v)];
-        set => SetLevels(value);
-    }
-
-    public IReadOnlyList<AudioChannel> Channels { get => Read(field); }
-
-    internal void Remove()
-    {
-        if (IsRemoved)
-            return;
-        IsRemoved = true;
-        _node.PropertiesChanged -= OnPropertiesChanged;
-        _node.AudioChanged -= OnAudioChanged;
-        _node.ActiveChanged -= OnActiveChanged;
-        Removed?.Invoke();
-    }
-
-    private static double Average(IReadOnlyList<float> volumes)
-    {
-        return volumes.Count == 0 ? 0 : volumes.Average();
-    }
-
-    private void SetLevels(IReadOnlyList<double>? levels)
-    {
-        var count = _volumes.Count;
-        if (count == 0)
-            return;
-        var requested = levels ?? [];
-        if (requested.Count == 0)
-            return;
-
-        float[] next = requested.Count == count
-            ? [.. requested.Select(level => (float)Math.Max(0, level))]
-            : [.. Enumerable.Repeat((float)Math.Max(0, requested[0]), count)];
-        Apply(() => _node.SetVolumes(next));
-    }
-
-    private void Apply(Action change)
-    {
-        try
-        {
-            change();
-        }
-        catch (COMException e)
-        {
-            _log.Warn("audio", $"Cannot change the volume of {_node.Description}: {e.Message}");
-        }
-    }
-
-    private void OnPropertiesChanged()
-    {
-        Changed(nameof(Properties));
-        Set(ref _description, _node.Description, nameof(Description));
-    }
-
-    private void OnAudioChanged()
-    {
-        var old = _volumes;
-        _volumes = _node.Volumes;
-        Changed(!old.SequenceEqual(_volumes), nameof(Volumes));
-        Changed(Average(old) != Average(_volumes), nameof(Volume));
-        Set(ref _muted, _node.Muted, nameof(Muted));
-    }
-
-    private void OnActiveChanged()
-    {
-        Set(ref _active, _node.Active, nameof(Active));
-    }
-}
 
 public sealed class AudioService : ObservableObject, IDisposable
 {
     private readonly IAudioBackend _backend;
     private readonly Log _log;
-    private AudioNode? _defaultPlayback;
-    private AudioNode? _defaultRecording;
+    private PlaybackDevice? _defaultPlayback;
+    private RecordingDevice? _defaultRecording;
 
     internal AudioService(IEventLoop loop, Log log, IAudioBackend? backend = null)
     {
@@ -162,39 +18,28 @@ public sealed class AudioService : ObservableObject, IDisposable
         _backend.DefaultsChanged += OnDefaultsChanged;
     }
 
-    public ObservableList<AudioNode> Nodes { get => Read(field); } = [];
+    public ObservableList<PlaybackDevice> PlaybackDevices { get => Read(field); } = [];
 
-    public AudioNode? DefaultPlaybackDevice
+    public ObservableList<RecordingDevice> RecordingDevices { get => Read(field); } = [];
+
+    public PlaybackDevice? DefaultPlaybackDevice
     {
         get => Read(_defaultPlayback);
-        set => SetDefault(value, true);
+        set => SetDefault(value);
     }
 
-    public AudioNode? DefaultRecordingDevice
+    public RecordingDevice? DefaultRecordingDevice
     {
         get => Read(_defaultRecording);
-        set => SetDefault(value, false);
+        set => SetDefault(value);
     }
 
     public bool Ready => Read(_backend).Ready;
 
-    internal AudioNode? Find(AudioGraphNode? node)
+    private void SetDefault(AudioDevice? device)
     {
-        return Nodes.FirstOrDefault(n => n.Node == node);
-    }
-
-    private void SetDefault(AudioNode? node, bool playback)
-    {
-        if (node is null)
-            return;
-        var kind = playback ? "playback" : "recording";
-        if (node.IsSession || node.IsPlayback != playback)
-        {
-            _log.Warn("audio", $"Cannot make {node.Description} the default {kind} device: it is not a {kind} device");
-            return;
-        }
-
-        _backend.SetDefault(node.Name);
+        if (device is not null)
+            _backend.SetDefault(device.Node.Name);
     }
 
     private void OnNodeChanged(AudioGraphNode _)
@@ -204,14 +49,30 @@ public sealed class AudioService : ObservableObject, IDisposable
 
     private void Refresh()
     {
-        Nodes.Sync(_backend.Nodes, n => n.Node, n => n, n => new AudioNode(this, n, _log), static (_, _) => { },
-            n => n.Remove());
+        Sync(PlaybackDevices, AudioNodeType.PlaybackDevice, node => new PlaybackDevice(node, _log));
+        Sync(RecordingDevices, AudioNodeType.RecordingDevice, node => new RecordingDevice(node, _log));
+    }
+
+    private void Sync<T>(ObservableList<T> devices, AudioNodeType type, Func<AudioGraphNode, T> create)
+        where T : AudioDevice
+    {
+        devices.Sync(_backend.Nodes.Where(n => n.Type == type), d => d.Node, n => n, create, static (_, _) => { },
+            d => d.Remove());
+        foreach (var device in devices)
+            device.Sessions.Sync(_backend.Nodes.Where(n => n.Device == device.Node), s => s.Node, n => n,
+                n => new AudioSession(device, n, _log), static (_, _) => { }, s => s.Remove());
     }
 
     private void OnDefaultsChanged()
     {
-        Set(ref _defaultPlayback, Find(_backend.DefaultPlayback), nameof(DefaultPlaybackDevice));
-        Set(ref _defaultRecording, Find(_backend.DefaultRecording), nameof(DefaultRecordingDevice));
+        Set(ref _defaultPlayback, Find(PlaybackDevices, _backend.DefaultPlayback), nameof(DefaultPlaybackDevice));
+        Set(ref _defaultRecording, Find(RecordingDevices, _backend.DefaultRecording), nameof(DefaultRecordingDevice));
+    }
+
+    private static T? Find<T>(ObservableList<T> devices, AudioGraphNode? node)
+        where T : AudioDevice
+    {
+        return devices.FirstOrDefault(d => d.Node == node);
     }
 
     public void Dispose()
@@ -219,8 +80,10 @@ public sealed class AudioService : ObservableObject, IDisposable
         _backend.NodeAdded -= OnNodeChanged;
         _backend.NodeRemoved -= OnNodeChanged;
         _backend.DefaultsChanged -= OnDefaultsChanged;
-        foreach (var node in Nodes)
-            node.Remove();
+        foreach (var device in PlaybackDevices)
+            device.Remove();
+        foreach (var device in RecordingDevices)
+            device.Remove();
         _backend.Dispose();
     }
 }

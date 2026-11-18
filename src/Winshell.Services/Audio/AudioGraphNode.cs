@@ -10,19 +10,13 @@ internal abstract class AudioGraphNode(int id)
 
     public string Description { get; protected set; } = "";
 
-    public string InterfaceName { get; protected init; } = "";
-
-    protected AudioNodeType Type { get; init; }
-
-    public bool IsPlayback => Type is AudioNodeType.PlaybackDevice or AudioNodeType.PlaybackSession;
-
-    public bool IsSession => Type is AudioNodeType.PlaybackSession or AudioNodeType.RecordingSession;
+    public AudioNodeType Type { get; protected init; }
 
     public virtual AudioGraphNode? Device => null;
 
     public bool Active { get; private set; }
 
-    public Dictionary<string, string> Properties { get; protected set; } = [];
+    public AudioFormFactor FormFactor { get; protected init; }
 
     public AudioChannel[] Channels { get; protected init; } = [];
 
@@ -32,7 +26,7 @@ internal abstract class AudioGraphNode(int id)
 
     public event Action? AudioChanged;
 
-    public event Action? PropertiesChanged;
+    public event Action? DescriptionChanged;
 
     public event Action? ActiveChanged;
 
@@ -56,9 +50,9 @@ internal abstract class AudioGraphNode(int id)
         AudioChanged?.Invoke();
     }
 
-    protected void ApplyProperties()
+    protected void ApplyDescription()
     {
-        PropertiesChanged?.Invoke();
+        DescriptionChanged?.Invoke();
     }
 
     protected void ApplyActive(bool active)
