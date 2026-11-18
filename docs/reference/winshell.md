@@ -203,6 +203,14 @@ Has the members of [ShellWindow](#shellwindow).
 | `Format(ImmutableArray of [Placement](#placement) placements)` | IReadOnlyList of object, static |
 | `Parse(object items)` | ImmutableArray of [Placement](#placement), static |
 
+## PopupPosition
+
+| Member | Type |
+| --- | --- |
+| `Center` | [PopupPosition](#popupposition), static, read-only |
+| `Top` | [PopupPosition](#popupposition), static, read-only |
+| `At(Point origin)` | [PopupPosition](#popupposition), static |
+
 ## PopupWindow
 
 Has the members of [ShellWindow](#shellwindow).
@@ -211,7 +219,7 @@ Has the members of [ShellWindow](#shellwindow).
 | --- | --- |
 | `PopupWindow()` | constructor |
 | `GrabFocus` | bool |
-| `Rect` | Rect |
+| `Position` | [PopupPosition](#popupposition) |
 | `Dismissed` | Action |
 
 ## Preferences

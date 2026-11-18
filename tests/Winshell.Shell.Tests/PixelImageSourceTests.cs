@@ -34,7 +34,9 @@ public sealed class PixelImageSourceTests
             image.Loaded += (_, _) => loaded.TrySetResult();
             var screen = shell.Screens[0].Geometry;
             using var popup = new PopupWindow();
-            popup.Rect = new Rect(screen.X + 40, screen.Y + 40, 80, 80);
+            popup.Position = PopupPosition.At(new Point(screen.X + 40, screen.Y + 40));
+            popup.Width = 80;
+            popup.Height = 80;
             popup.Content = new Grid { Children = { image } };
             popup.Visible = true;
             await loaded.Task.WaitAsync(TestContext.Current.CancellationToken);

@@ -350,7 +350,9 @@ public sealed class ComponentWidgetTests
                 var body = new ReactorHostControl(new PopupLabel());
                 var popup = new PopupWindow
                 {
-                    Rect = new Rect(240, 80, 220, 80),
+                    Position = PopupPosition.At(new Point(240, 80)),
+                    Width = 220,
+                    Height = 80,
                     Content = StylePopup(body),
                     Visible = true
                 };

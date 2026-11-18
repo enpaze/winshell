@@ -1,10 +1,10 @@
-using Windows.Foundation;
-
 namespace Winshell;
 
 public sealed partial class PopupWindow : ShellWindow
 {
-    private Rect _rect = new(0, 0, 100, 100);
+    private readonly Shell _shell;
+    private PopupPosition _position = PopupPosition.Center;
+    private ScreenInfo? _shownOn;
     private bool _grabFocus;
     private PopupPlacer? _placer;
 
@@ -16,16 +16,17 @@ public sealed partial class PopupWindow : ShellWindow
     internal PopupWindow(Shell shell)
         : base(shell)
     {
+        _shell = shell;
     }
 
     private protected override WindowKind Kind => WindowKind.Popup;
 
-    public Rect Rect
+    public PopupPosition Position
     {
-        get => _rect;
+        get => _position;
         set
         {
-            if (Set(ref _rect, value))
+            if (Set(ref _position, value))
                 OnPlaceChanged();
         }
     }
@@ -49,7 +50,15 @@ public sealed partial class PopupWindow : ShellWindow
 
     private protected override void ApplyPlace()
     {
-        _placer!.Set(new PopupPlace(Screen, _rect));
+        if (!Host!.Place.IsVisible)
+            _shownOn = _position.FollowsActiveWindow && _shell.WindowList.ActiveWindow?.Screens is [var active, ..]
+                ? active
+                : null;
+        _placer!.Set(new PopupPlace(
+            Screen ?? _shownOn,
+            _position,
+            double.IsNaN(Width) ? 100 : Width,
+            double.IsNaN(Height) ? 100 : Height));
     }
 
     private protected override void ApplyFocus()

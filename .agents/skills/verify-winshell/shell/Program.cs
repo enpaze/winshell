@@ -1,6 +1,5 @@
 using System.Globalization;
 using Microsoft.UI.Reactor.Hosting;
-using Windows.Foundation;
 
 Shell.Run(shell =>
 {
@@ -35,12 +34,12 @@ Shell.Run(shell =>
         ReservedSize = 0,
         AboveWindows = false
     };
-    var popup = new PopupWindow();
+    var popup = new PopupWindow { Width = 240, Height = 32 };
     panel.Content = Host(() => new Row(), Rows.Window("block.panel-window", panel));
     popup.Content = Host(() => new Row(), Rows.Window("block.popup-window", popup));
     void OpenPopup()
     {
-        popup.Rect = new Rect(floating.Origin.X, floating.Origin.Y, 240, 32);
+        popup.Position = PopupPosition.At(floating.Origin);
         popup.Visible = true;
     }
 

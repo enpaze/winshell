@@ -20,7 +20,9 @@ public sealed class WindowKindTests
             var screen = shell.Screens[0].Geometry;
             var content = new Grid();
             using var popup = new PopupWindow();
-            popup.Rect = new Rect(screen.X + 60, screen.Y + 60, 200, 120);
+            popup.Position = PopupPosition.At(new Point(screen.X + 60, screen.Y + 60));
+            popup.Width = 200;
+            popup.Height = 120;
             popup.Content = content;
             popup.Visible = true;
             await ShellFixture.LaidOut(content);
@@ -38,7 +40,9 @@ public sealed class WindowKindTests
         {
             var screen = shell.Screens[0].Geometry;
             using var popup = new PopupWindow();
-            popup.Rect = new Rect(screen.X + 60, screen.Y + 60, 200, 120);
+            popup.Position = PopupPosition.At(new Point(screen.X + 60, screen.Y + 60));
+            popup.Width = 200;
+            popup.Height = 120;
             popup.GrabFocus = true;
             popup.Content = new Grid();
             var heard = 0;
@@ -61,7 +65,9 @@ public sealed class WindowKindTests
         {
             var screen = shell.Screens[0].Geometry;
             using var popup = new PopupWindow();
-            popup.Rect = new Rect(screen.X + 60, screen.Y + 60, 200, 120);
+            popup.Position = PopupPosition.At(new Point(screen.X + 60, screen.Y + 60));
+            popup.Width = 200;
+            popup.Height = 120;
             popup.GrabFocus = true;
             popup.Content = new Grid();
             var count = 0;
@@ -94,7 +100,9 @@ public sealed class WindowKindTests
             var opened = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             flyout.Opened += (_, _) => opened.TrySetResult();
             using var popup = new PopupWindow();
-            popup.Rect = new Rect(screen.X + 60, screen.Y + 60, 200, 48);
+            popup.Position = PopupPosition.At(new Point(screen.X + 60, screen.Y + 60));
+            popup.Width = 200;
+            popup.Height = 48;
             popup.GrabFocus = true;
             popup.Content = button;
             var heard = 0;
@@ -156,7 +164,9 @@ public sealed class WindowKindTests
         var screen = shell.Screens[0].Geometry;
         return new PopupWindow
         {
-            Rect = new Rect(screen.X + 60, screen.Y + 60, 200, 120),
+            Position = PopupPosition.At(new Point(screen.X + 60, screen.Y + 60)),
+            Width = 200,
+            Height = 120,
             GrabFocus = grabFocus,
             Content = new Grid()
         };

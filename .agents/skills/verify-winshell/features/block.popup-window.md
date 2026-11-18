@@ -1,17 +1,17 @@
 # PopupWindow
 
-A `PopupWindow` is a frameless window that a shell places next to another, such as a menu or a panel that opens from a bar. In the `features` shell, the `Popup` button opens one, 240 by 32 logical pixels, at the top left of the main window. It shows its real size, such as `popup window: 240x32`.
+A `PopupWindow` is a frameless window over the others, such as a launcher, a menu or a panel that opens from a bar. In the `features` shell, the `Popup` button opens one, 240 by 32 logical pixels, at the top left of the main window. It shows its real size, such as `popup window: 240x32`.
 
 ## Sub-features
 
-- `place` opens the popup at `Rect` on its screen when `Visible` is set to true.
+- `place` opens the popup at its `Position` when `Visible` is set to true: `PopupPosition.Center` or `Top` on the screen with the active app window, or `At` a point. `Width` and `Height` size it.
 - `grab-focus` gives the popup the keyboard with `GrabFocus`.
 - `dismiss` closes a popup that grabs focus when the user clicks outside it or presses Esc, and raises `Dismissed`.
 - `content` shows any WinUI element as its `Content`, such as a widget's `StylePopup(content)`.
 
 ## How to get to it (user POV)
 
-- In a configuration, make `new PopupWindow { Content = ... }`, then set `Rect` and `Visible = true` when the user opens it.
+- In a configuration, make `new PopupWindow { Content = ..., Width = ..., Height = ... }`, then set `Visible = true` when the user opens it.
 - In a widget, give it `StylePopup(content)` so it takes the area's style.
 - In the `features` shell, choose the `Popup` button, whose automation id is `features.popup`.
 

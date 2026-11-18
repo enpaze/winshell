@@ -75,7 +75,7 @@ A panel along one edge of every screen, with start, center and end widget areas.
 _Avoid_: taskbar (that is Explorer's), panel bar
 
 **Popup window**:
-A frameless window placed next to another window.
+A frameless window over the other windows, centered on a screen or placed at a point, such as next to another window.
 _Avoid_: popup, flyout
 
 **Flyout**:

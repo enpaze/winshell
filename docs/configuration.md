@@ -201,7 +201,7 @@ Windows stay Winshell's. The content is any `UIElement`. Sizes are logical pixel
 ```
 
 - **[PanelWindow](reference/winshell.md#panelwindow)** sits on the edges of a screen. `Anchors` chooses the edges. `ReservedSize` reserves that edge, so maximized windows stop short of it. A `ReservedSize` of 0 reserves nothing. `AboveWindows` set false puts it behind other windows.
-- **[PopupWindow](reference/winshell.md#popupwindow)** is a frameless window placed next to another. `GrabFocus` gives it the keyboard. `Dismissed` fires when it closes.
+- **[PopupWindow](reference/winshell.md#popupwindow)** is a frameless window over the others, placed as [Place a popup window](#place-a-popup-window) describes. `GrabFocus` gives it the keyboard. `Dismissed` fires when it closes.
 - **[FloatingWindow](reference/winshell.md#floatingwindow)** is a normal window with a title bar.
 
 On any window:
@@ -211,6 +211,16 @@ On any window:
 - **A flyout** is a WinUI `Flyout` in the window's content. Winshell closes an open flyout on a window that does not activate.
 
 The Winshell package carries Reactor, so a configuration adds no Reactor reference. Set `new ReactorHostControl(component)` as a panel or popup window's content. The component renders again when a service object it observes with `UseObservable` changes. `UseObservableTree` follows a whole service, as [Keep a component current](#keep-a-component-current) describes.
+
+### Place a popup window
+
+A popup window's `Position` says where it goes. Its `Width` and `Height` size it, and without them it is 100 by 100:
+
+- **`PopupPosition.Center`**, the default, centers it on the screen with the active app window.
+- **`PopupPosition.Top`** centers it across that screen, a fifth of the way down the work area. A launcher opens there.
+- **`PopupPosition.At(point)`** puts its top-left corner at a point on the desktop in logical pixels, such as a window's `Origin`.
+
+With no active app window, `Center` and `Top` use the primary screen. A `Screen` set on the window chooses the screen instead.
 
 ### One panel per screen
 

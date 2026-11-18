@@ -218,7 +218,9 @@ internal static class ProbeShell
                   };
                   open.Click += (_, _) =>
                   {
-                      popup.Rect = new Rect(panel.Origin.X, panel.Origin.Y + panel.ActualHeight, 160, 60);
+                      popup.Position = PopupPosition.At(new Point(panel.Origin.X, panel.Origin.Y + panel.ActualHeight));
+                      popup.Width = 160;
+                      popup.Height = 60;
                       popup.Visible = true;
                   };
               }

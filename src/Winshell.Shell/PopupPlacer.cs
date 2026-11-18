@@ -4,7 +4,7 @@ using Winshell.Native;
 
 namespace Winshell;
 
-internal sealed record PopupPlace(ScreenInfo? Screen, Rect Rect);
+internal sealed record PopupPlace(ScreenInfo? Screen, PopupPosition Position, double Width, double Height);
 
 internal sealed class PopupPlacer(HostWindow host, ShellPlatform platform) : IWindowPlacer
 {
@@ -14,14 +14,17 @@ internal sealed class PopupPlacer(HostWindow host, ShellPlatform platform) : IWi
     {
         _place = place;
         var monitors = Screens.List();
-        var at = DesktopSpace.MonitorAt(new Point(place.Rect.X, place.Rect.Y),
-            monitors.Select(m => m.Logical).ToList());
+        var at = place.Position.FollowsActiveWindow
+            ? null
+            : DesktopSpace.MonitorAt(place.Position.Origin, monitors.Select(m => m.Logical).ToList());
         var monitor = monitors.FirstOrDefault(m => m.Id == place.Screen?.Id) ??
                       (at is { } i ? monitors[i] : Screens.Primary());
         if (monitor is null)
             return;
         host.Place.Scale = monitor.Scale;
-        var r = DesktopSpace.ToPhysical(place.Rect, monitor.Bounds, monitor.Scale);
+        var area = DesktopSpace.ToLogical(monitor.Area, monitor.Bounds, monitor.Scale);
+        var r = DesktopSpace.ToPhysical(place.Position.Place(area, place.Width, place.Height), monitor.Bounds,
+            monitor.Scale);
         host.Place.Move(r, HWND.HWND_TOPMOST,
             (SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_NOOWNERZORDER));
     }
