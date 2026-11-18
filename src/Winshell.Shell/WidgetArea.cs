@@ -253,9 +253,10 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         : Preferences(name, (_, value) => Placement.Check(value))
     {
         [TomlComment(
-            "The widgets, in order: each table names one and holds its settings. The list replaces the shell's whole\n" +
-            "default list, and widgets = [] leaves the area empty. Comment it out to use the shell's defaults again.")]
-        public IReadOnlyList<IReadOnlyDictionary<string, object?>>? Widgets
+            "The widgets, in order: a widget's name, or a table that names one and holds its settings. The list\n" +
+            "replaces the shell's whole default list, and widgets = [] leaves the area empty. Comment it out to use the\n" +
+            "shell's defaults again.")]
+        public object? Widgets
         {
             get;
             set => Set(ref field, value);

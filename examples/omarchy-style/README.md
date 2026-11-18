@@ -60,18 +60,11 @@ The project references Winshell's source, so the repo's own check builds it.
   ```toml
   [bar]
   edge = "bottom"
-  center = [{ widget = "clock" }, { widget = "clock", timezone = "UTC" }]
-  end = [
-    { widget = "battery" },
-    { widget = "screen" },
-    { widget = "audio" },
-    { widget = "network" },
-    { widget = "bluetooth" },
-    { widget = "tray" },
-  ]
+  center = ["clock", { widget = "clock", timezone = "UTC" }]
+  end = ["battery", "screen", "audio", "network", "bluetooth", "tray"]
   ```
 
-  `edge` is `top`, `bottom`, `left` or `right`. Each list holds tables: `widget` names the widget, and the other keys are its settings.
+  `edge` is `top`, `bottom`, `left` or `right`. Each list holds widget names and tables: a string places that widget with no settings, and in a table `widget` names the widget and the other keys are its settings.
 
 - **Give one monitor its own bar:** add a `[[bar.screen]]` row to the same file. It may change `edge` and any of the three lists for that monitor alone. `winshell log` prints a `bar` line per screen that starts `manufacturer / model / serial`, which is the identity to copy. Match those three, never `\\.\DISPLAYn`, which Windows renumbers. A row for a monitor that is not connected stays in the file and is not shown on another screen.
 
@@ -81,7 +74,7 @@ The project references Winshell's source, so the repo's own check builds it.
   model = "LG ULTRAGEAR"
   serial = "ABC123"
   edge = "left"
-  end = [{ widget = "tray" }, { widget = "battery" }]
+  end = ["tray", "battery"]
   ```
 
   A row matches when manufacturer, model and serial all equal the monitor's, including an empty serial, and the first match wins. A key the row leaves out is the `[bar]` section's.

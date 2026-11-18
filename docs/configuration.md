@@ -297,12 +297,12 @@ A shell can have several bars. Each has a `Name`, `"bar"` unless given, which na
 
 ### Let the user change a bar
 
-A bar's section of the [preferences file](#preferences) holds `edge` and the three lists, each a list of tables like a [named area's](#let-the-user-change-an-area) `widgets`. A key the file has replaces the property of the same name, and a missing file is written with the bar's own values commented out. A `[[bar.screen]]` row, matched as `ScreenWindows` matches it, may change any of the four keys for one screen:
+A bar's section of the [preferences file](#preferences) holds `edge` and the three lists, each a list of placements like a [named area's](#let-the-user-change-an-area) `widgets`. A key the file has replaces the property of the same name, and a missing file is written with the bar's own values commented out. A `[[bar.screen]]` row, matched as `ScreenWindows` matches it, may change any of the four keys for one screen:
 
 ```toml
 [bar]
 edge = "top"
-end = [{ widget = "tray" }, { widget = "message", text = "Hello" }]
+end = ["tray", { widget = "message", text = "Hello" }]
 
 [[bar.screen]]
 manufacturer = "DEL"
@@ -445,22 +445,24 @@ public sealed class EndArea : Component
 
 ### Let the user change an area
 
-Pass an area's name to let the user replace its placements. The section is created when the component renders. It holds one `widgets` list. Names are case-sensitive, and areas with the same name use the same section. An area with no name always uses its defaults. A missing file is written with each named area's defaults commented out. Uncomment the list and edit it:
+Pass an area's name to let the user replace its placements. The section is created when the component renders. It holds one `widgets` list. Names are case-sensitive, and areas with the same name use the same section. An area with no name always uses its defaults. A missing file is written with each named area's defaults commented out, a placement with no settings as its bare name. Uncomment the list and edit it:
 
 ```toml
 [end]
 widgets = [
+  "clock",
   { widget = "message", text = "Hello from the preferences file" },
   { widget = "message", text = "A second placement" },
 ]
 ```
 
 - The list replaces the area's **whole** default list, in order.
-- `widget` names the registered widget, and the other keys become its `WidgetContext.Settings`, including nested tables and arrays.
+- A string places the widget of that name with no settings.
+- In a table, `widget` names the widget, and the other keys become its `WidgetContext.Settings`, including nested tables and arrays.
 - `widgets = []` leaves the area empty.
 - Comment the list out or remove it to return to the author's defaults. An area absent from the file keeps its defaults.
 
-Saving applies changes live. A widget whose name stays is rendered again with the new settings. A different list of names replaces those widgets. Other areas keep theirs. A syntax error or a list without string `widget` names keeps the last valid list and logs the file location under `preferences`. Winshell does not migrate or merge user lists into new defaults. The old placement file, `widgets\<shell id>.toml`, is not read.
+Saving applies changes live. A widget whose name stays is rendered again with the new settings. A different list of names replaces those widgets. Other areas keep theirs. A syntax error, or a list with an item that is neither a widget name nor a table with a string `widget`, keeps the last valid list and logs the file location under `preferences`. Winshell does not migrate or merge user lists into new defaults. The old placement file, `widgets\<shell id>.toml`, is not read.
 
 ## Style
 

@@ -190,7 +190,7 @@ public sealed class Bar : IDisposable
             return value is string edge && EdgeNames.ContainsKey(edge)
                 ? ""
                 : "must be \"top\", \"bottom\", \"left\" or \"right\"";
-        return Placement.Check(value).Length == 0 ? "" : "must be a list of tables that each name a widget";
+        return Placement.Check(value);
     }
 
     public void Dispose()
@@ -212,22 +212,22 @@ public sealed class Bar : IDisposable
             set => Set(ref field, value);
         } = EdgeNames.Single(pair => pair.Value == bar.Edge).Key;
 
-        [TomlComment("The widgets at the start, in order: each table names one and holds its settings.")]
-        public IReadOnlyList<IReadOnlyDictionary<string, object?>> Start
+        [TomlComment("The widgets at the start, in order: a widget's name, or a table that names one and holds its settings.")]
+        public object Start
         {
             get;
             set => Set(ref field, value);
         } = Placement.Format(bar.Start);
 
         [TomlComment("The widgets in the middle.")]
-        public IReadOnlyList<IReadOnlyDictionary<string, object?>> Center
+        public object Center
         {
             get;
             set => Set(ref field, value);
         } = Placement.Format(bar.Center);
 
         [TomlComment("The widgets at the end.")]
-        public IReadOnlyList<IReadOnlyDictionary<string, object?>> End
+        public object End
         {
             get;
             set => Set(ref field, value);

@@ -6,65 +6,52 @@ namespace Winshell;
 
 public sealed record Placement(string Widget, IReadOnlyDictionary<string, object>? Settings = null)
 {
-    private const string NotAList = "must be a list of tables that each name a widget";
-    private const string MissingName = "must name a widget in each of its tables";
+    private const string NotPlacements = "must be a list of widget names or tables that each name a widget";
 
     public static implicit operator Placement(string widget) => new(widget);
 
-    public static string Check(object value) => Reason(Tables(value));
+    public static string Check(object value) => Items(value)?.All(Names) == true ? "" : NotPlacements;
 
-    public static ImmutableArray<Placement> Parse(object tables)
+    public static ImmutableArray<Placement> Parse(object items)
     {
-        ArgumentNullException.ThrowIfNull(tables);
-        if (Tables(tables) is not { } rows)
-            throw new ArgumentException(NotAList, nameof(tables));
-        if (!rows.All(NamesWidget))
-            throw new ArgumentException(MissingName, nameof(tables));
-        return [.. rows.Select(Read)];
+        ArgumentNullException.ThrowIfNull(items);
+        if (Items(items) is not { } list || !list.All(Names))
+            throw new ArgumentException(NotPlacements, nameof(items));
+        return [.. list.Select(Read)];
     }
 
-    public static IReadOnlyList<IReadOnlyDictionary<string, object?>> Format(ImmutableArray<Placement> placements) =>
+    public static IReadOnlyList<object> Format(ImmutableArray<Placement> placements) =>
         placements.Select(Write).ToArray();
 
-    private static Placement Read(IReadOnlyDictionary<string, object?> table) =>
-        new((string)table["widget"]!,
-            table.Where(pair => pair.Key != "widget").ToDictionary(pair => pair.Key, pair => pair.Value!));
+    private static Placement Read(object? item) => new(NameOf(item)!,
+        item is IReadOnlyDictionary<string, object?> table
+            ? table.Where(pair => pair.Key != "widget").ToDictionary(pair => pair.Key, pair => pair.Value!)
+            : new Dictionary<string, object>());
 
-    private static Dictionary<string, object?> Write(Placement placement)
+    private static object Write(Placement placement)
     {
         var table = new Dictionary<string, object?> { ["widget"] = placement.Widget };
         if (placement.Settings is not null)
             foreach (var (key, value) in placement.Settings)
                 table.TryAdd(key, value);
-        return table;
+        return table.Count == 1 ? placement.Widget : table;
     }
 
-    private static string Reason(IReadOnlyList<IReadOnlyDictionary<string, object?>>? tables) =>
-        tables is null ? NotAList : tables.All(NamesWidget) ? "" : MissingName;
+    private static bool Names(object? item) => !string.IsNullOrWhiteSpace(NameOf(item));
 
-    private static bool NamesWidget(IReadOnlyDictionary<string, object?> table) =>
-        table.GetValueOrDefault("widget") is string name && !string.IsNullOrWhiteSpace(name);
-
-    private static IReadOnlyList<IReadOnlyDictionary<string, object?>>? Tables(object? value)
+    private static string? NameOf(object? item) => item switch
     {
-        switch (value)
-        {
-            case IReadOnlyList<IReadOnlyDictionary<string, object?>> typed:
-                return typed;
-            case IEnumerable<object?> items:
-                var rows = new List<IReadOnlyDictionary<string, object?>>();
-                foreach (var item in items)
-                {
-                    if (item is not IReadOnlyDictionary<string, object?> table)
-                        return null;
-                    rows.Add(table);
-                }
+        string name => name,
+        IReadOnlyDictionary<string, object?> table => table.GetValueOrDefault("widget") as string,
+        _ => null
+    };
 
-                return rows;
-            default:
-                return null;
-        }
-    }
+    private static IReadOnlyList<object?>? Items(object? value) =>
+        value is IEnumerable<object?> items && !IsSet(value) ? items.ToList() : null;
+
+    private static bool IsSet(object value) => value.GetType().GetInterfaces().Any(type =>
+        type.IsGenericType && type.GetGenericTypeDefinition() is var open &&
+        (open == typeof(ISet<>) || open == typeof(IReadOnlySet<>)));
 }
 
 public sealed record WidgetContext

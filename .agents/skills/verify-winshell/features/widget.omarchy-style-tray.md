@@ -15,7 +15,7 @@ The `tray` widget is the row of notification area icons on the omarchy-style bar
 
 - Run `winshell new omarchy-style` and then `winshell run -c omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
 - The example registers it with `Widgets.Register<TrayWidget>("tray")` and places it first in the bar's `End` list.
-- Place it elsewhere with `{ widget = "tray" }` in a list of the `[bar]` section of the preferences file.
+- Place it elsewhere with `"tray"` in a list of the `[bar]` section of the preferences file.
 - Choose or right-click an icon, or point at the chevron, near the right end of the bar.
 
 ## Driving it with winshell inspect

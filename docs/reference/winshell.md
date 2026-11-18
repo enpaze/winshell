@@ -195,8 +195,8 @@ Has the members of [ShellWindow](#shellwindow).
 | `Settings` | IReadOnlyDictionary of string, object?, init |
 | `Widget` | string, init |
 | `Check(object value)` | string, static |
-| `Format(ImmutableArray of [Placement](#placement) placements)` | IReadOnlyList of IReadOnlyDictionary of string, object, static |
-| `Parse(object tables)` | ImmutableArray of [Placement](#placement), static |
+| `Format(ImmutableArray of [Placement](#placement) placements)` | IReadOnlyList of object, static |
+| `Parse(object items)` | ImmutableArray of [Placement](#placement), static |
 
 ## PopupWindow
 

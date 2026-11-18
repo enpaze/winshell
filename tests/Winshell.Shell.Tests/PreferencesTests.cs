@@ -296,7 +296,16 @@ public sealed class PreferencesTests
                 Assert.Equal("a \"quoted\" value\nand a line break", first["text"]);
                 Assert.Equal(7L, first["count"]);
                 Assert.Equal(true, Assert.IsAssignableFrom<IReadOnlyDictionary<string, object?>>(first["nested"])["enabled"]);
-                Assert.Equal(widget, Assert.IsAssignableFrom<IReadOnlyDictionary<string, object?>>(rows[1])["widget"]);
+                Assert.Equal(widget, rows[1]);
+                Assert.Contains($"\"{widget}\"]", text, StringComparison.Ordinal);
+                var placements = Placement.Parse(rows);
+                Assert.Equal([widget, widget], placements.Select(placement => placement.Widget));
+                Assert.Equal(["text", "count", "nested"], placements[0].Settings!.Keys);
+                Assert.Equal("a \"quoted\" value\nand a line break", placements[0].Settings!["text"]);
+                Assert.Equal(7L, placements[0].Settings!["count"]);
+                Assert.Equal(true,
+                    Assert.IsAssignableFrom<IReadOnlyDictionary<string, object?>>(placements[0].Settings!["nested"])["enabled"]);
+                Assert.Empty(placements[1].Settings!);
                 section = Assert.IsAssignableFrom<IReadOnlyDictionary<string, object?>>(document.Values[name + "empty"]);
                 Assert.Empty(Assert.IsAssignableFrom<IReadOnlyList<object?>>(section["widgets"]));
                 Assert.Equal(("top", 32), (top.Edge, top.Size));

@@ -14,7 +14,7 @@ The `audio` widget is a button at the end of the omarchy-style bar that shows th
 
 - Run `winshell new omarchy-style` and then `winshell run -c omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
 - The example registers it with `Widgets.Register<AudioWidget>("audio")` and places it in the bar's `End` list.
-- Place it elsewhere with `{ widget = "audio" }` in a list of the `[bar]` section of the preferences file.
+- Place it elsewhere with `"audio"` in a list of the `[bar]` section of the preferences file.
 - Choose the speaker glyph near the right end of the bar.
 
 ## Driving it with winshell inspect
