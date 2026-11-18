@@ -812,7 +812,7 @@ public sealed class WidgetAreaTests
         public List<TextBlock> Lines { get; } = [];
     }
 
-    private sealed class PopupCapture : Component<WidgetContext>
+    private sealed class PopupCapture : Widget
     {
         public static WidgetContext? Context;
 
@@ -823,7 +823,7 @@ public sealed class WidgetAreaTests
         }
     }
 
-    private sealed class OrderedWidget : Component<WidgetContext>
+    private sealed class OrderedWidget : Widget
     {
         public static List<WidgetContext> Inputs = [];
         public static List<TextBlock> Views = [];
@@ -831,22 +831,22 @@ public sealed class WidgetAreaTests
         public override Element Render() => XamlHost(() =>
         {
             Inputs.Add(Props);
-            var view = new TextBlock { Text = (string)Props.Settings["text"], Width = 60, Height = 30 };
+            var view = new TextBlock { Text = (string)Settings["text"], Width = 60, Height = 30 };
             Views.Add(view);
             return view;
         });
     }
 
-    private sealed class SurvivorWidget : Component<WidgetContext>
+    private sealed class SurvivorWidget : Widget
     {
         public override Element Render()
         {
-            Assert.Empty(Props.Settings);
+            Assert.Empty(Settings);
             return TextBlock("survivor");
         }
     }
 
-    private sealed class BadWidget : Component<WidgetContext>
+    private sealed class BadWidget : Widget
     {
         public static string Failure = "";
 
@@ -866,7 +866,7 @@ public sealed class WidgetAreaTests
         public void Unmount() => Unmounts++;
     }
 
-    private sealed class TrackedWidget : Component<WidgetContext>
+    private sealed class TrackedWidget : Widget
     {
         public static List<Mount> Mounts = [];
 
@@ -881,21 +881,21 @@ public sealed class WidgetAreaTests
 
             var mounted = mount.Current;
             UseEffect(() => mounted.Unmount, false);
-            var text = Props.Settings.TryGetValue("text", out var value) ? (string)value : "widget";
+            var text = Setting("text", "widget");
             return TextBlock(text);
         }
     }
 
-    private sealed class TextWidget : Component<WidgetContext>
+    private sealed class TextWidget : Widget
     {
         public override Element Render()
         {
-            var text = Props.Settings.TryGetValue("text", out var value) ? (string)value : "default";
+            var text = Setting("text", "default");
             return TextBlock(text);
         }
     }
 
-    private sealed class MountedWidget : Component<WidgetContext>
+    private sealed class MountedWidget : Widget
     {
         public static int Mounted;
 
@@ -910,7 +910,7 @@ public sealed class WidgetAreaTests
         }
     }
 
-    private sealed class GlyphWidget : Component<WidgetContext>
+    private sealed class GlyphWidget : Widget
     {
         public override Element Render() => XamlHost(() =>
         {
@@ -921,7 +921,7 @@ public sealed class WidgetAreaTests
         });
     }
 
-    private sealed class LineWidget : Component<WidgetContext>
+    private sealed class LineWidget : Widget
     {
         public override Element Render() => XamlHost(() =>
         {
@@ -931,7 +931,7 @@ public sealed class WidgetAreaTests
         });
     }
 
-    private sealed class TipWidget : Component<WidgetContext>
+    private sealed class TipWidget : Widget
     {
         public static ToolTip? Tip;
 
@@ -943,7 +943,7 @@ public sealed class WidgetAreaTests
         });
     }
 
-    private sealed class AlertWidget : Component<WidgetContext>
+    private sealed class AlertWidget : Widget
     {
         public static TextBlock? Alert;
 
@@ -952,7 +952,7 @@ public sealed class WidgetAreaTests
             Alert = new TextBlock
             {
                 Text = "alert",
-                Foreground = new SolidColorBrush(Props.Style!.Alert)
+                Foreground = new SolidColorBrush(Style!.Alert)
             };
             return Alert;
         });

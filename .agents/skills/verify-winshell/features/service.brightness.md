@@ -11,7 +11,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Brightness`, or `Props.Shell.Brightness` in a widget.
+- A configuration reads `shell.Brightness`, or `Shell.Brightness` in a widget.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

@@ -12,7 +12,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads and sets `shell.Startup.RunAtSignIn`, or `Props.Shell.Startup` in a widget, such as from a switch.
+- A configuration reads and sets `shell.Startup.RunAtSignIn`, or `Shell.Startup` in a widget, such as from a switch.
 - `install.ps1 -AutoStart` adds a sign-in entry that starts `winshell.exe` with no configuration.
 - `winshell doctor` reports the sign-in entry in its Sign-in check.
 - The user turns the entry off or on in Windows Settings > Apps > Startup.

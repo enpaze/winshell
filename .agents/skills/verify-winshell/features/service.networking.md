@@ -15,7 +15,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Networking`, or `Props.Shell.Networking` in a widget.
+- A configuration reads `shell.Networking`, or `Shell.Networking` in a widget.
 - In the omarchy-style shell, the `network` widget names the connection and shows its type and signal, and choosing it opens `ms-settings:network-status`.
 
 ## Driving it with winshell inspect

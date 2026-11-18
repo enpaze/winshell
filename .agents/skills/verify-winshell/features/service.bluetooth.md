@@ -13,7 +13,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Bluetooth`, or `Props.Shell.Bluetooth` in a widget, and calls `StartMonitoring()` or `Refresh()`.
+- A configuration reads `shell.Bluetooth`, or `Shell.Bluetooth` in a widget, and calls `StartMonitoring()` or `Refresh()`.
 - In the omarchy-style shell, the `bluetooth` widget shows whether the radio is on and which devices are connected, and choosing it opens `ms-settings:bluetooth`.
 
 ## Driving it with winshell inspect

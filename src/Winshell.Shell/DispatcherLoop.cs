@@ -34,6 +34,14 @@ internal sealed partial class DispatcherLoop(DispatcherQueue queue, Log log) : I
         return new Timer(this, timer);
     }
 
+    internal TimeSpan[] Waiting()
+    {
+        lock (_timers)
+        {
+            return [.. _timers.Select(timer => timer.Interval)];
+        }
+    }
+
     private void Forget(DispatcherQueueTimer timer)
     {
         timer.Stop();

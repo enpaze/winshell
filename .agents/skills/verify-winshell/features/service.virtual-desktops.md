@@ -12,7 +12,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.VirtualDesktops`, or `Props.Shell.VirtualDesktops` in a widget.
+- A configuration reads `shell.VirtualDesktops`, or `Shell.VirtualDesktops` in a widget.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

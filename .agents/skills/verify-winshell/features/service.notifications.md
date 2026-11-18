@@ -13,7 +13,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Notifications`, or `Props.Shell.Notifications` in a widget.
+- A configuration reads `shell.Notifications`, or `Shell.Notifications` in a widget.
 - A configuration calls `shell.Notifications.RequestAccess()` from a button, and the user allows it when Windows asks.
 - A configuration creates `new ToastMessage(shell.Loop)`, sets `Title` and `Body`, and calls `Send()`.
 - The user allows or denies access in Windows Settings > Privacy & security > Notifications.

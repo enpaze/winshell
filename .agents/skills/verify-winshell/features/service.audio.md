@@ -12,7 +12,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Audio`, or `Props.Shell.Audio` in a widget.
+- A configuration reads `shell.Audio`, or `Shell.Audio` in a widget.
 - A configuration creates `new AudioPeakMonitor(shell.Loop)` and sets its `Node` and `Enabled`.
 - In the omarchy-style shell, the `audio` widget shows the playback device and its volume, and choosing it opens `ms-settings:sound`.
 

@@ -14,7 +14,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Winland`, or `Props.Shell.Winland` in a widget.
+- A configuration reads `shell.Winland`, or `Shell.Winland` in a widget.
 - In the omarchy-style shell, the `workspaces` widget shows the workspaces of the bar's monitor and the icons of the apps on each, and the user chooses one to switch to it.
 - The user sets `WINLAND_PIPE` to connect to another pipe.
 

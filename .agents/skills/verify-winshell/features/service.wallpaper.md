@@ -13,7 +13,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Wallpaper`, or `Props.Shell.Wallpaper` in a widget.
+- A configuration reads `shell.Wallpaper`, or `Shell.Wallpaper` in a widget.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

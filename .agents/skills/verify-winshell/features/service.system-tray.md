@@ -12,7 +12,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.SystemTray.Items`, or `Props.Shell.SystemTray.Items` in a widget.
+- A configuration reads `shell.SystemTray.Items`, or `Shell.SystemTray.Items` in a widget.
 - In the omarchy-style shell, the `tray` widget shows the icons on the primary screen's bar, and the user chooses an icon to click it.
 - The user chooses which icons show in Windows Settings > Personalization > Taskbar > Other system tray icons.
 

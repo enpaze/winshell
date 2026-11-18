@@ -12,7 +12,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Privacy`, or `Props.Shell.Privacy` in a widget, and follows it with `UseObservable` or `PropertyChanged`.
+- A configuration reads `shell.Privacy`, or `Shell.Privacy` in a widget, and follows it with `UseObservable` or `PropertyChanged`.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

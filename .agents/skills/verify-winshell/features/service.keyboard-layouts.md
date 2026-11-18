@@ -12,7 +12,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.KeyboardLayouts`, or `Props.Shell.KeyboardLayouts` in a widget, and follows it with `UseObservable` or `PropertyChanged`.
+- A configuration reads `shell.KeyboardLayouts`, or `Shell.KeyboardLayouts` in a widget, and follows it with `UseObservable` or `PropertyChanged`.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

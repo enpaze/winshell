@@ -13,7 +13,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.WindowList`, or `Props.Shell.WindowList` in a widget.
+- A configuration reads `shell.WindowList`, or `Shell.WindowList` in a widget.
 - A configuration sets `WindowThumbnail.Window` to an `AppWindow` to preview it.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 

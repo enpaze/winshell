@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace MessageWidget;
 
-public sealed class Message : Component<WidgetContext>
+public sealed class Message : Widget
 {
     public override Element Render()
     {
@@ -14,42 +14,22 @@ public sealed class Message : Component<WidgetContext>
             popup.Current = null;
         }, false);
 
-        var text = TextOf(Props);
-        if (Props.Orientation == Orientation.Vertical)
+        var screen = UseScreen();
+        var text = Setting("text", "Hello");
+        if (Orientation == Orientation.Vertical)
             throw new UnsupportedWidgetException("The message widget runs in a horizontal area.");
 
         var line = text + " ·";
         return TextBlock(line)
             .Padding(8, 0)
-            .OnPointerPressed((_, _) => ShowPopup(popup, line))
-            .OnMount(ShowScreen);
-    }
-
-    private static string TextOf(WidgetContext context)
-    {
-        if (context.Settings.TryGetValue("text", out var value) && value is string text)
-            return text;
-        throw new UnsupportedWidgetException("text must be a string.");
+            .ToolTip(screen is null ? "primary screen" : screen.Name)
+            .OnPointerPressed((_, _) => ShowPopup(popup, line));
     }
 
     private void ShowPopup(Ref<PopupWindow?> popup, string line)
     {
         popup.Current?.Dispose();
         var body = new TextBlock { Text = line, Margin = new Thickness(12) };
-        popup.Current = new PopupWindow { Content = Props.StylePopup(body), Visible = true };
-    }
-
-    private static void ShowScreen(FrameworkElement label)
-    {
-        void SetTooltip()
-        {
-            var screen = ShellWindow.Of(label)?.Screen;
-            ToolTipService.SetToolTip(label, screen is null ? "primary screen" : screen.Name);
-        }
-
-        if (label.IsLoaded)
-            SetTooltip();
-        else
-            label.Loaded += (_, _) => SetTooltip();
+        popup.Current = new PopupWindow { Content = StylePopup(body), Visible = true };
     }
 }

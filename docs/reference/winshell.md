@@ -155,6 +155,10 @@ Has the members of [ObservableObject](#observableobject).
 | Member | Type |
 | --- | --- |
 | `PropertyChanged` | PropertyChangedEventHandler |
+| `Changed(string property = "")` | void, protected |
+| `Changed(bool changed, string property)` | void, protected |
+| `Read<T>(T? value, string property = "")` | T?, protected |
+| `Set<T>(ref T? field, T? value, string property = "")` | bool, protected |
 
 ## PanelWindow
 
@@ -376,7 +380,7 @@ Has the members of [ObservableObject](#observableobject).
 
 ## Surface
 
-A WinUI Component`1. The members here are the ones Winshell adds.
+A WinUI Component. The members here are the ones Winshell adds.
 
 | Member | Type |
 | --- | --- |
@@ -409,9 +413,25 @@ An exception.
 | --- | --- |
 | `UnsupportedWidgetException(string message)` | constructor |
 
+## Widget
+
+A WinUI Component. The members here are the ones Winshell adds.
+
+| Member | Type |
+| --- | --- |
+| `Orientation` | Orientation, protected, read-only |
+| `Settings` | IReadOnlyDictionary of string, object, protected, read-only |
+| `Shell` | [Shell](#shell), protected, read-only |
+| `Style` | [ShellStyle](#shellstyle)?, protected, read-only |
+| `Window` | [ShellWindow](#shellwindow)?, protected, read-only |
+| `Setting<T>(string key, T? fallback)` | T?, protected |
+| `StylePopup(UIElement content)` | FrameworkElement, protected |
+| `UseNow(TimeSpan every)` | DateTime, protected |
+| `UseScreen()` | [ScreenInfo](#screeninfo)?, protected |
+
 ## WidgetArea
 
-A WinUI Component`1. The members here are the ones Winshell adds.
+A WinUI Component. The members here are the ones Winshell adds.
 
 | Member | Type |
 | --- | --- |

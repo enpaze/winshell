@@ -11,7 +11,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Power`, or `Props.Shell.Power` in a widget.
+- A configuration reads `shell.Power`, or `Shell.Power` in a widget.
 - In the starter, the `battery` widget shows the charge at the end of the bar.
 - In the omarchy-style shell, the `battery` widget shows the charge and its state, and choosing it opens `ms-settings:powersleep`.
 

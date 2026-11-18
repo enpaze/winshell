@@ -11,7 +11,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.PowerMode`, or `Props.Shell.PowerMode` in a widget.
+- A configuration reads `shell.PowerMode`, or `Shell.PowerMode` in a widget.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

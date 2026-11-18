@@ -118,12 +118,6 @@ public static class GuideSamples
         };
     }
 
-    public static void AnAlert(WidgetContext context, TextBlock label)
-    {
-        if (context.Style is { } style)
-            label.Foreground = new SolidColorBrush(style.Alert);
-    }
-
     public static void AHotkey(Shell shell)
     {
         var hotkey = shell.Hotkey("Win+E", () => { });
@@ -169,17 +163,28 @@ public sealed class EndArea : Component
     ]);
 }
 
-public sealed class ClockWidget : Component<WidgetContext>
+public sealed class ClockWidget : Widget
 {
     public override Element Render() =>
-        TextBlock((string)Props.Settings["text"]);
+        TextBlock(Setting("text", ""));
 }
 
-public sealed class BatteryLabel : Component<WidgetContext>
+public sealed class AlertLabel : Widget
+{
+    public override Element Render() => TextBlock("!").Set(Alert);
+
+    private void Alert(TextBlock label)
+    {
+        if (Style is { } style)
+            label.Foreground = new SolidColorBrush(style.Alert);
+    }
+}
+
+public sealed class BatteryLabel : Widget
 {
     public override Element Render()
     {
-        var battery = UseObservable(Props.Shell.Power.DisplayDevice);
+        var battery = UseObservable(Shell.Power.DisplayDevice);
         var charge = battery.IsPresent ? $"{battery.Percentage:P0}" : "";
         return TextBlock(charge);
     }

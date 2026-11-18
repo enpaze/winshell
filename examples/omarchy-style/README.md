@@ -80,7 +80,7 @@ The project references Winshell's source, so the repo's own check builds it.
   A row matches when manufacturer, model and serial all equal the monitor's, including an empty serial, and the first match wins. A key the row leaves out is the `[bar]` section's.
 
 - **Live-edit a widget:** run `winshell dev --path examples/omarchy-style` and save a file in [Widgets/](Widgets). See [Develop a shell](../../docs/configuration.md#develop-a-shell) for what reaches the running shell and what restarts it.
-- **Add a widget:** copy [Widgets/AudioWidget.cs](Widgets/AudioWidget.cs), follow another service with `UseObservable` or `UseObservableTree`, open its Settings page with `Props.Shell.Open`, and register the component in [AppShell.cs](AppShell.cs). Put that name in a list there or in the preferences file.
+- **Add a widget:** copy [Widgets/AudioWidget.cs](Widgets/AudioWidget.cs), follow another service with `UseObservable` or `UseObservableTree`, open its Settings page with `Shell.Open`, and register the widget in [AppShell.cs](AppShell.cs). Put that name in a list there or in the preferences file.
 - **Keep the taskbar:** delete `shell.ExplorerTaskbar.Hidden = true;` in [AppShell.cs](AppShell.cs).
 
 ## Use it as your own configuration

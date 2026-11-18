@@ -301,47 +301,47 @@ public sealed class ComponentWidgetTests
         });
     }
 
-    private sealed class WindowWidget : Component<WidgetContext>
+    private sealed class WindowWidget : Widget
     {
         public static ShellWindow? Seen;
 
         public override Element Render()
         {
-            Seen = Props.Window;
+            Seen = Window;
             return TextBlock("window");
         }
     }
 
-    private sealed class SurvivorWidget : Component<WidgetContext>
+    private sealed class SurvivorWidget : Widget
     {
         public override Element Render() => TextBlock("survivor");
     }
 
-    private sealed class LabelWidget : Component<WidgetContext>
+    private sealed class LabelWidget : Widget
     {
         public override Element Render()
         {
-            var text = Props.Settings.TryGetValue("text", out var value) ? (string)value : "";
+            var text = Setting("text", "");
             return VStack(TextBlock(text), Button("go"));
         }
     }
 
-    private sealed class RememberingWidget : Component<WidgetContext>
+    private sealed class RememberingWidget : Widget
     {
         public override Element Render()
         {
-            var text = (string)Props.Settings["text"];
+            var text = (string)Settings["text"];
             var (born, _) = UseState(text);
-            return TextBlock($"{born}|{text}|{Props.Orientation}");
+            return TextBlock($"{born}|{text}|{Orientation}");
         }
     }
 
-    private sealed class ThrowingWidget : Component<WidgetContext>
+    private sealed class ThrowingWidget : Widget
     {
         public override Element Render() => throw new InvalidOperationException("Render failed");
     }
 
-    private sealed class PopupWidget : Component<WidgetContext>
+    private sealed class PopupWidget : Widget
     {
         public override Element Render()
         {
@@ -351,7 +351,7 @@ public sealed class ComponentWidgetTests
                 var popup = new PopupWindow
                 {
                     Rect = new Rect(240, 80, 220, 80),
-                    Content = Props.StylePopup(body),
+                    Content = StylePopup(body),
                     Visible = true
                 };
                 return () =>
@@ -369,7 +369,7 @@ public sealed class ComponentWidgetTests
         public override Element Render() => TextBlock("popup");
     }
 
-    private sealed class FlyoutWidget : Component<WidgetContext>
+    private sealed class FlyoutWidget : Widget
     {
         public override Element Render()
         {
@@ -379,7 +379,7 @@ public sealed class ComponentWidgetTests
                 var anchor = new TextBlock { Text = "anchor" };
                 var flyout = new Flyout
                 {
-                    Content = Props.StylePopup(body),
+                    Content = StylePopup(body),
                     Placement = FlyoutPlacementMode.Bottom,
                     ShouldConstrainToRootBounds = false
                 };
