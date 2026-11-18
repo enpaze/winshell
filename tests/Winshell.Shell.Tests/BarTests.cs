@@ -30,7 +30,7 @@ public sealed class BarTests
                 Assert.Equal(Edges.Left | Edges.Right | Edges.Top, firstBar.Anchors);
                 Assert.Equal(32, firstBar.Height);
                 Assert.All(await AreasOf(firstBar), area => Assert.Equal(Orientation.Horizontal, area.Orientation));
-                await Wait.UntilAsync(() => TextsOn(made, firstBar).SequenceEqual([""]), "the center widget to render");
+                await UntilShown(() => TextsOn(made, firstBar).SequenceEqual([""]), "the center widget to render", firstBar);
 
                 screens.Add(second);
                 Assert.Single(BarsOn(shell, second));
@@ -77,8 +77,8 @@ public sealed class BarTests
                 var wideBar = Assert.Single(BarsOn(shell, wide));
                 Assert.Equal(Edges.Left | Edges.Right | Edges.Top, wideBar.Anchors);
                 Assert.Equal(0, wideBar.ReservedSize);
-                await Wait.UntilAsync(() => TextsOn(made, wideBar).SequenceEqual(["from the file"]),
-                    "the file's text to render");
+                await UntilShown(() => TextsOn(made, wideBar).SequenceEqual(["from the file"]),
+                    "the file's text to render", wideBar);
                 var tallBar = Assert.Single(BarsOn(shell, tall));
                 Assert.Equal(Edges.Left | Edges.Top | Edges.Bottom, tallBar.Anchors);
                 Assert.Equal(32, tallBar.Width);
@@ -101,9 +101,9 @@ public sealed class BarTests
                 Assert.Equal(Edges.Left | Edges.Right | Edges.Bottom, wideBar.Anchors);
                 Assert.All(await AreasOf(wideBar), area => Assert.Equal(Orientation.Horizontal, area.Orientation));
                 Assert.Equal(Edges.Right | Edges.Top | Edges.Bottom, tallBar.Anchors);
-                await Wait.UntilAsync(
+                await UntilShown(
                     () => TextsOn(made, wideBar).SequenceEqual(["saved"]) && TextsOn(made, tallBar).SequenceEqual(["saved"]),
-                    "the saved text to render");
+                    "the saved text to render", wideBar, tallBar);
             }
             finally
             {
@@ -137,16 +137,16 @@ public sealed class BarTests
                 var bars = BarsOn(shell, screen);
                 var topWindow = Assert.Single(bars, window => window.Anchors.HasFlag(Edges.Top));
                 var bottomWindow = Assert.Single(bars, window => window.Anchors.HasFlag(Edges.Bottom));
-                await Wait.UntilAsync(
+                await UntilShown(
                     () => TextsOn(made, topWindow).SequenceEqual(["top bar"]) &&
                           TextsOn(made, bottomWindow).SequenceEqual(["bottom bar"]),
-                    "each bar to render its own text");
+                    "each bar to render its own text", topWindow, bottomWindow);
 
                 await Save(shell, path, Lists(top, widget, "top bar, saved") + Lists(bottom, widget, "bottom bar"));
                 await Until(shell, screen, () => !BarsOn(shell, screen).Contains(topWindow), "the top bar to be replaced");
                 topWindow = Assert.Single(BarsOn(shell, screen), window => window.Anchors.HasFlag(Edges.Top));
-                await Wait.UntilAsync(() => TextsOn(made, topWindow).SequenceEqual(["top bar, saved"]),
-                    "the saved text to render");
+                await UntilShown(() => TextsOn(made, topWindow).SequenceEqual(["top bar, saved"]),
+                    "the saved text to render", topWindow);
                 Assert.Same(bottomWindow, Assert.Single(BarsOn(shell, screen), window => window.Anchors.HasFlag(Edges.Bottom)));
             }
             finally
@@ -269,7 +269,7 @@ public sealed class BarTests
                 await NextTurn(shell);
                 var window = Assert.Single(BarsOn(shell, screen));
                 Assert.Equal(32, window.Height);
-                await Wait.UntilAsync(() => TextsOn(made, window).SequenceEqual(["0"]), "the widget to render");
+                await UntilShown(() => TextsOn(made, window).SequenceEqual(["0"]), "the widget to render", window);
                 var state = CountingWidget.Live;
                 Assert.NotNull(state);
                 state.Value = 1;
@@ -278,11 +278,11 @@ public sealed class BarTests
                 await NextTurn(shell);
                 Assert.Same(window, Assert.Single(BarsOn(shell, screen)));
                 Assert.Same(state, CountingWidget.Live);
-                await Until(shell, screen, () =>
+                await UntilShown(() =>
                     ReferenceEquals(Assert.Single(BarsOn(shell, screen)), window) &&
                     ReferenceEquals(CountingWidget.Live, state) &&
                     BackgroundOf(window.Content!) == paint.Background,
-                    "the bar to take the new color and keep the widget");
+                    "the bar to take the new color and keep the widget", window);
                 Assert.Equal(1, state.Value);
                 Assert.Equal(32, window.Height);
             }
@@ -317,7 +317,7 @@ public sealed class BarTests
 
                 shell.ColorScheme = ColorScheme.Dark;
                 var dark = WidgetAreaTests.WindowsColor("Default", "SolidBackgroundFillColorBase");
-                await Wait.UntilAsync(() => BackgroundOf(root) == dark, "the bar to turn dark");
+                await UntilShown(() => BackgroundOf(root) == dark, "the bar to turn dark", window);
                 Assert.Same(window, Assert.Single(BarsOn(shell, screen)));
             }
             finally
@@ -414,6 +414,20 @@ public sealed class BarTests
         await Until(shell, screen, () => BarsOn(shell, screen) is [var only] && only != old,
             "the bar of " + screen.Model + " to be replaced");
         return Assert.Single(BarsOn(shell, screen));
+    }
+
+    private static Task UntilShown(Func<bool> done, string what, params PanelWindow[] bars)
+    {
+        return Wait.UntilAsync(async () =>
+        {
+            foreach (var bar in bars)
+            {
+                if (bar.Content is FrameworkElement root)
+                    await ShellFixture.LaidOut(root).WaitAsync(TestContext.Current.CancellationToken);
+            }
+
+            return done();
+        }, what);
     }
 
     private static Task Until(Shell shell, ScreenInfo screen, Func<bool> done, string what)
