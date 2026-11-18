@@ -20,7 +20,7 @@ public sealed class AppShell : ShellConfiguration
         _ = new Bar
         {
             Edge = Edges.Top,
-            Start = ["windows", "workspaces"],
+            Start = ["windows", new Placement("workspaces", new Dictionary<string, object> { ["icons"] = true })],
             Center = ["clock"],
             End = ["tray", "bluetooth", "network", "audio", "screen", "battery"]
         };
