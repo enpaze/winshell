@@ -4,7 +4,7 @@ Describe 'The binaries Winshell signs' {
         $runtimes = $config.'artifact-configuration'.'zip-file'.'pe-file-set'.include.path | Group-Object { ($_ -split '/')[0] }
         $assemblies = Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '../../src') -Recurse -Filter '*.csproj' | ForEach-Object {
             $text = Get-Content -Raw -LiteralPath $_.FullName
-            if ($text -notmatch '<IsPackable>true</IsPackable>') {
+            if ($text -notmatch '<IsPackable>true</IsPackable>|<IsRoslynComponent>true</IsRoslynComponent>') {
                 ($text -match '<AssemblyName>([^<]+)</AssemblyName>' ? $Matches[1] : $_.BaseName) + '.dll'
             }
         }

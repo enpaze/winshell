@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Winshell.Shell\Winshell.Shell.csproj" />
+    <ProjectReference Include="..\..\src\Winshell.Generators\Winshell.Generators.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />

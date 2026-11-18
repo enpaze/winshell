@@ -16,5 +16,6 @@
     <Using Include="Windows.Win32.Foundation" />
     <Using Include="Windows.Win32.UI.WindowsAndMessaging" />
     <ProjectReference Include="..\..\src\Winshell.Shell\Winshell.Shell.csproj" />
+    <ProjectReference Include="..\..\src\Winshell.Generators\Winshell.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Winshell.Generators;
 
 namespace Winshell.Architecture.Tests;
 
@@ -27,11 +28,13 @@ public class CompositionTests
             .Append(CSharpSyntaxTree.ParseText(ImplicitUsings, options, "", null, cancel));
         var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator)
             .Select(path => MetadataReference.CreateFromFile(path));
+        var compilation = CSharpCompilation.Create("Composition", trees, references,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
+                nullableContextOptions: NullableContextOptions.Enable));
 
-        var errors = CSharpCompilation.Create("Composition", trees, references,
-                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
-                    nullableContextOptions: NullableContextOptions.Enable))
-            .GetDiagnostics(cancel)
+        CSharpGeneratorDriver.Create(new PreferenceGenerator()).WithUpdatedParseOptions(options)
+            .RunGeneratorsAndUpdateCompilation(compilation, out var generated, out var generatorErrors, cancel);
+        var errors = generatorErrors.Concat(generated.GetDiagnostics(cancel))
             .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
             .Select(diagnostic => diagnostic.ToString())
             .ToList();

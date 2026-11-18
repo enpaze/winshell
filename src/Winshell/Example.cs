@@ -109,6 +109,11 @@ internal sealed class Example
                      .ToList())
             reference.ReplaceWith(new XElement("PackageReference", new XAttribute("Include", "Winshell")));
 
+        root.Descendants("ProjectReference")
+            .Where(e => ((string?)e.Attribute("Include"))?.EndsWith("Winshell.Generators.csproj",
+                StringComparison.OrdinalIgnoreCase) == true)
+            .Remove();
+
         foreach (var package in root.Descendants("PackageReference")
                      .Where(e => (string?)e.Attribute("Include") == "Winshell"))
             package.SetAttributeValue("Version", version);

@@ -222,7 +222,7 @@ Install the lychee, actionlint and zizmor versions named in [`scripts/tool-pins.
 
 `pwsh scripts/pack.ps1` packs the `Winshell` library a shell project references into `artifacts/packages/`.
 
-- **The library** carries `Winshell.Native`, `Winshell.Core`, `Winshell.Services` and `Winshell.Shell`, and depends on `Microsoft.WindowsAppSDK.WinUI`, `Microsoft.WindowsAppSDK.Foundation`, `Microsoft.WindowsAppSDK.Runtime` and `Microsoft.UI.Reactor` at the versions in `Directory.Packages.props`. Runtime is pinned to the same Windows App SDK version as WinUI: Reactor's minimum is older, and that older package rejects a newer WinUI. CsWin32 generates Native's declarations at build time and is not a package consumer dependency.
+- **The library** carries `Winshell.Native`, `Winshell.Core`, `Winshell.Services` and `Winshell.Shell`, with `Winshell.Generators` under `analyzers/dotnet/cs`, and depends on `Microsoft.WindowsAppSDK.WinUI`, `Microsoft.WindowsAppSDK.Foundation`, `Microsoft.WindowsAppSDK.Runtime` and `Microsoft.UI.Reactor` at the versions in `Directory.Packages.props`. Runtime is pinned to the same Windows App SDK version as WinUI: Reactor's minimum is older, and that older package rejects a newer WinUI. CsWin32 generates Native's declarations at build time and is not a package consumer dependency.
 - **The library is not published to a feed.** `scripts/package.ps1` puts the library in each release.
 - The Package workflow runs the `Category=Package` tests, which call `scripts/pack.ps1`, create the starter with `winshell new` and build and run it against that library.
 - `-Out` chooses the folder, and `-Version` overrides the release from `.release-please-manifest.json`.
@@ -478,11 +478,12 @@ How a version is cut, tagged, stamped, and published is [Releasing](releasing.md
 │   ├── Winshell/                    # winshell.exe: the CLI, which builds and supervises a configuration
 │   ├── Winshell.Native/             # Win32/COM declarations, unsafe interop and the safe operations over them
 │   ├── Winshell.Core/               # The event loop contract, the log, ObservableObject, TOML files, crash reports, and the file helpers they use
+│   ├── Winshell.Generators/         # The source generator the package ships as an analyzer: it writes a [Preference] property's accessors
 │   ├── Winshell.Services/           # Windows services, instances, and the control pipe
 │   ├── Winshell.Shell/              # Shell.Run and WinUI windows
-│   └── Winshell.Package/            # Packs Native, Core, Services and Shell as the single Winshell package
+│   └── Winshell.Package/            # Packs Native, Core, Services, Shell and the generator as the single Winshell package
 ├── tests/
-│   ├── Winshell.Architecture.Tests/ # The layer and feature backend boundaries, and no hand-written unsafe code in WinUI projects
+│   ├── Winshell.Architecture.Tests/ # The layer and feature backend boundaries, no hand-written unsafe code in WinUI projects, and the generator's errors
 │   ├── Winshell.Core.Tests/         # The log, TOML files, crash reports and file helpers
 │   ├── Winshell.Services.Tests/     # The services; only the category Window opens a window
 │   ├── Winshell.Shell.Tests/        # A real shell and the event-loop contract; only the category Window opens a window

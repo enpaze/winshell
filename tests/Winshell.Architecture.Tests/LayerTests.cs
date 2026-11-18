@@ -14,6 +14,7 @@ public class LayerTests
         var upward = Layers.SelectMany((layer, i) => XDocument
             .Load(Path.Combine(Repo.Root, "src", layer, layer + ".csproj"))
             .Descendants("ProjectReference")
+            .Where(reference => reference.Attribute("OutputItemType")?.Value != "Analyzer")
             .Select(reference => Path.GetFileNameWithoutExtension(reference.Attribute("Include")!.Value))
             .Where(name => !Layers.Skip(i + 1).Contains(name))
             .Select(name => $"{layer} -> {name}"));
