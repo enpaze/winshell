@@ -7,8 +7,7 @@ namespace Winshell.Winland;
 
 internal sealed class WinlandBackend : IWinlandBackend
 {
-    private static readonly TimeSpan FirstPoll = TimeSpan.FromSeconds(3);
-    private static readonly TimeSpan LastPoll = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan LookAgain = TimeSpan.FromMilliseconds(250);
     private static readonly int SessionId = Process.GetCurrentProcess().SessionId;
 
     private static readonly IReadOnlyList<string> Candidates =
@@ -18,22 +17,23 @@ internal sealed class WinlandBackend : IWinlandBackend
 
     private readonly TimeProvider _time;
     private readonly Listeners<Handlers> _listeners = new();
-    private TimeSpan _poll = FirstPoll;
+    private readonly IReadOnlyList<string> _candidates;
     private int _started;
     private volatile string? _pipeName;
     private volatile int _processId;
     private volatile bool _connected;
 
-    internal WinlandBackend(TimeProvider time)
+    internal WinlandBackend(TimeProvider time, IReadOnlyList<string>? pipes = null)
     {
         _time = time;
+        _candidates = pipes ?? Candidates;
     }
 
     public bool IsConnected => _connected;
 
     public int ProcessId => _processId;
 
-    public string PipePath => @"\\.\pipe\" + (_pipeName ?? Candidates[0]);
+    public string PipePath => @"\\.\pipe\" + (_pipeName ?? _candidates[0]);
 
     public IDisposable Listen(Action<bool> connectionChanged, Action<string> eventReceived, Action<Exception> failed)
     {
@@ -47,9 +47,10 @@ internal sealed class WinlandBackend : IWinlandBackend
     {
         while (true)
         {
-            var lost = false;
-            foreach (var name in Candidates)
+            foreach (var name in _candidates)
             {
+                if (!PipeIsThere(name))
+                    continue;
                 var pipe = await ConnectAsync(name, 250).ConfigureAwait(false);
                 if (pipe is null)
                     continue;
@@ -81,31 +82,37 @@ internal sealed class WinlandBackend : IWinlandBackend
                     }
                 }
 
-                lost = true;
                 break;
             }
 
-            await WaitBeforeLookingAgain(lost).ConfigureAwait(false);
+            await WaitBeforeLookingAgain().ConfigureAwait(false);
         }
     }
 
-    internal async Task WaitBeforeLookingAgain(bool lost, CancellationToken cancel = default)
+    internal async Task WaitBeforeLookingAgain(CancellationToken cancel = default)
     {
-        var wait = lost ? TimeSpan.FromMilliseconds(250) : _poll;
-        _poll = lost ? FirstPoll : NextPoll(_poll);
-        await Task.Delay(wait, _time, cancel).ConfigureAwait(false);
+        await Task.Delay(LookAgain, _time, cancel).ConfigureAwait(false);
     }
 
-    private static TimeSpan NextPoll(TimeSpan poll)
+    private static bool PipeIsThere(string name)
     {
-        return poll * 2 < LastPoll ? poll * 2 : LastPoll;
+        try
+        {
+            return File.Exists(@"\\.\pipe\" + name);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 
     public async Task<string?> RequestAsync(string command)
     {
-        var names = _pipeName is { } known ? [known] : Candidates;
+        var names = _pipeName is { } known ? [known] : _candidates;
         foreach (var name in names)
         {
+            if (!PipeIsThere(name))
+                continue;
             await using var pipe = await ConnectAsync(name, 1000).ConfigureAwait(false);
             if (pipe is null)
                 continue;
