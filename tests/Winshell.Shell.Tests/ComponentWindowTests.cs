@@ -113,6 +113,26 @@ public sealed class ComponentWindowTests
         Assert.Equal(0, disposed);
     }
 
+    [Theory]
+    [InlineData("panel")]
+    [InlineData("popup")]
+    [InlineData("floating")]
+    public async Task Two_windows_of_one_component_show_the_props_each_was_given(string kind)
+    {
+        var texts = await ShellFixture.On(async _ =>
+        {
+            using var first = Shown(kind, "first");
+            using var second = Shown(kind, "second");
+            var firstHost = (ReactorHostControl)first.Content!;
+            var secondHost = (ReactorHostControl)second.Content!;
+            await ShellFixture.LaidOut(firstHost);
+            await ShellFixture.LaidOut(secondHost);
+            return (ShownText(firstHost), ShownText(secondHost));
+        });
+
+        Assert.Equal(("first", "second"), texts);
+    }
+
     [Fact]
     public async Task Toggle_shows_a_hidden_window_and_hides_a_shown_one()
     {
@@ -137,6 +157,16 @@ public sealed class ComponentWindowTests
             "panel" => new PanelWindow<T> { Anchors = Edges.Top | Edges.Left, Width = 220, Height = 90, Visible = true },
             "popup" => new PopupWindow<T> { Width = 220, Height = 90, Visible = true },
             _ => new FloatingWindow<T> { Title = "Winshell test", Width = 320, Height = 200, Visible = true }
+        };
+    }
+
+    private static ShellWindow Shown(string kind, string text)
+    {
+        return kind switch
+        {
+            "panel" => new PanelWindow<Label, string>(text) { Anchors = Edges.Top | Edges.Left, Width = 220, Height = 90, Visible = true },
+            "popup" => new PopupWindow<Label, string>(text) { Width = 220, Height = 90, Visible = true },
+            _ => new FloatingWindow<Label, string>(text) { Title = "Winshell test", Width = 320, Height = 200, Visible = true }
         };
     }
 
@@ -173,6 +203,14 @@ public sealed class ComponentWindowTests
         public override Element Render()
         {
             return TextBlock("Hello");
+        }
+    }
+
+    private sealed class Label : Component<string>
+    {
+        public override Element Render()
+        {
+            return TextBlock(Props);
         }
     }
 

@@ -3,20 +3,20 @@ using Microsoft.UI.Xaml;
 
 namespace FeatureMap;
 
-public sealed record FeatureWindowProps(RowProps[] Services, RowProps Floating, Action OpenPopup, Action OpenLauncher);
+public sealed record FeatureWindowProps(RowProps[] Services, WindowRowProps Floating, Action OpenPopup, Action OpenLauncher);
 
-public sealed class FeatureWindow : Component
+public sealed class FeatureWindow : Component<FeatureWindowProps>
 {
     public override Element Render()
     {
-        var props = Features.Main;
+        var props = Props;
         var clicks = UseRef(0);
         var (shown, setShown) = UseState(0);
         var (typed, setTyped) = UseState("");
         Element[] rows = [.. props.Services.Select(row => Component<Row, RowProps>(row).WithKey(row.Id))];
         return ScrollViewer(VStack(2,
         [
-            Component<Row, RowProps>(props.Floating).WithKey(props.Floating.Id),
+            Component<WindowRow, WindowRowProps>(props.Floating).WithKey(props.Floating.Id),
             HStack(8,
                 Button("Click", () => setShown(++clicks.Current)).AutomationId("features.click"),
                 TextBlock($"clicks: {shown}").AutomationId("features.clicks").VAlign(VerticalAlignment.Center),

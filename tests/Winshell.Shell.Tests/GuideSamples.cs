@@ -62,6 +62,13 @@ public static class GuideSamples
         return (calendar, hotkey);
     }
 
+    public static (PopupWindow Today, PopupWindow Later) TwoNotes()
+    {
+        var today = new PopupWindow<Note, string>("Stand-up at 10") { Position = PopupPosition.Top };
+        var later = new PopupWindow<Note, string>("Pay the rent");
+        return (today, later);
+    }
+
     public static (Bar Top, Bar Side) Bars()
     {
         var bar = new Bar
@@ -157,6 +164,11 @@ public sealed class Dock : Component
 public sealed class Calendar : Component
 {
     public override Element Render() => TextBlock("Today");
+}
+
+public sealed class Note : Component<string>
+{
+    public override Element Render() => TextBlock(Props);
 }
 
 public sealed class EndArea : Component

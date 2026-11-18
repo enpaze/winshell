@@ -9,7 +9,7 @@ A `PopupWindow` is a frameless window over the others, such as a launcher, a men
 - `grab-focus` gives the popup the keyboard with `GrabFocus`.
 - `dismiss` closes a popup that grabs focus when the user clicks outside it or presses Esc, and raises `Dismissed`.
 - `content` shows any WinUI element as its `Content`, such as a widget's `StylePopup(content)`.
-- `component` shows the component `T` of a `PopupWindow<T>` on a surface, and unmounts it when the popup is disposed.
+- `component` shows the component `T` of a `PopupWindow<T>`, or of a `PopupWindow<T, TProps>` with the props it was given, on a surface, and unmounts it when the popup is disposed.
 
 ## How to get to it (user POV)
 

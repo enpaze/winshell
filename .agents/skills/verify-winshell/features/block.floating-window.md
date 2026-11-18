@@ -9,7 +9,7 @@ A `FloatingWindow` is a normal window with a title bar, which the user can move,
 - `state` minimizes, maximizes or fills the screen with `Minimized`, `Maximized` and `Fullscreen`.
 - `owner` makes the window owned by another `FloatingWindow` with `Owner`.
 - `content` shows any WinUI element as its `Content`.
-- `component` shows the component `T` of a `FloatingWindow<T>` on a surface, and unmounts it when the window is disposed.
+- `component` shows the component `T` of a `FloatingWindow<T>`, or of a `FloatingWindow<T, TProps>` with the props it was given, on a surface, and unmounts it when the window is disposed.
 - `look` takes a `Backdrop` of Mica, Acrylic or MicaAlt, and rounded or square `Corners`.
 
 ## How to get to it (user POV)

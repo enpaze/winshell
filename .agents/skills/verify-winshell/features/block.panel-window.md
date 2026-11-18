@@ -12,7 +12,7 @@ A `PanelWindow` is a frameless window that sits on the edges of a screen, such a
 - `margins` keeps `Margins` between the panel and its edges.
 - `focusable` lets the panel take the keyboard with `Focusable`.
 - `per-screen` keeps one panel on each screen with `ScreenWindows`.
-- `component` shows the component `T` of a `PanelWindow<T>` on a surface, and unmounts it when the panel is disposed.
+- `component` shows the component `T` of a `PanelWindow<T>`, or of a `PanelWindow<T, TProps>` with the props it was given, on a surface, and unmounts it when the panel is disposed.
 
 ## How to get to it (user POV)
 

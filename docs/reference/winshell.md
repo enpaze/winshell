@@ -79,6 +79,14 @@ Has the members of [FloatingWindow](#floatingwindow).
 | --- | --- |
 | `FloatingWindow<T>()` | constructor |
 
+## FloatingWindow of T, TProps
+
+Has the members of [FloatingWindow](#floatingwindow).
+
+| Member | Type |
+| --- | --- |
+| `FloatingWindow<T, TProps>(TProps? props)` | constructor |
+
 ## IEventLoop
 
 | Member | Type |
@@ -191,6 +199,14 @@ Has the members of [PanelWindow](#panelwindow).
 | --- | --- |
 | `PanelWindow<T>()` | constructor |
 
+## PanelWindow of T, TProps
+
+Has the members of [PanelWindow](#panelwindow).
+
+| Member | Type |
+| --- | --- |
+| `PanelWindow<T, TProps>(TProps? props)` | constructor |
+
 ## PixelImage
 
 | Member | Type |
@@ -245,6 +261,14 @@ Has the members of [PopupWindow](#popupwindow).
 | Member | Type |
 | --- | --- |
 | `PopupWindow<T>()` | constructor |
+
+## PopupWindow of T, TProps
+
+Has the members of [PopupWindow](#popupwindow).
+
+| Member | Type |
+| --- | --- |
+| `PopupWindow<T, TProps>(TProps? props)` | constructor |
 
 ## Preferences
 

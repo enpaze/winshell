@@ -220,6 +220,13 @@ On any window:
         var hotkey = shell.Hotkey("Win+Alt+C", calendar.Toggle);
 ```
 
+A component with props, a `Component<TProps>`, goes in a `PanelWindow<T, TProps>`, `PopupWindow<T, TProps>` or `FloatingWindow<T, TProps>`, which is given the props. Two windows of one component can show different things:
+
+```csharp
+        var today = new PopupWindow<Note, string>("Stand-up at 10") { Position = PopupPosition.Top };
+        var later = new PopupWindow<Note, string>("Pay the rent");
+```
+
 The component renders again when a service object it observes with `UseObservable` changes. `UseObservableTree` follows a whole service, as [Keep a component current](#keep-a-component-current) describes.
 
 ### Place a popup window

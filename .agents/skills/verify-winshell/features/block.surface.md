@@ -12,7 +12,7 @@ A `Surface` is a component that paints the style's background behind its content
 
 ## How to get to it (user POV)
 
-- Show a component in a `PanelWindow<T>`, `PopupWindow<T>` or `FloatingWindow<T>`, which puts it on a surface.
+- Show a component in a `PanelWindow<T>`, `PopupWindow<T>` or `FloatingWindow<T>`, or a component with props in their `<T, TProps>` forms, which puts it on a surface.
 - In a Reactor component, return `Surface(content, new Thickness(4))` for a part in a style of its own.
 - Every `Bar` shows its three areas in a surface, so `winshell inspect tree` names a bar window's content type `Surface`.
 - In the `features` shell, the surface is the box under the `Click` and `Popup` buttons.
