@@ -10,14 +10,14 @@ A bar on every screen, along the top unless the preferences file says another ed
 
 The bar has three areas: start, center and end. On a left or right edge they run from top to bottom. Each glyph is its own widget, so a placement can reorder or repeat one without taking the others with it. With no lists in the preferences file the areas use the ones in [AppShell.cs](AppShell.cs), and a top bar looks as it does in the picture.
 
-- **Start:** the `windows` glyph, then `workspaces` for Winland's workspaces on that widget's own screen: 1 to 5 always, and any other that exists. An empty one is dimmed, the shown one is the tiling glyph, and a click shows it. Without Winland running there are no workspaces. On a side bar the buttons stack.
+- **Start:** the `windows` glyph, then `workspaces` for Winland's workspaces on that widget's own screen: 1 to 5 always, and any other that exists. An empty one is dimmed, the shown one is the tiling glyph, and a click shows it. Beside each number are the icons of the apps open on that workspace, one per app, and they change as windows open, close and move. Without Winland running there are no workspaces. On a side bar the buttons stack, and so do the icons in each.
 - **Center:** the `clock`, the day and time, such as `Saturday 20:25`, in your Windows regional format. A `timezone` setting names another zone, such as `UTC`; without one the clock is local, and two clocks can show two zones. On a side bar the hours sit above the minutes, such as `20` over `25`, and the tooltip stays the full date.
 - **End:** `tray` on the primary screen only. Hovering its chevron slides out the icons Windows keeps in its overflow: out to the side on a top or bottom bar, and downwards on a side bar, where the icons stack. Then `bluetooth`, `network`, `audio`, `screen` and `battery`; each opens its Windows Settings page when clicked. The battery is left out on a PC without one, and Bluetooth when there is no adapter.
 
 | Widget | Area | Settings |
 | --- | --- | --- |
 | `windows` | start | none |
-| `workspaces` | start | none |
+| `workspaces` | start | `icons`, optional: `true` shows each workspace's app icons; on in [AppShell.cs](AppShell.cs) |
 | `clock` | center | `timezone`, optional: a Windows time zone id |
 | `tray` | end | none |
 | `bluetooth` | end | none |

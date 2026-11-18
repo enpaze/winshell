@@ -30,4 +30,29 @@ public sealed class ShellServicesTests
 
         Assert.True(resolved);
     }
+
+    [Fact]
+    public async Task Winland_resolves_windows_without_the_shell_reading_its_window_list()
+    {
+        var resolved = await ShellFixture.On(async shell =>
+        {
+            var winland = shell.Winland;
+            var hwnd = NativeWindow.OfClass("STATIC", "winshell-winland-only-window",
+                (uint)WINDOW_STYLE.WS_OVERLAPPEDWINDOW, 0, 80, 80, 40, 0, PInvoke.GetModuleHandle(null));
+            Assert.NotEqual(0, hwnd);
+            try
+            {
+                PInvoke.ShowWindow((HWND)hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
+                await Wait.UntilAsync(() => winland.FindWindow(hwnd) is not null,
+                    "Winland to resolve the window");
+                return winland.FindWindow(hwnd)!.Title;
+            }
+            finally
+            {
+                PInvoke.DestroyWindow((HWND)hwnd);
+            }
+        });
+
+        Assert.Equal("winshell-winland-only-window", resolved);
+    }
 }

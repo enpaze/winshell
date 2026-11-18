@@ -54,6 +54,11 @@ public sealed class WinlandServiceTests
         return changes;
     }
 
+    private static WindowRead Program(string title, string program)
+    {
+        return new WindowRead(title, false, false, false, "M1", "", "", program);
+    }
+
     [Fact]
     public void A_connection_fills_the_lists_in_order()
     {
@@ -157,6 +162,79 @@ public sealed class WinlandServiceTests
             service.Windows.Single(window => window.Address == "10").Window);
         Assert.Same(list.Windows.Single(window => window.Hwnd == 0x20),
             service.Windows.Single(window => window.Address == "20").Window);
+    }
+
+    [Fact]
+    public void A_workspace_shows_each_app_icon_once_in_window_order()
+    {
+        var windows = new FakeWindowBackend();
+        windows.Show(0x10, Program("Editor", @"C:\editor.exe"));
+        windows.Show(0x30, Program("Browser", @"C:\browser.exe"));
+        windows.Show(0x40, Program("Second editor", @"C:\editor.exe"));
+        windows.Show(0x50, Program("Third editor", @"C:\EDITOR.EXE"));
+        using var list = new WindowListService(_loop, Log.Default, backend: windows);
+        using var service = Connected();
+        service.Attach(list);
+        var main = service.FocusedWorkspace!;
+
+        Raise(@"openwindow>>30,1,\\.\DISPLAY1,Browser,Browser");
+        Raise(@"openwindow>>40,1,\\.\DISPLAY1,Editor,Second editor");
+        Raise(@"openwindow>>50,1,\\.\DISPLAY1,Editor,Third editor");
+
+        Assert.Equal(4, main.Windows.Count);
+        Assert.Equal([@"C:\editor.exe", @"C:\browser.exe"], main.AppIcons);
+    }
+
+    [Fact]
+    public void A_workspace_without_windows_shows_no_app_icons()
+    {
+        using var service = Connected();
+        var three = service.Workspaces.First(w => w.Name == "3" && w.Monitor!.Name == @"\\.\DISPLAY1");
+
+        Assert.Empty(three.Windows);
+        Assert.Empty(three.AppIcons);
+    }
+
+    [Fact]
+    public void A_winland_window_with_no_app_window_shows_no_icon()
+    {
+        var windows = new FakeWindowBackend();
+        windows.Show(0x10, Program("Editor", @"C:\editor.exe"));
+        using var list = new WindowListService(_loop, Log.Default, backend: windows);
+        using var service = Connected();
+        var main = service.FocusedWorkspace!;
+        var left = service.Monitors[1].ActiveWorkspace!;
+        Assert.Empty(main.AppIcons);
+
+        service.Attach(list);
+
+        Assert.Equal([@"C:\editor.exe"], main.AppIcons);
+        Assert.Single(left.Windows);
+        Assert.Empty(left.AppIcons);
+    }
+
+    [Fact]
+    public void An_app_icon_follows_its_window_open_move_and_close()
+    {
+        var windows = new FakeWindowBackend();
+        windows.Show(0x10, Program("Editor", @"C:\editor.exe"));
+        windows.Show(0x30, Program("Browser", @"C:\browser.exe"));
+        using var list = new WindowListService(_loop, Log.Default, backend: windows);
+        using var service = Connected();
+        service.Attach(list);
+        var main = service.FocusedWorkspace!;
+        var three = service.Workspaces.First(w => w.Name == "3" && w.Monitor!.Name == @"\\.\DISPLAY1");
+
+        Raise(@"openwindow>>30,1,\\.\DISPLAY1,Browser,Browser");
+        Assert.Equal([@"C:\editor.exe", @"C:\browser.exe"], main.AppIcons);
+
+        Raise(@"movewindowv2>>30,3,3,\\.\DISPLAY1");
+        Assert.Equal([@"C:\editor.exe"], main.AppIcons);
+        Assert.Equal([@"C:\browser.exe"], three.AppIcons);
+
+        Raise("closewindow>>30");
+        Assert.Empty(three.AppIcons);
+        Assert.Equal([@"C:\editor.exe"], main.AppIcons);
     }
 
     [Fact]
