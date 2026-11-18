@@ -79,7 +79,7 @@ internal static class InstanceSelection
 
         if (choice.Path is not null || choice.Config is not null)
         {
-            var project = ShellProject.Find(choice.Path, choice.Config, ShellLocations.Current.ConfigRoot,
+            var project = ShellProject.Find(choice.Path, choice.Config, ShellLocations.Current.ShellsRoot,
                 out var error);
             if (error is not null)
                 return Result.Miss(error);

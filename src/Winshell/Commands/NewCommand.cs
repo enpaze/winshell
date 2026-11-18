@@ -27,14 +27,14 @@ internal static class NewCommand
     private static int Execute(Invocation parsed)
     {
         var packages = Path.Combine(Path.GetDirectoryName(Environment.ProcessPath)!, "packages");
-        var result = Make(parsed, ShellLocations.Current.ConfigRoot, packages);
+        var result = Make(parsed, ShellLocations.Current.ShellsRoot, packages);
         Console.Write(result.Output);
         if (result.Error is not null)
             Console.Error.WriteLine(result.Error);
         return result.Code;
     }
 
-    internal static Result Make(Invocation parsed, string configRoot, string packages)
+    internal static Result Make(Invocation parsed, string shellsRoot, string packages)
     {
         var output = new StringBuilder();
         if (parsed.Positional.FirstOrDefault() is not { } name)
@@ -50,7 +50,7 @@ internal static class NewCommand
         if (chosen is null)
             return new Result(2, "", $"No starter or example is named \"{name}\". Run winshell new to list them.");
         var path = parsed.Text(CliFlags.Path);
-        var folder = Path.GetFullPath(path ?? Path.Combine(configRoot, chosen.Name));
+        var folder = Path.GetFullPath(path ?? Path.Combine(shellsRoot, chosen.Name));
         if (File.Exists(folder) || (Directory.Exists(folder) && Directory.EnumerateFileSystemEntries(folder).Any()))
             return new Result(2, "", $"{folder} already exists and isn't empty. Pick another folder with -p.");
 

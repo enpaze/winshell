@@ -69,7 +69,7 @@ internal static class InstanceStart
             $"Winshell {ProductVersion.Current.Text} on Windows {Environment.OSVersion.Version}, program \"{launch.Program}\"");
         launch.Log.Info("shell", $"Shell ID: \"{identity.ShellId}\"");
         identity.CarryOver(launch.Log);
-        launch.Log.Info("shell", $"Saving logs to \"{instance.LogPath}\"");
+        launch.Log.Info("shell", $"Saving logs to \"{instance.Logs}\"");
         if (instance.OpenPipe() is { } pipeError)
         {
             instance.Abandon();

@@ -28,8 +28,8 @@ public sealed partial class Shell : IDisposable
         _identity = session.Identity;
         _instance = session.Instance;
         _arguments = session.Arguments;
-        Paths = new ShellPaths(session.Identity, session.Instance.LogPath,
-            Path.GetDirectoryName(Environment.ProcessPath)!, ShellLocations.Current.ConfigRoot);
+        Paths = new ShellPaths(session.Identity, session.Instance.Logs,
+            Path.GetDirectoryName(Environment.ProcessPath)!, ShellLocations.Current.ShellsRoot);
         Ipc = new ShellIpc(log);
         Platform = new ShellPlatform(loop, log);
         Notices = new ShellNotices(

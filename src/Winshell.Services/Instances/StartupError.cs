@@ -24,7 +24,7 @@ internal static class StartupError
         return consoleWindow == 0 && stderr is not (StreamTarget.File or StreamTarget.Pipe);
     }
 
-    internal static string? FolderFor(string? path, string configRoot)
+    internal static string? FolderFor(string? path, string shellsRoot)
     {
         if (path is not null)
         {
@@ -35,7 +35,7 @@ internal static class StartupError
             return parent is not null && Directory.Exists(parent) ? parent : null;
         }
 
-        return Directory.Exists(configRoot) ? configRoot : null;
+        return Directory.Exists(shellsRoot) ? shellsRoot : null;
     }
 
     private static void Dialog(string message, string? folder)

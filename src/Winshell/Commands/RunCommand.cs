@@ -64,10 +64,10 @@ internal static class RunCommand
     {
         var path = parsed.Text(CliFlags.Path);
         var config = parsed.Text(CliFlags.Config);
-        var project = ShellProject.Find(path, config, ShellLocations.Current.ConfigRoot, out var error);
+        var project = ShellProject.Find(path, config, ShellLocations.Current.ShellsRoot, out var error);
         if (error is not null)
         {
-            StartupError.Report(error, StartupError.FolderFor(path, ShellLocations.Current.ConfigRoot));
+            StartupError.Report(error, StartupError.FolderFor(path, ShellLocations.Current.ShellsRoot));
             return 1;
         }
 

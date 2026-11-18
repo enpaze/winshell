@@ -97,8 +97,8 @@ public sealed class ShellStartTests
     {
         using var temp = new TempFolder();
         var locations = new ShellLocations(Path.Combine(temp.Path, "config"), Path.Combine(temp.Path, "local"));
-        var program = Path.Combine(locations.ConfigRoot, "bar", "bin", "shell", "Bar.exe");
-        var earlier = ShellIdentity.Resolve(program, locations with { ConfigRoot = "" }, new ShellProperties());
+        var program = Path.Combine(locations.ShellsRoot, "bar", "bin", "shell", "Bar.exe");
+        var earlier = ShellIdentity.Resolve(program, locations with { ShellsRoot = "" }, new ShellProperties());
         Directory.CreateDirectory(earlier.Data);
         File.WriteAllText(Path.Combine(earlier.Data, "kept.txt"), "data");
         Directory.CreateDirectory(earlier.State);
@@ -130,8 +130,8 @@ public sealed class ShellStartTests
     {
         using var temp = new TempFolder();
         var locations = new ShellLocations(Path.Combine(temp.Path, "config"), Path.Combine(temp.Path, "local"));
-        var program = Path.Combine(locations.ConfigRoot, "bar", "bin", "shell", "Bar.exe");
-        var earlier = ShellIdentity.Resolve(program, locations with { ConfigRoot = "" }, new ShellProperties());
+        var program = Path.Combine(locations.ShellsRoot, "bar", "bin", "shell", "Bar.exe");
+        var earlier = ShellIdentity.Resolve(program, locations with { ShellsRoot = "" }, new ShellProperties());
         Directory.CreateDirectory(earlier.Data);
         Directory.CreateDirectory(earlier.State);
         var given = Path.Combine(temp.Path, "state");
@@ -147,7 +147,7 @@ public sealed class ShellStartTests
     [Fact]
     public void A_given_folder_is_next_to_the_program_and_can_name_the_base()
     {
-        var identity = ShellIdentity.Resolve(@"C:\shells\mine.exe", Locations with { ConfigRoot = "" },
+        var identity = ShellIdentity.Resolve(@"C:\shells\mine.exe", Locations with { ShellsRoot = "" },
             new ShellProperties("id", "data", @"$BASE\other", @"D:\cache"));
 
         Assert.Equal(@"C:\shells\data", identity.Data);

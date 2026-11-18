@@ -9,7 +9,7 @@ internal sealed record ShellIdentity(string ShellId, string Data, string State, 
 
     public static ShellIdentity Resolve(string program, ShellLocations locations, ShellProperties properties)
     {
-        var id = properties.ShellName ?? DefaultId(program, locations.ConfigRoot);
+        var id = properties.ShellName ?? DefaultId(program, locations.ShellsRoot);
         var earlier = properties.ShellName is null ? Hashed(program) : id;
         var relativeTo = ShellProject.FolderOf(program) ?? Path.GetDirectoryName(program)!;
         var moves = new List<(string, string)>();
@@ -28,11 +28,11 @@ internal sealed record ShellIdentity(string ShellId, string Data, string State, 
         { Earlier = moves };
     }
 
-    private static string DefaultId(string program, string configRoot)
+    private static string DefaultId(string program, string shellsRoot)
     {
-        if (configRoot.Length > 0 && ShellProject.FolderOf(program) is { } folder)
+        if (shellsRoot.Length > 0 && ShellProject.FolderOf(program) is { } folder)
         {
-            var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(configRoot));
+            var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(shellsRoot));
             if (string.Equals(folder, root, StringComparison.OrdinalIgnoreCase))
                 return "root";
             if (string.Equals(Path.GetDirectoryName(folder), root, StringComparison.OrdinalIgnoreCase))

@@ -155,10 +155,10 @@ public sealed partial class DoctorCommandTests : IDisposable
         return RunIn(_root, args);
     }
 
-    private static ChildProcess RunIn(string configRoot, params string[] args)
+    private static ChildProcess RunIn(string shellsRoot, params string[] args)
     {
 #pragma warning disable CsWinRT1030
-        return WinshellCli.Run(args, (ShellLocations.ConfigVariable, configRoot));
+        return WinshellCli.Run(args, (ShellLocations.ConfigVariable, shellsRoot));
 #pragma warning restore CsWinRT1030
     }
 

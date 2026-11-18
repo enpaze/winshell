@@ -30,7 +30,7 @@ internal static class DevCommand
     private static async Task<int> Execute(Invocation parsed)
     {
         var project = ShellProject.Find(parsed.Text(CliFlags.Path), parsed.Text(CliFlags.Config),
-            ShellLocations.Current.ConfigRoot, out var error);
+            ShellLocations.Current.ShellsRoot, out var error);
         if (error is not null)
         {
             await Console.Error.WriteLineAsync(error);

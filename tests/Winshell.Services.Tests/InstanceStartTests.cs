@@ -251,7 +251,7 @@ public sealed class InstanceStartTests
             }));
 
         Assert.Same(error, thrown);
-        var text = File.ReadAllText(instance!.LogPath);
+        var text = File.ReadAllText(instance!.Logs);
         Assert.Contains("Winshell crashed", text, StringComparison.Ordinal);
         Assert.Contains("SENTINEL host", text, StringComparison.Ordinal);
 
@@ -267,7 +267,7 @@ public sealed class InstanceStartTests
             Console.SetError(previous);
         }
 
-        Assert.DoesNotContain("AFTER-CLOSE", File.ReadAllText(instance.LogPath), StringComparison.Ordinal);
+        Assert.DoesNotContain("AFTER-CLOSE", File.ReadAllText(instance.Logs), StringComparison.Ordinal);
     }
 
     [Fact]

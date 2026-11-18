@@ -28,9 +28,9 @@ internal static class UseCommand
     {
         var locations = ShellLocations.Current;
         if (parsed.Positional.IsEmpty)
-            return List(locations.ConfigRoot);
+            return List(locations.ShellsRoot);
         var name = parsed.Positional[0];
-        if (Choose(name, locations.ConfigRoot, ShellProject.Run, out var error) is not { } project)
+        if (Choose(name, locations.ShellsRoot, ShellProject.Run, out var error) is not { } project)
         {
             await Console.Error.WriteLineAsync(error);
             return 1;

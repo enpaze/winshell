@@ -70,7 +70,7 @@ public sealed class ShellInstanceTests
         var paths = (await ShellFixture.Current()).Paths;
 
         Assert.Equal(Path.GetDirectoryName(Environment.ProcessPath), paths.Program);
-        Assert.Equal(ShellLocations.Current.ConfigRoot, paths.Shells);
+        Assert.Equal(ShellLocations.Current.ShellsRoot, paths.Shells);
         Assert.Equal(info.Log, paths.Logs);
         Assert.True(File.Exists(paths.Logs));
     }

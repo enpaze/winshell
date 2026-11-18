@@ -40,7 +40,7 @@ internal readonly record struct SignInVerdict
         };
     }
 
-    public static SignInVerdict FromRun(string? command, bool turnedOff, string thisExe, string configRoot,
+    public static SignInVerdict FromRun(string? command, bool turnedOff, string thisExe, string shellsRoot,
         Func<string, bool> exists, Func<string, string> resolve, string? projectFile, Log? log = null)
     {
         if (command is null)
@@ -66,7 +66,7 @@ internal readonly record struct SignInVerdict
             return Answer(SignInKind.MissingProgram, false);
         if (!SignInEntry.SameInstall(program, thisExe, resolve, log))
             return Answer(SignInKind.AnotherInstall, true);
-        if (projectFile is not null && !SignInEntry.Starts(launch, projectFile, configRoot, log))
+        if (projectFile is not null && !SignInEntry.Starts(launch, projectFile, shellsRoot, log))
             return Answer(SignInKind.AnotherConfiguration, true);
         if (turnedOff)
             return Answer(SignInKind.TurnedOffInWindows, false);

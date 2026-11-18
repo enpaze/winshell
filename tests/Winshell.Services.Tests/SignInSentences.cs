@@ -6,12 +6,12 @@ namespace Winshell.Services.Tests;
 
 internal static class SignInSentences
 {
-    public static DoctorCheck SignIn(string? command, bool turnedOff, string thisExe, string configRoot,
+    public static DoctorCheck SignIn(string? command, bool turnedOff, string thisExe, string shellsRoot,
         Func<string, bool> exists, Func<string, string>? resolve = null, string? projectFile = null)
     {
         resolve ??= path => path;
-        return DoctorSignIn.Check(SignInVerdict.FromRun(command, turnedOff, thisExe, configRoot, exists, resolve,
-            projectFile), configRoot, projectFile);
+        return DoctorSignIn.Check(SignInVerdict.FromRun(command, turnedOff, thisExe, shellsRoot, exists, resolve,
+            projectFile), shellsRoot, projectFile);
     }
 
     public static DoctorCheck SignIn(StartupTaskState? state)
@@ -20,10 +20,10 @@ internal static class SignInSentences
     }
 
     public static DoctorCheck SignInForProcess(string processPath, string? supervisor, string? command,
-        bool turnedOff, string configRoot, Func<string, bool> exists, Func<string, string>? resolve = null,
+        bool turnedOff, string shellsRoot, Func<string, bool> exists, Func<string, string>? resolve = null,
         string? projectFile = null)
     {
-        return SignIn(command, turnedOff, SignInEntry.InstallExe(processPath, supervisor), configRoot, exists,
+        return SignIn(command, turnedOff, SignInEntry.InstallExe(processPath, supervisor), shellsRoot, exists,
             resolve, projectFile);
     }
 }
