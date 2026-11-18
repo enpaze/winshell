@@ -16,6 +16,7 @@ public sealed partial class Shell : IDisposable
     private readonly ShellIdentity _identity;
     private readonly ShellInstance _instance;
     private readonly ShellArguments _arguments;
+    private readonly List<IDisposable> _parts = [];
     private bool _nextStarted;
     private bool _disposed;
     private RealInput? _input;
@@ -208,6 +209,34 @@ public sealed partial class Shell : IDisposable
             session.Failure = failed;
     }
 
+    public T Add<T>(T part) where T : class, IDisposable
+    {
+        ArgumentNullException.ThrowIfNull(part);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_parts.Exists(added => ReferenceEquals(added, part)))
+            return part;
+        _parts.Add(part);
+        if (part is IShellPart started)
+            try
+            {
+                started.Start();
+            }
+            catch
+            {
+                Remove(part);
+                throw;
+            }
+
+        return part;
+    }
+
+    internal void Remove(IDisposable part)
+    {
+        var at = _parts.FindIndex(added => ReferenceEquals(added, part));
+        if (at >= 0)
+            _parts.RemoveAt(at);
+    }
+
     public bool Reload()
     {
         if (StartNext() is not null)
@@ -275,7 +304,9 @@ public sealed partial class Shell : IDisposable
         if (_disposed)
             return;
         _disposed = true;
-        DisposeEach((IDisposable?[])[_input, _preferencesFile, Notices, .. ServicesInStopOrder, Platform]);
+        IDisposable[] parts = [.. Enumerable.Reverse(_parts)];
+        _parts.Clear();
+        DisposeEach((IDisposable?[])[.. parts, _input, _preferencesFile, Notices, .. ServicesInStopOrder, Platform]);
     }
 
     internal static void DisposeEach(IEnumerable<IDisposable?> parts)

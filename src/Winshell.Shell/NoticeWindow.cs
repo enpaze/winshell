@@ -49,7 +49,7 @@ internal sealed partial class NoticeWindow : IDisposable
         _host.PointerPressed += OnPointerPressed;
         _host.Loaded += OnHostLoaded;
         _window.Content = _host;
-        _window.Visible = true;
+        _window.Start();
         Hold();
     }
 

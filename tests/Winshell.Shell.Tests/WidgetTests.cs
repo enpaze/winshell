@@ -23,7 +23,7 @@ public sealed class WidgetTests
                 Style = style,
                 Defaults = [new(name, settings)]
             });
-            using var window = new PanelWindow { Width = 160, Height = 90, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 160, Height = 90, Content = area.Host });
             await Wait.UntilAsync(() => PlacementWidget.Seen?.Window == window, "the widget to render in its window");
 
             var seen = PlacementWidget.Seen!;
@@ -51,7 +51,7 @@ public sealed class WidgetTests
                     new(name, new Dictionary<string, object> { ["text"] = 5L })
                 ]
             });
-            using var window = new PanelWindow { Width = 420, Height = 60, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 420, Height = 60, Content = area.Host });
             string[] text = [];
             await Wait.UntilAsync(() =>
             {
@@ -80,7 +80,7 @@ public sealed class WidgetTests
             {
                 Defaults = [.. values.Select(value => new Placement(name, new Dictionary<string, object> { ["on"] = value }))]
             });
-            using var window = new PanelWindow { Width = 640, Height = 60, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 640, Height = 60, Content = area.Host });
             string[] text = [];
             await Wait.UntilAsync(() =>
             {
@@ -99,7 +99,7 @@ public sealed class WidgetTests
     [Trait("Category", "Window")]
     public async Task UseNow_renders_each_widget_again_after_the_interval_it_asks_for()
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             var name = Guid.NewGuid().ToString();
             TickingWidget.Renders.Clear();
@@ -109,7 +109,7 @@ public sealed class WidgetTests
             {
                 Defaults = [Ticking(name, "fast", 60), Ticking(name, "slow", 300)]
             });
-            using var window = new PanelWindow { Width = 220, Height = 60, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 220, Height = 60, Content = area.Host });
             await Wait.UntilAsync(() => Times("fast").Count >= 2 && Times("slow").Count >= 2, "both clocks to tick in the window");
 
             TickingWidget.Times.Clear();
@@ -145,7 +145,7 @@ public sealed class WidgetTests
             {
                 Defaults = [Ticking(name, "gone", 431), Ticking(name, "stays", 433)]
             });
-            using var window = new PanelWindow { Width = 220, Height = 60, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 220, Height = 60, Content = area.Host });
             await Wait.UntilAsync(() => Renders("gone") >= 3 && Renders("stays") >= 3, "both clocks to tick");
             Assert.Contains(gone, loop.Waiting());
             Assert.Contains(stays, loop.Waiting());
@@ -179,7 +179,7 @@ public sealed class WidgetTests
                 await Wait.UntilAsync(() => ScreenNameWidget.Seen.Count > 0, "the widget to render before its window");
                 Assert.Equal((false, (ScreenInfo?)null), ScreenNameWidget.Seen[0]);
 
-                using var window = new PanelWindow { Width = 220, Height = 60, Content = area.Host, Visible = true };
+                using var window = shell.Add(new PanelWindow { Width = 220, Height = 60, Content = area.Host });
                 await Wait.UntilAsync(() => ScreenNameWidget.Seen.Any(seen => seen.Windowed), "the widget to render once the window arrives");
                 Assert.Null(ScreenNameWidget.Seen.First(seen => seen.Windowed).Screen);
 
@@ -200,13 +200,13 @@ public sealed class WidgetTests
     [Trait("Category", "Window")]
     public async Task The_guide_s_message_widget_says_hello_when_its_placement_has_no_text()
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
             {
                 Defaults = ["message", new("message", new Dictionary<string, object> { ["text"] = "Hi" })]
             });
-            using var window = new PanelWindow { Width = 320, Height = 60, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 320, Height = 60, Content = area.Host });
             string[] text = [];
             await Wait.UntilAsync(() =>
             {
@@ -229,7 +229,7 @@ public sealed class WidgetTests
             {
                 Defaults = [new("clock", new Dictionary<string, object> { ["timezone"] = 5L })]
             });
-            using var window = new PanelWindow { Width = 420, Height = 60, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 420, Height = 60, Content = area.Host });
             await Wait.UntilAsync(() => Texts(area.Host).Contains("clock: timezone must be a string."),
                 "the clock's placeholder");
 

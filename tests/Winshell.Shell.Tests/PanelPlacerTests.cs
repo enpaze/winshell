@@ -9,14 +9,14 @@ public sealed class PanelPlacerTests
     [Fact]
     public async Task The_doctor_knows_a_panel_for_Winshell_s_own()
     {
-        var classes = await ShellFixture.On(_ =>
+        var classes = await ShellFixture.On(shell =>
         {
             using var panel = new PanelWindow();
             panel.Anchors = Edges.Top | Edges.Left;
             panel.Width = 320;
             panel.Height = 60;
             panel.Content = new Grid();
-            panel.Visible = true;
+            shell.Add(panel);
             return DoctorProbe.EdgeWindows().Select(window => window.ClassName).ToList();
         });
 

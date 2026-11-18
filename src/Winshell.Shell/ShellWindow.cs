@@ -3,7 +3,7 @@ using Windows.Foundation;
 
 namespace Winshell;
 
-public abstract class ShellWindow : ObservableObject, IDisposable
+public abstract class ShellWindow : ObservableObject, IShellPart
 {
     private readonly Shell _shell;
     private HostWindow? _host;
@@ -19,11 +19,13 @@ public abstract class ShellWindow : ObservableObject, IDisposable
     private WindowCorners _corners;
     private IReadOnlyList<Rect>? _inputRegion;
     private Rect? _visibleMask;
+    private bool _started;
     private bool _disposed;
 
-    private protected ShellWindow(Shell shell)
+    private protected ShellWindow(Shell shell, bool visible)
     {
         _shell = shell;
+        _visible = visible;
     }
 
     public static ShellWindow? Of(UIElement element)
@@ -52,15 +54,9 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         get => _visible;
         set
         {
-            if (_disposed || !Set(ref _visible, value))
+            if (_disposed || !Set(ref _visible, value) || !_started)
                 return;
-            if (value)
-                EnsureHost();
-            if (_host is not null)
-            {
-                ApplyPlace();
-                _host.Place.SetVisible(value);
-            }
+            ShowOrHide();
         }
     }
 
@@ -162,6 +158,30 @@ public abstract class ShellWindow : ObservableObject, IDisposable
     internal event Action? Disposing;
 
     public event Action<Exception>? Failed;
+
+    void IShellPart.Start()
+    {
+        Start();
+    }
+
+    internal void Start()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_started)
+            return;
+        _started = true;
+        ShowOrHide();
+    }
+
+    private void ShowOrHide()
+    {
+        if (_visible)
+            EnsureHost();
+        if (_host is null)
+            return;
+        ApplyPlace();
+        _host.Place.SetVisible(_visible);
+    }
 
     public void Toggle()
     {
@@ -284,6 +304,7 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         if (_disposed)
             return;
         _disposed = true;
+        _shell.Remove(this);
         Disposing?.Invoke();
         _host?.Dispose();
         _host = null;

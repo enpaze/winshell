@@ -30,7 +30,7 @@ public sealed partial class CaptureViewTests
                 VerticalAlignment = VerticalAlignment.Top,
                 Session = session
             };
-            using var popup = new PopupWindow();
+            using var popup = shell.Add(new PopupWindow());
             popup.Position = PopupPosition.At(new Point(screen.X + 40, screen.Y + 40));
             popup.Width = 200;
             popup.Height = 120;
@@ -90,7 +90,7 @@ public sealed partial class CaptureViewTests
                 VerticalAlignment = VerticalAlignment.Top,
                 Session = session
             };
-            using var popup = new PopupWindow();
+            using var popup = shell.Add(new PopupWindow());
             popup.Position = PopupPosition.At(new Point(screen.X + 80, screen.Y + 80));
             popup.Width = 200;
             popup.Height = 120;
@@ -135,7 +135,7 @@ public sealed partial class CaptureViewTests
                 VerticalAlignment = VerticalAlignment.Top,
                 Session = session
             };
-            using var popup = new PopupWindow();
+            using var popup = shell.Add(new PopupWindow());
             popup.Position = PopupPosition.At(new Point(screen.X + 120, screen.Y + 40));
             popup.Width = 200;
             popup.Height = 120;

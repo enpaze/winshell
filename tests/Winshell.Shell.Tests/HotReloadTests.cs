@@ -69,14 +69,13 @@ public sealed partial class HotReloadTests
 
     private static PanelWindow Panel(UIElement content)
     {
-        return new PanelWindow
+        return Shell.Current.Add(new PanelWindow
         {
             Anchors = Edges.Top | Edges.Left,
             Width = 200,
             Height = 40,
-            Content = content,
-            Visible = true
-        };
+            Content = content
+        });
     }
 
     [Fact]
@@ -274,13 +273,13 @@ public sealed partial class HotReloadTests
             shell.Platform.Screens.Add(screen);
             try
             {
-                using var bar = new Bar
+                using var bar = shell.Add(new Bar
                 {
                     Name = "bar" + Guid.NewGuid().ToString("N"),
                     Reserve = false,
                     Start = [unchanged],
                     Center = [edited]
-                };
+                });
                 var shown = new TaskCompletionSource();
                 shell.Loop.Post(shown.SetResult);
                 await shown.Task.WaitAsync(TestContext.Current.CancellationToken);

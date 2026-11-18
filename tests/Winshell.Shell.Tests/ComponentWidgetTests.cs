@@ -23,7 +23,7 @@ public sealed class ComponentWidgetTests
             {
                 Defaults = [new(name, new Dictionary<string, object> { ["text"] = "area" })]
             });
-            using var window = new PanelWindow { Width = 220, Height = 90, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 220, Height = 90, Content = area.Host });
             await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
             await Wait.UntilAsync(() => Texts(area.Host).Contains("area"), "the area to show the component");
             Assert.Equal("area", Assert.Single(Texts(area.Host), text => text == "area"));
@@ -33,12 +33,12 @@ public sealed class ComponentWidgetTests
             shell.Platform.Screens.Add(screen);
             try
             {
-                using var bar = new Bar
+                using var bar = shell.Add(new Bar
                 {
                     Name = "bar" + Guid.NewGuid().ToString("N"),
                     Reserve = false,
                     Center = [new(name, new Dictionary<string, object> { ["text"] = "bar" })]
-                };
+                });
                 var shown = await BarWindow(shell, screen);
                 var content = Assert.IsAssignableFrom<DependencyObject>(shown.Content);
                 await Wait.UntilAsync(() => Texts(content).Contains("bar"), "the bar to show the component");
@@ -69,7 +69,7 @@ public sealed class ComponentWidgetTests
             try
             {
                 using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = areaName, Defaults = [new(widget, new Dictionary<string, object> { ["text"] = "code" })] });
-                using var window = new PanelWindow { Width = 220, Height = 90, Content = area.Host, Visible = true };
+                using var window = shell.Add(new PanelWindow { Width = 220, Height = 90, Content = area.Host });
                 await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
                 await Wait.UntilAsync(() => Texts(area.Host).Contains("first|first|Horizontal"), "the component to show its first settings");
 
@@ -91,7 +91,7 @@ public sealed class ComponentWidgetTests
     [Trait("Category", "Window")]
     public async Task A_new_orientation_or_defaults_renders_the_same_component()
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             var name = Guid.NewGuid().ToString();
             Shell.Current.WidgetRegistry.Add<RememberingWidget>(name);
@@ -99,7 +99,7 @@ public sealed class ComponentWidgetTests
             {
                 Defaults = [new(name, new Dictionary<string, object> { ["text"] = "born" })]
             });
-            using var window = new PanelWindow { Width = 280, Height = 120, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 280, Height = 120, Content = area.Host });
             await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
             await Wait.UntilAsync(() => Texts(area.Host).Contains("born|born|Horizontal"),
                 "the component to show the settings it was born with");
@@ -127,7 +127,7 @@ public sealed class ComponentWidgetTests
             Shell.Current.WidgetRegistry.Add<SurvivorWidget>(survivor);
             Shell.Current.WidgetRegistry.Add<ThrowingWidget>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = "end", Defaults = [new(survivor), new(name)] });
-            using var window = new PanelWindow { Width = 280, Height = 90, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 280, Height = 90, Content = area.Host });
             await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
             await Wait.UntilAsync(() => Texts(area.Host).Any(text => text.Contains("Render failed", StringComparison.Ordinal)),
                 "the throwing component to show its error");
@@ -155,7 +155,7 @@ public sealed class ComponentWidgetTests
             try
             {
                 using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [new(name)] });
-                using var window = new PanelWindow { Width = 180, Height = 80, Content = area.Host, Visible = true };
+                using var window = shell.Add(new PanelWindow { Width = 180, Height = 80, Content = area.Host });
                 await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
                 TextBlock? popupText = null;
                 await Wait.UntilAsync(() =>
@@ -189,7 +189,7 @@ public sealed class ComponentWidgetTests
             try
             {
                 using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [new(name)] });
-                using var window = new PanelWindow { Width = 180, Height = 80, Content = area.Host, Visible = true };
+                using var window = shell.Add(new PanelWindow { Width = 180, Height = 80, Content = area.Host });
                 await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
                 TextBlock? flyoutText = null;
                 await Wait.UntilAsync(() =>
@@ -288,13 +288,13 @@ public sealed class ComponentWidgetTests
     [Trait("Category", "Window")]
     public async Task A_widget_reads_the_shell_window_its_area_is_in()
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             var name = Guid.NewGuid().ToString();
             WindowWidget.Seen = null;
             Shell.Current.WidgetRegistry.Add<WindowWidget>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [name] });
-            using var window = new PanelWindow { Width = 160, Height = 48, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 160, Height = 48, Content = area.Host });
             await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
             await Wait.UntilAsync(() => WindowWidget.Seen == window, "the widget to be told its window");
             return true;
@@ -348,14 +348,14 @@ public sealed class ComponentWidgetTests
             UseEffect(() =>
             {
                 var body = new ReactorHostControl(new PopupLabel());
-                var popup = new PopupWindow
+                var popup = Shell.Add(new PopupWindow
                 {
                     Position = PopupPosition.At(new Point(240, 80)),
                     Width = 220,
                     Height = 80,
                     Content = StylePopup(body),
                     Visible = true
-                };
+                });
                 return () =>
                 {
                     popup.Dispose();
@@ -386,13 +386,12 @@ public sealed class ComponentWidgetTests
                     ShouldConstrainToRootBounds = false
                 };
                 anchor.Loaded += (_, _) => flyout.ShowAt(anchor);
-                var window = new PanelWindow
+                var window = Shell.Add(new PanelWindow
                 {
                     Width = 180,
                     Height = 80,
-                    Content = anchor,
-                    Visible = true
-                };
+                    Content = anchor
+                });
                 return () =>
                 {
                     flyout.Hide();

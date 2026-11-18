@@ -10,10 +10,10 @@ public sealed class FloatingWindowFullscreenTests
     [Fact]
     public async Task Fullscreen_covers_the_monitor_and_then_puts_the_frame_back()
     {
-        await ShellFixture.On(_ =>
+        await ShellFixture.On(shell =>
         {
             using var window = One();
-            window.Visible = true;
+            shell.Add(window);
             try
             {
                 var hwnd = window.Host!.Handle;
@@ -45,10 +45,10 @@ public sealed class FloatingWindowFullscreenTests
     [Fact]
     public async Task A_dpi_message_while_fullscreen_keeps_the_monitor_and_scales_the_old_place()
     {
-        await ShellFixture.On(_ =>
+        await ShellFixture.On(shell =>
         {
             using var window = One();
-            window.Visible = true;
+            shell.Add(window);
             try
             {
                 var hwnd = window.Host!.Handle;
@@ -99,10 +99,10 @@ public sealed class FloatingWindowFullscreenTests
     [Fact]
     public async Task Fullscreen_remembers_a_maximized_window()
     {
-        await ShellFixture.On(_ =>
+        await ShellFixture.On(shell =>
         {
             using var window = One();
-            window.Visible = true;
+            shell.Add(window);
             var hwnd = window.Host!.Handle;
             window.Maximized = true;
             Assert.True(PInvoke.IsZoomed((HWND)hwnd));
@@ -130,10 +130,10 @@ public sealed class FloatingWindowFullscreenTests
     [Fact]
     public async Task Minimizing_a_fullscreen_window_keeps_fullscreen_and_maximized_leaves_it()
     {
-        await ShellFixture.On(_ =>
+        await ShellFixture.On(shell =>
         {
             using var window = One();
-            window.Visible = true;
+            shell.Add(window);
             var hwnd = window.Host!.Handle;
             var before = Outer(hwnd);
 
@@ -165,10 +165,10 @@ public sealed class FloatingWindowFullscreenTests
     [Fact]
     public async Task Fullscreen_from_a_minimized_window_shows_it_and_then_minimizes_it_again()
     {
-        await ShellFixture.On(_ =>
+        await ShellFixture.On(shell =>
         {
             using var window = One();
-            window.Visible = true;
+            shell.Add(window);
             var hwnd = window.Host!.Handle;
             window.Minimized = true;
             Assert.True(PInvoke.IsIconic((HWND)hwnd));
@@ -193,7 +193,7 @@ public sealed class FloatingWindowFullscreenTests
     [Fact]
     public async Task An_owner_stays_under_the_window_and_can_be_changed()
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             using var owner = One();
             using var other = One();
@@ -202,15 +202,15 @@ public sealed class FloatingWindowFullscreenTests
             early.Width = 320;
             early.Height = 200;
             early.Owner = owner;
-            early.Visible = true;
-            owner.Visible = true;
-            other.Visible = true;
+            shell.Add(early);
+            shell.Add(owner);
+            shell.Add(other);
             using var child = new FloatingWindow();
             child.Title = "Winshell test";
             child.Width = 320;
             child.Height = 200;
             child.Owner = owner;
-            child.Visible = true;
+            shell.Add(child);
             var ownerHwnd = owner.Host!.Handle;
             var childHwnd = child.Host!.Handle;
             var otherHwnd = other.Host!.Handle;
@@ -251,7 +251,7 @@ public sealed class FloatingWindowFullscreenTests
     [Fact]
     public async Task Closing_the_owner_closes_the_owned_window_without_leaving_its_handle()
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             var owner = One();
             using var other = One();
@@ -260,9 +260,9 @@ public sealed class FloatingWindowFullscreenTests
             child.Width = 320;
             child.Height = 200;
             child.Owner = owner;
-            owner.Visible = true;
-            other.Visible = true;
-            child.Visible = true;
+            shell.Add(owner);
+            shell.Add(other);
+            shell.Add(child);
             var host = child.Host!;
             var hwnd = host.Handle;
             var otherHwnd = other.Host!.Handle;

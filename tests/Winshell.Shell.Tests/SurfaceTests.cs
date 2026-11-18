@@ -22,13 +22,8 @@ public sealed class SurfaceTests
             using var own = new Mounted<Surface, SurfaceProps>(new SurfaceProps { Style = other });
             var followsHost = follows.Host;
             var ownHost = own.Host;
-            using var window = new PanelWindow
-            {
-                Width = 100,
-                Height = 40,
-                Content = new StackPanel { RequestedTheme = ElementTheme.Light, Children = { followsHost, ownHost } },
-                Visible = true
-            };
+            var panel = new StackPanel { RequestedTheme = ElementTheme.Light, Children = { followsHost, ownHost } };
+            using var window = shell.Add(new PanelWindow { Width = 100, Height = 40, Content = panel });
             try
             {
                 var light = WidgetAreaTests.WindowsColor("Light", "SolidBackgroundFillColorBase");
@@ -46,7 +41,6 @@ public sealed class SurfaceTests
                     "both surfaces to follow the shell back to the default style");
 
                 Assert.Equal(light, BarTests.BackgroundOf(ownHost));
-                var panel = (StackPanel)window.Content;
                 panel.RequestedTheme = ElementTheme.Dark;
                 var dark = WidgetAreaTests.WindowsColor("Default", "SolidBackgroundFillColorBase");
                 await Wait.UntilAsync(
@@ -65,11 +59,11 @@ public sealed class SurfaceTests
     [Fact]
     public async Task A_surface_whose_style_sets_only_the_font_size_paints_windows_background_in_light_and_dark()
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             using var surface = new Mounted<Surface, SurfaceProps>(new SurfaceProps { Style = new ShellStyle { FontSize = 12 } });
             var host = surface.Host;
-            using var window = new PanelWindow { Width = 100, Height = 40, Content = host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 100, Height = 40, Content = host });
             await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
             foreach (var (requested, theme) in new[] { (ElementTheme.Light, "Light"), (ElementTheme.Dark, "Default") })
             {
@@ -95,7 +89,7 @@ public sealed class SurfaceTests
             });
             var host = surface.Host;
             host.RequestedTheme = ElementTheme.Light;
-            using var window = new PanelWindow { Width = 100, Height = 40, Content = host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 100, Height = 40, Content = host });
             var contrast = shell.Platform.IsHighContrast;
             var highlight = WidgetAreaTests.WindowsColor("HighContrast", "SystemColorHighlightColor");
             var critical = WidgetAreaTests.WindowsColor("Light", "SystemFillColorCritical");

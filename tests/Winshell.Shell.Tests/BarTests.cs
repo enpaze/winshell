@@ -24,7 +24,7 @@ public sealed class BarTests
             screens.Add(first);
             try
             {
-                using var bar = new Bar { Name = "bar" + Guid.NewGuid().ToString("N"), Reserve = false, Center = [widget] };
+                using var bar = shell.Add(new Bar { Name = "bar" + Guid.NewGuid().ToString("N"), Reserve = false, Center = [widget] });
                 await NextTurn(shell);
                 var firstBar = Assert.Single(BarsOn(shell, first));
                 Assert.Equal(Edges.Left | Edges.Right | Edges.Top, firstBar.Anchors);
@@ -52,6 +52,32 @@ public sealed class BarTests
     }
 
     [Fact]
+    public async Task A_bar_shows_nothing_until_it_is_added()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var screen = ScreenWindowsTests.Screen("TST", "Unadded", "1");
+            shell.Platform.Screens.Add(screen);
+            try
+            {
+                using var bar = new Bar { Name = "bar" + Guid.NewGuid().ToString("N"), Reserve = false };
+                await NextTurn(shell);
+                Assert.Empty(BarsOn(shell, screen));
+
+                shell.Add(bar);
+                await NextTurn(shell);
+                Assert.Single(BarsOn(shell, screen));
+            }
+            finally
+            {
+                shell.Platform.Screens.Remove(screen);
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
     public async Task Changing_the_edge_a_list_or_a_screen_row_changes_that_bar_live_and_a_side_bar_runs_its_areas_down()
     {
         await ShellFixture.On(async shell =>
@@ -67,12 +93,12 @@ public sealed class BarTests
             shell.Platform.Screens.Add(tall);
             try
             {
-                using var bar = new Bar
+                using var bar = shell.Add(new Bar
                 {
                     Name = name,
                     Reserve = false,
                     Start = [new(widget, new Dictionary<string, object> { ["text"] = "from the code" })]
-                };
+                });
                 await NextTurn(shell);
                 var wideBar = Assert.Single(BarsOn(shell, wide));
                 Assert.Equal(Edges.Left | Edges.Right | Edges.Top, wideBar.Anchors);
@@ -143,7 +169,7 @@ public sealed class BarTests
             try
             {
                 var logLength = ShellFixture.ReadLog(shell).Length;
-                using var bar = new Bar { Name = name, Reserve = false };
+                using var bar = shell.Add(new Bar { Name = name, Reserve = false });
                 await NextTurn(shell);
                 var wideBar = Assert.Single(BarsOn(shell, wide));
                 var tallBar = Assert.Single(BarsOn(shell, tall));
@@ -179,8 +205,8 @@ public sealed class BarTests
             shell.Platform.Screens.Add(screen);
             try
             {
-                using var topBar = new Bar { Name = top, Reserve = false };
-                using var bottomBar = new Bar { Name = bottom, Edge = Edges.Bottom, Reserve = false };
+                using var topBar = shell.Add(new Bar { Name = top, Reserve = false });
+                using var bottomBar = shell.Add(new Bar { Name = bottom, Edge = Edges.Bottom, Reserve = false });
                 await NextTurn(shell);
                 var bars = BarsOn(shell, screen);
                 var topWindow = Assert.Single(bars, window => window.Anchors.HasFlag(Edges.Top));
@@ -220,13 +246,13 @@ public sealed class BarTests
             try
             {
                 using var first = new Reader();
-                using var bar = new Bar
+                using var bar = shell.Add(new Bar
                 {
                     Name = name,
                     Edge = Edges.Left,
                     Reserve = false,
                     End = [widget, new Placement(widget, new Dictionary<string, object> { ["text"] = "Hi" })]
-                };
+                });
                 await Wait.UntilAsync(
                     () => File.Exists(path) && File.ReadAllText(path).Contains($"[{name}]", StringComparison.Ordinal),
                     "the missing file to be written with the bar's section");
@@ -263,21 +289,21 @@ public sealed class BarTests
             shell.Platform.Screens.Add(screen);
             try
             {
-                using var follows = new Bar { Name = "follows" + Guid.NewGuid().ToString("N"), Reserve = false };
-                using var own = new Bar
+                using var follows = shell.Add(new Bar { Name = "follows" + Guid.NewGuid().ToString("N"), Reserve = false });
+                using var own = shell.Add(new Bar
                 {
                     Name = "own" + Guid.NewGuid().ToString("N"),
                     Edge = Edges.Bottom,
                     Reserve = false,
                     Style = other
-                };
-                using var thin = new Bar
+                });
+                using var thin = shell.Add(new Bar
                 {
                     Name = "thin" + Guid.NewGuid().ToString("N"),
                     Edge = Edges.Left,
                     Reserve = false,
                     Thickness = 20
-                };
+                });
                 await NextTurn(shell);
                 var bars = BarsOn(shell, screen);
                 var followsBar = Assert.Single(bars, window => window.Anchors == (Edges.Left | Edges.Right | Edges.Top));
@@ -321,12 +347,12 @@ public sealed class BarTests
             shell.Platform.Screens.Add(screen);
             try
             {
-                using var bar = new Bar
+                using var bar = shell.Add(new Bar
                 {
                     Name = "keeps" + Guid.NewGuid().ToString("N"),
                     Reserve = false,
                     Center = [widget]
-                };
+                });
                 await NextTurn(shell);
                 var window = Assert.Single(BarsOn(shell, screen));
                 Assert.Equal(32, window.Height);
@@ -369,7 +395,7 @@ public sealed class BarTests
             try
             {
                 shell.ColorScheme = ColorScheme.Light;
-                using var bar = new Bar { Name = "bar" + Guid.NewGuid().ToString("N"), Reserve = false };
+                using var bar = shell.Add(new Bar { Name = "bar" + Guid.NewGuid().ToString("N"), Reserve = false });
                 await NextTurn(shell);
                 var window = Assert.Single(BarsOn(shell, screen));
                 var root = Assert.IsAssignableFrom<FrameworkElement>(window.Content);
@@ -401,23 +427,23 @@ public sealed class BarTests
             shell.Platform.Screens.Add(screen);
             try
             {
-                using var top = new Bar
+                using var top = shell.Add(new Bar
                 {
                     Name = "top" + Guid.NewGuid().ToString("N"),
                     Reserve = false,
                     Padding = 12,
                     Start = [widget],
                     End = [widget]
-                };
-                using var side = new Bar
+                });
+                using var side = shell.Add(new Bar
                 {
                     Name = "side" + Guid.NewGuid().ToString("N"),
                     Edge = Edges.Left,
                     Reserve = false,
                     Start = [widget],
                     End = [widget]
-                };
-                using var bottom = new Bar
+                });
+                using var bottom = shell.Add(new Bar
                 {
                     Name = "bottom" + Guid.NewGuid().ToString("N"),
                     Edge = Edges.Bottom,
@@ -425,7 +451,7 @@ public sealed class BarTests
                     Style = TestStyles.Other(),
                     Start = [widget],
                     End = [widget]
-                };
+                });
                 await NextTurn(shell);
                 var bars = BarsOn(shell, screen);
 

@@ -32,14 +32,13 @@ public sealed partial class InspectorTests : IDisposable
 
     private static PanelWindow Panel(FrameworkElement content)
     {
-        return new PanelWindow
+        return Shell.Current.Add(new PanelWindow
         {
             Anchors = Edges.Top | Edges.Left,
             Width = 220,
             Height = 90,
-            Content = content,
-            Visible = true
-        };
+            Content = content
+        });
     }
 
     private static JsonElement Node(JsonElement node, string name)
@@ -118,9 +117,9 @@ public sealed partial class InspectorTests : IDisposable
         {
             using ShellWindow window = kind switch
             {
-                "PanelWindow" => new PanelWindow<Named> { Width = 220, Height = 40, Visible = true },
-                "PopupWindow" => new PopupWindow<Named> { Width = 220, Height = 40, Visible = true },
-                _ => new FloatingWindow<Named> { Title = "Winshell test", Width = 220, Height = 120, Visible = true }
+                "PanelWindow" => shell.Add(new PanelWindow<Named> { Width = 220, Height = 40 }),
+                "PopupWindow" => shell.Add(new PopupWindow<Named> { Width = 220, Height = 40, Visible = true }),
+                _ => shell.Add(new FloatingWindow<Named> { Title = "Winshell test", Width = 220, Height = 120 })
             };
             await ShellFixture.LaidOut((FrameworkElement)window.Content!);
             return (await Inspector.Run(shell, "tree", []), await Inspector.Run(shell, "click", ["Named", "Named"]));

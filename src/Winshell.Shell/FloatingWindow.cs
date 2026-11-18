@@ -20,7 +20,7 @@ public partial class FloatingWindow : ShellWindow
     }
 
     internal FloatingWindow(Shell shell)
-        : base(shell)
+        : base(shell, visible: true)
     {
     }
 
