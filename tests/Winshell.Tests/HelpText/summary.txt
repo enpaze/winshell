@@ -25,6 +25,7 @@ Usage: winshell run [options]              start a shell
                                            check this PC's setup for Winshell
        winshell new [<name>] [-p <folder>] list the examples, or copy one to start from
        winshell use [<name>]               choose the config sign-in starts, and switch to it
+       winshell update [--channel <name>]  install the newest build of the saved channel
        winshell help [command]             print this summary, or that command's help
 
 Config selection:

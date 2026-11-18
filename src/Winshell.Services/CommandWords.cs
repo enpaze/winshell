@@ -20,6 +20,8 @@ internal static class CommandWords
 
     public static readonly CommandWord After = new("--after");
 
+    public static readonly CommandWord Channel = new("--channel");
+
     public static bool IsConfigName(string name)
     {
         return name.Length > 0 && name is not ("." or "..") && name.IndexOfAny(['/', '\\', ':']) < 0;
