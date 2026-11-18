@@ -26,7 +26,7 @@ public sealed partial class PopupWindow : ShellWindow
         set
         {
             if (Set(ref _rect, value))
-                OnPlacementChanged();
+                OnPlaceChanged();
         }
     }
 
@@ -47,9 +47,9 @@ public sealed partial class PopupWindow : ShellWindow
         return _placer = new PopupPlacer(host, platform);
     }
 
-    private protected override void ApplyPlacement()
+    private protected override void ApplyPlace()
     {
-        _placer!.Set(new PopupPlacement(Screen, _rect));
+        _placer!.Set(new PopupPlace(Screen, _rect));
     }
 
     private protected override void ApplyFocus()

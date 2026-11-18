@@ -6,7 +6,7 @@ using Winshell.Native;
 
 namespace Winshell;
 
-internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
+internal sealed class HostPlace(HostWindow host, ShellPlatform platform)
 {
     private bool _visible;
     private bool _clickThrough;

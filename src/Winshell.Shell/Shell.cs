@@ -73,7 +73,7 @@ public sealed partial class Shell : IDisposable
     internal ShellPlatform Platform { get; }
 
     private PreferencesFile? _preferencesFile;
-    private bool _configurationStarted;
+    private bool _startReturned;
 
     internal PreferencesFile PreferencesFile
     {
@@ -82,7 +82,7 @@ public sealed partial class Shell : IDisposable
             if (_preferencesFile is null)
             {
                 _preferencesFile = new PreferencesFile(Path.Combine(ConfigRoot, "preferences", ShellId + ".toml"), Loop, Log);
-                if (_configurationStarted)
+                if (_startReturned)
                     _preferencesFile.StartReturned();
             }
 
@@ -90,11 +90,11 @@ public sealed partial class Shell : IDisposable
         }
     }
 
-    private void ConfigurationStarted()
+    private void StartReturned()
     {
-        if (_configurationStarted)
+        if (_startReturned)
             return;
-        _configurationStarted = true;
+        _startReturned = true;
         _preferencesFile?.StartReturned();
     }
 
@@ -230,7 +230,7 @@ public sealed partial class Shell : IDisposable
                         loop.Post(shell.Quit);
                     };
                     configuration.Start(shell);
-                    shell.ConfigurationStarted();
+                    shell.StartReturned();
                     shell.ReleaseUnclaimedTaskbar();
                     ShellInstance.Quietly(() => shell.Notices.ShowPrevious(ShellInstance.ExitState));
                 }
@@ -319,7 +319,7 @@ public sealed partial class Shell : IDisposable
     private void ReleaseForCrash()
     {
         _explorerTaskbar?.Restore();
-        PanelEdge.ReleaseAll();
+        PanelPlacer.ReleaseAll();
     }
 
     public void Dispose()

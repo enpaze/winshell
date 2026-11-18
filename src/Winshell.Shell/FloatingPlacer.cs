@@ -5,7 +5,7 @@ using Winshell.Windows;
 
 namespace Winshell;
 
-internal sealed record FloatingPlacement(
+internal sealed record FloatingPlace(
     ScreenInfo? Screen,
     string Title,
     double Width,
@@ -18,9 +18,9 @@ internal sealed record FloatingPlacement(
     HostWindow? Owner,
     bool StateRequested);
 
-internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform, FloatingWindow window) : IWindowPlacer
+internal sealed class FloatingPlacer(HostWindow host, ShellPlatform platform, FloatingWindow window) : IWindowPlacer
 {
-    private FloatingPlacement? _placement;
+    private FloatingPlace? _place;
     private bool _placed;
     private bool _fullscreen;
     private bool _applying;
@@ -33,34 +33,34 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform, Flo
         (uint)(WINDOW_STYLE.WS_OVERLAPPEDWINDOW | WINDOW_STYLE.WS_CLIPCHILDREN),
         (uint)(WINDOW_EX_STYLE.WS_EX_NOREDIRECTIONBITMAP | WINDOW_EX_STYLE.WS_EX_APPWINDOW));
 
-    public void Apply(FloatingPlacement placement)
+    internal void Set(FloatingPlace place)
     {
         if (Handle == 0 || host.Released)
             return;
-        _placement = placement;
+        _place = place;
         _applying = true;
         try
         {
-            PInvoke.SetWindowText((HWND)Handle, placement.Title);
-            OwnedWindows.Link(Handle, placement.Owner);
-            if (_fullscreen && !placement.Fullscreen)
+            PInvoke.SetWindowText((HWND)Handle, place.Title);
+            OwnedWindows.Link(Handle, place.Owner);
+            if (_fullscreen && !place.Fullscreen)
             {
-                ExitFullscreen(placement);
+                ExitFullscreen(place);
             }
-            else if (!_fullscreen && placement.Fullscreen)
+            else if (!_fullscreen && place.Fullscreen)
             {
-                ApplyFrame(placement);
+                ApplyFrame(place);
                 EnterFullscreen();
             }
             else if (_fullscreen)
             {
-                _lastWidth = placement.Width;
-                _lastHeight = placement.Height;
-                if (placement.Minimized && !PInvoke.IsIconic((HWND)Handle))
+                _lastWidth = place.Width;
+                _lastHeight = place.Height;
+                if (place.Minimized && !PInvoke.IsIconic((HWND)Handle))
                 {
                     PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_MINIMIZE);
                 }
-                else if (!placement.Minimized && PInvoke.IsIconic((HWND)Handle))
+                else if (!place.Minimized && PInvoke.IsIconic((HWND)Handle))
                 {
                     PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_RESTORE);
                     FillMonitor();
@@ -72,7 +72,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform, Flo
             }
             else
             {
-                ApplyFrame(placement);
+                ApplyFrame(place);
             }
 
             if (!PInvoke.IsIconic((HWND)Handle))
@@ -90,7 +90,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform, Flo
         switch (message.Id)
         {
             case PInvoke.WM_SIZE or PInvoke.WM_MOVE:
-                if (!host.Placement.Placing && !host.Released && !_applying)
+                if (!host.Place.Placing && !host.Released && !_applying)
                     ReportState();
                 return null;
             case PInvoke.WM_GETMINMAXINFO:
@@ -133,38 +133,38 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform, Flo
             return 0;
         }
 
-        if (_placement is not { } f)
+        if (_place is not { } f)
             return null;
         if (f.MinimumSize.Width > 0)
-            info.ptMinTrackSize.X = (int)(f.MinimumSize.Width * host.Placement.Scale);
+            info.ptMinTrackSize.X = (int)(f.MinimumSize.Width * host.Place.Scale);
         if (f.MinimumSize.Height > 0)
-            info.ptMinTrackSize.Y = (int)(f.MinimumSize.Height * host.Placement.Scale);
+            info.ptMinTrackSize.Y = (int)(f.MinimumSize.Height * host.Place.Scale);
         if (f.MaximumSize.Width > 0)
-            info.ptMaxTrackSize.X = (int)(f.MaximumSize.Width * host.Placement.Scale);
+            info.ptMaxTrackSize.X = (int)(f.MaximumSize.Width * host.Place.Scale);
         if (f.MaximumSize.Height > 0)
-            info.ptMaxTrackSize.Y = (int)(f.MaximumSize.Height * host.Placement.Scale);
+            info.ptMaxTrackSize.Y = (int)(f.MaximumSize.Height * host.Place.Scale);
         return 0;
     }
 
-    private void ApplyFrame(FloatingPlacement placement)
+    private void ApplyFrame(FloatingPlace place)
     {
         var first = !_placed;
-        var widthChanged = placement.Width != _lastWidth;
-        var heightChanged = placement.Height != _lastHeight;
+        var widthChanged = place.Width != _lastWidth;
+        var heightChanged = place.Height != _lastHeight;
         if (first || widthChanged || heightChanged)
         {
-            _lastWidth = placement.Width;
-            _lastHeight = placement.Height;
+            _lastWidth = place.Width;
+            _lastHeight = place.Height;
             var dpi = PInvoke.GetDpiForWindow((HWND)Handle);
-            host.Placement.Scale = dpi / 96.0;
-            var client = new RECT(0, 0, (int)Math.Round(placement.Width * host.Placement.Scale),
-                (int)Math.Round(placement.Height * host.Placement.Scale));
+            host.Place.Scale = dpi / 96.0;
+            var client = new RECT(0, 0, (int)Math.Round(place.Width * host.Place.Scale),
+                (int)Math.Round(place.Height * host.Place.Scale));
             var (style, ex) = Styles;
             PInvoke.AdjustWindowRectExForDpi(ref client, (WINDOW_STYLE)style, false, (WINDOW_EX_STYLE)ex, dpi);
             int x, y;
             if (first)
             {
-                var monitor = placement.Screen is { } screen ? Screens.Find(screen.Id) : Screens.Primary();
+                var monitor = place.Screen is { } screen ? Screens.Find(screen.Id) : Screens.Primary();
                 var area = monitor?.Area ?? default;
                 x = area.left + (area.Width - client.Width) / 2;
                 y = area.top + (area.Height - client.Height) / 2;
@@ -181,13 +181,13 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform, Flo
             _placed = true;
         }
 
-        if (host.Placement.IsVisible)
+        if (host.Place.IsVisible)
         {
-            if (placement.Minimized && !PInvoke.IsIconic((HWND)Handle))
+            if (place.Minimized && !PInvoke.IsIconic((HWND)Handle))
                 PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_MINIMIZE);
-            else if (placement.Maximized && !PInvoke.IsZoomed((HWND)Handle))
+            else if (place.Maximized && !PInvoke.IsZoomed((HWND)Handle))
                 PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_SHOWMAXIMIZED);
-            else if (placement is { Maximized: false, Minimized: false } &&
+            else if (place is { Maximized: false, Minimized: false } &&
                      (PInvoke.IsZoomed((HWND)Handle) || PInvoke.IsIconic((HWND)Handle)))
                 PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_RESTORE);
         }
@@ -204,51 +204,51 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform, Flo
         FillMonitor();
     }
 
-    private void ExitFullscreen(FloatingPlacement placement)
+    private void ExitFullscreen(FloatingPlace place)
     {
         var saved = _saved;
         _fullscreen = false;
         host.Presentation.SetFullscreen(false);
         _saved = null;
-        _lastWidth = placement.Width;
-        _lastHeight = placement.Height;
+        _lastWidth = place.Width;
+        _lastHeight = place.Height;
         if (saved is null)
         {
-            ApplyFrame(placement);
+            ApplyFrame(place);
             return;
         }
 
         SetStyle(saved.Style);
         Reframe();
         var monitor = Screens.Find(saved.MonitorId) ?? Screens.Of(Handle);
-        var scale = host.Placement.Scale > 0 ? host.Placement.Scale : saved.Scale;
+        var scale = host.Place.Scale > 0 ? host.Place.Scale : saved.Scale;
         if (monitor is not null && saved.Matches(monitor.Id, monitor.Bounds, scale) && saved.HasPlacement)
         {
             var next = saved.Placement;
-            next.showCmd = placement.StateRequested
-                ? RequestedShow(placement)
+            next.showCmd = place.StateRequested
+                ? RequestedShow(place)
                 : Shown(saved);
-            if (placement is { StateRequested: true, Maximized: false })
+            if (place is { StateRequested: true, Maximized: false })
                 next.flags &= ~WINDOWPLACEMENT_FLAGS.WPF_RESTORETOMAXIMIZED;
             if (PInvoke.SetWindowPlacement((HWND)Handle, next))
             {
-                host.Placement.UpdateSize();
+                host.Place.UpdateSize();
                 return;
             }
         }
 
         if (monitor is null)
         {
-            ApplyFrame(placement);
+            ApplyFrame(place);
             return;
         }
 
         var rect = saved.RectOn(monitor.Bounds, scale);
         PlaceOuter(rect);
-        if (!host.Placement.IsVisible)
+        if (!host.Place.IsVisible)
             return;
-        var maximized = placement.StateRequested ? placement.Maximized : saved.Maximized;
-        var minimized = placement.StateRequested ? placement.Minimized : saved.Minimized;
+        var maximized = place.StateRequested ? place.Maximized : saved.Maximized;
+        var minimized = place.StateRequested ? place.Minimized : saved.Minimized;
         if (minimized)
             PInvoke.ShowWindow((HWND)Handle, SHOW_WINDOW_CMD.SW_MINIMIZE);
         else if (maximized)
@@ -259,7 +259,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform, Flo
 
     private SHOW_WINDOW_CMD Shown(SavedFloatingPlace saved)
     {
-        if (!host.Placement.IsVisible)
+        if (!host.Place.IsVisible)
             return SHOW_WINDOW_CMD.SW_HIDE;
         if (saved.Minimized)
             return SHOW_WINDOW_CMD.SW_SHOWMINIMIZED;
@@ -269,17 +269,17 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform, Flo
         return show == 0 ? SHOW_WINDOW_CMD.SW_SHOWNORMAL : show;
     }
 
-    private static SHOW_WINDOW_CMD RequestedShow(FloatingPlacement placement)
+    private static SHOW_WINDOW_CMD RequestedShow(FloatingPlace place)
     {
-        return placement.Minimized ? SHOW_WINDOW_CMD.SW_SHOWMINIMIZED :
-            placement.Maximized ? SHOW_WINDOW_CMD.SW_SHOWMAXIMIZED : SHOW_WINDOW_CMD.SW_SHOWNORMAL;
+        return place.Minimized ? SHOW_WINDOW_CMD.SW_SHOWMINIMIZED :
+            place.Maximized ? SHOW_WINDOW_CMD.SW_SHOWMAXIMIZED : SHOW_WINDOW_CMD.SW_SHOWNORMAL;
     }
 
     private SavedFloatingPlace CapturePlace()
     {
         var monitor = Screens.Of(Handle);
         var dpi = PInvoke.GetDpiForWindow((HWND)Handle);
-        var scale = dpi == 0 ? monitor?.Scale ?? host.Placement.Scale : dpi / 96.0;
+        var scale = dpi == 0 ? monitor?.Scale ?? host.Place.Scale : dpi / 96.0;
         if (scale <= 0)
             scale = 1;
         var bounds = monitor?.Bounds ?? default;
@@ -358,7 +358,7 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform, Flo
 
     private void PlaceOuter(RECT rect)
     {
-        host.Placement.Move(rect, 0,
+        host.Place.Move(rect, 0,
             (SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE |
                    SET_WINDOW_POS_FLAGS.SWP_FRAMECHANGED));
     }

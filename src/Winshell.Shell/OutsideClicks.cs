@@ -90,7 +90,7 @@ internal sealed partial class OutsideClicks : IDisposable
         }
 
         foreach (var window in _grabbing.ToArray())
-            if (!inside.Contains(window) && !window.Placement.ContainsScreenPoint(pt))
+            if (!inside.Contains(window) && !window.Place.ContainsScreenPoint(pt))
                 window.Client.OnDismissed();
         Update();
     }
@@ -99,7 +99,7 @@ internal sealed partial class OutsideClicks : IDisposable
     {
         var scale = root.RasterizationScale;
         var corner = child.TransformToVisual(null).TransformPoint(default);
-        var (left, top) = window.Placement.MapToScreen(corner.X, corner.Y);
+        var (left, top) = window.Place.MapToScreen(corner.X, corner.Y);
         return pt.X >= left && pt.Y >= top && pt.X < left + child.ActualWidth * scale &&
                pt.Y < top + child.ActualHeight * scale;
     }

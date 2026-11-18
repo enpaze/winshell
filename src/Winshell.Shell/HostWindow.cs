@@ -16,7 +16,7 @@ internal sealed partial class HostWindow : IDisposable
         _platform = platform;
         Kind = kind;
         Client = client;
-        Placement = new HostPlacement(this, platform);
+        Place = new HostPlace(this, platform);
         Placer = client.CreatePlacer(this, platform);
         Presentation = new HostPresentation(this, platform);
         Focus = new WindowFocus(kind, new HostFocusEffects(this, platform));
@@ -27,7 +27,7 @@ internal sealed partial class HostWindow : IDisposable
         Handle = _window.Handle;
         try
         {
-            Placement.Scale = PInvoke.GetDpiForWindow((HWND)Handle) / 96.0;
+            Place.Scale = PInvoke.GetDpiForWindow((HWND)Handle) / 96.0;
             Presentation.Attach();
         }
         catch
@@ -43,7 +43,7 @@ internal sealed partial class HostWindow : IDisposable
 
     internal ShellWindow Client { get; }
 
-    internal HostPlacement Placement { get; }
+    internal HostPlace Place { get; }
 
     internal IWindowPlacer Placer { get; }
 

@@ -42,10 +42,10 @@ internal sealed class HostPanelDesktop(HostWindow host, ShellPlatform platform) 
 
     public void Move(RECT rect, bool topmost, double scale)
     {
-        host.Placement.Scale = scale;
-        host.Placement.SetExStyle((uint)WINDOW_EX_STYLE.WS_EX_TOPMOST, topmost);
+        host.Place.Scale = scale;
+        host.Place.SetExStyle((uint)WINDOW_EX_STYLE.WS_EX_TOPMOST, topmost);
         var after = topmost ? HWND.HWND_TOPMOST : HWND.HWND_BOTTOM;
-        host.Placement.Move(rect, after,
+        host.Place.Move(rect, after,
             (SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_NOOWNERZORDER));
     }
 

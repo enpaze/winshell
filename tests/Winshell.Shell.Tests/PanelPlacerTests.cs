@@ -4,7 +4,7 @@ using Winshell.Diagnostics;
 namespace Winshell.ShellTests;
 
 [Trait("Category", "Window")]
-public sealed class PanelEdgeTests
+public sealed class PanelPlacerTests
 {
     [Fact]
     public async Task The_doctor_knows_a_panel_for_Winshell_s_own()

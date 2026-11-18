@@ -6,7 +6,7 @@ internal enum NoticeKind
 {
     BuildError,
 
-    ConfigError,
+    FileError,
 
     Crash
 }
@@ -78,10 +78,10 @@ internal sealed partial class ShellNotices : IDisposable
             TimeSpan.Zero);
     }
 
-    private static Notice ForConfigError(string error, string file)
+    private static Notice ForFileError(string error, string file)
     {
         return new Notice(
-            NoticeKind.ConfigError,
+            NoticeKind.FileError,
             "This file has an error",
             Path.GetFileName(file),
             error,
@@ -91,11 +91,11 @@ internal sealed partial class ShellNotices : IDisposable
             TimeSpan.Zero);
     }
 
-    public void ShowConfigError(string file, string error)
+    public void ShowFileError(string file, string error)
     {
         if (error.Length > 0)
-            Show(ForConfigError(error, file));
-        else if (Current is { Kind: NoticeKind.ConfigError } current && current.Target == file)
+            Show(ForFileError(error, file));
+        else if (Current is { Kind: NoticeKind.FileError } current && current.Target == file)
             Hide();
     }
 
@@ -156,7 +156,7 @@ internal sealed partial class ShellNotices : IDisposable
 
     public void FollowFileErrors()
     {
-        _log.FileErrorChanged += ShowConfigError;
+        _log.FileErrorChanged += ShowFileError;
     }
 
     public void Dispose()
@@ -165,7 +165,7 @@ internal sealed partial class ShellNotices : IDisposable
             return;
         _disposed = true;
         _crashes.Written -= OnReport;
-        _log.FileErrorChanged -= ShowConfigError;
+        _log.FileErrorChanged -= ShowFileError;
         Hide();
     }
 

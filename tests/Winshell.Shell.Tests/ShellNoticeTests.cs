@@ -50,13 +50,13 @@ public sealed partial class ShellNoticeTests : IDisposable
     }
 
     [Fact]
-    public void A_config_file_that_does_not_read_shows_until_it_is_fixed()
+    public void A_file_that_does_not_read_shows_until_it_is_fixed()
     {
         _notices.FollowFileErrors();
         _log.ReportFileError(@"C:\config\preferences.toml", "preferences.toml[3:1]: expected a value");
 
         var notice = Assert.Single(_shown);
-        Assert.Equal(NoticeKind.ConfigError, notice.Kind);
+        Assert.Equal(NoticeKind.FileError, notice.Kind);
         Assert.Equal("preferences.toml", notice.Detail);
         Assert.Contains("[3:1]", notice.Body, StringComparison.Ordinal);
         Assert.Equal(TimeSpan.Zero, notice.Timeout);
@@ -67,21 +67,21 @@ public sealed partial class ShellNoticeTests : IDisposable
     }
 
     [Fact]
-    public void Fixing_one_config_file_leaves_the_notice_of_another()
+    public void Fixing_one_file_leaves_the_notice_of_another()
     {
-        _notices.ShowConfigError(@"C:\config\launcher.toml", "broken");
+        _notices.ShowFileError(@"C:\config\launcher.toml", "broken");
 
-        _notices.ShowConfigError(@"C:\config\preferences.toml", "");
+        _notices.ShowFileError(@"C:\config\preferences.toml", "");
 
         Assert.NotNull(_notices.Current);
     }
 
     [Fact]
-    public void A_fixed_config_file_leaves_a_build_error_on_screen()
+    public void A_fixed_file_leaves_a_build_error_on_screen()
     {
         _notices.Show(ShellNotices.ForBuildError("no", "Mine.csproj"));
 
-        _notices.ShowConfigError(@"C:\config\preferences.toml", "");
+        _notices.ShowFileError(@"C:\config\preferences.toml", "");
 
         Assert.Equal(NoticeKind.BuildError, _notices.Current?.Kind);
     }
@@ -237,7 +237,7 @@ public sealed partial class ShellNoticeTests : IDisposable
     [Fact]
     public void A_text_log_opens_to_edit()
     {
-        _notices.ShowConfigError(@"C:\logs\log.txt", "could not read");
+        _notices.ShowFileError(@"C:\logs\log.txt", "could not read");
 
         _act();
         _loop.Process();

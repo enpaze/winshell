@@ -10,7 +10,7 @@ public sealed partial class PanelWindow : ShellWindow
     private bool _coversScreen;
     private bool _aboveWindows = true;
     private bool _focusable;
-    private PanelEdge? _edge;
+    private PanelPlacer? _placer;
 
     public PanelWindow()
         : this(Shell.Current)
@@ -30,7 +30,7 @@ public sealed partial class PanelWindow : ShellWindow
         set
         {
             if (Set(ref _anchors, value))
-                OnPlacementChanged();
+                OnPlaceChanged();
         }
     }
 
@@ -40,7 +40,7 @@ public sealed partial class PanelWindow : ShellWindow
         set
         {
             if (Set(ref _margins, value))
-                OnPlacementChanged();
+                OnPlaceChanged();
         }
     }
 
@@ -50,7 +50,7 @@ public sealed partial class PanelWindow : ShellWindow
         set
         {
             if (Set(ref _reservedSize, value))
-                OnPlacementChanged();
+                OnPlaceChanged();
         }
     }
 
@@ -60,7 +60,7 @@ public sealed partial class PanelWindow : ShellWindow
         set
         {
             if (Set(ref _coversScreen, value))
-                OnPlacementChanged();
+                OnPlaceChanged();
         }
     }
 
@@ -70,7 +70,7 @@ public sealed partial class PanelWindow : ShellWindow
         set
         {
             if (Set(ref _aboveWindows, value))
-                OnPlacementChanged();
+                OnPlaceChanged();
         }
     }
 
@@ -86,12 +86,12 @@ public sealed partial class PanelWindow : ShellWindow
 
     internal override IWindowPlacer CreatePlacer(HostWindow host, ShellPlatform platform)
     {
-        return _edge = new PanelEdge(new HostPanelDesktop(host, platform));
+        return _placer = new PanelPlacer(new HostPanelDesktop(host, platform));
     }
 
-    private protected override void ApplyPlacement()
+    private protected override void ApplyPlace()
     {
-        _edge!.Set(new PanelPlacement(
+        _placer!.Set(new PanelPlace(
             Screen,
             _anchors,
             _margins.Left,

@@ -25,7 +25,7 @@ public sealed partial class WindowThumbnail : FrameworkElement
         typeof(WindowThumbnail),
         new PropertyMetadata(false, (sender, _) => ((WindowThumbnail)sender).UpdatePeek()));
 
-    private readonly ShellWindowSubscription _shell;
+    private readonly ShellWindowSubscription _shellWindow;
     private WindowPeek? _peeker;
     private nint _thumbnail;
     private nint _destination;
@@ -34,7 +34,7 @@ public sealed partial class WindowThumbnail : FrameworkElement
 
     public WindowThumbnail()
     {
-        _shell = new ShellWindowSubscription(OnShellChanged);
+        _shellWindow = new ShellWindowSubscription(OnShellWindowChanged);
         IsHitTestVisible = false;
         AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw);
         Loaded += (_, _) => OnLoaded();
@@ -64,7 +64,7 @@ public sealed partial class WindowThumbnail : FrameworkElement
     private void OnLoaded()
     {
         WatchClosed(Window, true);
-        _shell.Attach(this);
+        _shellWindow.Attach(this);
         UpdateThumbnail();
         UpdatePeek();
     }
@@ -72,7 +72,7 @@ public sealed partial class WindowThumbnail : FrameworkElement
     private void OnUnloaded()
     {
         WatchClosed(Window, false);
-        _shell.Detach();
+        _shellWindow.Detach();
         ReleaseThumbnail();
         _peeker?.End();
     }
@@ -106,7 +106,7 @@ public sealed partial class WindowThumbnail : FrameworkElement
         Window = null;
     }
 
-    private void OnShellChanged(object? sender, PropertyChangedEventArgs e)
+    private void OnShellWindowChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(ShellWindow.Origin) or nameof(ShellWindow.Scale) or nameof(ShellWindow.ActualWidth)
             or nameof(ShellWindow.ActualHeight))
@@ -119,7 +119,7 @@ public sealed partial class WindowThumbnail : FrameworkElement
         if (hwnd == 0 && _peeker is null)
             return;
         _peeker ??= WindowPeek.ForSystem();
-        _peeker.Show(hwnd, _shell.Window?.Host?.Handle ?? 0);
+        _peeker.Show(hwnd, _shellWindow.Window?.Host?.Handle ?? 0);
     }
 
     private void UpdateThumbnail()
@@ -130,7 +130,7 @@ public sealed partial class WindowThumbnail : FrameworkElement
             return;
         }
 
-        var destination = _shell.Window?.Host?.Handle ?? 0;
+        var destination = _shellWindow.Window?.Host?.Handle ?? 0;
         if (destination == 0 || !TryBox(out var box))
         {
             HideThumbnail();

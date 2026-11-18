@@ -3,7 +3,7 @@ using Winshell.Native;
 
 namespace Winshell;
 
-internal sealed record PanelPlacement(
+internal sealed record PanelPlace(
     ScreenInfo? Screen,
     Edges Anchors,
     double MarginLeft,
@@ -16,22 +16,22 @@ internal sealed record PanelPlacement(
     double ReservedSize,
     bool AboveWindows);
 
-internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
+internal sealed class PanelPlacer(IPanelDesktop desktop) : IWindowPlacer
 {
     private static readonly uint Message = PInvoke.WM_APP + 1;
 
     private static readonly ConcurrentDictionary<IPanelDesktop, byte> Held = new();
 
     private readonly AppBarReservation _reservation = new();
-    private PanelPlacement? _placement;
+    private PanelPlace? _place;
     private bool _visible;
     private bool _released;
     private bool _registered;
     private bool _placePosted;
 
-    internal void Set(PanelPlacement placement)
+    internal void Set(PanelPlace place)
     {
-        _placement = placement;
+        _place = place;
         Place();
     }
 
@@ -67,7 +67,7 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
 
     private void Place()
     {
-        if (_released || _placement is not { } p)
+        if (_released || _place is not { } p)
             return;
         var monitor = (p.Screen is { } screen ? desktop.Find(screen.Id) : null) ?? desktop.Primary();
         if (monitor is not { } found)
@@ -176,7 +176,7 @@ internal sealed class PanelEdge(IPanelDesktop desktop) : IWindowPlacer
         };
     }
 
-    private static RECT Anchor(RECT area, PanelPlacement p, double scale)
+    private static RECT Anchor(RECT area, PanelPlace p, double scale)
     {
         var ml = (int)Math.Round(p.MarginLeft * scale);
         var mr = (int)Math.Round(p.MarginRight * scale);

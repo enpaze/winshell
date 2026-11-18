@@ -105,7 +105,7 @@ public sealed class WindowKindTests
             await opened.Task;
             var child = (FrameworkElement)VisualTreeHelper.GetOpenPopupsForXamlRoot(button.XamlRoot)[0].Child;
             var corner = child.TransformToVisual(null).TransformPoint(default);
-            var (left, _) = popup.Host!.Placement.MapToScreen(corner.X, corner.Y);
+            var (left, _) = popup.Host!.Place.MapToScreen(corner.X, corner.Y);
             PInvoke.GetWindowRect((HWND)popup.Host.Handle, out var r);
 
             var below = new POINT { X = left + 10, Y = r.bottom + 10 };

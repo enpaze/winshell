@@ -72,14 +72,14 @@ public sealed record WidgetContext
     private readonly PopupStyles _popups;
 
     internal WidgetContext(Shell shell, IReadOnlyDictionary<string, object> settings, Orientation orientation,
-        ShellWindow? window, PopupAnchor anchor, string widget)
+        ShellWindow? window, AreaPopupStyle popupStyle, string widget)
     {
         Shell = shell;
         Window = window;
         Orientation = orientation;
         Settings = settings;
         Widget = widget;
-        _popups = new PopupStyles(anchor);
+        _popups = new PopupStyles(popupStyle);
     }
 
     public Shell Shell { get; }
@@ -104,19 +104,19 @@ public sealed record WidgetContext
 
     private sealed class PopupStyles
     {
-        private readonly PopupAnchor _anchor;
+        private readonly AreaPopupStyle _area;
         private readonly List<UserControl> _popups = [];
         private bool _watchingStyle;
 
-        public PopupStyles(PopupAnchor anchor)
+        public PopupStyles(AreaPopupStyle popupStyle)
         {
-            _anchor = anchor;
-            anchor.Stopping += Stop;
+            _area = popupStyle;
+            popupStyle.Stopping += Stop;
         }
 
         public bool Stopped { get; private set; }
 
-        public ShellStyle? Style => _anchor.Style();
+        public ShellStyle? Style => _area.Style();
 
         public FrameworkElement Wrap(UIElement content)
         {
@@ -134,9 +134,9 @@ public sealed record WidgetContext
             if (Stopped)
                 return;
             Stopped = true;
-            _anchor.Stopping -= Stop;
+            _area.Stopping -= Stop;
             if (_watchingStyle)
-                _anchor.StyleChanged -= ReloadStyles;
+                _area.StyleChanged -= ReloadStyles;
             _popups.Clear();
         }
 
@@ -144,7 +144,7 @@ public sealed record WidgetContext
         {
             if (_watchingStyle)
                 return;
-            _anchor.StyleChanged += ReloadStyles;
+            _area.StyleChanged += ReloadStyles;
             _watchingStyle = true;
         }
 
@@ -162,7 +162,7 @@ public sealed record WidgetContext
     }
 }
 
-internal sealed class PopupAnchor
+internal sealed class AreaPopupStyle
 {
     public Func<ShellStyle?> Style { get; set; } = () => null;
 

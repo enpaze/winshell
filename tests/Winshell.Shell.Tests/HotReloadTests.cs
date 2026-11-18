@@ -8,7 +8,7 @@ using static Microsoft.UI.Reactor.Factories;
 namespace Winshell.ShellTests;
 
 [Trait("Category", "Window")]
-public sealed partial class PanelReloadTests
+public sealed partial class HotReloadTests
 {
     private sealed partial class Edited : Grid
     {
@@ -90,7 +90,7 @@ public sealed partial class PanelReloadTests
             using var otherPanel = Panel(other);
             var handle = editedPanel.Host!.Handle;
 
-            PanelReload.Apply(shell, [typeof(Edited)]);
+            HotReload.Apply(shell, [typeof(Edited)]);
 
             return (editedPanel.Content is Edited fresh && !ReferenceEquals(fresh, edited),
                 editedPanel.Host!.Handle == handle, ReferenceEquals(otherPanel.Content, other));
@@ -111,7 +111,7 @@ public sealed partial class PanelReloadTests
 
             var closure = typeof(Edited).GetNestedTypes(BindingFlags.NonPublic)
                 .Single(type => type.Name.StartsWith('<'));
-            PanelReload.Apply(shell, [closure]);
+            HotReload.Apply(shell, [closure]);
 
             return !ReferenceEquals(panel.Content, edited);
         });
@@ -129,7 +129,7 @@ public sealed partial class PanelReloadTests
             using var panel = Panel(root);
             await ShellFixture.LaidOut(inner);
 
-            PanelReload.Apply(shell, [typeof(Edited)]);
+            HotReload.Apply(shell, [typeof(Edited)]);
 
             return !ReferenceEquals(panel.Content, root);
         });
@@ -159,7 +159,7 @@ public sealed partial class PanelReloadTests
             Throws.Fail = true;
             try
             {
-                PanelReload.Apply(shell, [typeof(Throws)]);
+                HotReload.Apply(shell, [typeof(Throws)]);
             }
             finally
             {
@@ -180,7 +180,7 @@ public sealed partial class PanelReloadTests
             var content = new Takes(3);
             using var panel = Panel(content);
 
-            PanelReload.Apply(shell, [typeof(Takes)]);
+            HotReload.Apply(shell, [typeof(Takes)]);
 
             return ReferenceEquals(panel.Content, content);
         });
@@ -196,7 +196,7 @@ public sealed partial class PanelReloadTests
             var content = new Disposable();
             using var panel = Panel(content);
 
-            PanelReload.Apply(shell, [typeof(Disposable)]);
+            HotReload.Apply(shell, [typeof(Disposable)]);
 
             return content.Disposed;
         });
@@ -221,7 +221,7 @@ public sealed partial class PanelReloadTests
             using var panel = Panel(host);
             await ShellFixture.LaidOut(edited).WaitAsync(TestContext.Current.CancellationToken);
 
-            PanelReload.Apply(shell, [typeof(EditedWidget)]);
+            HotReload.Apply(shell, [typeof(EditedWidget)]);
 
             return (ReferenceEquals(panel.Content, host), ReferenceEquals(row.Children[0], other), edited.Disposed,
                 edited, besideOthers ? row.Children[1] : Find<EditedWidget>(host));
@@ -249,7 +249,7 @@ public sealed partial class PanelReloadTests
             var widget = Find<EditedWidget>(host);
             await ShellFixture.LaidOut(widget).WaitAsync(TestContext.Current.CancellationToken);
 
-            PanelReload.Apply(shell, [typeof(EditedWidget)]);
+            HotReload.Apply(shell, [typeof(EditedWidget)]);
 
             await Wait.UntilAsync(() => Search<EditedWidget>(host) is { } next && !ReferenceEquals(next, widget),
                 "the area to make the edited widget again");
@@ -291,7 +291,7 @@ public sealed partial class PanelReloadTests
                 var before = Shows(window);
                 await ShellFixture.LaidOut((FrameworkElement)before[1]).WaitAsync(TestContext.Current.CancellationToken);
 
-                PanelReload.Apply(shell, [typeof(EditedWidget)]);
+                HotReload.Apply(shell, [typeof(EditedWidget)]);
 
                 Assert.True(ReferenceEquals(window.Content, content), "The bar keeps its surface and its areas.");
                 await Wait.UntilAsync(() => Shows(window) is [_, var edited] && !ReferenceEquals(edited, before[1]),

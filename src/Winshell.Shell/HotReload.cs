@@ -6,11 +6,11 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Winshell;
 
-[assembly: MetadataUpdateHandler(typeof(PanelReload))]
+[assembly: MetadataUpdateHandler(typeof(HotReload))]
 
 namespace Winshell;
 
-internal static class PanelReload
+internal static class HotReload
 {
     private static readonly ConditionalWeakTable<FrameworkElement, Action> Remakes = new();
 
