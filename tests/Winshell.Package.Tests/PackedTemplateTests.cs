@@ -92,8 +92,10 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         Assert.True(built.ExitCode == 0, built.Output);
     }
 
-    [Fact(Timeout = PatienceMs)]
-    public void A_library_widget_the_program_never_names_is_found_and_shows_in_an_area()
+    [Theory(Timeout = PatienceMs)]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void A_library_widget_the_program_never_names_is_found_and_shows_in_an_area(bool packed)
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         using var root = new TempFolder();
@@ -107,7 +109,8 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         var version = XDocument.Load(projectFile).Descendants("PackageReference")
             .Single(element => element.Attribute("Include")!.Value == "Winshell")
             .Attribute("Version")!.Value;
-        var libProject = Path.Combine(libDir, "WidgetLib.csproj");
+        var libName = "WidgetLib" + Guid.NewGuid().ToString("N");
+        var libProject = Path.Combine(libDir, libName + ".csproj");
         File.WriteAllText(libProject, $$"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
@@ -116,6 +119,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
                 <Nullable>enable</Nullable>
                 <ImplicitUsings>enable</ImplicitUsings>
                 <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+                <Version>{{version}}</Version>
               </PropertyGroup>
               <ItemGroup>
                 <PackageReference Include="Winshell" Version="{{version}}" />
@@ -131,8 +135,27 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             }
             """);
         var shell = XDocument.Load(projectFile);
-        shell.Root!.Add(new XElement("ItemGroup",
-            new XElement("ProjectReference", new XAttribute("Include", @"..\lib\WidgetLib.csproj"))));
+        if (packed)
+        {
+            var feed = Path.Combine(root.Path, "feed");
+            var pack = ShellProject.Run("dotnet", ["pack", libProject, "-o", feed, "-warnaserror", "--nologo"], libDir);
+            Assert.True(pack.ExitCode == 0, pack.Output);
+            var config = Path.Combine(shellDir, "nuget.config");
+            var sources = XDocument.Load(config);
+            sources.Descendants("packageSources").Single()
+                .Add(new XElement("add", new XAttribute("key", "widgets"), new XAttribute("value", feed)));
+            sources.Save(config);
+            shell.Root!.Add(new XElement("ItemGroup",
+                new XElement("PackageReference", new XAttribute("Include", libName), new XAttribute("Version", version))));
+        }
+        else
+        {
+            var library = ShellProject.Run("dotnet", ["build", libProject, "-warnaserror", "--nologo"], libDir);
+            Assert.True(library.ExitCode == 0, library.Output);
+            shell.Root!.Add(new XElement("ItemGroup",
+                new XElement("ProjectReference", new XAttribute("Include", $@"..\lib\{libName}.csproj"))));
+        }
+
         shell.Save(projectFile);
         File.WriteAllText(Path.Combine(shellDir, "Program.cs"), """
             Shell.Run(shell =>
@@ -148,20 +171,23 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             }
             """);
 
-        var library = ShellProject.Run(
-            "dotnet", ["build", libProject, "-warnaserror", "--nologo"], libDir);
-        Assert.True(library.ExitCode == 0, library.Output);
-
-        Run(projectFile, (pid, environment) =>
+        try
         {
-            ChildProcess? tree = null;
-            Wait.Until(() =>
+            Run(projectFile, (pid, environment) =>
             {
-                tree = WinshellCli.Run(["inspect", "--pid", pid, "tree"], environment);
-                return tree.Code == 0 && tree.Output.Contains("library:one", StringComparison.Ordinal);
-            }, "the library's widget to populate the window");
-            Assert.Contains("library:one", tree!.Output, StringComparison.Ordinal);
-        });
+                ChildProcess? tree = null;
+                Wait.Until(() =>
+                {
+                    tree = WinshellCli.Run(["inspect", "--pid", pid, "tree"], environment);
+                    return tree.Code == 0 && tree.Output.Contains("library:one", StringComparison.Ordinal);
+                }, "the library's widget to populate the window");
+                Assert.Contains("library:one", tree!.Output, StringComparison.Ordinal);
+            });
+        }
+        finally
+        {
+            PackedTemplates.Forget(libName, version);
+        }
     }
 
     [Fact(Timeout = PatienceMs)]
@@ -319,10 +345,7 @@ public sealed class PackedTemplates : IDisposable
 
     public void Dispose()
     {
-        var cached = Environment.GetEnvironmentVariable("NUGET_PACKAGES") is { Length: > 0 } packages
-            ? packages
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
-        foreach (var folder in new[] { _work, Path.Combine(cached, "winshell", Version) })
+        foreach (var folder in new[] { _work, Cached("Winshell", Version) })
             try
             {
                 Directory.Delete(folder, true);
@@ -330,6 +353,25 @@ public sealed class PackedTemplates : IDisposable
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
             }
+    }
+
+    internal static void Forget(string id, string version)
+    {
+        try
+        {
+            Directory.Delete(Cached(id, version), true);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private static string Cached(string id, string version)
+    {
+        var cached = Environment.GetEnvironmentVariable("NUGET_PACKAGES") is { Length: > 0 } packages
+            ? packages
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
+        return Path.Combine(cached, id.ToLowerInvariant(), version);
     }
 
     private string Instantiate(string packages)
