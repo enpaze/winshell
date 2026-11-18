@@ -19,11 +19,14 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
     private int _polls;
     private bool _disposed;
 
-    internal Hotkey(IEventLoop loop, Log log, HotkeyRegistrar registrar)
+    internal Hotkey(IEventLoop loop, Log log, HotkeyRegistrar registrar, string sequence = "", Action? pressed = null)
     {
         _loop = loop;
         _log = log;
         _registrar = registrar;
+        if (pressed is not null)
+            Pressed += (_, _) => pressed();
+        Sequence = sequence;
     }
 
     public string Sequence

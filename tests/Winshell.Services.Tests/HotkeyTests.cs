@@ -27,6 +27,42 @@ public sealed class HotkeyTests : IDisposable
     }
 
     [Fact]
+    public void The_sequence_it_is_made_with_is_claimed_at_once()
+    {
+        using var hotkey = new Hotkey(_loop, _log, _registrar, "Ctrl+Shift+K");
+
+        Assert.Equal("Ctrl+Shift+K", hotkey.Sequence);
+        Assert.Equal(Key("Ctrl+Shift+K"), Assert.Single(_backend.Registered));
+        Assert.True(hotkey.Active);
+    }
+
+    [Fact]
+    public void The_pressed_action_runs_on_each_press()
+    {
+        var presses = 0;
+        using var hotkey = new Hotkey(_loop, _log, _registrar, "Ctrl+K", () => presses++);
+
+        _backend.Press(Key("Ctrl+K"));
+        _loop.Advance(TimeSpan.FromMilliseconds(20));
+        _backend.Press(Key("Ctrl+K"));
+
+        Assert.Equal(2, presses);
+    }
+
+    [Fact]
+    public void Disposing_frees_the_chord_and_stops_the_pressed_action()
+    {
+        var presses = 0;
+        var hotkey = new Hotkey(_loop, _log, _registrar, "Ctrl+K", () => presses++);
+
+        hotkey.Dispose();
+        _backend.Press(Key("Ctrl+K"));
+
+        Assert.Empty(_backend.Registered);
+        Assert.Equal(0, presses);
+    }
+
+    [Fact]
     public void A_sequence_claims_at_once_and_a_new_one_replaces_it()
     {
         using var hotkey = Create();
