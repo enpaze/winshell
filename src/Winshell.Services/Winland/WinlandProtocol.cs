@@ -176,22 +176,6 @@ internal static class WinlandProtocol
         return Integer(id) ?? IdFromName(name);
     }
 
-    public static object? ToObject(JsonElement element)
-    {
-        return element.ValueKind switch
-        {
-            JsonValueKind.Object => element.EnumerateObject().ToDictionary(p => p.Name, p => ToObject(p.Value)),
-            JsonValueKind.Array => element.EnumerateArray().Select(ToObject).ToList(),
-            JsonValueKind.String => element.GetString(),
-            JsonValueKind.Number => element.TryGetInt64(out var l) && l is >= int.MinValue and <= int.MaxValue
-                ? (object)(int)l
-                : element.GetDouble(),
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            _ => null
-        };
-    }
-
     public static string Str(JsonElement obj, string name)
     {
         return obj.ValueKind == JsonValueKind.Object && obj.TryGetProperty(name, out var v) &&

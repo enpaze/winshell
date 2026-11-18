@@ -41,7 +41,7 @@ public sealed class PowerDevice : ObservableObject
 
     public bool Ready => Read(_ready);
 
-    internal void Update(PowerDeviceInfo info, bool ready)
+    internal void Update(PowerDeviceInfo info)
     {
         var old = _info;
         _info = info;
@@ -61,7 +61,7 @@ public sealed class PowerDevice : ObservableObject
             nameof(IsSystemBattery));
         Changed(old.DeviceId != info.DeviceId, nameof(DeviceId));
         Changed(old.Model != info.Model, nameof(Model));
-        Set(ref _ready, ready, nameof(Ready));
+        Set(ref _ready, true, nameof(Ready));
     }
 
     public override string ToString()
@@ -93,10 +93,10 @@ public sealed class PowerService : ObservableObject, IDisposable
 
     private void Apply(PowerSnapshot snapshot)
     {
-        DisplayDevice.Update(snapshot.Display, snapshot.Ready);
+        DisplayDevice.Update(snapshot.Display);
         Set(ref _onBattery, snapshot.OnBattery, nameof(OnBattery));
         Devices.Sync(snapshot.Devices, d => d.DeviceId, i => i.DeviceId, _ => new PowerDevice(),
-            (d, i) => d.Update(i, true));
+            (d, i) => d.Update(i));
     }
 
     public void Dispose()
@@ -155,7 +155,7 @@ public sealed class PowerModeService : ObservableObject, IDisposable
         Set(ref _mode, snapshot.Mode, nameof(Mode));
         Set(ref _effective, snapshot.Effective, nameof(Effective));
         Set(ref _available, snapshot.Available, nameof(Available));
-        Set(ref _ready, snapshot.Ready, nameof(Ready));
+        Set(ref _ready, true, nameof(Ready));
     }
 
     public void Dispose()

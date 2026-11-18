@@ -29,7 +29,6 @@ internal sealed record PowerDeviceInfo(
 }
 
 internal sealed record PowerSnapshot(
-    bool Ready,
     PowerDeviceInfo Display,
     IReadOnlyList<PowerDeviceInfo> Devices,
     bool OnBattery);
@@ -166,7 +165,7 @@ internal sealed class PowerBackend(Log log) : IPowerBackend
             ];
         }
 
-        return new PowerSnapshot(true, display, devices, OnBattery());
+        return new PowerSnapshot(display, devices, OnBattery());
     }
 
     private static PowerDeviceInfo ReadDisplay()

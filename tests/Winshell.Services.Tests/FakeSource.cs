@@ -36,7 +36,8 @@ internal class FakeSource<T>(T initial)
 internal sealed class FakePowerBackend(PowerSnapshot initial) : FakeSource<PowerSnapshot>(initial), IPowerBackend;
 
 internal sealed class FakePowerModeBackend(Func<PowerModeLevel, uint> set)
-    : FakeSource<PowerModeSnapshot>(PowerModeSnapshot.Initial), IPowerModeBackend
+    : FakeSource<PowerModeSnapshot>(new PowerModeSnapshot(PowerModeLevel.Unknown,
+        EffectivePowerMode.Unknown, false)), IPowerModeBackend
 {
     public uint Set(PowerModeLevel mode)
     {

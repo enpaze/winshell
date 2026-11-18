@@ -88,7 +88,7 @@ public sealed class BrightnessService : ObservableObject, IDisposable
     {
         Monitors.Sync(snapshot.Monitors, m => m.DeviceName, i => i.DeviceName,
             _ => new BrightnessMonitor(_writer, _log), (m, i) => m.Update(i));
-        Set(ref _ready, snapshot.Ready, nameof(Ready));
+        Set(ref _ready, true, nameof(Ready));
     }
 
     private void OnScreensChanged(object? sender, NotifyCollectionChangedEventArgs e)

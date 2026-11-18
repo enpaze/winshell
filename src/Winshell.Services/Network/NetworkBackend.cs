@@ -89,8 +89,7 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
         WinNetworkInformation.NetworkStatusChanged += OnNetworkStatusChanged;
         NetworkChange.NetworkAddressChanged += OnNetworkChanged;
         NetworkChange.NetworkAvailabilityChanged += OnNetworkChanged;
-        if (!Wlan.Listen(Refresh, e => log.Warn("network", e.Message)))
-            return;
+        Wlan.Listen(Refresh, e => log.Warn("network", e.Message));
     }
 
     public void Dispose()

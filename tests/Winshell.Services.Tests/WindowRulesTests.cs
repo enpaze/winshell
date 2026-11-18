@@ -11,10 +11,10 @@ public sealed class WindowRulesTests
     {
         Assert.Equal("Microsoft.WindowsCalculator_8wekyb3d8bbwe!App",
             WindowRules.AppId("Microsoft.WindowsCalculator_8wekyb3d8bbwe!App",
-                @"C:\Windows\System32\ApplicationFrameHost.exe"));
-        Assert.Equal("chrome", WindowRules.AppId("", @"C:\Program Files\Google\Chrome\Application\chrome.exe"));
-        Assert.Equal("Chrome", WindowRules.AppId("Chrome", @"C:\Program Files\Google\Chrome\Application\chrome.exe"));
-        Assert.Equal("", WindowRules.AppId("", ""));
+                "", @"C:\Windows\System32\ApplicationFrameHost.exe"));
+        Assert.Equal("chrome", WindowRules.AppId("", "", @"C:\Program Files\Google\Chrome\Application\chrome.exe"));
+        Assert.Equal("Chrome", WindowRules.AppId("Chrome", "", @"C:\Program Files\Google\Chrome\Application\chrome.exe"));
+        Assert.Equal("", WindowRules.AppId("", "", ""));
     }
 
     [Theory]

@@ -15,11 +15,6 @@ internal static class WindowRules
         return AppIdentity.DesktopId(executable);
     }
 
-    public static string AppId(string appUserModelId, string executable)
-    {
-        return AppId(appUserModelId, "", executable);
-    }
-
     public static bool IsWindowObject(int idObject, int idChild)
     {
         return idObject == (int)OBJECT_IDENTIFIER.OBJID_WINDOW && idChild == (int)PInvoke.CHILDID_SELF;
