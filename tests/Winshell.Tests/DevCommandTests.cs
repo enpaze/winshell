@@ -49,29 +49,20 @@ public sealed partial class DevCommandTests : IDisposable
                                                                 </Project>
                                                                 """);
         File.WriteAllText(Path.Combine(Project, "Program.cs"), """
-                                                               internal sealed class Bare : ShellConfiguration
+                                                               Shell.Run(shell =>
                                                                {
-                                                                   public override void Start(Shell shell)
+                                                                   _ = new PanelWindow { Anchors = Edges.Top | Edges.Left, Width = 200, Height = 32, Content = new Dev.PanelView(), Visible = true };
+                                                                   shell.Ipc.Handle("probe", "value", Marker.Value);
+                                                                   shell.Ipc.Handle("probe", "reuse", () => Environment.GetEnvironmentVariable("MSBUILDDISABLENODEREUSE") ?? "");
+                                                                   shell.Ipc.Handle("probe", "launch", (string name) =>
                                                                    {
-                                                                       _ = new PanelWindow { Anchors = Edges.Top | Edges.Left, Width = 200, Height = 32, Content = new Dev.PanelView(), Visible = true };
-                                                                       shell.Ipc.Handle("probe", "value", Marker.Value);
-                                                                       shell.Ipc.Handle("probe", "reuse", () => Environment.GetEnvironmentVariable("MSBUILDDISABLENODEREUSE") ?? "");
-                                                                       shell.Ipc.Handle("probe", "launch", (string name) =>
-                                                                       {
-                                                                           var app = shell.Apps.Find(name);
-                                                                           if (app is null)
-                                                                               return "missing";
-                                                                           app.Launch();
-                                                                           return "launched";
-                                                                       });
-                                                                   }
-                                                               }
-
-                                                               internal static class Program
-                                                               {
-                                                                   [STAThread]
-                                                                   private static void Main() => Shell.Run<Bare>(new ShellOptions { ShellId = "dev-probe" });
-                                                               }
+                                                                       var app = shell.Apps.Find(name);
+                                                                       if (app is null)
+                                                                           return "missing";
+                                                                       app.Launch();
+                                                                       return "launched";
+                                                                   });
+                                                               }, new ShellOptions { ShellId = "dev-probe" });
                                                                """);
         File.WriteAllText(Path.Combine(Project, "PanelView.cs"), """
                                                                  using Microsoft.UI.Xaml.Controls;

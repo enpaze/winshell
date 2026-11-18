@@ -12,7 +12,7 @@ public static class GuideSamples
 
     public static void RunTheShell()
     {
-        Shell.Run<AppShell>(new ShellOptions { ShellId = "MyShell" });
+        Shell.Run(shell => _ = new Bar { Center = ["clock"] }, new ShellOptions { ShellId = "MyShell" });
     }
 
     public static void APanel()
@@ -199,15 +199,6 @@ public sealed class ClockLabel : Component
         var preferences = UseObservable(_preferences);
         UseEffect(() => () => _preferences.Dispose(), false);
         return TextBlock(preferences.Clock24 ? "13:00" : "1:00 PM");
-    }
-}
-
-public sealed class AppShell : ShellConfiguration
-{
-    public override void Start(Shell shell)
-    {
-        _ = shell;
-        GuideSamples.APanel();
     }
 }
 

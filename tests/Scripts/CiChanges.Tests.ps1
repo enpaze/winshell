@@ -88,7 +88,7 @@ Describe 'Selecting CI checks from GitHub changed files' {
         @{ Path = '.agents/skills/verify-winshell/scripts/drive.ps1'; Flags = 'code powershell' },
         @{ Path = '.agents/skills/verify-winshell/features/service.audio.md'; Flags = 'code powershell' },
         @{ Path = '.agents/skills/verify-winshell/SKILL.md'; Flags = 'code powershell' },
-        @{ Path = '.agents/skills/verify-winshell/shell/FeatureShell.cs'; Flags = 'code powershell' },
+        @{ Path = '.agents/skills/verify-winshell/shell/Program.cs'; Flags = 'code powershell' },
         @{ Path = '.claude/skills/verify-winshell/SKILL.md'; Flags = 'code powershell' },
         @{ Path = 'scripts/generate-reference.cs'; Flags = 'code powershell scripts' },
         @{ Path = 'scripts/reference-pages.cs'; Flags = 'code powershell scripts' },

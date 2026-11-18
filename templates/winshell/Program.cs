@@ -1,10 +1,6 @@
-namespace MyShell;
-
-internal static class Program
+Shell.Run(shell =>
 {
-    [STAThread]
-    private static void Main()
-    {
-        Shell.Run<AppShell>();
-    }
-}
+    Widgets.Register<Clock>("clock");
+    Widgets.Register<Battery>("battery");
+    _ = new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] };
+});

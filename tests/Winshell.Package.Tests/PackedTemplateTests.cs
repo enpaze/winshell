@@ -78,12 +78,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         foreach (var source in Directory.GetFiles(folder.Path, "*.cs"))
             File.Delete(source);
         File.WriteAllText(Path.Combine(folder.Path, "Program.cs"), """
-            Shell.Run<Bare>();
-
-            internal sealed class Bare : ShellConfiguration
-            {
-                public override void Start(Shell shell) => shell.Log.Info("shell", "Started.");
-            }
+            Shell.Run(shell => shell.Log.Info("shell", "Started."));
             """);
 
         var built = ShellProject.Run(
@@ -134,27 +129,22 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         shell.Root!.Add(new XElement("ItemGroup",
             new XElement("ProjectReference", new XAttribute("Include", @"..\lib\WidgetLib.csproj"))));
         shell.Save(projectFile);
-        File.WriteAllText(Path.Combine(shellDir, "AppShell.cs"), """
+        File.WriteAllText(Path.Combine(shellDir, "Program.cs"), """
             using Microsoft.UI.Reactor.Hosting;
 
-            namespace MyShell;
+            Shell.Run(shell =>
+            {
+                Widgets.Register<WidgetLib.ClockWidget>("library-clock");
+                var host = new ReactorHostControl { ComponentFactory = () => new Placements() };
+                var window = new PanelWindow { Width = 250, Height = 80, Content = host, Visible = true };
+                window.Closed += host.Dispose;
+            });
 
             public sealed class Placements : Component
             {
                 public override Element Render() =>
                     Component<WidgetArea, WidgetAreaProps>(new WidgetAreaProps(Defaults:
                         [new("library-clock", new Dictionary<string, object> { ["value"] = "one" })]));
-            }
-
-            public sealed class AppShell : ShellConfiguration
-            {
-                public override void Start(Shell shell)
-                {
-                    Widgets.Register<WidgetLib.ClockWidget>("library-clock");
-                    var host = new ReactorHostControl { ComponentFactory = () => new Placements() };
-                    var window = new PanelWindow { Width = 250, Height = 80, Content = host, Visible = true };
-                    window.Closed += host.Dispose;
-                }
             }
             """);
 

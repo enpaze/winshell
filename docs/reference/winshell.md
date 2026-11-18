@@ -1,6 +1,6 @@
 # Winshell
 
-The configuration's program uses these types. `Shell.Run<T>()` starts one, from `Main` marked `[STAThread]`. Windows are `PanelWindow`, `PopupWindow` and `FloatingWindow`. Their content is any WinUI element. Services hang off `Shell.Current`: [apps](winshell-apps.md), [audio](winshell-audio.md), [Bluetooth](winshell-bluetooth.md), [capture](winshell-capture.md), the [Explorer taskbar](winshell-explorertaskbar.md), [media](winshell-media.md), [network](winshell-network.md), [notifications](winshell-notifications.md), [power](winshell-power.md), [session](winshell-session.md), the [tray](winshell-tray.md), [windows](winshell-windows.md) and [Winland](winshell-winland.md). `Shell.Ipc` is what `winshell ipc` calls. The user's choices are in [Preferences](#preferences).
+The configuration's program uses these types. `Shell.Run(shell => { ... })` starts one, from top-level statements. Windows are `PanelWindow`, `PopupWindow` and `FloatingWindow`. Their content is any WinUI element. Services hang off `Shell.Current`: [apps](winshell-apps.md), [audio](winshell-audio.md), [Bluetooth](winshell-bluetooth.md), [capture](winshell-capture.md), the [Explorer taskbar](winshell-explorertaskbar.md), [media](winshell-media.md), [network](winshell-network.md), [notifications](winshell-notifications.md), [power](winshell-power.md), [session](winshell-session.md), the [tray](winshell-tray.md), [windows](winshell-windows.md) and [Winland](winshell-winland.md). `Shell.Ipc` is what `winshell ipc` calls. The user's choices are in [Preferences](#preferences).
 
 <!-- generated below: dotnet run scripts/generate-reference.cs -->
 
@@ -301,14 +301,8 @@ Has the members of [ObservableObject](#observableobject).
 | `Open(string target)` | void |
 | `Quit()` | void |
 | `Reload()` | bool |
-| `Run<T>([ShellOptions](#shelloptions)? options = null)` | void, static |
+| `Run(Action of [Shell](#shell) start, [ShellOptions](#shelloptions)? options = null)` | void, static |
 | `StatePath(string path)` | string |
-
-## ShellConfiguration
-
-| Member | Type |
-| --- | --- |
-| `Start([Shell](#shell) shell)` | void |
 
 ## ShellImage
 

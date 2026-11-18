@@ -154,6 +154,99 @@ internal static class ProbeShell
           using Microsoft.UI.Xaml.Controls;
           using Windows.Foundation;
 
+          Shell.Run(shell =>
+          {
+              shell.Ipc.Handle("probe", "note", (string text) => { });
+              shell.Ipc.Property("probe", "name", () => "probe");
+              var config = Environment.GetEnvironmentVariable("WINSHELL_CONFIG_DIR");
+              // A test that puts {{CrashMarker}} there gets a shell that crashes as it starts, once.
+              if (config is not null && File.Exists(Path.Combine(config, "{{CrashMarker}}")))
+              {
+                  File.Delete(Path.Combine(config, "{{CrashMarker}}"));
+                  throw new InvalidOperationException("The probe was asked to crash as it started.");
+              }
+              // A test that puts {{PreferencesMarker}} there gets one section during start and one posted for the
+              // turn after. preferences-report.txt then says both, missing, or partial. Nothing is shown.
+              if (config is not null && File.Exists(Path.Combine(config, "{{PreferencesMarker}}")))
+              {
+                  new EarlySection();
+                  shell.Loop.Post(() => new LateSection());
+                  shell.Loop.Post(() =>
+                  {
+                      var path = Path.Combine(shell.ConfigRoot, "preferences", shell.ShellId + ".toml");
+                      var report = Path.Combine(config, "preferences-report.txt");
+                      // The test reads the report from another process, so it appears once and whole: written
+                      // beside it, then moved to a name that does not exist yet, which no reader can hold open.
+                      // Antivirus can lock a file just written, so a refused move is tried again shortly.
+                      var written = report + ".tmp";
+                      void Publish()
+                      {
+                          try
+                          {
+                              File.Move(written, report);
+                          }
+                          catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+                          {
+                              shell.Loop.Schedule(TimeSpan.FromMilliseconds(25), Publish);
+                          }
+                      }
+
+                      void Report()
+                      {
+                          File.WriteAllText(written, PreferencesReport(path));
+                          Publish();
+                      }
+
+                      if (File.Exists(path))
+                          Report();
+                      else
+                          shell.Loop.Post(Report);
+                  });
+              }
+              // A test that puts {{WindowMarker}} there gets a panel whose button opens a popup.
+              if (config is not null && File.Exists(Path.Combine(config, "{{WindowMarker}}")))
+              {
+                  var popup = new PopupWindow { Content = new ProbePopup { Children = { new TextBlock { Text = "Opened" } } } };
+                  var open = new Button { Name = "Open", Content = "Open" };
+                  var panel = new PanelWindow
+                  {
+                      Anchors = Edges.Top | Edges.Left,
+                      Width = 160,
+                      Height = 60,
+                      Content = new ProbePage { Children = { open } },
+                      Visible = true,
+                  };
+                  open.Click += (_, _) =>
+                  {
+                      popup.Rect = new Rect(panel.Origin.X, panel.Origin.Y + panel.ActualHeight, 160, 60);
+                      popup.Visible = true;
+                  };
+              }
+              // A test that puts {{HideTaskbarMarker}} there gets a shell that hides Explorer's taskbar once.
+              if (config is not null && File.Exists(Path.Combine(config, "{{HideTaskbarMarker}}")))
+              {
+                  shell.ExplorerTaskbar.Hidden = true;
+                  File.Delete(Path.Combine(config, "{{HideTaskbarMarker}}"));
+              }
+              // A test that puts {{HangMarker}} there gets a shell that starts a program and then never exits.
+              if (config is null || !File.Exists(Path.Combine(config, "{{HangMarker}}")))
+                  return;
+              var child = Process.Start(new ProcessStartInfo("ping", "-n 120 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true })!;
+              // Moved into place whole, so a test that sees the file can read it.
+              File.WriteAllText(Path.Combine(config, "child.pid.tmp"), child.Id.ToString());
+              File.Move(Path.Combine(config, "child.pid.tmp"), Path.Combine(config, "child.pid"));
+              AppDomain.CurrentDomain.ProcessExit += (_, _) => Thread.Sleep(Timeout.Infinite);
+          }, new ShellOptions { ShellId = Environment.GetEnvironmentVariable("{{ShellIdVariable}}") ?? "probe" });
+
+          // What the turn after start can already see in the preferences file.
+          static string PreferencesReport(string path)
+          {
+              if (!File.Exists(path))
+                  return "missing";
+              var text = File.ReadAllText(path);
+              return text.Contains("[early]") && text.Contains("[late]") ? "both" : "partial";
+          }
+
           public sealed class ProbePage : StackPanel;
 
           public sealed class ProbePopup : StackPanel;
@@ -161,108 +254,5 @@ internal static class ProbeShell
           sealed class EarlySection() : Preferences("early");
 
           sealed class LateSection() : Preferences("late");
-
-          internal sealed class Bare : ShellConfiguration
-          {
-              public override void Start(Shell shell)
-              {
-                  shell.Ipc.Handle("probe", "note", (string text) => { });
-                  shell.Ipc.Property("probe", "name", () => "probe");
-                  var config = Environment.GetEnvironmentVariable("WINSHELL_CONFIG_DIR");
-                  // A test that puts {{CrashMarker}} there gets a shell that crashes as it starts, once.
-                  if (config is not null && File.Exists(Path.Combine(config, "{{CrashMarker}}")))
-                  {
-                      File.Delete(Path.Combine(config, "{{CrashMarker}}"));
-                      throw new InvalidOperationException("The probe was asked to crash as it started.");
-                  }
-                  // A test that puts {{PreferencesMarker}} there gets one section during Start and one posted for the
-                  // turn after. preferences-report.txt then says both, missing, or partial. Nothing is shown.
-                  if (config is not null && File.Exists(Path.Combine(config, "{{PreferencesMarker}}")))
-                  {
-                      new EarlySection();
-                      shell.Loop.Post(() => new LateSection());
-                      shell.Loop.Post(() =>
-                      {
-                          var path = Path.Combine(shell.ConfigRoot, "preferences", shell.ShellId + ".toml");
-                          var report = Path.Combine(config, "preferences-report.txt");
-                          // The test reads the report from another process, so it appears once and whole: written
-                          // beside it, then moved to a name that does not exist yet, which no reader can hold open.
-                          // Antivirus can lock a file just written, so a refused move is tried again shortly.
-                          var written = report + ".tmp";
-                          void Publish()
-                          {
-                              try
-                              {
-                                  File.Move(written, report);
-                              }
-                              catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-                              {
-                                  shell.Loop.Schedule(TimeSpan.FromMilliseconds(25), Publish);
-                              }
-                          }
-
-                          void Report()
-                          {
-                              File.WriteAllText(written, PreferencesReport(path));
-                              Publish();
-                          }
-
-                          if (File.Exists(path))
-                              Report();
-                          else
-                              shell.Loop.Post(Report);
-                      });
-                  }
-                  // A test that puts {{WindowMarker}} there gets a panel whose button opens a popup.
-                  if (config is not null && File.Exists(Path.Combine(config, "{{WindowMarker}}")))
-                  {
-                      var popup = new PopupWindow { Content = new ProbePopup { Children = { new TextBlock { Text = "Opened" } } } };
-                      var open = new Button { Name = "Open", Content = "Open" };
-                      var panel = new PanelWindow
-                      {
-                          Anchors = Edges.Top | Edges.Left,
-                          Width = 160,
-                          Height = 60,
-                          Content = new ProbePage { Children = { open } },
-                          Visible = true,
-                      };
-                      open.Click += (_, _) =>
-                      {
-                          popup.Rect = new Rect(panel.Origin.X, panel.Origin.Y + panel.ActualHeight, 160, 60);
-                          popup.Visible = true;
-                      };
-                  }
-                  // A test that puts {{HideTaskbarMarker}} there gets a shell that hides Explorer's taskbar once.
-                  if (config is not null && File.Exists(Path.Combine(config, "{{HideTaskbarMarker}}")))
-                  {
-                      shell.ExplorerTaskbar.Hidden = true;
-                      File.Delete(Path.Combine(config, "{{HideTaskbarMarker}}"));
-                  }
-                  // A test that puts {{HangMarker}} there gets a shell that starts a program and then never exits.
-                  if (config is null || !File.Exists(Path.Combine(config, "{{HangMarker}}")))
-                      return;
-                  var child = Process.Start(new ProcessStartInfo("ping", "-n 120 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true })!;
-                  // Moved into place whole, so a test that sees the file can read it.
-                  File.WriteAllText(Path.Combine(config, "child.pid.tmp"), child.Id.ToString());
-                  File.Move(Path.Combine(config, "child.pid.tmp"), Path.Combine(config, "child.pid"));
-                  AppDomain.CurrentDomain.ProcessExit += (_, _) => Thread.Sleep(Timeout.Infinite);
-              }
-
-              /// <summary>What the turn after Start can already see in the preferences file.</summary>
-              private static string PreferencesReport(string path)
-              {
-                  if (!File.Exists(path))
-                      return "missing";
-                  var text = File.ReadAllText(path);
-                  return text.Contains("[early]") && text.Contains("[late]") ? "both" : "partial";
-              }
-          }
-
-          internal static class Program
-          {
-              [STAThread]
-              private static void Main() =>
-                  Shell.Run<Bare>(new ShellOptions { ShellId = Environment.GetEnvironmentVariable("{{ShellIdVariable}}") ?? "probe" });
-          }
           """;
 }
