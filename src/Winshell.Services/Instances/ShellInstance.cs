@@ -9,24 +9,24 @@ internal sealed class ShellInstance
     private readonly Instances _instances;
     private readonly string _dir;
     private readonly string _shellId;
-    private readonly string _configPath;
+    private readonly string _program;
     private NamedPipeServerStream? _listening;
     private IpcServer? _server;
     private Exception? _fatal;
 
-    private ShellInstance(ShellLocations locations, string id, string shellId, string configPath, Log log)
+    private ShellInstance(ShellLocations locations, string id, string shellId, string program, Log log)
     {
         Id = id;
         _instances = locations.Instances;
         _dir = _instances.DirOf(id);
         Directory.CreateDirectory(_dir);
         _shellId = shellId;
-        _configPath = configPath;
+        _program = program;
         Log = log;
         LogPath = Path.Combine(_dir, InstanceLog.FileName);
         Pipe = $"winshell-{id}";
         _file = new InstanceLog(LogPath);
-        Crashes = new CrashReports(locations.CrashRoot, log, shellId, configPath, LogPath);
+        Crashes = new CrashReports(locations.CrashRoot, log, shellId, program, LogPath);
     }
 
     public string Id { get; }
@@ -43,11 +43,11 @@ internal sealed class ShellInstance
 
     public Action? Crashing { get; set; }
 
-    public static ShellInstance Open(string shellId, string configPath, Log log, bool verbose = false)
+    public static ShellInstance Open(string shellId, string program, Log log, bool verbose = false)
     {
         var locations = ShellLocations.Current;
         locations.Instances.Clean();
-        var instance = new ShellInstance(locations, Instances.NewId(), shellId, configPath, log);
+        var instance = new ShellInstance(locations, Instances.NewId(), shellId, program, log);
         log.WriteTo(instance.WriteLine, verbose ? LogLevel.Debug : LogLevel.Info);
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
@@ -100,7 +100,7 @@ internal sealed class ShellInstance
             Id,
             Environment.ProcessId,
             _shellId,
-            _configPath,
+            _program,
             TimeProvider.System.GetLocalNow().LocalDateTime,
             Pipe,
             LogPath,

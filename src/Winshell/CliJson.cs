@@ -11,7 +11,7 @@ internal sealed record InstanceListItem(
     [property: JsonPropertyName("shellId")]
     string ShellId,
     [property: JsonPropertyName("configPath")]
-    string ConfigPath,
+    string Program,
     [property: JsonPropertyName("launchTime")]
     DateTime LaunchTime,
     [property: JsonPropertyName("pipe")] string Pipe,
@@ -19,7 +19,7 @@ internal sealed record InstanceListItem(
 {
     public static InstanceListItem From(InstanceInfo info)
     {
-        return new InstanceListItem(info.Id, info.Pid, info.ShellId, info.ConfigPath, info.LaunchTime, info.Pipe,
+        return new InstanceListItem(info.Id, info.Pid, info.ShellId, info.Program, info.LaunchTime, info.Pipe,
             info.Log);
     }
 }

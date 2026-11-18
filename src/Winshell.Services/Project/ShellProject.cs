@@ -91,7 +91,7 @@ internal sealed partial class ShellProject
 
     public IEnumerable<InstanceInfo> InstancesOf(ShellProjectBuild build, IEnumerable<InstanceInfo> instances)
     {
-        return instances.Where(instance => BuildOf(instance.ConfigPath) == build);
+        return instances.Where(instance => BuildOf(instance.Program) == build);
     }
 
     private ShellProjectBuild? BuildOf(string program)

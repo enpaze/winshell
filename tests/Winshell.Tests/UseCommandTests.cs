@@ -70,7 +70,7 @@ public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
         Assert.True(other.HasExited);
         Wait.Until(() => Running().Count == 1, "the chosen shell");
         var started = Running().Single();
-        Assert.Equal(Path.Combine(Config, "b", "bin", "shell", "Probe.exe"), started.ConfigPath, true);
+        Assert.Equal(Path.Combine(Config, "b", "bin", "shell", "Probe.exe"), started.Program, true);
         using var process = Process.GetProcessById(started.Pid);
         Assert.True(other.ExitTime <= process.StartTime);
         Assert.Equal($"* b{newLine}", Cli("use").Output);

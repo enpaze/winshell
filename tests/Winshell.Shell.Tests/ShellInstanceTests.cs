@@ -28,7 +28,7 @@ public sealed class ShellInstanceTests
         var info = await Own();
 
         Assert.Equal("winshell-tests", info.ShellId);
-        Assert.Equal(Environment.ProcessPath, info.ConfigPath);
+        Assert.Equal(Environment.ProcessPath, info.Program);
         Assert.StartsWith("winshell-", info.Pipe, StringComparison.Ordinal);
         Assert.Null(info.ExitedAt);
     }

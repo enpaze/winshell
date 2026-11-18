@@ -14,7 +14,7 @@ public sealed record DoctorCheck(
     string Message,
     string? Fix = null);
 
-internal sealed record DoctorInstance(string Id, int Pid, string ConfigPath, string LogPath);
+internal sealed record DoctorInstance(string Id, int Pid, string Program, string LogPath);
 
 internal sealed record DoctorContext(ShellLocations Locations, string? Path, string? Config);
 
@@ -201,7 +201,7 @@ public static class Doctor
         try
         {
             return instances.Running()
-                .Select(i => new DoctorInstance(i.Id, i.Pid, i.ConfigPath, i.Log)).ToList();
+                .Select(i => new DoctorInstance(i.Id, i.Pid, i.Program, i.Log)).ToList();
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -255,7 +255,7 @@ public static class Doctor
             return new DoctorCheck("instances", "Running", CheckStatus.Pass, "No Winshell is running");
         var list = string.Join("; ",
             instances.Select(i => string.Create(CultureInfo.InvariantCulture,
-                $"{i.Id} (process {i.Pid}) runs {i.ConfigPath}, log {i.LogPath}")));
+                $"{i.Id} (process {i.Pid}) runs {i.Program}, log {i.LogPath}")));
         return new DoctorCheck("instances", "Running", CheckStatus.Pass, list);
     }
 

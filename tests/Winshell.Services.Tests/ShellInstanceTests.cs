@@ -62,7 +62,7 @@ public sealed class ShellInstanceTests
 
         var row = Assert.Single(Rows(instance));
         Assert.True(row.Alive);
-        Assert.Equal(("mine", Program, instance.Pipe), (row.Info.ShellId, row.Info.ConfigPath, row.Info.Pipe));
+        Assert.Equal(("mine", Program, instance.Pipe), (row.Info.ShellId, row.Info.Program, row.Info.Pipe));
         Assert.Equal(Environment.ProcessId, row.Info.Pid);
 
         instance.Close();

@@ -11,7 +11,7 @@ internal sealed record InstanceInfo(
     [property: JsonPropertyName("shellId")]
     string ShellId,
     [property: JsonPropertyName("configPath")]
-    string ConfigPath,
+    string Program,
     [property: JsonPropertyName("launchTime")]
     DateTime LaunchTime,
     [property: JsonPropertyName("pipe")] string Pipe,

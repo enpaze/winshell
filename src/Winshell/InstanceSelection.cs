@@ -96,7 +96,7 @@ internal static class InstanceSelection
     {
         if (instances.Count > 1)
         {
-            var listed = string.Join(", ", instances.Select(i => $"{i.Id} ({i.ConfigPath})"));
+            var listed = string.Join(", ", instances.Select(i => $"{i.Id} ({i.Program})"));
             return Result.Wrong($"Several instances are running; pick one with -i: {listed}.");
         }
 
