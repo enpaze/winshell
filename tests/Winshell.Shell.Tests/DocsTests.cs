@@ -6,11 +6,14 @@ public sealed class DocsTests
 {
     private static readonly string Repo = TestSupport.Repo.Root;
 
+    private static readonly string WidgetLibrary = Path.Combine(Repo, "tests", "Winshell.Package.Tests", "MessageWidget");
+
     [Fact]
     public void Every_csharp_example_is_compiled()
     {
         var files = Directory.GetFiles(Path.Combine(Repo, "templates", "winshell"), "*.cs")
-            .Append(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs"));
+            .Append(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs"))
+            .Append(Path.Combine(WidgetLibrary, "Message.cs"));
         var source = string.Join('\n', files.Select(File.ReadAllText)).Replace("\r\n", "\n", StringComparison.Ordinal);
         var examples = Examples().ToList();
         Assert.NotEmpty(examples);
@@ -21,6 +24,17 @@ public sealed class DocsTests
             else if (!source.Contains(code, StringComparison.Ordinal))
                 problems.Add($"{Path.GetRelativePath(Repo, file)}:{line}: csharp fence is not in a file the solution builds");
         Assert.True(problems.Count == 0, "C# examples that are not compiled:\n" + string.Join("\n", problems));
+    }
+
+    [Fact]
+    public void The_guide_shows_the_widget_library_project_the_package_tests_build()
+    {
+        var guide = File.ReadAllText(Path.Combine(Repo, "docs", "configuration.md"))
+            .Replace("\r\n", "\n", StringComparison.Ordinal);
+        var project = File.ReadAllText(Path.Combine(WidgetLibrary, "MessageWidget.csproj"))
+            .Replace("\r\n", "\n", StringComparison.Ordinal);
+
+        Assert.Contains("```xml\n" + project + "```\n", guide, StringComparison.Ordinal);
     }
 
     [Fact]

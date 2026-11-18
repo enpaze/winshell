@@ -100,15 +100,11 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             </Project>
             """);
         File.WriteAllText(Path.Combine(libDir, "ClockWidget.cs"), """
-            using Microsoft.UI.Xaml.Controls;
-            using Winshell;
-
             namespace WidgetLib;
 
-            public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
+            public sealed class ClockWidget : Component<WidgetContext>
             {
-                public override Microsoft.UI.Reactor.Core.Element Render() =>
-                    Microsoft.UI.Reactor.Factories.TextBlock("library:" + (string)Props.Settings["value"]);
+                public override Element Render() => TextBlock("library:" + (string)Props.Settings["value"]);
             }
             """);
         var shell = XDocument.Load(projectFile);
@@ -116,11 +112,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             new XElement("ProjectReference", new XAttribute("Include", @"..\lib\WidgetLib.csproj"))));
         shell.Save(projectFile);
         File.WriteAllText(Path.Combine(shellDir, "AppShell.cs"), """
-            using Microsoft.UI.Reactor.Core;
             using Microsoft.UI.Reactor.Hosting;
-            using Microsoft.UI.Xaml.Controls;
-            using Winshell;
-            using static Microsoft.UI.Reactor.Factories;
 
             namespace MyShell;
 
@@ -157,6 +149,32 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             }, "the library's widget to populate the window");
             Assert.Contains("library:one", tree!.Output, StringComparison.Ordinal);
         });
+    }
+
+    [Fact(Timeout = PatienceMs)]
+    public void The_guides_widget_library_builds_against_the_package_and_exposes_its_component()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        using var root = new TempFolder();
+        File.Copy(Path.Combine(Repo.Root, "global.json"), Path.Combine(root.Path, "global.json"));
+        var libDir = Path.Combine(root.Path, "MessageWidget");
+        Directory.CreateDirectory(libDir);
+        foreach (var file in Directory.GetFiles(Path.Combine(Repo.Root, "tests", "Winshell.Package.Tests", "MessageWidget")))
+            File.Copy(file, Path.Combine(libDir, Path.GetFileName(file)));
+        File.Copy(Path.Combine(Path.GetDirectoryName(templates.SmallProject)!, "nuget.config"),
+            Path.Combine(libDir, "nuget.config"));
+        var project = Path.Combine(libDir, "MessageWidget.csproj");
+        var document = XDocument.Load(project);
+        document.Descendants("PackageReference").Single(reference =>
+            reference.Attribute("Include")!.Value == "Winshell").SetAttributeValue("Version", templates.Version);
+        document.Save(project);
+
+        var built = ShellProject.Run("dotnet", ["build", project, "-warnaserror", "--nologo"], libDir);
+
+        Assert.True(built.ExitCode == 0, built.Output);
+        var library = Assert.Single(Directory.GetFiles(Path.Combine(libDir, "bin"), "MessageWidget.dll",
+            SearchOption.AllDirectories));
+        Assert.True(PackedTemplates.IsPublic(library, "MessageWidget", "Message"));
     }
 
     private string CopyStarter(string folder)
@@ -428,7 +446,7 @@ public sealed class PackedTemplates : IDisposable
         throw new InvalidOperationException($"No informational version in {path}");
     }
 
-    private static bool IsPublic(string path, string ns, string name)
+    internal static bool IsPublic(string path, string ns, string name)
     {
         using var stream = File.OpenRead(path);
         using var pe = new PEReader(stream);

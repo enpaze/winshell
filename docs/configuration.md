@@ -90,6 +90,8 @@ public sealed class Battery : Component<WidgetContext>
 
 `Program.cs` starts the shell, and you won't need to change it.
 
+The files have no `using` line for Winshell or Reactor. The package adds them, as [The package's usings](#the-packages-usings) says.
+
 ### Change it
 
 Close the bar with `winshell kill`, and run the starter under `winshell dev` instead. It applies each edit to the running bar as you save it, until you press Ctrl+C:
@@ -162,6 +164,22 @@ winshell use                  # lists the configurations, with * before the chos
 - `winshell use` builds the configuration first when it needs a build, so the next sign-in can start it. A build that fails changes nothing.
 - The choice is the name in `chosen.txt` in the config folder.
 - Choosing a configuration never changes its shell id, so its data, its state, its widgets and where they are placed stay its own through every switch.
+
+## The package's usings
+
+A project that references the `Winshell` package and has `ImplicitUsings` on, as the starter does, gets these global usings. Its files need no `using` line for them:
+
+| Using | What it brings |
+| --- | --- |
+| `Winshell` | `Shell`, `Bar`, `WidgetContext` and the other types in the [reference](reference/winshell.md) |
+| `Microsoft.UI.Reactor` and `Microsoft.UI.Reactor.Core` | `Component`, `Element` and the rest of Reactor |
+| `static Microsoft.UI.Reactor.Factories` | Element functions, such as `TextBlock` and `Button` |
+| `static Winshell.Elements` | `Surface` and `WidgetArea` |
+| The project's `RootNamespace` | The project's own types, in every file |
+
+- **Leave them out.** `<WinshellImplicitUsings>false</WinshellImplicitUsings>` in the project file leaves out all of them. `<Using Remove="Microsoft.UI.Reactor.Core" />` in an `ItemGroup` leaves out one.
+- **The root namespace needs a type.** A project with no type in its `RootNamespace` does not build (CS0246). Remove that using, or put a type in the namespace.
+- **Two types share a name.** `ColorScheme` is Winshell's, for `shell.ColorScheme`, and Reactor's, for `UseColorScheme()`. Write `Winshell.ColorScheme` or `Microsoft.UI.Reactor.Core.ColorScheme`. A file with `using Microsoft.UI.Xaml.Controls` has two `IconElement` and two `MenuFlyoutItemBase` types the same way.
 
 ## The program
 
@@ -319,7 +337,7 @@ public sealed class Dock : Component
         dock.Closed += host.Dispose;
 ```
 
-`using static Winshell.Elements` brings `Surface` and `WidgetArea` into scope. The props are immutable: rendering the component again with a new record is how the tree changes, and disposing the host unmounts it. What a surface holds stays loaded when the style changes. Its own style wins over the shell's, as an area's does. The area inside the tree is an element, not a second host.
+`Surface` and `WidgetArea` come from `Winshell.Elements`, one of [the package's usings](#the-packages-usings). The props are immutable: rendering the component again with a new record is how the tree changes, and disposing the host unmounts it. What a surface holds stays loaded when the style changes. Its own style wins over the shell's, as an area's does. The area inside the tree is an element, not a second host.
 
 ## A launcher
 
@@ -361,10 +379,10 @@ A widget is a `Component<WidgetContext>`. `Render` reads `Props.Shell`, `Props.W
 ```
 
 ```csharp
-public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
+public sealed class ClockWidget : Component<WidgetContext>
 {
-    public override Microsoft.UI.Reactor.Core.Element Render() =>
-        Microsoft.UI.Reactor.Factories.TextBlock((string)Props.Settings["text"]);
+    public override Element Render() =>
+        TextBlock((string)Props.Settings["text"]);
 }
 ```
 
@@ -491,7 +509,7 @@ A widget reads the alert color from the style. With none set, `context.Style` is
 
 ## Write a widget
 
-A widget other people use can be a class library: a WinUI library that references the Winshell package. The package imports the props the library needs. A configuration references the library and registers its component the way [Widgets](#widgets) does. The example on this page is `Message`, a component that shows one line of text, with one `text` setting.
+A widget other people use can be a class library: a WinUI library that references the Winshell package. The package imports the props the library needs and adds [its usings](#the-packages-usings). A configuration references the library and registers its component the way [Widgets](#widgets) does. The example on this page is `Message`, a component that shows one line of text, with one `text` setting.
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -509,9 +527,14 @@ A widget other people use can be a class library: a WinUI library that reference
 
 `0.7.0` stands in for the release you built the widget against. The package is not on nuget.org. A release keeps it in a `packages` folder beside `winshell.exe`, and `winshell new` writes a `nuget.config` that adds that folder.
 
-The component takes the shell's [style](#style), because a plain text block does. There is no XAML file. `Render` reads the placement as `Props`:
+The component takes the shell's [style](#style), because a plain text block does. There is no XAML file. The class is in `MessageWidget`, the project's root namespace, which the package also adds as a using. `Render` reads the placement as `Props`:
 
 ```csharp
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+
+namespace MessageWidget;
+
 public sealed class Message : Component<WidgetContext>
 {
     public override Element Render()
@@ -600,13 +623,13 @@ It opens off the shell's thread, so a slow app does not hold up the shell. What 
 `UseObservableTree` follows a service: a component renders again when anything that service holds changes, including an item in one of its lists. `UseObservable` follows one service object or one list. Both take an `INotifyPropertyChanged` source, which a service object and an [ObservableList](reference/winshell.md#observablelist) are, and return that source:
 
 ```csharp
-public sealed class BatteryLabel : Microsoft.UI.Reactor.Core.Component<WidgetContext>
+public sealed class BatteryLabel : Component<WidgetContext>
 {
-    public override Microsoft.UI.Reactor.Core.Element Render()
+    public override Element Render()
     {
         var battery = UseObservable(Props.Shell.Power.DisplayDevice);
         var charge = battery.IsPresent ? $"{battery.Percentage:P0}" : "";
-        return Microsoft.UI.Reactor.Factories.TextBlock(charge);
+        return TextBlock(charge);
     }
 }
 ```
@@ -663,15 +686,15 @@ public sealed class DockPreferences(string name) : Preferences(name, Check)
 Make one on the shell's thread, and dispose it when its component goes. It reads its section when it is made. [UseObservable](#keep-a-component-current) renders again when a key changes:
 
 ```csharp
-public sealed class ClockLabel : Microsoft.UI.Reactor.Core.Component
+public sealed class ClockLabel : Component
 {
     private readonly ShellPreferences _preferences = new();
 
-    public override Microsoft.UI.Reactor.Core.Element Render()
+    public override Element Render()
     {
         var preferences = UseObservable(_preferences);
         UseEffect(() => () => _preferences.Dispose(), false);
-        return Microsoft.UI.Reactor.Factories.TextBlock(preferences.Clock24 ? "13:00" : "1:00 PM");
+        return TextBlock(preferences.Clock24 ? "13:00" : "1:00 PM");
     }
 }
 ```

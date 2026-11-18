@@ -88,6 +88,7 @@ dotnet run --project src/Winshell -- kill -i <id>
 `pwsh -NoProfile scripts/build-template.ps1` compiles a temporary copy of the template against the current source libraries, with the repository's build and style policy and warnings as errors. It does not run a shell. It requires Git, .NET and PowerShell 7.
 
 - The original template project keeps its package reference and version placeholder.
+- The copy imports `Winshell.props` from the source, as the package does, so the template builds with [the package's usings](configuration.md#the-packages-usings).
 - The full local check runs this command. CI runs it with the Shell suite's build, along with the solution's example and documentation sample projects and the reference generator's program entry point. All remain required through `ci`.
 - Validation against the packed library and live UI validation remain separate checks.
 
@@ -343,7 +344,7 @@ The docs are plain Markdown, read on GitHub or in an editor. `docs/agents/` is f
 
 - **A new reference page** goes into the list in `docs/reference/index.md`.
 - **Links between pages** are relative `.md` links, also to files outside `docs/`, such as `../GLOSSARY.md`. The `ci` job runs lychee offline over every Markdown file, with `--include-fragments`, and fails on a link to a file or a heading that isn't there.
-- **C# examples** in a `csharp` code block are checked by `DocsTests`: each one is text from a file the build compiles. Those files are `tests/Winshell.Shell.Tests/GuideSamples.cs`, which the test project builds, the template's `.cs` files in `templates/winshell`, which `scripts/build-template.ps1` builds.
+- **C# examples** in a `csharp` code block are checked by `DocsTests`: each one is text from a file the build compiles. Those files are `tests/Winshell.Shell.Tests/GuideSamples.cs`, which the test project builds, the template's `.cs` files in `templates/winshell`, which `scripts/build-template.ps1` builds, and the guide's widget library in `tests/Winshell.Package.Tests/MessageWidget`, which the `Package` tier builds against the packed package. The guide's project file for that library is the library's `.csproj`, and `DocsTests` checks that too.
 - **The reference** in `docs/reference/` has a page per namespace of the `Winshell` package (the public types of `Winshell.Shell`, `Winshell.Services` and `Winshell.Core`), `winshell.md` for `Winshell` and `winshell-<namespace>.md` for the others, starting with `# <namespace>` and an intro written by hand. `dotnet run scripts/generate-reference.cs` writes the rest, a `## Type` section for each public type with its members, and `DocsTests` fails when a page is not what it writes.
 - **Links to other sites** are checked by `links.yml`, on `main` and every Monday. That job isn't part of `check.ps1`.
 

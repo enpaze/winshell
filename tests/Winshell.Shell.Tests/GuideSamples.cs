@@ -1,11 +1,7 @@
-using Microsoft.UI.Reactor;
-using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using static Microsoft.UI.Reactor.Factories;
-using static Winshell.Elements;
 using Color = global::Windows.UI.Color;
 
 namespace Winshell.ShellTests;
@@ -175,31 +171,31 @@ public sealed class EndArea : Component
     ]);
 }
 
-public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
+public sealed class ClockWidget : Component<WidgetContext>
 {
-    public override Microsoft.UI.Reactor.Core.Element Render() =>
-        Microsoft.UI.Reactor.Factories.TextBlock((string)Props.Settings["text"]);
+    public override Element Render() =>
+        TextBlock((string)Props.Settings["text"]);
 }
 
-public sealed class BatteryLabel : Microsoft.UI.Reactor.Core.Component<WidgetContext>
+public sealed class BatteryLabel : Component<WidgetContext>
 {
-    public override Microsoft.UI.Reactor.Core.Element Render()
+    public override Element Render()
     {
         var battery = UseObservable(Props.Shell.Power.DisplayDevice);
         var charge = battery.IsPresent ? $"{battery.Percentage:P0}" : "";
-        return Microsoft.UI.Reactor.Factories.TextBlock(charge);
+        return TextBlock(charge);
     }
 }
 
-public sealed class ClockLabel : Microsoft.UI.Reactor.Core.Component
+public sealed class ClockLabel : Component
 {
     private readonly ShellPreferences _preferences = new();
 
-    public override Microsoft.UI.Reactor.Core.Element Render()
+    public override Element Render()
     {
         var preferences = UseObservable(_preferences);
         UseEffect(() => () => _preferences.Dispose(), false);
-        return Microsoft.UI.Reactor.Factories.TextBlock(preferences.Clock24 ? "13:00" : "1:00 PM");
+        return TextBlock(preferences.Clock24 ? "13:00" : "1:00 PM");
     }
 }
 
@@ -238,54 +234,3 @@ public sealed class DockPreferences(string name) : Preferences(name, Check)
     }
 }
 #pragma warning restore CsWinRT1028
-
-public sealed class Message : Component<WidgetContext>
-{
-    public override Element Render()
-    {
-        var popup = UseRef<PopupWindow?>(null);
-        UseEffect(() => () =>
-        {
-            popup.Current?.Dispose();
-            popup.Current = null;
-        }, false);
-
-        var text = TextOf(Props);
-        if (Props.Orientation == Orientation.Vertical)
-            throw new UnsupportedWidgetException("The message widget runs in a horizontal area.");
-
-        var line = text + " ·";
-        return TextBlock(line)
-            .Padding(8, 0)
-            .OnPointerPressed((_, _) => ShowPopup(popup, line))
-            .OnMount(ShowScreen);
-    }
-
-    private static string TextOf(WidgetContext context)
-    {
-        if (context.Settings.TryGetValue("text", out var value) && value is string text)
-            return text;
-        throw new UnsupportedWidgetException("text must be a string.");
-    }
-
-    private void ShowPopup(Ref<PopupWindow?> popup, string line)
-    {
-        popup.Current?.Dispose();
-        var body = new TextBlock { Text = line, Margin = new Thickness(12) };
-        popup.Current = new PopupWindow { Content = Props.StylePopup(body), Visible = true };
-    }
-
-    private static void ShowScreen(FrameworkElement label)
-    {
-        void SetTooltip()
-        {
-            var screen = ShellWindow.Of(label)?.Screen;
-            ToolTipService.SetToolTip(label, screen is null ? "primary screen" : screen.Name);
-        }
-
-        if (label.IsLoaded)
-            SetTooltip();
-        else
-            label.Loaded += (_, _) => SetTooltip();
-    }
-}

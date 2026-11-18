@@ -1,12 +1,8 @@
 using System.ComponentModel;
 using System.Globalization;
-using Microsoft.UI.Reactor;
-using Microsoft.UI.Reactor.Core;
-using Winshell;
 using Winshell.Apps;
 using Winshell.Input;
 using Winshell.Power;
-using static Microsoft.UI.Reactor.Factories;
 
 namespace FeatureMap;
 

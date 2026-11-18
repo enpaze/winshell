@@ -1,10 +1,6 @@
 using Microsoft.UI.Dispatching;
-using Microsoft.UI.Reactor;
-using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Winshell;
-using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 

@@ -1,6 +1,3 @@
-using FeatureMap;
-using Winshell;
-
 internal static class Program
 {
     [STAThread]

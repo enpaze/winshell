@@ -1,5 +1,3 @@
-using Winshell;
-
 namespace OmarchyStyle;
 
 public sealed class AppShell : ShellConfiguration
