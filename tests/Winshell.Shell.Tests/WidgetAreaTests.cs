@@ -574,6 +574,21 @@ public sealed class WidgetAreaTests
                 Assert.Equal((32d, 32d), (button.ActualWidth, button.ActualHeight));
             }
 
+            foreach (var style in new[] { new ShellStyle { FontSize = 12 }, new ShellStyle { Foreground = Microsoft.UI.Colors.Crimson } })
+            {
+                area.Set(area.Props with { Style = style });
+                foreach (var (requested, theme) in new[] { (ElementTheme.Light, "Light"), (ElementTheme.Dark, "Default") })
+                {
+                    host.RequestedTheme = requested;
+                    var critical = WindowsColor(theme, "SystemFillColorCritical");
+                    var foreground = style.Foreground ?? WindowsText(theme);
+                    await Wait.UntilAsync(
+                        () => ColorOf(text.Foreground) == critical && ColorOf(plain.Foreground) == foreground && text.FontSize == style.FontSize,
+                        "an unset alert to keep Windows' critical color under the area's style");
+                    Assert.Equal(critical, ColorOf(button.Foreground));
+                }
+            }
+
             area.Set(area.Props with { Style = TestStyles.Other() });
             foreach (var theme in new[] { ElementTheme.Dark, ElementTheme.Light })
             {
