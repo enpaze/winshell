@@ -459,7 +459,7 @@ public sealed class AudioServiceTests
         _graph.Remove(node);
         _loop.Advance(TimeSpan.FromMilliseconds(40));
 
-        Assert.DoesNotContain(device, audio.RecordingDevices);
+        Assert.Empty(audio.RecordingDevices);
         Assert.Equal(0, monitor.Peak);
         Assert.Equal(0, node.Running);
         Assert.Equal(reads, meter.Reads);
