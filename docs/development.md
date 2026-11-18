@@ -178,7 +178,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | `dotnet run scripts/render-logo.cs` | Renders `packaging/logo.svg` into the package's PNGs (the manifest sizes, their scale-125, scale-150, and scale-200 variants, and the unplated target sizes), the Store listing's PNG, and `packaging/winshell.ico`. Commit them after changing the logo. |
 | `pwsh scripts/pack.ps1` | Packs the `Winshell` library. See [Pack the library](#pack-the-library). |
 | `pwsh scripts/package.ps1` | Builds what a release ships, then checks it. See [Package a release](#package-a-release). |
-| `pwsh scripts/publish-release.ps1 -Tag v1.2.3 -PackageDirectory <packages> -Repository enpaze/winshell` | Normally called by CI: uploads the six required files to an existing draft, verifies GitHub's digests, then publishes it. Requires an authenticated `gh`. Refuses an incomplete published release, never replaces an existing asset, and leaves a failed upload/verification as a draft. Use only for an approved release. |
+| `pwsh scripts/publish-release.ps1 -Tag v1.2.3 -PackageDirectory <packages> -Repository enpaze/winshell` | Normally called by CI: uploads the seven required files to an existing draft, verifies GitHub's digests, then publishes it. Requires an authenticated `gh`. Refuses an incomplete published release, never replaces an existing asset, and leaves a failed upload/verification as a draft. Use only for an approved release. |
 | `pwsh scripts/install.ps1` | Installs the portable build for the current user from a GitHub release. See [The install scripts](#the-install-scripts). |
 | `pwsh scripts/uninstall.ps1` | Removes that install. See [The install scripts](#the-install-scripts). |
 | `pwsh .agents/skills/verify-winshell/scripts/drive.ps1 [-Id <id>[,<id>]] [-Kind <kind>] [-List] [-Check] [-Winshell <exe>]` | Checks the feature map, then drives each chosen feature in a real shell. See [See what you changed](#see-what-you-changed). |
@@ -234,6 +234,7 @@ It builds:
 
 - a self-contained, trimmed, ReadyToRun `winshell-<version>-win-x64.zip` and `-win-arm64.zip`, each with `packages/Winshell.<version>.nupkg`, the library `scripts/pack.ps1` makes for that version, next to `winshell.exe`
 - `SHA256SUMS.txt`
+- `version.json`, with `version`, the full commit, and a UTC `date`. A dev package's `version` also carries `+` and the first 7 digits of that commit
 - the winget manifests in `winget/<version>/`, and `winget-manifests.zip`
 - copies of `install.ps1` and `uninstall.ps1`
 - `winshell-<version>.msixbundle` for the Microsoft Store, which needs `makeappx.exe` from the Windows SDK
@@ -251,7 +252,8 @@ It checks:
 | Option | What it does |
 | --- | --- |
 | `-Publish`, `-Pack`, `-Verify` | Run one step. |
-| `-Version` | Overrides the release from `.release-please-manifest.json`. |
+| `-Version` | Overrides the release from `.release-please-manifest.json`. `x.y.z-dev.N` packages a dev build and skips winget and the Store package. |
+| `-Commit` | The 40-digit commit of a dev package. It has to be the checkout. |
 | `-Tag v1.2.3` | Stops unless the checkout is that release. |
 | `-Runtime` | Picks `win-x64`, `win-arm64` or both. |
 | `-Out` | Chooses the folder. |
@@ -262,6 +264,8 @@ It checks:
 `pwsh scripts/install.ps1` installs the portable build for the current user from a GitHub release into `%LOCALAPPDATA%\Programs\winshell\bin`, adds that folder to the user PATH, and creates a Start menu shortcut. See the [README](https://github.com/enpaze/winshell/blob/main/README.md#install-with-powershell).
 
 - `-Version x.y.z` picks a release, and `-AutoStart` registers sign-in. Under `irm | iex` those are `WINSHELL_VERSION` and `WINSHELL_AUTOSTART`.
+- `-Channel stable` or `-Channel dev` chooses the release channel. The default is `stable`. `dev` downloads the newest published `dev-<commit>` prerelease. Under `irm | iex` the channel is `WINSHELL_CHANNEL`.
+- After the files are in `bin`, a dev install runs the installed `winshell.exe update --channel dev` with no window, which writes `dev` to `update.toml`. A stable install deletes `update.toml`, so later updates stay on stable. Either way, the script then starts `winshellw.exe --no-duplicate` with no window.
 - A leftover `bin.old` folder is removed on a later install once nothing from that install is running.
 - If a Microsoft Store copy is also installed, it says so and still finishes, because that copy's WindowsApps alias usually comes first on PATH. If that query fails, it says the Store check was skipped and still finishes.
 - `irm | iex`, and running the file with the call operator, also add that folder to the current window's PATH and tell you to run `winshell`. `pwsh scripts/install.ps1` starts a process that exits, so it tells you to open a new terminal.
@@ -358,7 +362,7 @@ A running shell reads these. None is needed to build or test.
 
 | Variable | What it does |
 | --- | --- |
-| `WINSHELL_RELEASE_BASE` | Base URL `install.ps1` downloads from, instead of `https://github.com/enpaze/winshell/releases`. A trailing slash is ignored. Any other value must be `http://127.0.0.1` or `http://localhost`, with an optional port and path. Anything else stops the install. Installer tests point this at a local server. `uninstall.ps1` does not read it. |
+| `WINSHELL_RELEASE_BASE` | Base URL `install.ps1` downloads from, instead of `https://github.com/enpaze/winshell/releases`. A trailing slash is ignored. Any other value must be `http://127.0.0.1` or `http://localhost`, with an optional port and path. Anything else stops the install. For a dev install it reads the release list from `<base>/list`. Installer tests point this at a local server. `uninstall.ps1` does not read it. |
 | `WINSHELL_INSTALL_TEST` | `1` marks an installer test. Both scripts then refuse the real `%LOCALAPPDATA%` and `%APPDATA%`, and they require `WINSHELL_USER_PATH_FILE` and `WINSHELL_AUTOSTART_FILE`. `install.ps1` then does not ask Windows for a Microsoft Store copy. Any other value, including unset, is a normal install. |
 | `WINSHELL_USER_PATH_FILE` | File used instead of the user `Path` value under `HKCU\Environment`. The scripts read and write that file as UTF-8 without a BOM. A missing file reads as an empty path. While it is set, the scripts leave the session's PATH alone. Set only from installer tests. |
 | `WINSHELL_AUTOSTART_FILE` | File used instead of the `Winshell` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`. `install.ps1 -AutoStart` writes the sign-in command there as UTF-8 without a BOM, and `uninstall.ps1` deletes the file when that command starts this install. A missing file means sign-in is off. Set only from installer tests. |

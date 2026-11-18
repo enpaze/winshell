@@ -78,6 +78,7 @@ internal static class CliParser
         Share(DoctorCommand.Entry),
         Share(NewCommand.Entry),
         Share(UseCommand.Entry),
+        Share(UpdateCommand.Entry),
         Share(HelpEntry)
     ];
 
@@ -196,7 +197,9 @@ internal static class CliParser
 
             if (use.Missing)
             {
-                error ??= new ArgumentException($"{use.Token} needs a value.");
+                error ??= new ArgumentException(command?.Name == "update" && CommandWords.Channel.Is(use.Token)
+                    ? "winshell update --channel needs stable or dev."
+                    : $"{use.Token} needs a value.");
                 continue;
             }
 

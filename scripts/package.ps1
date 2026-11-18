@@ -8,6 +8,7 @@ param(
     [ValidateSet('win-x64', 'win-arm64')]
     [string[]] $Runtime = @('win-x64', 'win-arm64'),
     [string] $Version,
+    [string] $Commit,
     [string] $Tag,
     [string] $Repository = 'enpaze/winshell',
     [string] $IdentityName,
@@ -21,7 +22,15 @@ $root = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'lib/Release.ps1')
 if (-not $Publish -and -not $Pack -and -not $Verify) { $Publish = $true; $Pack = $true; $Verify = $true }
 if (-not $Version) { $Version = Get-ReleaseVersion }
-if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "Version must be major.minor.patch, not '$Version'" }
+$dev = $Version -match '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-dev\.(0|[1-9][0-9]*)$'
+if (-not $dev -and $Version -notmatch '^\d+\.\d+\.\d+$') { throw "Version must be major.minor.patch, not '$Version'" }
+if ($dev) {
+    if ($Commit -notmatch '^[0-9a-fA-F]{40}$') { throw "The release commit must be 40 hex digits, not '$Commit'." }
+    $head = (git -C $root rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0) { throw 'git could not read the commit of HEAD' }
+    $Commit = $Commit.ToLowerInvariant()
+    if ($head -cne $Commit) { throw "Checked out $head, expected $Commit." }
+}
 if ($Tag -and $Tag -cne "v$Version") { throw "The checkout is version $Version, not the release $Tag." }
 $product = Get-ProductName
 $testIdentity = Get-StoreTestIdentity
@@ -67,8 +76,9 @@ if ($Publish) {
     foreach ($rid in $Runtime) {
         $dir = Assert-Inside (Join-Path $publishRoot $rid) $publishRoot
         if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force }
-        dotnet publish (Join-Path $root 'src/Winshell/Winshell.csproj') --nologo -c Release -r $rid --self-contained `
-            -p:PublishReadyToRun=true "-p:Version=$Version" -o $dir
+        $stamp = @('-p:PublishReadyToRun=true', "-p:Version=$Version")
+        if ($dev) { $stamp += @("-p:SourceRevisionId=$Commit", '-p:ContinuousIntegrationBuild=true') }
+        dotnet publish (Join-Path $root 'src/Winshell/Winshell.csproj') --nologo -c Release -r $rid --self-contained @stamp -o $dir
         if ($LASTEXITCODE -ne 0) { throw "dotnet publish for $rid failed with $LASTEXITCODE" }
         Remove-ReleaseFile $dir
         $gui = [IO.File]::ReadAllBytes((Join-Path $dir 'winshell.exe'))
@@ -84,17 +94,30 @@ if ($Publish) {
 }
 
 if ($Pack) {
+    if ($dev) {
+        $commit = $Commit
+        $recordedVersion = "$Version+$($Commit.Substring(0, 7))"
+    } else {
+        $commit = (git -C $root rev-parse HEAD).Trim()
+        if ($LASTEXITCODE -ne 0) { throw 'git could not read the commit of HEAD' }
+        $recordedVersion = $Version
+    }
+    $versionFile = Join-Path $Out 'version.json'
+    Write-ReleaseVersionFile $versionFile $recordedVersion $commit ([datetimeoffset]::UtcNow)
     $sums = [ordered]@{}
     foreach ($rid in $Runtime) {
         $dir = Join-Path $publishRoot $rid
         if (-not (Test-Path -LiteralPath (Join-Path $dir 'winshell.exe'))) { throw "No winshell.exe in $dir. Run with -Publish first." }
+        Copy-Item -LiteralPath $versionFile -Destination (Join-Path $dir 'version.json') -Force
         $zip = Join-Path $Out (Get-ReleaseZipName $Version $rid)
         New-Zip $dir $zip $releaseDay
         $sums[(Split-Path -Leaf $zip)] = Get-Sha256 $zip
     }
+    $sums['version.json'] = Get-Sha256 $versionFile
     ($sums.GetEnumerator() | ForEach-Object { "$($_.Value)  $($_.Key)" }) -join "`n" |
         Set-Content -LiteralPath (Join-Path $Out 'SHA256SUMS.txt') -NoNewline
 
+    if (-not $dev) {
     $wingetDir = Assert-Inside $wingetDir $Out
     if (Test-Path -LiteralPath $wingetDir) { Remove-Item -LiteralPath $wingetDir -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $wingetDir | Out-Null
@@ -192,10 +215,13 @@ ManifestVersion: $schema
     Remove-Item -LiteralPath (Join-Path $Out 'msix-layout') -Recurse -Force
     & $makeappx bundle /o /bv (Get-PackageVersion) /d $packages /p (Join-Path $Out "winshell-$Version.msixbundle") | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "makeappx bundle failed with $LASTEXITCODE" }
+    }
 }
 
 if ($Verify) {
-    foreach ($asset in Get-ReleaseAssetName $Version $Runtime) {
+    $expectedVersion = if ($dev) { "$Version+$($Commit.Substring(0, 7))" } else { $Version }
+    $assets = if ($dev) { Get-DevReleaseAssetName $Version $Runtime } else { Get-ReleaseAssetName $Version $Runtime }
+    foreach ($asset in $assets) {
         if (-not (Test-Path -LiteralPath (Join-Path $Out $asset) -PathType Leaf)) { throw "No $asset in $Out" }
     }
     $listed = @{}
@@ -206,6 +232,10 @@ if ($Verify) {
     $machines = @{ 'win-x64' = 0x8664; 'win-arm64' = 0xAA64 }
     [xml] $signing = Get-Content -Raw -LiteralPath (Join-Path $root 'packaging/signpath/artifact-configuration.xml')
     $signedPaths = $signing.'artifact-configuration'.'zip-file'.'pe-file-set'.include.path
+    $versionFile = Join-Path $Out 'version.json'
+    if (-not $listed.ContainsKey('version.json') -or $listed['version.json'] -ne (Get-Sha256 $versionFile)) {
+        throw 'version.json does not match its line in SHA256SUMS.txt'
+    }
     $verifyRoot = Join-Path $Out 'verify'
     foreach ($rid in $Runtime) {
         $name = Get-ReleaseZipName $Version $rid
@@ -215,6 +245,8 @@ if ($Verify) {
         $dir = Assert-Inside (Join-Path $verifyRoot $rid) $Out
         if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force }
         [IO.Compression.ZipFile]::ExtractToDirectory($zip, $dir)
+        $recorded = Get-Content -Raw -LiteralPath (Join-Path $dir 'version.json') | ConvertFrom-Json
+        if ($recorded.version -cne $expectedVersion) { throw "$name records version $($recorded.version), not $expectedVersion" }
         Assert-WinshellPackage $dir $Version $name
         foreach ($binary in 'winshell.exe', 'hostfxr.dll', 'coreclr.dll', 'winshell.dll') {
             $path = Join-Path $dir $binary
@@ -255,6 +287,7 @@ if ($Verify) {
     }
     if (Test-Path -LiteralPath $verifyRoot) { Remove-Item -LiteralPath $verifyRoot -Recurse -Force }
 
+    if (-not $dev) {
     $installer = Get-Content -LiteralPath (Join-Path $wingetDir "$id.installer.yaml") -Raw
     foreach ($rid in $Runtime) {
         if ($installer -notmatch "(?m)^\s+InstallerSha256: $($listed[(Get-ReleaseZipName $Version $rid)].ToUpperInvariant())\r?$") {
@@ -313,5 +346,7 @@ public static extern IntPtr WinGetValidateManifest(string manifestPath, [Marshal
         Remove-Item -LiteralPath $dir -Recurse -Force
     }
     if (Test-Path -LiteralPath $verifyRoot) { Remove-Item -LiteralPath $verifyRoot -Recurse -Force }
-    Write-Output "Verified $($Runtime -join ' and ') $Version, its winget manifests and its Store package $(Get-PackageVersion)."
+    }
+    if ($dev) { Write-Output "Verified $($Runtime -join ' and ') $expectedVersion." }
+    else { Write-Output "Verified $($Runtime -join ' and ') $Version, its winget manifests and its Store package $(Get-PackageVersion)." }
 }

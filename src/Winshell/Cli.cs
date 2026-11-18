@@ -8,6 +8,19 @@ internal static class Cli
     public static async Task<int> RunAsync(string[] args)
     {
         WriteUtf8WhenRedirected();
+        if (args.Length == 2 && args[0] == ReleaseUpdate.ApplyArgument)
+        {
+            try
+            {
+                ReleaseUpdate.FinishPlan(args[1]);
+                return 0;
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                return 1;
+            }
+        }
+
         Invocation parsed;
         try
         {

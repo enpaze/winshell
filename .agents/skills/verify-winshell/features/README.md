@@ -98,6 +98,7 @@ A step is one of two objects. Each takes `within`, the seconds to retry it until
 - [winshell reload](./command.reload.md) rebuilds a project and replaces its running shell with a new process.
 - [winshell run](./command.run.md) builds a project and starts and supervises its shell.
 - [winshell use](./command.use.md) chooses the configuration `winshell run` starts, and switches to it.
+- [winshell update](./command.update.md) installs the newest build of the saved channel.
 - [Apps](./service.apps.md) lists the apps Start lists, and searches and launches them.
 - [Audio](./service.audio.md) reads and sets the playback and recording devices, sessions and volume.
 - [Bluetooth](./service.bluetooth.md) reads the adapter and its devices, and pairs and connects them.
