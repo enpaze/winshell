@@ -109,6 +109,27 @@ public sealed partial class InspectorTests : IDisposable
 
     [Fact]
     [Trait("Category", "Window")]
+    public async Task A_component_window_is_named_after_its_component()
+    {
+        var (tree, found) = await ShellFixture.On(async shell =>
+        {
+            using var panel = new PanelWindow<Named> { Width = 220, Height = 40, Visible = true };
+            await ShellFixture.LaidOut((FrameworkElement)panel.Content!);
+            return (await Inspector.Run(shell, "tree", []), await Inspector.Run(shell, "click", ["Named", "Named"]));
+        });
+
+        Assert.Equal("PanelWindow", OpenWindow(tree, nameof(Named)).GetProperty("kind").GetString());
+        Assert.Equal("Clicked Named", found);
+    }
+
+    private sealed class Named : Microsoft.UI.Reactor.Core.Component
+    {
+        public override Microsoft.UI.Reactor.Core.Element Render() =>
+            Microsoft.UI.Reactor.Factories.Button("Named", () => { }).AutomationName("Named");
+    }
+
+    [Fact]
+    [Trait("Category", "Window")]
     public async Task A_click_runs_the_buttons_handler_through_its_own_event()
     {
         var clicks = await ShellFixture.On(async shell =>

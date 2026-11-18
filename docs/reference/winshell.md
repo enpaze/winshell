@@ -71,6 +71,14 @@ Has the members of [ShellWindow](#shellwindow).
 | `Owner` | [FloatingWindow](#floatingwindow)? |
 | `Title` | string |
 
+## FloatingWindow of T
+
+Has the members of [FloatingWindow](#floatingwindow).
+
+| Member | Type |
+| --- | --- |
+| `FloatingWindow<T>()` | constructor |
+
 ## IEventLoop
 
 | Member | Type |
@@ -139,7 +147,7 @@ Has the members of [ObservableObject](#observableobject).
 | `Error` | 3 |
 | `Fatal` | 4 |
 
-## ObservableList
+## ObservableList of T
 
 | Member | Type |
 | --- | --- |
@@ -174,6 +182,14 @@ Has the members of [ShellWindow](#shellwindow).
 | `Focusable` | bool |
 | `Margins` | Thickness |
 | `ReservedSize` | double |
+
+## PanelWindow of T
+
+Has the members of [PanelWindow](#panelwindow).
+
+| Member | Type |
+| --- | --- |
+| `PanelWindow<T>()` | constructor |
 
 ## PixelImage
 
@@ -221,6 +237,14 @@ Has the members of [ShellWindow](#shellwindow).
 | `GrabFocus` | bool |
 | `Position` | [PopupPosition](#popupposition) |
 | `Dismissed` | Action |
+
+## PopupWindow of T
+
+Has the members of [PopupWindow](#popupwindow).
+
+| Member | Type |
+| --- | --- |
+| `PopupWindow<T>()` | constructor |
 
 ## Preferences
 
@@ -380,6 +404,7 @@ Has the members of [ObservableObject](#observableobject).
 | `Raise()` | void |
 | `StartSystemMove()` | void |
 | `StartSystemResize([Edges](#edges) edges)` | void |
+| `Toggle()` | void |
 
 ## Surface
 

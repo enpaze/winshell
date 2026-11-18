@@ -1,5 +1,4 @@
 using System.Globalization;
-using Microsoft.UI.Reactor.Hosting;
 
 Shell.Run(shell =>
 {
@@ -25,8 +24,8 @@ Shell.Run(shell =>
     var launcher = new Launcher { Hotkey = "Ctrl+Alt+Shift+F14" };
     var launched = new Launched(shell, launcher);
 
-    var floating = new FloatingWindow { Title = "Winshell features", Width = 460, Height = 760 };
-    var panel = new PanelWindow
+    var floating = new FloatingWindow<FeatureWindow> { Title = "Winshell features", Width = 460, Height = 760 };
+    var panel = new PanelWindow<PanelRow>
     {
         Anchors = Edges.Top | Edges.Left,
         Width = 240,
@@ -34,24 +33,18 @@ Shell.Run(shell =>
         ReservedSize = 0,
         AboveWindows = false
     };
-    var popup = new PopupWindow { Width = 240, Height = 32 };
-    panel.Content = Host(() => new Row(), Rows.Window("block.panel-window", panel));
-    popup.Content = Host(() => new Row(), Rows.Window("block.popup-window", popup));
+    var popup = new PopupWindow<PopupRow> { Width = 240, Height = 32 };
     void OpenPopup()
     {
         popup.Position = PopupPosition.At(floating.Origin);
         popup.Visible = true;
     }
 
-    floating.Content = Host(() => new FeatureWindow(),
-        new FeatureWindowProps(
-            [Rows.Launcher(launched), .. Rows.Services(shell, hotkey, idle, jumpList)],
-            Rows.Window("block.floating-window", floating), OpenPopup, launcher.Show));
+    Features.Panel = Rows.Window("block.panel-window", panel);
+    Features.Popup = Rows.Window("block.popup-window", popup);
+    Features.Main = new FeatureWindowProps(
+        [Rows.Launcher(launched), .. Rows.Services(shell, hotkey, idle, jumpList)],
+        Rows.Window("block.floating-window", floating), OpenPopup, launcher.Show);
     panel.Visible = true;
     floating.Visible = true;
 });
-
-static ReactorHostControl Host<TProps>(Func<Component> make, TProps props)
-{
-    return new ReactorHostControl { ComponentFactory = make, Props = props };
-}

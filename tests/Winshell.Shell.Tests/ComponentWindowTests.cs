@@ -63,6 +63,83 @@ public sealed class ComponentWindowTests
         Assert.Equal("after", text);
     }
 
+    [Theory]
+    [InlineData("panel")]
+    [InlineData("popup")]
+    [InlineData("floating")]
+    public async Task A_component_window_shows_its_component_on_a_surface(string kind)
+    {
+        var (text, background) = await ShellFixture.On(async shell =>
+        {
+            shell.Style = TestStyles.Other();
+            try
+            {
+                using var window = Shown<Greeting>(kind);
+                var host = (ReactorHostControl)window.Content!;
+                await ShellFixture.LaidOut(host);
+                return (ShownText(host), BarTests.BackgroundOf(host));
+            }
+            finally
+            {
+                shell.Style = null;
+            }
+        });
+
+        Assert.Equal("Hello", text);
+        Assert.Equal(TestStyles.Other().Background, background);
+    }
+
+    [Theory]
+    [InlineData("panel")]
+    [InlineData("popup")]
+    [InlineData("floating")]
+    public async Task Disposing_a_component_window_unmounts_its_component(string kind)
+    {
+        var (shown, hidden, disposed) = await ShellFixture.On(async _ =>
+        {
+            Tracked.Mounted = 0;
+            var window = Shown<Tracked>(kind);
+            await ShellFixture.LaidOut((FrameworkElement)window.Content!);
+            await Wait.UntilAsync(() => Tracked.Mounted == 1, "the component to mount");
+            var whileShown = Tracked.Mounted;
+            window.Visible = false;
+            var whileHidden = Tracked.Mounted;
+            window.Dispose();
+            return (whileShown, whileHidden, Tracked.Mounted);
+        });
+
+        Assert.Equal(1, shown);
+        Assert.Equal(1, hidden);
+        Assert.Equal(0, disposed);
+    }
+
+    [Fact]
+    public async Task Toggle_shows_a_hidden_window_and_hides_a_shown_one()
+    {
+        var states = await ShellFixture.On(_ =>
+        {
+            using var panel = new PanelWindow<Greeting> { Anchors = Edges.Top | Edges.Left, Width = 220, Height = 90 };
+            panel.Toggle();
+            var opened = (panel.Visible, panel.Host!.Place.IsVisible);
+            panel.Toggle();
+            var closed = (panel.Visible, panel.Host!.Place.IsVisible);
+            return (opened, closed);
+        });
+
+        Assert.Equal((true, true), states.opened);
+        Assert.Equal((false, false), states.closed);
+    }
+
+    private static ShellWindow Shown<T>(string kind) where T : Component, new()
+    {
+        return kind switch
+        {
+            "panel" => new PanelWindow<T> { Anchors = Edges.Top | Edges.Left, Width = 220, Height = 90, Visible = true },
+            "popup" => new PopupWindow<T> { Width = 220, Height = 90, Visible = true },
+            _ => new FloatingWindow<T> { Title = "Winshell test", Width = 320, Height = 200, Visible = true }
+        };
+    }
+
     private static PanelWindow Panel(FrameworkElement content)
     {
         return new PanelWindow
@@ -96,6 +173,21 @@ public sealed class ComponentWindowTests
         public override Element Render()
         {
             return TextBlock("Hello");
+        }
+    }
+
+    private sealed class Tracked : Component
+    {
+        public static int Mounted;
+
+        public override Element Render()
+        {
+            UseEffect(() =>
+            {
+                Mounted++;
+                return () => Mounted--;
+            }, false);
+            return TextBlock("tracked");
         }
     }
 

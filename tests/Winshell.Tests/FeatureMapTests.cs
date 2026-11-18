@@ -144,7 +144,8 @@ public sealed partial class FeatureMapTests
                 .Where(type => type is { IsClass: true, IsAbstract: false } &&
                                (type.IsSubclassOf(typeof(ShellWindow)) || type.IsSubclassOf(typeof(UIElement)) ||
                                 type.IsSubclassOf(typeof(ReactorComponent)) || compositions.Contains(type.Name)))
-                .Select(type => type.Name)
+                .Select(type => (type.IsGenericTypeDefinition ? type.BaseType! : type).Name)
+                .Distinct()
                 .Order(StringComparer.Ordinal)
         ];
     }

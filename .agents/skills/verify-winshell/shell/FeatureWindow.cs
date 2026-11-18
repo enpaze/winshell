@@ -5,22 +5,23 @@ namespace FeatureMap;
 
 public sealed record FeatureWindowProps(RowProps[] Services, RowProps Floating, Action OpenPopup, Action OpenLauncher);
 
-public sealed class FeatureWindow : Component<FeatureWindowProps>
+public sealed class FeatureWindow : Component
 {
     public override Element Render()
     {
+        var props = Features.Main;
         var clicks = UseRef(0);
         var (shown, setShown) = UseState(0);
         var (typed, setTyped) = UseState("");
-        Element[] rows = [.. Props.Services.Select(row => Component<Row, RowProps>(row).WithKey(row.Id))];
+        Element[] rows = [.. props.Services.Select(row => Component<Row, RowProps>(row).WithKey(row.Id))];
         return ScrollViewer(VStack(2,
         [
-            Component<Row, RowProps>(Props.Floating).WithKey(Props.Floating.Id),
+            Component<Row, RowProps>(props.Floating).WithKey(props.Floating.Id),
             HStack(8,
                 Button("Click", () => setShown(++clicks.Current)).AutomationId("features.click"),
                 TextBlock($"clicks: {shown}").AutomationId("features.clicks").VAlign(VerticalAlignment.Center),
-                Button("Popup", Props.OpenPopup).AutomationId("features.popup"),
-                Button("Launcher", Props.OpenLauncher).AutomationId("features.launcher")),
+                Button("Popup", props.OpenPopup).AutomationId("features.popup"),
+                Button("Launcher", props.OpenLauncher).AutomationId("features.launcher")),
             HStack(8,
                 TextBox(typed, setTyped, "Type here").AutomationId("features.text").AutomationName("Type here")
                     .Width(160),

@@ -225,6 +225,8 @@ internal static class Inspector
 
     private static string ContentName(UIElement content)
     {
+        if (ComponentHost.ShownBy(content) is { } shown)
+            return shown.Name;
         if (content is ReactorHostControl host)
         {
             var component = ReactorDiagnostics.GetHosts()

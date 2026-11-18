@@ -1,4 +1,3 @@
-using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -52,10 +51,15 @@ public static class GuideSamples
 
     public static PanelWindow AWidgetArea()
     {
-        var host = new ReactorHostControl { ComponentFactory = () => new EndArea() };
-        var panel = new PanelWindow { Height = 48, Content = host, Visible = true };
-        panel.Closed += host.Dispose;
+        var panel = new PanelWindow<EndArea> { Height = 48, Visible = true };
         return panel;
+    }
+
+    public static (PopupWindow Calendar, Input.Hotkey Hotkey) AComponentPopup(Shell shell)
+    {
+        var calendar = new PopupWindow<Calendar> { Position = PopupPosition.Top, Width = 320, Height = 240 };
+        var hotkey = shell.Hotkey("Win+Alt+C", calendar.Toggle);
+        return (calendar, hotkey);
     }
 
     public static (Bar Top, Bar Side) Bars()
@@ -87,9 +91,7 @@ public static class GuideSamples
 
     public static PanelWindow ASurface()
     {
-        var host = new ReactorHostControl { ComponentFactory = () => new Dock() };
-        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = host, Visible = true };
-        dock.Closed += host.Dispose;
+        var dock = new PanelWindow<Dock> { Anchors = Edges.Bottom, Height = 56, Visible = true };
         return dock;
     }
 
@@ -149,7 +151,12 @@ public static class GuideSamples
 public sealed class Dock : Component
 {
     public override Element Render() =>
-        Surface(WidgetArea("dock", ["start", "tasks"]), new Thickness(4));
+        WidgetArea("dock", ["start", "tasks"]).Padding(4);
+}
+
+public sealed class Calendar : Component
+{
+    public override Element Render() => TextBlock("Today");
 }
 
 public sealed class EndArea : Component

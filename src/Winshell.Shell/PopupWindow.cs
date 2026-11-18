@@ -1,6 +1,6 @@
 namespace Winshell;
 
-public sealed partial class PopupWindow : ShellWindow
+public partial class PopupWindow : ShellWindow
 {
     private readonly Shell _shell;
     private PopupPosition _position = PopupPosition.Center;
