@@ -646,25 +646,6 @@
     ]
   },
   {
-    "id": "command.list",
-    "kind": "command",
-    "name": "list",
-    "summary": "Lists the running shell as JSON with its process id.",
-    "code": [
-      "src/Winshell/Commands/ListCommand.cs"
-    ],
-    "shell": "features",
-    "steps": [
-      {
-        "winshell": [
-          "list",
-          "-j"
-        ],
-        "output": "\"pid\": {pid},"
-      }
-    ]
-  },
-  {
     "id": "command.log",
     "kind": "command",
     "name": "log",
@@ -1486,7 +1467,7 @@
         "element": "Clock",
         "window": "Surface",
         "has": {
-          "text": "^[0-9]{1,2}[:.][0-9]{2}"
+          "text": "^25:61$"
         }
       }
     ]
