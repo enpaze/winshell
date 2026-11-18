@@ -50,18 +50,29 @@ public sealed class ShellInstanceTests
     }
 
     [Fact]
-    public async Task The_folders_follow_the_shell_id_and_exist_once_read()
+    public async Task The_folders_follow_the_shell_name_and_exist_once_read()
     {
         var shell = await ShellFixture.Current();
+        var paths = shell.Paths;
 
-        Assert.Equal(Path.Combine(ShellLocations.Current.DataRoot, "by-shell", "winshell-tests", "a.txt"),
-            shell.DataPath("a.txt"));
-        Assert.Equal(Path.Combine(ShellLocations.Current.StateRoot, "by-shell", "winshell-tests", "a.txt"),
-            shell.StatePath("a.txt"));
-        Assert.Equal(Path.Combine(ShellLocations.Current.CacheRoot, "by-shell", "winshell-tests", "a.txt"),
-            shell.CachePath("a.txt"));
-        Assert.Equal(Path.Combine(Path.GetDirectoryName(Environment.ProcessPath)!, "a.txt"), shell.ConfigPath("a.txt"));
-        Assert.True(Directory.Exists(shell.DataDir));
+        Assert.Equal(Path.Combine(ShellLocations.Current.DataRoot, "by-shell", "winshell-tests"), paths.Data);
+        Assert.Equal(Path.Combine(ShellLocations.Current.StateRoot, "by-shell", "winshell-tests"), paths.State);
+        Assert.Equal(Path.Combine(ShellLocations.Current.CacheRoot, "by-shell", "winshell-tests"), paths.Cache);
+        Assert.True(Directory.Exists(paths.Data));
+        Assert.True(Directory.Exists(paths.State));
+        Assert.True(Directory.Exists(paths.Cache));
+    }
+
+    [Fact]
+    public async Task The_program_shells_and_logs_paths_are_where_winshell_looks()
+    {
+        var info = await Own();
+        var paths = (await ShellFixture.Current()).Paths;
+
+        Assert.Equal(Path.GetDirectoryName(Environment.ProcessPath), paths.Program);
+        Assert.Equal(ShellLocations.Current.ConfigRoot, paths.Shells);
+        Assert.Equal(info.Log, paths.Logs);
+        Assert.True(File.Exists(paths.Logs));
     }
 
     [Fact]

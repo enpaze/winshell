@@ -28,7 +28,8 @@ public sealed partial class Shell : IDisposable
         _identity = session.Identity;
         _instance = session.Instance;
         _arguments = session.Arguments;
-        LogPath = session.Instance.LogPath;
+        Paths = new ShellPaths(session.Identity, session.Instance.LogPath,
+            Path.GetDirectoryName(Environment.ProcessPath)!, ShellLocations.Current.ConfigRoot);
         Ipc = new ShellIpc(log);
         Platform = new ShellPlatform(loop, log);
         Notices = new ShellNotices(
@@ -63,7 +64,7 @@ public sealed partial class Shell : IDisposable
         {
             if (_preferencesFile is null)
             {
-                _preferencesFile = new PreferencesFile(Path.Combine(ConfigRoot, "preferences", ShellId + ".toml"), Loop, Log);
+                _preferencesFile = new PreferencesFile(Path.Combine(Paths.Shells, "preferences", ShellId + ".toml"), Loop, Log);
                 if (_startReturned)
                     _preferencesFile.StartReturned();
             }
@@ -90,17 +91,7 @@ public sealed partial class Shell : IDisposable
 
     public ShellIpc Ipc { get; }
 
-    public string ConfigDir => Path.GetDirectoryName(Environment.ProcessPath)!;
-
-    public string ConfigRoot => ShellLocations.Current.ConfigRoot;
-
-    public string LogPath { get; }
-
-    public string DataDir => Ensure(_identity.Data);
-
-    public string StateDir => Ensure(_identity.State);
-
-    public string CacheDir => Ensure(_identity.Cache);
+    public ShellPaths Paths { get; }
 
     public ObservableList<ScreenInfo> Screens => Platform.Screens;
 
@@ -120,26 +111,6 @@ public sealed partial class Shell : IDisposable
 
     public string SystemAccent => Platform.SystemAccent;
 
-    public string ConfigPath(string path)
-    {
-        return Path.Combine(ConfigDir, path);
-    }
-
-    public string DataPath(string path)
-    {
-        return Path.Combine(DataDir, path);
-    }
-
-    public string StatePath(string path)
-    {
-        return Path.Combine(StateDir, path);
-    }
-
-    public string CachePath(string path)
-    {
-        return Path.Combine(CacheDir, path);
-    }
-
     public void Open(string target)
     {
         _ = Task.Run(() =>
@@ -153,12 +124,6 @@ public sealed partial class Shell : IDisposable
                 Log.Warn("shell", $"Could not open {target}: {e.Message}");
             }
         });
-    }
-
-    private static string Ensure(string dir)
-    {
-        Directory.CreateDirectory(dir);
-        return dir;
     }
 
     public static void Run(Action<Shell> start)

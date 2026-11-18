@@ -203,6 +203,12 @@ internal static class ProbeShell
           {
               shell.Ipc.Handle("probe", "note", (string text) => { });
               shell.Ipc.Property("probe", "name", () => "probe");
+              shell.Ipc.Property("paths", "data", () => shell.Paths.Data);
+              shell.Ipc.Property("paths", "state", () => shell.Paths.State);
+              shell.Ipc.Property("paths", "cache", () => shell.Paths.Cache);
+              shell.Ipc.Property("paths", "logs", () => shell.Paths.Logs);
+              shell.Ipc.Property("paths", "program", () => shell.Paths.Program);
+              shell.Ipc.Property("paths", "shells", () => shell.Paths.Shells);
               var config = Environment.GetEnvironmentVariable("WINSHELL_CONFIG_DIR");
               // A test that puts {{CrashMarker}} there gets a shell that crashes as it starts, once.
               if (config is not null && File.Exists(Path.Combine(config, "{{CrashMarker}}")))
@@ -218,7 +224,7 @@ internal static class ProbeShell
                   shell.Loop.Post(() => new LateSection());
                   shell.Loop.Post(() =>
                   {
-                      var path = Path.Combine(shell.ConfigRoot, "preferences", shell.ShellId + ".toml");
+                      var path = Path.Combine(shell.Paths.Shells, "preferences", shell.ShellId + ".toml");
                       var report = Path.Combine(config, "preferences-report.txt");
                       // The test reads the report from another process, so it appears once and whole: written
                       // beside it, then moved to a name that does not exist yet, which no reader can hold open.

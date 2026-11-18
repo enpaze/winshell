@@ -160,7 +160,7 @@ internal static class ShellFixture
 
     public static string ReadLog(Shell shell)
     {
-        using var stream = SharedFile.OpenToRead(shell.LogPath);
+        using var stream = SharedFile.OpenToRead(shell.Paths.Logs);
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
     }

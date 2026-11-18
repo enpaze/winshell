@@ -732,9 +732,20 @@ What can't be used is logged under `preferences`, with its line, and the values 
 
 `winshell doctor` checks the file of the configuration it checks for TOML errors, and names the line. It finds the file by the shell name the project has without a `ShellName` property, as [The program](#the-program) describes. For a project that sets one, it checks that default file, not the one the shell reads.
 
-### Data, state and cache
+### Paths
 
-`shell.DataPath`, `shell.StatePath` and `shell.CachePath` are per shell under `%LOCALAPPDATA%\winshell`. State does not survive a reload unless the configuration writes it itself. Every window is replaced.
+`shell.Paths` says where the shell's files are:
+
+| Property | Where |
+| --- | --- |
+| `Data` | `%LOCALAPPDATA%\winshell\data\by-shell\<shell name>`, or the `ShellDataDir` folder |
+| `State` | `%LOCALAPPDATA%\winshell\state\by-shell\<shell name>`, or the `ShellStateDir` folder |
+| `Cache` | `%LOCALAPPDATA%\winshell\cache\by-shell\<shell name>`, or the `ShellCacheDir` folder |
+| `Logs` | This instance's log file, `%LOCALAPPDATA%\winshell\run\<instance id>\log.txt`, which `winshell log` prints |
+| `Program` | The folder the program runs from, such as `bin\shell` in the project folder |
+| `Shells` | The folder of shell projects and preferences files, `%APPDATA%\winshell` or `WINSHELL_CONFIG_DIR` |
+
+Reading `Data`, `State` or `Cache` creates that folder. The shell works out every path once, when it starts, so they stay put while it runs. Changing `WINSHELL_CONFIG_DIR` or `WINSHELL_LOCAL_DIR` later moves none of them, and the preferences file stays in the `Shells` folder the shell started with. [The program](#the-program) shows the properties that move them. State does not survive a reload unless the shell writes it itself. Every window is replaced.
 
 ## IPC
 
