@@ -24,7 +24,7 @@ function Test-Changed {
     param([string] $Pattern)
     $unknown -or @($nonProse -match $Pattern).Count -gt 0
 }
-$noShard = '^scripts/(?!lib/|build-template\.ps1$|generate-reference\.cs$|reference-pages\.cs$|render-logo\.cs$|install\.ps1$)|^tests/Scripts/',
+$noShard = '^scripts/(?!lib/|build-template\.ps1$|features\.ps1$|generate-reference\.cs$|reference-pages\.cs$|render-logo\.cs$|install\.ps1$)|^tests/Scripts/',
     '^\.github/workflows/(?!ci\.yml$)|^\.github/dependabot\.yml$',
     '^packaging/(?!winshell\.ico$|msix/Assets/)' -join '|'
 $checks = [ordered]@{

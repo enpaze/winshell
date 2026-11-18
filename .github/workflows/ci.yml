@@ -135,6 +135,38 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  features:
+    name: features
+    needs: changes
+    if: ${{ !cancelled() && github.event.pull_request.draft != true && needs.changes.outputs.code != 'false' }}
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/prepare # zizmor: ignore[self-repository]
+      - name: Drive every feature in the feature map
+        shell: pwsh
+        run: |
+          $evidence = Join-Path $env:RUNNER_TEMP 'features'
+          New-Item -ItemType Directory -Force -Path $evidence | Out-Null
+          $env:TEMP = $evidence
+          $env:TMP = $evidence
+          ./scripts/features.ps1 -Keep | Tee-Object -FilePath (Join-Path $evidence 'output.txt')
+          exit $LASTEXITCODE
+      - name: Keep the feature evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: features
+          path: |
+            ${{ runner.temp }}/features/output.txt
+            ${{ runner.temp }}/features/winshell-features-*/scratch/
+            ${{ runner.temp }}/features/winshell-features-*/local/run/
+          retention-days: 7
+          if-no-files-found: ignore
+
   comments:
     name: comments
     if: ${{ github.event.pull_request.draft != true }}
@@ -151,7 +183,7 @@ jobs:
 
   ci:
     name: ci
-    needs: [quality, tests, installer, comments]
+    needs: [quality, tests, installer, comments, features]
     if: ${{ always() && github.event.pull_request.draft != true }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -162,11 +194,13 @@ jobs:
           TEST_RESULT: ${{ needs.tests.result }}
           INSTALLER_RESULT: ${{ needs.installer.result }}
           COMMENTS_RESULT: ${{ needs.comments.result }}
+          FEATURES_RESULT: ${{ needs.features.result }}
         run: |
           test "$QUALITY_RESULT" = success
           test "$TEST_RESULT" = success || test "$TEST_RESULT" = skipped
           test "$INSTALLER_RESULT" = success || test "$INSTALLER_RESULT" = skipped
           test "$COMMENTS_RESULT" = success
+          test "$FEATURES_RESULT" = success || test "$FEATURES_RESULT" = skipped
 
   actionlint:
     name: actionlint
