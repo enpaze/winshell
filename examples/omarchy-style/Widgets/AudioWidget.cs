@@ -18,6 +18,7 @@ public sealed class AudioWidget : Component<WidgetContext>
         return Button(device is null ? "" : Glyphs.Audio(device), () => Props.Shell.Open("ms-settings:sound"))
             .ToolTip(tip)
             .AutomationName(tip)
+            .AutomationId("audio")
             .IsVisible(device is not null)
             .HAlign(HorizontalAlignment.Left);
     }

@@ -11,7 +11,7 @@ public sealed class ScreenWidget : Component<WidgetContext>
     public override Element Render()
     {
         if (Props.Window is null)
-            return TextBlock("").IsVisible(false);
+            return TextBlock("").IsVisible(false).AutomationId("screen");
         return Component<Glyph, GlyphProps>(new(Props.Window, Props));
     }
 
@@ -29,6 +29,7 @@ public sealed class ScreenWidget : Component<WidgetContext>
                     () => Props.Context.Shell.Open("ms-settings:display"))
                 .ToolTip(tip)
                 .AutomationName(tip)
+                .AutomationId("screen")
                 .IsVisible(screen is not null)
                 .HAlign(HorizontalAlignment.Left);
         }

@@ -14,7 +14,7 @@ public sealed class TrayWidget : Component<WidgetContext>
     public override Element Render()
     {
         if (Props.Window is null)
-            return TextBlock("").IsVisible(false);
+            return TextBlock("").IsVisible(false).AutomationId("tray");
         return Component<Icons, IconsProps>(new(Props.Window, Props));
     }
 
@@ -98,7 +98,8 @@ public sealed class TrayWidget : Component<WidgetContext>
                 });
             var pinned = BarLayout.Along(Props.Context.Orientation, 0, pinnedIcons).WithKey("pinned");
             var bar = BarLayout.Along(Props.Context.Orientation, 0, overflow, pinned)
-                .IsVisible(shown.Count > 0);
+                .IsVisible(shown.Count > 0)
+                .AutomationId("tray");
             return vertical ? bar.HAlign(HorizontalAlignment.Center) : bar.HAlign(HorizontalAlignment.Left);
         }
 

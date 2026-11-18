@@ -50,6 +50,7 @@ public sealed class ClockWidget : Component<WidgetContext>
         _ = tick;
         var block = TextBlock(text)
             .ToolTip(tip)
+            .AutomationId("clock")
             .Set(label => label.TextAlignment = TextAlignment.Center);
         return vertical
             ? block.Padding(0).HAlign(HorizontalAlignment.Center)
