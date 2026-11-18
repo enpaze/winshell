@@ -69,12 +69,17 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
     }
 
-    [Fact(Timeout = PatienceMs)]
-    public void A_shell_whose_only_file_is_a_top_level_Program_builds()
+    [Theory(Timeout = PatienceMs)]
+    [InlineData("MyShell")]
+    [InlineData("")]
+    public void A_shell_whose_only_file_is_a_top_level_Program_builds(string rootNamespace)
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         using var folder = new TempFolder();
         var projectFile = CopyStarter(folder.Path);
+        var document = XDocument.Load(projectFile);
+        document.Descendants("RootNamespace").Single().Value = rootNamespace;
+        document.Save(projectFile);
         foreach (var source in Directory.GetFiles(folder.Path, "*.cs"))
             File.Delete(source);
         File.WriteAllText(Path.Combine(folder.Path, "Program.cs"), """
