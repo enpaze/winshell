@@ -7,7 +7,7 @@ public sealed class WindowsWidget : Widget
     public override Element Render()
     {
         return TextBlock(Glyphs.Windows)
-            .Width(Style?.SlotSize ?? 32)
+            .Width(Style.SlotSize)
             .AutomationId("windows")
             .Set(text => text.TextAlignment = TextAlignment.Center);
     }

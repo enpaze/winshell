@@ -175,8 +175,7 @@ public sealed class AlertLabel : Widget
 
     private void Alert(TextBlock label)
     {
-        if (Style is { } style)
-            label.Foreground = new SolidColorBrush(style.Alert);
+        label.Foreground = new SolidColorBrush(Style.AlertIn(label));
     }
 }
 

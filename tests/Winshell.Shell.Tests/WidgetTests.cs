@@ -270,7 +270,7 @@ public sealed class WidgetTests
         ShellWindow? Window,
         IReadOnlyDictionary<string, object> Settings,
         Orientation Orientation,
-        ShellStyle? Style);
+        ShellStyle Style);
 
     private sealed class PlacementWidget : Widget
     {

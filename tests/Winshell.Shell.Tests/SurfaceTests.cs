@@ -40,9 +40,9 @@ public sealed class SurfaceTests
                 Assert.Equal(0, unloaded);
 
                 own.Set(own.Props with { Style = null });
-                shell.Style = null;
+                shell.Style = new();
                 await Wait.UntilAsync(() => BarTests.BackgroundOf(followsHost) == light && BarTests.BackgroundOf(ownHost) == light,
-                    "both surfaces to follow the shell back to the built-in style");
+                    "both surfaces to follow the shell back to the default style");
 
                 Assert.Equal(light, BarTests.BackgroundOf(ownHost));
                 var panel = (StackPanel)window.Content;
@@ -50,11 +50,31 @@ public sealed class SurfaceTests
                 var dark = WidgetAreaTests.WindowsColor("Default", "SolidBackgroundFillColorBase");
                 await Wait.UntilAsync(
                     () => BarTests.BackgroundOf(followsHost) == dark && BarTests.BackgroundOf(ownHost) == dark,
-                    "both surfaces to follow a theme switch after returning to the built-in style");
+                    "both surfaces to follow a theme switch after returning to the default style");
             }
             finally
             {
-                shell.Style = null;
+                shell.Style = new();
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task A_surface_whose_style_sets_only_the_font_size_paints_windows_background_in_light_and_dark()
+    {
+        await ShellFixture.On(async _ =>
+        {
+            using var surface = new Mounted<Surface, SurfaceProps>(new SurfaceProps { Style = new ShellStyle { FontSize = 12 } });
+            var host = surface.Host;
+            using var window = new PanelWindow { Width = 100, Height = 40, Content = host, Visible = true };
+            await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
+            foreach (var (requested, theme) in new[] { (ElementTheme.Light, "Light"), (ElementTheme.Dark, "Default") })
+            {
+                host.RequestedTheme = requested;
+                var windows = WidgetAreaTests.WindowsColor(theme, "SolidBackgroundFillColorBase");
+                await Wait.UntilAsync(() => BarTests.BackgroundOf(host) == windows, "the surface to paint Windows' background");
             }
 
             return true;

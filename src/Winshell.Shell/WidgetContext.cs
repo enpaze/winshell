@@ -79,7 +79,7 @@ public sealed record WidgetContext
 
     internal string Widget { get; init; }
 
-    public ShellStyle? Style => _popups.Style;
+    public ShellStyle Style => _popups.Style;
 
     public FrameworkElement StylePopup(UIElement content)
     {
@@ -103,7 +103,7 @@ public sealed record WidgetContext
 
         public bool Stopped { get; private set; }
 
-        public ShellStyle? Style => _area.Style();
+        public ShellStyle Style => _area.Style();
 
         public FrameworkElement Wrap(UIElement content)
         {
@@ -151,7 +151,7 @@ public sealed record WidgetContext
 
 internal sealed class AreaPopupStyle
 {
-    public Func<ShellStyle?> Style { get; set; } = () => null;
+    public required Func<ShellStyle> Style { get; init; }
 
     public event Action? StyleChanged;
 

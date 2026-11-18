@@ -21,7 +21,6 @@ public sealed class NetworkWidget : Widget
             : portal ? name + ": sign in to the network"
             : restricted ? name + ": no internet"
             : name;
-        var alert = restricted && Style is { } style ? style.Alert : (Windows.UI.Color?)null;
         return Button(Glyphs.Network(device?.Type ?? DeviceType.None, profile?.SignalStrength ?? 0, restricted),
                 () => Shell.Open("ms-settings:network-status"))
             .ToolTip(tip)
@@ -29,8 +28,8 @@ public sealed class NetworkWidget : Widget
             .AutomationId("network")
             .Set(control =>
             {
-                if (alert is { } color)
-                    control.Foreground = new SolidColorBrush(color);
+                if (restricted)
+                    control.Foreground = new SolidColorBrush(Style.AlertIn(control));
                 else
                     control.ClearValue(Control.ForegroundProperty);
             })

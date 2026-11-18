@@ -283,7 +283,7 @@ Has the members of [ObservableObject](#observableobject).
 | `ShellId` | string, read-only |
 | `Startup` | [StartupService](winshell-session.md#startupservice), read-only |
 | `StateDir` | string, read-only |
-| `Style` | [ShellStyle](#shellstyle)? |
+| `Style` | [ShellStyle](#shellstyle) |
 | `SystemAccent` | string, read-only |
 | `SystemTray` | [SystemTray](winshell-tray.md#systemtray), read-only |
 | `Version` | string, static, read-only |
@@ -333,13 +333,14 @@ Has the members of [ObservableObject](#observableobject).
 | Member | Type |
 | --- | --- |
 | `ShellStyle()` | constructor |
-| `Alert` | Color, init |
-| `Background` | Color, init |
+| `Alert` | Color?, init |
+| `Background` | Color?, init |
 | `FontFamily` | FontFamily, init |
 | `FontSize` | double, init |
-| `Foreground` | Color, init |
+| `Foreground` | Color?, init |
 | `Padding` | double?, init |
 | `SlotSize` | double, init |
+| `AlertIn(FrameworkElement element)` | Color |
 
 ## ShellWindow
 
@@ -416,7 +417,7 @@ A WinUI Component. The members here are the ones Winshell adds.
 | `Orientation` | Orientation, protected, read-only |
 | `Settings` | IReadOnlyDictionary of string, object, protected, read-only |
 | `Shell` | [Shell](#shell), protected, read-only |
-| `Style` | [ShellStyle](#shellstyle)?, protected, read-only |
+| `Style` | [ShellStyle](#shellstyle), protected, read-only |
 | `Window` | [ShellWindow](#shellwindow)?, protected, read-only |
 | `Setting<T>(string key, T? fallback)` | T?, protected |
 | `StylePopup(UIElement content)` | FrameworkElement, protected |
@@ -449,7 +450,7 @@ A WinUI Component. The members here are the ones Winshell adds.
 | `Orientation` | Orientation, read-only |
 | `Settings` | IReadOnlyDictionary of string, object, read-only |
 | `Shell` | [Shell](#shell), read-only |
-| `Style` | [ShellStyle](#shellstyle)?, read-only |
+| `Style` | [ShellStyle](#shellstyle), read-only |
 | `Window` | [ShellWindow](#shellwindow)?, read-only |
 | `StylePopup(UIElement content)` | FrameworkElement |
 

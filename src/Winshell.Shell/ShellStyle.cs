@@ -10,11 +10,11 @@ namespace Winshell;
 
 public sealed record ShellStyle
 {
-    public required Color Background { get; init; }
+    public Color? Background { get; init; }
 
-    public required Color Foreground { get; init; }
+    public Color? Foreground { get; init; }
 
-    public required Color Alert { get; init; }
+    public Color? Alert { get; init; }
 
     public FontFamily FontFamily { get; init; } = new("Segoe UI Variable Text,Segoe UI");
 
@@ -24,26 +24,28 @@ public sealed record ShellStyle
 
     public double? Padding { get; init; } = 4;
 
-    internal bool ThemeColors { get; init; }
-
-    internal static ShellStyle BuiltIn { get; } = new()
+    public Color AlertIn(FrameworkElement element)
     {
-        Background = default,
-        Foreground = default,
-        Alert = default,
-        ThemeColors = true
-    };
+        ArgumentNullException.ThrowIfNull(element);
+        if (Shell.Current.Platform.IsHighContrast)
+            return WindowsColor("HighContrast", "SystemColorHighlightColor");
+        return Alert ?? WindowsColor(element.ActualTheme == ElementTheme.Light ? "Light" : "Default", "SystemFillColorCritical");
+    }
+
+    private static Color WindowsColor(string theme, string key)
+    {
+        var controls = Application.Current.Resources.MergedDictionaries.OfType<XamlControlsResources>().Single();
+        return (Color)((ResourceDictionary)controls.ThemeDictionaries[theme])[key];
+    }
 
     internal string ToXaml()
     {
-        var colors = ThemeColors
-            ? BuiltInColors
-            : string.Create(CultureInfo.InvariantCulture,
-                $"""
-                       <SolidColorBrush x:Key="ShellBackgroundBrush" Color="{Hex(Background)}" />
-                       <SolidColorBrush x:Key="ShellForegroundBrush" Color="{Hex(Foreground)}" />
-                       <SolidColorBrush x:Key="ShellAlertBrush" Color="{Hex(Alert)}" />
-                 """);
+        var colors = string.Create(CultureInfo.InvariantCulture,
+            $"""
+                   <SolidColorBrush x:Key="ShellBackgroundBrush" Color="{Value(Background, "SolidBackgroundFillColorBase")}" />
+                   <SolidColorBrush x:Key="ShellForegroundBrush" Color="{Value(Foreground, "TextFillColorPrimary")}" />
+                   <SolidColorBrush x:Key="ShellAlertBrush" Color="{Value(Alert, "SystemFillColorCritical")}" />
+             """);
         var padding = Padding is { } space
             ? string.Create(CultureInfo.InvariantCulture, $"""<x:Double x:Key="ShellPadding">{Number(space)}</x:Double>""")
             : "";
@@ -57,8 +59,9 @@ public sealed record ShellStyle
         return Page(Themes(colors), metrics);
     }
 
-    private static string Hex(Color color) => string.Create(CultureInfo.InvariantCulture,
-        $"#{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}");
+    private static string Value(Color? color, string windows) => color is { } set
+        ? string.Create(CultureInfo.InvariantCulture, $"#{set.A:X2}{set.R:X2}{set.G:X2}{set.B:X2}")
+        : $"{{ThemeResource {windows}}}";
 
     private static string Number(double value) => value.ToString(CultureInfo.InvariantCulture);
 
@@ -101,12 +104,6 @@ public sealed record ShellStyle
           </Style>
         """;
 
-    private const string BuiltInColors = """
-              <SolidColorBrush x:Key="ShellBackgroundBrush" Color="{ThemeResource SolidBackgroundFillColorBase}" />
-              <SolidColorBrush x:Key="ShellForegroundBrush" Color="{ThemeResource TextFillColorPrimary}" />
-              <SolidColorBrush x:Key="ShellAlertBrush" Color="{ThemeResource SystemFillColorCritical}" />
-        """;
-
     private static string Themes(string colors) =>
         $"""
             <ResourceDictionary x:Key="Default">
@@ -135,24 +132,25 @@ public sealed partial class Shell
 {
     private readonly ResourceDictionary _toolTipStyle = [];
 
-    public ShellStyle? Style
+    public ShellStyle Style
     {
         get;
         set
         {
+            ArgumentNullException.ThrowIfNull(value);
             var style = LoadStyle(value);
             field = value;
             StyleToolTips(style);
             StyleChanged?.Invoke();
         }
-    }
+    } = new();
 
     public event Action? StyleChanged;
 
     private void StartToolTipStyle()
     {
         Application.Current.Resources.MergedDictionaries.Add(_toolTipStyle);
-        StyleToolTips(LoadStyle(null));
+        StyleToolTips(LoadStyle(Style));
     }
 
     private void StyleToolTips(ResourceDictionary style)
@@ -162,6 +160,6 @@ public sealed partial class Shell
             _toolTipStyle[typeof(ToolTip)] = toolTip;
     }
 
-    internal static ResourceDictionary LoadStyle(ShellStyle? style) =>
-        (ResourceDictionary)XamlReader.Load((style ?? ShellStyle.BuiltIn).ToXaml());
+    internal static ResourceDictionary LoadStyle(ShellStyle style) =>
+        (ResourceDictionary)XamlReader.Load(style.ToXaml());
 }

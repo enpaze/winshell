@@ -297,7 +297,7 @@ public sealed class BarTests
             }
             finally
             {
-                shell.Style = null;
+                shell.Style = new();
                 shell.Platform.Screens.Remove(screen);
             }
 
@@ -349,7 +349,7 @@ public sealed class BarTests
             }
             finally
             {
-                shell.Style = null;
+                shell.Style = new();
                 shell.Platform.Screens.Remove(screen);
                 CountingWidget.Live = null;
             }

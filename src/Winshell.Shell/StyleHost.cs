@@ -7,7 +7,7 @@ internal static class StyleHost
 {
     private sealed class Mark
     {
-        public ShellStyle? Style { get; set; }
+        public required ShellStyle Style { get; set; }
 
         public ResourceDictionary? Dictionary { get; set; }
     }

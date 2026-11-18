@@ -364,7 +364,7 @@ A [widget area](reference/winshell.md#widgetarea) is a component. A window mount
 A widget derives from [Widget](reference/winshell.md#widget), a component whose props are a `WidgetContext`. `Render` reads them without `Props`:
 
 - `Shell` is the running shell, and `Settings` the placement's settings.
-- `Orientation` is the area's, and `Style` the style in effect for it, or null when the shell sets none.
+- `Orientation` is the area's, and `Style` the style in effect for it, never null.
 - `Window` is the shell window the area is in, and null until it is in one.
 - `Setting(key, fallback)` reads one setting the way a [preferences](#preferences) key of the fallback's type is read: the fallback when the placement has no such key, and an `UnsupportedWidgetException` that names the key and the type it must be when the value does not convert. `Setting("icons", false)` takes `true` or `false`, or a number, which is true unless it is zero or `nan`. Any other value is refused with `icons must be true or false.`
 - `UseNow(every)` renders the widget again every `every` and returns the local time.
@@ -463,7 +463,7 @@ Saving applies changes live. A widget whose name stays is rendered again with th
 
 ## Style
 
-The style is how every widget area, surface and styled popup looks: its colors, font and slot size. It is a [ShellStyle](reference/winshell.md#shellstyle). With none set, the built-in style follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` to give the whole shell another look. `Background`, `Foreground` and `Alert` are `Windows.UI.Color` values:
+The style is how every widget area, surface and styled popup looks: its colors, font and slot size. It is a [ShellStyle](reference/winshell.md#shellstyle). `shell.Style` starts as `new ShellStyle()`, which follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` to give the whole shell another look. Set only the values you change: `Background`, `Foreground` and `Alert` are `Windows.UI.Color?` values, and each one left null follows Windows on its own, so `new ShellStyle { FontSize = 12 }` keeps Windows' colors:
 
 ```csharp
         shell.Style = new ShellStyle
@@ -478,11 +478,11 @@ The style is how every widget area, surface and styled popup looks: its colors, 
         };
 ```
 
-A new value reaches what is already on screen, and `null` returns to the built-in style. A bar's, an area's or a surface's own `Style` wins over the shell's, except for tooltips, and `null` there follows the shell. A style's colors are the same in light and in dark. A contrast theme wins over them: the background, foreground and alert color become Windows' window, window text and highlight colors.
+A new value reaches what is already on screen, and `new ShellStyle()` returns to Windows' look. `shell.Style` is never null. A bar's, an area's or a surface's own `Style` wins over the shell's, except for tooltips, and `null` there follows the shell. A color the style sets is the same in light and in dark. A contrast theme wins over every color: the background, foreground and alert color become Windows' window, window text and highlight colors.
 
 Winshell writes these resources from the style. A bar and a popup read them with `{ThemeResource}`:
 
-| Key | Style value | What it is | Built-in |
+| Key | Style value | What it is | Default |
 | --- | --- | --- | --- |
 | `ShellBackgroundBrush` | `Background` | Behind a surface, such as a bar's, and a popup | Windows' solid background |
 | `ShellForegroundBrush` | `Foreground` | Text and glyphs | Windows' primary text color |
@@ -499,11 +499,10 @@ It also builds the implicit styles, with no `x:Key`, for the plain controls a wi
 - `FontIcon`: Segoe Fluent Icons at 16. Its color comes from what holds it, so a button's pressed and disabled colors reach the glyph.
 - `ToolTip`: the style's background, foreground and font. A tooltip opens in a popup of its own, outside the area, and WinUI looks up its style only in the app's resources, so Winshell puts the `ToolTip` entry of `shell.Style` there. It styles every tooltip in the shell, in your own windows too, and an area's own `Style` does not change it. A `ToolTip` style you put in `Application.Current.Resources` yourself wins over it.
 
-A widget reads the alert color from the style. With none set, `Style` is null and `ShellAlertBrush` follows Windows:
+`Style` is the style in effect for the widget's area, never null. A widget reads the alert color with `AlertIn`, which gives the style's `Alert`, Windows' critical color in the element's light or dark theme when `Alert` is null, and Windows' highlight color in a contrast theme:
 
 ```csharp
-        if (Style is { } style)
-            label.Foreground = new SolidColorBrush(style.Alert);
+        label.Foreground = new SolidColorBrush(Style.AlertIn(label));
 ```
 
 ## Write a widget

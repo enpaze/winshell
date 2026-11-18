@@ -128,6 +128,7 @@ public sealed class WidgetAreaTests
             Assert.All(inputs, context =>
             {
                 Assert.Same(shell, context.Shell);
+                Assert.Same(shell.Style, context.Style);
                 Assert.Equal(orientation, context.Orientation);
             });
             Assert.Same(first, inputs[0].Settings);
@@ -487,10 +488,10 @@ public sealed class WidgetAreaTests
                 Assert.Equal(other, shell.Style);
                 Assert.Equal((50d, 50d), (button.ActualWidth, button.ActualHeight));
 
-                shell.Style = null;
+                shell.Style = new();
                 await Wait.UntilAsync(
                     () => text.FontFamily.Source == "Segoe UI Variable Text,Segoe UI",
-                    "the area to return to the built-in style");
+                    "the area to return to the default style");
                 shown = AreaShowing(text);
                 Assert.Equal("keep", shown.Resources["author"]);
                 Assert.Equal(50.0, shown.Resources["ShellSlotSize"]);
@@ -498,7 +499,7 @@ public sealed class WidgetAreaTests
             }
             finally
             {
-                shell.Style = null;
+                shell.Style = new();
             }
 
             return true;
@@ -506,17 +507,98 @@ public sealed class WidgetAreaTests
     }
 
     [Fact]
-    public async Task A_contrast_theme_paints_with_its_own_colors_for_a_custom_style_and_the_built_in_one()
+    public async Task A_contrast_theme_paints_with_its_own_colors_for_a_custom_style_and_the_default_one()
     {
         await ShellFixture.On(_ =>
         {
             var other = TestStyles.Other();
-            foreach (var style in new[] { other, null })
+            foreach (var style in new[] { other, new ShellStyle() })
             {
                 var contrast = (ResourceDictionary)Shell.LoadStyle(style).ThemeDictionaries["HighContrast"];
                 Assert.NotEqual(other.Background, ColorOf((Brush)contrast["ShellBackgroundBrush"]));
                 Assert.NotEqual(other.Foreground, ColorOf((Brush)contrast["ShellForegroundBrush"]));
                 Assert.NotEqual(other.Alert, ColorOf((Brush)contrast["ShellAlertBrush"]));
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task A_style_that_sets_only_the_font_size_takes_windows_system_colors_in_a_contrast_theme()
+    {
+        await ShellFixture.On(_ =>
+        {
+            var style = Shell.LoadStyle(new ShellStyle { FontSize = 12 });
+            Assert.Equal(12.0, style["ShellFontSize"]);
+            Assert.Equal(
+                (WindowsColor("HighContrast", "SystemColorWindowColor"), WindowsColor("HighContrast", "SystemColorWindowTextColor"),
+                    WindowsColor("HighContrast", "SystemColorHighlightColor")),
+                StyleColors(style, "HighContrast"));
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task The_alert_color_is_the_styles_or_windows_in_the_elements_theme()
+    {
+        await ShellFixture.On(shell =>
+        {
+            Assert.SkipWhen(shell.Platform.IsHighContrast, "A contrast theme is on, so every alert is Windows' highlight.");
+            var label = new TextBlock();
+            foreach (var (requested, theme) in new[] { (ElementTheme.Light, "Light"), (ElementTheme.Dark, "Default") })
+            {
+                label.RequestedTheme = requested;
+                var windows = WindowsColor(theme, "SystemFillColorCritical");
+                Assert.Equal(windows, new ShellStyle { FontSize = 12 }.AlertIn(label));
+                Assert.Equal(windows, new ShellStyle { Foreground = Microsoft.UI.Colors.Crimson }.AlertIn(label));
+                Assert.Equal(Microsoft.UI.Colors.Orange, TestStyles.Other().AlertIn(label));
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task The_shell_style_starts_as_windows_colors_and_never_becomes_null()
+    {
+        await ShellFixture.On(shell =>
+        {
+            Assert.Equal((null, null, null, 14.0, 32.0),
+                (shell.Style.Background, shell.Style.Foreground, shell.Style.Alert, shell.Style.FontSize, shell.Style.SlotSize));
+            var before = shell.Style;
+            Assert.Throws<ArgumentNullException>(() => shell.Style = null!);
+            Assert.Same(before, shell.Style);
+            return true;
+        });
+    }
+
+    [Fact]
+    [Trait("Category", "Window")]
+    public async Task A_style_that_sets_only_the_font_size_shows_windows_text_colors_in_light_and_dark()
+    {
+        await ShellFixture.On(async _ =>
+        {
+            var controls = new PlainControls();
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
+            {
+                Style = new ShellStyle { FontSize = 12 },
+                Defaults = [new(controls.Button), new(controls.Text)]
+            });
+            var host = area.Host;
+            using var window = new PanelWindow { Width = 200, Height = 60, Content = host, Visible = true };
+            await Wait.UntilAsync(() => controls.Buttons.Count == 1 && controls.Lines.Count == 1, "the controls to render");
+            var (button, _) = Assert.Single(controls.Buttons);
+            var text = Assert.Single(controls.Lines);
+            await ShellFixture.LaidOut(text).WaitAsync(TestContext.Current.CancellationToken);
+
+            foreach (var (requested, theme) in new[] { (ElementTheme.Light, "Light"), (ElementTheme.Dark, "Default") })
+            {
+                host.RequestedTheme = requested;
+                await Wait.UntilAsync(() => ColorOf(text.Foreground) == WindowsText(theme),
+                    "the text to take Windows' text color");
+                Assert.Equal(WindowsText(theme), ColorOf(button.Foreground));
+                Assert.Equal(("Segoe UI Variable Text,Segoe UI", 12.0), (text.FontFamily.Source, text.FontSize));
             }
 
             return true;
@@ -558,7 +640,7 @@ public sealed class WidgetAreaTests
             host.RequestedTheme = ElementTheme.Light;
             await Wait.UntilAsync(() =>
                 ColorOf(text.Foreground) == WindowsText("Light") && button.ActualWidth == 32 && button.ActualHeight == 32,
-                "the built-in light text color and slot");
+                "the default light text color and slot");
             Assert.Equal(WindowsText("Light"), ColorOf(button.Foreground));
             Assert.Equal(("Segoe UI Variable Text,Segoe UI", 14.0), (text.FontFamily.Source, text.FontSize));
             Assert.Equal((32d, 32d), (button.ActualWidth, button.ActualHeight));
@@ -566,7 +648,7 @@ public sealed class WidgetAreaTests
             host.RequestedTheme = ElementTheme.Dark;
             await Wait.UntilAsync(
                 () => ColorOf(text.Foreground) == WindowsText("Default") && button.ActualWidth == 32 && button.ActualHeight == 32,
-                "the built-in dark text color");
+                "the default dark text color");
             Assert.Equal(WindowsText("Default"), ColorOf(button.Foreground));
             Assert.Equal((32d, 32d), (button.ActualWidth, button.ActualHeight));
             return true;
@@ -575,7 +657,7 @@ public sealed class WidgetAreaTests
 
     [Fact]
     [Trait("Category", "Window")]
-    public async Task With_no_style_plain_controls_take_the_built_in_style_and_follow_the_windows_theme()
+    public async Task With_the_default_style_plain_controls_follow_the_windows_theme()
     {
         await ShellFixture.On(async _ =>
         {
@@ -664,15 +746,15 @@ public sealed class WidgetAreaTests
                 Assert.Equal("Georgia", ownText.FontFamily.Source);
                 Assert.Equal(ownFont, ownText.FontFamily.Source);
 
-                shell.Style = null;
-                await Wait.UntilAsync(() => glyphButton.ActualWidth == 32, "the area to return to the built-in style");
+                shell.Style = new();
+                await Wait.UntilAsync(() => glyphButton.ActualWidth == 32, "the area to return to the default style");
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", text.FontFamily.Source);
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", popupText.FontFamily.Source);
                 Assert.Equal("Georgia", ownText.FontFamily.Source);
             }
             finally
             {
-                shell.Style = null;
+                shell.Style = new();
             }
             return true;
         });
@@ -728,13 +810,13 @@ public sealed class WidgetAreaTests
                 var own = new Style(typeof(ToolTip));
                 own.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Microsoft.UI.Colors.Gold)));
                 Application.Current.Resources[typeof(ToolTip)] = own;
-                shell.Style = null;
+                shell.Style = new();
                 Assert.Equal(Microsoft.UI.Colors.Gold, (await Open()).Background);
             }
             finally
             {
                 Application.Current.Resources.Remove(typeof(ToolTip));
-                shell.Style = null;
+                shell.Style = new();
             }
             return true;
         });
@@ -761,6 +843,14 @@ public sealed class WidgetAreaTests
     }
 
     private static global::Windows.UI.Color ColorOf(Brush brush) => Assert.IsType<SolidColorBrush>(brush).Color;
+
+    private static (global::Windows.UI.Color Background, global::Windows.UI.Color Foreground, global::Windows.UI.Color Alert)
+        StyleColors(ResourceDictionary style, string theme)
+    {
+        var colors = (ResourceDictionary)style.ThemeDictionaries[theme];
+        return (ColorOf((Brush)colors["ShellBackgroundBrush"]), ColorOf((Brush)colors["ShellForegroundBrush"]),
+            ColorOf((Brush)colors["ShellAlertBrush"]));
+    }
 
     private static StackPanel AreaShowing(FrameworkElement control)
     {
@@ -949,11 +1039,8 @@ public sealed class WidgetAreaTests
 
         public override Element Render() => XamlHost(() =>
         {
-            Alert = new TextBlock
-            {
-                Text = "alert",
-                Foreground = new SolidColorBrush(Style!.Alert)
-            };
+            Alert = new TextBlock { Text = "alert" };
+            Alert.Foreground = new SolidColorBrush(Style.AlertIn(Alert));
             return Alert;
         });
     }

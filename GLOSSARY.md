@@ -151,7 +151,7 @@ Light or dark, whether a contrast theme is on, the accent color and the system c
 _Avoid_: skin, palette
 
 **Style**:
-The look a shell gives its bars, widget areas, widgets and popups: colors, font and slot size. It is the shell's, whatever the theme is.
+The look a shell gives its bars, widget areas, widgets and popups: colors, font and slot size. A color it sets is the shell's, whatever the theme is; a color it leaves out follows the theme.
 _Avoid_: theme (that is Windows'), skin
 
 ## What it reads from Windows
