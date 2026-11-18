@@ -30,8 +30,21 @@ Describe 'The workflows' {
 
     It 'run each job on a pinned runner image, never a moving -latest one' {
         foreach ($workflow in $script:Workflows) {
-            Get-WorkflowCode $workflow.FullName | Should -Not -Match '-latest' -Because $workflow.Name
+            Get-WorkflowCode $workflow.FullName | Should -Not -Match '(?i)(windows|ubuntu|macos)-latest' -Because $workflow.Name
         }
+    }
+
+    It 'publishes both architectures to the rolling dev tag' {
+        $dev = Get-Workflow 'dev-release.yml'
+        $dev | Should -Match 'windows-2025'
+        $dev | Should -Match 'windows-11-arm'
+        $dev | Should -Match 'win-x64'
+        $dev | Should -Match 'win-arm64'
+        $dev | Should -Match 'SHA256SUMS\.txt'
+        $dev | Should -Match 'version\.json'
+        $dev | Should -Match '--clobber'
+        $dev | Should -Match '--latest=false'
+        @($dev | Select-String -Pattern 'contents: write' -AllMatches).Matches.Count | Should -Be 1
     }
 
     It 'require the feature drivers through ci whenever the code changes' {

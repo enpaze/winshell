@@ -41,6 +41,10 @@ function Get-ReleaseAssetName([string] $Version, [string[]] $Runtime = @('win-x6
     @('SHA256SUMS.txt', 'version.json', 'winget-manifests.zip', 'install.ps1', 'uninstall.ps1')
 }
 
+function Get-DevReleaseAssetName([string] $Version, [string[]] $Runtime = @('win-x64', 'win-arm64')) {
+    @($Runtime | ForEach-Object { Get-ReleaseZipName $Version $_ }) + @('SHA256SUMS.txt', 'version.json')
+}
+
 function Write-ReleaseVersionFile([string] $Path, [string] $Version, [string] $Commit, [datetimeoffset] $Date) {
     if ($Commit -notmatch '^[0-9a-fA-F]{40}$') { throw "The release commit must be 40 hex digits, not '$Commit'." }
     $json = [ordered]@{

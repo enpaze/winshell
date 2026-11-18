@@ -13,12 +13,20 @@ release-please keeps a release PR open that collects the changes merged into `ma
 Winland publishes its own assets from that tag. Winshell's release workflow then runs the Package workflow (`.github/workflows/package.yml`) on the tagged commit:
 
 1. It runs `scripts/package.ps1`.
-2. `scripts/publish-release.ps1` attaches both portable zips, `SHA256SUMS.txt`, `winget-manifests.zip`, `install.ps1` and `uninstall.ps1` to the draft. Every file must exist locally, and every remote asset must have the expected SHA-256 before the draft is published. An existing asset is never replaced: matching bytes are skipped and a different digest stops the upload.
+2. `scripts/publish-release.ps1` attaches both portable zips, `SHA256SUMS.txt`, `version.json`, `winget-manifests.zip`, `install.ps1` and `uninstall.ps1` to the draft. Every file must exist locally, and every remote asset must have the expected SHA-256 before the draft is published. An existing asset is never replaced: matching bytes are skipped and a different digest stops the upload.
 3. Signing notes are also added before publication.
 
 This order supports [GitHub immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases), whose assets are frozen when published.
 
 The same workflow builds and checks the packages, without publishing, on the PRs and pushes to `main` the [`package` job](development.md#jobs) runs for, and keeps them as the run's `packages` artifact. The Store bundle from that run is kept for 14 days.
+
+## Dev releases
+
+`.github/workflows/dev-release.yml` runs after the CI workflow succeeds on a push to `main`. It publishes `win-x64` and `win-arm64`, then attaches both zips, `version.json`, and `SHA256SUMS.txt` to the prerelease tag `dev`.
+
+The version is the newest published `vX.Y.Z`, then `-dev.` and the number of commits since that tag, then `+` and the seven-character commit. With no stable tag, the base is `0.0.0`. The workflow moves the `dev` tag onto that commit. It edits the prerelease, or creates it with `--latest=false`, and uploads with `--clobber`.
+
+Immutable releases stay off. This workflow moves the `dev` tag and replaces its assets. Stable releases stay the Release Please package workflow.
 
 ## winget
 
