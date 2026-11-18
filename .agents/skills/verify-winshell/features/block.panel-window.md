@@ -15,7 +15,7 @@ A `PanelWindow` is a frameless window that sits on the edges of a screen, such a
 
 ## How to get to it (user POV)
 
-- In a configuration's `Start`, write `new PanelWindow { Anchors = Edges.Left | Edges.Right | Edges.Bottom, Height = 48, ReservedSize = 48, Content = ..., Visible = true }`.
+- In the function a shell passes to `Shell.Run`, write `new PanelWindow { Anchors = Edges.Left | Edges.Right | Edges.Bottom, Height = 48, ReservedSize = 48, Content = ..., Visible = true }`.
 - Make one per screen with `new ScreenWindows("name", (screen, row) => new PanelWindow { Screen = screen, ... })`.
 - Every `Bar` is a `PanelWindow` on each screen.
 - Start the `features` shell. Its panel is at the top left of the primary screen, behind other windows.

@@ -11,7 +11,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration sets `shell.ExplorerTaskbar.Hidden = true` in `Start`.
+- A shell sets `shell.ExplorerTaskbar.Hidden = true` in the function it passes to `Shell.Run`.
 - The omarchy-style shell sets it, so its bar replaces Explorer's taskbar.
 - `winshell kill` ends a shell and puts the taskbar back.
 

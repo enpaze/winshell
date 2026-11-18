@@ -15,7 +15,7 @@ This folder is the maintained source for verifying what a Winshell user can reac
 | Shell | Source | What it shows |
 | --- | --- | --- |
 | `none` | No shell | Commands that need no running shell. |
-| `features` | [`../shell`](../shell/FeatureShell.cs) | One window with a row for each service and an element for each building block, each with the feature's id as its automation id, plus `features.click`, `features.clicks`, `features.popup`, `features.launcher`, `features.text` and `features.typed`. It registers the IPC target `features` with the function `echo`, the property `name` and the signal `ticked`, which it raises once a second. |
+| `features` | [`../shell`](../shell/Program.cs) | One window with a row for each service and an element for each building block, each with the feature's id as its automation id, plus `features.click`, `features.clicks`, `features.popup`, `features.launcher`, `features.text` and `features.typed`. It registers the IPC target `features` with the function `echo`, the property `name` and the signal `ticked`, which it raises once a second. |
 | `starter` | [`templates/winshell`](../../../../templates/winshell/Program.cs) | The project `winshell new starter` copies: a bar with a clock and a battery. |
 | `omarchy-style` | [`examples/omarchy-style`](../../../../examples/omarchy-style/Program.cs) | A top bar in the style of Omarchy, with its own widgets. |
 

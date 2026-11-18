@@ -26,7 +26,7 @@ internal static class ShellFixture
             TempFolder.NewPath());
         Environment.SetEnvironmentVariable("WINSHELL_CONFIG_DIR",
             TempFolder.NewPath());
-        var thread = new Thread(() => Shell.Run<Configuration>(new ShellOptions { ShellId = "winshell-tests" }))
+        var thread = new Thread(() => Shell.Run(Ready.SetResult, new ShellOptions { ShellId = "winshell-tests" }))
         {
             IsBackground = true,
             Name = "WinUI"
@@ -163,14 +163,6 @@ internal static class ShellFixture
         var name = window.Client is FloatingWindow floating ? floating.Title :
             content is null ? "" : AutomationProperties.GetName(content);
         return $"{window.Client.GetType().Name} \"{name}\" showing {content?.GetType().Name ?? "nothing"}";
-    }
-
-    private sealed class Configuration : ShellConfiguration
-    {
-        public override void Start(Shell shell)
-        {
-            Ready.SetResult(shell);
-        }
     }
 }
 

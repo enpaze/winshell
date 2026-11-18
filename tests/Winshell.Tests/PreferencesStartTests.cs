@@ -8,7 +8,7 @@ public sealed class PreferencesStartTests : IDisposable, IClassFixture<ProbeBuil
     private Process? _started;
 
     [Fact]
-    public void The_file_written_when_Start_returns_includes_a_section_posted_during_Start()
+    public void The_file_written_when_start_returns_includes_a_section_posted_during_start()
     {
         var config = Path.Combine(_dir, "config");
         Directory.CreateDirectory(config);
@@ -19,7 +19,7 @@ public sealed class PreferencesStartTests : IDisposable, IClassFixture<ProbeBuil
         var report = Path.Combine(config, "preferences-report.txt");
         string? said = null;
         Wait.Until(() => (said = Read(report)) is not null,
-            "the probe to report the preferences file written when Start returns");
+            "the probe to report the preferences file written when start returns");
         Assert.Equal("both", said);
     }
 

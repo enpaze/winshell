@@ -19,11 +19,6 @@ public sealed record ShellOptions
     public string? CacheDir { get; init; }
 }
 
-public abstract class ShellConfiguration
-{
-    public abstract void Start(Shell shell);
-}
-
 public sealed partial class Shell : IDisposable
 {
     private static Shell? _current;
@@ -179,13 +174,14 @@ public sealed partial class Shell : IDisposable
         return dir;
     }
 
-    public static void Run<T>(ShellOptions? options = null)
-        where T : ShellConfiguration, new()
+    public static void Run(Action<Shell> start, ShellOptions? options = null)
     {
-        Run(new T(), options ?? new ShellOptions());
+        ArgumentNullException.ThrowIfNull(start);
+        options ??= new ShellOptions();
+        StaThread.Run(() => Start(start, options));
     }
 
-    private static void Run(ShellConfiguration configuration, ShellOptions options)
+    private static void Start(Action<Shell> start, ShellOptions options)
     {
         var code = InstanceStart.Run(new InstanceLaunch(
                 Environment.ProcessPath!,
@@ -196,12 +192,12 @@ public sealed partial class Shell : IDisposable
                 options.CacheDir,
                 Log.Default,
                 instance => instance.Crashing = () => _current?.ReleaseForCrash()),
-            session => RunHost(configuration, options, session));
+            session => RunHost(start, options, session));
         if (code != 0)
             Environment.ExitCode = code;
     }
 
-    private static void RunHost(ShellConfiguration configuration, ShellOptions options, InstanceSession session)
+    private static void RunHost(Action<Shell> start, ShellOptions options, InstanceSession session)
     {
         var instance = session.Instance;
         Exception? failed = null;
@@ -229,7 +225,7 @@ public sealed partial class Shell : IDisposable
                         e.Cancel = true;
                         loop.Post(shell.Quit);
                     };
-                    configuration.Start(shell);
+                    start(shell);
                     shell.StartReturned();
                     shell.ReleaseUnclaimedTaskbar();
                     ShellInstance.Quietly(() => shell.Notices.ShowPrevious(ShellInstance.ExitState));

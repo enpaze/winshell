@@ -8,7 +8,7 @@ A Winshell configuration that draws the bar of [Omarchy](https://github.com/omac
 
 A bar on every screen, along the top unless the preferences file says another edge. It is one slot of the style thick, 26 pixels: the height of a top or bottom bar and the width of a side one. The bar reserves its edge, and Explorer's taskbar is hidden while the shell runs; Winshell shows the taskbar again when the shell quits. The colors are Tokyo Night's, with an alert color for a network that can't reach the internet, whatever the Windows theme is.
 
-The bar has three areas: start, center and end. On a left or right edge they run from top to bottom. Each glyph is its own widget, so a placement can reorder or repeat one without taking the others with it. With no lists in the preferences file the areas use the ones in [AppShell.cs](AppShell.cs), and a top bar looks as it does in the picture.
+The bar has three areas: start, center and end. On a left or right edge they run from top to bottom. Each glyph is its own widget, so a placement can reorder or repeat one without taking the others with it. With no lists in the preferences file the areas use the ones in [Program.cs](Program.cs), and a top bar looks as it does in the picture.
 
 - **Start:** the `windows` glyph, then `workspaces` for Winland's workspaces on that widget's own screen: 1 to 5 always, and any other that exists. An empty one is dimmed, the shown one is the tiling glyph, and a click shows it. Beside each number are the icons of the apps open on that workspace, one per app, and they change as windows open, close and move. Without Winland running there are no workspaces. On a side bar the buttons stack, and so do the icons in each.
 - **Center:** the `clock`, the day and time, such as `Saturday 20:25`, in your Windows regional format. A `timezone` setting names another zone, such as `UTC`; without one the clock is local, and two clocks can show two zones. On a side bar the hours sit above the minutes, such as `20` over `25`, and the tooltip stays the full date.
@@ -17,7 +17,7 @@ The bar has three areas: start, center and end. On a left or right edge they run
 | Widget | Area | Settings |
 | --- | --- | --- |
 | `windows` | start | none |
-| `workspaces` | start | `icons`, optional: `true` shows each workspace's app icons; on in [AppShell.cs](AppShell.cs) |
+| `workspaces` | start | `icons`, optional: `true` shows each workspace's app icons; on in [Program.cs](Program.cs) |
 | `clock` | center | `timezone`, optional: a Windows time zone id |
 | `tray` | end | none |
 | `bluetooth` | end | none |
@@ -44,8 +44,7 @@ The project references Winshell's source, so the repo's own check builds it.
 
 | File | Job |
 | --- | --- |
-| [Program.cs](Program.cs) | Starts the shell with this configuration's identity. |
-| [AppShell.cs](AppShell.cs) | Hides Explorer's taskbar, sets the style, registers each widget, and shows one [Bar](../../docs/configuration.md#a-bar-on-every-screen) with the default lists. |
+| [Program.cs](Program.cs) | Starts the shell, hides Explorer's taskbar, sets the style, registers each widget, and shows one [Bar](../../docs/configuration.md#a-bar-on-every-screen) with the default lists. |
 | [TokyoNight.cs](TokyoNight.cs) | The shell's [style](../../docs/configuration.md#style): Tokyo Night's colors, the font, the slot size and the padding. |
 | [Widgets/](Widgets) | One component per widget. A widget follows the service it shows with `UseObservable` or `UseObservableTree`. |
 | [Glyphs.cs](Glyphs.cs) | Names each glyph with its Nerd Fonts name and chooses status glyphs. |
@@ -55,7 +54,7 @@ The project references Winshell's source, so the repo's own check builds it.
 ## Change it
 
 - **Colors, font and size:** edit [TokyoNight.cs](TokyoNight.cs). The widgets look nothing up: Winshell builds the `Button`, `TextBlock`, `FontIcon` and `ToolTip` styles from it. `SlotSize` is how thick the bar is, and how wide a button is, and `Padding` the space at its ends. The network widget paints its glyph in `Alert` when the connection can't reach the internet.
-- **Move the bar or change its widgets:** edit the preferences file, `%APPDATA%\winshell\preferences\<shell id>.toml`, or `<WINSHELL_CONFIG_DIR>\preferences\<shell id>.toml` when that variable is set. Its `[bar]` section holds `edge` and the `start`, `center` and `end` lists, which replace the ones in [AppShell.cs](AppShell.cs) while the file has them. Saving applies it live. This moves the bar to the bottom, puts a UTC clock beside the local one and reverses the end:
+- **Move the bar or change its widgets:** edit the preferences file, `%APPDATA%\winshell\preferences\<shell id>.toml`, or `<WINSHELL_CONFIG_DIR>\preferences\<shell id>.toml` when that variable is set. Its `[bar]` section holds `edge` and the `start`, `center` and `end` lists, which replace the ones in [Program.cs](Program.cs) while the file has them. Saving applies it live. This moves the bar to the bottom, puts a UTC clock beside the local one and reverses the end:
 
   ```toml
   [bar]
@@ -80,8 +79,8 @@ The project references Winshell's source, so the repo's own check builds it.
   A row matches when manufacturer, model and serial all equal the monitor's, including an empty serial, and the first match wins. A key the row leaves out is the `[bar]` section's.
 
 - **Live-edit a widget:** run `winshell dev --path examples/omarchy-style` and save a file in [Widgets/](Widgets). See [Develop a shell](../../docs/configuration.md#develop-a-shell) for what reaches the running shell and what restarts it.
-- **Add a widget:** copy [Widgets/AudioWidget.cs](Widgets/AudioWidget.cs), follow another service with `UseObservable` or `UseObservableTree`, open its Settings page with `Shell.Open`, and register the widget in [AppShell.cs](AppShell.cs). Put that name in a list there or in the preferences file.
-- **Keep the taskbar:** delete `shell.ExplorerTaskbar.Hidden = true;` in [AppShell.cs](AppShell.cs).
+- **Add a widget:** copy [Widgets/AudioWidget.cs](Widgets/AudioWidget.cs), follow another service with `UseObservable` or `UseObservableTree`, open its Settings page with `Shell.Open`, and register the widget in [Program.cs](Program.cs). Put that name in a list there or in the preferences file.
+- **Keep the taskbar:** delete `shell.ExplorerTaskbar.Hidden = true;` in [Program.cs](Program.cs).
 
 ## Use it as your own configuration
 

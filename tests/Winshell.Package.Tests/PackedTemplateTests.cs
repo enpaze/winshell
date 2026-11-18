@@ -69,6 +69,29 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
     }
 
+    [Theory(Timeout = PatienceMs)]
+    [InlineData("MyShell")]
+    [InlineData("")]
+    public void A_shell_whose_only_file_is_a_top_level_Program_builds(string rootNamespace)
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        using var folder = new TempFolder();
+        var projectFile = CopyStarter(folder.Path);
+        var document = XDocument.Load(projectFile);
+        document.Descendants("RootNamespace").Single().Value = rootNamespace;
+        document.Save(projectFile);
+        foreach (var source in Directory.GetFiles(folder.Path, "*.cs"))
+            File.Delete(source);
+        File.WriteAllText(Path.Combine(folder.Path, "Program.cs"), """
+            Shell.Run(shell => shell.Log.Info("shell", "Started."));
+            """);
+
+        var built = ShellProject.Run(
+            "dotnet", ["build", projectFile, "-c", "Release", "-warnaserror", "--nologo"], folder.Path);
+
+        Assert.True(built.ExitCode == 0, built.Output);
+    }
+
     [Fact(Timeout = PatienceMs)]
     public void A_library_widget_registered_in_code_shows_in_an_area()
     {
@@ -111,27 +134,22 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         shell.Root!.Add(new XElement("ItemGroup",
             new XElement("ProjectReference", new XAttribute("Include", @"..\lib\WidgetLib.csproj"))));
         shell.Save(projectFile);
-        File.WriteAllText(Path.Combine(shellDir, "AppShell.cs"), """
+        File.WriteAllText(Path.Combine(shellDir, "Program.cs"), """
             using Microsoft.UI.Reactor.Hosting;
 
-            namespace MyShell;
+            Shell.Run(shell =>
+            {
+                Widgets.Register<WidgetLib.ClockWidget>("library-clock");
+                var host = new ReactorHostControl { ComponentFactory = () => new Placements() };
+                var window = new PanelWindow { Width = 250, Height = 80, Content = host, Visible = true };
+                window.Closed += host.Dispose;
+            });
 
             public sealed class Placements : Component
             {
                 public override Element Render() =>
                     Component<WidgetArea, WidgetAreaProps>(new WidgetAreaProps(Defaults:
                         [new("library-clock", new Dictionary<string, object> { ["value"] = "one" })]));
-            }
-
-            public sealed class AppShell : ShellConfiguration
-            {
-                public override void Start(Shell shell)
-                {
-                    Widgets.Register<WidgetLib.ClockWidget>("library-clock");
-                    var host = new ReactorHostControl { ComponentFactory = () => new Placements() };
-                    var window = new PanelWindow { Width = 250, Height = 80, Content = host, Visible = true };
-                    window.Closed += host.Dispose;
-                }
             }
             """);
 

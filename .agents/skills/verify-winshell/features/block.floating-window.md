@@ -13,7 +13,7 @@ A `FloatingWindow` is a normal window with a title bar, which the user can move,
 
 ## How to get to it (user POV)
 
-- In a configuration's `Start`, write `new FloatingWindow { Title = "...", Width = 460, Height = 760, Content = ..., Visible = true }`.
+- In the function a shell passes to `Shell.Run`, write `new FloatingWindow { Title = "...", Width = 460, Height = 760, Content = ..., Visible = true }`.
 - Start the `features` shell. Its window is the one titled `Winshell features`.
 
 ## Driving it with winshell inspect

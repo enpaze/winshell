@@ -19,18 +19,15 @@ A bar shows along the top of every screen, with the time in the middle and the b
 
 ### The shell
 
-`AppShell.cs` says what the shell shows. `Start` runs once the shell is up, and makes one [bar](#a-bar-on-every-screen):
+`Program.cs` starts the shell and says what it shows. The function passed to `Shell.Run` runs once the shell is up, and makes one [bar](#a-bar-on-every-screen):
 
 ```csharp
-public sealed class AppShell : ShellConfiguration
+Shell.Run(shell =>
 {
-    public override void Start(Shell shell)
-    {
-        Widgets.Register<Clock>("clock");
-        Widgets.Register<Battery>("battery");
-        _ = new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] };
-    }
-}
+    Widgets.Register<Clock>("clock");
+    Widgets.Register<Battery>("battery");
+    _ = new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] };
+});
 ```
 
 The bar keeps itself on screen, so nothing needs to hold it. `Edges.Bottom` puts it at the bottom, and the bar's `Start` is a third list, at the left. With no [style](#style) set, it takes Windows' colors and font, in light or dark.
@@ -78,9 +75,7 @@ public sealed class Battery : Widget
 
 ### Register the widgets
 
-`Start` registers each component under the name the bar places. Register a component from a referenced library the same way, as [Widgets](#widgets) describes.
-
-`Program.cs` starts the shell, and you won't need to change it.
+`Program.cs` registers each component under the name the bar places. Register a component from a referenced library the same way, as [Widgets](#widgets) describes.
 
 The files have no `using` line for Winshell or Reactor. The package adds them, as [The package's usings](#the-packages-usings) says.
 
@@ -170,18 +165,20 @@ A project that references the `Winshell` package and has `ImplicitUsings` on, as
 | The project's `RootNamespace` | The project's own types, in every file |
 
 - **Leave them out.** `<WinshellImplicitUsings>false</WinshellImplicitUsings>` in the project file leaves out all of them. `<Using Remove="Microsoft.UI.Reactor.Core" />` in an `ItemGroup` leaves out one.
-- **The root namespace needs a type.** A project with no type in its `RootNamespace` does not build (CS0246). Remove that using, or put a type in the namespace.
+- **The root namespace always exists.** The package declares the project's `RootNamespace`, so a shell whose only file is `Program.cs` builds.
 - **Two types share a name.** `ColorScheme` is Winshell's, for `shell.ColorScheme`, and Reactor's, for `UseColorScheme()`. Write `Winshell.ColorScheme` or `Microsoft.UI.Reactor.Core.ColorScheme`. A file with `using Microsoft.UI.Xaml.Controls` has two `IconElement` and two `MenuFlyoutItemBase` types the same way.
 
 ## The program
 
-`Shell.Run` runs until the shell quits. Call it from `Main`, marked `[STAThread]`, as the starter's `Program.cs` does. With a `ShellId`, the call reads:
+`Shell.Run` runs until the shell quits. Call it from top-level statements, as the starter's `Program.cs` does. The function you pass runs once the shell is up, with that shell, which `Shell.Current` also returns. With a `ShellId`, the call reads:
 
 ```csharp
-Shell.Run<AppShell>(new ShellOptions { ShellId = "MyShell" });
+Shell.Run(shell => _ = new Bar { Center = ["clock"] }, new ShellOptions { ShellId = "MyShell" });
 ```
 
-`AppShell` is a `ShellConfiguration`. `Start` runs once the shell is up. `Shell.Current` is that shell.
+WinUI needs a single-threaded apartment (STA) thread. When the thread that calls `Shell.Run` is not one, as a top-level program's is not, the shell runs on a new STA thread with the caller's culture, and `Shell.Run` waits for it.
+
+When `start` throws, Winshell writes a crash report and closes the shell. `Shell.Run` then returns without an exception, and the program exits with code 1, which `winshell run` does not restart. An exception that escapes the shell outside `start` comes back out of `Shell.Run` with its original stack.
 
 `ShellOptions` names where the shell keeps its files:
 
@@ -362,7 +359,7 @@ hotkey = "Ctrl+Shift+Space"
 
 ## Widgets
 
-A [widget area](reference/winshell.md#widgetarea) is a component. A window mounts the component that renders it, and the same element can sit inside a surface. In `Start`, register each widget under the case-sensitive name the area places. Use `Widgets.Register<T>` for your project's widgets and those from a referenced project or package alike. The widget needs a public parameterless constructor.
+A [widget area](reference/winshell.md#widgetarea) is a component. A window mounts the component that renders it, and the same element can sit inside a surface. In the function passed to `Shell.Run`, register each widget under the case-sensitive name the area places. Use `Widgets.Register<T>` for your project's widgets and those from a referenced project or package alike. The widget needs a public parameterless constructor.
 
 A widget derives from [Widget](reference/winshell.md#widget), a component whose props are a `WidgetContext`. `Render` reads them without `Props`:
 
@@ -386,7 +383,7 @@ public sealed class ClockWidget : Widget
 }
 ```
 
-For a [widget library](#write-a-widget), add a project or package reference and register its widget in the shell's `Start`, such as `Widgets.Register<MessageWidget.Message>("message")`. A name registered twice fails when the shell starts.
+For a [widget library](#write-a-widget), add a project or package reference and register its widget in `Program.cs`, such as `Widgets.Register<MessageWidget.Message>("message")`. A name registered twice fails when the shell starts.
 
 ### Move a configuration
 
