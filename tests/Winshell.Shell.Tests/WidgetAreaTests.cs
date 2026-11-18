@@ -195,7 +195,7 @@ public sealed class WidgetAreaTests
             Widgets.Register<TrackedWidget>(widget);
             File.WriteAllText(path, $"[{name}]\nwidgets = [\n  {{ widget = '{widget}', text = 'first', count = 3, options = {{ enabled = true }} }},\n" +
                                     $"  {{ widget = '{widget}', text = 'second' }},\n]\n\n" +
-                                    $"[{unknown}]\nwidgets = [{{ widget = 'not-installed' }}]\n");
+                                    $"[{unknown}]\nwidgets = ['not-installed']\n");
             try
             {
                 using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = name, Defaults = [new(widget)] });
@@ -290,10 +290,83 @@ public sealed class WidgetAreaTests
         });
     }
 
+    [Fact]
+    public async Task A_named_area_reads_bare_widget_names_mixed_with_tables_in_order()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var path = PreferencesTests.PathOf(shell);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var name = "area" + Guid.NewGuid().ToString("N");
+            var widget = Guid.NewGuid().ToString();
+            TrackedWidget.Mounts = [];
+            Widgets.Register<TrackedWidget>(widget);
+            File.WriteAllText(path, $"[{name}]\nwidgets = [\"{widget}\", {{ widget = \"{widget}\", text = \"Hi\" }}, \"{widget}\"]\n");
+            try
+            {
+                using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = name });
+                await Wait.UntilAsync(() => TrackedWidget.Mounts.Count == 3, "the three placements to mount");
+                Assert.Equal([0, 1, 0], TrackedWidget.Mounts.Select(mount => mount.Context.Settings.Count));
+                Assert.Equal("Hi", TrackedWidget.Mounts[1].Context.Settings["text"]);
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+
+            return true;
+        });
+    }
+
+    [Theory]
+    [InlineData("42")]
+    [InlineData("{ text = \"Hi\" }")]
+    [InlineData("\" \"")]
+    [InlineData("[\"clock\"]")]
+    public async Task A_named_area_refuses_a_list_with_an_item_that_names_no_widget_and_logs_its_line(string item)
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var path = PreferencesTests.PathOf(shell);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var name = "area" + Guid.NewGuid().ToString("N");
+            var widget = Guid.NewGuid().ToString();
+            TrackedWidget.Mounts = [];
+            Widgets.Register<TrackedWidget>(widget);
+            var logLength = ShellFixture.ReadLog(shell).Length;
+            File.WriteAllText(path, $"[{name}]\nwidgets = [\"{widget}\", {item}]\n");
+            try
+            {
+                using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
+                {
+                    Name = name,
+                    Defaults = [new(widget, new Dictionary<string, object> { ["text"] = "default" })]
+                });
+                await Wait.UntilAsync(() => ShellFixture.ReadLog(shell)[logLength..].Contains(
+                        "[2:1]: widgets must be a list of widget names or tables that each name a widget, " +
+                        "so it was left unchanged", StringComparison.Ordinal),
+                    "the refused list to be logged with its line");
+                await Wait.UntilAsync(() => TrackedWidget.Mounts.Count == 1, "the default placement to mount");
+                Assert.Equal("default", Assert.Single(TrackedWidget.Mounts).Context.Settings["text"]);
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+
+            return true;
+        });
+    }
+
     [Theory]
     [Trait("Category", "Window")]
     [InlineData("[{0}\n", "[1:")]
-    [InlineData("[{0}]\nwidgets = [{{ widget = 42 }}]\n", "[2:1]: widgets must name a widget in each of its tables")]
+    [InlineData("[{0}]\nwidgets = [{{ widget = 42 }}]\n",
+        "[2:1]: widgets must be a list of widget names or tables that each name a widget")]
+    [InlineData("[{0}]\nwidgets = [\"{1}\", 42]\n",
+        "[2:1]: widgets must be a list of widget names or tables that each name a widget")]
+    [InlineData("[{0}]\nwidgets = [\"{1}\", {{ text = \"Hi\" }}]\n",
+        "[2:1]: widgets must be a list of widget names or tables that each name a widget")]
     [InlineData("{0} = []\n", "[1:1]: {0} should be a section")]
     public async Task A_broken_edit_keeps_the_last_valid_list(string broken, string diagnostic)
     {
@@ -302,12 +375,12 @@ public sealed class WidgetAreaTests
             var path = PreferencesTests.PathOf(shell);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             var name = "area" + Guid.NewGuid().ToString("N");
-            broken = string.Format(CultureInfo.InvariantCulture, broken, name);
-            diagnostic = string.Format(CultureInfo.InvariantCulture, diagnostic, name);
             var widget = Guid.NewGuid().ToString();
+            broken = string.Format(CultureInfo.InvariantCulture, broken, name, widget);
+            diagnostic = string.Format(CultureInfo.InvariantCulture, diagnostic, name);
             TrackedWidget.Mounts = [];
             Widgets.Register<TrackedWidget>(widget);
-            File.WriteAllText(path, $"[{name}]\nwidgets = [{{ widget = '{widget}' }}]\n");
+            File.WriteAllText(path, $"[{name}]\nwidgets = [\"{widget}\"]\n");
             try
             {
                 using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = name });

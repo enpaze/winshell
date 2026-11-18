@@ -296,7 +296,8 @@ public sealed class PreferencesTests
                 Assert.Equal("a \"quoted\" value\nand a line break", first["text"]);
                 Assert.Equal(7L, first["count"]);
                 Assert.Equal(true, Assert.IsAssignableFrom<IReadOnlyDictionary<string, object?>>(first["nested"])["enabled"]);
-                Assert.Equal(widget, Assert.IsAssignableFrom<IReadOnlyDictionary<string, object?>>(rows[1])["widget"]);
+                Assert.Equal(widget, rows[1]);
+                Assert.Contains($"\"{widget}\"]", text, StringComparison.Ordinal);
                 section = Assert.IsAssignableFrom<IReadOnlyDictionary<string, object?>>(document.Values[name + "empty"]);
                 Assert.Empty(Assert.IsAssignableFrom<IReadOnlyList<object?>>(section["widgets"]));
                 Assert.Equal(("top", 32), (top.Edge, top.Size));

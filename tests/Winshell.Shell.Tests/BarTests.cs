@@ -117,6 +117,54 @@ public sealed class BarTests
     }
 
     [Fact]
+    public async Task A_bar_section_and_its_screen_row_take_bare_widget_names_mixed_with_tables()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var name = "bar" + Guid.NewGuid().ToString("N");
+            var wide = ScreenWindowsTests.Screen("TST", "Wide", "1");
+            var tall = ScreenWindowsTests.Screen("TST", "Tall", "1");
+            var widget = Widget(out var made);
+            var path = PreferencesTests.PathOf(shell);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, $$"""
+                [{{name}}]
+                start = ["{{widget}}", { widget = "{{widget}}", text = "section" }]
+
+                [[{{name}}.screen]]
+                manufacturer = "TST"
+                model = "Tall"
+                serial = "1"
+                end = [{ widget = "{{widget}}", text = "row" }, "{{widget}}"]
+
+                """);
+            shell.Platform.Screens.Add(wide);
+            shell.Platform.Screens.Add(tall);
+            try
+            {
+                var logLength = ShellFixture.ReadLog(shell).Length;
+                using var bar = new Bar { Name = name, Reserve = false };
+                await NextTurn(shell);
+                var wideBar = Assert.Single(BarsOn(shell, wide));
+                var tallBar = Assert.Single(BarsOn(shell, tall));
+                await UntilShown(
+                    () => TextsOn(made, wideBar).Order().SequenceEqual(["", "section"]) &&
+                          TextsOn(made, tallBar).Order().SequenceEqual(["", "", "row", "section"]),
+                    "the bare names and the tables to render", wideBar, tallBar);
+                Assert.DoesNotContain("must be a list", ShellFixture.ReadLog(shell)[logLength..], StringComparison.Ordinal);
+            }
+            finally
+            {
+                shell.Platform.Screens.Remove(wide);
+                shell.Platform.Screens.Remove(tall);
+                File.Delete(path);
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
     public async Task Two_bars_with_different_names_keep_separate_sections()
     {
         await ShellFixture.On(async shell =>
@@ -180,7 +228,7 @@ public sealed class BarTests
                 var text = File.ReadAllText(path);
                 Assert.Contains($"[{name}]", text, StringComparison.Ordinal);
                 Assert.Contains("# edge = \"left\"", text, StringComparison.Ordinal);
-                Assert.Contains($"# end = [{{ widget = \"{widget}\" }}]", text, StringComparison.Ordinal);
+                Assert.Contains($"# end = [\"{widget}\"]", text, StringComparison.Ordinal);
             }
             finally
             {
