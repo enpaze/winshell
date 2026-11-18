@@ -42,6 +42,20 @@ internal static class AppBarMessages
         return Send(() => AppBars.Autohide(window));
     }
 
+    internal static uint State()
+    {
+        return Send(AppBars.State);
+    }
+
+    internal static void SetState(uint state)
+    {
+        Send(() =>
+        {
+            AppBars.SetState(state);
+            return true;
+        });
+    }
+
     internal static bool TryPosition(nint window, out AppBarEdge edge, out RECT bounds)
     {
         var (found, foundEdge, foundBounds) = Send(() =>
