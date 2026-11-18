@@ -108,11 +108,11 @@ jobs:
             dotnet build $project -warnaserror --nologo
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          if ($testRun.CompileTemplateSamplesReferenceAndLogo) {
+          if ($testRun.CompileTemplateExamplesReferenceAndLogo) {
             ./scripts/build-template.ps1
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             $solution = [xml](Get-Content winshell.slnx)
-            foreach ($project in $solution.SelectNodes('//Project') | Where-Object { $_.Path -match '^(examples|docs/samples)/' }) {
+            foreach ($project in $solution.SelectNodes('//Project') | Where-Object { $_.Path -match '^examples/' }) {
               dotnet build $project.Path -warnaserror --nologo
               if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             }

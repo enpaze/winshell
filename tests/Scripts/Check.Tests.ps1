@@ -68,18 +68,18 @@ Describe 'Choosing tests' {
         } finally { $script:Root = $root }
     }
 
-    It 'gives every shard the same filter and compiles the template, samples, reference and logo with the Shell worker' {
+    It 'gives every shard the same filter and compiles the template, examples, reference and logo with the Shell worker' {
         $root = $script:Root
         $script:Root = $TestDrive
         try {
             Set-WinshellSolution
             foreach ($shard in 1..4) { (Get-TestRun -Shard $shard).Filter | Should -Be 'Category!=Package' }
-            (Get-TestRun -Shard 2).CompileTemplateSamplesReferenceAndLogo | Should -BeTrue
-            foreach ($shard in @(0, 1, 3, 4)) { (Get-TestRun -Shard $shard).CompileTemplateSamplesReferenceAndLogo | Should -BeFalse }
+            (Get-TestRun -Shard 2).CompileTemplateExamplesReferenceAndLogo | Should -BeTrue
+            foreach ($shard in @(0, 1, 3, 4)) { (Get-TestRun -Shard $shard).CompileTemplateExamplesReferenceAndLogo | Should -BeFalse }
         } finally { $script:Root = $root }
 
         $ci = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../.github/workflows/ci.yml')
-        $ci | Should -Match '\$testRun\.CompileTemplateSamplesReferenceAndLogo'
+        $ci | Should -Match '\$testRun\.CompileTemplateExamplesReferenceAndLogo'
         $ci | Should -Not -Match "TEST_SHARD -eq '2'"
     }
 }

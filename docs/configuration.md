@@ -4,7 +4,7 @@ A configuration is a .NET project that references the Winshell package and build
 
 - The [reference](reference/index.md) lists every type and member.
 - The [Omarchy-style example](https://github.com/enpaze/winshell/tree/main/examples/omarchy-style) is a whole panel to copy from.
-- The C# on this page is copied from files that build: the starter, [GuideSamples.cs](https://github.com/enpaze/winshell/blob/main/tests/Winshell.Shell.Tests/GuideSamples.cs) and the [message widget](samples/message-widget/Message.cs). Nothing in GuideSamples runs.
+- The C# on this page is copied from files that build: the starter and [GuideSamples.cs](https://github.com/enpaze/winshell/blob/main/tests/Winshell.Shell.Tests/GuideSamples.cs). Nothing in GuideSamples runs.
 
 ## Your first bar
 
@@ -462,16 +462,10 @@ A widget reads the alert color from the style. With none set, `context.Style` is
 
 ## Write a widget
 
-A widget other people use can be a class library. [samples/message-widget](samples/message-widget) is one, and the solution builds it: a component that shows one line of text, with one `text` setting. It is a sample for this guide, not a widget Winshell ships. A configuration references the library and registers the component the way [Widgets](#widgets) does, with the type `MessageWidget.Message`.
-
-The project is a WinUI library. In this repository it builds against Winshell's source. The configuration that references the library registers `MessageWidget.Message` itself, as [Widgets](#widgets) shows.
+A widget other people use can be a class library: a WinUI library that references the Winshell package. The package imports the props the library needs. A configuration references the library and registers its component the way [Widgets](#widgets) does. The example on this page is `Message`, a component that shows one line of text, with one `text` setting.
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- In this repository the sample builds against Winshell's source, so the check builds it. A library you publish
-       drops this import and the ProjectReference and references the Winshell package instead. The package imports
-       these props. See docs/configuration.md. -->
-  <Import Project="..\..\..\src\Winshell.Package\buildTransitive\Winshell.props" />
   <PropertyGroup>
     <TargetFramework>net11.0-windows10.0.22621.0</TargetFramework>
     <RootNamespace>MessageWidget</RootNamespace>
@@ -479,17 +473,9 @@ The project is a WinUI library. In this repository it builds against Winshell's 
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Winshell.Shell\Winshell.Shell.csproj" />
+    <PackageReference Include="Winshell" Version="0.7.0" />
   </ItemGroup>
 </Project>
-```
-
-That import and the project reference are how this repository builds the sample, the same way the [Omarchy example](https://github.com/enpaze/winshell/blob/main/examples/omarchy-style/OmarchyStyle.csproj) builds. A library you publish references the package instead, and the package imports those props:
-
-```xml
-<ItemGroup>
-  <PackageReference Include="Winshell" Version="0.7.0" />
-</ItemGroup>
 ```
 
 `0.7.0` stands in for the release you built the widget against. The package is not on nuget.org. A release keeps it in a `packages` folder beside `winshell.exe`, and `winshell new` writes a `nuget.config` that adds that folder.

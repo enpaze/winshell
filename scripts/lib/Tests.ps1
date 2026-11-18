@@ -10,7 +10,7 @@ function Get-TestRun {
     }
     $run.Projects = @($run.Project)
     $run.ProjectCount = 1
-    $run.CompileTemplateSamplesReferenceAndLogo = $false
+    $run.CompileTemplateExamplesReferenceAndLogo = $false
     if ($run.Project -like '*.slnx') {
         $solution = [xml] (Get-Content -LiteralPath (Join-Path $script:Root $run.Project) -Raw)
         $projects = @($solution.SelectNodes('//Project') | Where-Object { $_.Path -like '*.Tests.csproj' } | ForEach-Object Path)
@@ -26,7 +26,7 @@ function Get-TestRun {
             })
             if ($run.Projects.Count -eq 0) { throw "Test shard $Shard has no projects." }
             $run.ProjectCount = $run.Projects.Count
-            $run.CompileTemplateSamplesReferenceAndLogo = @($run.Projects | Where-Object {
+            $run.CompileTemplateExamplesReferenceAndLogo = @($run.Projects | Where-Object {
                 [IO.Path]::GetFileNameWithoutExtension($_) -eq 'Winshell.Shell.Tests'
             }).Count -gt 0
         }
