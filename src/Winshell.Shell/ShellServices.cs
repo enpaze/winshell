@@ -38,26 +38,8 @@ public sealed partial class Shell
     private VirtualDesktopsService? _virtualDesktops;
     private WallpaperService? _wallpaper;
 
-    private WindowListService? _windows
-    {
-        get;
-        set
-        {
-            field = value;
-            Connect();
-        }
-    }
-
-    private WinlandService? _winland
-    {
-        get;
-        set
-        {
-            field = value;
-            Connect();
-        }
-    }
-
+    private WindowListService? _windows;
+    private WinlandService? _winland;
     private IDisposable? _winlandToWindowList;
 
     private IDisposable?[] ServicesInStopOrder =>
@@ -110,7 +92,7 @@ public sealed partial class Shell
 
     public WindowListService WindowList => _windows ??= new WindowListService(Loop, Log, VirtualDesktops);
 
-    public WinlandService Winland => _winland ??= new WinlandService(Loop, Log);
+    public WinlandService Winland => _winland ?? Linked(WindowList);
 
     public Hotkey NewHotkey()
     {
@@ -122,11 +104,11 @@ public sealed partial class Shell
         return new IdleMonitor(Loop, Log, () => KeepAwake.AnyActive);
     }
 
-    private void Connect()
+    private WinlandService Linked(WindowListService windows)
     {
-        if (_winland is not { } winland || _windows is not { } windows)
-            return;
+        var winland = _winland = new WinlandService(Loop, Log);
         winland.Attach(windows);
-        _winlandToWindowList ??= new DisposeAction(() => winland.Attach(null));
+        _winlandToWindowList = new DisposeAction(() => winland.Attach(null));
+        return winland;
     }
 }
