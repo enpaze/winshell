@@ -543,9 +543,9 @@ public sealed class WinlandService : ObservableObject, IDisposable
 
     private void Recompute()
     {
-        Follow(Monitors, _monitorList.OrderBy(m => m.Id));
-        Follow(Workspaces, _workspaceList.OrderBy(w => w.Id).ThenBy(w => w.Monitor?.Id ?? int.MaxValue));
-        Follow(Windows, _windowList);
+        Monitors.Mirror(_monitorList.OrderBy(m => m.Id));
+        Workspaces.Mirror(_workspaceList.OrderBy(w => w.Id).ThenBy(w => w.Monitor?.Id ?? int.MaxValue));
+        Windows.Mirror(_windowList);
 
         var focused = _focusedMonitor?.ActiveWorkspace;
         foreach (var monitor in _monitorList)
@@ -574,12 +574,6 @@ public sealed class WinlandService : ObservableObject, IDisposable
         }
 
         Set(ref _focusedWorkspace, focused, nameof(FocusedWorkspace));
-    }
-
-    private static void Follow<T>(ObservableList<T> items, IEnumerable<T> next)
-        where T : notnull
-    {
-        items.Sync(next, i => i, i => i, i => i, (_, _) => { });
     }
 
     private void SetFocusedMonitor(WinlandMonitor? monitor)

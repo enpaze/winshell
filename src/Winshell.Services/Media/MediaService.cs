@@ -8,20 +8,17 @@ public sealed class MediaService : ObservableObject, IDisposable
     private readonly IEventLoop _loop;
     private readonly Log _log;
 
-    internal MediaService(IEventLoop loop, Log log)
-        : this(loop, log, new SmtcSessions(loop, log, GlobalSystemMediaTransportControlsSessionManager.RequestAsync))
-    {
-        TempImageStore.Shared.CleanOldOnce(failure => log.Warn("images", failure));
-    }
-
-    internal MediaService(IEventLoop loop, Log log, IMediaBackend sessions)
+    internal MediaService(IEventLoop loop, Log log, IMediaBackend? backend = null)
     {
         _loop = loop;
         _log = log;
-        _sessions = sessions;
+        _sessions = backend ??
+                    new SmtcSessions(loop, log, GlobalSystemMediaTransportControlsSessionManager.RequestAsync);
         Refresh(null);
         _sessions.SessionAdded += Refresh;
         _sessions.SessionRemoved += Refresh;
+        if (backend is null)
+            TempImageStore.Shared.CleanOldOnce(failure => log.Warn("images", failure));
     }
 
     public ObservableList<MediaSession> Sessions { get => Read(field); } = [];

@@ -105,17 +105,7 @@ public sealed class BrightnessService : ObservableObject, IDisposable
 
     private static bool WorkAreaOnly(ScreenInfo old, ScreenInfo now)
     {
-        return old.Id == now.Id
-               && old.Name == now.Name
-               && old.Model == now.Model
-               && old.Manufacturer == now.Manufacturer
-               && old.SerialNumber == now.SerialNumber
-               && old.Geometry == now.Geometry
-               && old.DevicePixelRatio == now.DevicePixelRatio
-               && old.PhysicalWidthMm == now.PhysicalWidthMm
-               && old.PhysicalHeightMm == now.PhysicalHeightMm
-               && old.RefreshRate == now.RefreshRate
-               && old.IsPrimary == now.IsPrimary;
+        return old with { WorkArea = now.WorkArea } == now;
     }
 
     public void Dispose()

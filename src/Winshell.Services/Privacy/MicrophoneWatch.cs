@@ -174,9 +174,7 @@ internal sealed class MicrophoneWatch : IDisposable
                     sessions.GetSession(i, out var session);
                     try
                     {
-                        if (Capture(session) is { } capture && seen.Add(capture.PackageFamilyName.Length > 0
-                                ? "pkg:" + capture.PackageFamilyName
-                                : "exe:" + capture.Path))
+                        if (Capture(session) is { } capture && seen.Add(capture.Key))
                             found.Add(capture);
                     }
                     finally

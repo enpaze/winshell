@@ -2,13 +2,13 @@ namespace Winshell.Network;
 
 public sealed class WifiDevice : NetworkDevice
 {
-    private readonly DeviceAction _scan;
-    private string _error = "";
+    private readonly ReportedDeviceAction _scan;
 
     internal WifiDevice(NetworkDeviceInfo info, IEventLoop loop, INetworkBackend backend)
         : base(info, loop, backend)
     {
-        _scan = new DeviceAction(loop.Post);
+        _scan = new ReportedDeviceAction(loop.Post, () => Removed, Changed, error => OperationFailed?.Invoke(error),
+            nameof(Scanning));
     }
 
     public event Action<string>? OperationFailed;
@@ -17,7 +17,7 @@ public sealed class WifiDevice : NetworkDevice
 
     public bool Scanning => Read(_scan).Running;
 
-    public string Error => Read(_error);
+    public string Error => Read(_scan.Error);
 
     public void Scan()
     {
@@ -26,27 +26,7 @@ public sealed class WifiDevice : NetworkDevice
 
     internal Task ScanAsync()
     {
-        if (Removed)
-            return Task.CompletedTask;
-        return _scan.RunAsync(() =>
-        {
-            Changed(nameof(Scanning));
-            Set(ref _error, "", nameof(Error));
-        }, async () =>
-        {
-            return await Backend.ScanAsync(NativeId).ConfigureAwait(false);
-        }, error =>
-        {
-            if (Removed)
-                return;
-            Set(ref _error, error, nameof(Error));
-            if (error.Length > 0)
-                OperationFailed?.Invoke(error);
-        }, () =>
-        {
-            if (!Removed)
-                Changed(nameof(Scanning));
-        });
+        return _scan.RunAsync(() => Backend.ScanAsync(NativeId));
     }
 
     internal override void Update(NetworkDeviceInfo info)

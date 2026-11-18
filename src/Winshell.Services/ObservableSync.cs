@@ -2,6 +2,12 @@ namespace Winshell;
 
 internal static class ObservableSync
 {
+    public static void Mirror<T>(this ObservableList<T> items, IEnumerable<T> next)
+        where T : notnull
+    {
+        items.Sync(next, item => item, item => item, item => item, static (_, _) => { });
+    }
+
     public static void Sync<T, TInfo, TKey>(this ObservableList<T> items, IEnumerable<TInfo> next,
         Func<T, TKey> key, Func<TInfo, TKey> infoKey,
         Func<TInfo, T> create, Action<T, TInfo> update, Action<T>? removed = null)

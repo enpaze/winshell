@@ -22,7 +22,10 @@ internal readonly record struct ConsentRecord(
     ulong Stopped,
     string DisplayName);
 
-internal readonly record struct MicrophoneCapture(string Name, string Path, string PackageFamilyName, bool ThisProgram);
+internal readonly record struct MicrophoneCapture(string Name, string Path, string PackageFamilyName, bool ThisProgram)
+{
+    public string Key => PackageFamilyName.Length > 0 ? "pkg:" + PackageFamilyName : "exe:" + Path;
+}
 
 internal sealed record PrivacySnapshot(
     IReadOnlyList<ConsentRecord> Consent,

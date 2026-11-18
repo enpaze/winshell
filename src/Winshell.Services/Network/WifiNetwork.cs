@@ -2,13 +2,13 @@ namespace Winshell.Network;
 
 public sealed class WifiNetwork : Network
 {
-    private readonly DeviceAction _action;
-    private string _error = "";
+    private readonly ReportedDeviceAction _action;
 
     internal WifiNetwork(NetworkDevice device, NetworkInfo info)
         : base(device, info)
     {
-        _action = new DeviceAction(device.Loop.Post);
+        _action = new ReportedDeviceAction(device.Loop.Post, () => Removed, Changed,
+            error => OperationFailed?.Invoke(error), nameof(Busy));
     }
 
     public event Action<string>? OperationFailed;
@@ -19,7 +19,7 @@ public sealed class WifiNetwork : Network
 
     public bool Busy => Read(_action).Running;
 
-    public string Error => Read(_error);
+    public string Error => Read(_action.Error);
 
     public void Connect()
     {
@@ -48,17 +48,17 @@ public sealed class WifiNetwork : Network
 
     internal Task DisconnectAsync()
     {
-        return RunAsync(() => Device.Backend.DisconnectAsync(Device.NativeId));
+        return _action.RunAsync(() => Device.Backend.DisconnectAsync(Device.NativeId));
     }
 
     internal Task ForgetAsync()
     {
-        return RunAsync(() => Device.Backend.ForgetAsync(Device.NativeId, Name));
+        return _action.RunAsync(() => Device.Backend.ForgetAsync(Device.NativeId, Name));
     }
 
     internal Task ConnectAsync(string? password)
     {
-        return RunAsync(async () =>
+        return _action.RunAsync(async () =>
         {
             var failure = await Device.Backend.ConnectAsync(Device.NativeId, Name, password).ConfigureAwait(false);
             return failure?.ToString();
@@ -67,7 +67,7 @@ public sealed class WifiNetwork : Network
 
     internal Task ConnectProfileAsync(WifiProfile? profile)
     {
-        return RunAsync(async () =>
+        return _action.RunAsync(async () =>
         {
             if (profile is null || profile.Removed || !ReferenceEquals(profile.Network, this))
                 return "That saved profile is not on this network.";
@@ -82,27 +82,5 @@ public sealed class WifiNetwork : Network
         base.Update(info);
         Changed(old.SignalStrength != info.SignalStrength, nameof(SignalStrength));
         Changed(old.Security != info.Security, nameof(Security));
-    }
-
-    private Task RunAsync(Func<Task<string?>> action)
-    {
-        if (Removed)
-            return Task.CompletedTask;
-        return _action.RunAsync(() =>
-        {
-            Changed(nameof(Busy));
-            Set(ref _error, "", nameof(Error));
-        }, action, error =>
-        {
-            if (Removed)
-                return;
-            Set(ref _error, error, nameof(Error));
-            if (error.Length > 0)
-                OperationFailed?.Invoke(error);
-        }, () =>
-        {
-            if (!Removed)
-                Changed(nameof(Busy));
-        });
     }
 }

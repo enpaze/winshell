@@ -95,10 +95,10 @@ public sealed class WallpaperServiceTests
         heard.Clear();
         backend.Current = backend.Current with
         {
-            Monitors =
+            Screens =
             [
-                backend.Current.Monitors[0] with { Image = @"C:\wall\e.jpg" },
-                backend.Current.Monitors[1]
+                WithImage(backend.Current.Screens[0], @"C:\wall\e.jpg"),
+                backend.Current.Screens[1]
             ],
             Background = new WallpaperColor(9, 9, 9)
         };
@@ -201,9 +201,14 @@ public sealed class WallpaperServiceTests
     {
         return new WallpaperSnapshot(true,
         [
-            new WallpaperMonitor(@"\\.\DISPLAY1", @"\\?\DISPLAY#LEFT", @"C:\wall\a.jpg", true),
-            new WallpaperMonitor(@"\\.\DISPLAY2", @"\\?\DISPLAY#RIGHT", @"C:\wall\b.jpg", false)
+            new WallpaperScreen(@"\\.\DISPLAY1", @"\\?\DISPLAY#LEFT", @"C:\wall\a.jpg", true),
+            new WallpaperScreen(@"\\.\DISPLAY2", @"\\?\DISPLAY#RIGHT", @"C:\wall\b.jpg", false)
         ], WallpaperFit.Fill, new WallpaperColor(1, 2, 3));
+    }
+
+    private static WallpaperScreen WithImage(WallpaperScreen screen, string image)
+    {
+        return new WallpaperScreen(screen.Id, screen.MonitorId, image, screen.IsPrimary);
     }
 
     private sealed class FakeWallpaperBackend(WallpaperSnapshot snapshot) : IWallpaperBackend
@@ -240,8 +245,8 @@ public sealed class WallpaperServiceTests
                 return false;
             Current = Current with
             {
-                Monitors = Current.Monitors.Select(monitor =>
-                        monitorId is null || monitor.MonitorId == monitorId ? monitor with { Image = image } : monitor)
+                Screens = Current.Screens.Select(screen =>
+                        monitorId is null || screen.MonitorId == monitorId ? WithImage(screen, image) : screen)
                     .ToArray()
             };
             return true;

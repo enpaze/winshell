@@ -27,23 +27,19 @@ public sealed class NotificationListener : ObservableObject, IDisposable
     private bool _requesting;
     private bool _disposed;
 
-    internal NotificationListener(IEventLoop loop, Log log)
-        : this(loop, log, new WindowsNotificationBackend())
-    {
-        TempImageStore.Shared.CleanOldOnce(failure => log.Warn("images", failure));
-    }
-
-    internal NotificationListener(IEventLoop loop, Log log, INotificationBackend backend)
+    internal NotificationListener(IEventLoop loop, Log log, INotificationBackend? backend = null)
     {
         _loop = loop;
         _log = log;
-        _backend = backend;
-        _changes = new ToastChanges(backend.ToastStamp, loop.Time);
+        _backend = backend ?? new WindowsNotificationBackend();
+        _changes = new ToastChanges(_backend.ToastStamp, loop.Time);
         _icons = new NotificationAppIcons(loop, log, _stop.Token);
         _reader = new StateReader<NotificationSnapshot>(c => OwnThread.Run(() => Read(c)), Apply, loop,
             new MonitorWarning(log, "notifications"));
         _poll = SchedulePoll();
         _reader.Request();
+        if (backend is null)
+            TempImageStore.Shared.CleanOldOnce(failure => log.Warn("images", failure));
     }
 
     public event Action<Notification>? NotificationAdded;
@@ -432,6 +428,6 @@ public sealed class NotificationGroup : ObservableObject
     {
         Set(ref _appId, items[0].AppId, nameof(AppId));
         Set(ref _appName, items[0].AppName, nameof(AppName));
-        Notifications.Sync(items, n => n, n => n, n => n, (_, _) => { });
+        Notifications.Mirror(items);
     }
 }

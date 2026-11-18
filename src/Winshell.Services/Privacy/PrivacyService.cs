@@ -4,13 +4,11 @@ namespace Winshell.Privacy;
 
 public sealed class PrivacyService : INotifyPropertyChanged, IDisposable
 {
-    private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(100);
     private static readonly IReadOnlyList<PrivacyApp> None = [];
 
-    private readonly IEventLoop _loop;
     private readonly IPrivacyBackend _backend;
-    private PropertyChangedEventHandler? _listeners;
-    private IDisposable? _settle;
+    private readonly PropertyListeners _listeners;
+    private readonly SettleTimer _settle;
     private IReadOnlyList<PrivacyApp> _microphone = None;
     private IReadOnlyList<PrivacyApp> _camera = None;
     private IReadOnlyList<PrivacyApp> _location = None;
@@ -18,13 +16,13 @@ public sealed class PrivacyService : INotifyPropertyChanged, IDisposable
     private bool _cameraInUse;
     private bool _locationInUse;
     private bool _watching;
-    private bool _disposed;
 
     internal PrivacyService(IEventLoop loop, Log log, IPrivacyBackend? backend = null)
     {
-        _loop = loop;
         _backend = backend ?? new PrivacyBackend(log);
-        _backend.Changed += OnChanged;
+        _listeners = new PropertyListeners(this, Listen, Quiet);
+        _settle = new SettleTimer(loop, () => Publish(_backend.Read()), () => _watching);
+        _backend.Changed += _settle.Signal;
     }
 
     public IReadOnlyList<PrivacyApp> Microphone => _microphone;
@@ -41,28 +39,16 @@ public sealed class PrivacyService : INotifyPropertyChanged, IDisposable
 
     public event PropertyChangedEventHandler? PropertyChanged
     {
-        add
-        {
-            var first = _listeners is null;
-            _listeners += value;
-            if (first && _listeners is not null && !_disposed)
-                Listen();
-        }
-        remove
-        {
-            _listeners -= value;
-            if (_listeners is null)
-                Quiet();
-        }
+        add => _listeners.Add(value);
+        remove => _listeners.Remove(value);
     }
 
     public void Dispose()
     {
-        if (_disposed)
+        if (_listeners.Disposed)
             return;
-        _disposed = true;
-        Quiet();
-        _backend.Changed -= OnChanged;
+        _listeners.Dispose();
+        _backend.Changed -= _settle.Signal;
         _backend.Dispose();
     }
 
@@ -78,8 +64,7 @@ public sealed class PrivacyService : INotifyPropertyChanged, IDisposable
         if (!_watching)
             return;
         _watching = false;
-        _settle?.Dispose();
-        _settle = null;
+        _settle.Cancel();
         _backend.Stop();
         _microphone = None;
         _camera = None;
@@ -87,26 +72,6 @@ public sealed class PrivacyService : INotifyPropertyChanged, IDisposable
         _microphoneInUse = false;
         _cameraInUse = false;
         _locationInUse = false;
-    }
-
-    private void OnChanged()
-    {
-        if (_disposed || !_watching)
-            return;
-        _loop.Post(Schedule);
-    }
-
-    private void Schedule()
-    {
-        if (_disposed || !_watching)
-            return;
-        _settle?.Dispose();
-        _settle = _loop.Schedule(Settle, () =>
-        {
-            _settle = null;
-            if (_watching && !_disposed)
-                Publish(_backend.Read());
-        });
     }
 
     private void Publish(PrivacySnapshot snapshot)
@@ -127,7 +92,7 @@ public sealed class PrivacyService : INotifyPropertyChanged, IDisposable
         {
             if (capture.Path.Length == 0 && capture.PackageFamilyName.Length == 0)
                 continue;
-            Add(microphone, index, Key(PrivacyCapability.Microphone, CaptureKey(capture)),
+            Add(microphone, index, Key(PrivacyCapability.Microphone, capture.Key),
                 FromCapture(capture, snapshot));
         }
 
@@ -147,9 +112,9 @@ public sealed class PrivacyService : INotifyPropertyChanged, IDisposable
         apps = next.Count == 0 ? None : next;
         inUse = next.Count > 0;
         if (listChanged)
-            _listeners?.Invoke(this, new PropertyChangedEventArgs(appsName));
+            _listeners.Raise(appsName);
         if (useChanged)
-            _listeners?.Invoke(this, new PropertyChangedEventArgs(inUseName));
+            _listeners.Raise(inUseName);
     }
 
     private static PrivacyApp FromConsent(ConsentRecord record, PrivacySnapshot snapshot)
@@ -193,13 +158,6 @@ public sealed class PrivacyService : INotifyPropertyChanged, IDisposable
     private static string Key(PrivacyCapability capability, string id)
     {
         return capability + "\n" + id;
-    }
-
-    private static string CaptureKey(MicrophoneCapture capture)
-    {
-        return capture.PackageFamilyName.Length > 0
-            ? "pkg:" + capture.PackageFamilyName
-            : "exe:" + capture.Path;
     }
 
     private static List<PrivacyApp> List(PrivacyCapability capability, List<PrivacyApp> microphone,

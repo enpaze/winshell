@@ -8,17 +8,17 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
 
     private readonly IEventLoop _loop;
     private readonly IKeyboardLayoutBackend _backend;
-    private PropertyChangedEventHandler? _listeners;
+    private readonly PropertyListeners _listeners;
     private IDisposable? _timer;
     private KeyboardSnapshot? _last;
     private IReadOnlyList<KeyboardLayout> _layouts = [];
     private KeyboardLayout? _current;
-    private bool _disposed;
 
     internal KeyboardLayoutService(IEventLoop loop, IKeyboardLayoutBackend? backend = null)
     {
         _loop = loop;
         _backend = backend ?? new KeyboardLayoutBackend();
+        _listeners = new PropertyListeners(this, Sample, Stop);
     }
 
     public IReadOnlyList<KeyboardLayout> Layouts => _layouts;
@@ -27,25 +27,14 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
 
     public event PropertyChangedEventHandler? PropertyChanged
     {
-        add
-        {
-            var first = _listeners is null;
-            _listeners += value;
-            if (first && _listeners is not null && !_disposed)
-                Sample();
-        }
-        remove
-        {
-            _listeners -= value;
-            if (_listeners is null)
-                Stop();
-        }
+        add => _listeners.Add(value);
+        remove => _listeners.Remove(value);
     }
 
     public bool Use(KeyboardLayout layout)
     {
         ArgumentNullException.ThrowIfNull(layout);
-        if (_disposed)
+        if (_listeners.Disposed)
             return false;
         var snapshot = Snapshot();
         if (!Listed(snapshot, layout.Id) || snapshot.CurrentId == layout.Id)
@@ -55,7 +44,7 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
 
     public bool Next()
     {
-        if (_disposed)
+        if (_listeners.Disposed)
             return false;
         var snapshot = Snapshot();
         if (snapshot.Layouts.Count == 0)
@@ -72,8 +61,7 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
 
     public void Dispose()
     {
-        _disposed = true;
-        Stop();
+        _listeners.Dispose();
     }
 
     private void Sample()
@@ -100,9 +88,9 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
         _current = current;
         _last = snapshot;
         if (layoutsChanged)
-            _listeners?.Invoke(this, new PropertyChangedEventArgs(nameof(Layouts)));
+            _listeners.Raise(nameof(Layouts));
         if (currentChanged)
-            _listeners?.Invoke(this, new PropertyChangedEventArgs(nameof(Current)));
+            _listeners.Raise(nameof(Current));
     }
 
     private void Stop()
@@ -116,7 +104,7 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
 
     private KeyboardSnapshot Snapshot()
     {
-        return _listeners is null || _last is null ? _backend.Read() : _last;
+        return !_listeners.Any || _last is null ? _backend.Read() : _last;
     }
 
     private static bool Listed(KeyboardSnapshot snapshot, string id)

@@ -8,35 +8,24 @@ public sealed class CpuService : INotifyPropertyChanged, IDisposable
 
     private readonly IEventLoop _loop;
     private readonly ICpuBackend _backend;
-    private PropertyChangedEventHandler? _listeners;
+    private readonly PropertyListeners _listeners;
     private IDisposable? _timer;
     private CpuTimes? _last;
     private double _usage;
-    private bool _disposed;
 
     internal CpuService(IEventLoop loop, ICpuBackend? backend = null)
     {
         _loop = loop;
         _backend = backend ?? new CpuBackend();
+        _listeners = new PropertyListeners(this, Sample, Stop);
     }
 
     public double Usage => _usage;
 
     public event PropertyChangedEventHandler? PropertyChanged
     {
-        add
-        {
-            var first = _listeners is null;
-            _listeners += value;
-            if (first && _listeners is not null && !_disposed)
-                Sample();
-        }
-        remove
-        {
-            _listeners -= value;
-            if (_listeners is null)
-                Stop();
-        }
+        add => _listeners.Add(value);
+        remove => _listeners.Remove(value);
     }
 
     private void Sample()
@@ -62,12 +51,11 @@ public sealed class CpuService : INotifyPropertyChanged, IDisposable
         if (usage == _usage)
             return;
         _usage = usage;
-        _listeners?.Invoke(this, new PropertyChangedEventArgs(nameof(Usage)));
+        _listeners.Raise(nameof(Usage));
     }
 
     public void Dispose()
     {
-        _disposed = true;
-        Stop();
+        _listeners.Dispose();
     }
 }
