@@ -176,7 +176,9 @@ A project that references the `Winshell` package and has `ImplicitUsings` on, as
 Shell.Run(shell => _ = new Bar { Center = ["clock"] }, new ShellOptions { ShellId = "MyShell" });
 ```
 
-WinUI needs a single-threaded apartment (STA) thread. When the thread that calls `Shell.Run` is not one, as a top-level program's is not, the shell runs on a new STA thread and `Shell.Run` waits for it. An exception the shell throws there comes back out of `Shell.Run` with its original stack.
+WinUI needs a single-threaded apartment (STA) thread. When the thread that calls `Shell.Run` is not one, as a top-level program's is not, the shell runs on a new STA thread with the caller's culture, and `Shell.Run` waits for it.
+
+When `start` throws, Winshell writes a crash report and closes the shell. `Shell.Run` then returns without an exception, and the program exits with code 1, which `winshell run` does not restart. An exception that escapes the shell outside `start` comes back out of `Shell.Run` with its original stack.
 
 `ShellOptions` names where the shell keeps its files:
 
