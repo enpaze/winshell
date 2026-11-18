@@ -80,7 +80,7 @@ internal static class Inspector
                 var window = windows[i];
                 json.WriteStartObject();
                 json.WriteNumber("window", i);
-                json.WriteString("kind", window.GetType().Name);
+                json.WriteString("kind", KindName(window.Host!.Kind));
                 json.WriteNumber("x", window.Origin.X);
                 json.WriteNumber("y", window.Origin.Y);
                 json.WriteNumber("width", window.ActualWidth);
@@ -221,6 +221,17 @@ internal static class Inspector
                 $"  window {match.Window} ({ShownName(windows[match.Window])}): {Described(match.Element)}"),
             hint
         ]);
+    }
+
+    private static string KindName(WindowKind kind)
+    {
+        return kind switch
+        {
+            WindowKind.Panel => nameof(PanelWindow),
+            WindowKind.Floating => nameof(FloatingWindow),
+            WindowKind.Popup => nameof(PopupWindow),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind))
+        };
     }
 
     private static string ContentName(UIElement content)
