@@ -8,7 +8,7 @@ using Windows.Win32.System.Pipes;
 
 namespace Winshell.Native;
 
-internal static unsafe class NamedPipeServer
+internal static unsafe class NamedPipes
 {
     internal static SafePipeHandle? CreateServer(string name, bool first, string sddl, out int error)
     {

@@ -107,7 +107,7 @@ internal sealed class VirtualDesktopBackend : IVirtualDesktopBackend
     public bool TryRead(out IReadOnlyList<DesktopRecord> desktops, out Guid current, out string error)
     {
         desktops = [];
-        if (!ImmersiveDesktops.TryRead(out var entries, out current, out error))
+        if (!VirtualDesktops.TryRead(out var entries, out current, out error))
             return false;
         desktops = entries.Select(entry => new DesktopRecord(entry.Id, entry.Name)).ToList();
         return true;
@@ -115,7 +115,7 @@ internal sealed class VirtualDesktopBackend : IVirtualDesktopBackend
 
     public bool SwitchTo(Guid id, out string problem)
     {
-        if (ImmersiveDesktops.SwitchTo(id, out problem))
+        if (VirtualDesktops.SwitchTo(id, out problem))
             return true;
         problem = $"SwitchDesktop {problem}.";
         return false;
@@ -123,7 +123,7 @@ internal sealed class VirtualDesktopBackend : IVirtualDesktopBackend
 
     public Guid? Create(out string problem)
     {
-        if (ImmersiveDesktops.Create(out problem) is { } id)
+        if (VirtualDesktops.Create(out problem) is { } id)
             return id;
         problem = $"CreateDesktop {problem}.";
         return null;
@@ -137,7 +137,7 @@ internal sealed class VirtualDesktopBackend : IVirtualDesktopBackend
             return false;
         }
 
-        if (ImmersiveDesktops.Remove(id, fallback, out problem))
+        if (VirtualDesktops.Remove(id, fallback, out problem))
             return true;
         problem = $"RemoveDesktop {problem}.";
         return false;

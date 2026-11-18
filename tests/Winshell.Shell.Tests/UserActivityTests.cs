@@ -19,7 +19,7 @@ public sealed class UserActivityTests
     public void Input_from_someone_in_the_last_few_seconds_holds_it_back(uint now, uint lastInput, uint[] sends,
         bool active)
     {
-        var sent = sends.Chunk(3).Select(send => new Send(send[0], send[1], send[2])).ToList();
+        var sent = sends.Chunk(3).Select(send => new InjectedInput(send[0], send[1], send[2])).ToList();
 
         Assert.Equal(active, SentInput.WithinQuiet(now, lastInput, sent));
     }

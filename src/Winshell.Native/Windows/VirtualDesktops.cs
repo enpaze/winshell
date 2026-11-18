@@ -9,7 +9,7 @@ namespace Winshell.Native;
 
 internal readonly record struct VirtualDesktopEntry(Guid Id, string Name);
 
-internal static class ImmersiveDesktops
+internal static class VirtualDesktops
 {
     private static readonly Guid ImmersiveShellClass = new("C2F03A33-21F5-47FA-B4BB-156362A2F239");
     private static readonly Guid InternalService = new("C5E0CDCA-7B6E-41B2-9FC4-D93975CC467B");

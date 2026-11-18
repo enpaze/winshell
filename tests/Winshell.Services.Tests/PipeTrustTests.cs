@@ -29,7 +29,7 @@ public class PipeTrustTests
     {
         var name = "winshell-test-" + Guid.NewGuid().ToString("N");
         using var first = IpcServer.OpenFirst(name);
-        var label = NamedPipeServer.MandatoryLabel(first.SafePipeHandle);
+        var label = NamedPipes.MandatoryLabel(first.SafePipeHandle);
         Assert.Contains("ME", label, StringComparison.Ordinal);
         Assert.Contains("NW", label, StringComparison.Ordinal);
         Assert.Throws<PipeTakenException>(() => IpcServer.OpenFirst(name));
@@ -53,7 +53,7 @@ public class PipeTrustTests
         using var other = IpcServer.OpenAvailable(ref chosen);
         Assert.NotEqual(name, chosen);
         Assert.StartsWith("winshell-", chosen, StringComparison.Ordinal);
-        Assert.Contains("ME", NamedPipeServer.MandatoryLabel(other.SafePipeHandle), StringComparison.Ordinal);
+        Assert.Contains("ME", NamedPipes.MandatoryLabel(other.SafePipeHandle), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public class PipeTrustTests
         await client.ConnectAsync(3000, TestContext.Current.CancellationToken);
         await firstWait;
         await using var second = IpcServer.OpenNext(name);
-        var label = NamedPipeServer.MandatoryLabel(second.SafePipeHandle);
+        var label = NamedPipes.MandatoryLabel(second.SafePipeHandle);
         Assert.Contains("ME", label, StringComparison.Ordinal);
         Assert.Contains("NW", label, StringComparison.Ordinal);
         var secondWait = second.WaitForConnectionAsync(TestContext.Current.CancellationToken);

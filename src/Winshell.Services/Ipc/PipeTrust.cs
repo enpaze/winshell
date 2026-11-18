@@ -21,13 +21,13 @@ internal static class PipeTrust
                   ?? throw new IOException("The control pipe could not be labeled.");
         var path = @"\\.\pipe\" + pipe;
         var labeled =
-            NamedPipeServer.CreateServer(path, first, $"O:{sid}D:(A;;GA;;;{sid}){MediumLabel}", out var error);
+            NamedPipes.CreateServer(path, first, $"O:{sid}D:(A;;GA;;;{sid}){MediumLabel}", out var error);
         if (labeled is not null && IsMedium(labeled))
             return labeled;
         labeled?.Dispose();
         if (first && error == (int)WIN32_ERROR.ERROR_ACCESS_DENIED)
             throw new PipeTakenException();
-        var handle = NamedPipeServer.CreateServer(path, first, $"O:{sid}D:(A;;GA;;;{sid})", out error);
+        var handle = NamedPipes.CreateServer(path, first, $"O:{sid}D:(A;;GA;;;{sid})", out error);
         if (handle is null)
             throw error == (int)WIN32_ERROR.ERROR_ACCESS_DENIED
                 ? new PipeTakenException()
@@ -54,13 +54,13 @@ internal static class PipeTrust
 
     private static bool IsMedium(SafePipeHandle pipe)
     {
-        var label = NamedPipeServer.MandatoryLabel(pipe);
+        var label = NamedPipes.MandatoryLabel(pipe);
         return label.Contains("ME", StringComparison.Ordinal) && label.Contains("NW", StringComparison.Ordinal);
     }
 
     private static void SetMediumLabel(SafePipeHandle pipe)
     {
-        var error = NamedPipeServer.SetMandatoryLabel(pipe, MediumLabel);
+        var error = NamedPipes.SetMandatoryLabel(pipe, MediumLabel);
         if (error != 0)
             throw new IOException($"The control pipe could not be labeled ({error}).");
     }
@@ -79,7 +79,7 @@ internal static class PipeTrust
 
     internal static string? ClientRefusal(SafePipeHandle pipe)
     {
-        if (NamedPipeServer.ClientProcessId(pipe, out var error) is not { } pid)
+        if (NamedPipes.ClientProcessId(pipe, out var error) is not { } pid)
             return $"The shell could not identify the command's process ({error}).";
         if (ProcessIntegrity.TryRead(pid) is not { } client ||
             ProcessIntegrity.TryRead((uint)Environment.ProcessId) is not { } floor)
