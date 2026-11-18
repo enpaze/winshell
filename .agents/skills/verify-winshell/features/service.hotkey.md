@@ -1,6 +1,6 @@
-# Hotkeys (NewHotkey)
+# Hotkeys (Hotkey)
 
-`shell.NewHotkey()` makes a `Hotkey`, a key chord that works anywhere in Windows while the shell runs, and raises `Pressed` and `Released` when the user presses it. A configuration uses it to open a launcher or switch a workspace from the keyboard. The feature shell registers `Ctrl+Alt+Shift+F13`, and its row `service.new-hotkey` shows `sequence: Ctrl+Alt+Shift+F13; active: <True|False>; taken: <True|False>`.
+`shell.Hotkey(sequence, pressed)` makes a `Hotkey`, a key chord that works anywhere in Windows while the shell runs. When the user presses it, it runs `pressed` and raises `Pressed`. It raises `Released` when it leaves the pressed state: the user lets go of the keys, or its `Sequence` or `Enabled` changes. A configuration uses it to open a launcher or switch a workspace from the keyboard. The feature shell registers `Ctrl+Alt+Shift+F13`, and its row `service.hotkey` shows `sequence: Ctrl+Alt+Shift+F13; active: <True|False>; taken: <True|False>`.
 
 ## Sub-features
 
@@ -14,7 +14,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration calls `shell.NewHotkey()`, sets `Sequence`, and handles `Pressed`.
+- A configuration calls `shell.Hotkey(sequence, pressed)`.
 - The user presses the chord anywhere in Windows.
 - The starter and the omarchy-style example do not register one.
 
@@ -25,11 +25,11 @@ Preconditions:
 - Shell: `features`.
 - The feature shell's `Winshell features` window is open.
 
-- **Read the hotkey's state.** Read the `service.new-hotkey` row in the feature shell. Run `winshell inspect --pid {pid} tree`. One element has the automation id `service.new-hotkey`, and its `text` matches `^sequence: Ctrl\+Alt\+Shift\+F13; active: (True|False); taken: (True|False)$`. The driver retries for 20 seconds.
+- **Read the hotkey's state.** Read the `service.hotkey` row in the feature shell. Run `winshell inspect --pid {pid} tree`. One element has the automation id `service.hotkey`, and its `text` matches `^sequence: Ctrl\+Alt\+Shift\+F13; active: (True|False); taken: (True|False)$`. The driver retries for 20 seconds.
 
 ```json
 [
-  {"element": "service.new-hotkey", "has": {"text": "^sequence: Ctrl\\+Alt\\+Shift\\+F13; active: (True|False); taken: (True|False)$"}, "within": 20}
+  {"element": "service.hotkey", "has": {"text": "^sequence: Ctrl\\+Alt\\+Shift\\+F13; active: (True|False); taken: (True|False)$"}, "within": 20}
 ]
 ```
 

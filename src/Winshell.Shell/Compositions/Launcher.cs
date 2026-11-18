@@ -19,7 +19,7 @@ public sealed class Launcher : ObservableObject, IDisposable
     private const double Height = 420;
 
     private readonly Shell _shell = Shell.Current;
-    private readonly Hotkey _hotkey;
+    private Hotkey? _hotkey;
     private LauncherPreferences? _preferences;
     private PopupWindow? _window;
     private ReactorHostControl? _host;
@@ -29,8 +29,6 @@ public sealed class Launcher : ObservableObject, IDisposable
 
     public Launcher()
     {
-        _hotkey = _shell.NewHotkey();
-        _hotkey.Pressed += (_, _) => Toggle();
         _shell.Loop.Post(Start);
     }
 
@@ -89,8 +87,8 @@ public sealed class Launcher : ObservableObject, IDisposable
         if (_disposed)
             return;
         _preferences = new LauncherPreferences(this);
+        _hotkey = _shell.Hotkey(_preferences.Hotkey, Toggle);
         _preferences.PropertyChanged += (_, _) => _hotkey.Sequence = _preferences.Hotkey;
-        _hotkey.Sequence = _preferences.Hotkey;
     }
 
     private ScreenInfo? Where()
@@ -147,7 +145,7 @@ public sealed class Launcher : ObservableObject, IDisposable
         if (_disposed)
             return;
         _disposed = true;
-        _hotkey.Dispose();
+        _hotkey?.Dispose();
         _preferences?.Dispose();
         _host?.Dispose();
         _window?.Dispose();

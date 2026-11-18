@@ -94,9 +94,9 @@ public sealed partial class Shell
 
     public WinlandService Winland => _winland ?? Linked(WindowList);
 
-    public Hotkey NewHotkey()
+    public Hotkey Hotkey(string sequence, Action? pressed = null)
     {
-        return new Hotkey(Loop, Log, _hotkeys ??= new HotkeyRegistrar(Loop, Log));
+        return new Hotkey(Loop, Log, _hotkeys ??= new HotkeyRegistrar(Loop, Log), sequence, pressed);
     }
 
     public IdleMonitor NewIdleMonitor()

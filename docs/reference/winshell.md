@@ -292,7 +292,7 @@ Has the members of [ObservableObject](#observableobject).
 | `ConfigPath(string path)` | string |
 | `DataPath(string path)` | string |
 | `Dispose()` | void |
-| `NewHotkey()` | [Hotkey](winshell-input.md#hotkey) |
+| `Hotkey(string sequence, Action? pressed = null)` | [Hotkey](winshell-input.md#hotkey) |
 | `NewIdleMonitor()` | [IdleMonitor](winshell-power.md#idlemonitor) |
 | `Open(string target)` | void |
 | `Quit()` | void |

@@ -126,9 +126,7 @@ public static class GuideSamples
 
     public static void AHotkey(Shell shell)
     {
-        var hotkey = shell.NewHotkey();
-        hotkey.Sequence = "Win+E";
-        hotkey.Pressed += (_, _) => { };
+        var hotkey = shell.Hotkey("Win+E", () => { });
     }
 
     public static Button ASettingsButton(Shell shell)
