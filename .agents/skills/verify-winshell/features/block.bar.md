@@ -17,7 +17,7 @@ A `Bar` is a panel along one edge of every screen, with three widget areas: star
 ## How to get to it (user POV)
 
 - Run `winshell new starter` and then `winshell run -c starter`. The starter makes one bar.
-- In the function a shell passes to `Shell.Run`, write `_ = new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] };`. Each name is a widget of the shell project, such as the class `Clock` or `ClockWidget` for `clock`.
+- In the function a shell passes to `Shell.Run`, write `shell.Add(new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] });`. Each name is a widget of the shell project, such as the class `Clock` or `ClockWidget` for `clock`.
 - Edit the `[bar]` section of `preferences\<shell id>.toml` in the config folder, or a `[[bar.screen]]` row, and save it.
 
 ## Driving it with winshell inspect

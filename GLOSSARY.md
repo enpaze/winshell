@@ -57,8 +57,12 @@ A public part of a shell set on primitives, such as the windows on each screen, 
 _Avoid_: layer, helper
 
 **Composition**:
-A public arrangement of building blocks for one common desktop, such as a bar. It uses only the public API a shell author has.
+A public arrangement of building blocks for one common desktop, such as a bar. It uses the public API a shell author has, and Shell's own internals only to start as a part.
 _Avoid_: layer, layout, theme
+
+**Part**:
+Something the shell owns once the author adds it with `shell.Add`, such as a bar, a launcher, the windows on each screen, or a window. Nothing shows before it is added, and the shell disposes it when it quits.
+_Avoid_: module, plugin, component (that is a piece of UI)
 
 ## What it shows
 

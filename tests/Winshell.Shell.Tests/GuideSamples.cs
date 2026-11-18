@@ -11,24 +11,23 @@ public static class GuideSamples
 
     public static void RunTheShell()
     {
-        Shell.Run(shell => _ = new Bar { Center = ["clock"] });
+        Shell.Run(shell => shell.Add(new Bar { Center = ["clock"] }));
     }
 
-    public static void APanel()
+    public static void APanel(Shell shell)
     {
-        _ = new PanelWindow
+        shell.Add(new PanelWindow
         {
             Anchors = Edges.Left | Edges.Right | Edges.Bottom,
             Height = 48,
             ReservedSize = 48,
-            Content = new TextBlock { Text = "Winshell" },
-            Visible = true
-        };
+            Content = new TextBlock { Text = "Winshell" }
+        });
     }
 
-    public static ScreenWindows ADockOnEachScreen()
+    public static ScreenWindows ADockOnEachScreen(Shell shell)
     {
-        var dock = new ScreenWindows("dock", (screen, row) => new PanelWindow
+        var dock = shell.Add(new ScreenWindows("dock", (screen, row) => new PanelWindow
         {
             Screen = screen,
             Anchors = row?.GetValueOrDefault("edge") is "top"
@@ -36,9 +35,8 @@ public static class GuideSamples
                 : Edges.Left | Edges.Right | Edges.Bottom,
             Height = 48,
             ReservedSize = 48,
-            Content = new TextBlock { Text = screen.Name },
-            Visible = true
-        });
+            Content = new TextBlock { Text = screen.Name }
+        }));
         return dock;
     }
 
@@ -49,42 +47,42 @@ public static class GuideSamples
         _ = _registration;
     }
 
-    public static PanelWindow AWidgetArea()
+    public static PanelWindow AWidgetArea(Shell shell)
     {
-        var panel = new PanelWindow<EndArea> { Height = 48, Visible = true };
+        var panel = shell.Add(new PanelWindow<EndArea> { Height = 48 });
         return panel;
     }
 
     public static (PopupWindow Calendar, Input.Hotkey Hotkey) AComponentPopup(Shell shell)
     {
-        var calendar = new PopupWindow<Calendar> { Position = PopupPosition.Top, Width = 320, Height = 240 };
+        var calendar = shell.Add(new PopupWindow<Calendar> { Position = PopupPosition.Top, Width = 320, Height = 240 });
         var hotkey = shell.Hotkey("Win+Alt+C", calendar.Toggle);
         return (calendar, hotkey);
     }
 
-    public static (PopupWindow Today, PopupWindow Later) TwoNotes()
+    public static (PopupWindow Today, PopupWindow Later) TwoNotes(Shell shell)
     {
-        var today = new PopupWindow<Note, string>("Stand-up at 10") { Position = PopupPosition.Top };
-        var later = new PopupWindow<Note, string>("Pay the rent");
+        var today = shell.Add(new PopupWindow<Note, string>("Stand-up at 10") { Position = PopupPosition.Top });
+        var later = shell.Add(new PopupWindow<Note, string>("Pay the rent"));
         return (today, later);
     }
 
-    public static (Bar Top, Bar Side) Bars()
+    public static (Bar Top, Bar Side) Bars(Shell shell)
     {
-        var bar = new Bar
+        var bar = shell.Add(new Bar
         {
             Edge = Edges.Top,
             Start = ["workspaces"],
             Center = ["clock"],
             End = ["tray", new("message", new Dictionary<string, object> { ["text"] = "Hello" })]
-        };
-        var side = new Bar { Name = "side", Edge = Edges.Left, Reserve = false, Start = ["clock"] };
+        });
+        var side = shell.Add(new Bar { Name = "side", Edge = Edges.Left, Reserve = false, Start = ["clock"] });
         return (bar, side);
     }
 
     public static Launcher ALauncher(Shell shell)
     {
-        var launcher = new Launcher
+        var launcher = shell.Add(new Launcher
         {
             Hotkey = "Alt+Space",
             Commands =
@@ -92,13 +90,13 @@ public static class GuideSamples
                 new("Lock", () => shell.Session.Lock()),
                 new("Reload shell", () => shell.Reload())
             ]
-        };
+        });
         return launcher;
     }
 
-    public static PanelWindow ASurface()
+    public static PanelWindow ASurface(Shell shell)
     {
-        var dock = new PanelWindow<Dock> { Anchors = Edges.Bottom, Height = 56, Visible = true };
+        var dock = shell.Add(new PanelWindow<Dock> { Anchors = Edges.Bottom, Height = 56 });
         return dock;
     }
 

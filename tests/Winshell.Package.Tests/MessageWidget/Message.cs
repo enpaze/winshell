@@ -30,6 +30,6 @@ public sealed class Message : Widget
     {
         popup.Current?.Dispose();
         var body = new TextBlock { Text = line, Margin = new Thickness(12) };
-        popup.Current = new PopupWindow { Content = StylePopup(body), Visible = true };
+        popup.Current = Shell.Add(new PopupWindow { Content = StylePopup(body), Visible = true });
     }
 }
