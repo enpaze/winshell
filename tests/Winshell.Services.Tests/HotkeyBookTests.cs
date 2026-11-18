@@ -248,11 +248,8 @@ public sealed class HotkeyBookTests
     {
         public IEventLoop Loop { get; } = loop;
 
-        private int Presses { get; set; }
-
         public void OnPressed(bool deliversRelease)
         {
-            Presses++;
         }
 
         public void OnReleased()

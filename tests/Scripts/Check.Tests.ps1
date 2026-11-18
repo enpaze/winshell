@@ -49,7 +49,7 @@ Describe 'Choosing tests' {
             Set-WinshellSolution
             $run = Get-TestRun
             $run.Projects | Should -Be $script:Projects
-            $run.ProjectCount | Should -Be 5
+            $run.Projects.Count | Should -Be 5
             $run.Filter | Should -Be 'Category!=Package&Category!=Window'
         } finally { $script:Root = $root }
     }
@@ -61,7 +61,7 @@ Describe 'Choosing tests' {
             Set-WinshellSolution
             $routed = @(foreach ($shard in 1..4) { (Get-TestRun -Shard $shard).Projects })
             ($routed | Sort-Object) | Should -Be ($script:Projects | Sort-Object)
-            (Get-TestRun -Shard 4).ProjectCount | Should -Be 2
+            (Get-TestRun -Shard 4).Projects.Count | Should -Be 2
             (Get-TestRun -Shard 1).Projects | Should -Be @('tests/Winshell.Tests/Winshell.Tests.csproj')
             foreach ($shard in 1..4) { (Get-TestRun -Shard $shard).Filter | Should -Not -Match 'Category!=Window' }
             { Get-TestRun -Shard 5 } | Should -Throw
@@ -348,7 +348,7 @@ Invoke-TestRun 6>$null
 Describe 'Check command' {
     BeforeAll {
         $script:Check = (Resolve-Path (Join-Path $PSScriptRoot '../../scripts/check.ps1')).Path
-        $script:ProjectCount = (Get-TestRun).ProjectCount
+        $script:ProjectCount = (Get-TestRun).Projects.Count
         $script:PesterVersion = (Import-PowerShellDataFile (Join-Path $PSScriptRoot '../../scripts/tool-pins.psd1')).pester.version
 
         function Invoke-Check {

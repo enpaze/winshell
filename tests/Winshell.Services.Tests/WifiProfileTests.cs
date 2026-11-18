@@ -258,7 +258,7 @@ public sealed class WifiProfileTests
             manual);
 
         const string empty = "<WLANProfile><name>Office</name><connectionMode></connectionMode></WLANProfile>";
-        Assert.True(WifiProfileXml.TrySetAutoConnect(empty, true, out manual, out changed, out error), error);
+        Assert.True(WifiProfileXml.TrySetAutoConnect(empty, true, out manual, out _, out error), error);
         Assert.Equal("<WLANProfile><name>Office</name><connectionMode>auto</connectionMode></WLANProfile>", manual);
 
         AssertNoWrite(
