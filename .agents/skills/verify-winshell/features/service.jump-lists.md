@@ -10,7 +10,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration calls `shell.JumpLists.ForApp(appId)`, or `Props.Shell.JumpLists.ForApp(appId)` in a widget, with an app's AppUserModelID, such as `AppWindow.AppId` or `AppEntry.AppId`.
+- A configuration calls `shell.JumpLists.ForApp(appId)`, or `Shell.JumpLists.ForApp(appId)` in a widget, with an app's AppUserModelID, such as `AppWindow.AppId` or `AppEntry.AppId`.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

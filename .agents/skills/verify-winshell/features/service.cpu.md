@@ -9,7 +9,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Cpu`, or `Props.Shell.Cpu` in a widget, and follows it with `UseObservable` or `PropertyChanged`.
+- A configuration reads `shell.Cpu`, or `Shell.Cpu` in a widget, and follows it with `UseObservable` or `PropertyChanged`.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

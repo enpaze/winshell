@@ -9,7 +9,7 @@ public static class Widgets
     private static readonly object Gate = new();
 
     public static void Register<TWidget>(string name)
-        where TWidget : Component<WidgetContext>, new()
+        where TWidget : Widget, new()
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         lock (Gate)

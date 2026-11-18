@@ -13,7 +13,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Apps`, or `Props.Shell.Apps` in a widget.
+- A configuration reads `shell.Apps`, or `Shell.Apps` in a widget.
 - A configuration calls the static `AppsService.DisplayName`, `AppsService.FallbackName` and `AppsService.ProgramDescription`.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 

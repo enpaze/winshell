@@ -36,10 +36,10 @@ public sealed class FeatureWindow : Component<FeatureWindowProps>
     }
 }
 
-public sealed class FeatureWidget : Component<WidgetContext>
+public sealed class FeatureWidget : Widget
 {
     public override Element Render()
     {
-        return TextBlock($"widget area: {Props.Settings.GetValueOrDefault("text")}").AutomationId("block.widget-area");
+        return TextBlock($"widget area: {Setting("text", "")}").AutomationId("block.widget-area");
     }
 }

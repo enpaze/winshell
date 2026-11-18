@@ -196,6 +196,53 @@ public sealed class WidgetTests
         });
     }
 
+    [Fact]
+    [Trait("Category", "Window")]
+    public async Task The_guide_s_message_widget_says_hello_when_its_placement_has_no_text()
+    {
+        await ShellFixture.On(async _ =>
+        {
+            var name = Guid.NewGuid().ToString();
+            Widgets.Register<MessageWidget.Message>(name);
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
+            {
+                Defaults = [name, new(name, new Dictionary<string, object> { ["text"] = "Hi" })]
+            });
+            using var window = new PanelWindow { Width = 320, Height = 60, Content = area.Host, Visible = true };
+            string[] text = [];
+            await Wait.UntilAsync(() =>
+            {
+                text = [.. Texts(area.Host)];
+                return text.Length == 2;
+            }, "both messages to render");
+
+            Assert.Equal(["Hello ·", "Hi ·"], text);
+            return true;
+        });
+    }
+
+    [Fact]
+    [Trait("Category", "Window")]
+    public async Task The_example_clock_refuses_a_timezone_that_is_not_a_string()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var name = Guid.NewGuid().ToString();
+            Widgets.Register<OmarchyStyle.ClockWidget>(name);
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
+            {
+                Defaults = [new(name, new Dictionary<string, object> { ["timezone"] = 5L })]
+            });
+            using var window = new PanelWindow { Width = 420, Height = 60, Content = area.Host, Visible = true };
+            await Wait.UntilAsync(() => Texts(area.Host).Contains($"{name}: timezone must be a string."),
+                "the clock's placeholder");
+
+            Assert.Contains("UnsupportedWidgetException: timezone must be a string.", ShellFixture.ReadLog(shell),
+                StringComparison.Ordinal);
+            return true;
+        });
+    }
+
     private static Placement Ticking(string name, string id, long every) =>
         new(name, new Dictionary<string, object> { ["id"] = id, ["every"] = every });
 

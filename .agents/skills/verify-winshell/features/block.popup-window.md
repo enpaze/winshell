@@ -7,12 +7,12 @@ A `PopupWindow` is a frameless window that a shell places next to another, such 
 - `place` opens the popup at `Rect` on its screen when `Visible` is set to true.
 - `grab-focus` gives the popup the keyboard with `GrabFocus`.
 - `dismiss` closes a popup that grabs focus when the user clicks outside it or presses Esc, and raises `Dismissed`.
-- `content` shows any WinUI element as its `Content`, such as a widget's `context.StylePopup(content)`.
+- `content` shows any WinUI element as its `Content`, such as a widget's `StylePopup(content)`.
 
 ## How to get to it (user POV)
 
 - In a configuration, make `new PopupWindow { Content = ... }`, then set `Rect` and `Visible = true` when the user opens it.
-- In a widget, give it `context.StylePopup(content)` so it takes the area's style.
+- In a widget, give it `StylePopup(content)` so it takes the area's style.
 - In the `features` shell, choose the `Popup` button, whose automation id is `features.popup`.
 
 ## Driving it with winshell inspect

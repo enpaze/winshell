@@ -11,7 +11,7 @@ The `workspaces` widget shows Winland's workspaces for the screen its bar is on,
 - `per-screen` shows each screen's own workspaces on that screen's bar.
 - `no-winland` shows nothing when Winland is not running.
 - `vertical` stacks the buttons on a side bar.
-- `icons` shows, after the number, one 12 pixel icon per app open on that workspace, and an empty workspace shows its number alone. The icons change as windows open, close and move between workspaces. Without `icons = true` on the placement the buttons are text only.
+- `icons` shows, after the number, one 12 pixel icon per app open on that workspace, and an empty workspace shows its number alone. The icons change as windows open, close and move between workspaces. Without `icons = true` on the placement the buttons are text only. `icons` is read as a `bool` preferences key: `true` or a number other than zero turns it on, `false` or `0` leaves it off, and a string makes the area show `workspaces: icons must be true or false.` in the widget's place.
 
 ## How to get to it (user POV)
 

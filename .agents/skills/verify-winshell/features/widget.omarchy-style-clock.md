@@ -8,7 +8,7 @@ The `clock` widget is the text in the center of the omarchy-style bar. It shows 
 - `vertical` puts the hours above the minutes on a side bar.
 - `timezone` shows the time of the Windows time zone id in its `timezone` setting, such as `UTC`, and adds the zone to the tooltip.
 - `tooltip` shows the full date when hovered.
-- `bad-setting` refuses a `timezone` that is not a string, and the area shows a placeholder with the reason in its place.
+- `bad-setting` refuses a `timezone` that is not a string, and the area shows a placeholder with the reason, `timezone must be a string.`, in its place.
 
 ## How to get to it (user POV)
 

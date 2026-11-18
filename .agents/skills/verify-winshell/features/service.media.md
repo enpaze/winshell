@@ -13,7 +13,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Media`, or `Props.Shell.Media` in a widget.
+- A configuration reads `shell.Media`, or `Shell.Media` in a widget.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

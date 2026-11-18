@@ -102,9 +102,9 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         File.WriteAllText(Path.Combine(libDir, "ClockWidget.cs"), """
             namespace WidgetLib;
 
-            public sealed class ClockWidget : Component<WidgetContext>
+            public sealed class ClockWidget : Widget
             {
-                public override Element Render() => TextBlock("library:" + (string)Props.Settings["value"]);
+                public override Element Render() => TextBlock("library:" + Setting("value", ""));
             }
             """);
         var shell = XDocument.Load(projectFile);

@@ -579,7 +579,7 @@ public sealed class PreferencesTests
         });
     }
 
-    private sealed class DefaultWidget : Component<WidgetContext>
+    private sealed class DefaultWidget : Widget
     {
         public override Element Render() => TextBlock("default");
     }

@@ -37,39 +37,31 @@ The bar keeps itself on screen, so nothing needs to hold it. `Edges.Bottom` puts
 
 ### A clock
 
-A widget is a Reactor component registered by name, as [Widgets](#widgets) describes. `Render` reads `Props` and returns the controls it shows. The clock renders one text block. The time is not a service, so a timer asks it to render again each second:
+A widget is a class that derives from `Widget`, registered by name, as [Widgets](#widgets) describes. `Render` returns the controls it shows. The clock renders one text block. The time is not a service, so `UseNow` asks it to render again each second and returns the time:
 
 ```csharp
-public sealed class Clock : Component<WidgetContext>
+public sealed class Clock : Widget
 {
     public override Element Render()
     {
-        var (time, setTime) = UseState(DateTime.Now);
-        UseEffect(() =>
-        {
-            var timer = DispatcherQueue.GetForCurrentThread().CreateTimer();
-            timer.Interval = TimeSpan.FromSeconds(1);
-            timer.Tick += (_, _) => setTime(DateTime.Now);
-            timer.Start();
-            return () => timer.Stop();
-        }, false);
+        var time = UseNow(TimeSpan.FromSeconds(1));
         return TextBlock($"{time:t}").AutomationName("Clock");
     }
 }
 ```
 
-`{time:t}` is the time as Windows is set to write it, such as `14:05` or `2:05 PM`. The effect runs on the shell's thread, the one thread that may change a control, and its cleanup stops the timer when the clock leaves the tree. `DispatcherQueue.GetForCurrentThread()` is that thread's queue. `AutomationName` is the name `winshell inspect` and Narrator use.
+`{time:t}` is the time as Windows is set to write it, such as `14:05` or `2:05 PM`. `UseNow` stops when the clock leaves the tree. `AutomationName` is the name `winshell inspect` and Narrator use.
 
 ### A battery
 
 The battery observes the shell's `Power` service, which holds what Windows reports:
 
 ```csharp
-public sealed class Battery : Component<WidgetContext>
+public sealed class Battery : Widget
 {
     public override Element Render()
     {
-        var battery = UseObservable(Props.Shell.Power.DisplayDevice);
+        var battery = UseObservable(Shell.Power.DisplayDevice);
         return TextBlock($"{battery.Percentage:P0}")
             .Margin(8, 0, 8, 0)
             .IsVisible(battery.IsPresent)
@@ -78,7 +70,7 @@ public sealed class Battery : Component<WidgetContext>
 }
 ```
 
-`Props.Shell` is the running shell. [UseObservable](#keep-a-component-current) renders the component again when that device changes. A PC with no battery has `IsPresent` false, so the text collapses. The margin keeps it off the screen's edge. A plain text block takes the [style](#style), so the battery names no brush of its own.
+`Shell` is the running shell. [UseObservable](#keep-a-component-current) renders the component again when that device changes. A PC with no battery has `IsPresent` false, so the text collapses. The margin keeps it off the screen's edge. A plain text block takes the [style](#style), so the battery names no brush of its own.
 
 `HealthSupported` is true when Windows reported the capacities behind `HealthPercentage`, including when that percentage is 0. A shell that shows health reads the flag first.
 
@@ -171,7 +163,7 @@ A project that references the `Winshell` package and has `ImplicitUsings` on, as
 
 | Using | What it brings |
 | --- | --- |
-| `Winshell` | `Shell`, `Bar`, `WidgetContext` and the other types in the [reference](reference/winshell.md) |
+| `Winshell` | `Shell`, `Bar`, `Widget` and the other types in the [reference](reference/winshell.md) |
 | `Microsoft.UI.Reactor` and `Microsoft.UI.Reactor.Core` | `Component`, `Element` and the rest of Reactor |
 | `static Microsoft.UI.Reactor.Factories` | Element functions, such as `TextBlock` and `Button` |
 | `static Winshell.Elements` | `Surface` and `WidgetArea` |
@@ -370,31 +362,39 @@ hotkey = "Ctrl+Shift+Space"
 
 ## Widgets
 
-A [widget area](reference/winshell.md#widgetarea) is a component. A window mounts the component that renders it, and the same element can sit inside a surface. In `Start`, register each widget under the case-sensitive name the area places. Use `Widgets.Register<T>` for your project's components and those from a referenced project or package alike. The component needs a public parameterless constructor.
+A [widget area](reference/winshell.md#widgetarea) is a component. A window mounts the component that renders it, and the same element can sit inside a surface. In `Start`, register each widget under the case-sensitive name the area places. Use `Widgets.Register<T>` for your project's widgets and those from a referenced project or package alike. The widget needs a public parameterless constructor.
 
-A widget is a `Component<WidgetContext>`. `Render` reads `Props.Shell`, `Props.Window`, `Props.Settings` and `Props.Orientation`.
+A widget derives from [Widget](reference/winshell.md#widget), a component whose props are a `WidgetContext`. `Render` reads them without `Props`:
+
+- `Shell` is the running shell, and `Settings` the placement's settings.
+- `Orientation` is the area's, and `Style` the style in effect for it, or null when the shell sets none.
+- `Window` is the shell window the area is in, and null until it is in one.
+- `Setting(key, fallback)` reads one setting the way a [preferences](#preferences) key of the fallback's type is read: the fallback when the placement has no such key, and an `UnsupportedWidgetException` that names the key and the type it must be when the value does not convert. `Setting("icons", false)` takes `true` or `false`, or a number, which is `false` when it is zero. A string is refused with `icons must be true or false.`
+- `UseNow(every)` renders the widget again every `every` and returns the local time.
+- `UseScreen()` returns the screen of `Window` and renders the widget again when it changes. It is null until the area is in a window, and for a window that names no screen, which sits on the primary screen.
+- `StylePopup(content)` styles a [popup](#place-widgets-in-an-area).
 
 ```csharp
         Widgets.Register<ClockWidget>("clock");
 ```
 
 ```csharp
-public sealed class ClockWidget : Component<WidgetContext>
+public sealed class ClockWidget : Widget
 {
     public override Element Render() =>
-        TextBlock((string)Props.Settings["text"]);
+        TextBlock(Setting("text", ""));
 }
 ```
 
-For a [widget library](#write-a-widget), add a project or package reference and register its component in the shell's `Start`, such as `Widgets.Register<MessageWidget.Message>("message")`. A name registered twice fails when the shell starts.
+For a [widget library](#write-a-widget), add a project or package reference and register its widget in the shell's `Start`, such as `Widgets.Register<MessageWidget.Message>("message")`. A name registered twice fails when the shell starts.
 
 ### Move a configuration
 
-This release registers only component widgets. Three things move, and nothing reads the old shape.
+This release registers only widgets that derive from `Widget`. Three things move, and nothing reads the old shape.
 
-A widget was a control whose constructor took a `WidgetContext` and built its elements there. It is a `Component<WidgetContext>` whose `Render` returns those elements, registered with `Widgets.Register<T>`. `Props` is the old constructor argument: `Props.Shell`, `Props.Settings` and `Props.Orientation`, and `Props.Window` for the shell window the area is in.
+A widget was a control whose constructor took a `WidgetContext` and built its elements there. It is a `Widget` whose `Render` returns those elements, registered with `Widgets.Register<T>`. The old constructor argument is now the widget's own: `Shell`, `Settings` and `Orientation`, and `Window` for the shell window the area is in.
 
-A Watch block read services and then wrote the controls. That read moves into `Render`. `UseObservable` or `UseObservableTree` names the service, and the elements `Render` returns already show what it holds. The [battery](#a-battery) is that shape: it reads `Props.Shell.Power.DisplayDevice` and returns a text block, collapsed when no battery is present.
+A Watch block read services and then wrote the controls. That read moves into `Render`. `UseObservable` or `UseObservableTree` names the service, and the elements `Render` returns already show what it holds. The [battery](#a-battery) is that shape: it reads `Shell.Power.DisplayDevice` and returns a text block, collapsed when no battery is present.
 
 A XAML resource dictionary of `Shell*` keys becomes a [ShellStyle](#style). A dictionary that set the background, the font and the slot size becomes `shell.Style`, and a bar or an area that pointed at a XAML file sets its own `Style` to a `ShellStyle` instead:
 
@@ -417,7 +417,7 @@ Nothing reads the XAML file. A control Reactor has no element for is embedded wi
 
 ### Place widgets in an area
 
-Each placement passes the running `Shell`, the shell window the area is drawn in, that placement's settings and the area's orientation in its `WidgetContext`. `Props.Window` is null until the area is in a window, and the widget renders again once it is, so a widget reads the screen from `Props.Window.Screen`. One instance serves a placement, rendered again with a new `WidgetContext` when the settings, the orientation or the window change. Several placements may use one widget:
+Each placement gives its widget the running `Shell`, the shell window the area is drawn in, that placement's settings and the area's orientation. `Window` is null until the area is in a window, and the widget renders again once it is. A widget that shows the screen reads `UseScreen()`, which also follows the window to another screen. One instance serves a placement, rendered again when the settings, the orientation or the window change. Several placements may use one widget:
 
 ```csharp
 public sealed class EndArea : Component
@@ -440,7 +440,7 @@ public sealed class EndArea : Component
 - **Disposing an area.** The example treats a user closing the panel as permanent: `Closed` normally only hides a window, and here it disposes the host, which unmounts the widgets. When your code tears the panel down with `panel.Dispose()`, dispose the host too. Removing or reparenting the host does not dispose widgets.
 - **Settings.** Treat placement settings, including nested tables, as read-only.
 - **Styling.** The [shell style](#style) styles the plain controls in an area, including the ones a component renders, so a component names no brush of its own. A widget that still has XAML uses `{ThemeResource}` for area-sensitive resources: `{StaticResource}` resolves at construction, before the area owns the widget.
-- **Popups.** Assign `context.StylePopup(content)` to a `PopupWindow.Content`, or to a flyout's content. A widget may call it as soon as it has its context, before the area is in a host. The call loads a fresh dictionary of the area's style at once and follows later changes to that style, until the area removes the widget or is disposed. `content` may be a plain element or a `ReactorHostControl` showing a component. The widget still owns its popup windows.
+- **Popups.** Assign `StylePopup(content)` to a `PopupWindow.Content`, or to a flyout's content. A widget may call it as soon as it renders, before the area is in a host. The call loads a fresh dictionary of the area's style at once and follows later changes to that style, until the area removes the widget or is disposed. `content` may be a plain element or a `ReactorHostControl` showing a component. The widget still owns its popup windows.
 - **A widget that fails.** An unknown widget, or a component that throws while it is created or while it renders, shows a placeholder with its name and reason while the other placements keep running. The exception and its stack trace are logged under `widgets` in the shell's log (`winshell log`). Throw `UnsupportedWidgetException` with a reason when a widget cannot run in its placement, such as a vertical area. Other exceptions after creation follow the shell's normal crash supervision.
 
 ### Let the user change an area
@@ -458,7 +458,7 @@ widgets = [
 
 - The list replaces the area's **whole** default list, in order.
 - A string places the widget of that name with no settings.
-- In a table, `widget` names the widget, and the other keys become its `WidgetContext.Settings`, including nested tables and arrays.
+- In a table, `widget` names the widget, and the other keys become its `Settings`, including nested tables and arrays.
 - `widgets = []` leaves the area empty.
 - Comment the list out or remove it to return to the author's defaults. An area absent from the file keeps its defaults.
 
@@ -495,23 +495,23 @@ Winshell writes these resources from the style. A bar and a popup read them with
 | `ShellSlotSize` | `SlotSize` | One button, and the thickness of a bar | 32 |
 | `ShellPadding` | `Padding` | The space at each end of a bar. `null` gives bars none. | 4 |
 
-It also builds the implicit styles, with no `x:Key`, for the plain controls a widget is made of. They apply inside a widget area, in a surface and in a popup styled with `context.StylePopup`, so a widget that is a `Button` holding a `FontIcon` looks right with no lookup:
+It also builds the implicit styles, with no `x:Key`, for the plain controls a widget is made of. They apply inside a widget area, in a surface and in a popup styled with `StylePopup`, so a widget that is a `Button` holding a `FontIcon` looks right with no lookup:
 
 - `Button`: flat, at least one slot wide and high, its content centered, in the style's foreground, font and font size.
 - `TextBlock`: the style's foreground, font and font size, centered vertically. A text block keeps that foreground inside a pressed or disabled button, so give a button its text as a string to take the button's colors.
 - `FontIcon`: Segoe Fluent Icons at 16. Its color comes from what holds it, so a button's pressed and disabled colors reach the glyph.
 - `ToolTip`: the style's background, foreground and font. A tooltip opens in a popup of its own, outside the area, and WinUI looks up its style only in the app's resources, so Winshell puts the `ToolTip` entry of `shell.Style` there. It styles every tooltip in the shell, in your own windows too, and an area's own `Style` does not change it. A `ToolTip` style you put in `Application.Current.Resources` yourself wins over it.
 
-A widget reads the alert color from the style. With none set, `context.Style` is null and `ShellAlertBrush` follows Windows:
+A widget reads the alert color from the style. With none set, `Style` is null and `ShellAlertBrush` follows Windows:
 
 ```csharp
-        if (context.Style is { } style)
+        if (Style is { } style)
             label.Foreground = new SolidColorBrush(style.Alert);
 ```
 
 ## Write a widget
 
-A widget other people use can be a class library: a WinUI library that references the Winshell package. The package imports the props the library needs and adds [its usings](#the-packages-usings). A configuration references the library and registers its component the way [Widgets](#widgets) does. The example on this page is `Message`, a component that shows one line of text, with one `text` setting.
+A widget other people use can be a class library: a WinUI library that references the Winshell package. The package imports the props the library needs and adds [its usings](#the-packages-usings). A configuration references the library and registers its widget the way [Widgets](#widgets) does. The example on this page is `Message`, a widget that shows one line of text, with one `text` setting.
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -529,7 +529,7 @@ A widget other people use can be a class library: a WinUI library that reference
 
 `0.7.0` stands in for the release you built the widget against. The package is not on nuget.org. A release keeps it in a `packages` folder beside `winshell.exe`, and `winshell new` writes a `nuget.config` that adds that folder.
 
-The component takes the shell's [style](#style), because a plain text block does. There is no XAML file. The class is in `MessageWidget`, the project's root namespace, which the package also adds as a using. `Render` reads the placement as `Props`:
+The widget takes the shell's [style](#style), because a plain text block does. There is no XAML file. The class is in `MessageWidget`, the project's root namespace, which the package also adds as a using:
 
 ```csharp
 using Microsoft.UI.Xaml;
@@ -537,7 +537,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace MessageWidget;
 
-public sealed class Message : Component<WidgetContext>
+public sealed class Message : Widget
 {
     public override Element Render()
     {
@@ -548,52 +548,32 @@ public sealed class Message : Component<WidgetContext>
             popup.Current = null;
         }, false);
 
-        var text = TextOf(Props);
-        if (Props.Orientation == Orientation.Vertical)
+        var screen = UseScreen();
+        var text = Setting("text", "Hello");
+        if (Orientation == Orientation.Vertical)
             throw new UnsupportedWidgetException("The message widget runs in a horizontal area.");
 
         var line = text + " ·";
         return TextBlock(line)
             .Padding(8, 0)
-            .OnPointerPressed((_, _) => ShowPopup(popup, line))
-            .OnMount(ShowScreen);
-    }
-
-    private static string TextOf(WidgetContext context)
-    {
-        if (context.Settings.TryGetValue("text", out var value) && value is string text)
-            return text;
-        throw new UnsupportedWidgetException("text must be a string.");
+            .ToolTip(screen is null ? "primary screen" : screen.Name)
+            .OnPointerPressed((_, _) => ShowPopup(popup, line));
     }
 
     private void ShowPopup(Ref<PopupWindow?> popup, string line)
     {
         popup.Current?.Dispose();
         var body = new TextBlock { Text = line, Margin = new Thickness(12) };
-        popup.Current = new PopupWindow { Content = Props.StylePopup(body), Visible = true };
-    }
-
-    private static void ShowScreen(FrameworkElement label)
-    {
-        void SetTooltip()
-        {
-            var screen = ShellWindow.Of(label)?.Screen;
-            ToolTipService.SetToolTip(label, screen is null ? "primary screen" : screen.Name);
-        }
-
-        if (label.IsLoaded)
-            SetTooltip();
-        else
-            label.Loaded += (_, _) => SetTooltip();
+        popup.Current = new PopupWindow { Content = StylePopup(body), Visible = true };
     }
 }
 ```
 
-`text` is the placement's setting. The line is that string followed by a middle dot. A value that is not a string throws [UnsupportedWidgetException](reference/winshell.md#unsupportedwidgetexception), and so does a vertical area. The area shows the widget's name and that reason, and the other placements keep running.
+`text` is the placement's setting, and `Hello` when the placement has none. The line is that string followed by a middle dot. A value that is not a string throws [UnsupportedWidgetException](reference/winshell.md#unsupportedwidgetexception) with `text must be a string.`, and the widget throws one itself in a vertical area. The area shows the widget's name and that reason, and the other placements keep running.
 
-[StylePopup](reference/winshell.md#widgetcontext) wraps content for a [PopupWindow](reference/winshell.md#popupwindow). Assign the result to the popup's `Content`. The wrapper loads the area's style and follows its changes. The effect disposes the popup when the component goes, and a press disposes the previous one first.
+[StylePopup](reference/winshell.md#widget) wraps content for a [PopupWindow](reference/winshell.md#popupwindow). Assign the result to the popup's `Content`. The wrapper loads the area's style and follows its changes. The effect disposes the popup when the component goes, and a press disposes the previous one first.
 
-[ShellWindow.Of](reference/winshell.md#shellwindow) is null until the text is in a window. `OnMount` reads the screen then, or from `Loaded` when the text is not in a window yet. Null is the primary screen.
+`UseScreen()` is null until the area is in a window, and the widget renders again when the window arrives and when it moves to another screen. The tooltip names that screen, and says `primary screen` until there is one.
 
 ## A service
 
@@ -623,11 +603,11 @@ It opens off the shell's thread, so a slow app does not hold up the shell. What 
 `UseObservableTree` follows a service: a component renders again when anything that service holds changes, including an item in one of its lists. `UseObservable` follows one service object or one list. Both take an `INotifyPropertyChanged` source, which a service object and an [ObservableList](reference/winshell.md#observablelist) are, and return that source:
 
 ```csharp
-public sealed class BatteryLabel : Component<WidgetContext>
+public sealed class BatteryLabel : Widget
 {
     public override Element Render()
     {
-        var battery = UseObservable(Props.Shell.Power.DisplayDevice);
+        var battery = UseObservable(Shell.Power.DisplayDevice);
         var charge = battery.IsPresent ? $"{battery.Percentage:P0}" : "";
         return TextBlock(charge);
     }
@@ -650,7 +630,7 @@ edge = "left"
 widgets = [{ widget = "message", text = "Hello" }]
 ```
 
-A class that derives from `Preferences` declares a section. It has one public read-write property per key, and the key is the property name with a lowercase first letter. A key takes a string, a number, `true` or `false`, a list or a table. The property's initializer is its default, and `TomlComment` is the comment written above it. Made with no name, the class holds the configuration's own keys:
+A class that derives from `Preferences` declares a section. It has one public read-write property per key, and the key is the property name with a lowercase first letter. A key takes a string, a number, `true` or `false`, a list or a table. A `bool` key also takes a number, which is `false` when it is zero or `nan` and `true` otherwise. An `int` key takes a whole number that fits, and a `double` key any number. The property's initializer is its default, and `TomlComment` is the comment written above it. Made with no name, the class holds the configuration's own keys:
 
 ```csharp
 public sealed class ShellPreferences : Preferences

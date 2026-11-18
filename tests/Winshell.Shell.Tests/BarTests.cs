@@ -590,19 +590,19 @@ public sealed class BarTests
         return name;
     }
 
-    private sealed class TextSettingWidget : Component<WidgetContext>
+    private sealed class TextSettingWidget : Widget
     {
         public static List<TextBlock> Views = [];
 
         public override Element Render() => XamlHost(() =>
         {
-            var view = new TextBlock { Text = Props.Settings.TryGetValue("text", out var text) ? (string)text : "" };
+            var view = new TextBlock { Text = Setting("text", "") };
             Views.Add(view);
             return view;
         });
     }
 
-    private sealed class CountingWidget : Component<WidgetContext>
+    private sealed class CountingWidget : Widget
     {
         public static List<TextBlock> Views = [];
 

@@ -11,7 +11,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration calls `shell.RecentDocuments.Search(query)`, or `Props.Shell.RecentDocuments.Search(query)` in a widget.
+- A configuration calls `shell.RecentDocuments.Search(query)`, or `Shell.RecentDocuments.Search(query)` in a widget.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

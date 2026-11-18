@@ -13,7 +13,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration calls `shell.Session.Lock()` and the other actions, or `Props.Shell.Session` in a widget, such as from a button.
+- A configuration calls `shell.Session.Lock()` and the other actions, or `Shell.Session` in a widget, such as from a button.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

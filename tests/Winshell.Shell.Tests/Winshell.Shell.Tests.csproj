@@ -7,6 +7,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\scripts\reference-pages.cs" Link="ReferencePages.cs" />
+    <Compile Include="..\Winshell.Package.Tests\MessageWidget\Message.cs" Link="Samples\Message.cs" />
+    <Compile Include="..\..\examples\omarchy-style\Widgets\ClockWidget.cs" Link="Samples\ClockWidget.cs" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Windows.Win32" />

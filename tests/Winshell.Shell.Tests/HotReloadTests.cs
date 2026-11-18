@@ -342,7 +342,7 @@ public sealed partial class HotReloadTests
         return null;
     }
 
-    private sealed class EditedHost : Component<WidgetContext>
+    private sealed class EditedHost : Widget
     {
         public override Element Render()
         {
@@ -352,7 +352,7 @@ public sealed partial class HotReloadTests
         }
     }
 
-    private sealed class UnchangedHost : Component<WidgetContext>
+    private sealed class UnchangedHost : Widget
     {
         public override Element Render() => XamlHost(() => new TextBlock { Text = "unchanged" });
     }
