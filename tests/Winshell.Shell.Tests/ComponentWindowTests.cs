@@ -69,24 +69,25 @@ public sealed class ComponentWindowTests
     [InlineData("floating")]
     public async Task A_component_window_shows_its_component_on_a_surface(string kind)
     {
-        var (text, background) = await ShellFixture.On(async shell =>
+        var (text, styled, background) = await ShellFixture.On(async shell =>
         {
-            shell.Style = TestStyles.Other();
+            var other = TestStyles.Other();
+            shell.Style = other;
             try
             {
                 using var window = Shown<Greeting>(kind);
                 var host = (ReactorHostControl)window.Content!;
                 await ShellFixture.LaidOut(host);
-                return (ShownText(host), BarTests.BackgroundOf(host));
+                return (ShownText(host), other.Background, BarTests.BackgroundOf(host));
             }
             finally
             {
-                shell.Style = null;
+                shell.Style = new();
             }
         });
 
         Assert.Equal("Hello", text);
-        Assert.Equal(TestStyles.Other().Background, background);
+        Assert.Equal(styled, background);
     }
 
     [Theory]
