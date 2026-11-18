@@ -34,4 +34,5 @@ Preconditions:
 
 - The text is the surface's content, so the step proves that the surface renders what it holds. It does not prove the background color. Take a screenshot and look at it for that.
 - A brush that code reads from the style comes back in the theme the app started in. Give a window of your own a surface so its background follows a theme switch.
+- A style that leaves `Background` null paints Windows' solid background, in the window's light or dark theme.
 - A contrast theme wins over the style's colors: the background becomes Windows' window color.

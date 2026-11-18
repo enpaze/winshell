@@ -24,7 +24,6 @@ public sealed class Bar : IDisposable
     private ScreenWindows? _windows;
     private bool _remakePosted;
     private bool _disposed;
-    private static ShellStyle? _metricDefaults;
 
     public Bar()
     {
@@ -66,7 +65,7 @@ public sealed class Bar : IDisposable
     {
         if (Style is not null)
             return;
-        var thickness = SlotSize(Thickness, null, _shell.Style);
+        var thickness = Thickness ?? _shell.Style.SlotSize;
         foreach (var shown in _open)
             shown.Resize(thickness, Reserve);
     }
@@ -110,7 +109,7 @@ public sealed class Bar : IDisposable
         ReactorHostControl? host = null;
         try
         {
-            var thickness = SlotSize(Thickness, Style, _shell.Style);
+            var thickness = Thickness ?? (Style ?? _shell.Style).SlotSize;
             var areas = Grid(
                 [GridSize.Star()],
                 [GridSize.Star()],
@@ -130,7 +129,7 @@ public sealed class Bar : IDisposable
                     shell.StyleChanged += Follow;
                     return () => shell.StyleChanged -= Follow;
                 }, follows);
-                var padding = EndPadding(Padding, Style, Shell.Current.Style);
+                var padding = Padding ?? (Style ?? Shell.Current.Style).Padding ?? 0;
                 var gap = vertical ? new Thickness(0, padding, 0, padding) : new Thickness(padding, 0, padding, 0);
                 return areas.Padding(gap);
             }, Style, Padding, vertical);
@@ -233,28 +232,6 @@ public sealed class Bar : IDisposable
             set => Set(ref field, value);
         } = Placement.Format(bar.End);
     }
-
-    private static double SlotSize(double? thickness, ShellStyle? own, ShellStyle? shell)
-    {
-        if (thickness is { } set)
-            return set;
-        return (own ?? shell ?? MetricDefaults()).SlotSize;
-    }
-
-    private static double EndPadding(double? padding, ShellStyle? own, ShellStyle? shell)
-    {
-        if (padding is { } set)
-            return set;
-        var look = own ?? shell;
-        return look is null ? MetricDefaults().Padding ?? 0 : look.Padding ?? 0;
-    }
-
-    private static ShellStyle MetricDefaults() => _metricDefaults ??= new()
-    {
-        Background = default,
-        Foreground = default,
-        Alert = default
-    };
 
     private sealed class Shown(ReactorHostControl host, PanelWindow window, bool vertical, List<Shown> open) : IDisposable
     {

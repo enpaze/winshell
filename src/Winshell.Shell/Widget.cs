@@ -15,7 +15,7 @@ public abstract class Widget : Component<WidgetContext>
 
     protected Orientation Orientation => Props.Orientation;
 
-    protected ShellStyle? Style => Props.Style;
+    protected ShellStyle Style => Props.Style;
 
     protected FrameworkElement StylePopup(UIElement content) => Props.StylePopup(content);
 

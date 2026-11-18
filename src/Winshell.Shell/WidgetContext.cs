@@ -59,14 +59,14 @@ public sealed record WidgetContext
     private readonly PopupStyles _popups;
 
     internal WidgetContext(Shell shell, IReadOnlyDictionary<string, object> settings, Orientation orientation,
-        ShellWindow? window, AreaPopupStyle popupStyle, string widget)
+        ShellWindow? window, StyleScope scope, string widget)
     {
         Shell = shell;
         Window = window;
         Orientation = orientation;
         Settings = settings;
         Widget = widget;
-        _popups = new PopupStyles(popupStyle);
+        _popups = new PopupStyles(scope);
     }
 
     public Shell Shell { get; }
@@ -79,7 +79,7 @@ public sealed record WidgetContext
 
     internal string Widget { get; init; }
 
-    public ShellStyle? Style => _popups.Style;
+    public ShellStyle Style => _popups.Style;
 
     public FrameworkElement StylePopup(UIElement content)
     {
@@ -91,19 +91,19 @@ public sealed record WidgetContext
 
     private sealed class PopupStyles
     {
-        private readonly AreaPopupStyle _area;
+        private readonly StyleScope _area;
         private readonly List<UserControl> _popups = [];
         private bool _watchingStyle;
 
-        public PopupStyles(AreaPopupStyle popupStyle)
+        public PopupStyles(StyleScope scope)
         {
-            _area = popupStyle;
-            popupStyle.Stopping += Stop;
+            _area = scope;
+            scope.Stopping += Stop;
         }
 
         public bool Stopped { get; private set; }
 
-        public ShellStyle? Style => _area.Style();
+        public ShellStyle Style => _area.Style();
 
         public FrameworkElement Wrap(UIElement content)
         {
@@ -146,27 +146,6 @@ public sealed record WidgetContext
             foreach (var wrapper in _popups)
                 LoadStyle(wrapper);
         }
-    }
-}
-
-internal sealed class AreaPopupStyle
-{
-    public Func<ShellStyle?> Style { get; set; } = () => null;
-
-    public event Action? StyleChanged;
-
-    public event Action? Stopping;
-
-    public bool Stopped { get; private set; }
-
-    public void RaiseStyleChanged() => StyleChanged?.Invoke();
-
-    public void Stop()
-    {
-        if (Stopped)
-            return;
-        Stopped = true;
-        Stopping?.Invoke();
     }
 }
 

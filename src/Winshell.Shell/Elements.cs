@@ -14,4 +14,7 @@ public static class Elements
     public static Element WidgetArea(string name = "", ImmutableArray<Placement>? defaults = null,
         Orientation orientation = Orientation.Horizontal, ShellStyle? style = null) =>
         Component<WidgetArea, WidgetAreaProps>(new WidgetAreaProps(name, defaults, orientation, style));
+
+    public static Element Alert(this Element element, bool on = true) =>
+        Component<AlertHost, AlertProps>(new AlertProps(element, on));
 }

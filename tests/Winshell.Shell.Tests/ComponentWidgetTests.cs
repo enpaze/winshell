@@ -170,7 +170,7 @@ public sealed class ComponentWidgetTests
             }
             finally
             {
-                shell.Style = null;
+                shell.Style = new();
             }
 
             return true;
@@ -208,7 +208,7 @@ public sealed class ComponentWidgetTests
             }
             finally
             {
-                shell.Style = null;
+                shell.Style = new();
             }
 
             return true;

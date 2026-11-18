@@ -128,6 +128,7 @@ public sealed class WidgetAreaTests
             Assert.All(inputs, context =>
             {
                 Assert.Same(shell, context.Shell);
+                Assert.Same(shell.Style, context.Style);
                 Assert.Equal(orientation, context.Orientation);
             });
             Assert.Same(first, inputs[0].Settings);
@@ -487,10 +488,10 @@ public sealed class WidgetAreaTests
                 Assert.Equal(other, shell.Style);
                 Assert.Equal((50d, 50d), (button.ActualWidth, button.ActualHeight));
 
-                shell.Style = null;
+                shell.Style = new();
                 await Wait.UntilAsync(
                     () => text.FontFamily.Source == "Segoe UI Variable Text,Segoe UI",
-                    "the area to return to the built-in style");
+                    "the area to return to the default style");
                 shown = AreaShowing(text);
                 Assert.Equal("keep", shown.Resources["author"]);
                 Assert.Equal(50.0, shown.Resources["ShellSlotSize"]);
@@ -498,7 +499,7 @@ public sealed class WidgetAreaTests
             }
             finally
             {
-                shell.Style = null;
+                shell.Style = new();
             }
 
             return true;
@@ -506,17 +507,145 @@ public sealed class WidgetAreaTests
     }
 
     [Fact]
-    public async Task A_contrast_theme_paints_with_its_own_colors_for_a_custom_style_and_the_built_in_one()
+    public async Task A_contrast_theme_paints_with_its_own_colors_for_a_custom_style_and_the_default_one()
     {
         await ShellFixture.On(_ =>
         {
             var other = TestStyles.Other();
-            foreach (var style in new[] { other, null })
+            foreach (var style in new[] { other, new ShellStyle() })
             {
                 var contrast = (ResourceDictionary)Shell.LoadStyle(style).ThemeDictionaries["HighContrast"];
                 Assert.NotEqual(other.Background, ColorOf((Brush)contrast["ShellBackgroundBrush"]));
                 Assert.NotEqual(other.Foreground, ColorOf((Brush)contrast["ShellForegroundBrush"]));
                 Assert.NotEqual(other.Alert, ColorOf((Brush)contrast["ShellAlertBrush"]));
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task A_style_that_sets_only_the_font_size_takes_windows_system_colors_in_a_contrast_theme()
+    {
+        await ShellFixture.On(_ =>
+        {
+            var style = Shell.LoadStyle(new ShellStyle { FontSize = 12 });
+            Assert.Equal(12.0, style["ShellFontSize"]);
+            Assert.Equal(
+                (WindowsColor("HighContrast", "SystemColorWindowColor"), WindowsColor("HighContrast", "SystemColorWindowTextColor"),
+                    WindowsColor("HighContrast", "SystemColorHighlightColor")),
+                StyleColors(style, "HighContrast"));
+            return true;
+        });
+    }
+
+    [Fact]
+    [Trait("Category", "Window")]
+    public async Task An_alert_takes_windows_critical_color_in_light_and_dark_and_follows_a_switch_while_mounted()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var controls = new AlertControls();
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [new(controls.Name)] });
+            var host = area.Host;
+            host.RequestedTheme = ElementTheme.Light;
+            using var window = new PanelWindow { Width = 240, Height = 60, Content = host, Visible = true };
+            await Wait.UntilAsync(() => controls.Button is not null && controls.Text is not null && controls.Plain is not null,
+                "the alert controls to render");
+            var (button, text, plain) = (controls.Button!, controls.Text!, controls.Plain!);
+            await ShellFixture.LaidOut(text).WaitAsync(TestContext.Current.CancellationToken);
+
+            if (shell.Platform.IsHighContrast)
+            {
+                var highlight = WindowsColor("HighContrast", "SystemColorHighlightColor");
+                Assert.Equal((highlight, highlight), (ColorOf(text.Foreground), ColorOf(button.Foreground)));
+                Assert.Equal(WindowsColor("HighContrast", "SystemColorWindowTextColor"), ColorOf(plain.Foreground));
+                return true;
+            }
+
+            foreach (var (requested, theme) in new[] { (ElementTheme.Light, "Light"), (ElementTheme.Dark, "Default"), (ElementTheme.Light, "Light") })
+            {
+                host.RequestedTheme = requested;
+                var critical = WindowsColor(theme, "SystemFillColorCritical");
+                await Wait.UntilAsync(() => ColorOf(text.Foreground) == critical, "the alert to take Windows' critical color");
+                Assert.Equal(critical, ColorOf(button.Foreground));
+                Assert.Equal(WindowsText(theme), ColorOf(plain.Foreground));
+                Assert.Equal(("Segoe UI Variable Text,Segoe UI", 14.0), (text.FontFamily.Source, text.FontSize));
+                Assert.Equal((32d, 32d), (button.ActualWidth, button.ActualHeight));
+            }
+
+            foreach (var style in new[] { new ShellStyle { FontSize = 12 }, new ShellStyle { Foreground = Microsoft.UI.Colors.Crimson } })
+            {
+                area.Set(area.Props with { Style = style });
+                foreach (var (requested, theme) in new[] { (ElementTheme.Light, "Light"), (ElementTheme.Dark, "Default") })
+                {
+                    host.RequestedTheme = requested;
+                    var critical = WindowsColor(theme, "SystemFillColorCritical");
+                    var foreground = style.Foreground ?? WindowsText(theme);
+                    await Wait.UntilAsync(
+                        () => ColorOf(text.Foreground) == critical && ColorOf(plain.Foreground) == foreground && text.FontSize == style.FontSize,
+                        "an unset alert to keep Windows' critical color under the area's style");
+                    Assert.Equal(critical, ColorOf(button.Foreground));
+                }
+            }
+
+            area.Set(area.Props with { Style = TestStyles.Other() });
+            foreach (var theme in new[] { ElementTheme.Dark, ElementTheme.Light })
+            {
+                host.RequestedTheme = theme;
+                await Wait.UntilAsync(
+                    () => ColorOf(text.Foreground) == Microsoft.UI.Colors.Orange && button.ActualWidth == 40,
+                    "the alert to take the area style's alert color");
+                Assert.Equal(Microsoft.UI.Colors.Orange, ColorOf(button.Foreground));
+                Assert.Equal(Microsoft.UI.Colors.Crimson, ColorOf(plain.Foreground));
+                Assert.Equal(("Consolas", 18.0), (text.FontFamily.Source, text.FontSize));
+                Assert.Equal((40d, 40d), (button.ActualWidth, button.ActualHeight));
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task The_shell_style_starts_as_windows_colors_and_never_becomes_null()
+    {
+        await ShellFixture.On(shell =>
+        {
+            Assert.Equal((null, null, null, 14.0, 32.0),
+                (shell.Style.Background, shell.Style.Foreground, shell.Style.Alert, shell.Style.FontSize, shell.Style.SlotSize));
+            var before = shell.Style;
+            Assert.Throws<ArgumentNullException>(() => shell.Style = null!);
+            Assert.Same(before, shell.Style);
+            return true;
+        });
+    }
+
+    [Fact]
+    [Trait("Category", "Window")]
+    public async Task A_style_that_sets_only_the_font_size_shows_windows_text_colors_in_light_and_dark()
+    {
+        await ShellFixture.On(async _ =>
+        {
+            var controls = new PlainControls();
+            using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
+            {
+                Style = new ShellStyle { FontSize = 12 },
+                Defaults = [new(controls.Button), new(controls.Text)]
+            });
+            var host = area.Host;
+            using var window = new PanelWindow { Width = 200, Height = 60, Content = host, Visible = true };
+            await Wait.UntilAsync(() => controls.Buttons.Count == 1 && controls.Lines.Count == 1, "the controls to render");
+            var (button, _) = Assert.Single(controls.Buttons);
+            var text = Assert.Single(controls.Lines);
+            await ShellFixture.LaidOut(text).WaitAsync(TestContext.Current.CancellationToken);
+
+            foreach (var (requested, theme) in new[] { (ElementTheme.Light, "Light"), (ElementTheme.Dark, "Default") })
+            {
+                host.RequestedTheme = requested;
+                await Wait.UntilAsync(() => ColorOf(text.Foreground) == WindowsText(theme),
+                    "the text to take Windows' text color");
+                Assert.Equal(WindowsText(theme), ColorOf(button.Foreground));
+                Assert.Equal(("Segoe UI Variable Text,Segoe UI", 12.0), (text.FontFamily.Source, text.FontSize));
             }
 
             return true;
@@ -558,7 +687,7 @@ public sealed class WidgetAreaTests
             host.RequestedTheme = ElementTheme.Light;
             await Wait.UntilAsync(() =>
                 ColorOf(text.Foreground) == WindowsText("Light") && button.ActualWidth == 32 && button.ActualHeight == 32,
-                "the built-in light text color and slot");
+                "the default light text color and slot");
             Assert.Equal(WindowsText("Light"), ColorOf(button.Foreground));
             Assert.Equal(("Segoe UI Variable Text,Segoe UI", 14.0), (text.FontFamily.Source, text.FontSize));
             Assert.Equal((32d, 32d), (button.ActualWidth, button.ActualHeight));
@@ -566,7 +695,7 @@ public sealed class WidgetAreaTests
             host.RequestedTheme = ElementTheme.Dark;
             await Wait.UntilAsync(
                 () => ColorOf(text.Foreground) == WindowsText("Default") && button.ActualWidth == 32 && button.ActualHeight == 32,
-                "the built-in dark text color");
+                "the default dark text color");
             Assert.Equal(WindowsText("Default"), ColorOf(button.Foreground));
             Assert.Equal((32d, 32d), (button.ActualWidth, button.ActualHeight));
             return true;
@@ -575,7 +704,7 @@ public sealed class WidgetAreaTests
 
     [Fact]
     [Trait("Category", "Window")]
-    public async Task With_no_style_plain_controls_take_the_built_in_style_and_follow_the_windows_theme()
+    public async Task With_the_default_style_plain_controls_follow_the_windows_theme()
     {
         await ShellFixture.On(async _ =>
         {
@@ -664,15 +793,15 @@ public sealed class WidgetAreaTests
                 Assert.Equal("Georgia", ownText.FontFamily.Source);
                 Assert.Equal(ownFont, ownText.FontFamily.Source);
 
-                shell.Style = null;
-                await Wait.UntilAsync(() => glyphButton.ActualWidth == 32, "the area to return to the built-in style");
+                shell.Style = new();
+                await Wait.UntilAsync(() => glyphButton.ActualWidth == 32, "the area to return to the default style");
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", text.FontFamily.Source);
                 Assert.Equal("Segoe UI Variable Text,Segoe UI", popupText.FontFamily.Source);
                 Assert.Equal("Georgia", ownText.FontFamily.Source);
             }
             finally
             {
-                shell.Style = null;
+                shell.Style = new();
             }
             return true;
         });
@@ -728,13 +857,13 @@ public sealed class WidgetAreaTests
                 var own = new Style(typeof(ToolTip));
                 own.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Microsoft.UI.Colors.Gold)));
                 Application.Current.Resources[typeof(ToolTip)] = own;
-                shell.Style = null;
+                shell.Style = new();
                 Assert.Equal(Microsoft.UI.Colors.Gold, (await Open()).Background);
             }
             finally
             {
                 Application.Current.Resources.Remove(typeof(ToolTip));
-                shell.Style = null;
+                shell.Style = new();
             }
             return true;
         });
@@ -744,7 +873,7 @@ public sealed class WidgetAreaTests
     [Trait("Category", "Window")]
     public async Task A_widget_reads_the_alert_color_from_the_style()
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             var name = Guid.NewGuid().ToString();
             AlertWidget.Alert = null;
@@ -755,12 +884,23 @@ public sealed class WidgetAreaTests
             var alert = AlertWidget.Alert!;
             await ShellFixture.LaidOut(alert).WaitAsync(TestContext.Current.CancellationToken);
 
-            Assert.Equal(Microsoft.UI.Colors.Orange, ColorOf(alert!.Foreground));
+            var expected = shell.Platform.IsHighContrast
+                ? WindowsColor("HighContrast", "SystemColorHighlightColor")
+                : Microsoft.UI.Colors.Orange;
+            Assert.Equal(expected, ColorOf(alert.Foreground));
             return true;
         });
     }
 
     private static global::Windows.UI.Color ColorOf(Brush brush) => Assert.IsType<SolidColorBrush>(brush).Color;
+
+    private static (global::Windows.UI.Color Background, global::Windows.UI.Color Foreground, global::Windows.UI.Color Alert)
+        StyleColors(ResourceDictionary style, string theme)
+    {
+        var colors = (ResourceDictionary)style.ThemeDictionaries[theme];
+        return (ColorOf((Brush)colors["ShellBackgroundBrush"]), ColorOf((Brush)colors["ShellForegroundBrush"]),
+            ColorOf((Brush)colors["ShellAlertBrush"]));
+    }
 
     private static StackPanel AreaShowing(FrameworkElement control)
     {
@@ -947,14 +1087,38 @@ public sealed class WidgetAreaTests
     {
         public static TextBlock? Alert;
 
-        public override Element Render() => XamlHost(() =>
+        public override Element Render() =>
+            TextBlock("alert").OnMount(element => Alert = (TextBlock)element).Alert();
+    }
+
+    private sealed class AlertControls
+    {
+        public AlertControls()
         {
-            Alert = new TextBlock
-            {
-                Text = "alert",
-                Foreground = new SolidColorBrush(Style!.Alert)
-            };
-            return Alert;
-        });
+            Current = this;
+            Widgets.Register<AlertControlsWidget>(Name);
+        }
+
+        public static AlertControls Current { get; private set; } = null!;
+
+        public string Name { get; } = Guid.NewGuid().ToString();
+
+        public Button? Button { get; set; }
+
+        public TextBlock? Text { get; set; }
+
+        public TextBlock? Plain { get; set; }
+    }
+
+    private sealed class AlertControlsWidget : Widget
+    {
+        public override Element Render()
+        {
+            var shown = AlertControls.Current;
+            return HStack(
+                Button("B").OnMount(element => shown.Button = (Button)element).Alert(),
+                TextBlock("alert").OnMount(element => shown.Text = (TextBlock)element).Alert(),
+                TextBlock("plain").OnMount(element => shown.Plain = (TextBlock)element).Alert(false));
+        }
     }
 }
