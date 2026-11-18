@@ -53,6 +53,19 @@ internal static class AppBars
         return (state & PInvoke.ABS_AUTOHIDE) != 0;
     }
 
+    internal static uint State()
+    {
+        var data = Data(0);
+        return (uint)PInvoke.SHAppBarMessage(PInvoke.ABM_GETSTATE, ref data);
+    }
+
+    internal static void SetState(uint state)
+    {
+        var data = Data(0);
+        data.lParam = (LPARAM)(nint)state;
+        PInvoke.SHAppBarMessage(PInvoke.ABM_SETSTATE, ref data);
+    }
+
     internal static bool TryPosition(nint window, out AppBarEdge edge, out RECT bounds)
     {
         var data = Data(window);

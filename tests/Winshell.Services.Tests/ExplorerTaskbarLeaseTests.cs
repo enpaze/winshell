@@ -21,9 +21,10 @@ public sealed class ExplorerTaskbarLeaseTests : IDisposable
         var locations = Locations;
         var window = Window();
 
-        Assert.True(ExplorerTaskbarLease.Write(locations, 4242, [window]));
+        Assert.True(ExplorerTaskbarLease.Write(locations, 4242, [window], 2));
 
         var read = Assert.Single(ExplorerTaskbarLease.Windows(locations));
+        Assert.Equal(2u, ExplorerTaskbarLease.AppBarState(locations));
         Assert.Equal((window.Hwnd, window.WasVisible, window.Reserves, window.Removed, window.Edge),
             (read.Hwnd, read.WasVisible, read.Reserves, read.Removed, read.Edge));
         Assert.Equal((window.Rect.left, window.Rect.top, window.Rect.right, window.Rect.bottom),

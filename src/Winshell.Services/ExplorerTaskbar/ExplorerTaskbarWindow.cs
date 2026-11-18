@@ -63,6 +63,20 @@ internal static class ExplorerTaskbarWindow
                TopLevelWindows.ClassName(hwnd) is TaskbarWindows.PrimaryClass or TaskbarWindows.SecondaryClass;
     }
 
+    internal static bool IsForeignExplorerTaskbar(nint hwnd)
+    {
+        if (!IsExplorerTaskbar(hwnd))
+            return false;
+        PInvoke.GetWindowThreadProcessId((HWND)hwnd, out var pid);
+        return pid != Environment.ProcessId && IsExplorer((int)pid);
+    }
+
+    internal static void Conceal()
+    {
+        foreach (var (hwnd, _) in Find().Windows)
+            PInvoke.ShowWindow((HWND)hwnd, SHOW_WINDOW_CMD.SW_HIDE);
+    }
+
     internal sealed class Saved
     {
         public nint Hwnd;
