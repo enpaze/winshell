@@ -29,20 +29,16 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         var window = UseRef<ShellWindow?>(null);
         var defaultsRef = UseRef<ImmutableArray<Placement>>(defaults);
         var styleRef = UseRef<ShellStyle?>(props.Style);
-        var popupStyle = UseRef<AreaPopupStyle?>(null);
+        var scopeRef = UseRef<StyleScope?>(null);
         var slot = UseRef<SectionStore?>(null);
         defaultsRef.Current = defaults;
         styleRef.Current = props.Style;
-        if (popupStyle.Current is null)
-        {
-            var created = new AreaPopupStyle { Style = () => styleRef.Current ?? Shell.Current.Style };
-            popupStyle.Current = created;
-        }
+        var scope = scopeRef.Current ??= new StyleScope { Style = () => styleRef.Current ?? Shell.Current.Style };
 
         var (_, bumpWindow) = UseReducer(0);
         var (_, bumpRemake) = UseReducer(0);
         var (_, bumpFile) = UseReducer(0);
-        UseEffect(() => () => popupStyle.Current?.Stop(), false);
+        UseEffect(() => () => scope.Stop(), false);
         UseEffect(StyleHost.FollowShellStyle(props.Style, () => bumpFile(pulse => pulse + 1)), props.Style);
 
         if (slot.Current is null || slot.Current.Name != props.Name)
@@ -86,7 +82,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             else
             {
                 context = new WidgetContext(Shell.Current, settings, props.Orientation, window.Current,
-                    popupStyle.Current!, placement.Widget);
+                    scope, placement.Widget);
                 if (i < shown.Count)
                     shown[i] = context;
                 else
@@ -101,7 +97,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             shown.RemoveRange(placements.Length, shown.Count - placements.Length);
 
         var stack = props.Orientation == Orientation.Vertical ? VStack(0, slots) : HStack(0, slots);
-        return stack.Provide(StyleHost.InEffect, props.Style ?? Shell.Current.Style).OnMount(element =>
+        return stack.Provide(StyleHost.InEffect, scope).OnMount(element =>
         {
             root.Current = element;
             if (element is FrameworkElement panel)
@@ -129,8 +125,8 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
 
         void Restyle(FrameworkElement element)
         {
-            if (StyleHost.Show(element, props.Style) && popupStyle.Current is { } live)
-                live.RaiseStyleChanged();
+            if (StyleHost.Show(element, props.Style))
+                scope.RaiseStyleChanged();
         }
     }
 

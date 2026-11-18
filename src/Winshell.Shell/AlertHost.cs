@@ -10,8 +10,10 @@ internal sealed class AlertHost : Component<AlertProps>
 {
     public override Element Render()
     {
-        var style = UseContext(StyleHost.InEffect) ?? Shell.Current.Style;
-        var shown = Props.On ? style : null;
+        var scope = UseContext(StyleHost.InEffect);
+        var (_, bump) = UseReducer(0);
+        UseEffect(StyleHost.Follow(scope, () => bump(pulse => pulse + 1)), scope);
+        var shown = Props.On ? scope?.Style() ?? Shell.Current.Style : null;
         return Border(Props.Content).Set(border => StyleHost.ShowAlert(border, shown));
     }
 }
