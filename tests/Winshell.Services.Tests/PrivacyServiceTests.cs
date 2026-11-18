@@ -3,6 +3,7 @@ using Winshell.Privacy;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class PrivacyServiceTests
 {
     private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(100);
@@ -14,7 +15,7 @@ public sealed class PrivacyServiceTests
     {
     }
 
-    [Fact]
+    [TestMethod]
     public void Packaged_and_desktop_apps_are_named_from_what_Windows_stored()
     {
         var loop = new ManualEventLoop();
@@ -30,34 +31,34 @@ public sealed class PrivacyServiceTests
         using var privacy = new PrivacyService(loop, new Log(), backend);
         privacy.PropertyChanged += Ignore;
 
-        var camera = Assert.Single(privacy.Camera);
-        Assert.Equal("Camera", camera.Name);
-        Assert.Equal("", camera.Path);
-        Assert.True(camera.Packaged);
-        Assert.False(camera.ThisProgram);
-        Assert.True(privacy.CameraInUse);
+        var camera = Assert.ContainsSingle(privacy.Camera);
+        Assert.AreEqual("Camera", camera.Name);
+        Assert.AreEqual("", camera.Path);
+        Assert.IsTrue(camera.Packaged);
+        Assert.IsFalse(camera.ThisProgram);
+        Assert.IsTrue(privacy.CameraInUse);
 
-        var microphone = Assert.Single(privacy.Microphone);
-        Assert.Equal("SoundRecorder", microphone.Name);
-        Assert.Equal(@"C:\Windows\System32\SoundRecorder.exe", microphone.Path);
-        Assert.False(microphone.Packaged);
-        Assert.False(microphone.ThisProgram);
-        Assert.True(privacy.MicrophoneInUse);
+        var microphone = Assert.ContainsSingle(privacy.Microphone);
+        Assert.AreEqual("SoundRecorder", microphone.Name);
+        Assert.AreEqual(@"C:\Windows\System32\SoundRecorder.exe", microphone.Path);
+        Assert.IsFalse(microphone.Packaged);
+        Assert.IsFalse(microphone.ThisProgram);
+        Assert.IsTrue(privacy.MicrophoneInUse);
 
-        Assert.Equal(2, privacy.Location.Count);
-        var brave = Assert.Single(privacy.Location, app => app.Name == "brave");
-        Assert.Equal("brave.exe", brave.Path);
-        Assert.False(brave.Packaged);
-        Assert.False(brave.ThisProgram);
-        var shellFile = Assert.Single(privacy.Location, app => app.ThisProgram);
-        Assert.Equal("Shell", shellFile.Name);
-        Assert.Equal("Shell.exe", shellFile.Path);
-        Assert.DoesNotContain(privacy.Location, app => app.Name == "Maps");
-        Assert.True(privacy.LocationInUse);
-        Assert.Null(loop.NextDue);
+        Assert.AreEqual(2, privacy.Location.Count);
+        var brave = Assert.ContainsSingle(app => app.Name == "brave", privacy.Location);
+        Assert.AreEqual("brave.exe", brave.Path);
+        Assert.IsFalse(brave.Packaged);
+        Assert.IsFalse(brave.ThisProgram);
+        var shellFile = Assert.ContainsSingle(app => app.ThisProgram, privacy.Location);
+        Assert.AreEqual("Shell", shellFile.Name);
+        Assert.AreEqual("Shell.exe", shellFile.Path);
+        Assert.DoesNotContain(app => app.Name == "Maps", privacy.Location);
+        Assert.IsTrue(privacy.LocationInUse);
+        Assert.IsNull(loop.NextDue);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_shell_s_own_microphone_stream_is_marked_and_listed_once()
     {
         var loop = new ManualEventLoop();
@@ -67,35 +68,35 @@ public sealed class PrivacyServiceTests
         using var privacy = new PrivacyService(loop, new Log(), backend);
         privacy.PropertyChanged += Ignore;
 
-        Assert.Equal(2, privacy.Microphone.Count);
-        var shell = Assert.Single(privacy.Microphone, app => app.ThisProgram);
-        Assert.Equal("Meter", shell.Name);
-        Assert.Equal(ShellPath, shell.Path);
-        Assert.False(shell.Packaged);
-        var meet = Assert.Single(privacy.Microphone, app => app.Name == "Meet");
-        Assert.False(meet.ThisProgram);
-        Assert.Equal(@"C:\Apps\Meet.exe", meet.Path);
+        Assert.AreEqual(2, privacy.Microphone.Count);
+        var shell = Assert.ContainsSingle(app => app.ThisProgram, privacy.Microphone);
+        Assert.AreEqual("Meter", shell.Name);
+        Assert.AreEqual(ShellPath, shell.Path);
+        Assert.IsFalse(shell.Packaged);
+        var meet = Assert.ContainsSingle(app => app.Name == "Meet", privacy.Microphone);
+        Assert.IsFalse(meet.ThisProgram);
+        Assert.AreEqual(@"C:\Apps\Meet.exe", meet.Path);
 
         backend.Consent.Add(new ConsentRecord(PrivacyCapability.Microphone, false,
             "C:#shell#Shell.exe", 40, 0, "Shell"));
         backend.Raise();
         loop.Advance(Settle);
-        Assert.Equal(2, privacy.Microphone.Count);
-        shell = Assert.Single(privacy.Microphone, app => app.ThisProgram);
-        Assert.Equal("Shell", shell.Name);
-        Assert.Equal(ShellPath, shell.Path);
+        Assert.AreEqual(2, privacy.Microphone.Count);
+        shell = Assert.ContainsSingle(app => app.ThisProgram, privacy.Microphone);
+        Assert.AreEqual("Shell", shell.Name);
+        Assert.AreEqual(ShellPath, shell.Path);
 
         backend.Consent.Add(new ConsentRecord(PrivacyCapability.Camera, true, ShellFamily, 12, 0, ""));
         backend.Raise();
         loop.Advance(Settle);
-        var packaged = Assert.Single(privacy.Camera);
-        Assert.Equal(ShellFamily, packaged.Name);
-        Assert.True(packaged.Packaged);
-        Assert.True(packaged.ThisProgram);
-        Assert.Equal("", packaged.Path);
+        var packaged = Assert.ContainsSingle(privacy.Camera);
+        Assert.AreEqual(ShellFamily, packaged.Name);
+        Assert.IsTrue(packaged.Packaged);
+        Assert.IsTrue(packaged.ThisProgram);
+        Assert.AreEqual("", packaged.Path);
     }
 
-    [Fact]
+    [TestMethod]
     public void Windows_is_read_only_while_something_listens()
     {
         var loop = new ManualEventLoop();
@@ -103,37 +104,37 @@ public sealed class PrivacyServiceTests
         using var privacy = new PrivacyService(loop, new Log(), backend);
         PropertyChangedEventHandler second = Ignore;
 
-        Assert.Empty(privacy.Microphone);
-        Assert.False(privacy.MicrophoneInUse);
+        Assert.IsEmpty(privacy.Microphone);
+        Assert.IsFalse(privacy.MicrophoneInUse);
         loop.Advance(TimeSpan.FromSeconds(5));
-        Assert.Equal(0, backend.Reads);
-        Assert.Equal(0, backend.Starts);
-        Assert.Null(loop.NextDue);
+        Assert.AreEqual(0, backend.Reads);
+        Assert.AreEqual(0, backend.Starts);
+        Assert.IsNull(loop.NextDue);
 
         privacy.PropertyChanged += Ignore;
         privacy.PropertyChanged += second;
-        Assert.Equal(1, backend.Starts);
-        Assert.Equal(1, backend.Reads);
+        Assert.AreEqual(1, backend.Starts);
+        Assert.AreEqual(1, backend.Reads);
         loop.Advance(TimeSpan.FromSeconds(5));
-        Assert.Equal(1, backend.Reads);
-        Assert.Null(loop.NextDue);
+        Assert.AreEqual(1, backend.Reads);
+        Assert.IsNull(loop.NextDue);
 
         privacy.PropertyChanged -= second;
-        Assert.Equal(0, backend.Stops);
+        Assert.AreEqual(0, backend.Stops);
         privacy.PropertyChanged -= Ignore;
-        Assert.Equal(1, backend.Stops);
-        Assert.Empty(privacy.Microphone);
-        Assert.False(privacy.CameraInUse);
+        Assert.AreEqual(1, backend.Stops);
+        Assert.IsEmpty(privacy.Microphone);
+        Assert.IsFalse(privacy.CameraInUse);
         loop.Advance(TimeSpan.FromSeconds(5));
-        Assert.Equal(1, backend.Reads);
-        Assert.Null(loop.NextDue);
+        Assert.AreEqual(1, backend.Reads);
+        Assert.IsNull(loop.NextDue);
 
         privacy.PropertyChanged += Ignore;
-        Assert.Equal(2, backend.Starts);
-        Assert.Equal(2, backend.Reads);
+        Assert.AreEqual(2, backend.Starts);
+        Assert.AreEqual(2, backend.Reads);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_change_is_reported_on_the_loop_once_and_stopping_clears_it()
     {
         var loop = new ManualEventLoop();
@@ -142,50 +143,50 @@ public sealed class PrivacyServiceTests
         using var privacy = new PrivacyService(loop, new Log(), backend);
         List<string?> heard = [];
         privacy.PropertyChanged += (_, e) => heard.Add(e.PropertyName);
-        Assert.Equal([nameof(PrivacyService.Microphone), nameof(PrivacyService.MicrophoneInUse)], heard);
-        Assert.True(privacy.MicrophoneInUse);
+        Assert.AreSequenceEqual([nameof(PrivacyService.Microphone), nameof(PrivacyService.MicrophoneInUse)], heard);
+        Assert.IsTrue(privacy.MicrophoneInUse);
         var reads = backend.Reads;
 
         heard.Clear();
         backend.Captures.Clear();
         backend.Raise();
         loop.Process();
-        Assert.True(privacy.MicrophoneInUse);
-        Assert.Empty(heard);
-        Assert.Equal(reads, backend.Reads);
+        Assert.IsTrue(privacy.MicrophoneInUse);
+        Assert.IsEmpty(heard);
+        Assert.AreEqual(reads, backend.Reads);
 
         loop.Advance(Settle);
-        Assert.Equal([nameof(PrivacyService.Microphone), nameof(PrivacyService.MicrophoneInUse)], heard);
-        Assert.Empty(privacy.Microphone);
-        Assert.False(privacy.MicrophoneInUse);
-        Assert.Equal(reads + 1, backend.Reads);
+        Assert.AreSequenceEqual([nameof(PrivacyService.Microphone), nameof(PrivacyService.MicrophoneInUse)], heard);
+        Assert.IsEmpty(privacy.Microphone);
+        Assert.IsFalse(privacy.MicrophoneInUse);
+        Assert.AreEqual(reads + 1, backend.Reads);
 
         heard.Clear();
         backend.Raise();
         loop.Advance(Settle);
-        Assert.Empty(heard);
-        Assert.Equal(reads + 2, backend.Reads);
-        Assert.Null(loop.NextDue);
+        Assert.IsEmpty(heard);
+        Assert.AreEqual(reads + 2, backend.Reads);
+        Assert.IsNull(loop.NextDue);
     }
 
-    [Fact]
+    [TestMethod]
     public void Disposing_stops_the_reading()
     {
         var loop = new ManualEventLoop();
         var backend = new FakePrivacyBackend();
         var privacy = new PrivacyService(loop, new Log(), backend);
         privacy.PropertyChanged += Ignore;
-        Assert.Equal(1, backend.Starts);
+        Assert.AreEqual(1, backend.Starts);
 
         privacy.Dispose();
         privacy.PropertyChanged += Ignore;
         backend.Raise();
         loop.Advance(Settle);
-        Assert.Equal(1, backend.Starts);
-        Assert.Equal(1, backend.Reads);
-        Assert.Equal(1, backend.Stops);
-        Assert.Null(loop.NextDue);
-        Assert.False(privacy.MicrophoneInUse);
+        Assert.AreEqual(1, backend.Starts);
+        Assert.AreEqual(1, backend.Reads);
+        Assert.AreEqual(1, backend.Stops);
+        Assert.IsNull(loop.NextDue);
+        Assert.IsFalse(privacy.MicrophoneInUse);
     }
 
     private sealed class FakePrivacyBackend : IPrivacyBackend

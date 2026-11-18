@@ -3,12 +3,13 @@ using System.Globalization;
 
 namespace Winshell.Tests;
 
-public sealed partial class IpcGetTests : IDisposable, IClassFixture<ProbeBuild>
+[TestClass]
+public sealed partial class IpcGetTests : ProbeBuild, IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
     private Process? _started;
 
-    [Fact]
+    [TestMethod]
     public void Get_prints_a_property_of_the_running_shell()
     {
         var config = Path.Combine(_dir, "config");
@@ -18,7 +19,7 @@ public sealed partial class IpcGetTests : IDisposable, IClassFixture<ProbeBuild>
         var get = Run("ipc", "--pid", process.Id.ToString(CultureInfo.InvariantCulture), "get", "probe", "name");
 
         get.AssertExitCode(0);
-        Assert.Equal("probe", get.Output.Trim());
+        Assert.AreEqual("probe", get.Output.Trim());
     }
 
     private ChildProcess Run(params string[] args)

@@ -2,9 +2,10 @@ using Winshell.Power;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public class BrightnessPanelTests
 {
-    [Fact]
+    [TestMethod]
     public void A_built_in_panel_is_matched_to_its_screen_and_named_by_its_model()
     {
         var interfacePath = @"\\?\DISPLAY#AUS32A8#5&15335277&0&UID184582#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}";
@@ -16,7 +17,7 @@ public class BrightnessPanelTests
         var monitors = BrightnessBackend.Combine([screen], [new BrightnessBackend.WmiPanel(instance, 0, 100, 60)],
             _ => null, []);
 
-        Assert.Equal([new BrightnessInfo(instance, "Laptop panel", BrightnessConnection.Internal, 0, 100, 60)],
+        Assert.AreSequenceEqual([new BrightnessInfo(instance, "Laptop panel", BrightnessConnection.Internal, 0, 100, 60)],
             monitors);
     }
 }

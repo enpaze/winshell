@@ -1,8 +1,10 @@
 namespace Winshell.Tests;
 
-public sealed class ProbeBuild
+[TestClass]
+public abstract class ProbeBuild
 {
-    public ProbeBuild()
+    [ClassInitialize(InheritanceBehavior.BeforeEachDerivedClass)]
+    public static void Build(TestContext context)
     {
         ProbeShell.Ensure();
     }

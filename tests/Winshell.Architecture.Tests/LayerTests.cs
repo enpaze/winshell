@@ -3,12 +3,13 @@ using System.Xml.Linq;
 
 namespace Winshell.Architecture.Tests;
 
+[TestClass]
 public class LayerTests
 {
     private static readonly string[] Layers =
         ["Winshell.Shell", "Winshell.Services", "Winshell.Core", "Winshell.Native"];
 
-    [Fact]
+    [TestMethod]
     public void A_project_references_only_layers_below_it()
     {
         var upward = Layers.SelectMany((layer, i) => XDocument
@@ -18,10 +19,10 @@ public class LayerTests
             .Where(name => !Layers.Skip(i + 1).Contains(name))
             .Select(name => $"{layer} -> {name}"));
 
-        Assert.Empty(upward);
+        Assert.IsEmpty(upward);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_assembly_references_only_layers_below_it()
     {
         var upward = Layers.SelectMany((layer, i) => Assembly.Load(layer).GetReferencedAssemblies()
@@ -30,6 +31,6 @@ public class LayerTests
                            !Layers.Skip(i + 1).Contains(name))
             .Select(name => $"{layer} -> {name}"));
 
-        Assert.Empty(upward);
+        Assert.IsEmpty(upward);
     }
 }

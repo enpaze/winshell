@@ -1,12 +1,7 @@
 using System.Collections.Concurrent;
-using System.Reflection;
 using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
-using Winshell.ShellTests;
-using Xunit.v3;
-
-[assembly: NoWindowLeftOpen]
 
 namespace Winshell.ShellTests;
 
@@ -18,7 +13,7 @@ internal static class ShellFixture
     private static readonly SemaphoreSlim OneAction = new(1, 1);
     private static readonly AsyncLocal<int> Depth = new();
 
-    private static readonly ConcurrentDictionary<string, List<string>> Left = new();
+    private static readonly ConcurrentDictionary<TestContext, List<string>> Left = new();
 
     private static Thread StartThread()
     {
@@ -45,7 +40,7 @@ internal static class ShellFixture
     public static Task<T> On<T>(Func<Shell, Task<T>> action)
     {
         return Gate(async () =>
-            await OnThread(await Current().WaitAsync(TestContext.Current.CancellationToken), action));
+            await OnThread(await Current().WaitAsync(CurrentTest.Cancellation), action));
     }
 
     public static Task Hold(Func<Task> action)
@@ -61,11 +56,11 @@ internal static class ShellFixture
     {
         if (Depth.Value > 0)
             return await body();
-        await OneAction.WaitAsync(TestContext.Current.CancellationToken);
+        await OneAction.WaitAsync(CurrentTest.Cancellation);
         Depth.Value = 1;
         try
         {
-            var shell = await Current().WaitAsync(TestContext.Current.CancellationToken);
+            var shell = await Current().WaitAsync(CurrentTest.Cancellation);
             var before = await OnThread(shell, s => Task.FromResult(s.Platform.Windows.ToList()));
             try
             {
@@ -100,8 +95,8 @@ internal static class ShellFixture
                     window.Client.Dispose();
                 return Task.FromResult(names);
             });
-            if (left.Count > 0 && TestContext.Current.Test is { } test)
-                Left.AddOrUpdate(test.UniqueID, left, (_, earlier) => [.. earlier, .. left]);
+            if (left.Count > 0 && CurrentTest.Context is { } test)
+                Left.AddOrUpdate(test, left, (_, earlier) => [.. earlier, .. left]);
         }
         catch (OperationCanceledException)
         {
@@ -112,7 +107,7 @@ internal static class ShellFixture
     {
         var done = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
         shell.Loop.Post(() => _ = Run(shell, action, done));
-        return await done.Task.WaitAsync(TestContext.Current.CancellationToken);
+        return await done.Task.WaitAsync(CurrentTest.Cancellation);
     }
 
     private static async Task Run<T>(Shell shell, Func<Shell, Task<T>> action, TaskCompletionSource<T> done)
@@ -152,9 +147,9 @@ internal static class ShellFixture
         return reader.ReadToEnd();
     }
 
-    internal static List<string> LeftOpenBy(IXunitTest test)
+    internal static List<string> LeftOpenBy(TestContext test)
     {
-        return Left.TryRemove(test.UniqueID, out var names) ? names : [];
+        return Left.TryRemove(test, out var names) ? names : [];
     }
 
     private static string Describe(HostWindow window)
@@ -174,12 +169,13 @@ internal static class ShellFixture
     }
 }
 
-[AttributeUsage(AttributeTargets.Assembly)]
-internal sealed class NoWindowLeftOpenAttribute : BeforeAfterTestAttribute
+[TestClass]
+public static class NoWindowLeftOpen
 {
-    public override void After(MethodInfo methodUnderTest, IXunitTest test)
+    [GlobalTestCleanup]
+    public static void After(TestContext context)
     {
-        var left = ShellFixture.LeftOpenBy(test);
-        Assert.True(left.Count == 0, $"The test left {left.Count} shell window(s) open: {string.Join("; ", left)}.");
+        var left = ShellFixture.LeftOpenBy(context);
+        Assert.IsTrue(left.Count == 0, $"The test left {left.Count} shell window(s) open: {string.Join("; ", left)}.");
     }
 }

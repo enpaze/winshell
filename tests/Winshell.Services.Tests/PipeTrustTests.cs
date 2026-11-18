@@ -6,25 +6,26 @@ using Winshell.Native;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public class PipeTrustTests
 {
     private const uint Low = 0x1000;
     private const uint Medium = 0x2000;
     private const uint High = 0x3000;
 
-    [Fact]
+    [TestMethod]
     public void A_lower_integrity_is_refused_and_an_unknown_level_fails_closed()
     {
-        Assert.False(PipeTrust.AtLeast(Low, Medium));
-        Assert.True(PipeTrust.AtLeast(Medium, Medium));
-        Assert.True(PipeTrust.AtLeast(High, Medium));
-        Assert.False(PipeTrust.AtLeast(null, Medium));
-        Assert.False(PipeTrust.AtLeast(Medium, null));
-        Assert.False(PipeTrust.AtLeast(0, Medium));
-        Assert.False(PipeTrust.AtLeast(Medium, 0));
+        Assert.IsFalse(PipeTrust.AtLeast(Low, Medium));
+        Assert.IsTrue(PipeTrust.AtLeast(Medium, Medium));
+        Assert.IsTrue(PipeTrust.AtLeast(High, Medium));
+        Assert.IsFalse(PipeTrust.AtLeast(null, Medium));
+        Assert.IsFalse(PipeTrust.AtLeast(Medium, null));
+        Assert.IsFalse(PipeTrust.AtLeast(0, Medium));
+        Assert.IsFalse(PipeTrust.AtLeast(Medium, 0));
     }
 
-    [Fact]
+    [TestMethod]
     public void The_first_pipe_is_medium_labeled_and_a_second_first_instance_fails()
     {
         var name = "winshell-test-" + Guid.NewGuid().ToString("N");
@@ -32,63 +33,63 @@ public class PipeTrustTests
         var label = NamedPipes.MandatoryLabel(first.SafePipeHandle);
         Assert.Contains("ME", label, StringComparison.Ordinal);
         Assert.Contains("NW", label, StringComparison.Ordinal);
-        Assert.Throws<PipeTakenException>(() => IpcServer.OpenFirst(name));
+        Assert.ThrowsExactly<PipeTakenException>(() => IpcServer.OpenFirst(name));
     }
 
-    [Fact]
+    [TestMethod]
     public void The_pipe_is_owned_by_the_user_even_when_elevated()
     {
         var name = "winshell-test-" + Guid.NewGuid().ToString("N");
         using var first = IpcServer.OpenFirst(name);
         var owner = first.GetAccessControl().GetOwner(typeof(SecurityIdentifier));
-        Assert.Equal(WindowsIdentity.GetCurrent().User, owner);
+        Assert.AreEqual(WindowsIdentity.GetCurrent().User, owner);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_taken_name_listens_on_a_new_id()
     {
         var name = "winshell-test-" + Guid.NewGuid().ToString("N");
         using var held = IpcServer.OpenFirst(name);
         var chosen = name;
         using var other = IpcServer.OpenAvailable(ref chosen);
-        Assert.NotEqual(name, chosen);
+        Assert.AreNotEqual(name, chosen);
         Assert.StartsWith("winshell-", chosen, StringComparison.Ordinal);
         Assert.Contains("ME", NamedPipes.MandatoryLabel(other.SafePipeHandle), StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_later_instance_keeps_the_medium_label_and_accepts_another_client()
     {
         var name = "winshell-test-" + Guid.NewGuid().ToString("N");
         await using var first = IpcServer.OpenFirst(name);
-        var firstWait = first.WaitForConnectionAsync(TestContext.Current.CancellationToken);
+        var firstWait = first.WaitForConnectionAsync(CurrentTest.Cancellation);
         await using var client = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
-        await client.ConnectAsync(3000, TestContext.Current.CancellationToken);
+        await client.ConnectAsync(3000, CurrentTest.Cancellation);
         await firstWait;
         await using var second = IpcServer.OpenNext(name);
         var label = NamedPipes.MandatoryLabel(second.SafePipeHandle);
         Assert.Contains("ME", label, StringComparison.Ordinal);
         Assert.Contains("NW", label, StringComparison.Ordinal);
-        var secondWait = second.WaitForConnectionAsync(TestContext.Current.CancellationToken);
+        var secondWait = second.WaitForConnectionAsync(CurrentTest.Cancellation);
         await using var next = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
-        await next.ConnectAsync(3000, TestContext.Current.CancellationToken);
+        await next.ConnectAsync(3000, CurrentTest.Cancellation);
         await secondWait;
-        Assert.Null(PipeTrust.ClientRefusal(second.SafePipeHandle));
+        Assert.IsNull(PipeTrust.ClientRefusal(second.SafePipeHandle));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_connected_client_of_this_process_is_at_the_shell_integrity()
     {
         var name = "winshell-test-" + Guid.NewGuid().ToString("N");
         await using var server = IpcServer.OpenFirst(name);
-        var waiting = server.WaitForConnectionAsync(TestContext.Current.CancellationToken);
+        var waiting = server.WaitForConnectionAsync(CurrentTest.Cancellation);
         await using var client = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
-        await client.ConnectAsync(3000, TestContext.Current.CancellationToken);
+        await client.ConnectAsync(3000, CurrentTest.Cancellation);
         await waiting;
-        Assert.Null(PipeTrust.ClientRefusal(server.SafePipeHandle));
+        Assert.IsNull(PipeTrust.ClientRefusal(server.SafePipeHandle));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_refused_client_is_told_why_and_nothing_runs()
     {
         var name = "winshell-test-" + Guid.NewGuid().ToString("N");
@@ -100,13 +101,13 @@ public class PipeTrustTests
         var line = await Ask(name, """{"op":"kill"}""");
 
         var response = JsonSerializer.Deserialize(line!, IpcJson.Default.IpcResponse)!;
-        Assert.False(response.Ok);
-        Assert.Equal("refused for the test", response.Error);
+        Assert.IsFalse(response.Ok);
+        Assert.AreEqual("refused for the test", response.Error);
         loop.RunDue();
-        Assert.Equal(0, control.Quits);
+        Assert.AreEqual(0, control.Quits);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task The_name_keeps_an_instance_after_clients_come_and_go()
     {
         var name = "winshell-test-" + Guid.NewGuid().ToString("N");
@@ -123,10 +124,10 @@ public class PipeTrustTests
             {
                 await using var quick =
                     new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
-                await quick.ConnectAsync(3000, TestContext.Current.CancellationToken);
+                await quick.ConnectAsync(3000, CurrentTest.Cancellation);
             }
 
-            Assert.Throws<PipeTakenException>(() => IpcServer.OpenFirst(name).Dispose());
+            Assert.ThrowsExactly<PipeTakenException>(() => IpcServer.OpenFirst(name).Dispose());
         }
     }
 

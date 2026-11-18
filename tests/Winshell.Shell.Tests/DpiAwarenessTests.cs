@@ -2,11 +2,12 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed class DpiAwarenessTests
 {
-    [Fact]
+    [TestMethod]
     public void The_process_is_per_monitor_v2_aware()
     {
-        Assert.True(ThreadDpi.IsPerMonitorV2(), "This process is not per-monitor v2 DPI aware.");
+        Assert.IsTrue(ThreadDpi.IsPerMonitorV2(), "This process is not per-monitor v2 DPI aware.");
     }
 }

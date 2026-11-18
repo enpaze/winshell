@@ -3,16 +3,15 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <EnableMSTestRunner>true</EnableMSTestRunner>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="xunit.v3.mtp-off" />
-    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="MSTest" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
-    <Using Include="Xunit" />
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
     <Using Include="Winshell.TestSupport" />
     <Using Include="Microsoft.Extensions.Time.Testing" />
     <Compile Include="$(MSBuildThisFileDirectory)TestSupport\*.cs" Link="TestSupport\%(Filename)%(Extension)" />
-    <None Include="$(MSBuildThisFileDirectory)xunit.runner.json" Link="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

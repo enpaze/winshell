@@ -2,29 +2,30 @@ using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class TrayIconModuleTests
 {
-    [Theory]
-    [InlineData(@"C:\Windows\System32\shell32.dll")]
-    [InlineData(@"\\?\C:\Windows\System32\shell32.dll")]
-    [InlineData("d:/apps/app.exe")]
-    [InlineData("shell32.dll")]
-    [InlineData("")]
+    [TestMethod]
+    [DataRow(@"C:\Windows\System32\shell32.dll")]
+    [DataRow(@"\\?\C:\Windows\System32\shell32.dll")]
+    [DataRow("d:/apps/app.exe")]
+    [DataRow("shell32.dll")]
+    [DataRow("")]
     public void A_local_path_is_accepted(string path)
     {
-        Assert.True(IconImage.IsLocalPath(path));
+        Assert.IsTrue(IconImage.IsLocalPath(path));
     }
 
-    [Theory]
-    [InlineData(@"\\server\share\x.dll")]
-    [InlineData(@"\\?\UNC\server\share\x.dll")]
-    [InlineData(@"\\.\pipe\x")]
-    [InlineData(@"\\?\GLOBALROOT\Device\x.dll")]
-    [InlineData(@"\\?\C:")]
-    [InlineData("//server/share/x.dll")]
-    [InlineData(@"\/server\share\x.dll")]
+    [TestMethod]
+    [DataRow(@"\\server\share\x.dll")]
+    [DataRow(@"\\?\UNC\server\share\x.dll")]
+    [DataRow(@"\\.\pipe\x")]
+    [DataRow(@"\\?\GLOBALROOT\Device\x.dll")]
+    [DataRow(@"\\?\C:")]
+    [DataRow("//server/share/x.dll")]
+    [DataRow(@"\/server\share\x.dll")]
     public void A_network_or_device_path_is_refused(string path)
     {
-        Assert.False(IconImage.IsLocalPath(path));
+        Assert.IsFalse(IconImage.IsLocalPath(path));
     }
 }

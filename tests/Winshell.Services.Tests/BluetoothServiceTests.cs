@@ -6,6 +6,7 @@ using Winshell.Bluetooth;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class BluetoothServiceTests
 {
     private static readonly Guid Container = Guid.Parse("71886561-73c1-4d67-a4a0-5077c90859d0");
@@ -56,7 +57,7 @@ public sealed class BluetoothServiceTests
         return service;
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_read_changes_only_the_properties_that_differ()
     {
         using var session = await Session.OpenAsync(Snapshot(DeviceInfo()));
@@ -64,19 +65,19 @@ public sealed class BluetoothServiceTests
 
         await session.ShowAsync(Snapshot(DeviceInfo() with { Icon = "audio-headset" }));
 
-        Assert.Equal([nameof(BluetoothDevice.Icon)], changes);
-        Assert.Equal("audio-headset", session.Device.Icon);
+        Assert.AreSequenceEqual([nameof(BluetoothDevice.Icon)], changes);
+        Assert.AreEqual("audio-headset", session.Device.Icon);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_device_that_stays_is_the_same_object_and_moves_between_the_lists()
     {
         using var session = await Session.OpenAsync(Snapshot(DeviceInfo()));
         var service = session.Service;
         var adapter = service.DefaultAdapter;
         var device = session.Device;
-        Assert.Same(device, Assert.Single(service.PairedDevices));
-        Assert.Empty(service.NearbyDevices);
+        Assert.AreSame(device, Assert.ContainsSingle(service.PairedDevices));
+        Assert.IsEmpty(service.NearbyDevices);
 
         await session.ShowAsync(Snapshot(DeviceInfo("ChangedEndpoint", false, battery: null) with
         {
@@ -84,25 +85,25 @@ public sealed class BluetoothServiceTests
             Connected = false
         }));
 
-        Assert.Same(device, session.Device);
-        Assert.Same(adapter, service.DefaultAdapter);
-        Assert.Same(device.Adapter, service.DefaultAdapter);
-        Assert.Equal("ChangedEndpoint", device.Id);
-        Assert.Equal("Nearby", device.Name);
-        Assert.False(device.Paired);
-        Assert.True(device.CanPair);
-        Assert.Equal(BluetoothDeviceState.Disconnected, device.State);
-        Assert.False(device.BatteryAvailable);
-        Assert.Equal(0, device.Battery);
-        Assert.Empty(service.PairedDevices);
-        Assert.Same(device, Assert.Single(service.NearbyDevices));
+        Assert.AreSame(device, session.Device);
+        Assert.AreSame(adapter, service.DefaultAdapter);
+        Assert.AreSame(device.Adapter, service.DefaultAdapter);
+        Assert.AreEqual("ChangedEndpoint", device.Id);
+        Assert.AreEqual("Nearby", device.Name);
+        Assert.IsFalse(device.Paired);
+        Assert.IsTrue(device.CanPair);
+        Assert.AreEqual(BluetoothDeviceState.Disconnected, device.State);
+        Assert.IsFalse(device.BatteryAvailable);
+        Assert.AreEqual(0, device.Battery);
+        Assert.IsEmpty(service.PairedDevices);
+        Assert.AreSame(device, Assert.ContainsSingle(service.NearbyDevices));
 
         await session.ShowAsync(Snapshot());
-        Assert.Empty(service.Devices);
-        Assert.Empty(service.NearbyDevices);
+        Assert.IsEmpty(service.Devices);
+        Assert.IsEmpty(service.NearbyDevices);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_new_adapter_replaces_every_object_and_no_adapter_clears_every_list()
     {
         using var session = await Session.OpenAsync(Snapshot(DeviceInfo()));
@@ -112,21 +113,21 @@ public sealed class BluetoothServiceTests
 
         await session.ShowAsync(Snapshot(DeviceInfo()) with { Adapter = Adapter("Replacement") });
 
-        Assert.NotSame(adapter, service.DefaultAdapter);
-        Assert.NotSame(device, session.Device);
-        Assert.Same(service.DefaultAdapter, session.Device.Adapter);
-        Assert.Same(service.DefaultAdapter, Assert.Single(service.Adapters));
+        Assert.AreNotSame(adapter, service.DefaultAdapter);
+        Assert.AreNotSame(device, session.Device);
+        Assert.AreSame(service.DefaultAdapter, session.Device.Adapter);
+        Assert.AreSame(service.DefaultAdapter, Assert.ContainsSingle(service.Adapters));
 
         await session.ShowAsync(new BluetoothSnapshot(true, null, [DeviceInfo()]));
 
-        Assert.Null(service.DefaultAdapter);
-        Assert.Empty(service.Adapters);
-        Assert.Empty(service.Devices);
-        Assert.Empty(service.PairedDevices);
-        Assert.Empty(service.NearbyDevices);
+        Assert.IsNull(service.DefaultAdapter);
+        Assert.IsEmpty(service.Adapters);
+        Assert.IsEmpty(service.Devices);
+        Assert.IsEmpty(service.PairedDevices);
+        Assert.IsEmpty(service.NearbyDevices);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_unchanged_read_leaves_the_lists_alone()
     {
         using var session = await Session.OpenAsync(Snapshot(DeviceInfo()));
@@ -145,39 +146,39 @@ public sealed class BluetoothServiceTests
         await session.ShowAsync(Snapshot(DeviceInfo()) with { Discovering = true });
         await session.ShowAsync(Snapshot(DeviceInfo()) with { Discovering = true });
 
-        Assert.Equal(0, updates);
+        Assert.AreEqual(0, updates);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Actions_use_the_backend_and_never_change_state_ahead_of_a_read()
     {
         using var session = await Session.OpenAsync(Snapshot(DeviceInfo()));
         var backend = session.Backend;
         var device = session.Device;
-        Assert.Empty(backend.Calls);
+        Assert.IsEmpty(backend.Calls);
 
         await device.SetConnectionAsync(false);
         session.Loop.Process();
-        Assert.True(device.Connected);
-        Assert.Equal((Container, false), Assert.Single(backend.Connections));
+        Assert.IsTrue(device.Connected);
+        Assert.AreEqual((Container, false), Assert.ContainsSingle(backend.Connections));
         await device.SetConnectionAsync(true);
         session.Loop.Process();
-        Assert.Equal((Container, true), backend.Connections[1]);
-        Assert.Equal("", device.Error);
+        Assert.AreEqual((Container, true), backend.Connections[1]);
+        Assert.AreEqual("", device.Error);
 
         await session.ShowAsync(Snapshot(DeviceInfo(paired: false)));
         await device.PairAsync();
         session.Loop.Process();
-        Assert.False(device.Paired);
-        Assert.Equal("WindowsEndpoint", Assert.Single(backend.Paired));
+        Assert.IsFalse(device.Paired);
+        Assert.AreEqual("WindowsEndpoint", Assert.ContainsSingle(backend.Paired));
 
         await session.ShowAsync(Snapshot(DeviceInfo() with { PairedIds = ["classic", "le"] }));
         await device.UnpairAsync();
         session.Loop.Process();
-        Assert.Equal(["classic", "le"], backend.Unpaired);
+        Assert.AreSequenceEqual(["classic", "le"], backend.Unpaired);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_unexpected_failure_ends_the_action_and_still_fails_its_task()
     {
         using var session = await Session.OpenAsync(Snapshot(DeviceInfo()));
@@ -185,13 +186,13 @@ public sealed class BluetoothServiceTests
         var bug = new NullReferenceException("A bug");
         session.Backend.Failure = bug;
 
-        Assert.Same(bug, await Assert.ThrowsAsync<NullReferenceException>(device.UnpairAsync));
+        Assert.AreSame(bug, await Assert.ThrowsExactlyAsync<NullReferenceException>(device.UnpairAsync));
         session.Loop.Process();
 
-        Assert.False(device.Busy);
+        Assert.IsFalse(device.Busy);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_failed_action_sets_the_error_and_raises_the_event()
     {
         using var session = await Session.OpenAsync(Snapshot(DeviceInfo()));
@@ -203,29 +204,29 @@ public sealed class BluetoothServiceTests
         await device.SetConnectionAsync(true);
         session.Loop.Process();
         Assert.Contains("Other device types", device.Error, StringComparison.Ordinal);
-        Assert.Equal([device.Error], failed);
+        Assert.AreSequenceEqual([device.Error], failed);
 
         backend.Failure = new UnauthorizedAccessException("Access denied");
         await device.UnpairAsync();
         session.Loop.Process();
-        Assert.Equal("Access denied", device.Error);
-        Assert.False(device.Busy);
+        Assert.AreEqual("Access denied", device.Error);
+        Assert.IsFalse(device.Busy);
 
         await session.ShowAsync(Snapshot(DeviceInfo(paired: false) with { Container = null }));
         var calls = backend.Connections.Count;
         await device.SetConnectionAsync(true);
         session.Loop.Process();
-        Assert.Equal(calls, backend.Connections.Count);
+        Assert.AreEqual(calls, backend.Connections.Count);
         Assert.Contains("paired Bluetooth audio device", device.Error, StringComparison.Ordinal);
 
         backend.Failure = null;
         backend.PairError = "RejectedByHandler";
         await device.PairAsync();
         session.Loop.Process();
-        Assert.Equal("RejectedByHandler", device.Error);
+        Assert.AreEqual("RejectedByHandler", device.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_pairing_ignores_another_action_and_ends_when_cancelled_or_when_the_service_goes()
     {
         var session = await Session.OpenAsync(Snapshot(DeviceInfo(paired: false)));
@@ -234,24 +235,24 @@ public sealed class BluetoothServiceTests
 
         var request = device.PairAsync();
         await device.PairAsync();
-        Assert.True(device.Pairing);
-        Assert.True(device.Busy);
-        Assert.Single(session.Backend.Paired);
+        Assert.IsTrue(device.Pairing);
+        Assert.IsTrue(device.Busy);
+        Assert.ContainsSingle(session.Backend.Paired);
 
         device.CancelPairing();
         await request;
         session.Loop.Process();
-        Assert.Equal("Cancelled", device.Error);
-        Assert.False(device.Pairing);
+        Assert.AreEqual("Cancelled", device.Error);
+        Assert.IsFalse(device.Pairing);
 
         request = device.PairAsync();
         session.Dispose();
-        await request.WaitAsync(TestContext.Current.CancellationToken);
+        await request.WaitAsync(CurrentTest.Cancellation);
         session.Loop.Process();
-        Assert.True(session.Backend.Disposed);
+        Assert.IsTrue(session.Backend.Disposed);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_device_that_leaves_stops_its_pairing()
     {
         using var session = await Session.OpenAsync(Snapshot(DeviceInfo(paired: false)));
@@ -261,14 +262,14 @@ public sealed class BluetoothServiceTests
 
         var request = device.PairAsync();
         await session.ShowAsync(Snapshot());
-        await request.WaitAsync(TestContext.Current.CancellationToken);
+        await request.WaitAsync(CurrentTest.Cancellation);
         session.Loop.Process();
 
-        Assert.Empty(failed);
-        Assert.Single(session.Backend.Paired);
+        Assert.IsEmpty(failed);
+        Assert.ContainsSingle(session.Backend.Paired);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Discovery_is_explicit_and_needs_an_adapter_that_is_on()
     {
         using var session = await Session.OpenAsync(Snapshot());
@@ -277,23 +278,23 @@ public sealed class BluetoothServiceTests
 
         service.StartDiscovery();
         session.Loop.Process();
-        Assert.True(service.Discovering);
+        Assert.IsTrue(service.Discovering);
         service.StopDiscovery();
         session.Loop.Process();
-        Assert.False(service.Discovering);
-        Assert.Equal(["start", "stop"], session.Backend.Calls);
+        Assert.IsFalse(service.Discovering);
+        Assert.AreSequenceEqual(["start", "stop"], session.Backend.Calls);
 
         await session.ShowAsync(Snapshot() with
         {
             Adapter = Adapter(radio: new FakeRadio(RadioKind.Bluetooth, RadioState.Off))
         });
         service.StartDiscovery();
-        Assert.Equal(2, session.Backend.Calls.Count);
+        Assert.AreEqual(2, session.Backend.Calls.Count);
         Assert.Contains("must be on", service.Error, StringComparison.Ordinal);
-        Assert.Equal([service.Error], failed);
+        Assert.AreSequenceEqual([service.Error], failed);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_read_reaches_the_loop_recovers_from_failure_and_a_stale_one_is_dropped()
     {
         using var session = await Session.OpenAsync(Snapshot(DeviceInfo()));
@@ -302,15 +303,15 @@ public sealed class BluetoothServiceTests
 
         backend.ReadFailure = new UnauthorizedAccessException("Unavailable");
         await service.RefreshAsync();
-        Assert.True(service.Ready);
+        Assert.IsTrue(service.Ready);
         session.Loop.Process();
-        Assert.False(service.Ready);
-        Assert.Equal("Unavailable", service.Error);
-        Assert.Empty(service.Devices);
+        Assert.IsFalse(service.Ready);
+        Assert.AreEqual("Unavailable", service.Error);
+        Assert.IsEmpty(service.Devices);
 
         backend.ReadFailure = null;
         await session.ShowAsync(Snapshot(DeviceInfo()));
-        Assert.Equal("", service.Error);
+        Assert.AreEqual("", service.Error);
 
         var completion = new TaskCompletionSource<BluetoothSnapshot>();
         backend.ReadTask = completion.Task;
@@ -319,16 +320,16 @@ public sealed class BluetoothServiceTests
         completion.SetResult(Snapshot(DeviceInfo() with { Name = "Stale" }));
         await read;
         session.Loop.Process();
-        Assert.Equal("Headphones", session.Device.Name);
+        Assert.AreEqual("Headphones", session.Device.Name);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_bluetooth_address_is_six_bytes_high_byte_first()
     {
-        Assert.Equal("AA:BB:CC:DD:EE:FF", BluetoothBackend.FormatAddress(0xAABBCCDDEEFF));
+        Assert.AreEqual("AA:BB:CC:DD:EE:FF", BluetoothBackend.FormatAddress(0xAABBCCDDEEFF));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Setting_the_radio_follows_a_read_and_reports_a_refusal()
     {
         var radio = new FakeRadio(RadioKind.Bluetooth, RadioState.On);
@@ -339,45 +340,45 @@ public sealed class BluetoothServiceTests
         var failed = Failures(h => adapter.OperationFailed += h);
 
         await service.SetAdapterEnabledAsync(adapter, true);
-        Assert.Equal(0, radio.Sets);
+        Assert.AreEqual(0, radio.Sets);
 
         await service.SetAdapterEnabledAsync(adapter, false);
-        Assert.True(adapter.Enabled);
+        Assert.IsTrue(adapter.Enabled);
         session.Loop.Process();
-        Assert.False(adapter.Enabled);
-        Assert.Equal(BluetoothAdapterState.Off, adapter.State);
-        Assert.Equal(RadioState.Off, radio.State);
-        Assert.Empty(failed);
+        Assert.IsFalse(adapter.Enabled);
+        Assert.AreEqual(BluetoothAdapterState.Off, adapter.State);
+        Assert.AreEqual(RadioState.Off, radio.State);
+        Assert.IsEmpty(failed);
 
         radio.Access = RadioAccessStatus.DeniedByUser;
         await service.SetAdapterEnabledAsync(adapter, true);
         session.Loop.Process();
-        Assert.False(adapter.Enabled);
-        Assert.Equal("The user denied radio control.", adapter.Error);
-        Assert.Equal(1, radio.Sets);
+        Assert.IsFalse(adapter.Enabled);
+        Assert.AreEqual("The user denied radio control.", adapter.Error);
+        Assert.AreEqual(1, radio.Sets);
 
         radio.Access = RadioAccessStatus.Unspecified;
         await service.SetAdapterEnabledAsync(adapter, true);
         session.Loop.Process();
-        Assert.False(adapter.Enabled);
-        Assert.Equal("Windows did not allow radio control.", adapter.Error);
-        Assert.Equal(1, radio.Sets);
+        Assert.IsFalse(adapter.Enabled);
+        Assert.AreEqual("Windows did not allow radio control.", adapter.Error);
+        Assert.AreEqual(1, radio.Sets);
 
         radio.Access = RadioAccessStatus.Allowed;
         radio.Result = RadioAccessStatus.DeniedBySystem;
         await service.SetAdapterEnabledAsync(adapter, true);
         session.Loop.Process();
-        Assert.False(adapter.Enabled);
-        Assert.Equal("Windows or its policy denied radio control.", adapter.Error);
-        Assert.Equal(RadioState.Off, radio.State);
+        Assert.IsFalse(adapter.Enabled);
+        Assert.AreEqual("Windows or its policy denied radio control.", adapter.Error);
+        Assert.AreEqual(RadioState.Off, radio.State);
 
         radio.Result = RadioAccessStatus.Allowed;
         radio.Reach = false;
         await service.SetAdapterEnabledAsync(adapter, true);
         session.Loop.Process();
-        Assert.Equal(RadioSwitch.Unchanged, adapter.Error);
-        Assert.Equal(RadioState.Off, radio.State);
-        Assert.Equal(
+        Assert.AreEqual(RadioSwitch.Unchanged, adapter.Error);
+        Assert.AreEqual(RadioState.Off, radio.State);
+        Assert.AreSequenceEqual(
             [
                 "The user denied radio control.",
                 "Windows did not allow radio control.",
@@ -389,15 +390,15 @@ public sealed class BluetoothServiceTests
         radio.Failure = new UnauthorizedAccessException("Access revoked");
         await service.SetAdapterEnabledAsync(adapter, true);
         session.Loop.Process();
-        Assert.False(adapter.Enabled);
-        Assert.Equal("Access revoked", adapter.Error);
+        Assert.IsFalse(adapter.Enabled);
+        Assert.AreEqual("Access revoked", adapter.Error);
 
         await session.ShowAsync(Snapshot(DeviceInfo()));
-        Assert.True(adapter.Enabled);
-        Assert.Equal("", adapter.Error);
+        Assert.IsTrue(adapter.Enabled);
+        Assert.AreEqual("", adapter.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_bug_in_a_radio_write_faults_and_does_not_report_success()
     {
         var bug = new InvalidOperationException("A bug");
@@ -413,23 +414,23 @@ public sealed class BluetoothServiceTests
 
         await service.SetAdapterEnabledAsync(adapter, true);
         session.Loop.Process();
-        Assert.Equal(refusal, adapter.Error);
+        Assert.AreEqual(refusal, adapter.Error);
 
         radio.Failure = bug;
-        Assert.Same(bug,
-            await Assert.ThrowsAsync<InvalidOperationException>(() => service.SetAdapterEnabledAsync(adapter, true)));
+        Assert.AreSame(bug,
+            await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => service.SetAdapterEnabledAsync(adapter, true)));
         session.Loop.Process();
-        Assert.Equal([refusal], failed);
-        Assert.Equal(refusal, adapter.Error);
+        Assert.AreSequenceEqual([refusal], failed);
+        Assert.AreEqual(refusal, adapter.Error);
 
         radio.Failure = null;
         await service.SetAdapterEnabledAsync(adapter, true);
         session.Loop.Process();
-        Assert.Equal(refusal, adapter.Error);
-        Assert.Equal([refusal, refusal], failed);
+        Assert.AreEqual(refusal, adapter.Error);
+        Assert.AreSequenceEqual([refusal, refusal], failed);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_adapter_without_a_radio_reports_it()
     {
         using var session = await Session.OpenAsync(
@@ -439,11 +440,11 @@ public sealed class BluetoothServiceTests
         await session.Service.SetAdapterEnabledAsync(adapter, true);
         session.Loop.Process();
 
-        Assert.Equal(BluetoothAdapterState.Unknown, adapter.State);
-        Assert.Equal("Windows reports no Bluetooth radio for this adapter.", adapter.Error);
+        Assert.AreEqual(BluetoothAdapterState.Unknown, adapter.State);
+        Assert.AreEqual("Windows reports no Bluetooth radio for this adapter.", adapter.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_radio_request_in_flight_ignores_another_and_a_replaced_adapter_hears_nothing()
     {
         var gate = new TaskCompletionSource<RadioAccessStatus>();
@@ -454,19 +455,19 @@ public sealed class BluetoothServiceTests
 
         var first = service.SetAdapterEnabledAsync(adapter, true);
         await service.SetAdapterEnabledAsync(adapter, true);
-        Assert.Equal(1, radio.Sets);
+        Assert.AreEqual(1, radio.Sets);
 
         await session.ShowAsync(new BluetoothSnapshot(true,
             Adapter("Replacement", new FakeRadio(RadioKind.Bluetooth, RadioState.Off)), []));
         gate.SetResult(RadioAccessStatus.DeniedBySystem);
         await first;
         session.Loop.Process();
-        Assert.Equal("", adapter.Error);
-        Assert.Equal("", service.DefaultAdapter!.Error);
-        Assert.Equal(RadioState.Off, radio.State);
+        Assert.AreEqual("", adapter.Error);
+        Assert.AreEqual("", service.DefaultAdapter!.Error);
+        Assert.AreEqual(RadioState.Off, radio.State);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Discoverable_and_pairable_follow_a_read_and_the_order_Windows_needs()
     {
         using var session = await Session.OpenAsync(Visibility(false, true));
@@ -475,33 +476,33 @@ public sealed class BluetoothServiceTests
         var adapter = service.DefaultAdapter!;
 
         await service.SetDiscoverableAsync(adapter, false);
-        Assert.Empty(backend.Calls);
+        Assert.IsEmpty(backend.Calls);
 
         await service.SetDiscoverableAsync(adapter, true);
-        Assert.False(adapter.Discoverable);
-        Assert.Equal("discoverable-on", Assert.Single(backend.Calls));
+        Assert.IsFalse(adapter.Discoverable);
+        Assert.AreEqual("discoverable-on", Assert.ContainsSingle(backend.Calls));
         session.Loop.Process();
-        Assert.True(adapter.Discoverable);
-        Assert.True(adapter.Pairable);
+        Assert.IsTrue(adapter.Discoverable);
+        Assert.IsTrue(adapter.Pairable);
 
         await session.ShowAsync(Visibility(false, false));
         backend.Calls.Clear();
         await service.SetDiscoverableAsync(adapter, true);
-        Assert.Equal(["pairable-on", "discoverable-on"], backend.Calls);
+        Assert.AreSequenceEqual(["pairable-on", "discoverable-on"], backend.Calls);
         session.Loop.Process();
-        Assert.True(adapter.Discoverable);
-        Assert.True(adapter.Pairable);
+        Assert.IsTrue(adapter.Discoverable);
+        Assert.IsTrue(adapter.Pairable);
 
         backend.Calls.Clear();
         await service.SetPairableAsync(adapter, false);
-        Assert.Equal(["discoverable-off", "pairable-off"], backend.Calls);
-        Assert.True(adapter.Discoverable);
+        Assert.AreSequenceEqual(["discoverable-off", "pairable-off"], backend.Calls);
+        Assert.IsTrue(adapter.Discoverable);
         session.Loop.Process();
-        Assert.False(adapter.Discoverable);
-        Assert.False(adapter.Pairable);
+        Assert.IsFalse(adapter.Discoverable);
+        Assert.IsFalse(adapter.Pairable);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_visibility_failure_is_reported_and_does_not_skip_ahead_of_windows()
     {
         using var session = await Session.OpenAsync(Visibility(false, false));
@@ -513,26 +514,26 @@ public sealed class BluetoothServiceTests
         backend.PairableError = "incoming refused";
         await service.SetDiscoverableAsync(adapter, true);
         session.Loop.Process();
-        Assert.Equal("pairable-on", Assert.Single(backend.Calls));
-        Assert.False(adapter.Pairable);
-        Assert.Equal("incoming refused", adapter.Error);
-        Assert.Equal(["incoming refused"], failed);
+        Assert.AreEqual("pairable-on", Assert.ContainsSingle(backend.Calls));
+        Assert.IsFalse(adapter.Pairable);
+        Assert.AreEqual("incoming refused", adapter.Error);
+        Assert.AreSequenceEqual(["incoming refused"], failed);
 
         backend.Calls.Clear();
         backend.PairableError = null;
         backend.DiscoverableError = "discovery refused";
         await service.SetDiscoverableAsync(adapter, true);
         session.Loop.Process();
-        Assert.Equal(["pairable-on", "discoverable-on"], backend.Calls);
-        Assert.True(adapter.Pairable);
-        Assert.False(adapter.Discoverable);
-        Assert.Equal("discovery refused", adapter.Error);
+        Assert.AreSequenceEqual(["pairable-on", "discoverable-on"], backend.Calls);
+        Assert.IsTrue(adapter.Pairable);
+        Assert.IsFalse(adapter.Discoverable);
+        Assert.AreEqual("discovery refused", adapter.Error);
 
         await session.ShowAsync(Visibility(true, true));
-        Assert.Equal("", adapter.Error);
+        Assert.AreEqual("", adapter.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_visibility_request_in_flight_ignores_another()
     {
         using var session = await Session.OpenAsync(Visibility(false, true));
@@ -543,74 +544,74 @@ public sealed class BluetoothServiceTests
 
         var first = service.SetDiscoverableAsync(adapter, true);
         await service.SetPairableAsync(adapter, false);
-        Assert.Equal("discoverable-on", Assert.Single(session.Backend.Calls));
+        Assert.AreEqual("discoverable-on", Assert.ContainsSingle(session.Backend.Calls));
 
         gate.SetResult(null);
         await first;
         session.Loop.Process();
-        Assert.True(adapter.Discoverable);
+        Assert.IsTrue(adapter.Discoverable);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_new_service_asks_Windows_for_nothing_until_monitoring_starts()
     {
         var backend = new FakeBackend { Current = Snapshot(DeviceInfo()) };
 
         using var service = new BluetoothService(new ManualEventLoop(), new Log(), backend);
 
-        Assert.Equal(0, backend.Reads);
-        Assert.False(backend.Watching);
+        Assert.AreEqual(0, backend.Reads);
+        Assert.IsFalse(backend.Watching);
     }
 
-    [Fact]
+    [TestMethod]
     public void Monitoring_reads_again_when_Windows_reports_a_change_and_ends_with_the_service()
     {
         var backend = new FakeBackend { Current = Snapshot(DeviceInfo()) };
         var loop = new ManualEventLoop();
         var service = Monitored(backend, loop);
         loop.Process();
-        Assert.True(backend.Watching);
-        Assert.Equal("Headphones", Assert.Single(service.Devices).Name);
+        Assert.IsTrue(backend.Watching);
+        Assert.AreEqual("Headphones", Assert.ContainsSingle(service.Devices).Name);
 
         backend.Current = Snapshot(DeviceInfo() with { Name = "Renamed" });
         backend.RaiseChanged();
         loop.Process();
-        Assert.Equal("Renamed", Assert.Single(service.Devices).Name);
+        Assert.AreEqual("Renamed", Assert.ContainsSingle(service.Devices).Name);
 
         service.Dispose();
         service.Dispose();
-        Assert.False(backend.Watching);
-        Assert.True(backend.Disposed);
+        Assert.IsFalse(backend.Watching);
+        Assert.IsTrue(backend.Disposed);
         backend.RaiseChanged();
-        Assert.Equal(2, backend.Reads);
+        Assert.AreEqual(2, backend.Reads);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_slow_read_covers_what_Windows_does_not_announce_and_stops_with_monitoring()
     {
         var backend = new FakeBackend { Current = Snapshot(DeviceInfo()) };
         var loop = new ManualEventLoop();
         using var service = Monitored(backend, loop);
-        Assert.Equal(1, backend.Reads);
+        Assert.AreEqual(1, backend.Reads);
 
         loop.Advance(TimeSpan.FromSeconds(29));
-        Assert.Equal(1, backend.Reads);
+        Assert.AreEqual(1, backend.Reads);
         loop.Advance(TimeSpan.FromSeconds(1));
-        Assert.Equal(2, backend.Reads);
+        Assert.AreEqual(2, backend.Reads);
 
         service.StopMonitoring();
-        Assert.False(backend.Watching);
+        Assert.IsFalse(backend.Watching);
         loop.Advance(TimeSpan.FromMinutes(5));
-        Assert.Equal(2, backend.Reads);
+        Assert.AreEqual(2, backend.Reads);
 
         service.StartMonitoring();
-        Assert.True(backend.Watching);
-        Assert.Equal(3, backend.Reads);
+        Assert.IsTrue(backend.Watching);
+        Assert.AreEqual(3, backend.Reads);
         loop.Advance(TimeSpan.FromSeconds(30));
-        Assert.Equal(4, backend.Reads);
+        Assert.AreEqual(4, backend.Reads);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_throwing_read_is_logged_and_does_not_stop_monitoring()
     {
         var backend = new FlakyBackend();
@@ -620,13 +621,13 @@ public sealed class BluetoothServiceTests
         using var service = Monitored(backend, loop, log);
 
         Assert.Contains("bluetooth: InvalidCastException: radio broke", messages);
-        Assert.False(service.Ready);
+        Assert.IsFalse(service.Ready);
         backend.RaiseChanged();
         loop.Process();
-        Assert.True(service.Ready);
+        Assert.IsTrue(service.Ready);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_bug_in_a_read_is_warned_and_the_next_read_still_applies()
     {
         var backend = new FakeBackend { ReadFailure = new InvalidOperationException("radio broke") };
@@ -638,65 +639,65 @@ public sealed class BluetoothServiceTests
         await service.RefreshAsync();
         loop.Process();
 
-        Assert.Equal("", service.Error);
+        Assert.AreEqual("", service.Error);
         Assert.Contains("bluetooth: InvalidOperationException: radio broke", messages);
         backend.ReadFailure = null;
         backend.Current = Snapshot(DeviceInfo());
         await service.RefreshAsync();
         loop.Process();
-        Assert.Equal("Headphones", Assert.Single(service.Devices).Name);
+        Assert.AreEqual("Headphones", Assert.ContainsSingle(service.Devices).Name);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_refresh_still_reads_after_monitoring_stops()
     {
         var backend = new TokenBackend();
         using var service = Monitored(backend, new ManualEventLoop());
         service.StopMonitoring();
-        Assert.Equal(1, backend.Finished);
+        Assert.AreEqual(1, backend.Finished);
 
         await service.RefreshAsync();
 
-        Assert.Equal(2, backend.Finished);
+        Assert.AreEqual(2, backend.Finished);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_refresh_during_a_read_reads_again_when_it_ends()
     {
         var backend = new GatedBackend();
         using var service = new BluetoothService(new ManualEventLoop(), new Log(), backend);
         var first = service.RefreshAsync();
-        await backend.Started.Task.WaitAsync(TestContext.Current.CancellationToken);
+        await backend.Started.Task.WaitAsync(CurrentTest.Cancellation);
 
         var second = service.RefreshAsync();
         var third = service.RefreshAsync();
-        Assert.Equal(1, backend.Reads);
-        Assert.False(second.IsCompleted);
+        Assert.AreEqual(1, backend.Reads);
+        Assert.IsFalse(second.IsCompleted);
         backend.Gate.SetResult();
-        await first.WaitAsync(TestContext.Current.CancellationToken);
-        await Task.WhenAll(second, third).WaitAsync(TestContext.Current.CancellationToken);
+        await first.WaitAsync(CurrentTest.Cancellation);
+        await Task.WhenAll(second, third).WaitAsync(CurrentTest.Cancellation);
 
-        Assert.Equal(2, backend.Reads);
+        Assert.AreEqual(2, backend.Reads);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Disposing_does_not_wait_for_a_read_and_the_backend_closes_after_it()
     {
         var backend = new StubbornBackend();
         var loop = new ManualEventLoop();
         var service = new BluetoothService(loop, new Log(), backend);
         var read = service.RefreshAsync();
-        await backend.Started.Task.WaitAsync(TestContext.Current.CancellationToken);
+        await backend.Started.Task.WaitAsync(CurrentTest.Cancellation);
 
         service.Dispose();
-        Assert.False(backend.Disposed);
+        Assert.IsFalse(backend.Disposed);
         backend.Finish.TrySetResult(Snapshot());
-        await read.WaitAsync(TestContext.Current.CancellationToken);
+        await read.WaitAsync(CurrentTest.Cancellation);
         loop.Process();
 
-        Assert.True(backend.Disposed);
-        Assert.False(backend.DisposedDuringRead);
-        Assert.False(service.Ready);
+        Assert.IsTrue(backend.Disposed);
+        Assert.IsFalse(backend.DisposedDuringRead);
+        Assert.IsFalse(service.Ready);
     }
 
     private sealed class Session : IDisposable
@@ -712,7 +713,7 @@ public sealed class BluetoothServiceTests
 
         public BluetoothService Service { get; }
 
-        public BluetoothDevice Device => Assert.Single(Service.Devices);
+        public BluetoothDevice Device => Assert.ContainsSingle(Service.Devices);
 
         public static async Task<Session> OpenAsync(BluetoothSnapshot snapshot)
         {

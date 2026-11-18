@@ -5,7 +5,8 @@ using System.Text.Json;
 
 namespace Winshell.Tests;
 
-public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeBuild>
+[TestClass]
+public sealed partial class NoDuplicateTests : ProbeBuild, IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly string _local;
@@ -21,7 +22,7 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
         Directory.CreateDirectory(_config);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_second_start_exits_and_another_shell_stays()
     {
         var first = Start(true);
@@ -29,27 +30,27 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
 
         var same = Launch(true);
         await AssertExitedQuietly(same);
-        Assert.False(first.HasExited);
+        Assert.IsFalse(first.HasExited);
 
         var second = Start(true, "other");
-        Assert.True(first.HasExited);
-        Assert.Equal(0, first.ExitCode);
-        Assert.False(second.HasExited);
-        Assert.Equal("other", Assert.Single(Running()).ShellId);
+        Assert.IsTrue(first.HasExited);
+        Assert.AreEqual(0, first.ExitCode);
+        Assert.IsFalse(second.HasExited);
+        Assert.AreEqual("other", Assert.ContainsSingle(Running()).ShellId);
         AssertHeld("other");
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_shell_started_without_the_flag_still_blocks_a_duplicate()
     {
         var first = Start(false);
-        Assert.Throws<WaitHandleCannotBeOpenedException>(() => Mutex.OpenExisting(MutexName("probe")));
+        Assert.ThrowsExactly<WaitHandleCannotBeOpenedException>(() => Mutex.OpenExisting(MutexName("probe")));
 
         await AssertExitedQuietly(Launch(true));
-        Assert.False(first.HasExited);
+        Assert.IsFalse(first.HasExited);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Two_overlapping_starts_leave_one_shell()
     {
         var first = Launch(true);
@@ -61,13 +62,13 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
         await AssertExitedQuietly(loser);
 
         Wait.Until(() => Running().Any(i => i.Pid == winner.Id), $"instance {winner.Id}");
-        Assert.False(winner.HasExited);
+        Assert.IsFalse(winner.HasExited);
         var listed = Listed();
-        Assert.Contains(listed, i => i.GetProperty("pid").GetInt32() == winner.Id);
-        Assert.DoesNotContain(listed, i => i.GetProperty("pid").GetInt32() == loser.Id);
+        Assert.Contains(i => i.GetProperty("pid").GetInt32() == winner.Id, listed);
+        Assert.DoesNotContain(i => i.GetProperty("pid").GetInt32() == loser.Id, listed);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Daemonize_leaves_the_mutex_to_the_child()
     {
         ProbeShell.Detach(_config, _local, ["--no-duplicate", "-d"]).AssertExitCode(0);
@@ -79,7 +80,7 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
         AssertHeld("probe");
 
         await AssertExitedQuietly(Launch(true));
-        Assert.False(child.HasExited);
+        Assert.IsFalse(child.HasExited);
     }
 
     private Process Start(bool duplicate, string? shellId = null)
@@ -102,9 +103,9 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
     private async Task AssertExitedQuietly(Process process)
     {
         Wait.Until(() => process.HasExited, "the duplicate to exit");
-        await OwnThread.Run(process.WaitForExit).WaitAsync(TestContext.Current.CancellationToken);
+        await OwnThread.Run(process.WaitForExit).WaitAsync(CurrentTest.Cancellation);
         ChildProcess.Exited("The probe", process, _printed[process.Id]).AssertExitCode(0);
-        Assert.Equal("", _printed[process.Id].ToString());
+        Assert.AreEqual("", _printed[process.Id].ToString());
     }
 
     private void AssertHeld(string shellId)
@@ -125,7 +126,7 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
                 mutex.ReleaseMutex();
         }
 
-        Assert.False(taken);
+        Assert.IsFalse(taken);
     }
 
     private string MutexName(string shellId)

@@ -4,6 +4,7 @@ using System.Text.Json;
 
 namespace Winshell.Tests;
 
+[TestClass]
 public sealed partial class DoctorCommandTests : IDisposable
 {
     private static readonly string[] Ids =
@@ -20,7 +21,7 @@ public sealed partial class DoctorCommandTests : IDisposable
         Directory.CreateDirectory(_root);
     }
 
-    [Fact]
+    [TestMethod]
     public void Json_lists_every_check_and_an_unbuilt_project_fails()
     {
         var project = Path.Combine(_root, "broken");
@@ -32,15 +33,15 @@ public sealed partial class DoctorCommandTests : IDisposable
         result.AssertExitCode(1);
         using var json = JsonDocument.Parse(result.Output);
         var checks = json.RootElement.GetProperty("checks").EnumerateArray().ToList();
-        Assert.Equal(Ids, checks.Select(c => c.GetProperty("id").GetString()));
+        Assert.AreSequenceEqual(Ids, checks.Select(c => c.GetProperty("id").GetString()));
         var built = checks.Single(c => c.GetProperty("id").GetString() == "built");
-        Assert.Equal("fail", built.GetProperty("status").GetString());
-        Assert.Contains("has not been built", built.GetProperty("message").GetString(), StringComparison.Ordinal);
-        Assert.Contains("Run winshell run once", built.GetProperty("fix").GetString(), StringComparison.Ordinal);
-        Assert.True(json.RootElement.GetProperty("summary").GetProperty("fail").GetInt32() >= 1);
+        Assert.AreEqual("fail", built.GetProperty("status").GetString());
+        Assert.Contains("has not been built", built.GetProperty("message").GetString()!, StringComparison.Ordinal);
+        Assert.Contains("Run winshell run once", built.GetProperty("fix").GetString()!, StringComparison.Ordinal);
+        Assert.IsTrue(json.RootElement.GetProperty("summary").GetProperty("fail").GetInt32() >= 1);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_path_that_is_not_there_checks_no_project_beside_it()
     {
         var folder = Path.Combine(_root, "beside");
@@ -56,10 +57,10 @@ public sealed partial class DoctorCommandTests : IDisposable
             .ToDictionary(c => c.GetProperty("id").GetString() ?? "", c => c.GetProperty("message").GetString());
         Assert.StartsWith("No .csproj at ", messages["project"], StringComparison.Ordinal);
         Assert.EndsWith(@"\beside\missing.", messages["project"], StringComparison.Ordinal);
-        Assert.Equal("No configuration project to build.", messages["built"]);
+        Assert.AreEqual("No configuration project to build.", messages["built"]);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_folder_given_with_p_is_not_searched_like_the_config_folder()
     {
         var folder = Path.Combine(_root, "holder");
@@ -74,10 +75,10 @@ public sealed partial class DoctorCommandTests : IDisposable
             .ToDictionary(c => c.GetProperty("id").GetString() ?? "", c => c.GetProperty("message").GetString());
         Assert.StartsWith("No .csproj at ", messages["project"], StringComparison.Ordinal);
         Assert.EndsWith(@"\holder.", messages["project"], StringComparison.Ordinal);
-        Assert.Equal("No configuration project to build.", messages["built"]);
+        Assert.AreEqual("No configuration project to build.", messages["built"]);
     }
 
-    [Fact]
+    [TestMethod]
     public void Text_has_a_line_a_check_and_no_color_when_redirected()
     {
         var empty = Path.Combine(_root, "empty");
@@ -87,10 +88,10 @@ public sealed partial class DoctorCommandTests : IDisposable
 
         Assert.DoesNotContain("\e[", output);
         Assert.Contains("  WARN  Project", output, StringComparison.Ordinal);
-        Assert.Matches(@"\d+ passed, \d+ warnings?, \d+ failed\.", output);
+        Assert.MatchesRegex(@"\d+ passed, \d+ warnings?, \d+ failed\.", output);
     }
 
-    [Fact]
+    [TestMethod]
     public void Without_a_config_it_warns_that_nothing_runs_checks_this_PC_and_writes_nothing()
     {
         var empty = Path.Combine(_root, "none");
@@ -103,21 +104,21 @@ public sealed partial class DoctorCommandTests : IDisposable
         using var json = JsonDocument.Parse(output);
         var checks = json.RootElement.GetProperty("checks").EnumerateArray().ToList();
         var project = checks.Single(c => c.GetProperty("id").GetString() == "project");
-        Assert.Equal("warn", project.GetProperty("status").GetString());
-        Assert.Contains("starts nothing", project.GetProperty("message").GetString(), StringComparison.Ordinal);
-        Assert.Equal("pass", checks.Single(c => c.GetProperty("id").GetString() == "crashes").GetProperty("status")
+        Assert.AreEqual("warn", project.GetProperty("status").GetString());
+        Assert.Contains("starts nothing", project.GetProperty("message").GetString()!, StringComparison.Ordinal);
+        Assert.AreEqual("pass", checks.Single(c => c.GetProperty("id").GetString() == "crashes").GetProperty("status")
             .GetString());
         var messages = checks.Select(c => c.GetProperty("message").GetString()!).ToList();
-        Assert.DoesNotContain(messages, m => m.StartsWith("Could not check", StringComparison.Ordinal));
-        Assert.All(checks.Where(c => c.GetProperty("status").GetString() != "pass"),
-            c => Assert.False(string.IsNullOrEmpty(c.GetProperty("fix").GetString())));
-        Assert.DoesNotContain(messages, m => m.Contains(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), StringComparison.OrdinalIgnoreCase));
-        Assert.Empty(Directory.EnumerateFileSystemEntries(empty));
-        Assert.False(Directory.Exists(local));
+        Assert.DoesNotContain(m => m.StartsWith("Could not check", StringComparison.Ordinal), messages);
+        foreach (var c in checks.Where(c => c.GetProperty("status").GetString() != "pass"))
+            Assert.IsFalse(string.IsNullOrEmpty(c.GetProperty("fix").GetString()));
+        Assert.DoesNotContain(m => m.Contains(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), StringComparison.OrdinalIgnoreCase), messages);
+        Assert.IsEmpty(Directory.EnumerateFileSystemEntries(empty));
+        Assert.IsFalse(Directory.Exists(local));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_config_folder_it_cannot_list_fails_the_project_check_and_the_others_still_run()
     {
         var unreadable = Path.Combine(_root, "unreadable");
@@ -140,12 +141,12 @@ public sealed partial class DoctorCommandTests : IDisposable
         }
 
         result.AssertExitCode(1);
-        Assert.Empty(result.Error);
+        Assert.IsEmpty(result.Error);
         using var json = JsonDocument.Parse(result.Output);
         var checks = json.RootElement.GetProperty("checks").EnumerateArray().ToList();
-        Assert.Equal(Ids.Length, checks.Count);
+        Assert.AreEqual(Ids.Length, checks.Count);
         var project = checks.Single(c => c.GetProperty("id").GetString() == "project");
-        Assert.Equal("fail", project.GetProperty("status").GetString());
+        Assert.AreEqual("fail", project.GetProperty("status").GetString());
         Assert.StartsWith("Winshell cannot read the config folder", project.GetProperty("message").GetString(),
             StringComparison.Ordinal);
     }

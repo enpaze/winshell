@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace Winshell.Architecture.Tests;
 
+[TestClass]
 public class CompositionTests
 {
     private const string ImplicitUsings = """
@@ -15,14 +16,14 @@ public class CompositionTests
         global using System.Threading.Tasks;
         """;
 
-    [Fact]
+    [TestMethod]
     public void A_composition_compiles_against_only_the_public_API()
     {
         var files = Directory.GetFiles(Path.Combine(Repo.Root, "src", "Winshell.Shell", "Compositions"), "*.cs",
             SearchOption.AllDirectories);
-        Assert.NotEmpty(files);
+        Assert.IsNotEmpty(files);
         var options = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
-        var cancel = TestContext.Current.CancellationToken;
+        var cancel = CurrentTest.Cancellation;
         var trees = files.Select(file => CSharpSyntaxTree.ParseText(File.ReadAllText(file), options, file, null, cancel))
             .Append(CSharpSyntaxTree.ParseText(ImplicitUsings, options, "", null, cancel));
         var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator)
@@ -36,6 +37,6 @@ public class CompositionTests
             .Select(diagnostic => diagnostic.ToString())
             .ToList();
 
-        Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors));
+        Assert.IsTrue(errors.Count == 0, string.Join(Environment.NewLine, errors));
     }
 }

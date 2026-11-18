@@ -6,6 +6,7 @@ using Winshell.Windows;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class CaptureSessionTests
 {
     private static readonly CaptureTarget Screen = new(0, "display");
@@ -18,7 +19,7 @@ public sealed class CaptureSessionTests
         return new PixelImage(width, height, bgra);
     }
 
-    [Fact]
+    [TestMethod]
     public void Start_is_explicit_and_stop_clears_pixels_and_cancels_reads()
     {
         var loop = new ManualEventLoop();
@@ -26,36 +27,36 @@ public sealed class CaptureSessionTests
         using var session = new CaptureSession(loop, () => backend);
         session.Target = Screen;
         session.IncludeCursor = true;
-        Assert.False(session.Running);
-        Assert.Equal(0, backend.Starts);
+        Assert.IsFalse(session.Running);
+        Assert.AreEqual(0, backend.Starts);
 
-        Assert.True(session.Start());
-        Assert.True(session.Running);
-        Assert.True(backend.Cursor);
-        Assert.Equal(Screen, backend.Target);
+        Assert.IsTrue(session.Start());
+        Assert.IsTrue(session.Running);
+        Assert.IsTrue(backend.Cursor);
+        Assert.AreEqual(Screen, backend.Target);
         var ready = 0;
         session.FrameReady += () => ready++;
         var frame = Red();
         backend.Next = frame;
         loop.Advance(TimeSpan.FromMilliseconds(33));
 
-        Assert.Same(frame, session.Frame);
-        Assert.True(session.HasFrame);
-        Assert.Equal(new Size(4, 2), session.PixelSize);
-        Assert.Equal(1, ready);
+        Assert.AreSame(frame, session.Frame);
+        Assert.IsTrue(session.HasFrame);
+        Assert.AreEqual(new Size(4, 2), session.PixelSize);
+        Assert.AreEqual(1, ready);
 
         session.Stop();
 
-        Assert.False(session.Running);
-        Assert.False(session.HasFrame);
-        Assert.Null(session.Frame);
-        Assert.Equal(new Size(0, 0), session.PixelSize);
-        Assert.Equal(1, backend.Disposals);
+        Assert.IsFalse(session.Running);
+        Assert.IsFalse(session.HasFrame);
+        Assert.IsNull(session.Frame);
+        Assert.AreEqual(new Size(0, 0), session.PixelSize);
+        Assert.AreEqual(1, backend.Disposals);
         loop.Advance(TimeSpan.FromSeconds(10));
-        Assert.Equal(1, backend.Reads);
+        Assert.AreEqual(1, backend.Reads);
     }
 
-    [Fact]
+    [TestMethod]
     public void No_new_frame_keeps_the_last_one_and_raises_nothing()
     {
         var loop = new ManualEventLoop();
@@ -64,16 +65,16 @@ public sealed class CaptureSessionTests
         session.Target = Screen;
         var ready = 0;
         session.FrameReady += () => ready++;
-        Assert.True(session.Start());
+        Assert.IsTrue(session.Start());
 
         loop.Advance(TimeSpan.FromMilliseconds(66));
 
-        Assert.True(session.HasFrame);
-        Assert.Equal(1, ready);
-        Assert.Equal(2, backend.Reads);
+        Assert.IsTrue(session.HasFrame);
+        Assert.AreEqual(1, ready);
+        Assert.AreEqual(2, backend.Reads);
     }
 
-    [Fact]
+    [TestMethod]
     public void Changing_the_target_stops_and_a_stale_close_cannot_stop_the_next_capture()
     {
         var loop = new ManualEventLoop();
@@ -85,21 +86,21 @@ public sealed class CaptureSessionTests
             return backend;
         });
         session.Target = Screen;
-        Assert.True(session.Start());
+        Assert.IsTrue(session.Start());
         var stale = backends[0].Closed!;
 
         session.Target = CaptureTarget.ForWindow(123);
-        Assert.False(session.Running);
-        Assert.Equal(1, backends[0].Disposals);
+        Assert.IsFalse(session.Running);
+        Assert.AreEqual(1, backends[0].Disposals);
 
-        Assert.True(session.Start());
-        Assert.Equal(new CaptureTarget(123, ""), backends[1].Target);
+        Assert.IsTrue(session.Start());
+        Assert.AreEqual(new CaptureTarget(123, ""), backends[1].Target);
         stale();
         loop.Process();
-        Assert.True(session.Running);
+        Assert.IsTrue(session.Running);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_app_window_is_captured_without_its_handle_and_closing_it_stops()
     {
         var loop = new ManualEventLoop();
@@ -118,52 +119,52 @@ public sealed class CaptureSessionTests
         });
         session.Target = first;
 
-        Assert.Same(first, session.Target!.Source);
-        Assert.Equal(new CaptureTarget(10, ""), new CaptureTarget(session.Target.Window, session.Target.MonitorId));
-        Assert.True(session.Start());
-        Assert.Equal(new CaptureTarget(10, ""), backends[0].Target);
-        Assert.True(session.Running);
+        Assert.AreSame(first, session.Target!.Source);
+        Assert.AreEqual(new CaptureTarget(10, ""), new CaptureTarget(session.Target.Window, session.Target.MonitorId));
+        Assert.IsTrue(session.Start());
+        Assert.AreEqual(new CaptureTarget(10, ""), backends[0].Target);
+        Assert.IsTrue(session.Running);
 
         session.Target = first;
-        Assert.True(session.Running);
+        Assert.IsTrue(session.Running);
 
         session.Target = second;
-        Assert.False(session.Running);
-        Assert.True(session.Start());
-        Assert.Equal(new CaptureTarget(20, ""), backends[1].Target);
+        Assert.IsFalse(session.Running);
+        Assert.IsTrue(session.Start());
+        Assert.AreEqual(new CaptureTarget(20, ""), backends[1].Target);
 
         windows.Destroy(10);
         loop.Process();
-        Assert.True(session.Running);
-        Assert.Same(second, session.Target!.Source);
+        Assert.IsTrue(session.Running);
+        Assert.AreSame(second, session.Target!.Source);
 
         windows.Destroy(20);
         loop.Process();
-        Assert.False(session.Running);
-        Assert.Null(session.Target);
-        Assert.Equal(1, backends[1].Disposals);
+        Assert.IsFalse(session.Running);
+        Assert.IsNull(session.Target);
+        Assert.AreEqual(1, backends[1].Disposals);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_source_that_closes_stops_on_the_loop()
     {
         var loop = new ManualEventLoop();
         var backend = new FakeCapture();
         using var session = new CaptureSession(loop, () => backend);
         session.Target = Screen;
-        Assert.True(session.Start());
+        Assert.IsTrue(session.Start());
 
         backend.Closed!();
-        Assert.True(session.Running);
+        Assert.IsTrue(session.Running);
         loop.Process();
 
-        Assert.False(session.Running);
-        Assert.Equal(1, backend.Disposals);
+        Assert.IsFalse(session.Running);
+        Assert.AreEqual(1, backend.Disposals);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
     public void Denial_and_device_errors_release_resources_and_report_why(bool duringRead)
     {
         var loop = new ManualEventLoop();
@@ -171,45 +172,45 @@ public sealed class CaptureSessionTests
         using var session = new CaptureSession(loop, () => backend);
         session.Target = Screen;
 
-        Assert.Equal(duringRead, session.Start());
+        Assert.AreEqual(duringRead, session.Start());
         loop.Advance(TimeSpan.FromMilliseconds(33));
 
-        Assert.False(session.Running);
-        Assert.NotEmpty(session.Error);
-        Assert.Equal(1, backend.Disposals);
+        Assert.IsFalse(session.Running);
+        Assert.IsNotEmpty(session.Error);
+        Assert.AreEqual(1, backend.Disposals);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_session_with_no_target_does_not_make_a_backend()
     {
         using var session = new CaptureSession(new ManualEventLoop(),
             () => throw new InvalidOperationException("Must not create"));
 
-        Assert.False(session.Start());
+        Assert.IsFalse(session.Start());
 
         Assert.Contains("Choose", session.Error, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_teardown_error_still_clears_pixels()
     {
         var loop = new ManualEventLoop();
         var backend = new FakeCapture { Next = Red(), FailDispose = true };
         var session = new CaptureSession(loop, () => backend) { Target = Screen };
-        Assert.True(session.Start());
+        Assert.IsTrue(session.Start());
         loop.Advance(TimeSpan.FromMilliseconds(33));
 
         session.Dispose();
 
-        Assert.False(session.Running);
-        Assert.False(session.HasFrame);
-        Assert.NotEmpty(session.Error);
+        Assert.IsFalse(session.Running);
+        Assert.IsFalse(session.HasFrame);
+        Assert.IsNotEmpty(session.Error);
         loop.Advance(TimeSpan.FromSeconds(1));
-        Assert.Equal(1, backend.Reads);
-        Assert.False(session.Start());
+        Assert.AreEqual(1, backend.Reads);
+        Assert.IsFalse(session.Start());
     }
 
-    [Fact]
+    [TestMethod]
     public void The_interval_is_bounded_and_a_frame_handler_can_stop_capture()
     {
         var loop = new ManualEventLoop();
@@ -217,20 +218,20 @@ public sealed class CaptureSessionTests
         using var session = new CaptureSession(loop, () => backend);
         session.Target = Screen;
         session.FrameInterval = 0;
-        Assert.Equal(16, session.FrameInterval);
+        Assert.AreEqual(16, session.FrameInterval);
         session.FrameInterval = int.MaxValue;
-        Assert.Equal(1000, session.FrameInterval);
+        Assert.AreEqual(1000, session.FrameInterval);
         session.FrameInterval = 16;
         session.FrameReady += session.Stop;
 
-        Assert.True(session.Start());
+        Assert.IsTrue(session.Start());
         loop.Advance(TimeSpan.FromSeconds(5));
 
-        Assert.False(session.Running);
-        Assert.Equal(1, backend.Reads);
+        Assert.IsFalse(session.Running);
+        Assert.AreEqual(1, backend.Reads);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_saved_png_never_overwrites_a_file_and_never_goes_to_a_remote_url()
     {
         var directory = TempFolder.NewPath();
@@ -242,25 +243,25 @@ public sealed class CaptureSessionTests
         session.Target = Screen;
         try
         {
-            Assert.False(session.SaveToFile(path));
-            Assert.True(session.Start());
+            Assert.IsFalse(session.SaveToFile(path));
+            Assert.IsTrue(session.Start());
             loop.Advance(TimeSpan.FromMilliseconds(33));
 
-            Assert.True(session.SaveToFile(path));
-            Assert.Empty(session.Error);
+            Assert.IsTrue(session.SaveToFile(path));
+            Assert.IsEmpty(session.Error);
             var saved = File.ReadAllBytes(path);
-            Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, saved[..4]);
+            Assert.AreSequenceEqual(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, saved[..4]);
 
             File.WriteAllText(path, "kept");
-            Assert.False(session.SaveToFile(path));
-            Assert.NotEmpty(session.Error);
-            Assert.Equal("kept", File.ReadAllText(path));
+            Assert.IsFalse(session.SaveToFile(path));
+            Assert.IsNotEmpty(session.Error);
+            Assert.AreEqual("kept", File.ReadAllText(path));
 
-            Assert.False(session.SaveToFile("https://example.com/test.png"));
-            Assert.False(session.SaveToFile(""));
-            Assert.False(session.SaveToFile(Path.Combine(directory, "missing", "test.png")));
-            Assert.True(session.SaveToFile(new Uri(Path.Combine(directory, "url.png")).AbsoluteUri));
-            Assert.True(File.Exists(Path.Combine(directory, "url.png")));
+            Assert.IsFalse(session.SaveToFile("https://example.com/test.png"));
+            Assert.IsFalse(session.SaveToFile(""));
+            Assert.IsFalse(session.SaveToFile(Path.Combine(directory, "missing", "test.png")));
+            Assert.IsTrue(session.SaveToFile(new Uri(Path.Combine(directory, "url.png")).AbsoluteUri));
+            Assert.IsTrue(File.Exists(Path.Combine(directory, "url.png")));
         }
         finally
         {
@@ -274,7 +275,7 @@ public sealed class CaptureSessionTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void Copying_needs_a_frame_and_a_window_and_reports_a_failure()
     {
         var loop = new ManualEventLoop();
@@ -282,50 +283,50 @@ public sealed class CaptureSessionTests
         using var session = new CaptureSession(loop, () => backend);
         session.Target = Screen;
         var gone = NativeWindow.OfClass("STATIC", "", 0, 0, 0, 0, 0, HWND.HWND_MESSAGE, 0);
-        Assert.NotEqual(0, gone);
-        Assert.True(PInvoke.DestroyWindow((HWND)gone));
+        Assert.AreNotEqual(0, gone);
+        Assert.IsTrue(PInvoke.DestroyWindow((HWND)gone));
 
-        Assert.False(session.CopyToClipboard(gone));
+        Assert.IsFalse(session.CopyToClipboard(gone));
         Assert.Contains("open window", session.Error, StringComparison.Ordinal);
-        Assert.True(session.Start());
+        Assert.IsTrue(session.Start());
         loop.Advance(TimeSpan.FromMilliseconds(33));
-        Assert.False(session.CopyToClipboard(0));
+        Assert.IsFalse(session.CopyToClipboard(0));
         Assert.Contains("open window", session.Error, StringComparison.Ordinal);
 
-        Assert.False(session.CopyToClipboard(gone));
-        Assert.NotEmpty(session.Error);
+        Assert.IsFalse(session.CopyToClipboard(gone));
+        Assert.IsNotEmpty(session.Error);
         Assert.DoesNotContain("open window", session.Error, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_clipboard_gets_a_top_down_header_and_straight_alpha()
     {
         var dib = CaptureClipboard.EncodeDib(new PixelImage(2, 1, [64, 32, 16, 128, 0, 0, 255, 255], true));
 
-        Assert.Equal(132, dib.Length);
-        Assert.Equal(124, BitConverter.ToInt32(dib, 0));
-        Assert.Equal(2, BitConverter.ToInt32(dib, 4));
-        Assert.Equal(-1, BitConverter.ToInt32(dib, 8));
-        Assert.Equal(32, BitConverter.ToInt16(dib, 14));
-        Assert.Equal(3, BitConverter.ToInt32(dib, 16));
-        Assert.Equal(0x00ff0000u, BitConverter.ToUInt32(dib, 40));
-        Assert.Equal(0xff000000u, BitConverter.ToUInt32(dib, 52));
-        Assert.Equal(new byte[] { 128, 64, 32, 128, 0, 0, 255, 255 }, dib[124..]);
+        Assert.AreEqual(132, dib.Length);
+        Assert.AreEqual(124, BitConverter.ToInt32(dib, 0));
+        Assert.AreEqual(2, BitConverter.ToInt32(dib, 4));
+        Assert.AreEqual(-1, BitConverter.ToInt32(dib, 8));
+        Assert.AreEqual(32, BitConverter.ToInt16(dib, 14));
+        Assert.AreEqual(3, BitConverter.ToInt32(dib, 16));
+        Assert.AreEqual(0x00ff0000u, BitConverter.ToUInt32(dib, 40));
+        Assert.AreEqual(0xff000000u, BitConverter.ToUInt32(dib, 52));
+        Assert.AreSequenceEqual(new byte[] { 128, 64, 32, 128, 0, 0, 255, 255 }, dib[124..]);
     }
 
-    [Theory]
-    [InlineData("C:\\shots\\a.png", "C:\\shots\\a.png")]
-    [InlineData("a.png", "a.png")]
-    [InlineData("file:///C:/shots/a.png", "C:\\shots\\a.png")]
-    [InlineData("https://example.com/a.png", null)]
-    [InlineData("data:image/png;base64,AAAA", null)]
-    [InlineData(" ", null)]
+    [TestMethod]
+    [DataRow("C:\\shots\\a.png", "C:\\shots\\a.png")]
+    [DataRow("a.png", "a.png")]
+    [DataRow("file:///C:/shots/a.png", "C:\\shots\\a.png")]
+    [DataRow("https://example.com/a.png", null)]
+    [DataRow("data:image/png;base64,AAAA", null)]
+    [DataRow(" ", null)]
     public void Only_a_local_path_is_a_place_to_save(string path, string? local)
     {
-        Assert.Equal(local, CaptureSession.LocalPath(path));
+        Assert.AreEqual(local, CaptureSession.LocalPath(path));
     }
 
-    [Fact]
+    [TestMethod]
     public void Readback_respects_both_row_pitches()
     {
         var source = new byte[] { 1, 2, 3, 4, 99, 99, 99, 99, 5, 6, 7, 8, 99, 99, 99, 99 };
@@ -334,7 +335,7 @@ public sealed class CaptureSessionTests
         try
         {
             CaptureInterop.CopyRows(from.AddrOfPinnedObject(), 8, destination, 6, 1, 2);
-            Assert.Equal(new byte[] { 1, 2, 3, 4, 0, 0, 5, 6, 7, 8, 0, 0 }, destination);
+            Assert.AreSequenceEqual(new byte[] { 1, 2, 3, 4, 0, 0, 5, 6, 7, 8, 0, 0 }, destination);
         }
         finally
         {

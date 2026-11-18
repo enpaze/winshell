@@ -2,9 +2,10 @@ using System.ComponentModel;
 
 namespace Winshell.Core.Tests;
 
+[TestClass]
 public sealed class ObservableObjectTests
 {
-    [Fact]
+    [TestMethod]
     public void Reading_a_list_property_raises_the_object_when_an_item_changes()
     {
         var shelf = new Shelf();
@@ -15,10 +16,10 @@ public sealed class ObservableObjectTests
 
         item.Level = 2;
 
-        Assert.Equal(["Items"], names);
+        Assert.AreSequenceEqual(["Items"], names);
     }
 
-    [Fact]
+    [TestMethod]
     public void Following_one_list_under_a_second_property_throws()
     {
         var shelf = new SharedShelf();
@@ -26,14 +27,14 @@ public sealed class ObservableObjectTests
         shelf.First.Add(item);
         _ = shelf.First;
 
-        var error = Assert.Throws<InvalidOperationException>(() => _ = shelf.Second);
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => _ = shelf.Second);
 
         Assert.Contains(nameof(SharedShelf.First), error.Message, StringComparison.Ordinal);
         Assert.Contains(nameof(SharedShelf.Second), error.Message, StringComparison.Ordinal);
         var names = new List<string?>();
         shelf.PropertyChanged += (_, e) => names.Add(e.PropertyName);
         item.Level = 2;
-        Assert.Equal([nameof(SharedShelf.First)], names);
+        Assert.AreSequenceEqual([nameof(SharedShelf.First)], names);
     }
 
     private sealed class Shelf : ObservableObject

@@ -2,15 +2,16 @@ using Winshell.Notifications;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class NotificationMappingTests
 {
-    [Theory]
-    [InlineData(0, NotificationMode.Unrestricted)]
-    [InlineData(1, NotificationMode.PriorityOnly)]
-    [InlineData(2, NotificationMode.AlarmsOnly)]
-    [InlineData(19, NotificationMode.Unknown)]
+    [TestMethod]
+    [DataRow(0, NotificationMode.Unrestricted)]
+    [DataRow(1, NotificationMode.PriorityOnly)]
+    [DataRow(2, NotificationMode.AlarmsOnly)]
+    [DataRow(19, NotificationMode.Unknown)]
     public void Native_notification_mode_mapping_preserves_unknown_values(int native, NotificationMode expected)
     {
-        Assert.Equal(expected, NotificationBackend.MapMode(native));
+        Assert.AreEqual(expected, NotificationBackend.MapMode(native));
     }
 }

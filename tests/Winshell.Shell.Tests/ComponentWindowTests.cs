@@ -7,10 +7,11 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class ComponentWindowTests
 {
-    [Fact]
+    [TestMethod]
     public async Task A_panel_shows_the_controls_a_component_rendered()
     {
         var text = await ShellFixture.On(async _ =>
@@ -22,10 +23,10 @@ public sealed class ComponentWindowTests
             return ShownText(host);
         });
 
-        Assert.Equal("Hello", text);
+        Assert.AreEqual("Hello", text);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_component_renders_again_when_the_service_object_it_observes_changes()
     {
         var text = await ShellFixture.On(async _ =>
@@ -41,10 +42,10 @@ public sealed class ComponentWindowTests
             return ShownText(host);
         });
 
-        Assert.Equal("full", text);
+        Assert.AreEqual("full", text);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_component_renders_again_when_an_item_in_a_service_list_changes()
     {
         var text = await ShellFixture.On(async _ =>
@@ -60,7 +61,7 @@ public sealed class ComponentWindowTests
             return ShownText(host);
         });
 
-        Assert.Equal("after", text);
+        Assert.AreEqual("after", text);
     }
 
     private static PanelWindow Panel(FrameworkElement content)
@@ -79,7 +80,7 @@ public sealed class ComponentWindowTests
     {
         var blocks = new List<TextBlock>();
         Collect(root, blocks);
-        return Assert.Single(blocks).Text;
+        return Assert.ContainsSingle(blocks).Text;
 
         static void Collect(DependencyObject node, List<TextBlock> blocks)
         {

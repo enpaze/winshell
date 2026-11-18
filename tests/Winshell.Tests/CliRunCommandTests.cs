@@ -3,9 +3,10 @@ using System.Text.Json;
 
 namespace Winshell.Tests;
 
+[TestClass]
 public class CliRunCommandTests
 {
-    [Fact]
+    [TestMethod]
     public void No_arguments_print_help_and_do_not_start_a_shell()
     {
         var result = WinshellCli.RunWithEmptyConfig([]);
@@ -15,21 +16,21 @@ public class CliRunCommandTests
         Assert.Contains("winshell run", result.Output, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Run_with_a_missing_path_fails_before_a_shell_starts()
     {
         var missing = TempFolder.NewPath();
         var result = WinshellCli.RunWithEmptyConfig(["run", "-p", missing]);
 
         result.AssertExitCode(1);
-        Assert.Equal("", result.Output);
+        Assert.AreEqual("", result.Output);
         Assert.Contains("No .csproj", result.Error, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("run")]
-    [InlineData("--no-build --no-duplicate")]
-    [InlineData("--no-duplicate")]
+    [TestMethod]
+    [DataRow("run")]
+    [DataRow("--no-build --no-duplicate")]
+    [DataRow("--no-duplicate")]
     public void Run_with_no_configuration_exits_0_says_nothing_and_starts_nothing(string args)
     {
         var root = TempFolder.NewPath();
@@ -43,10 +44,10 @@ public class CliRunCommandTests
             var result = WinshellCli.Run(args.Split(' '), IsolatedFolders.Of(config, local));
 #pragma warning restore CsWinRT1030
 
-            Assert.Equal((0, "", ""), (result.Code, result.Output, result.Error));
+            Assert.AreEqual((0, "", ""), (result.Code, result.Output, result.Error));
             var listed = WinshellCli.Run(["list", "--json"], IsolatedFolders.Of(config, local));
             listed.AssertExitCode(0);
-            Assert.Equal("[]", listed.Output.Trim());
+            Assert.AreEqual("[]", listed.Output.Trim());
         }
         finally
         {
@@ -54,7 +55,7 @@ public class CliRunCommandTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void No_duplicate_exits_quietly_before_building_when_the_project_already_runs()
     {
         var root = TempFolder.NewPath();
@@ -84,7 +85,7 @@ public class CliRunCommandTests
             var result = WinshellCli.Run(["run", "-n", "-p", project], ("WINSHELL_LOCAL_DIR", root));
 
             result.AssertExitCode(0);
-            Assert.Equal("", result.Output);
+            Assert.AreEqual("", result.Output);
             result.AssertNoError();
         }
         finally

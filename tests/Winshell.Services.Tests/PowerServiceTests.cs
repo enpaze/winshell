@@ -5,6 +5,7 @@ using Winshell.Power;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class PowerServiceTests
 {
     private static PowerDeviceInfo Battery(string id, double percentage = 0.5)
@@ -31,7 +32,7 @@ public sealed class PowerServiceTests
         return changes;
     }
 
-    [Fact]
+    [TestMethod]
     public void A_snapshot_changes_only_the_properties_that_differ()
     {
         var loop = new ManualEventLoop();
@@ -41,14 +42,14 @@ public sealed class PowerServiceTests
         var changes = Watch(power.DisplayDevice);
 
         source.Push(Snapshot(Battery("a", 0.25)));
-        Assert.Empty(changes);
+        Assert.IsEmpty(changes);
         loop.Process();
 
-        Assert.Equal([nameof(PowerDevice.Percentage)], changes);
-        Assert.Equal(0.25, power.DisplayDevice.Percentage);
+        Assert.AreSequenceEqual([nameof(PowerDevice.Percentage)], changes);
+        Assert.AreEqual(0.25, power.DisplayDevice.Percentage);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_device_that_stays_is_the_same_object()
     {
         var loop = new ManualEventLoop();
@@ -60,12 +61,12 @@ public sealed class PowerServiceTests
         source.Push(Snapshot(Battery("b", 0.75)));
         loop.Process();
 
-        var only = Assert.Single(power.Devices);
-        Assert.Same(kept, only);
-        Assert.Equal(0.75, only.Percentage);
+        var only = Assert.ContainsSingle(power.Devices);
+        Assert.AreSame(kept, only);
+        Assert.AreEqual(0.75, only.Percentage);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_disposed_service_stops_following_the_source()
     {
         var loop = new ManualEventLoop();
@@ -76,20 +77,20 @@ public sealed class PowerServiceTests
         power.Dispose();
         loop.Process();
 
-        Assert.Empty(power.Devices);
-        Assert.True(source.Disposed);
+        Assert.IsEmpty(power.Devices);
+        Assert.IsTrue(source.Disposed);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_battery_at_zero_health_with_support_reads_as_supported()
     {
-        Assert.Equal((0d, true), PowerBackend.Health(0, 1000));
-        Assert.Equal((50d, true), PowerBackend.Health(500, 1000));
-        Assert.Equal((100d, true), PowerBackend.Health(2000, 1000));
-        Assert.Equal((0d, false), PowerBackend.Health(null, 1000));
-        Assert.Equal((0d, false), PowerBackend.Health(500, null));
-        Assert.Equal((0d, false), PowerBackend.Health(500, 0));
-        Assert.Equal((0d, false), PowerBackend.Health(-1, 1000));
+        Assert.AreEqual((0d, true), PowerBackend.Health(0, 1000));
+        Assert.AreEqual((50d, true), PowerBackend.Health(500, 1000));
+        Assert.AreEqual((100d, true), PowerBackend.Health(2000, 1000));
+        Assert.AreEqual((0d, false), PowerBackend.Health(null, 1000));
+        Assert.AreEqual((0d, false), PowerBackend.Health(500, null));
+        Assert.AreEqual((0d, false), PowerBackend.Health(500, 0));
+        Assert.AreEqual((0d, false), PowerBackend.Health(-1, 1000));
 
         var loop = new ManualEventLoop();
         var dead = Battery("a") with { HealthPercentage = 0, HealthSupported = true };
@@ -97,11 +98,11 @@ public sealed class PowerServiceTests
         using var power = new PowerService(loop, Log.Default, source);
         loop.Process();
 
-        Assert.Equal(0, power.DisplayDevice.HealthPercentage);
-        Assert.True(power.DisplayDevice.HealthSupported);
+        Assert.AreEqual(0, power.DisplayDevice.HealthPercentage);
+        Assert.IsTrue(power.DisplayDevice.HealthSupported);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_unanswered_power_mode_reads_as_unknown()
     {
         var loop = new ManualEventLoop();
@@ -112,20 +113,20 @@ public sealed class PowerServiceTests
             return 0;
         }));
 
-        Assert.Equal(PowerModeLevel.Unknown, mode.Mode);
-        Assert.Equal(EffectivePowerMode.Unknown, mode.Effective);
+        Assert.AreEqual(PowerModeLevel.Unknown, mode.Mode);
+        Assert.AreEqual(EffectivePowerMode.Unknown, mode.Effective);
 
         loop.Process();
 
-        Assert.Equal(PowerModeLevel.Unknown, mode.Mode);
-        Assert.Equal(EffectivePowerMode.Unknown, mode.Effective);
-        Assert.False(mode.Available);
+        Assert.AreEqual(PowerModeLevel.Unknown, mode.Mode);
+        Assert.AreEqual(EffectivePowerMode.Unknown, mode.Effective);
+        Assert.IsFalse(mode.Available);
 
         mode.Mode = PowerModeLevel.Unknown;
-        Assert.Equal(0, asked);
+        Assert.AreEqual(0, asked);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_power_mode_Windows_refuses_is_logged()
     {
         var lines = new List<string>();
@@ -134,10 +135,10 @@ public sealed class PowerServiceTests
 
         mode.Mode = PowerModeLevel.BestPerformance;
 
-        Assert.Contains(lines, l => l.Contains("error 5", StringComparison.Ordinal));
+        Assert.Contains(l => l.Contains("error 5", StringComparison.Ordinal), lines);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_power_mode_that_is_not_a_level_is_refused()
     {
         var lines = new List<string>();
@@ -151,11 +152,11 @@ public sealed class PowerServiceTests
 
         mode.Mode = (PowerModeLevel)9;
 
-        Assert.Equal(0, asked);
-        Assert.Single(lines);
+        Assert.AreEqual(0, asked);
+        Assert.ContainsSingle(lines);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_brightness_shows_at_once_and_a_later_read_replaces_it()
     {
         var loop = new ManualEventLoop();
@@ -171,15 +172,15 @@ public sealed class PowerServiceTests
 
         monitor.Brightness = 150;
 
-        Assert.Equal(100, monitor.Brightness);
-        Assert.Equal(100, await written.Task.WaitAsync(TestContext.Current.CancellationToken));
+        Assert.AreEqual(100, monitor.Brightness);
+        Assert.AreEqual(100, await written.Task.WaitAsync(CurrentTest.Cancellation));
         await Wait.UntilAsync(() => source.Reads == 2, "the write to end");
         source.Push(new BrightnessSnapshot([Monitor(60)]));
         loop.Process();
-        Assert.Equal(60, monitor.Brightness);
+        Assert.AreEqual(60, monitor.Brightness);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_idle_monitor_turns_on_after_the_timeout_and_a_keep_awake_holds_it_off()
     {
         var loop = new ManualEventLoop();
@@ -187,19 +188,19 @@ public sealed class PowerServiceTests
         var held = new StrongBox<bool>(false);
         using var monitor = new IdleMonitor(loop, Log.Default, () => held.Value, new IdleSeconds(() => idle.Value));
         monitor.Timeout = 10;
-        Assert.False(monitor.IsIdle);
+        Assert.IsFalse(monitor.IsIdle);
 
         idle.Value = 11;
         held.Value = true;
         loop.Advance(TimeSpan.FromSeconds(5));
-        Assert.False(monitor.IsIdle);
+        Assert.IsFalse(monitor.IsIdle);
 
         held.Value = false;
         loop.Advance(TimeSpan.FromSeconds(5));
-        Assert.True(monitor.IsIdle);
+        Assert.IsTrue(monitor.IsIdle);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_idle_monitor_that_cannot_be_idle_does_not_poll()
     {
         var loop = new ManualEventLoop();
@@ -208,18 +209,18 @@ public sealed class PowerServiceTests
 
         monitor.Enabled = false;
 
-        Assert.Null(loop.NextDue);
+        Assert.IsNull(loop.NextDue);
     }
 
-    [Theory]
-    [InlineData(false, 100, 5)]
-    [InlineData(false, 2, 2)]
-    [InlineData(false, 0.1, 0.25)]
-    [InlineData(true, 100, 1)]
-    [InlineData(false, -1, 1)]
+    [TestMethod]
+    [DataRow(false, 100, 5)]
+    [DataRow(false, 2, 2)]
+    [DataRow(false, 0.1, 0.25)]
+    [DataRow(true, 100, 1)]
+    [DataRow(false, -1, 1)]
     public void An_idle_monitor_looks_again_when_the_timeout_can_pass(bool idle, double remaining, double seconds)
     {
-        Assert.Equal(TimeSpan.FromSeconds(seconds), IdleMonitor.NextCheck(idle, remaining));
+        Assert.AreEqual(TimeSpan.FromSeconds(seconds), IdleMonitor.NextCheck(idle, remaining));
     }
 
     private sealed class IdleSeconds(Func<double> seconds) : IIdleBackend

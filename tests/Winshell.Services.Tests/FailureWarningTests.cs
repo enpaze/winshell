@@ -1,8 +1,9 @@
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class FailureWarningTests
 {
-    [Fact]
+    [TestMethod]
     public void A_failure_that_lasts_is_warned_once_until_a_poll_succeeds()
     {
         var messages = new List<string>();
@@ -12,14 +13,14 @@ public sealed class FailureWarningTests
         warning.Failed(new InvalidOperationException("radio broke"));
         warning.Failed(new InvalidOperationException("radio broke"));
         warning.Failed(new IOException("radio broke"));
-        Assert.Equal(
+        Assert.AreSequenceEqual(
             ["bluetooth: InvalidOperationException: radio broke", "bluetooth: IOException: radio broke"],
             messages);
 
         warning.Failed(new InvalidOperationException("radio gone"));
         warning.Succeeded();
         warning.Failed(new InvalidOperationException("radio gone"));
-        Assert.Equal(
+        Assert.AreSequenceEqual(
         [
             "bluetooth: InvalidOperationException: radio broke",
             "bluetooth: IOException: radio broke",

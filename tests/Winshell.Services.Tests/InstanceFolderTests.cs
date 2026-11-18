@@ -2,6 +2,7 @@ using System.Text.Json;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class InstanceFolderTests : IDisposable
 {
     private readonly string _root = TempFolder.NewPath();
@@ -13,7 +14,7 @@ public sealed class InstanceFolderTests : IDisposable
 
     private Instances Instances => new(_root);
 
-    [Fact]
+    [TestMethod]
     public void The_instance_file_keeps_process_start_and_exited_at()
     {
         var info = new InstanceInfo("id", 1, "shell", "C:\\cfg\\MyShell.exe", DateTime.Now, "pipe", "C:\\log.txt", 42,
@@ -23,7 +24,7 @@ public sealed class InstanceFolderTests : IDisposable
         Assert.Contains("\"exitedAt\":", file, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_clean_exit_keeps_the_folder_and_is_not_listed_as_running()
     {
         var id = "abc123abc123";
@@ -37,16 +38,16 @@ public sealed class InstanceFolderTests : IDisposable
 
         Instances.Remove(id);
 
-        Assert.True(File.Exists(Path.Combine(dir, "instance.json")));
-        Assert.Equal("hello", File.ReadAllText(info.Log));
+        Assert.IsTrue(File.Exists(Path.Combine(dir, "instance.json")));
+        Assert.AreEqual("hello", File.ReadAllText(info.Log));
         var written = JsonSerializer.Deserialize(File.ReadAllText(Path.Combine(dir, "instance.json")),
             InstanceJson.Default.InstanceInfo);
-        Assert.NotNull(written!.ExitedAt);
-        Assert.DoesNotContain(Instances.Running(), info => info.Id == id);
-        Assert.Contains(Instances.All(), row => row.Info.Id == id && !row.Alive);
+        Assert.IsNotNull(written!.ExitedAt);
+        Assert.DoesNotContain(info => info.Id == id, Instances.Running());
+        Assert.Contains(row => row.Info.Id == id && !row.Alive, Instances.All());
     }
 
-    [Fact]
+    [TestMethod]
     public void Clean_deletes_an_old_exit_and_an_old_folder_with_no_instance_file()
     {
         var oldExit = Path.Combine(_root, "oldexitoldexi");
@@ -75,10 +76,10 @@ public sealed class InstanceFolderTests : IDisposable
 
         Instances.Clean();
 
-        Assert.False(Directory.Exists(oldExit));
-        Assert.False(Directory.Exists(orphan));
-        Assert.True(Directory.Exists(young));
-        Assert.True(Directory.Exists(recentOrphan));
+        Assert.IsFalse(Directory.Exists(oldExit));
+        Assert.IsFalse(Directory.Exists(orphan));
+        Assert.IsTrue(Directory.Exists(young));
+        Assert.IsTrue(Directory.Exists(recentOrphan));
     }
 
     public void Dispose()

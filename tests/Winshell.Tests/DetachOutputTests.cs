@@ -2,7 +2,8 @@ using System.Globalization;
 
 namespace Winshell.Tests;
 
-public sealed partial class DetachOutputTests : IDisposable, IClassFixture<ProbeBuild>
+[TestClass]
+public sealed partial class DetachOutputTests : ProbeBuild, IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
 
@@ -14,7 +15,7 @@ public sealed partial class DetachOutputTests : IDisposable, IClassFixture<Probe
         Directory.CreateDirectory(Path.Combine(_dir, "local"));
     }
 
-    [Fact]
+    [TestMethod]
     public void The_output_of_run_d_ends_when_it_returns()
     {
         var project = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(ProbeShell.Program)))!;

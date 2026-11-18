@@ -6,8 +6,9 @@ using System.Text.RegularExpressions;
 
 namespace Winshell.Tests;
 
-[Collection(ExplorerTaskbarCollection.Name)]
-public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeBuild>
+[TestClass]
+[DoNotParallelize]
+public sealed partial class SupervisionTests : ProbeBuild, IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<Process> _started = [];
@@ -29,7 +30,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
     private static string Project =>
         Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(ProbeShell.Program)))!;
 
-    [Fact]
+    [TestMethod]
     public void List_log_ipc_and_kill_reach_the_program()
     {
         var run = Supervise();
@@ -37,9 +38,9 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         _ = process.SafeHandle;
         var pid = process.Id.ToString(CultureInfo.InvariantCulture);
 
-        var row = Assert.Single(Rows());
-        Assert.Equal("probe", row.GetProperty("shellId").GetString());
-        Assert.Equal(ProbeShell.Program, row.GetProperty("configPath").GetString(), true);
+        var row = Assert.ContainsSingle(Rows());
+        Assert.AreEqual("probe", row.GetProperty("shellId").GetString());
+        Assert.AreEqual(ProbeShell.Program, row.GetProperty("configPath").GetString(), true);
 
         var log = Cli("log", "--pid", pid);
         log.AssertExitCode(0);
@@ -50,15 +51,15 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         show.AssertNoError();
         var call = Cli("ipc", "--pid", pid, "call", "nothing", "open");
         call.AssertExitCode(1);
-        Assert.Equal("Target not found: nothing.", call.Error.Trim());
+        Assert.AreEqual("Target not found: nothing.", call.Error.Trim());
 
         var killed = Cli("kill", "--pid", pid);
         killed.AssertExitCode(0);
         killed.AssertNoError();
         Assert.StartsWith("Killed ", killed.Output, StringComparison.Ordinal);
-        Assert.True(process.HasExited);
+        Assert.IsTrue(process.HasExited);
         ChildProcess.Exited("The probe", process, _printed).AssertExitCode(0);
-        Assert.Empty(Listed());
+        Assert.IsEmpty(Listed());
         Wait.Until(() => run.HasExited, "winshell run to end with its shell");
         ChildProcess.Exited("winshell run", run, _printed).AssertExitCode(0);
 
@@ -67,7 +68,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         Assert.Contains("Showing the log of stopped instance", stopped.Error, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_crash_as_the_shell_starts_writes_one_report_and_leaves_no_running_instance()
     {
         File.WriteAllText(Path.Combine(_dir, "config", ProbeShell.CrashMarker), "");
@@ -75,7 +76,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         var result = Cli("run", "--no-build", "-p", Project);
 
         result.AssertExitCode(1);
-        var report = File.ReadAllText(Assert.Single(Directory.GetFiles(Path.Combine(_dir, "local", "crashes"))));
+        var report = File.ReadAllText(Assert.ContainsSingle(Directory.GetFiles(Path.Combine(_dir, "local", "crashes"))));
         Assert.Contains("Winshell closed: yes", report, StringComparison.Ordinal);
         Assert.Contains("Where: Winshell", report, StringComparison.Ordinal);
         Assert.Contains("Shell id: probe", report, StringComparison.Ordinal);
@@ -85,21 +86,21 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         var logged = File.ReadAllText(LogLine().Match(report).Groups["path"].Value);
         Assert.Contains("FATAL: Winshell crashed: System.InvalidOperationException", logged, StringComparison.Ordinal);
         Assert.Contains("Wrote a crash report to", logged, StringComparison.Ordinal);
-        Assert.Empty(Listed());
+        Assert.IsEmpty(Listed());
         Directory.Delete(Path.Combine(_dir, "local", "crashes"), true);
 
         var next = ProbeShell.Launch(Path.Combine(_dir, "config"), Path.Combine(_dir, "local"), ["--no-duplicate"]);
         _started.Add(next);
-        Assert.Equal(next.Id, NextShell(0));
-        Assert.False(next.HasExited);
+        Assert.AreEqual(next.Id, NextShell(0));
+        Assert.IsFalse(next.HasExited);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public void A_crashed_shell_starts_again_with_the_taskbar_back()
     {
         _taskbarHidden = ExplorerTaskbarWindow.AnyHidden();
-        Assert.False(_taskbarHidden, "Explorer's taskbar was hidden before the test.");
+        Assert.IsFalse(_taskbarHidden, "Explorer's taskbar was hidden before the test.");
         var marker = Path.Combine(_dir, "config", ProbeShell.HideTaskbarMarker);
         File.WriteAllText(marker, "");
         var run = Supervise();
@@ -114,11 +115,11 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
 
         NextShell(first);
 
-        Assert.False(ExplorerTaskbarWindow.AnyHidden());
-        Assert.False(run.HasExited);
+        Assert.IsFalse(ExplorerTaskbarWindow.AnyHidden());
+        Assert.IsFalse(run.HasExited);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_forced_kill_of_a_hung_shell_ends_supervision()
     {
         File.WriteAllText(Path.Combine(_dir, "config", ProbeShell.HangMarker), "");
@@ -134,7 +135,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
             killed.AssertExitCode(0);
             Wait.Until(() => run.HasExited, "winshell run to end with its shell");
             ChildProcess.Exited("winshell run", run, _printed).AssertExitCode(-1);
-            Assert.Empty(Listed());
+            Assert.IsEmpty(Listed());
         }
         finally
         {

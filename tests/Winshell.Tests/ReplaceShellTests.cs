@@ -4,14 +4,15 @@ using System.Text;
 
 namespace Winshell.Tests;
 
-[Collection(ExplorerTaskbarCollection.Name)]
-public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
+[TestClass]
+[DoNotParallelize]
+public sealed class ReplaceShellTests : ProbeBuild, IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<Process> _started = [];
     private bool _restoreTaskbar;
 
-    [Fact]
+    [TestMethod]
     public void Starting_a_shell_replaces_the_one_that_is_running()
     {
         var local = Folder("local");
@@ -22,15 +23,15 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
         Wait.Until(() => second.HasExited || Running(local).Any(info => info.Pid == second.Id),
             "the replacement to publish or to fail");
 
-        Assert.False(second.HasExited, printed.ToString());
-        Assert.True(first.HasExited);
+        Assert.IsFalse(second.HasExited, printed.ToString());
+        Assert.IsTrue(first.HasExited);
         first.WaitForExit();
-        Assert.Equal(0, first.ExitCode);
-        var only = Assert.Single(Running(local));
-        Assert.Equal(("other", second.Id), (only.ShellId, only.Pid));
+        Assert.AreEqual(0, first.ExitCode);
+        var only = Assert.ContainsSingle(Running(local));
+        Assert.AreEqual(("other", second.Id), (only.ShellId, only.Pid));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_shell_that_does_not_quit_stays_and_the_start_says_why()
     {
         var config = Folder("hang");
@@ -44,18 +45,18 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
         Wait.Until(() => second.HasExited, "the second start to give up");
         second.WaitForExit();
 
-        Assert.Equal(1, second.ExitCode);
+        Assert.AreEqual(1, second.ExitCode);
         Assert.Contains("Shell probe did not quit", printed.ToString(), StringComparison.Ordinal);
-        Assert.False(first.HasExited);
+        Assert.IsFalse(first.HasExited);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public void Replacing_a_shell_keeps_the_taskbar_hidden_until_the_new_one_exits()
     {
         var hidden = ExplorerTaskbarWindow.AnyHidden();
         _restoreTaskbar = !hidden;
-        Assert.False(hidden, "Explorer's taskbar was hidden before the test.");
+        Assert.IsFalse(hidden, "Explorer's taskbar was hidden before the test.");
         var local = Folder("local-taskbar");
         var firstConfig = Folder("taskbar-a");
         var secondConfig = Folder("taskbar-b");
@@ -82,11 +83,11 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
             Thread.Sleep(20);
         }
 
-        Assert.False(second.HasExited, printed.ToString());
-        Assert.True(ready);
-        Assert.True(first.HasExited);
-        Assert.False(flashed, "Explorer's taskbar was shown while the shell was replaced.");
-        Assert.True(ExplorerTaskbarWindow.AnyHidden());
+        Assert.IsFalse(second.HasExited, printed.ToString());
+        Assert.IsTrue(ready);
+        Assert.IsTrue(first.HasExited);
+        Assert.IsFalse(flashed, "Explorer's taskbar was shown while the shell was replaced.");
+        Assert.IsTrue(ExplorerTaskbarWindow.AnyHidden());
 
 #pragma warning disable CsWinRT1030
         var killed = WinshellCli.Run(["kill", "--pid", second.Id.ToString(CultureInfo.InvariantCulture)],
@@ -94,7 +95,7 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
 #pragma warning restore CsWinRT1030
         killed.AssertExitCode(0);
         Wait.Until(() => second.HasExited, "the replacement to exit");
-        Assert.False(ExplorerTaskbarWindow.AnyHidden());
+        Assert.IsFalse(ExplorerTaskbarWindow.AnyHidden());
     }
 
     private string Folder(string name)

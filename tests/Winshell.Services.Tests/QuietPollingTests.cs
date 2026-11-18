@@ -2,24 +2,25 @@ using Winshell.Winland;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class QuietPollingTests
 {
     private static readonly TimeSpan Tick = TimeSpan.FromTicks(1);
 
-    [Fact]
+    [TestMethod]
     public async Task Looking_for_winland_waits_250_ms_between_tries()
     {
         var clock = new Clock();
         var backend = new WinlandBackend(clock);
-        var cancel = TestContext.Current.CancellationToken;
+        var cancel = CurrentTest.Cancellation;
 
         for (var i = 0; i < 3; i++)
         {
             var pending = backend.WaitBeforeLookingAgain(cancel);
             var due = await clock.Due();
-            Assert.Equal(TimeSpan.FromMilliseconds(250), due);
+            Assert.AreEqual(TimeSpan.FromMilliseconds(250), due);
             clock.Advance(due - Tick);
-            Assert.False(pending.IsCompleted);
+            Assert.IsFalse(pending.IsCompleted);
             clock.Advance(Tick);
             await pending;
         }
@@ -40,7 +41,7 @@ public sealed class QuietPollingTests
 
         public async Task<TimeSpan> Due()
         {
-            await _waits.WaitAsync(TestContext.Current.CancellationToken);
+            await _waits.WaitAsync(CurrentTest.Cancellation);
             return _due;
         }
     }

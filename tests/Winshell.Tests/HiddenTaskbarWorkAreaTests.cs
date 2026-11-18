@@ -6,22 +6,24 @@ using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Winshell.Tests;
 
-[Collection(ExplorerTaskbarCollection.Name)]
-public sealed class HiddenTaskbarWorkAreaTests : IDisposable, IClassFixture<ProbeBuild>
+[TestClass]
+[DoNotParallelize]
+public sealed class HiddenTaskbarWorkAreaTests : ProbeBuild, IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<Process> _started = [];
     private readonly uint _state = AppBars.State();
     private bool _restore;
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public void Hiding_the_taskbar_returns_every_monitor_and_quitting_puts_it_back()
     {
         var (windows, _) = ExplorerTaskbarWindow.Find();
-        Assert.NotEmpty(windows);
-        Assert.All(windows, pair => Assert.True(PInvoke.IsWindowVisible((HWND)pair.Hwnd),
-            "Explorer's taskbar was hidden before the test."));
+        Assert.IsNotEmpty(windows);
+        foreach (var pair in windows)
+            Assert.IsTrue(PInvoke.IsWindowVisible((HWND)pair.Hwnd),
+            "Explorer's taskbar was hidden before the test.");
         var before = Areas();
         _restore = true;
         var config = Folder("config");
@@ -31,15 +33,15 @@ public sealed class HiddenTaskbarWorkAreaTests : IDisposable, IClassFixture<Prob
 
         Wait.Until(Reclaimed, "every monitor's work area to drop Explorer's taskbar");
         Wait.ForNothingToHappen(TimeSpan.FromSeconds(2));
-        Assert.True(Reclaimed(), Describe(Areas()));
+        Assert.IsTrue(Reclaimed(), Describe(Areas()));
 
         var killed = WinshellCli.Run(["kill", "--pid", shell.Id.ToString(CultureInfo.InvariantCulture)],
             IsolatedFolders.Of(config, local));
         killed.AssertExitCode(0);
         Wait.Until(() => shell.HasExited && Restored(before), "quitting to put the taskbar and the work area back");
         Wait.ForNothingToHappen(TimeSpan.FromMilliseconds(500));
-        Assert.True(Restored(before), Describe(Areas()));
-        Assert.Equal(_state, AppBars.State());
+        Assert.IsTrue(Restored(before), Describe(Areas()));
+        Assert.AreEqual(_state, AppBars.State());
         _restore = false;
     }
 
@@ -73,7 +75,7 @@ public sealed class HiddenTaskbarWorkAreaTests : IDisposable, IClassFixture<Prob
         var areas = new Dictionary<string, Area>();
         foreach (var handle in Monitors.List())
         {
-            Assert.True(Monitors.TryRead(handle, out var info));
+            Assert.IsTrue(Monitors.TryRead(handle, out var info));
             areas[info.Device] = new Area(info.Bounds.left, info.Bounds.top, info.Bounds.right, info.Bounds.bottom,
                 info.Work.left, info.Work.top, info.Work.right, info.Work.bottom);
         }

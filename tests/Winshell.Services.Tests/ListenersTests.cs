@@ -1,8 +1,9 @@
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public class ListenersTests
 {
-    [Fact]
+    [TestMethod]
     public void A_handler_that_throws_goes_to_its_own_reporter_and_the_next_still_runs()
     {
         var listeners = new Listeners<Action<int>>();
@@ -15,25 +16,25 @@ public class ListenersTests
 
         listeners.Raise(7, static (handler, value) => handler(value));
 
-        Assert.Same(failure, Assert.Single(first));
-        Assert.Empty(second);
-        Assert.Equal(7, later);
+        Assert.AreSame(failure, Assert.ContainsSingle(first));
+        Assert.IsEmpty(second);
+        Assert.AreEqual(7, later);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_throwing_reporter_leaves_the_raise()
     {
         var listeners = new Listeners<Action>();
         var reporter = new InvalidOperationException("reporter failed");
         using var added = listeners.Add(static () => throw new IOException("handler failed"), _ => throw reporter);
 
-        var escaped = Assert.Throws<InvalidOperationException>(() =>
+        var escaped = Assert.ThrowsExactly<InvalidOperationException>(() =>
             listeners.Raise(0, static (handler, _) => handler()));
 
-        Assert.Same(reporter, escaped);
+        Assert.AreSame(reporter, escaped);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_removed_handler_is_not_called()
     {
         var listeners = new Listeners<Action>();
@@ -43,6 +44,6 @@ public class ListenersTests
         added.Dispose();
         listeners.Raise(0, static (handler, _) => handler());
 
-        Assert.Equal(0, calls);
+        Assert.AreEqual(0, calls);
     }
 }

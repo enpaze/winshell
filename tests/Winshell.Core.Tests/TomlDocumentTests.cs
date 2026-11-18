@@ -1,10 +1,11 @@
 namespace Winshell.Core.Tests;
 
+[TestClass]
 public sealed class TomlDocumentTests
 {
     private static TomlDocument Parse(string text)
     {
-        Assert.True(TomlDocument.TryParse("settings.toml", text, out var document, out var error), error);
+        Assert.IsTrue(TomlDocument.TryParse("settings.toml", text, out var document, out var error), error);
         return document;
     }
 
@@ -20,7 +21,7 @@ public sealed class TomlDocumentTests
 
     private static void AssertParses(string text)
     {
-        Assert.True(TomlDocument.TryParse("settings.toml", text, out _, out var error), error);
+        Assert.IsTrue(TomlDocument.TryParse("settings.toml", text, out _, out var error), error);
     }
 
     private static int Count(string text, string value)
@@ -28,7 +29,7 @@ public sealed class TomlDocumentTests
         return text.Split(value).Length - 1;
     }
 
-    [Fact]
+    [TestMethod]
     public void Values_are_plain_types()
     {
         var values = Parse("""
@@ -47,21 +48,21 @@ public sealed class TomlDocumentTests
                            id = "a"
                            """).Values;
 
-        Assert.Equal("from \"file\"", values["name"]);
-        Assert.Equal(true, values["on"]);
-        Assert.Equal(7L, values["size"]);
-        Assert.Equal(1.5, values["scale"]);
-        Assert.Equal(["wifi", 2L], Assert.IsAssignableFrom<IReadOnlyList<object?>>(values["tiles"]));
-        Assert.Equal("1979-05-27", values["when"]);
-        var hidden = Assert.IsAssignableFrom<IReadOnlyList<object?>>(values["hidden"]);
-        Assert.Equal("Chat", Assert.IsAssignableFrom<IReadOnlyDictionary<string, object?>>(hidden[0])["name"]);
-        Assert.False(Assert.IsAssignableFrom<IReadOnlyDictionary<string, object?>>(hidden[1]).ContainsKey("name"));
-        Assert.Equal(true, Assert.IsAssignableFrom<IReadOnlyDictionary<string, object?>>(values["other"])["kept"]);
-        var rows = Assert.IsAssignableFrom<IReadOnlyList<object?>>(values["rows"]);
-        Assert.Equal("a", Assert.IsAssignableFrom<IReadOnlyDictionary<string, object?>>(Assert.Single(rows))["id"]);
+        Assert.AreEqual("from \"file\"", values["name"]);
+        Assert.AreEqual(true, values["on"]);
+        Assert.AreEqual(7L, values["size"]);
+        Assert.AreEqual(1.5, values["scale"]);
+        Assert.AreSequenceEqual(["wifi", 2L], Assert.IsInstanceOfType<IReadOnlyList<object?>>(values["tiles"]));
+        Assert.AreEqual("1979-05-27", values["when"]);
+        var hidden = Assert.IsInstanceOfType<IReadOnlyList<object?>>(values["hidden"]);
+        Assert.AreEqual("Chat", Assert.IsInstanceOfType<IReadOnlyDictionary<string, object?>>(hidden[0])["name"]);
+        Assert.IsFalse(Assert.IsInstanceOfType<IReadOnlyDictionary<string, object?>>(hidden[1]).ContainsKey("name"));
+        Assert.AreEqual(true, Assert.IsInstanceOfType<IReadOnlyDictionary<string, object?>>(values["other"])["kept"]);
+        var rows = Assert.IsInstanceOfType<IReadOnlyList<object?>>(values["rows"]);
+        Assert.AreEqual("a", Assert.IsInstanceOfType<IReadOnlyDictionary<string, object?>>(Assert.ContainsSingle(rows))["id"]);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_key_is_added_under_its_comment_at_the_end_of_the_top_level_keys()
     {
         var document = Parse("""
@@ -82,7 +83,7 @@ public sealed class TomlDocumentTests
         document.Set("tiles", new[] { "wifi" }, "The tiles, in order.\nOne per key.");
         document.Set("hidden", List(Row(("id", "Contoso.Chat"), ("name", "Chat"))));
 
-        Assert.Equal("""
+        Assert.AreEqual("""
                      # My settings.
                      name = "changed \\ \"quoted\"" # set by hand
 
@@ -104,7 +105,7 @@ public sealed class TomlDocumentTests
                      """, document.ToString());
     }
 
-    [Fact]
+    [TestMethod]
     public void A_key_added_to_a_file_without_a_last_new_line_starts_on_its_own_line()
     {
         var document = Parse("size = 3");
@@ -112,10 +113,10 @@ public sealed class TomlDocumentTests
         document.Set("size", 4L);
         document.Set("name", "default", "Who this is.");
 
-        Assert.Equal("size = 4\n\n# Who this is.\nname = \"default\"\n", document.ToString());
+        Assert.AreEqual("size = 4\n\n# Who this is.\nname = \"default\"\n", document.ToString());
     }
 
-    [Fact]
+    [TestMethod]
     public void Null_takes_the_key_out_and_the_comments_around_it_stay()
     {
         var document = Parse("""
@@ -129,34 +130,34 @@ public sealed class TomlDocumentTests
 
         document.Set("gone", null);
 
-        Assert.Equal("size = 3\n# Above gone.\n# Above name.\nname = \"kept\"\n", document.ToString());
-        Assert.False(document.Values.ContainsKey("gone"));
+        Assert.AreEqual("size = 3\n# Above gone.\n# Above name.\nname = \"kept\"\n", document.ToString());
+        Assert.IsFalse(document.Values.ContainsKey("gone"));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_comment_above_the_first_key_stays_when_the_key_goes()
     {
         var document = Parse("# Above gone.\ngone = 1\nname = \"kept\"\n");
 
         document.Set("gone", null);
 
-        Assert.Equal("# Above gone.\nname = \"kept\"\n", document.ToString());
+        Assert.AreEqual("# Above gone.\nname = \"kept\"\n", document.ToString());
     }
 
-    [Fact]
+    [TestMethod]
     public void Comments_stay_when_every_key_goes()
     {
         var document = Parse("# Above one.\none = 1\n# Above two.\ntwo = 2\n");
 
         document.Set("one", null);
         document.Set("two", null);
-        Assert.Equal("# Above one.\n# Above two.\n", document.ToString());
+        Assert.AreEqual("# Above one.\n# Above two.\n", document.ToString());
 
         document.Set("three", 3L);
-        Assert.Equal("# Above one.\n# Above two.\nthree = 3\n", document.ToString());
+        Assert.AreEqual("# Above one.\n# Above two.\nthree = 3\n", document.ToString());
     }
 
-    [Fact]
+    [TestMethod]
     public void Comments_stay_above_the_first_table_when_every_top_level_key_goes()
     {
         var document = Parse("# Above gone.\ngone = 1\n\n[other]\nkept = true\n");
@@ -168,42 +169,42 @@ public sealed class TomlDocumentTests
         AssertParses(document.ToString());
     }
 
-    [Fact]
+    [TestMethod]
     public void A_comment_stays_when_a_table_loses_its_last_key()
     {
         var document = Parse("[other]\n# Above gone.\ngone = 1\n");
 
         document.Set("other", Row(("gone", null)));
 
-        Assert.Equal("[other]\n# Above gone.\n", document.ToString());
+        Assert.AreEqual("[other]\n# Above gone.\n", document.ToString());
     }
 
-    [Fact]
+    [TestMethod]
     public void Indentation_does_not_stay_when_the_key_goes()
     {
         var document = Parse("  gone = 1\nname = \"kept\"\n");
 
         document.Set("gone", null);
 
-        Assert.Equal("name = \"kept\"\n", document.ToString());
+        Assert.AreEqual("name = \"kept\"\n", document.ToString());
     }
 
-    [Fact]
+    [TestMethod]
     public void A_comment_above_a_lone_table_stays_when_the_table_goes()
     {
         var document = Parse("# Above other.\n[other]\nkept = true\n");
 
         document.Set("other", null);
 
-        Assert.Equal("# Above other.\n", document.ToString());
+        Assert.AreEqual("# Above other.\n", document.ToString());
     }
 
-    [Theory]
-    [InlineData("x = 1\n[a]\nk = 1\n\n# Other settings.\n[other]\nk = 1\n",
+    [TestMethod]
+    [DataRow("x = 1\n[a]\nk = 1\n\n# Other settings.\n[other]\nk = 1\n",
         "x = 1\n\n# Other settings.\n[other]\nk = 1\n")]
-    [InlineData("[other]\nk = 1\n[a]\nk = 1\n# The end.\n", "[other]\nk = 1\n# The end.\n")]
-    [InlineData("[a]\nk = 1\n\n# Other settings.\n[other]\nk = 1\n", "# Other settings.\n[other]\nk = 1\n")]
-    [InlineData("[p]\nk = 1\n\n[a]\nk = 1\n\n# Other settings.\n[other]\nk = 1\n",
+    [DataRow("[other]\nk = 1\n[a]\nk = 1\n# The end.\n", "[other]\nk = 1\n# The end.\n")]
+    [DataRow("[a]\nk = 1\n\n# Other settings.\n[other]\nk = 1\n", "# Other settings.\n[other]\nk = 1\n")]
+    [DataRow("[p]\nk = 1\n\n[a]\nk = 1\n\n# Other settings.\n[other]\nk = 1\n",
         "[p]\nk = 1\n\n# Other settings.\n[other]\nk = 1\n")]
     public void The_comments_after_a_table_stay_when_the_table_goes(string original, string expected)
     {
@@ -211,10 +212,10 @@ public sealed class TomlDocumentTests
 
         document.Set("a", null);
 
-        Assert.Equal(expected, document.ToString());
+        Assert.AreEqual(expected, document.ToString());
     }
 
-    [Fact]
+    [TestMethod]
     public void Null_takes_out_a_table_and_a_key_the_file_does_not_have_stays_out()
     {
         var document = Parse("name = \"kept\"\n\n# Above other.\n[other]\nkept = true\n");
@@ -224,29 +225,29 @@ public sealed class TomlDocumentTests
 
         Assert.Contains("# Above other.", document.ToString(), StringComparison.Ordinal);
         Assert.DoesNotContain("[other]", document.ToString(), StringComparison.Ordinal);
-        Assert.Equal(["name"], document.Values.Keys);
+        Assert.AreSequenceEqual(["name"], document.Values.Keys);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_key_is_located_where_the_file_defines_it()
     {
         var document = Parse("# note\nname = \"mine\"\n\nsize = 1\n");
 
-        Assert.Equal("settings.toml[2:1]", document.LocationOf("name"));
-        Assert.Equal("settings.toml[4:1]", document.LocationOf("size"));
-        Assert.Equal("settings.toml", document.LocationOf("missing"));
+        Assert.AreEqual("settings.toml[2:1]", document.LocationOf("name"));
+        Assert.AreEqual("settings.toml[4:1]", document.LocationOf("size"));
+        Assert.AreEqual("settings.toml", document.LocationOf("missing"));
     }
 
-    [Fact]
+    [TestMethod]
     public void Text_that_does_not_parse_is_refused_and_names_the_line()
     {
-        Assert.False(TomlDocument.TryParse("settings.toml", "name = \"broken", out var document, out var error));
-        Assert.Null(document);
+        Assert.IsFalse(TomlDocument.TryParse("settings.toml", "name = \"broken", out var document, out var error));
+        Assert.IsNull(document);
         Assert.Contains("settings.toml[1:", error, StringComparison.Ordinal);
         Assert.Contains("]:", error, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_array_of_tables_is_not_written_a_second_time()
     {
         var document = Parse("""
@@ -268,14 +269,14 @@ public sealed class TomlDocumentTests
 
         var text = document.ToString();
         AssertParses(text);
-        Assert.Equal(2, Count(text, "[[hidden]]"));
+        Assert.AreEqual(2, Count(text, "[[hidden]]"));
         Assert.DoesNotContain("hidden =", text, StringComparison.Ordinal);
         Assert.Contains("# chat", text, StringComparison.Ordinal);
         Assert.Contains("[other]", text, StringComparison.Ordinal);
         Assert.Contains("kept = true", text, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_changed_table_row_keeps_its_comment_and_unknown_key()
     {
         var document = Parse("""
@@ -296,7 +297,7 @@ public sealed class TomlDocumentTests
 
         var text = document.ToString();
         AssertParses(text);
-        Assert.Equal(1, Count(text, "[[hidden]]"));
+        Assert.AreEqual(1, Count(text, "[[hidden]]"));
         Assert.Contains("id = \"Contoso.Chat\" # chat", text, StringComparison.Ordinal);
         Assert.Contains("name = \"Renamed\"", text, StringComparison.Ordinal);
         Assert.Contains("extra = 1", text, StringComparison.Ordinal);
@@ -304,7 +305,7 @@ public sealed class TomlDocumentTests
         Assert.Contains("[other]", text, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_new_row_goes_after_the_last_one()
     {
         var document = Parse("[[hidden]]\nid = \"a\"\n\n[other]\nkept = true\n");
@@ -313,13 +314,13 @@ public sealed class TomlDocumentTests
 
         var text = document.ToString();
         AssertParses(text);
-        Assert.True(text.IndexOf("id = \"b\"", StringComparison.Ordinal) <
+        Assert.IsTrue(text.IndexOf("id = \"b\"", StringComparison.Ordinal) <
                     text.IndexOf("[other]", StringComparison.Ordinal));
-        Assert.Equal(2, Count(text, "[[hidden]]"));
-        Assert.Equal(2, Assert.IsAssignableFrom<IReadOnlyList<object?>>(document.Values["hidden"]).Count);
+        Assert.AreEqual(2, Count(text, "[[hidden]]"));
+        Assert.AreEqual(2, Assert.IsInstanceOfType<IReadOnlyList<object?>>(document.Values["hidden"]).Count);
     }
 
-    [Fact]
+    [TestMethod]
     public void No_rows_are_written_as_an_empty_array_so_the_key_stays()
     {
         var document = Parse("[[hidden]]\nid = \"a\"\n\n[other]\nkept = true\n");
@@ -329,10 +330,10 @@ public sealed class TomlDocumentTests
         var text = document.ToString();
         AssertParses(text);
         Assert.DoesNotContain("[[hidden]]", text, StringComparison.Ordinal);
-        Assert.Empty(Assert.IsAssignableFrom<IReadOnlyList<object?>>(document.Values["hidden"]));
+        Assert.IsEmpty(Assert.IsInstanceOfType<IReadOnlyList<object?>>(document.Values["hidden"]));
     }
 
-    [Fact]
+    [TestMethod]
     public void An_unchanged_value_keeps_its_spelling_and_item_comment()
     {
         const string original = """
@@ -352,10 +353,10 @@ public sealed class TomlDocumentTests
             document.Set(key, value);
         document.Set("size", 4L);
 
-        Assert.Equal(original.Replace("size = 3", "size = 4", StringComparison.Ordinal), document.ToString());
+        Assert.AreEqual(original.Replace("size = 3", "size = 4", StringComparison.Ordinal), document.ToString());
     }
 
-    [Fact]
+    [TestMethod]
     public void A_changed_array_item_keeps_its_comment()
     {
         var document = Parse("""
@@ -374,33 +375,33 @@ public sealed class TomlDocumentTests
         Assert.Contains("id = \"Contoso.Chat\"", text, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("pins = [\"a\", \"b\", \"c\"]\n", "a c", "pins = [\"a\", \"c\"]\n")]
-    [InlineData("pins = [\"a\"]\n", "a b", "pins = [\"a\", \"b\"]\n")]
-    [InlineData("pins = [\n  \"a\",\n  \"b\",\n]\n", "a b c", "pins = [\n  \"a\",\n  \"b\",\n  \"c\",\n]\n")]
-    [InlineData("pins = [\n  \"a\",\n  \"b\" # last\n]\n", "a b c",
+    [TestMethod]
+    [DataRow("pins = [\"a\", \"b\", \"c\"]\n", "a c", "pins = [\"a\", \"c\"]\n")]
+    [DataRow("pins = [\"a\"]\n", "a b", "pins = [\"a\", \"b\"]\n")]
+    [DataRow("pins = [\n  \"a\",\n  \"b\",\n]\n", "a b c", "pins = [\n  \"a\",\n  \"b\",\n  \"c\",\n]\n")]
+    [DataRow("pins = [\n  \"a\",\n  \"b\" # last\n]\n", "a b c",
         "pins = [\n  \"a\",\n  \"b\", # last\n  \"c\"\n]\n")]
-    [InlineData("pins = [\n  \"a\", # one\n  \"b\"\n]\n", "a", "pins = [\n  \"a\" # one\n]\n")]
-    [InlineData("pins = [\n    \"a\", # one\n    \"b\", # two\n  ]\n", "a", "pins = [\n    \"a\", # one\n  ]\n")]
-    [InlineData("pins = [\n  \"a\",\n  \"b\",\n  # more to come\n]\n", "a",
+    [DataRow("pins = [\n  \"a\", # one\n  \"b\"\n]\n", "a", "pins = [\n  \"a\" # one\n]\n")]
+    [DataRow("pins = [\n    \"a\", # one\n    \"b\", # two\n  ]\n", "a", "pins = [\n    \"a\", # one\n  ]\n")]
+    [DataRow("pins = [\n  \"a\",\n  \"b\",\n  # more to come\n]\n", "a",
         "pins = [\n  \"a\",\n  # more to come\n]\n")]
-    [InlineData("pins = [\n  \"a\", \"b\",\n  \"c\", \"d\",\n]\n", "a b c d e",
+    [DataRow("pins = [\n  \"a\", \"b\",\n  \"c\", \"d\",\n]\n", "a b c d e",
         "pins = [\n  \"a\", \"b\",\n  \"c\", \"d\", \"e\",\n]\n")]
-    [InlineData("pins = [\n  \"a\",\n]\n", "", "pins = []\n")]
-    [InlineData("pins = [\"a\",\n  \"b\"]\n", "a", "pins = [\"a\"]\n")]
-    [InlineData("pins = [\"a\", # one\n  \"b\"]\n", "a", "pins = [\"a\" # one\n]\n")]
-    [InlineData("pins = [\n  \"a\",\n  # more to come\n]\n", "", "pins = [\n  # more to come\n]\n")]
-    [InlineData("pins = [\n  \"a\",\n\n  # about b\n  \"b\",\n\n]\n", "a", "pins = [\n  \"a\",\n\n]\n")]
+    [DataRow("pins = [\n  \"a\",\n]\n", "", "pins = []\n")]
+    [DataRow("pins = [\"a\",\n  \"b\"]\n", "a", "pins = [\"a\"]\n")]
+    [DataRow("pins = [\"a\", # one\n  \"b\"]\n", "a", "pins = [\"a\" # one\n]\n")]
+    [DataRow("pins = [\n  \"a\",\n  # more to come\n]\n", "", "pins = [\n  # more to come\n]\n")]
+    [DataRow("pins = [\n  \"a\",\n\n  # about b\n  \"b\",\n\n]\n", "a", "pins = [\n  \"a\",\n\n]\n")]
     public void A_list_that_grows_or_shrinks_keeps_its_layout(string original, string items, string expected)
     {
         var document = Parse(original);
 
         document.Set("pins", items.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList());
 
-        Assert.Equal(expected, document.ToString());
+        Assert.AreEqual(expected, document.ToString());
     }
 
-    [Fact]
+    [TestMethod]
     public void A_date_inside_a_changed_value_keeps_its_text()
     {
         var document = Parse("""
@@ -426,12 +427,12 @@ public sealed class TomlDocumentTests
         Assert.DoesNotContain("\"1979-05-27\"", text, StringComparison.Ordinal);
         Assert.DoesNotContain("\"07:32:00\"", text, StringComparison.Ordinal);
         Assert.DoesNotContain("\"1979-05-27T07:32:00\"", text, StringComparison.Ordinal);
-        Assert.Equal(1, Count(text, "row ="));
-        Assert.Equal(1, Count(text, "times ="));
-        Assert.Equal(1, Count(text, "[item]"));
+        Assert.AreEqual(1, Count(text, "row ="));
+        Assert.AreEqual(1, Count(text, "times ="));
+        Assert.AreEqual(1, Count(text, "[item]"));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_key_added_to_a_comment_only_crlf_file_uses_crlf()
     {
         var document = Parse("# header\r\n");
@@ -444,7 +445,7 @@ public sealed class TomlDocumentTests
         Assert.DoesNotContain("\n", text.Replace("\r\n", "", StringComparison.Ordinal), StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_key_added_to_a_crlf_file_uses_crlf()
     {
         var document = Parse("name = \"mine\" # hand\r\n");
@@ -459,13 +460,13 @@ public sealed class TomlDocumentTests
         Assert.Contains("on = true\r\n", text, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_leading_comment_stays_above_the_first_key_added()
     {
         var document = Parse("# header\n\n[other]\nkept = true\n");
         document.Set("name", "default");
         var text = document.ToString();
-        Assert.True(text.IndexOf("# header", StringComparison.Ordinal) <
+        Assert.IsTrue(text.IndexOf("# header", StringComparison.Ordinal) <
                     text.IndexOf("name =", StringComparison.Ordinal));
         Assert.Contains("[other]", text, StringComparison.Ordinal);
 
@@ -474,11 +475,11 @@ public sealed class TomlDocumentTests
         Assert.StartsWith("# header comment\n", document.ToString(), StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_integer_past_2_to_the_53_stays_exact()
     {
         var document = Parse("big = 9223372036854775807\nname = \"mine\"\n");
-        Assert.Equal(long.MaxValue, document.Values["big"]);
+        Assert.AreEqual(long.MaxValue, document.Values["big"]);
 
         document.Set("name", "next");
         Assert.Contains("big = 9223372036854775807", document.ToString(), StringComparison.Ordinal);
@@ -488,27 +489,27 @@ public sealed class TomlDocumentTests
         Assert.DoesNotContain("E+", document.ToString(), StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_quoted_key_is_the_same_key()
     {
         var document = Parse("\"name\" = \"quoted\" # q\n'size' = 9\n");
-        Assert.Equal("quoted", document.Values["name"]);
-        Assert.Equal(9L, document.Values["size"]);
+        Assert.AreEqual("quoted", document.Values["name"]);
+        Assert.AreEqual(9L, document.Values["size"]);
 
         document.Set("name", "next");
 
         var text = document.ToString();
         Assert.Contains("\"name\" = \"next\" # q", text, StringComparison.Ordinal);
         Assert.Contains("'size' = 9", text, StringComparison.Ordinal);
-        Assert.Equal(1, Count(text, "name"));
+        Assert.AreEqual(1, Count(text, "name"));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_dotted_key_is_the_value_and_is_updated_in_place()
     {
         var document = Parse("taskbar.centered = false # stay\nname = \"mine\"\n");
-        Assert.Equal(false,
-            Assert.IsAssignableFrom<IReadOnlyDictionary<string, object?>>(document.Values["taskbar"])["centered"]);
+        Assert.AreEqual(false,
+            Assert.IsInstanceOfType<IReadOnlyDictionary<string, object?>>(document.Values["taskbar"])["centered"]);
 
         document.Set("name", "next");
         Assert.Contains("taskbar.centered = false # stay", document.ToString(), StringComparison.Ordinal);
@@ -522,28 +523,28 @@ public sealed class TomlDocumentTests
         AssertParses(text);
     }
 
-    [Theory]
-    [InlineData("[a]\nx = 1\n[a.sub]\ny = 2\n", "a = { x = 2, sub = { y = 3 } }", "a = { x = 2, sub = { y = 3 } }")]
-    [InlineData("[a]\nx = 1\nkept = 3\nsub.y = 2\n", "a = { sub = { y = 3 } }",
+    [TestMethod]
+    [DataRow("[a]\nx = 1\n[a.sub]\ny = 2\n", "a = { x = 2, sub = { y = 3 } }", "a = { x = 2, sub = { y = 3 } }")]
+    [DataRow("[a]\nx = 1\nkept = 3\nsub.y = 2\n", "a = { sub = { y = 3 } }",
         "a = { x = 1, kept = 3, sub = { y = 3 } }")]
-    [InlineData("[[a]]\nx = 1\nsub.y = 1\n", "a = [{ x = 2, sub = { y = 1 } }]", "a = [{ x = 2, sub = { y = 1 } }]")]
-    [InlineData("a = { sub.y = 1, sub.z = 2 }\n", "a = { sub = { y = 5 } }", "a = { sub = { y = 5, z = 2 } }")]
-    [InlineData("a.x = 1\n[a.sub]\ny = 2\n", "a = { x = 2, sub = { y = 2 } }", "a = { x = 2, sub = { y = 2 } }")]
-    [InlineData("a.b.c = 1\na.d = 2\n", "a = { b = 5 }", "a = { b = 5, d = 2 }")]
-    [InlineData("a.b = 1\n", "a = { b = { c = 5 } }", "a = { b = { c = 5 } }")]
+    [DataRow("[[a]]\nx = 1\nsub.y = 1\n", "a = [{ x = 2, sub = { y = 1 } }]", "a = [{ x = 2, sub = { y = 1 } }]")]
+    [DataRow("a = { sub.y = 1, sub.z = 2 }\n", "a = { sub = { y = 5 } }", "a = { sub = { y = 5, z = 2 } }")]
+    [DataRow("a.x = 1\n[a.sub]\ny = 2\n", "a = { x = 2, sub = { y = 2 } }", "a = { x = 2, sub = { y = 2 } }")]
+    [DataRow("a.b.c = 1\na.d = 2\n", "a = { b = 5 }", "a = { b = 5, d = 2 }")]
+    [DataRow("a.b = 1\n", "a = { b = { c = 5 } }", "a = { b = { c = 5 } }")]
     public void A_table_defined_in_parts_is_written_once(string original, string value, string expected)
     {
         var document = Parse(original);
 
         document.Set("a", Parse(value).Values["a"]);
 
-        Assert.Equal(Parse(expected).Values["a"], Parse(document.ToString()).Values["a"]);
+        Assert.AreEquivalent(Parse(expected).Values["a"], Parse(document.ToString()).Values["a"]);
     }
 
-    [Theory]
-    [InlineData("[a] # head\nx = 1 # cx\n\n# about sub\n[a.sub]\ny = 2\n")]
-    [InlineData("[a]\nx = 1 # cx\nsub.y = 2 # cy\n")]
-    [InlineData("[[a]]\nx = 1 # cx\nsub.y = 2 # cy\n")]
+    [TestMethod]
+    [DataRow("[a] # head\nx = 1 # cx\n\n# about sub\n[a.sub]\ny = 2\n")]
+    [DataRow("[a]\nx = 1 # cx\nsub.y = 2 # cy\n")]
+    [DataRow("[[a]]\nx = 1 # cx\nsub.y = 2 # cy\n")]
     public void A_table_defined_in_parts_keeps_its_text_when_one_key_changes(string original)
     {
         var document = Parse(original);
@@ -551,24 +552,26 @@ public sealed class TomlDocumentTests
 
         document.Set("a", changed);
 
-        Assert.Equal(original.Replace("x = 1", "x = 9", StringComparison.Ordinal), document.ToString());
+        Assert.AreEqual(original.Replace("x = 1", "x = 9", StringComparison.Ordinal), document.ToString());
     }
 
-    [Theory]
-    [InlineData("[a]\nx = 1\n[a.sub]\ny = 2\n")]
-    [InlineData("[a]\nx = 1\nsub.y = 2\n")]
-    [InlineData("a.x = 1\na.sub.y = 2\n")]
-    [InlineData("a = { x = 1, sub.y = 2 }\n")]
+    [TestMethod]
+    [DataRow("[a]\nx = 1\n[a.sub]\ny = 2\n")]
+    [DataRow("[a]\nx = 1\nsub.y = 2\n")]
+    [DataRow("a.x = 1\na.sub.y = 2\n")]
+    [DataRow("a = { x = 1, sub.y = 2 }\n")]
     public void Null_takes_out_a_sub_table_written_under_its_own_header_or_dotted_keys(string original)
     {
         var document = Parse(original);
 
         document.Set("a", Row(("x", 1L), ("sub", null)));
 
-        Assert.Equal(Row(("x", 1L)), Parse(document.ToString()).Values["a"]);
+        Assert.AreSequenceEqual(Row(("x", 1L)),
+            Assert.IsInstanceOfType<IReadOnlyDictionary<string, object?>>(Parse(document.ToString()).Values["a"]),
+            SequenceOrder.InAnyOrder);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_table_is_updated_in_place_and_keeps_a_key_it_was_not_given()
     {
         var document = Parse("[taskbar]\ncentered = false # stay\nunknown = 1\nold = 2\n");
@@ -580,34 +583,34 @@ public sealed class TomlDocumentTests
         Assert.Contains("unknown = 1", text, StringComparison.Ordinal);
         Assert.Contains("added = \"x\"", text, StringComparison.Ordinal);
         Assert.DoesNotContain("old", text, StringComparison.Ordinal);
-        Assert.Equal(1, Count(text, "[taskbar]"));
+        Assert.AreEqual(1, Count(text, "[taskbar]"));
     }
 
-    [Theory]
-    [InlineData("[a]\nz = 1\n\n[b]\ny = 1\n", "[a]\nz = 1\nx = 2\n\n[b]\ny = 1\n")]
-    [InlineData("[a]\nz = 1\n\n# about b\n[b]\ny = 1\n", "[a]\nz = 1\nx = 2\n\n# about b\n[b]\ny = 1\n")]
-    [InlineData("[a]\n\n# x is 1 unless set\n# x = 1\n\n[b]\ny = 1\n",
+    [TestMethod]
+    [DataRow("[a]\nz = 1\n\n[b]\ny = 1\n", "[a]\nz = 1\nx = 2\n\n[b]\ny = 1\n")]
+    [DataRow("[a]\nz = 1\n\n# about b\n[b]\ny = 1\n", "[a]\nz = 1\nx = 2\n\n# about b\n[b]\ny = 1\n")]
+    [DataRow("[a]\n\n# x is 1 unless set\n# x = 1\n\n[b]\ny = 1\n",
         "[a]\n\n# x is 1 unless set\n# x = 1\nx = 2\n\n[b]\ny = 1\n")]
-    [InlineData("[a]\n\n# x is 1 unless set\n# x = 1\n", "[a]\n\n# x is 1 unless set\n# x = 1\nx = 2\n")]
-    [InlineData("[a]\nz = 1", "[a]\nz = 1\nx = 2\n")]
+    [DataRow("[a]\n\n# x is 1 unless set\n# x = 1\n", "[a]\n\n# x is 1 unless set\n# x = 1\nx = 2\n")]
+    [DataRow("[a]\nz = 1", "[a]\nz = 1\nx = 2\n")]
     public void A_key_added_to_a_table_goes_above_the_blank_line_before_the_next(string original, string expected)
     {
         var document = Parse(original);
 
         document.Set("a", Row(("x", 2L)));
 
-        Assert.Equal(expected, document.ToString());
+        Assert.AreEqual(expected, document.ToString());
     }
 
-    [Theory]
-    [InlineData("a = 1\n", "a = 1\n\n[dock]\n\n# c\n")]
-    [InlineData("a = 1", "a = 1\n\n[dock]\n\n# c\n")]
-    [InlineData("a = 1\n\n", "a = 1\n\n[dock]\n\n# c\n")]
-    [InlineData("# only a comment\n", "# only a comment\n\n[dock]\n\n# c\n")]
-    [InlineData("", "[dock]\n\n# c\n")]
-    [InlineData("a = 1\r\n", "a = 1\r\n\r\n[dock]\r\n\r\n# c\r\n")]
-    [InlineData("[dock]\nx = 1\n", "[dock]\nx = 1\n")]
-    [InlineData("dock = { x = 1 }\n", "dock = { x = 1 }\n")]
+    [TestMethod]
+    [DataRow("a = 1\n", "a = 1\n\n[dock]\n\n# c\n")]
+    [DataRow("a = 1", "a = 1\n\n[dock]\n\n# c\n")]
+    [DataRow("a = 1\n\n", "a = 1\n\n[dock]\n\n# c\n")]
+    [DataRow("# only a comment\n", "# only a comment\n\n[dock]\n\n# c\n")]
+    [DataRow("", "[dock]\n\n# c\n")]
+    [DataRow("a = 1\r\n", "a = 1\r\n\r\n[dock]\r\n\r\n# c\r\n")]
+    [DataRow("[dock]\nx = 1\n", "[dock]\nx = 1\n")]
+    [DataRow("dock = { x = 1 }\n", "dock = { x = 1 }\n")]
     public void A_table_is_added_under_its_own_header_at_the_end_unless_the_file_has_it(string original,
         string expected)
     {
@@ -615,10 +618,10 @@ public sealed class TomlDocumentTests
 
         document.AddTable("dock", ["", "# c"]);
 
-        Assert.Equal(expected, document.ToString());
+        Assert.AreEqual(expected, document.ToString());
     }
 
-    [Fact]
+    [TestMethod]
     public void An_inline_table_is_updated_in_place()
     {
         var document = Parse("row = { a = 1, b = 2, c = 3 } # stay\n");
@@ -628,11 +631,11 @@ public sealed class TomlDocumentTests
         var text = document.ToString();
         AssertParses(text);
         Assert.Contains("# stay", text, StringComparison.Ordinal);
-        Assert.Equal(Row(("a", 9L), ("b", 2L), ("d", "new")),
-            Assert.IsAssignableFrom<IReadOnlyDictionary<string, object?>>(document.Values["row"]));
+        Assert.AreSequenceEqual(Row(("a", 9L), ("b", 2L), ("d", "new")),
+            Assert.IsInstanceOfType<IReadOnlyDictionary<string, object?>>(document.Values["row"]), SequenceOrder.InAnyOrder);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_value_of_another_type_replaces_the_old_one_and_its_comment_stays()
     {
         var document = Parse("on = \"false\" # stay\nsize = 3\n");
@@ -640,10 +643,10 @@ public sealed class TomlDocumentTests
         document.Set("on", true);
         document.Set("size", "big");
 
-        Assert.Equal("on = true # stay\nsize = \"big\"\n", document.ToString());
+        Assert.AreEqual("on = true # stay\nsize = \"big\"\n", document.ToString());
     }
 
-    [Fact]
+    [TestMethod]
     public void A_whole_double_stays_a_float()
     {
         var document = Parse("scale = 1.5\n");
@@ -651,12 +654,12 @@ public sealed class TomlDocumentTests
         document.Set("scale", 2.0);
         document.Set("added", 3.0);
 
-        Assert.Equal(2.0, document.Values["scale"]);
-        Assert.Equal(3.0, document.Values["added"]);
+        Assert.AreEqual(2.0, document.Values["scale"]);
+        Assert.AreEqual(3.0, document.Values["added"]);
         Assert.Contains("scale = 2.0", document.ToString(), StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Values_of_other_clr_shapes_are_written_as_their_plain_type()
     {
         var document = Parse("");
@@ -665,8 +668,8 @@ public sealed class TomlDocumentTests
         document.Set("scale", 1.5f);
         document.Set("sizes", new[] { 1, 2 });
 
-        Assert.Equal(3L, document.Values["size"]);
-        Assert.Equal(1.5, document.Values["scale"]);
-        Assert.Equal([1L, 2L], Assert.IsAssignableFrom<IReadOnlyList<object?>>(document.Values["sizes"]));
+        Assert.AreEqual(3L, document.Values["size"]);
+        Assert.AreEqual(1.5, document.Values["scale"]);
+        Assert.AreSequenceEqual([1L, 2L], Assert.IsInstanceOfType<IReadOnlyList<object?>>(document.Values["sizes"]));
     }
 }

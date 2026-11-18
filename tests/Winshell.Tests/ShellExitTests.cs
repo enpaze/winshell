@@ -4,6 +4,7 @@ using System.Text;
 
 namespace Winshell.Tests;
 
+[TestClass]
 public sealed partial class ShellExitTests : IDisposable
 {
     private readonly string _pipe = "winshell-test-" + Guid.NewGuid().ToString("N");
@@ -31,7 +32,7 @@ public sealed partial class ShellExitTests : IDisposable
         _pipe, "log.txt",
         _process.StartTime.ToUniversalTime().Ticks, ProcessName: _process.ProcessName);
 
-    [Fact]
+    [TestMethod]
     public async Task A_shell_that_exits_before_it_answers_keeps_its_reload()
     {
         await using var pipe = IpcServer.OpenFirst(_pipe);
@@ -43,13 +44,13 @@ public sealed partial class ShellExitTests : IDisposable
         await ExitAsync(pipe);
 #pragma warning restore CsWinRT1030
 
-        Assert.True((await quit).Exited);
-        Assert.Equal(ExitIntent.Reload, _supervision.Intent);
+        Assert.IsTrue((await quit).Exited);
+        Assert.AreEqual(ExitIntent.Reload, _supervision.Intent);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
     public async Task A_stop_outranks_a_reload_in_either_order(bool stopFirst)
     {
         var (first, second) = stopFirst ? (ExitIntent.Stop, ExitIntent.Reload) : (ExitIntent.Reload, ExitIntent.Stop);
@@ -66,22 +67,22 @@ public sealed partial class ShellExitTests : IDisposable
         await ExitAsync(firstPipe, secondPipe);
 #pragma warning restore CsWinRT1030
 
-        Assert.True((await firstQuit).Exited);
-        Assert.True((await secondQuit).Exited);
-        Assert.Equal(ExitIntent.Stop, _supervision.Intent);
+        Assert.IsTrue((await firstQuit).Exited);
+        Assert.IsTrue((await secondQuit).Exited);
+        Assert.AreEqual(ExitIntent.Stop, _supervision.Intent);
     }
 
     private static async Task ReadRequest(NamedPipeServerStream pipe)
     {
-        await pipe.WaitForConnectionAsync(TestContext.Current.CancellationToken);
+        await pipe.WaitForConnectionAsync(CurrentTest.Cancellation);
         var reader = new StreamReader(pipe, Encoding.UTF8, leaveOpen: true);
-        await reader.ReadLineAsync(TestContext.Current.CancellationToken);
+        await reader.ReadLineAsync(CurrentTest.Cancellation);
     }
 
     private async Task ExitAsync(params NamedPipeServerStream[] pipes)
     {
         _process.Kill();
-        await _process.WaitForExitAsync(TestContext.Current.CancellationToken);
+        await _process.WaitForExitAsync(CurrentTest.Cancellation);
         foreach (var pipe in pipes)
             await pipe.DisposeAsync();
     }

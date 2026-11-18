@@ -3,6 +3,7 @@ using System.Text;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class ImageHeaderTests
 {
     private const string Png =
@@ -87,33 +88,33 @@ public sealed class ImageHeaderTests
         return Segment(marker, 8, (byte)(height >> 8), (byte)height, (byte)(width >> 8), (byte)width, 3);
     }
 
-    [Fact]
+    [TestMethod]
     public void Pictures_from_real_encoders_give_their_size()
     {
-        Assert.Equal(((uint)3, (uint)2), Size(Bytes(Png)));
-        Assert.Equal(((uint)3, (uint)2), Size(Bytes(Jpeg)));
-        Assert.Equal(((uint)3, (uint)2), Size(Bytes(WebP)));
+        Assert.AreEqual(((uint)3, (uint)2), Size(Bytes(Png)));
+        Assert.AreEqual(((uint)3, (uint)2), Size(Bytes(Jpeg)));
+        Assert.AreEqual(((uint)3, (uint)2), Size(Bytes(WebP)));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_picture_reports_the_extension_its_header_names()
     {
-        Assert.Equal(".png", Extension(Bytes(Png)));
-        Assert.Equal(".jpg", Extension(Bytes(Jpeg)));
-        Assert.Equal(".gif", Extension(GifOf(3, 2)));
-        Assert.Equal(".bmp", Extension(BmpOf(3, 2)));
-        Assert.Equal(".bmp", Extension(CoreBmpOf(3, 2)));
-        Assert.Equal(".webp", Extension(Bytes(WebP)));
-        Assert.Equal(".webp", Extension(LosslessWebP()));
-        Assert.Equal(".webp", Extension(ExtendedWebP()));
+        Assert.AreEqual(".png", Extension(Bytes(Png)));
+        Assert.AreEqual(".jpg", Extension(Bytes(Jpeg)));
+        Assert.AreEqual(".gif", Extension(GifOf(3, 2)));
+        Assert.AreEqual(".bmp", Extension(BmpOf(3, 2)));
+        Assert.AreEqual(".bmp", Extension(CoreBmpOf(3, 2)));
+        Assert.AreEqual(".webp", Extension(Bytes(WebP)));
+        Assert.AreEqual(".webp", Extension(LosslessWebP()));
+        Assert.AreEqual(".webp", Extension(ExtendedWebP()));
     }
 
     private static string Extension(byte[] data)
     {
         var header = ImageHeader.Read(data);
-        Assert.NotNull(header);
-        Assert.True(header.Value.Width > 0);
-        Assert.True(header.Value.Height > 0);
+        Assert.IsNotNull(header);
+        Assert.IsTrue(header.Value.Width > 0);
+        Assert.IsTrue(header.Value.Height > 0);
         return header.Value.Extension;
     }
 
@@ -122,80 +123,80 @@ public sealed class ImageHeaderTests
         return ImageHeader.Read(data) is var (_, width, height) ? (width, height) : null;
     }
 
-    [Fact]
+    [TestMethod]
     public void Every_format_reads_its_own_size_fields()
     {
-        Assert.Equal(((uint)8193, (uint)2049), Size(PngOf(8193, 2049)));
-        Assert.Equal(((uint)640, (uint)480), Size(GifOf(640, 480)));
-        Assert.Equal(((uint)640, (uint)480), Size(BmpOf(640, 480)));
-        Assert.Equal(((uint)640, (uint)480), Size(CoreBmpOf(640, 480)));
-        Assert.Equal(((uint)9000, (uint)2), Size(LosslessWebP()));
-        Assert.Equal(((uint)20000, (uint)3), Size(ExtendedWebP()));
+        Assert.AreEqual(((uint)8193, (uint)2049), Size(PngOf(8193, 2049)));
+        Assert.AreEqual(((uint)640, (uint)480), Size(GifOf(640, 480)));
+        Assert.AreEqual(((uint)640, (uint)480), Size(BmpOf(640, 480)));
+        Assert.AreEqual(((uint)640, (uint)480), Size(CoreBmpOf(640, 480)));
+        Assert.AreEqual(((uint)9000, (uint)2), Size(LosslessWebP()));
+        Assert.AreEqual(((uint)20000, (uint)3), Size(ExtendedWebP()));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_top_down_bitmap_has_a_negative_height()
     {
-        Assert.Equal(((uint)640, (uint)480), Size(BmpOf(640, -480)));
-        Assert.Equal(((uint)1, (uint)int.MaxValue + 1), Size(BmpOf(1, int.MinValue)));
+        Assert.AreEqual(((uint)640, (uint)480), Size(BmpOf(640, -480)));
+        Assert.AreEqual(((uint)1, (uint)int.MaxValue + 1), Size(BmpOf(1, int.MinValue)));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_jpeg_size_comes_from_its_frame_and_not_a_thumbnail_before_it()
     {
         byte[] thumbnail = [.. JpegFrame(0xC0, 160, 120)];
         byte[] jpeg =
             [0xFF, 0xD8, .. Segment(0xE1, thumbnail), .. Segment(0xDB, 1, 2, 3), .. JpegFrame(0xC2, 8000, 8000)];
 
-        Assert.Equal(((uint)8000, (uint)8000), Size(jpeg));
+        Assert.AreEqual(((uint)8000, (uint)8000), Size(jpeg));
     }
 
-    [Theory]
-    [InlineData(0xC4)]
-    [InlineData(0xC8)]
-    [InlineData(0xCC)]
+    [TestMethod]
+    [DataRow((byte)0xC4)]
+    [DataRow((byte)0xC8)]
+    [DataRow((byte)0xCC)]
     public void A_marker_inside_the_frame_range_is_not_a_frame(byte marker)
     {
         byte[] jpeg = [0xFF, 0xD8, .. Segment(marker, 8, 1, 1, 1, 1, 3), .. JpegFrame(0xC0, 32, 16)];
 
-        Assert.Equal(((uint)32, (uint)16), Size(jpeg));
+        Assert.AreEqual(((uint)32, (uint)16), Size(jpeg));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_jpeg_with_no_frame_before_its_scan_has_no_size()
     {
         byte[] jpeg = [0xFF, 0xD8, .. Segment(0xDA, 1, 2, 3), .. JpegFrame(0xC0, 32, 16)];
 
-        Assert.Null(Size(jpeg));
+        Assert.IsNull(Size(jpeg));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_segment_that_claims_no_length_still_ends()
     {
         byte[] jpeg = [0xFF, 0xD8, 0xFF, 0xE0, 0, 0, 0xFF, 0xE0, 0, 0];
 
-        Assert.Null(Size(jpeg));
+        Assert.IsNull(Size(jpeg));
     }
 
-    [Theory]
-    [InlineData("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100000\" height=\"100000\"/>")]
-    [InlineData("not a picture")]
-    [InlineData("")]
+    [TestMethod]
+    [DataRow("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100000\" height=\"100000\"/>")]
+    [DataRow("not a picture")]
+    [DataRow("")]
     public void Anything_else_has_no_size(string text)
     {
         var data = Encoding.UTF8.GetBytes(text);
-        Assert.Null(Size(data));
+        Assert.IsNull(Size(data));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_webp_with_a_broken_frame_has_no_size()
     {
-        Assert.Null(Size(Riff("VP8 ", "\0\0\0\u0001\u0002\u0003"u8.ToArray())));
-        Assert.Null(Size(Riff("VP8L", "\u002e\0\0\0\0"u8.ToArray())));
-        Assert.Null(Size(Riff("ABCD", "\0\0\0\0\0"u8.ToArray())));
+        Assert.IsNull(Size(Riff("VP8 ", "\0\0\0\u0001\u0002\u0003"u8.ToArray())));
+        Assert.IsNull(Size(Riff("VP8L", "\u002e\0\0\0\0"u8.ToArray())));
+        Assert.IsNull(Size(Riff("ABCD", "\0\0\0\0\0"u8.ToArray())));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_cut_off_header_has_no_size_and_does_not_throw()
     {
         foreach (var data in new[]
@@ -205,11 +206,11 @@ public sealed class ImageHeaderTests
                  })
         {
             var whole = Size(data);
-            Assert.NotNull(whole);
+            Assert.IsNotNull(whole);
             for (var length = 0; length < data.Length; length++)
             {
                 var size = Size(data.AsSpan(0, length));
-                Assert.True(size is null || size == whole, $"{length} bytes gave {size}");
+                Assert.IsTrue(size is null || size == whole, $"{length} bytes gave {size}");
             }
         }
     }

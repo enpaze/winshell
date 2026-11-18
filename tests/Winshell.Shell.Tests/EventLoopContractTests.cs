@@ -1,48 +1,48 @@
 using System.Collections.Concurrent;
-using Xunit.Sdk;
 
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed partial class EventLoopContractTests
 {
-    [Fact]
+    [TestMethod]
     public async Task Posted_work_runs_in_post_order()
     {
         await PostedWorkRunsInOrder(Manual());
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Posted_work_runs_in_post_order_on_the_dispatcher()
     {
         await OnDispatcher(PostedWorkRunsInOrder);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_disposed_timer_does_not_fire_and_one_that_is_kept_does()
     {
         await ADisposedTimerDoesNotFire(Manual());
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_disposed_timer_does_not_fire_and_one_that_is_kept_does_on_the_dispatcher()
     {
         await OnDispatcher(ADisposedTimerDoesNotFire);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Posted_work_that_throws_is_reported_and_later_work_runs()
     {
         await PostedWorkThatThrowsIsReported(Manual());
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task Posted_work_that_throws_is_reported_and_later_work_runs_on_the_dispatcher()
     {
         await OnDispatcher(PostedWorkThatThrowsIsReported);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_assertion_in_posted_work_fails_the_test_instead_of_being_reported()
     {
         var loop = new ManualEventLoop { Log = new Log { Sink = static (_, _, _) => { } } };
@@ -50,13 +50,13 @@ public sealed partial class EventLoopContractTests
         loop.Failed += failed.Add;
         loop.Post(() => Assert.Fail("from the callback"));
 
-        var thrown = Assert.Throws<FailException>(loop.Process);
+        var thrown = Assert.ThrowsExactly<AssertFailedException>(loop.Process);
 
         Assert.Contains("from the callback", thrown.ToString(), StringComparison.Ordinal);
-        Assert.Empty(failed);
+        Assert.IsEmpty(failed);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_assertion_exception_outside_the_framework_namespace_fails_the_test()
     {
         var loop = new ManualEventLoop { Log = new Log { Sink = static (_, _, _) => { } } };
@@ -64,22 +64,22 @@ public sealed partial class EventLoopContractTests
         loop.Failed += failed.Add;
         loop.Post(static () => throw new PostedAssertion());
 
-        var thrown = Assert.Throws<PostedAssertion>(loop.Process);
+        var thrown = Assert.ThrowsExactly<PostedAssertion>(loop.Process);
 
-        Assert.Equal("from the callback", thrown.Message);
-        Assert.Empty(failed);
+        Assert.AreEqual("from the callback", thrown.Message);
+        Assert.IsEmpty(failed);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_queue_that_keeps_posting_work_fails_when_the_turn_cap_is_hit()
     {
         var loop = new ManualEventLoop { Log = new Log { Sink = static (_, _, _) => { } } };
         void KeepPosting() => loop.Post(KeepPosting);
         loop.Post(KeepPosting);
 
-        var thrown = Assert.Throws<InvalidOperationException>(loop.Process);
+        var thrown = Assert.ThrowsExactly<InvalidOperationException>(loop.Process);
 
-        Assert.Equal("The event loop hit its turn cap of 1000.", thrown.Message);
+        Assert.AreEqual("The event loop hit its turn cap of 1000.", thrown.Message);
     }
 
     private static async Task PostedWorkRunsInOrder(LoopRun run)
@@ -99,7 +99,7 @@ public sealed partial class EventLoopContractTests
 
         await run.Settle(TimeSpan.Zero, finished.Task);
 
-        Assert.Equal([1, 2, 3], order);
+        Assert.AreSequenceEqual<int>([1, 2, 3], order);
     }
 
     private static async Task ADisposedTimerDoesNotFire(LoopRun run)
@@ -117,8 +117,8 @@ public sealed partial class EventLoopContractTests
 
         await run.Settle(TimeSpan.FromMilliseconds(50), finished.Task);
 
-        Assert.Equal(0, Volatile.Read(ref cancelled));
-        Assert.Equal(1, Volatile.Read(ref kept));
+        Assert.AreEqual(0, Volatile.Read(ref cancelled));
+        Assert.AreEqual(1, Volatile.Read(ref kept));
     }
 
     private static async Task PostedWorkThatThrowsIsReported(LoopRun run)
@@ -135,10 +135,10 @@ public sealed partial class EventLoopContractTests
                 finished.SetResult();
             });
             await run.Settle(TimeSpan.Zero, finished.Task);
-            Assert.Equal(1, Volatile.Read(ref ran));
+            Assert.AreEqual(1, Volatile.Read(ref ran));
         }
 
-        Assert.Equal("posted", Assert.Single(failed).Message);
+        Assert.AreEqual("posted", Assert.ContainsSingle(failed).Message);
     }
 
     private static LoopRun Manual()
@@ -151,7 +151,7 @@ public sealed partial class EventLoopContractTests
         }, (delay, done) =>
         {
             loop.Advance(delay);
-            Assert.True(done.IsCompleted, "The test loop did not finish the work.");
+            Assert.IsTrue(done.IsCompleted, "The test loop did not finish the work.");
             return done;
         });
     }
@@ -160,12 +160,12 @@ public sealed partial class EventLoopContractTests
     {
         return ShellFixture.On(async shell =>
         {
-            var loop = Assert.IsType<DispatcherLoop>(shell.Loop);
+            var loop = Assert.IsExactInstanceOfType<DispatcherLoop>(shell.Loop);
             var run = new LoopRun(loop, handler =>
             {
                 loop.Failed += handler;
                 return new Detach(() => loop.Failed -= handler);
-            }, (_, done) => done.WaitAsync(TestContext.Current.CancellationToken));
+            }, (_, done) => done.WaitAsync(CurrentTest.Cancellation));
             try
             {
                 await check(run);
@@ -198,5 +198,5 @@ public sealed partial class EventLoopContractTests
         }
     }
 
-    private sealed class PostedAssertion() : XunitException("from the callback");
+    private sealed class PostedAssertion() : AssertFailedException("from the callback");
 }

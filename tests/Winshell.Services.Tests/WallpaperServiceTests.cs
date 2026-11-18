@@ -2,31 +2,32 @@ using Winshell.Wallpaper;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class WallpaperServiceTests
 {
     private static readonly TimeSpan Settled = TimeSpan.FromSeconds(1);
 
-    [Fact]
+    [TestMethod]
     public void Each_screen_has_its_image_and_the_desktop_has_one_fit_and_color()
     {
         var loop = new ManualEventLoop();
         var backend = new FakeWallpaperBackend(Snapshot());
         using var wallpaper = new WallpaperService(loop, new Log(), backend);
 
-        Assert.Equal(2, wallpaper.Screens.Count);
-        Assert.Equal(@"\\.\DISPLAY1", wallpaper.Screens[0].Id);
-        Assert.Equal(@"C:\wall\a.jpg", wallpaper.Screens[0].Image);
-        Assert.True(wallpaper.Screens[0].IsPrimary);
-        Assert.Equal(@"\\.\DISPLAY2", wallpaper.Screens[1].Id);
-        Assert.Equal(@"C:\wall\b.jpg", wallpaper.Screens[1].Image);
-        Assert.False(wallpaper.Screens[1].IsPrimary);
-        Assert.Equal(WallpaperFit.Fill, wallpaper.Fit);
-        Assert.Equal(new WallpaperColor(1, 2, 3), wallpaper.Background);
-        Assert.Equal(1, backend.Reads);
-        Assert.Null(loop.NextDue);
+        Assert.AreEqual(2, wallpaper.Screens.Count);
+        Assert.AreEqual(@"\\.\DISPLAY1", wallpaper.Screens[0].Id);
+        Assert.AreEqual(@"C:\wall\a.jpg", wallpaper.Screens[0].Image);
+        Assert.IsTrue(wallpaper.Screens[0].IsPrimary);
+        Assert.AreEqual(@"\\.\DISPLAY2", wallpaper.Screens[1].Id);
+        Assert.AreEqual(@"C:\wall\b.jpg", wallpaper.Screens[1].Image);
+        Assert.IsFalse(wallpaper.Screens[1].IsPrimary);
+        Assert.AreEqual(WallpaperFit.Fill, wallpaper.Fit);
+        Assert.AreEqual(new WallpaperColor(1, 2, 3), wallpaper.Background);
+        Assert.AreEqual(1, backend.Reads);
+        Assert.IsNull(loop.NextDue);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_image_can_be_set_on_one_screen_or_on_every_screen()
     {
         var loop = new ManualEventLoop();
@@ -36,41 +37,41 @@ public sealed class WallpaperServiceTests
         wallpaper.PropertyChanged += (_, e) => heard.Add(e.PropertyName);
         var left = wallpaper.Screens[0];
 
-        Assert.False(wallpaper.SetImage(left, @"C:\wall\a.jpg"));
-        Assert.Empty(backend.Images);
+        Assert.IsFalse(wallpaper.SetImage(left, @"C:\wall\a.jpg"));
+        Assert.IsEmpty(backend.Images);
 
-        Assert.True(wallpaper.SetImage(left, @"C:\wall\c.jpg"));
-        Assert.Equal([(@"\\?\DISPLAY#LEFT", @"C:\wall\c.jpg")], backend.Images);
-        Assert.Equal(@"C:\wall\c.jpg", wallpaper.Screens[0].Image);
-        Assert.Equal(@"C:\wall\b.jpg", wallpaper.Screens[1].Image);
-        Assert.Equal([nameof(WallpaperService.Screens)], heard);
-
-        heard.Clear();
-        Assert.True(wallpaper.SetImage(@"C:\wall\d.jpg"));
-        Assert.Equal((null, @"C:\wall\d.jpg"), backend.Images[^1]);
-        Assert.Equal(@"C:\wall\d.jpg", wallpaper.Screens[0].Image);
-        Assert.Equal(@"C:\wall\d.jpg", wallpaper.Screens[1].Image);
-        Assert.Equal([nameof(WallpaperService.Screens)], heard);
-        Assert.False(wallpaper.SetImage(@"c:\wall\D.JPG"));
-        Assert.Equal(2, backend.Images.Count);
+        Assert.IsTrue(wallpaper.SetImage(left, @"C:\wall\c.jpg"));
+        Assert.AreSequenceEqual([(@"\\?\DISPLAY#LEFT", @"C:\wall\c.jpg")], backend.Images);
+        Assert.AreEqual(@"C:\wall\c.jpg", wallpaper.Screens[0].Image);
+        Assert.AreEqual(@"C:\wall\b.jpg", wallpaper.Screens[1].Image);
+        Assert.AreSequenceEqual([nameof(WallpaperService.Screens)], heard);
 
         heard.Clear();
-        Assert.False(wallpaper.SetFit(WallpaperFit.Fill));
-        Assert.True(wallpaper.SetFit(WallpaperFit.Span));
-        Assert.Equal([WallpaperFit.Span], backend.Fits);
-        Assert.Equal(WallpaperFit.Span, wallpaper.Fit);
-        Assert.Equal([nameof(WallpaperService.Fit)], heard);
+        Assert.IsTrue(wallpaper.SetImage(@"C:\wall\d.jpg"));
+        Assert.AreEqual((null, @"C:\wall\d.jpg"), backend.Images[^1]);
+        Assert.AreEqual(@"C:\wall\d.jpg", wallpaper.Screens[0].Image);
+        Assert.AreEqual(@"C:\wall\d.jpg", wallpaper.Screens[1].Image);
+        Assert.AreSequenceEqual([nameof(WallpaperService.Screens)], heard);
+        Assert.IsFalse(wallpaper.SetImage(@"c:\wall\D.JPG"));
+        Assert.AreEqual(2, backend.Images.Count);
 
         heard.Clear();
-        Assert.False(wallpaper.SetBackground(new WallpaperColor(1, 2, 3)));
-        Assert.True(wallpaper.SetBackground(new WallpaperColor(4, 5, 6)));
-        Assert.Equal([new WallpaperColor(4, 5, 6)], backend.Colors);
-        Assert.Equal(new WallpaperColor(4, 5, 6), wallpaper.Background);
-        Assert.Equal([nameof(WallpaperService.Background)], heard);
-        Assert.Null(loop.NextDue);
+        Assert.IsFalse(wallpaper.SetFit(WallpaperFit.Fill));
+        Assert.IsTrue(wallpaper.SetFit(WallpaperFit.Span));
+        Assert.AreSequenceEqual([WallpaperFit.Span], backend.Fits);
+        Assert.AreEqual(WallpaperFit.Span, wallpaper.Fit);
+        Assert.AreSequenceEqual([nameof(WallpaperService.Fit)], heard);
+
+        heard.Clear();
+        Assert.IsFalse(wallpaper.SetBackground(new WallpaperColor(1, 2, 3)));
+        Assert.IsTrue(wallpaper.SetBackground(new WallpaperColor(4, 5, 6)));
+        Assert.AreSequenceEqual([new WallpaperColor(4, 5, 6)], backend.Colors);
+        Assert.AreEqual(new WallpaperColor(4, 5, 6), wallpaper.Background);
+        Assert.AreSequenceEqual([nameof(WallpaperService.Background)], heard);
+        Assert.IsNull(loop.NextDue);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_change_is_reported_on_the_loop_once_Windows_has_finished_writing()
     {
         var loop = new ManualEventLoop();
@@ -83,14 +84,14 @@ public sealed class WallpaperServiceTests
         backend.Current = backend.Current with { Fit = WallpaperFit.Tile };
         backend.Raise();
         loop.Process();
-        Assert.Equal(WallpaperFit.Fill, wallpaper.Fit);
-        Assert.Empty(heard);
+        Assert.AreEqual(WallpaperFit.Fill, wallpaper.Fit);
+        Assert.IsEmpty(heard);
 
         backend.Raise();
         loop.Advance(Settled);
-        Assert.Equal(WallpaperFit.Tile, wallpaper.Fit);
-        Assert.Equal([nameof(WallpaperService.Fit)], heard);
-        Assert.Equal(reads + 1, backend.Reads);
+        Assert.AreEqual(WallpaperFit.Tile, wallpaper.Fit);
+        Assert.AreSequenceEqual([nameof(WallpaperService.Fit)], heard);
+        Assert.AreEqual(reads + 1, backend.Reads);
 
         heard.Clear();
         backend.Current = backend.Current with
@@ -104,21 +105,21 @@ public sealed class WallpaperServiceTests
         };
         backend.Raise();
         loop.Advance(Settled);
-        Assert.Equal(@"C:\wall\e.jpg", wallpaper.Screens[0].Image);
-        Assert.Equal(@"C:\wall\b.jpg", wallpaper.Screens[1].Image);
-        Assert.Equal(new WallpaperColor(9, 9, 9), wallpaper.Background);
-        Assert.Equal([nameof(WallpaperService.Screens), nameof(WallpaperService.Background)], heard);
+        Assert.AreEqual(@"C:\wall\e.jpg", wallpaper.Screens[0].Image);
+        Assert.AreEqual(@"C:\wall\b.jpg", wallpaper.Screens[1].Image);
+        Assert.AreEqual(new WallpaperColor(9, 9, 9), wallpaper.Background);
+        Assert.AreSequenceEqual([nameof(WallpaperService.Screens), nameof(WallpaperService.Background)], heard);
 
         heard.Clear();
         var after = backend.Reads;
         backend.Raise();
         loop.Advance(Settled);
-        Assert.Empty(heard);
-        Assert.Equal(after + 1, backend.Reads);
-        Assert.Null(loop.NextDue);
+        Assert.IsEmpty(heard);
+        Assert.AreEqual(after + 1, backend.Reads);
+        Assert.IsNull(loop.NextDue);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_set_is_ignored_for_an_unknown_screen_the_current_value_or_a_disposed_service()
     {
         var loop = new ManualEventLoop();
@@ -126,75 +127,75 @@ public sealed class WallpaperServiceTests
         var wallpaper = new WallpaperService(loop, new Log(), backend);
         var unknown = new WallpaperScreen(@"\\.\DISPLAY9", @"\\?\DISPLAY#NO", @"C:\wall\z.jpg", false);
 
-        Assert.False(wallpaper.SetImage(unknown, @"C:\wall\z.jpg"));
-        Assert.False(wallpaper.SetImage(wallpaper.Screens[0], "  "));
-        Assert.False(wallpaper.SetFit((WallpaperFit)99));
-        Assert.Throws<ArgumentNullException>(() => wallpaper.SetImage(null!, @"C:\wall\z.jpg"));
-        Assert.Throws<ArgumentNullException>(() => wallpaper.SetImage(null!));
-        Assert.Empty(backend.Images);
-        Assert.Empty(backend.Fits);
+        Assert.IsFalse(wallpaper.SetImage(unknown, @"C:\wall\z.jpg"));
+        Assert.IsFalse(wallpaper.SetImage(wallpaper.Screens[0], "  "));
+        Assert.IsFalse(wallpaper.SetFit((WallpaperFit)99));
+        Assert.ThrowsExactly<ArgumentNullException>(() => wallpaper.SetImage(null!, @"C:\wall\z.jpg"));
+        Assert.ThrowsExactly<ArgumentNullException>(() => wallpaper.SetImage(null!));
+        Assert.IsEmpty(backend.Images);
+        Assert.IsEmpty(backend.Fits);
 
         backend.Accepts = false;
-        Assert.False(wallpaper.SetImage(wallpaper.Screens[0], @"C:\wall\c.jpg"));
-        Assert.False(wallpaper.SetFit(WallpaperFit.Center));
-        Assert.False(wallpaper.SetBackground(new WallpaperColor(7, 7, 7)));
-        Assert.Equal(@"C:\wall\a.jpg", wallpaper.Screens[0].Image);
-        Assert.Equal(WallpaperFit.Fill, wallpaper.Fit);
-        Assert.Equal(new WallpaperColor(1, 2, 3), wallpaper.Background);
+        Assert.IsFalse(wallpaper.SetImage(wallpaper.Screens[0], @"C:\wall\c.jpg"));
+        Assert.IsFalse(wallpaper.SetFit(WallpaperFit.Center));
+        Assert.IsFalse(wallpaper.SetBackground(new WallpaperColor(7, 7, 7)));
+        Assert.AreEqual(@"C:\wall\a.jpg", wallpaper.Screens[0].Image);
+        Assert.AreEqual(WallpaperFit.Fill, wallpaper.Fit);
+        Assert.AreEqual(new WallpaperColor(1, 2, 3), wallpaper.Background);
 
         var images = backend.Images.Count;
         var fits = backend.Fits.Count;
         var colors = backend.Colors.Count;
         wallpaper.Dispose();
         backend.Accepts = true;
-        Assert.False(wallpaper.SetImage(@"C:\wall\c.jpg"));
-        Assert.False(wallpaper.SetFit(WallpaperFit.Center));
-        Assert.False(wallpaper.SetBackground(new WallpaperColor(7, 7, 7)));
-        Assert.Equal(images, backend.Images.Count);
-        Assert.Equal(fits, backend.Fits.Count);
-        Assert.Equal(colors, backend.Colors.Count);
+        Assert.IsFalse(wallpaper.SetImage(@"C:\wall\c.jpg"));
+        Assert.IsFalse(wallpaper.SetFit(WallpaperFit.Center));
+        Assert.IsFalse(wallpaper.SetBackground(new WallpaperColor(7, 7, 7)));
+        Assert.AreEqual(images, backend.Images.Count);
+        Assert.AreEqual(fits, backend.Fits.Count);
+        Assert.AreEqual(colors, backend.Colors.Count);
         backend.Current = backend.Current with { Fit = WallpaperFit.Span };
         backend.Raise();
         loop.Advance(Settled);
-        Assert.Equal(WallpaperFit.Fill, wallpaper.Fit);
-        Assert.Null(loop.NextDue);
+        Assert.AreEqual(WallpaperFit.Fill, wallpaper.Fit);
+        Assert.IsNull(loop.NextDue);
     }
 
-    [Fact]
+    [TestMethod]
     public void Until_a_reading_succeeds_a_set_is_sent_and_a_later_miss_keeps_the_last_one()
     {
         var loop = new ManualEventLoop();
         var backend = new FakeWallpaperBackend(WallpaperSnapshot.Unavailable);
         using var wallpaper = new WallpaperService(loop, new Log(), backend);
 
-        Assert.Empty(wallpaper.Screens);
-        Assert.Equal(WallpaperFit.Fill, wallpaper.Fit);
-        Assert.Equal(new WallpaperColor(0, 0, 0), wallpaper.Background);
-        Assert.True(wallpaper.SetFit(WallpaperFit.Fill));
-        Assert.True(wallpaper.SetBackground(new WallpaperColor(0, 0, 0)));
-        Assert.Equal([WallpaperFit.Fill], backend.Fits);
-        Assert.Equal([new WallpaperColor(0, 0, 0)], backend.Colors);
+        Assert.IsEmpty(wallpaper.Screens);
+        Assert.AreEqual(WallpaperFit.Fill, wallpaper.Fit);
+        Assert.AreEqual(new WallpaperColor(0, 0, 0), wallpaper.Background);
+        Assert.IsTrue(wallpaper.SetFit(WallpaperFit.Fill));
+        Assert.IsTrue(wallpaper.SetBackground(new WallpaperColor(0, 0, 0)));
+        Assert.AreSequenceEqual([WallpaperFit.Fill], backend.Fits);
+        Assert.AreSequenceEqual([new WallpaperColor(0, 0, 0)], backend.Colors);
 
         backend.Current = Snapshot();
         backend.Raise();
         loop.Advance(Settled);
-        Assert.Equal(@"C:\wall\a.jpg", wallpaper.Screens[0].Image);
-        Assert.Equal(new WallpaperColor(1, 2, 3), wallpaper.Background);
-        Assert.False(wallpaper.SetFit(WallpaperFit.Fill));
-        Assert.False(wallpaper.SetBackground(new WallpaperColor(1, 2, 3)));
-        Assert.Single(backend.Fits);
-        Assert.Single(backend.Colors);
+        Assert.AreEqual(@"C:\wall\a.jpg", wallpaper.Screens[0].Image);
+        Assert.AreEqual(new WallpaperColor(1, 2, 3), wallpaper.Background);
+        Assert.IsFalse(wallpaper.SetFit(WallpaperFit.Fill));
+        Assert.IsFalse(wallpaper.SetBackground(new WallpaperColor(1, 2, 3)));
+        Assert.ContainsSingle(backend.Fits);
+        Assert.ContainsSingle(backend.Colors);
 
         List<string?> heard = [];
         wallpaper.PropertyChanged += (_, e) => heard.Add(e.PropertyName);
         backend.Current = WallpaperSnapshot.Unavailable;
         backend.Raise();
         loop.Advance(Settled);
-        Assert.Equal(@"C:\wall\a.jpg", wallpaper.Screens[0].Image);
-        Assert.Equal(WallpaperFit.Fill, wallpaper.Fit);
-        Assert.Equal(new WallpaperColor(1, 2, 3), wallpaper.Background);
-        Assert.Empty(heard);
-        Assert.Null(loop.NextDue);
+        Assert.AreEqual(@"C:\wall\a.jpg", wallpaper.Screens[0].Image);
+        Assert.AreEqual(WallpaperFit.Fill, wallpaper.Fit);
+        Assert.AreEqual(new WallpaperColor(1, 2, 3), wallpaper.Background);
+        Assert.IsEmpty(heard);
+        Assert.IsNull(loop.NextDue);
     }
 
     private static WallpaperSnapshot Snapshot()

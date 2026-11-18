@@ -94,7 +94,7 @@ internal static class ProbeShell
         info.ArgumentList.Add("--nologo");
         info.ArgumentList.Add("--disable-build-servers");
         ChildProcess.Run(info, TimeSpan.FromMinutes(10)).AssertExitCode(0);
-        Assert.True(File.Exists(program), $"The probe built, but {program} is not there.");
+        Assert.IsTrue(File.Exists(program), $"The probe built, but {program} is not there.");
         return program;
     }
 

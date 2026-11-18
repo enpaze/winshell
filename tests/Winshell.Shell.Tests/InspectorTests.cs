@@ -11,11 +11,11 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
-using Xunit.Sdk;
 using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed partial class InspectorTests : IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
@@ -80,8 +80,8 @@ public sealed partial class InspectorTests : IDisposable
         return page;
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task The_tree_has_names_sizes_positions_and_what_each_element_holds()
     {
         var tree = await ShellFixture.On(async shell =>
@@ -94,21 +94,21 @@ public sealed partial class InspectorTests : IDisposable
 
         var window = OpenWindow(tree, nameof(Page));
         var content = window.GetProperty("content");
-        Assert.Equal("PanelWindow", window.GetProperty("kind").GetString());
-        Assert.Equal(220, window.GetProperty("width").GetDouble());
-        Assert.Equal("hello", Node(content, "Label").GetProperty("text").GetString());
+        Assert.AreEqual("PanelWindow", window.GetProperty("kind").GetString());
+        Assert.AreEqual(220, window.GetProperty("width").GetDouble());
+        Assert.AreEqual("hello", Node(content, "Label").GetProperty("text").GetString());
         var press = Node(content, "Press");
-        Assert.Equal("Button", press.GetProperty("type").GetString());
-        Assert.Equal("Go", press.GetProperty("text").GetString());
-        Assert.Equal(10, press.GetProperty("x").GetDouble());
-        Assert.True(press.GetProperty("width").GetDouble() > 0);
-        Assert.Equal(4, Node(content, "Level").GetProperty("value").GetDouble());
-        Assert.True(Node(content, "Wifi").GetProperty("on").GetBoolean());
+        Assert.AreEqual("Button", press.GetProperty("type").GetString());
+        Assert.AreEqual("Go", press.GetProperty("text").GetString());
+        Assert.AreEqual(10, press.GetProperty("x").GetDouble());
+        Assert.IsTrue(press.GetProperty("width").GetDouble() > 0);
+        Assert.AreEqual(4, Node(content, "Level").GetProperty("value").GetDouble());
+        Assert.IsTrue(Node(content, "Wifi").GetProperty("on").GetBoolean());
         Assert.DoesNotContain("hunter2", tree, StringComparison.Ordinal);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_click_runs_the_buttons_handler_through_its_own_event()
     {
         var clicks = await ShellFixture.On(async shell =>
@@ -125,11 +125,11 @@ public sealed partial class InspectorTests : IDisposable
             return count;
         });
 
-        Assert.Equal(1, clicks);
+        Assert.AreEqual(1, clicks);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_click_toggles_what_toggles()
     {
         var on = await ShellFixture.On(async shell =>
@@ -143,11 +143,11 @@ public sealed partial class InspectorTests : IDisposable
             return toggle.IsChecked;
         });
 
-        Assert.True(on);
+        Assert.IsTrue(on);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_click_finds_an_element_by_its_automation_name_even_when_what_it_holds_shares_it()
     {
         var clicks = await ShellFixture.On(async shell =>
@@ -167,11 +167,11 @@ public sealed partial class InspectorTests : IDisposable
             return count;
         });
 
-        Assert.Equal(1, clicks);
+        Assert.AreEqual(1, clicks);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_name_two_windows_share_clicks_neither_and_lists_both_until_a_window_is_named()
     {
         var (message, clicks) = await ShellFixture.On(async shell =>
@@ -210,11 +210,11 @@ public sealed partial class InspectorTests : IDisposable
         Assert.Contains($"({nameof(Page)}): Button name=Twin", message, StringComparison.Ordinal);
         Assert.Contains($"({nameof(Other)}): Button name=Twin", message, StringComparison.Ordinal);
         Assert.Contains("winshell inspect click Twin ", message, StringComparison.Ordinal);
-        Assert.Equal((0, 1), clicks);
+        Assert.AreEqual((0, 1), clicks);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task The_tree_marks_the_element_keyboard_focus_is_on()
     {
         var tree = await ShellFixture.On(async shell =>
@@ -228,12 +228,12 @@ public sealed partial class InspectorTests : IDisposable
         });
 
         var content = OpenWindow(tree, nameof(Page)).GetProperty("content");
-        Assert.True(Node(content, "Press").GetProperty("focused").GetBoolean());
-        Assert.False(Node(content, "Level").TryGetProperty("focused", out _));
+        Assert.IsTrue(Node(content, "Press").GetProperty("focused").GetBoolean());
+        Assert.IsFalse(Node(content, "Level").TryGetProperty("focused", out _));
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_name_a_collapsed_element_shares_clicks_the_one_shown()
     {
         var clicks = await ShellFixture.On(async shell =>
@@ -255,11 +255,11 @@ public sealed partial class InspectorTests : IDisposable
             return (shownClicks, collapsedClicks);
         });
 
-        Assert.Equal((1, 0), clicks);
+        Assert.AreEqual((1, 0), clicks);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_disabled_button_refuses_a_click_as_it_refuses_a_pointer()
     {
         var (clicks, refused) = await ShellFixture.On(async shell =>
@@ -275,7 +275,7 @@ public sealed partial class InspectorTests : IDisposable
             {
                 await Inspector.Run(shell, "click", ["Off"]);
             }
-            catch (Exception e) when (e is not XunitException)
+            catch (Exception e) when (e is not UnitTestAssertException)
             {
                 failed = true;
             }
@@ -284,16 +284,16 @@ public sealed partial class InspectorTests : IDisposable
             return (count, failed);
         });
 
-        Assert.Equal(0, clicks);
-        Assert.True(refused);
+        Assert.AreEqual(0, clicks);
+        Assert.IsTrue(refused);
     }
 
-    [Theory]
-    [Trait("Category", "Window")]
-    [InlineData("click", "Missing", "No element is named Missing")]
-    [InlineData("hover", "Missing", "No element is named Missing")]
-    [InlineData("click", "Label", "takes no click")]
-    [InlineData("hover", "Label", "has no hover look")]
+    [TestMethod]
+    [TestCategory("Window")]
+    [DataRow("click", "Missing", "No element is named Missing")]
+    [DataRow("hover", "Missing", "No element is named Missing")]
+    [DataRow("click", "Label", "takes no click")]
+    [DataRow("hover", "Label", "has no hover look")]
     public async Task What_cannot_be_done_says_why(string command, string name, string why)
     {
         var message = await ShellFixture.On(async shell =>
@@ -315,8 +315,8 @@ public sealed partial class InspectorTests : IDisposable
         Assert.Contains(why, message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_hover_puts_a_control_in_its_pointer_look()
     {
         var said = await ShellFixture.On(async shell =>
@@ -327,11 +327,11 @@ public sealed partial class InspectorTests : IDisposable
             return await Inspector.Run(shell, "hover", ["Press"]);
         });
 
-        Assert.Equal("Hovering Press", said);
+        Assert.AreEqual("Hovering Press", said);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_screenshot_is_a_png_of_the_whole_window_with_what_it_draws()
     {
         var file = Path.Combine(_dir, "padded.png");
@@ -348,17 +348,17 @@ public sealed partial class InspectorTests : IDisposable
         });
 
         var (width, height, pixels) = await Decoded(
-            await File.ReadAllBytesAsync(file, TestContext.Current.CancellationToken));
-        Assert.Equal((220, 90), (width, height));
+            await File.ReadAllBytesAsync(file, CurrentTest.Cancellation));
+        Assert.AreEqual((220, 90), (width, height));
         var corner = (5 * width + 5) * 4;
-        Assert.NotEqual(255, pixels[corner + 2]);
+        Assert.AreNotEqual(255, pixels[corner + 2]);
         var middle = (height / 2 * width + width / 2) * 4;
-        Assert.Equal((0, 0, 255, 255),
+        Assert.AreEqual((0, 0, 255, 255),
             (pixels[middle], pixels[middle + 1], pixels[middle + 2], pixels[middle + 3]));
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task An_open_menu_is_in_the_tree_takes_a_click_and_has_a_screenshot()
     {
         var file = Path.Combine(_dir, "menu.png");
@@ -382,21 +382,21 @@ public sealed partial class InspectorTests : IDisposable
             var tree = await Inspector.Run(shell, "tree", []);
             var shot = await Inspector.Run(shell, "screenshot", [file, "MenuFlyoutPresenter"]);
             await Inspector.Run(shell, "click", ["reload"]);
-            await clicked.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            await clicked.Task.WaitAsync(TimeSpan.FromSeconds(10), CurrentTest.Cancellation);
             return (tree, shot);
         });
 
-        var popup = Assert.Single(OpenWindow(tree, nameof(Page)).GetProperty("popups").EnumerateArray());
-        Assert.Equal("MenuFlyoutPresenter", popup.GetProperty("type").GetString());
+        var popup = Assert.ContainsSingle(OpenWindow(tree, nameof(Page)).GetProperty("popups").EnumerateArray());
+        Assert.AreEqual("MenuFlyoutPresenter", popup.GetProperty("type").GetString());
         Assert.Contains("\"automationId\": \"reload\"", popup.GetRawText(), StringComparison.Ordinal);
         Assert.EndsWith(file, shot, StringComparison.Ordinal);
         var (width, height, _) = await Decoded(
-            await File.ReadAllBytesAsync(file, TestContext.Current.CancellationToken));
-        Assert.True(width > 0 && height > 0);
+            await File.ReadAllBytesAsync(file, CurrentTest.Cancellation));
+        Assert.IsTrue(width > 0 && height > 0);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task An_open_tooltip_has_a_screenshot_of_what_it_shows()
     {
         var file = Path.Combine(_dir, "tooltip.png");
@@ -407,14 +407,14 @@ public sealed partial class InspectorTests : IDisposable
             var page = new Page();
             page.Children.Add(anchor);
             using var panel = Panel(page);
-            await ShellFixture.LaidOut(anchor).WaitAsync(TestContext.Current.CancellationToken);
+            await ShellFixture.LaidOut(anchor).WaitAsync(CurrentTest.Cancellation);
             var fill = new Border { Width = 40, Height = 20, Background = new SolidColorBrush(Colors.Red) };
             var tip = new ToolTip { Content = fill };
             ToolTipService.SetToolTip(anchor, tip);
             tip.IsOpen = true;
             try
             {
-                await ShellFixture.LaidOut(fill).WaitAsync(TestContext.Current.CancellationToken);
+                await ShellFixture.LaidOut(fill).WaitAsync(CurrentTest.Cancellation);
                 await Inspector.Run(shell, "screenshot", [file, nameof(ToolTip)]);
                 var scale = tip.XamlRoot.RasterizationScale;
                 return ((int)Math.Round(tip.ActualWidth * scale), (int)Math.Round(tip.ActualHeight * scale));
@@ -426,21 +426,21 @@ public sealed partial class InspectorTests : IDisposable
         });
 
         var (width, height, pixels) = await Decoded(
-            await File.ReadAllBytesAsync(file, TestContext.Current.CancellationToken));
-        Assert.Equal(size, (width, height));
+            await File.ReadAllBytesAsync(file, CurrentTest.Cancellation));
+        Assert.AreEqual(size, (width, height));
         var middle = (height / 2 * width + width / 2) * 4;
-        Assert.Equal((0, 0, 255, 255),
+        Assert.AreEqual((0, 0, 255, 255),
             (pixels[middle], pixels[middle + 1], pixels[middle + 2], pixels[middle + 3]));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_screenshot_goes_on_a_solid_color_so_text_for_a_dark_backdrop_can_be_read()
     {
         byte[] pixels = [0, 0, 0, 0, 128, 128, 128, 128, 255, 255, 255, 255];
 
         var flat = Inspector.Flattened(pixels, 32);
 
-        Assert.Equal([32, 32, 32, 255, 143, 143, 143, 255, 255, 255, 255, 255], flat);
+        Assert.AreSequenceEqual<byte>([32, 32, 32, 255, 143, 143, 143, 255, 255, 255, 255, 255], flat);
     }
 
     private static async Task<(int Width, int Height, byte[] Bgra)> Decoded(byte[] png)
@@ -458,8 +458,8 @@ public sealed partial class InspectorTests : IDisposable
         return ((int)decoder.PixelWidth, (int)decoder.PixelHeight, data.DetachPixelData());
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_window_that_is_not_open_is_named_as_missing()
     {
         var message = await ShellFixture.On(async shell =>
@@ -479,8 +479,8 @@ public sealed partial class InspectorTests : IDisposable
         Assert.Contains("No open window shows NoSuchView", message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_window_is_named_by_its_component_and_a_click_reaches_the_button_it_rendered()
     {
         var (tree, clicks) = await ShellFixture.On(async shell =>
@@ -498,8 +498,8 @@ public sealed partial class InspectorTests : IDisposable
 
         var window = OpenWindow(tree, nameof(Pressable));
         var button = Labeled(window.GetProperty("content"), "Go");
-        Assert.Equal("Button", button.GetProperty("type").GetString());
-        Assert.Equal(1, clicks);
+        Assert.AreEqual("Button", button.GetProperty("type").GetString());
+        Assert.AreEqual(1, clicks);
     }
 
     private static JsonElement Labeled(JsonElement node, string label)

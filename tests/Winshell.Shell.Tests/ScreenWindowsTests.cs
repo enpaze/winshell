@@ -2,9 +2,10 @@ using Windows.Foundation;
 
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed class ScreenWindowsTests
 {
-    [Fact]
+    [TestMethod]
     public async Task A_screen_has_a_window_from_when_it_appears_until_it_goes_or_another_monitor_takes_its_id()
     {
         await ShellFixture.On(shell =>
@@ -17,25 +18,26 @@ public sealed class ScreenWindowsTests
             try
             {
                 using var windows = new ScreenWindows("windows" + Guid.NewGuid().ToString("N"), Record(made));
-                var firstWindow = Assert.Single(made, window => window.Screen == first);
+                var firstWindow = Assert.ContainsSingle(window => window.Screen == first, made);
 
                 screens.Add(second);
-                var secondWindow = Assert.Single(made, window => window.Screen == second);
+                var secondWindow = Assert.ContainsSingle(window => window.Screen == second, made);
 
                 var resized = first with { Geometry = new Rect(0, 0, 2560, 1440), DevicePixelRatio = 1.5 };
                 screens[screens.IndexOf(first)] = resized;
                 screens.Remove(second);
-                Assert.True(secondWindow.Disposed);
-                Assert.False(firstWindow.Disposed);
-                Assert.Equal([firstWindow, secondWindow], made.Where(window => window.Screen.Id == first.Id || window.Screen.Id == second.Id));
+                Assert.IsTrue(secondWindow.Disposed);
+                Assert.IsFalse(firstWindow.Disposed);
+                Assert.AreSequenceEqual([firstWindow, secondWindow], made.Where(window => window.Screen.Id == first.Id || window.Screen.Id == second.Id));
 
                 var other = resized with { Model = "Other", SerialNumber = "3" };
                 screens[screens.IndexOf(resized)] = other;
-                Assert.True(firstWindow.Disposed);
-                Assert.Single(made, window => window.Screen == other);
+                Assert.IsTrue(firstWindow.Disposed);
+                Assert.ContainsSingle(window => window.Screen == other, made);
 
                 windows.Dispose();
-                Assert.All(made, window => Assert.True(window.Disposed));
+                foreach (var window in made)
+                    Assert.IsTrue(window.Disposed);
             }
             finally
             {
@@ -47,7 +49,7 @@ public sealed class ScreenWindowsTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_screen_gets_its_row_by_manufacturer_model_and_serial_and_a_changed_row_replaces_only_its_window()
     {
         await ShellFixture.On(async shell =>
@@ -65,26 +67,26 @@ public sealed class ScreenWindowsTests
             try
             {
                 using var windows = new ScreenWindows(name, Record(made));
-                var wideWindow = Assert.Single(made, window => window.Screen == wide);
-                var otherWideWindow = Assert.Single(made, window => window.Screen == otherWide);
-                var tallWindow = Assert.Single(made, window => window.Screen == tall);
-                Assert.Equal("left", wideWindow.Row?["edge"]);
-                Assert.Null(otherWideWindow.Row);
-                Assert.Equal("right", tallWindow.Row?["edge"]);
+                var wideWindow = Assert.ContainsSingle(window => window.Screen == wide, made);
+                var otherWideWindow = Assert.ContainsSingle(window => window.Screen == otherWide, made);
+                var tallWindow = Assert.ContainsSingle(window => window.Screen == tall, made);
+                Assert.AreEqual("left", wideWindow.Row?["edge"]);
+                Assert.IsNull(otherWideWindow.Row);
+                Assert.AreEqual("right", tallWindow.Row?["edge"]);
 
                 File.WriteAllText(path, Rows(name, "bottom"));
                 new Section(name).Dispose();
                 await Wait.UntilAsync(() =>
                 {
-                    Assert.True(shell.Screens.Contains(wide), "The platform refreshed the screens and dropped the made-up ones.");
+                    Assert.IsTrue(shell.Screens.Contains(wide), "The platform refreshed the screens and dropped the made-up ones.");
                     return made.Count(window => window.Screen == wide) == 2;
                 }, "the changed row to replace its screen's window");
-                Assert.True(wideWindow.Disposed);
-                Assert.Equal("bottom", made.Last(window => window.Screen == wide).Row?["edge"]);
-                Assert.Same(otherWideWindow, Assert.Single(made, window => window.Screen == otherWide));
-                Assert.Same(tallWindow, Assert.Single(made, window => window.Screen == tall));
-                Assert.False(otherWideWindow.Disposed);
-                Assert.False(tallWindow.Disposed);
+                Assert.IsTrue(wideWindow.Disposed);
+                Assert.AreEqual("bottom", made.Last(window => window.Screen == wide).Row?["edge"]);
+                Assert.AreSame(otherWideWindow, Assert.ContainsSingle(window => window.Screen == otherWide, made));
+                Assert.AreSame(tallWindow, Assert.ContainsSingle(window => window.Screen == tall, made));
+                Assert.IsFalse(otherWideWindow.Disposed);
+                Assert.IsFalse(tallWindow.Disposed);
             }
             finally
             {

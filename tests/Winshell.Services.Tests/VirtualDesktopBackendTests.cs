@@ -3,21 +3,22 @@ using Winshell.Windows;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class VirtualDesktopBackendTests
 {
-    [Fact]
+    [TestMethod]
     public void The_contract_names_this_build()
     {
         var build = WindowsVersion.Read().Build;
-        Assert.True(build > 0);
+        Assert.IsTrue(build > 0);
         var contract = VirtualDesktopBackend.Shared.Contract;
         if (contract.Supported)
-            Assert.Equal("", contract.Reason);
+            Assert.AreEqual("", contract.Reason);
         else
             Assert.Contains($"{build}", contract.Reason, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void This_machine_reads_its_desktops_when_the_table_is_known()
     {
         var read = VirtualDesktopBackend.Shared.TryRead(out var desktops, out var current, out var error);
@@ -27,16 +28,18 @@ public sealed class VirtualDesktopBackendTests
             return;
         }
 
-        Assert.NotEmpty(desktops);
-        Assert.Contains(desktops, desktop => desktop.Id == current);
-        Assert.All(desktops, desktop => Assert.NotEqual(Guid.Empty, desktop.Id));
+        Assert.IsNotEmpty(desktops);
+        Assert.Contains(desktop => desktop.Id == current, desktops);
+        foreach (var desktop in desktops)
+            Assert.AreNotEqual(Guid.Empty, desktop.Id);
         var foreground = WindowDesktop.IdOf(PInvoke.GetForegroundWindow());
         if (foreground.Length > 0)
-            Assert.True(Guid.TryParse(foreground, out _));
+            Assert.IsTrue(Guid.TryParse(foreground, out _));
 
         using var service = new VirtualDesktopsService(new ManualEventLoop(), new Log(), VirtualDesktopBackend.Shared);
-        Assert.True(service.Supported);
-        Assert.Equal(desktops.Count, service.Desktops.Count);
-        Assert.All(service.Desktops, row => Assert.False(string.IsNullOrWhiteSpace(row.Name)));
+        Assert.IsTrue(service.Supported);
+        Assert.AreEqual(desktops.Count, service.Desktops.Count);
+        foreach (var row in service.Desktops)
+            Assert.IsFalse(string.IsNullOrWhiteSpace(row.Name));
     }
 }

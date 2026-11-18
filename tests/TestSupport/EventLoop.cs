@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using Xunit.Sdk;
 
 namespace Winshell.TestSupport;
 
@@ -160,7 +159,7 @@ internal partial class EventQueue(TimeProvider time) : IEventLoop
     private static bool IsAssertion(Exception exception)
     {
         for (var current = exception; current is not null; current = current.InnerException)
-            if (current is XunitException)
+            if (current is UnitTestAssertException)
                 return true;
 
         return false;

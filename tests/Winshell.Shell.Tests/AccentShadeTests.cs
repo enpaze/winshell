@@ -5,24 +5,25 @@ using Windows.UI;
 
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed class AccentShadeTests
 {
-    [Fact]
+    [TestMethod]
     public void Shades_keep_the_accent_and_move_lightness_toward_white_and_black()
     {
-        Assert.True(AccentShades.TryFrom("#0078D4", out var shades));
-        Assert.Equal(0x00, shades.Accent.R);
-        Assert.Equal(0x78, shades.Accent.G);
-        Assert.Equal(0xD4, shades.Accent.B);
-        Assert.True(Lightness(shades.Light1) > Lightness(shades.Accent));
-        Assert.True(Lightness(shades.Light3) > Lightness(shades.Light1));
-        Assert.True(Lightness(shades.Dark1) < Lightness(shades.Accent));
-        Assert.True(Lightness(shades.Dark3) < Lightness(shades.Dark1));
-        Assert.Equal("#0078D4", AccentShades.Normalize("#0078d4"));
-        Assert.Equal("", AccentShades.Normalize("red"));
+        Assert.IsTrue(AccentShades.TryFrom("#0078D4", out var shades));
+        Assert.AreEqual(0x00, shades.Accent.R);
+        Assert.AreEqual(0x78, shades.Accent.G);
+        Assert.AreEqual(0xD4, shades.Accent.B);
+        Assert.IsTrue(Lightness(shades.Light1) > Lightness(shades.Accent));
+        Assert.IsTrue(Lightness(shades.Light3) > Lightness(shades.Light1));
+        Assert.IsTrue(Lightness(shades.Dark1) < Lightness(shades.Accent));
+        Assert.IsTrue(Lightness(shades.Dark3) < Lightness(shades.Dark1));
+        Assert.AreEqual("#0078D4", AccentShades.Normalize("#0078d4"));
+        Assert.AreEqual("", AccentShades.Normalize("red"));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_picked_accent_repaints_the_brush_a_control_already_holds_and_following_Windows_gives_it_back()
     {
         var (windows, picked, followed) = await ShellFixture.On(shell =>
@@ -37,9 +38,9 @@ public sealed class AccentShadeTests
             return (before, after, brush.Color);
         });
 
-        Assert.True(AccentShades.TryFrom("#D13438", out var shades));
+        Assert.IsTrue(AccentShades.TryFrom("#D13438", out var shades));
         Assert.Contains(picked, new[] { shades.Light2, shades.Dark1 });
-        Assert.Equal(windows, followed);
+        Assert.AreEqual(windows, followed);
     }
 
     private static double Lightness(Color color)

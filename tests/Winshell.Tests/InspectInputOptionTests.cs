@@ -1,5 +1,6 @@
 namespace Winshell.Tests;
 
+[TestClass]
 public class InspectInputOptionTests
 {
     private static Invocation Parse(params string[] args)
@@ -7,58 +8,58 @@ public class InspectInputOptionTests
         return CliParser.Parse(args);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_right_press_is_read_wherever_the_flag_is()
     {
-        Assert.True(Parse("inspect", "press", "--right", "Menu", "PanelView").IsSet(CliFlags.Right));
-        Assert.True(Parse("inspect", "press", "Menu", "PanelView", "--right").IsSet(CliFlags.Right));
-        Assert.Equal(["press", "Menu", "PanelView"],
+        Assert.IsTrue(Parse("inspect", "press", "--right", "Menu", "PanelView").IsSet(CliFlags.Right));
+        Assert.IsTrue(Parse("inspect", "press", "Menu", "PanelView", "--right").IsSet(CliFlags.Right));
+        Assert.AreSequenceEqual<string>(["press", "Menu", "PanelView"],
             Parse("inspect", "--right", "press", "Menu", "PanelView").Positional);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_negative_number_on_click_is_an_unknown_option()
     {
-        var error = Assert.Throws<ArgumentException>(() => Parse("inspect", "click", "-3"));
+        var error = Assert.ThrowsExactly<ArgumentException>(() => Parse("inspect", "click", "-3"));
 
-        Assert.Equal("Unknown option \"-3\".", error.Message);
+        Assert.AreEqual("Unknown option \"-3\".", error.Message);
     }
 
-    [Fact]
+    [TestMethod]
     public void Steps_up_are_a_negative_number_and_not_an_option()
     {
-        Assert.Equal(["scroll", "List", "-3", "PanelView"],
+        Assert.AreSequenceEqual<string>(["scroll", "List", "-3", "PanelView"],
             Parse("inspect", "scroll", "List", "-3", "PanelView").Positional);
     }
 
-    [Theory]
-    [InlineData("0")]
-    [InlineData("down")]
-    [InlineData("101")]
-    [InlineData("-101")]
+    [TestMethod]
+    [DataRow("0")]
+    [DataRow("down")]
+    [DataRow("101")]
+    [DataRow("-101")]
     public void Steps_are_a_whole_number_from_1_to_100_either_way(string steps)
     {
-        var e = Assert.Throws<ArgumentException>(() => Parse("inspect", "scroll", "List", steps));
+        var e = Assert.ThrowsExactly<ArgumentException>(() => Parse("inspect", "scroll", "List", steps));
 
-        Assert.Equal("winshell inspect scroll needs a number of steps from 1 to 100, or -1 to -100 to scroll up.",
+        Assert.AreEqual("winshell inspect scroll needs a number of steps from 1 to 100, or -1 to -100 to scroll up.",
             e.Message);
     }
 
-    [Theory]
-    [InlineData("Win+D",
+    [TestMethod]
+    [DataRow("Win+D",
         "winshell inspect key does not press Win+D: Windows itself takes the Windows key, not the shell.")]
-    [InlineData("Tab, Win",
+    [DataRow("Tab, Win",
         "winshell inspect key does not press Win: Windows itself takes the Windows key, not the shell.")]
     public void The_windows_key_is_refused(string keys, string message)
     {
-        var e = Assert.Throws<ArgumentException>(() => Parse("inspect", "key", keys));
+        var e = Assert.ThrowsExactly<ArgumentException>(() => Parse("inspect", "key", keys));
 
-        Assert.Equal(message, e.Message);
+        Assert.AreEqual(message, e.Message);
     }
 
-    [Fact]
+    [TestMethod]
     public void Keys_it_can_t_read_are_refused()
     {
-        Assert.Throws<ArgumentException>(() => Parse("inspect", "key", "Ctrl+Nope"));
+        Assert.ThrowsExactly<ArgumentException>(() => Parse("inspect", "key", "Ctrl+Nope"));
     }
 }

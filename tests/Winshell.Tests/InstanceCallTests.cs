@@ -3,6 +3,7 @@ using System.Text;
 
 namespace Winshell.Tests;
 
+[TestClass]
 public class InstanceCallTests
 {
     private readonly string _pipe = "winshell-test-" + Guid.NewGuid().ToString("N");
@@ -14,7 +15,7 @@ public class InstanceCallTests
     private static readonly InstanceCall.Answer ClosedWithoutAnswering =
         new(null, "Instance abc123 closed the control pipe without answering.");
 
-    [Fact]
+    [TestMethod]
     public async Task A_pipe_closed_with_nothing_written_back_says_it_closed_without_answering()
     {
         await using var shell = IpcServer.OpenFirst(_pipe);
@@ -22,11 +23,11 @@ public class InstanceCallTests
 
         var answer = await Ask();
 
-        Assert.Equal(ClosedWithoutAnswering, answer);
+        Assert.AreEqual(ClosedWithoutAnswering, answer);
         await closed;
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_pipe_closed_while_the_call_is_reading_says_it_closed_without_answering()
     {
         await using var shell = IpcServer.OpenFirst(_pipe);
@@ -34,11 +35,11 @@ public class InstanceCallTests
 
         var answer = await Ask();
 
-        Assert.Equal(ClosedWithoutAnswering, answer);
+        Assert.AreEqual(ClosedWithoutAnswering, answer);
         await closed;
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_call_this_winshell_rejects_names_the_instance_and_the_reason()
     {
         await using var shell = IpcServer.OpenFirst(_pipe);
@@ -50,9 +51,9 @@ public class InstanceCallTests
         });
 
         var answer =
-            await InstanceCall.AskAsync(Instance, IpcRequest.ForShow(false), TestContext.Current.CancellationToken);
+            await InstanceCall.AskAsync(Instance, IpcRequest.ForShow(false), CurrentTest.Cancellation);
 
-        Assert.Equal(
+        Assert.AreEqual(
             new InstanceCall.Answer(null,
                 $"Rejected instance abc123: {IpcProtocol.ReleaseRefusal(other, ProductVersion.Current.Text)}"),
             answer);
@@ -61,7 +62,7 @@ public class InstanceCallTests
 
     private Task<InstanceCall.Answer> Ask()
     {
-        return InstanceCall.AskAsync(Instance, IpcRequest.ForShow(false), TestContext.Current.CancellationToken);
+        return InstanceCall.AskAsync(Instance, IpcRequest.ForShow(false), CurrentTest.Cancellation);
     }
 
     private static async Task CloseWithNothingWrittenBack(NamedPipeServerStream shell)
@@ -72,7 +73,7 @@ public class InstanceCallTests
 
     private static async Task CloseWhileTheCallIsReading(NamedPipeServerStream shell)
     {
-        var cancel = TestContext.Current.CancellationToken;
+        var cancel = CurrentTest.Cancellation;
         await TakeRequest(shell);
         await using (var writer = new StreamWriter(shell, new UTF8Encoding(false), leaveOpen: true) { AutoFlush = true })
         {
@@ -85,7 +86,7 @@ public class InstanceCallTests
 
     private static async Task TakeRequest(NamedPipeServerStream shell)
     {
-        var cancel = TestContext.Current.CancellationToken;
+        var cancel = CurrentTest.Cancellation;
         await shell.WaitForConnectionAsync(cancel);
         using var reader = new StreamReader(shell, Encoding.UTF8, detectEncodingFromByteOrderMarks: false,
             leaveOpen: true);
@@ -94,9 +95,9 @@ public class InstanceCallTests
 
     private static async Task ReadThen(NamedPipeServerStream shell, Action next)
     {
-        await shell.WaitForConnectionAsync(TestContext.Current.CancellationToken);
+        await shell.WaitForConnectionAsync(CurrentTest.Cancellation);
         var reader = new StreamReader(shell, Encoding.UTF8, leaveOpen: true);
-        await reader.ReadLineAsync(TestContext.Current.CancellationToken);
+        await reader.ReadLineAsync(CurrentTest.Cancellation);
         next();
     }
 }

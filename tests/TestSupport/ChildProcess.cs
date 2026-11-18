@@ -32,7 +32,7 @@ internal sealed record ChildProcess(int Code, string Output, string Error)
             Assert.Fail($"{what} did not exit.\nOutput:\n{output}\nError:\n{error}");
         }
 
-        Assert.True(readOutput.Join(patience) && readError.Join(patience), $"{what} left its output open");
+        Assert.IsTrue(readOutput.Join(patience) && readError.Join(patience), $"{what} left its output open");
         return new ChildProcess(process.ExitCode, output, error) { Command = what };
     }
 

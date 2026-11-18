@@ -2,9 +2,10 @@ using System.Xml.Linq;
 
 namespace Winshell.Package.Tests;
 
+[TestClass]
 public class PackageDependencyTests
 {
-    [Fact]
+    [TestMethod]
     public void Reactor_is_pinned_to_one_exact_version()
     {
         var version = Pinned("Microsoft.UI.Reactor");
@@ -15,7 +16,7 @@ public class PackageDependencyTests
         Assert.DoesNotContain(',', version);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_Windows_App_SDK_packages_share_one_pin()
     {
         var versions = new[]
@@ -25,10 +26,10 @@ public class PackageDependencyTests
             Pinned("Microsoft.WindowsAppSDK.Runtime")
         };
 
-        Assert.Single(versions.Distinct());
+        Assert.ContainsSingle(versions.Distinct());
     }
 
-    [Fact]
+    [TestMethod]
     public void The_package_declares_the_libraries_public_package_dependencies()
     {
         var packageFile = Path.Combine(Repo.Root, "src", "Winshell.Package", "Winshell.Package.csproj");
@@ -40,7 +41,7 @@ public class PackageDependencyTests
             .SelectMany(path => PublicPackages(XDocument.Load(path)))
             .Distinct(StringComparer.OrdinalIgnoreCase);
 
-        Assert.Equal(needed.Order(StringComparer.OrdinalIgnoreCase), declared.Order(StringComparer.OrdinalIgnoreCase));
+        Assert.AreSequenceEqual(needed.Order(StringComparer.OrdinalIgnoreCase), declared.Order(StringComparer.OrdinalIgnoreCase));
     }
 
     private static string Pinned(string id)

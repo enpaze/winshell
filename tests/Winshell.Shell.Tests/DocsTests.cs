@@ -2,28 +2,29 @@ using Winshell.Docs;
 
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed class DocsTests
 {
     private static readonly string Repo = TestSupport.Repo.Root;
 
-    [Fact]
+    [TestMethod]
     public void Every_csharp_example_is_compiled()
     {
         var files = Directory.GetFiles(Path.Combine(Repo, "templates", "winshell"), "*.cs")
             .Append(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs"));
         var source = string.Join('\n', files.Select(File.ReadAllText)).Replace("\r\n", "\n", StringComparison.Ordinal);
         var examples = Examples().ToList();
-        Assert.NotEmpty(examples);
+        Assert.IsNotEmpty(examples);
         var problems = new List<string>();
         foreach (var (file, line, code) in examples)
             if (code.Length == 0)
                 problems.Add($"{Path.GetRelativePath(Repo, file)}:{line}: empty csharp fence");
             else if (!source.Contains(code, StringComparison.Ordinal))
                 problems.Add($"{Path.GetRelativePath(Repo, file)}:{line}: csharp fence is not in a file the solution builds");
-        Assert.True(problems.Count == 0, "C# examples that are not compiled:\n" + string.Join("\n", problems));
+        Assert.IsTrue(problems.Count == 0, "C# examples that are not compiled:\n" + string.Join("\n", problems));
     }
 
-    [Fact]
+    [TestMethod]
     public void The_starter_and_the_guide_call_no_Watch()
     {
         var files = SourceFiles(Path.Combine(Repo, "templates", "winshell"))
@@ -33,7 +34,7 @@ public sealed class DocsTests
             .Where(file => File.ReadAllText(file).Contains(".Watch(", StringComparison.Ordinal))
             .Select(file => Path.GetRelativePath(Repo, file))
             .ToList();
-        Assert.True(watched.Count == 0, "Watch calls:\n" + string.Join("\n", watched));
+        Assert.IsTrue(watched.Count == 0, "Watch calls:\n" + string.Join("\n", watched));
     }
 
     private static IEnumerable<string> SourceFiles(string root)
@@ -45,12 +46,12 @@ public sealed class DocsTests
                 && !file.Contains(obj, StringComparison.OrdinalIgnoreCase));
     }
 
-    [Fact]
+    [TestMethod]
     public void The_reference_is_what_the_generator_writes()
     {
         var folder = Path.Combine(Repo, "docs", "reference");
         var stale = ReferencePages.Stale(folder, ReferencePages.Generate(folder));
-        Assert.True(stale.Count == 0,
+        Assert.IsTrue(stale.Count == 0,
             $"Out of date in docs/reference: {string.Join(", ", stale)}. Run: dotnet run scripts/generate-reference.cs");
     }
 

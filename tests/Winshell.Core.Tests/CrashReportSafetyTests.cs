@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Winshell.Core.Tests;
 
+[TestClass]
 public sealed class CrashReportSafetyTests : IDisposable
 {
     private const int Keep = 50;
@@ -73,7 +74,7 @@ public sealed class CrashReportSafetyTests : IDisposable
         throw new InvalidOperationException("second task");
     }
 
-    [Fact]
+    [TestMethod]
     public void Secrets_in_the_exception_and_its_inner_exceptions_are_taken_out()
     {
         var inner = Catch(() =>
@@ -101,19 +102,19 @@ public sealed class CrashReportSafetyTests : IDisposable
         Assert.Contains("CrashReportSafetyTests.cs:line ", text, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("Cookie: a=b; c=d", "Cookie: [redacted]")]
-    [InlineData("Set-Cookie: session=abc; Path=/; Secure", "Set-Cookie: [redacted]")]
-    [InlineData("password = correct horse battery", "password = [redacted]")]
-    [InlineData("passphrase: correct horse battery", "passphrase: [redacted]")]
-    [InlineData("Proxy-Authorization: Basic abc def", "Proxy-Authorization: [redacted]")]
-    [InlineData("password = correct horse\nnext line", "password = [redacted]\nnext line")]
+    [TestMethod]
+    [DataRow("Cookie: a=b; c=d", "Cookie: [redacted]")]
+    [DataRow("Set-Cookie: session=abc; Path=/; Secure", "Set-Cookie: [redacted]")]
+    [DataRow("password = correct horse battery", "password = [redacted]")]
+    [DataRow("passphrase: correct horse battery", "passphrase: [redacted]")]
+    [DataRow("Proxy-Authorization: Basic abc def", "Proxy-Authorization: [redacted]")]
+    [DataRow("password = correct horse\nnext line", "password = [redacted]\nnext line")]
     public void A_value_with_spaces_is_masked_to_the_end_of_its_line(string line, string expected)
     {
-        Assert.Equal(expected, CrashRedaction.Redact(line));
+        Assert.AreEqual(expected, CrashRedaction.Redact(line));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_quoted_password_keeps_what_follows_it()
     {
         var redacted = CrashRedaction.Redact("password=\"hunter2\" and more");
@@ -122,53 +123,53 @@ public sealed class CrashReportSafetyTests : IDisposable
         Assert.Contains("and more", redacted, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Ordinary_text_is_left_alone()
     {
         const string text = "at Winshell.Runtime.Core.SignalSlot.Emit(Object[] args) in C:\\src\\Signals.cs:line 78\n" +
                             "Passed: 5, Author: Dante, shell id 5f4dcc3b5aa765d61d8327deb882cf99, crash-20261029-140312-1234567Z-4321-panelwindow-in-taskbar-xaml.txt";
 
-        Assert.Equal(text, CrashRedaction.Redact(text));
+        Assert.AreEqual(text, CrashRedaction.Redact(text));
     }
 
-    [Fact]
+    [TestMethod]
     public void Two_different_task_failures_are_two_reports()
     {
         var crashes = new CrashReports(Folder());
         var first = new AggregateException(Catch(FirstTask));
         var second = new AggregateException(Catch(SecondTask));
-        Assert.Null(first.StackTrace);
+        Assert.IsNull(first.StackTrace);
 
-        Assert.NotNull(crashes.WriteOnce("background task", first));
-        Assert.NotNull(crashes.WriteOnce("background task", second));
-        Assert.Null(crashes.WriteOnce("background task", new AggregateException(Catch(FirstTask))));
-        Assert.Equal(2, Directory.GetFiles(Folder()).Length);
+        Assert.IsNotNull(crashes.WriteOnce("background task", first));
+        Assert.IsNotNull(crashes.WriteOnce("background task", second));
+        Assert.IsNull(crashes.WriteOnce("background task", new AggregateException(Catch(FirstTask))));
+        Assert.AreEqual(2, Directory.GetFiles(Folder()).Length);
     }
 
-    [Fact]
+    [TestMethod]
     public void One_helper_failing_for_two_callers_is_two_reports()
     {
         var crashes = new CrashReports(Folder());
 
-        Assert.NotNull(crashes.WriteOnce("event loop", Catch(FirstCaller)));
-        Assert.NotNull(crashes.WriteOnce("event loop", Catch(SecondCaller)));
-        Assert.Null(crashes.WriteOnce("event loop", Catch(FirstCaller)));
+        Assert.IsNotNull(crashes.WriteOnce("event loop", Catch(FirstCaller)));
+        Assert.IsNotNull(crashes.WriteOnce("event loop", Catch(SecondCaller)));
+        Assert.IsNull(crashes.WriteOnce("event loop", Catch(FirstCaller)));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_report_that_could_not_be_written_is_written_the_next_time()
     {
         var folder = Folder();
         File.WriteAllText(folder, "a file where the folder should be");
         var crashes = new CrashReports(folder);
 
-        Assert.Null(crashes.WriteOnce("event loop", Catch(FirstCaller)));
+        Assert.IsNull(crashes.WriteOnce("event loop", Catch(FirstCaller)));
         File.Delete(folder);
-        Assert.NotNull(crashes.WriteOnce("event loop", Catch(FirstCaller)));
-        Assert.Null(crashes.WriteOnce("event loop", Catch(FirstCaller)));
+        Assert.IsNotNull(crashes.WriteOnce("event loop", Catch(FirstCaller)));
+        Assert.IsNull(crashes.WriteOnce("event loop", Catch(FirstCaller)));
     }
 
-    [Fact]
+    [TestMethod]
     public void Pruning_deletes_only_winshell_reports()
     {
         var folder = Folder();
@@ -187,10 +188,10 @@ public sealed class CrashReportSafetyTests : IDisposable
             .Select(i => crashes.Write($"report {i}", new InvalidOperationException("x"))!.Path).ToList();
 
         var left = Directory.GetFiles(folder).Select(Path.GetFileName).Order(StringComparer.Ordinal).ToList();
-        Assert.Equal(others.Concat(written.Skip(1).Select(Path.GetFileName)).Order(StringComparer.Ordinal), left);
+        Assert.AreSequenceEqual(others.Concat(written.Skip(1).Select(Path.GetFileName)).Order(StringComparer.Ordinal), left);
     }
 
-    [Fact]
+    [TestMethod]
     public void Nothing_is_deleted_through_a_junction()
     {
         var target = Folder("elsewhere");
@@ -204,19 +205,20 @@ public sealed class CrashReportSafetyTests : IDisposable
 
         var through = new CrashReports(link);
         for (var i = 0; i < Keep; i++)
-            Assert.NotNull(through.Write("through the junction", new InvalidOperationException("x")));
+            Assert.IsNotNull(through.Write("through the junction", new InvalidOperationException("x")));
 
-        Assert.All(moved, path => Assert.True(File.Exists(path)));
-        Assert.True(File.Exists(Path.Combine(target, "0000-user-notes.txt")));
+        foreach (var path in moved)
+            Assert.IsTrue(File.Exists(path));
+        Assert.IsTrue(File.Exists(Path.Combine(target, "0000-user-notes.txt")));
     }
 
     private static void Junction(string link, string target)
     {
         ChildProcess.Run("cmd.exe", "/c", "mklink", "/J", link, target).AssertExitCode(0);
-        Assert.NotNull(new DirectoryInfo(link).LinkTarget);
+        Assert.IsNotNull(new DirectoryInfo(link).LinkTarget);
     }
 
-    [Fact]
+    [TestMethod]
     public void Reports_written_in_the_same_instant_are_kept_newest_first()
     {
         var instant = new DateTimeOffset(2031, 1, 1, 12, 0, 0, TimeSpan.Zero);
@@ -225,11 +227,11 @@ public sealed class CrashReportSafetyTests : IDisposable
         var paths = Enumerable.Range(0, Keep + 20)
             .Select(_ => crashes.Write("same instant", new InvalidOperationException("x"))!.Path).ToList();
 
-        Assert.Equal(paths.TakeLast(Keep).Order(StringComparer.OrdinalIgnoreCase),
+        Assert.AreSequenceEqual(paths.TakeLast(Keep).Order(StringComparer.OrdinalIgnoreCase),
             Directory.GetFiles(Folder()).Order(StringComparer.OrdinalIgnoreCase));
     }
 
-    [Fact]
+    [TestMethod]
     public void Retention_follows_the_utc_instant_across_a_clock_change()
     {
         var time = new FakeTimeProvider(new DateTimeOffset(2031, 10, 26, 2, 30, 0, TimeSpan.FromHours(2))
@@ -243,7 +245,7 @@ public sealed class CrashReportSafetyTests : IDisposable
         time.SetLocalTimeZone(ZoneAt(1));
         var later = crashes.Write("after", new InvalidOperationException("x"))!.Path;
 
-        Assert.Equal(before.Skip(1).Append(later).Order(StringComparer.OrdinalIgnoreCase),
+        Assert.AreSequenceEqual(before.Skip(1).Append(later).Order(StringComparer.OrdinalIgnoreCase),
             Directory.GetFiles(Folder()).Order(StringComparer.OrdinalIgnoreCase));
         Assert.Contains("Time: 2031-10-26 02:10:00.000 +01:00", File.ReadAllText(later), StringComparison.Ordinal);
     }
@@ -253,7 +255,7 @@ public sealed class CrashReportSafetyTests : IDisposable
         return TimeZoneInfo.CreateCustomTimeZone($"UTC+{hours}", TimeSpan.FromHours(hours), null, null);
     }
 
-    [Fact]
+    [TestMethod]
     public void Two_writers_sharing_the_folder_never_overwrite_each_other()
     {
         var instant = new DateTimeOffset(2032, 1, 1, 0, 0, 0, TimeSpan.Zero);
@@ -265,26 +267,26 @@ public sealed class CrashReportSafetyTests : IDisposable
 
         var paths = writers.AsParallel().WithDegreeOfParallelism(writers.Count).SelectMany((writer, w) =>
         {
-            start.SignalAndWait();
+            start.SignalAndWait(CurrentTest.Cancellation);
             return Enumerable.Range(0, each)
                 .Select(i => writer.Write($"writer {w}", new InvalidOperationException($"{w}/{i}"))!.Path).ToList();
         }).ToList();
 
-        Assert.Equal(total, paths.Distinct(StringComparer.OrdinalIgnoreCase).Count());
-        Assert.Equal(total, Directory.GetFiles(Folder()).Length);
+        Assert.AreEqual(total, paths.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.AreEqual(total, Directory.GetFiles(Folder()).Length);
         var messages = Directory.GetFiles(Folder()).Select(File.ReadAllText).Select(t =>
             t[t.IndexOf("InvalidOperationException: ", StringComparison.Ordinal)..].Split('\n')[0].Trim()).ToList();
-        Assert.Equal(total, messages.Distinct().Count());
+        Assert.AreEqual(total, messages.Distinct().Count());
 
         var keeping = new CrashReports(Folder());
         var newest = "";
         for (var i = total; i <= Keep; i++)
             newest = keeping.Write("after", new InvalidOperationException("x"))!.Path;
-        Assert.Equal(Keep, Directory.GetFiles(Folder()).Length);
-        Assert.True(File.Exists(newest));
+        Assert.AreEqual(Keep, Directory.GetFiles(Folder()).Length);
+        Assert.IsTrue(File.Exists(newest));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_reader_of_the_folder_only_ever_finds_whole_reports()
     {
         var folder = Folder();
@@ -317,10 +319,11 @@ public sealed class CrashReportSafetyTests : IDisposable
         Volatile.Write(ref writing, false);
         reader.Join();
 
-        Assert.True(failures.IsEmpty, string.Join(Environment.NewLine, failures.Distinct()));
-        Assert.Equal(paths.Order(StringComparer.OrdinalIgnoreCase),
+        Assert.IsTrue(failures.IsEmpty, string.Join(Environment.NewLine, failures.Distinct()));
+        Assert.AreSequenceEqual(paths.Order(StringComparer.OrdinalIgnoreCase),
             Directory.GetFiles(folder).Order(StringComparer.OrdinalIgnoreCase));
         foreach (var (file, seen) in lengths)
-            Assert.All(seen, length => Assert.Equal(File.ReadAllText(file).Length, length));
+            foreach (var length in seen)
+                Assert.AreEqual(File.ReadAllText(file).Length, length);
     }
 }

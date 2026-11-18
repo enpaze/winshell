@@ -2,6 +2,7 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
+[TestClass]
 public class PanelPlacerDecisionTests
 {
     private static readonly PanelMonitor PrimaryMonitor = new("primary", new RECT(0, 0, 1920, 1080),
@@ -134,12 +135,12 @@ public class PanelPlacerDecisionTests
         return desktop.Moved!.Value;
     }
 
-    [Theory]
-    [InlineData(Edges.Top | Edges.Left | Edges.Right, 2560, 1080, 5120, 1128)]
-    [InlineData(Edges.Bottom | Edges.Left | Edges.Right, 2560, 2472, 5120, 2520)]
-    [InlineData(Edges.Left | Edges.Top | Edges.Bottom, 2560, 1080, 2608, 2520)]
-    [InlineData(Edges.Right | Edges.Top | Edges.Bottom, 5072, 1080, 5120, 2520)]
-    [InlineData(Edges.Bottom, 2560, 2472, 5120, 2520)]
+    [TestMethod]
+    [DataRow(Edges.Top | Edges.Left | Edges.Right, 2560, 1080, 5120, 1128)]
+    [DataRow(Edges.Bottom | Edges.Left | Edges.Right, 2560, 2472, 5120, 2520)]
+    [DataRow(Edges.Left | Edges.Top | Edges.Bottom, 2560, 1080, 2608, 2520)]
+    [DataRow(Edges.Right | Edges.Top | Edges.Bottom, 5072, 1080, 5120, 2520)]
+    [DataRow(Edges.Bottom, 2560, 2472, 5120, 2520)]
     public void A_panel_along_one_edge_asks_for_a_strip_of_that_edge_as_deep_as_its_size(Edges anchors, int left,
         int top, int right, int bottom)
     {
@@ -148,16 +149,16 @@ public class PanelPlacerDecisionTests
 
         placer.Set(Panel(anchors, Second.Id));
 
-        Assert.Equal(1, desktop.Registers);
-        Assert.Equal(new RECT(left, top, right, bottom), desktop.Asked);
+        Assert.AreEqual(1, desktop.Registers);
+        Assert.AreEqual(new RECT(left, top, right, bottom), desktop.Asked);
         placer.Release();
     }
 
-    [Theory]
-    [InlineData(Edges.None)]
-    [InlineData(Edges.Top | Edges.Left)]
-    [InlineData(Edges.Left | Edges.Right)]
-    [InlineData(Edges.Top | Edges.Bottom | Edges.Left | Edges.Right)]
+    [TestMethod]
+    [DataRow(Edges.None)]
+    [DataRow(Edges.Top | Edges.Left)]
+    [DataRow(Edges.Left | Edges.Right)]
+    [DataRow(Edges.Top | Edges.Bottom | Edges.Left | Edges.Right)]
     public void A_panel_in_a_corner_or_across_the_screen_reserves_no_edge(Edges anchors)
     {
         var desktop = new Desktop();
@@ -165,19 +166,19 @@ public class PanelPlacerDecisionTests
 
         placer.Set(Panel(anchors));
 
-        Assert.Equal(0, desktop.Registers);
-        Assert.Null(desktop.Asked);
+        Assert.AreEqual(0, desktop.Registers);
+        Assert.IsNull(desktop.Asked);
     }
 
-    [Theory]
-    [InlineData(null, Edges.Top, 0, 48, 1920, 96)]
-    [InlineData(null, Edges.Bottom, 0, 984, 1920, 1032)]
-    [InlineData(null, Edges.Left, 0, 48, 48, 1080)]
-    [InlineData(null, Edges.Right, 1872, 0, 1920, 1032)]
-    [InlineData("second", Edges.Top, 2608, 1080, 5120, 1128)]
-    [InlineData("second", Edges.Bottom, 2560, 2472, 5072, 2520)]
-    [InlineData("second", Edges.Left, 2560, 1080, 2608, 2472)]
-    [InlineData("second", Edges.Right, 5072, 1128, 5120, 2520)]
+    [TestMethod]
+    [DataRow(null, Edges.Top, 0, 48, 1920, 96)]
+    [DataRow(null, Edges.Bottom, 0, 984, 1920, 1032)]
+    [DataRow(null, Edges.Left, 0, 48, 48, 1080)]
+    [DataRow(null, Edges.Right, 1872, 0, 1920, 1032)]
+    [DataRow("second", Edges.Top, 2608, 1080, 5120, 1128)]
+    [DataRow("second", Edges.Bottom, 2560, 2472, 5072, 2520)]
+    [DataRow("second", Edges.Left, 2560, 1080, 2608, 2472)]
+    [DataRow("second", Edges.Right, 5072, 1128, 5120, 2520)]
     public void A_bar_lays_out_in_the_strip_Explorer_grants(string? screen, Edges along, int left, int top, int right,
         int bottom)
     {
@@ -189,11 +190,11 @@ public class PanelPlacerDecisionTests
         placer.Set(new PanelPlace(screen is null ? null : Screen(screen), along | across, 0, 0, 0, 0, 48, 48, false,
             48, true));
 
-        Assert.Equal(grant, desktop.Moved);
+        Assert.AreEqual(grant, desktop.Moved);
         placer.Release();
     }
 
-    [Fact]
+    [TestMethod]
     public void A_panel_moves_at_the_scale_of_the_monitor_it_is_on()
     {
         var desktop = new Desktop();
@@ -201,11 +202,11 @@ public class PanelPlacerDecisionTests
 
         placer.Set(Panel(Edges.Top | Edges.Left, Scaled.Id));
 
-        Assert.Equal(2, desktop.Scale);
-        Assert.Equal(new RECT(0, 80, 640, 176), desktop.Moved);
+        Assert.AreEqual(2, desktop.Scale);
+        Assert.AreEqual(new RECT(0, 80, 640, 176), desktop.Moved);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_panel_that_covers_its_screen_reserves_nothing_and_fills_the_monitor()
     {
         var desktop = new Desktop();
@@ -213,28 +214,28 @@ public class PanelPlacerDecisionTests
 
         placer.Set(Panel(Edges.Left | Edges.Top | Edges.Right | Edges.Bottom, covers: true));
 
-        Assert.Null(desktop.Asked);
-        Assert.Equal(0, desktop.Registers);
-        Assert.Equal(PrimaryMonitor.Bounds, desktop.Moved);
+        Assert.IsNull(desktop.Asked);
+        Assert.AreEqual(0, desktop.Registers);
+        Assert.AreEqual(PrimaryMonitor.Bounds, desktop.Moved);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_corner_panel_uses_the_work_area_and_a_hidden_one_reserves_nothing()
     {
         var desktop = new Desktop();
         var placer = Shown(desktop);
 
         placer.Set(Panel(Edges.Top | Edges.Left));
-        Assert.Equal(0, desktop.Registers);
-        Assert.Equal(PrimaryMonitor.Area.top, desktop.Moved!.Value.top);
+        Assert.AreEqual(0, desktop.Registers);
+        Assert.AreEqual(PrimaryMonitor.Area.top, desktop.Moved!.Value.top);
 
         placer.Hide();
         placer.Set(Panel(Edges.Top | Edges.Left | Edges.Right));
-        Assert.Equal(0, desktop.Registers);
-        Assert.Equal(PrimaryMonitor.Area.top, desktop.Moved.Value.top);
+        Assert.AreEqual(0, desktop.Registers);
+        Assert.AreEqual(PrimaryMonitor.Area.top, desktop.Moved.Value.top);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_panel_steps_behind_a_fullscreen_app_and_comes_back_when_it_leaves()
     {
         var desktop = new Desktop();
@@ -242,21 +243,21 @@ public class PanelPlacerDecisionTests
         var panel = Panel(Edges.Top | Edges.Left);
 
         placer.Set(panel);
-        Assert.True(desktop.Topmost);
+        Assert.IsTrue(desktop.Topmost);
 
         desktop.Fullscreen = true;
         placer.Set(panel);
-        Assert.False(desktop.Topmost);
+        Assert.IsFalse(desktop.Topmost);
 
         desktop.Fullscreen = false;
         placer.Set(panel);
-        Assert.True(desktop.Topmost);
+        Assert.IsTrue(desktop.Topmost);
 
         placer.Set(Panel(Edges.Top | Edges.Left, above: false));
-        Assert.False(desktop.Topmost);
+        Assert.IsFalse(desktop.Topmost);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_placement_that_arrives_after_the_panel_is_gone_reserves_no_edge()
     {
         var desktop = new Desktop();
@@ -266,92 +267,92 @@ public class PanelPlacerDecisionTests
         placer.Set(panel);
         placer.OnDpiChanged(default, false);
         placer.Release();
-        Assert.Equal(1, desktop.Removes);
-        Assert.Equal(1, desktop.Reserves);
+        Assert.AreEqual(1, desktop.Removes);
+        Assert.AreEqual(1, desktop.Reserves);
 
         desktop.Posted.Single()();
 
-        Assert.Equal(1, desktop.Registers);
-        Assert.Equal(1, desktop.Reserves);
-        Assert.Equal(1, desktop.Moves);
+        Assert.AreEqual(1, desktop.Registers);
+        Assert.AreEqual(1, desktop.Reserves);
+        Assert.AreEqual(1, desktop.Moves);
     }
 
-    [Fact]
+    [TestMethod]
     public void Explorer_restarting_drops_the_edge_and_places_the_panel_again()
     {
         var desktop = new Desktop();
         var panel = Panel(Edges.Bottom | Edges.Left | Edges.Right);
         var placer = Shown(desktop);
         placer.Set(panel);
-        Assert.Equal(1, desktop.Registers);
+        Assert.AreEqual(1, desktop.Registers);
 
         placer.OnMessage(new WindowMessage(TaskbarWindows.Created, 0, 0));
 
-        Assert.Equal(1, desktop.Removes);
-        Assert.Equal(1, desktop.Reserves);
+        Assert.AreEqual(1, desktop.Removes);
+        Assert.AreEqual(1, desktop.Reserves);
         desktop.Posted.Single()();
-        Assert.Equal(2, desktop.Registers);
-        Assert.Equal(2, desktop.Reserves);
+        Assert.AreEqual(2, desktop.Registers);
+        Assert.AreEqual(2, desktop.Reserves);
         placer.Release();
     }
 
-    [Fact]
+    [TestMethod]
     public void A_crash_gives_back_every_edge_the_shell_holds()
     {
         var desktop = new Desktop();
         var placer = Shown(desktop);
         placer.Set(Panel(Edges.Top | Edges.Left | Edges.Right));
-        Assert.Equal(1, desktop.Registers);
+        Assert.AreEqual(1, desktop.Registers);
 
         PanelPlacer.ReleaseAll();
 
-        Assert.Equal(1, desktop.Removes);
+        Assert.AreEqual(1, desktop.Removes);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_top_bar_spans_its_area_at_the_monitor_scale()
     {
         var rect = PlacedIn(Wide, WideWork, 1.5, Anchored(Edges.Top | Edges.Left | Edges.Right, height: 32));
-        Assert.Equal(new RECT(1920, 0, 4480, 48), rect);
+        Assert.AreEqual(new RECT(1920, 0, 4480, 48), rect);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_bottom_bar_follows_the_work_area_when_the_taskbar_moves()
     {
         var bar = Anchored(Edges.Bottom | Edges.Left | Edges.Right, height: 40);
-        Assert.Equal(new RECT(1920, 1332, 4480, 1392), PlacedIn(Wide, WideWork, 1.5, bar));
+        Assert.AreEqual(new RECT(1920, 1332, 4480, 1392), PlacedIn(Wide, WideWork, 1.5, bar));
 
-        Assert.Equal(new RECT(1920, 1380, 4480, 1440), PlacedIn(Wide, Wide, 1.5, bar));
+        Assert.AreEqual(new RECT(1920, 1380, 4480, 1440), PlacedIn(Wide, Wide, 1.5, bar));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_corner_panel_keeps_its_margins_in_logical_pixels()
     {
         var rect = PlacedIn(Wide, WideWork, 1.5, Anchored(Edges.Bottom | Edges.Right, 200, 100, right: 8, bottom: 8));
-        Assert.Equal(new RECT(4480 - 12 - 300, 1392 - 12 - 150, 4480 - 12, 1392 - 12), rect);
+        Assert.AreEqual(new RECT(4480 - 12 - 300, 1392 - 12 - 150, 4480 - 12, 1392 - 12), rect);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_unanchored_panel_is_centered()
     {
         var rect = PlacedIn(PrimaryMonitor.Bounds, PrimaryMonitor.Bounds, 1, Anchored(Edges.None, 400, 300));
-        Assert.Equal(new RECT(760, 390, 1160, 690), rect);
+        Assert.AreEqual(new RECT(760, 390, 1160, 690), rect);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_same_panel_is_placed_again_at_a_new_scale()
     {
         var bar = Anchored(Edges.Top | Edges.Left | Edges.Right, height: 32);
-        Assert.Equal(32, PlacedIn(Wide, Wide, 1, bar).Height);
-        Assert.Equal(48, PlacedIn(Wide, Wide, 1.5, bar).Height);
+        Assert.AreEqual(32, PlacedIn(Wide, Wide, 1, bar).Height);
+        Assert.AreEqual(48, PlacedIn(Wide, Wide, 1.5, bar).Height);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_panel_is_never_empty()
     {
         var rect = PlacedIn(PrimaryMonitor.Bounds, PrimaryMonitor.Bounds, 1,
             Anchored(Edges.Left | Edges.Right, height: 0, left: 1000, right: 1000));
-        Assert.True(rect.Width >= 1);
-        Assert.True(rect.Height >= 1);
+        Assert.IsTrue(rect.Width >= 1);
+        Assert.IsTrue(rect.Height >= 1);
     }
 }

@@ -1,8 +1,9 @@
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed class DispatcherLoopTests
 {
-    [Fact]
+    [TestMethod]
     public async Task A_timer_whose_handle_was_dropped_still_fires()
     {
         var fired = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -16,6 +17,6 @@ public sealed class DispatcherLoopTests
             return true;
         });
 
-        await fired.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await fired.Task.WaitAsync(TimeSpan.FromSeconds(10), CurrentTest.Cancellation);
     }
 }

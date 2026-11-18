@@ -4,6 +4,7 @@ using static Winshell.Diagnostics.DoctorCrashes;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class DoctorEvidenceTests : IDisposable
 {
     private readonly string _dir =
@@ -19,29 +20,29 @@ public sealed class DoctorEvidenceTests : IDisposable
         Directory.Delete(_dir, true);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_missing_crash_folder_is_not_a_failure_to_read()
     {
         var read = CrashReports.List(Path.Combine(_dir, "missing"));
 
-        Assert.Null(read.FolderError);
-        Assert.Empty(read.Reports);
-        Assert.Equal(CheckStatus.Pass, CrashesIn(read, DateTime.UtcNow).Status);
+        Assert.IsNull(read.FolderError);
+        Assert.IsEmpty(read.Reports);
+        Assert.AreEqual(CheckStatus.Pass, CrashesIn(read, DateTime.UtcNow).Status);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_unreadable_crash_folder_warns()
     {
         var read = new CrashList([], @"C:\locked: Access is denied", null);
 
         var check = CrashesIn(read, DateTime.UtcNow);
 
-        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.AreEqual(CheckStatus.Warn, check.Status);
         Assert.Contains(@"Could not read the crash folder: C:\locked: Access is denied", check.Message,
             StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_fatal_report_is_named_and_a_stray_file_is_ignored()
     {
         var now = DateTime.UtcNow;
@@ -65,8 +66,8 @@ public sealed class DoctorEvidenceTests : IDisposable
         var read = CrashReports.List(_dir);
         var check = CrashesIn(read, now.AddMinutes(2));
 
-        Assert.Null(read.FolderError);
-        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.IsNull(read.FolderError);
+        Assert.AreEqual(CheckStatus.Warn, check.Status);
         Assert.Contains("2 crash reports", check.Message, StringComparison.Ordinal);
         Assert.Contains(draw, check.Message, StringComparison.Ordinal);
         Assert.Contains("Winshell closed: yes.", check.Message, StringComparison.Ordinal);
@@ -76,18 +77,18 @@ public sealed class DoctorEvidenceTests : IDisposable
         Assert.DoesNotContain("draw failed", check.Message, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("Winshell crash reports")]
-    [InlineData("Winshell crash report ")]
+    [TestMethod]
+    [DataRow("Winshell crash reports")]
+    [DataRow("Winshell crash report ")]
     public void A_file_whose_first_line_is_not_exactly_the_heading_is_not_a_report(string first)
     {
         var path = Report(_dir, DateTime.UtcNow, "lookalike");
         File.WriteAllText(path, first + "\nWinshell closed: yes\n");
 
-        Assert.Empty(CrashReports.List(_dir).Reports);
+        Assert.IsEmpty(CrashReports.List(_dir).Reports);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_crash_file_that_cannot_be_opened_warns()
     {
         var blocked = Report(_dir, DateTime.UtcNow, "blocked");
@@ -95,15 +96,15 @@ public sealed class DoctorEvidenceTests : IDisposable
         {
             var read = CrashReports.List(_dir);
 
-            Assert.Equal(blocked, read.FileError?.Path);
+            Assert.AreEqual(blocked, read.FileError?.Path);
             var check = CrashesIn(read, DateTime.UtcNow);
-            Assert.Equal(CheckStatus.Warn, check.Status);
+            Assert.AreEqual(CheckStatus.Warn, check.Status);
             Assert.Contains("Could not read a crash report:", check.Message, StringComparison.Ordinal);
             Assert.Contains(blocked, check.Message, StringComparison.Ordinal);
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void An_unreadable_report_older_than_7_days_is_not_a_warning()
     {
         var now = new DateTime(2026, 10, 29, 12, 0, 0, DateTimeKind.Utc);
@@ -112,12 +113,12 @@ public sealed class DoctorEvidenceTests : IDisposable
         {
             var check = CrashesIn(CrashReports.List(_dir), now);
 
-            Assert.Equal(CheckStatus.Pass, check.Status);
-            Assert.Equal("No crash reports in the last 7 days", check.Message);
+            Assert.AreEqual(CheckStatus.Pass, check.Status);
+            Assert.AreEqual("No crash reports in the last 7 days", check.Message);
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void Two_unreadable_reports_name_the_newer_one()
     {
         var now = new DateTime(2026, 10, 29, 12, 0, 0, DateTimeKind.Utc);
@@ -128,7 +129,7 @@ public sealed class DoctorEvidenceTests : IDisposable
         {
             var check = CrashesIn(CrashReports.List(_dir), now);
 
-            Assert.Equal(CheckStatus.Warn, check.Status);
+            Assert.AreEqual(CheckStatus.Warn, check.Status);
             Assert.Contains(newer, check.Message, StringComparison.Ordinal);
             Assert.DoesNotContain(older, check.Message, StringComparison.Ordinal);
         }

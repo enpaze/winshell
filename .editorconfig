@@ -33,15 +33,13 @@ dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1711.severity = none
 dotnet_diagnostic.CA2201.severity = none
 dotnet_diagnostic.CA1861.severity = none
-dotnet_diagnostic.xUnit1030.severity = error
-dotnet_diagnostic.xUnit1031.severity = error
-dotnet_diagnostic.xUnit1048.severity = error
-dotnet_diagnostic.xUnit1051.severity = error
 dotnet_diagnostic.VSTHRD002.severity = error
 dotnet_diagnostic.VSTHRD100.severity = error
 dotnet_diagnostic.VSTHRD101.severity = error
 dotnet_diagnostic.VSTHRD110.severity = error
 dotnet_diagnostic.CS4014.severity = error
+dotnet_diagnostic.MSTEST0040.severity = error
+dotnet_diagnostic.MSTEST0049.severity = error
 dotnet_diagnostic.CA2007.severity = none
 
 [{*.go,Makefile,*.mk}]

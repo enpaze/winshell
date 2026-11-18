@@ -2,11 +2,12 @@ using System.Text.RegularExpressions;
 
 namespace Winshell.Tests;
 
+[TestClass]
 public class VersionTests
 {
-    [Theory]
-    [InlineData("--version")]
-    [InlineData("list -V")]
+    [TestMethod]
+    [DataRow("--version")]
+    [DataRow("list -V")]
     public void The_cli_prints_the_release_please_version(string line)
     {
         var manifest = Repo.ReleaseVersion();
@@ -15,6 +16,6 @@ public class VersionTests
 #pragma warning restore CsWinRT1030
         result.AssertExitCode(0);
         result.AssertNoError();
-        Assert.Matches($"^winshell {Regex.Escape(manifest)}(\\+\\S+)?\\r?\\n$", result.Output);
+        Assert.MatchesRegex($"^winshell {Regex.Escape(manifest)}(\\+\\S+)?\\r?\\n$", result.Output);
     }
 }

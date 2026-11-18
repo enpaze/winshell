@@ -6,8 +6,9 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-[Collection(nameof(RealInputTests))]
-[Trait("Category", "Window")]
+[TestClass]
+[DoNotParallelize]
+[TestCategory("Window")]
 public sealed class RealInputTests
 {
     private static readonly TimeSpan Limit = TimeSpan.FromSeconds(10);
@@ -20,7 +21,7 @@ public sealed class RealInputTests
         Wait.Until(() => !Used(out _) || TimeProvider.System.GetElapsedTime(started) > Patience,
             "the PC to be left alone", Patience + Patience);
         if (Used(out var idle))
-            Assert.Skip(
+            Assert.Inconclusive(
                 $"Someone was still using this PC after {Patience.TotalSeconds:0} s: its last input was {idle} ms ago, and real input waits until no one has used it for 3 s.");
     }
 
@@ -64,12 +65,12 @@ public sealed class RealInputTests
             if (said.EndsWith("The mouse moved, so the cursor stays where it is.", StringComparison.Ordinal) ||
                 said.StartsWith("The mouse moved since point", StringComparison.Ordinal) ||
                 (said.StartsWith("Nothing is pointed at", StringComparison.Ordinal) && command == "leave"))
-                Assert.Skip(said);
+                Assert.Inconclusive(said);
         }
         catch (IpcException e) when (e.Message.StartsWith("Someone used the mouse", StringComparison.Ordinal) ||
                                      e.Message == "The mouse moved, so nothing more was sent.")
         {
-            Assert.Skip(e.Message);
+            Assert.Inconclusive(e.Message);
             throw;
         }
     }
@@ -89,7 +90,7 @@ public sealed class RealInputTests
 
     private static void Behind(PanelWindow panel)
     {
-        Assert.NotEqual(panel.Host!.Handle, TopLevelWindows.RootOf(PInvoke.GetForegroundWindow()));
+        Assert.AreNotEqual(panel.Host!.Handle, TopLevelWindows.RootOf(PInvoke.GetForegroundWindow()));
     }
 
     private static POINT Cursor()
@@ -99,10 +100,10 @@ public sealed class RealInputTests
 
     private static Task Signal(TaskCompletionSource signal)
     {
-        return signal.Task.WaitAsync(Limit, TestContext.Current.CancellationToken);
+        return signal.Task.WaitAsync(Limit, CurrentTest.Cancellation);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Point_raises_PointerEntered_and_leave_puts_the_cursor_back_with_PointerExited()
     {
         Quiet();
@@ -131,11 +132,11 @@ public sealed class RealInputTests
             }
         });
 
-        Assert.NotEqual((before.X, before.Y), (during.X, during.Y));
-        Assert.Equal((before.X, before.Y), (after.X, after.Y));
+        Assert.AreNotEqual((before.X, before.Y), (during.X, during.Y));
+        Assert.AreEqual((before.X, before.Y), (after.X, after.Y));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_press_shows_the_pressed_look_clicks_and_puts_the_cursor_back()
     {
         Quiet();
@@ -165,11 +166,11 @@ public sealed class RealInputTests
 
         Assert.Contains("PointerOver", states);
         Assert.Contains("Pressed", states);
-        Assert.Equal(1, clicks);
-        Assert.Equal((before.X, before.Y), (after.X, after.Y));
+        Assert.AreEqual(1, clicks);
+        Assert.AreEqual((before.X, before.Y), (after.X, after.Y));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_right_press_raises_RightTapped()
     {
         Quiet();
@@ -187,7 +188,7 @@ public sealed class RealInputTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_scroll_turns_the_wheel_a_notch_a_step_toward_the_user()
     {
         Quiet();
@@ -210,10 +211,10 @@ public sealed class RealInputTests
             return turned;
         });
 
-        Assert.Equal(-240, delta);
+        Assert.AreEqual(-240, delta);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Focus_tabs_to_the_element_so_it_has_keyboard_focus()
     {
         Quiet();
@@ -229,10 +230,10 @@ public sealed class RealInputTests
             return ((Button)row.Children[2]).FocusState;
         });
 
-        Assert.Equal(FocusState.Keyboard, state);
+        Assert.AreEqual(FocusState.Keyboard, state);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_key_reaches_the_focused_control_in_a_window_that_is_not_in_front()
     {
         Quiet();
@@ -256,10 +257,10 @@ public sealed class RealInputTests
             return clicks;
         });
 
-        Assert.Equal(1, clicks);
+        Assert.AreEqual(1, clicks);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_chord_is_refused_while_the_window_is_not_in_front()
     {
         Quiet();
@@ -275,7 +276,7 @@ public sealed class RealInputTests
         Assert.StartsWith("Ctrl+A holds a modifier", message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_element_under_another_window_gets_nothing_and_the_cursor_stays()
     {
         Quiet();
@@ -296,11 +297,11 @@ public sealed class RealInputTests
         });
 
         Assert.StartsWith("Another window is over Spot", message, StringComparison.Ordinal);
-        Assert.False(entered);
-        Assert.Equal((before.X, before.Y), (after.X, after.Y));
+        Assert.IsFalse(entered);
+        Assert.AreEqual((before.X, before.Y), (after.X, after.Y));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_element_clipped_out_of_sight_gets_nothing()
     {
         Quiet();
@@ -320,6 +321,3 @@ public sealed class RealInputTests
         Assert.StartsWith("Hidden isn't what shows at its middle", message, StringComparison.Ordinal);
     }
 }
-
-[CollectionDefinition(nameof(RealInputTests), DisableParallelization = true)]
-public sealed class RealInputCollection;

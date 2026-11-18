@@ -5,11 +5,12 @@ using Winshell.Media;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class MediaSessionRefreshTests
 {
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
     public void A_hung_discovery_is_cancelled_and_closed_before_exactly_one_retry(bool completesOnCancel)
     {
         var loop = new ManualEventLoop();
@@ -20,41 +21,41 @@ public sealed class MediaSessionRefreshTests
         {
             if (++requests == 1)
                 return pending;
-            Assert.True(pending.Closed);
+            Assert.IsTrue(pending.Closed);
             return next;
         });
 
         loop.Process();
         loop.Advance(TimeSpan.FromMilliseconds(29999));
 
-        Assert.Equal(1, requests);
-        Assert.Equal(0, pending.CancelCount);
-        Assert.False(pending.Closed);
+        Assert.AreEqual(1, requests);
+        Assert.AreEqual(0, pending.CancelCount);
+        Assert.IsFalse(pending.Closed);
 
         loop.Advance(TimeSpan.FromMilliseconds(1));
 
-        Assert.Equal(1, requests);
-        Assert.Equal(1, pending.CancelCount);
-        Assert.Equal(1, pending.CloseCount);
-        Assert.Equal(TimeSpan.FromSeconds(32), loop.NextDue);
+        Assert.AreEqual(1, requests);
+        Assert.AreEqual(1, pending.CancelCount);
+        Assert.AreEqual(1, pending.CloseCount);
+        Assert.AreEqual(TimeSpan.FromSeconds(32), loop.NextDue);
 
         loop.Advance(TimeSpan.FromMilliseconds(1999));
-        Assert.Equal(1, requests);
+        Assert.AreEqual(1, requests);
         loop.Advance(TimeSpan.FromMilliseconds(1));
-        Assert.Equal(2, requests);
-        Assert.False(next.Closed);
+        Assert.AreEqual(2, requests);
+        Assert.IsFalse(next.Closed);
 
         pending.NotifyCompletion(AsyncStatus.Completed);
         loop.Advance(TimeSpan.FromSeconds(2));
 
-        Assert.Equal(2, requests);
-        Assert.Equal(1, pending.CloseCount);
-        Assert.Equal(0, next.CancelCount);
-        Assert.False(next.Closed);
-        Assert.Equal(TimeSpan.FromSeconds(92), loop.NextDue);
+        Assert.AreEqual(2, requests);
+        Assert.AreEqual(1, pending.CloseCount);
+        Assert.AreEqual(0, next.CancelCount);
+        Assert.IsFalse(next.Closed);
+        Assert.AreEqual(TimeSpan.FromSeconds(92), loop.NextDue);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_broker_that_stops_answering_is_logged_once_not_at_every_timeout()
     {
         var loop = new ManualEventLoop();
@@ -64,16 +65,16 @@ public sealed class MediaSessionRefreshTests
         loop.Process();
 
         loop.Advance(TimeSpan.FromSeconds(29));
-        Assert.Empty(warnings);
+        Assert.IsEmpty(warnings);
 
         loop.Advance(TimeSpan.FromSeconds(1 + 2 + 60 + 2 + 120));
 
-        var warning = Assert.Single(warnings);
+        var warning = Assert.ContainsSingle(warnings);
         Assert.StartsWith("Warn media: ", warning, StringComparison.Ordinal);
         Assert.Contains("not answering", warning, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Each_timeout_doubles_the_next_wait_up_to_an_hour_until_Windows_answers()
     {
         var loop = new ManualEventLoop();
@@ -88,20 +89,20 @@ public sealed class MediaSessionRefreshTests
 
         loop.Advance(TimeSpan.FromSeconds(11028));
 
-        Assert.Equal<int[]>([32, 62, 122, 242, 482, 962, 1922, 3602, 3602],
+        Assert.AreSequenceEqual<int>([32, 62, 122, 242, 482, 962, 1922, 3602, 3602],
             [.. starts.Zip(starts.Skip(1), (a, b) => (int)(b - a).TotalSeconds)]);
 
         var answered = loop.Now;
         last!.Finish(AsyncStatus.Error);
         loop.Advance(TimeSpan.FromSeconds(34));
 
-        Assert.Equal([answered + TimeSpan.FromSeconds(2), answered + TimeSpan.FromSeconds(34)], starts[^2..]);
+        Assert.AreSequenceEqual([answered + TimeSpan.FromSeconds(2), answered + TimeSpan.FromSeconds(34)], starts[^2..]);
     }
 
-    [Theory]
-    [InlineData(AsyncStatus.Completed)]
-    [InlineData(AsyncStatus.Error)]
-    [InlineData(AsyncStatus.Canceled)]
+    [TestMethod]
+    [DataRow(AsyncStatus.Completed)]
+    [DataRow(AsyncStatus.Error)]
+    [DataRow(AsyncStatus.Canceled)]
     public void A_finished_discovery_releases_its_resources_and_retries_after_two_seconds(AsyncStatus status)
     {
         var loop = new ManualEventLoop();
@@ -114,16 +115,16 @@ public sealed class MediaSessionRefreshTests
         first.Finish(status);
         loop.Process();
 
-        Assert.True(first.Closed);
+        Assert.IsTrue(first.Closed);
         loop.Advance(TimeSpan.FromMilliseconds(1999));
-        Assert.Equal(1, requests);
+        Assert.AreEqual(1, requests);
         loop.Advance(TimeSpan.FromMilliseconds(1));
-        Assert.Equal(2, requests);
-        Assert.False(next.Closed);
-        Assert.Equal(TimeSpan.FromSeconds(32), loop.NextDue);
+        Assert.AreEqual(2, requests);
+        Assert.IsFalse(next.Closed);
+        Assert.AreEqual(TimeSpan.FromSeconds(32), loop.NextDue);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_request_that_cannot_start_is_retried_after_two_seconds()
     {
         var loop = new ManualEventLoop();
@@ -135,14 +136,14 @@ public sealed class MediaSessionRefreshTests
 
         loop.Process();
         loop.Advance(TimeSpan.FromMilliseconds(1999));
-        Assert.Equal(1, requests);
+        Assert.AreEqual(1, requests);
         loop.Advance(TimeSpan.FromMilliseconds(1));
 
-        Assert.Equal(2, requests);
-        Assert.Equal(TimeSpan.FromSeconds(32), loop.NextDue);
+        Assert.AreEqual(2, requests);
+        Assert.AreEqual(TimeSpan.FromSeconds(32), loop.NextDue);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_disposed_list_asks_Windows_no_more()
     {
         var loop = new ManualEventLoop();
@@ -152,16 +153,16 @@ public sealed class MediaSessionRefreshTests
         loop.Process();
         first.Finish(AsyncStatus.Error);
         loop.Process();
-        Assert.Equal(TimeSpan.FromSeconds(2), loop.NextDue);
+        Assert.AreEqual(TimeSpan.FromSeconds(2), loop.NextDue);
 
         sessions.Dispose();
         loop.Advance(TimeSpan.FromHours(2));
 
-        Assert.Equal(1, requests);
-        Assert.Null(loop.NextDue);
+        Assert.AreEqual(1, requests);
+        Assert.IsNull(loop.NextDue);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_disposed_list_cancels_and_closes_the_request_that_is_out()
     {
         var loop = new ManualEventLoop();
@@ -171,8 +172,8 @@ public sealed class MediaSessionRefreshTests
 
         sessions.Dispose();
 
-        Assert.Equal(1, pending.CancelCount);
-        Assert.Equal(1, pending.CloseCount);
+        Assert.AreEqual(1, pending.CancelCount);
+        Assert.AreEqual(1, pending.CloseCount);
     }
 
     private sealed class Discovery : IAsyncOperation<GlobalSystemMediaTransportControlsSessionManager>

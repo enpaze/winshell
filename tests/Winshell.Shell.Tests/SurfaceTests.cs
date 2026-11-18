@@ -4,10 +4,11 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class SurfaceTests
 {
-    [Fact]
+    [TestMethod]
     public async Task A_surface_on_screen_follows_the_shell_style_keeping_what_it_holds_until_it_has_its_own()
     {
         await ShellFixture.On(async shell =>
@@ -31,20 +32,20 @@ public sealed class SurfaceTests
             try
             {
                 var light = WidgetAreaTests.WindowsColor("Light", "SolidBackgroundFillColorBase");
-                await ShellFixture.LaidOut(followsHost).WaitAsync(TestContext.Current.CancellationToken);
-                Assert.Equal(light, BarTests.BackgroundOf(followsHost));
-                Assert.Equal(tokyo, BarTests.BackgroundOf(ownHost));
+                await ShellFixture.LaidOut(followsHost).WaitAsync(CurrentTest.Cancellation);
+                Assert.AreEqual(light, BarTests.BackgroundOf(followsHost));
+                Assert.AreEqual(tokyo, BarTests.BackgroundOf(ownHost));
 
                 shell.Style = other;
                 await Wait.UntilAsync(() => BarTests.BackgroundOf(followsHost) == tokyo, "the surface to take the new style");
-                Assert.Equal(0, unloaded);
+                Assert.AreEqual(0, unloaded);
 
                 own.Set(own.Props with { Style = null });
                 shell.Style = null;
                 await Wait.UntilAsync(() => BarTests.BackgroundOf(followsHost) == light && BarTests.BackgroundOf(ownHost) == light,
                     "both surfaces to follow the shell back to the built-in style");
 
-                Assert.Equal(light, BarTests.BackgroundOf(ownHost));
+                Assert.AreEqual(light, BarTests.BackgroundOf(ownHost));
                 var panel = (StackPanel)window.Content;
                 panel.RequestedTheme = ElementTheme.Dark;
                 var dark = WidgetAreaTests.WindowsColor("Default", "SolidBackgroundFillColorBase");

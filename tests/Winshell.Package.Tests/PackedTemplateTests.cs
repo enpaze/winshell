@@ -11,18 +11,32 @@ using Microsoft.Win32;
 
 namespace Winshell.Package.Tests;
 
-[Trait("Category", "Package")]
-[Collection(nameof(PackedTemplateTests))]
-[CollectionDefinition(nameof(PackedTemplateTests), DisableParallelization = true)]
-public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixture<PackedTemplates>
+[TestClass]
+[TestCategory("Package")]
+[DoNotParallelize]
+public sealed class PackedTemplateTests
 {
+    private static PackedTemplates _templates = null!;
+
+    [ClassInitialize]
+    public static void Pack(TestContext context)
+    {
+        _templates = new PackedTemplates();
+    }
+
+    [ClassCleanup]
+    public static void Remove()
+    {
+        _templates.Dispose();
+    }
+
     private const int PatienceMs = 1_800_000;
 
-    [Fact(Timeout = PatienceMs)]
+    [TestMethod, Timeout(PatienceMs)]
     public void The_starter_shows_its_clock_and_battery_and_is_listed_and_killed()
     {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        Run(templates.SmallProject, (pid, environment) =>
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
+        Run(_templates.SmallProject, (pid, environment) =>
         {
             ChildProcess? tree = null;
             Wait.Until(() =>
@@ -34,25 +48,25 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         });
     }
 
-    [Fact(Timeout = PatienceMs)]
+    [TestMethod, Timeout(PatienceMs)]
     public void The_starter_takes_WindowsAppSDK_from_the_Winshell_package()
     {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        Assert.DoesNotContain("Microsoft.WindowsAppSDK", File.ReadAllText(templates.SmallProject),
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
+        Assert.DoesNotContain("Microsoft.WindowsAppSDK", File.ReadAllText(_templates.SmallProject),
             StringComparison.Ordinal);
     }
 
-    [Fact(Timeout = PatienceMs)]
+    [TestMethod, Timeout(PatienceMs)]
     public void Packing_and_creating_the_starter_leaves_the_user_PATH_as_it_was()
     {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        Assert.Equal(templates.UserPathBefore, PackedTemplates.UserPath());
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
+        Assert.AreEqual(_templates.UserPathBefore, PackedTemplates.UserPath());
     }
 
-    [Fact(Timeout = PatienceMs)]
+    [TestMethod, Timeout(PatienceMs)]
     public void A_widget_item_is_ignored_and_generates_no_registration()
     {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
         using var folder = new TempFolder();
         var projectFile = CopyStarter(folder.Path);
         var document = XDocument.Load(projectFile);
@@ -64,15 +78,15 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         var built = ShellProject.Run(
             "dotnet", ["build", projectFile, "-c", "Release", "-warnaserror", "--nologo"], folder.Path);
 
-        Assert.True(built.ExitCode == 0, built.Output);
-        Assert.Empty(Directory.GetFiles(Path.Combine(folder.Path, "obj"),
+        Assert.IsTrue(built.ExitCode == 0, built.Output);
+        Assert.IsEmpty(Directory.GetFiles(Path.Combine(folder.Path, "obj"),
             "WinshellWidgetRegistration.g.cs", SearchOption.AllDirectories));
     }
 
-    [Fact(Timeout = PatienceMs)]
+    [TestMethod, Timeout(PatienceMs)]
     public void A_library_widget_registered_in_code_shows_in_an_area()
     {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
         using var root = new TempFolder();
         File.Copy(Path.Combine(Repo.Root, "global.json"), Path.Combine(root.Path, "global.json"));
         var shellDir = Path.Combine(root.Path, "shell");
@@ -145,7 +159,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
 
         var library = ShellProject.Run(
             "dotnet", ["build", libProject, "-warnaserror", "--nologo"], libDir);
-        Assert.True(library.ExitCode == 0, library.Output);
+        Assert.IsTrue(library.ExitCode == 0, library.Output);
 
         Run(projectFile, (pid, environment) =>
         {
@@ -161,9 +175,9 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
 
     private string CopyStarter(string folder)
     {
-        foreach (var file in Directory.GetFiles(Path.GetDirectoryName(templates.SmallProject)!))
+        foreach (var file in Directory.GetFiles(Path.GetDirectoryName(_templates.SmallProject)!))
             File.Copy(file, Path.Combine(folder, Path.GetFileName(file)));
-        var project = Path.Combine(folder, Path.GetFileName(templates.SmallProject));
+        var project = Path.Combine(folder, Path.GetFileName(_templates.SmallProject));
         var document = XDocument.Load(project);
         document.Root!.Add(new XElement("PropertyGroup", new XElement("TreatWarningsAsErrors", "true")));
         document.Save(project);
@@ -173,9 +187,9 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     private void Run(string projectFile, Action<string, (string Name, string Value)[]>? inspect = null)
     {
         var project = ShellProject.Find(projectFile, null, Path.GetDirectoryName(projectFile)!, out var error);
-        Assert.Null(error);
+        Assert.IsNull(error);
         var why = project!.Prepare(false, ShellProject.Run);
-        Assert.True(why is null, why);
+        Assert.IsTrue(why is null, why);
 
         var dir = TempFolder.NewPath();
         var folders = IsolatedFolders.Under(dir);
@@ -219,7 +233,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
 
         var log = WinshellCli.Run(["log", "--pid", pid], folders);
         log.AssertExitCode(0);
-        Assert.Contains($"Winshell {templates.Version} on Windows", log.Output, StringComparison.Ordinal);
+        Assert.Contains($"Winshell {_templates.Version} on Windows", log.Output, StringComparison.Ordinal);
 
         inspect?.Invoke(pid, folders);
 
@@ -250,7 +264,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     }
 }
 
-public sealed class PackedTemplates : IDisposable
+internal sealed class PackedTemplates : IDisposable
 {
     private readonly string _work =
         TempFolder.NewPath();
@@ -264,11 +278,11 @@ public sealed class PackedTemplates : IDisposable
         var packed = ShellProject.Run("pwsh",
             ["-NoProfile", "-File", Path.Combine(root, "scripts", "pack.ps1"), "-Out", packages, "-Version", Version],
             root);
-        Assert.True(packed.ExitCode == 0, packed.Output);
+        Assert.IsTrue(packed.ExitCode == 0, packed.Output);
 
         var library = Path.Combine(packages, $"Winshell.{Version}.nupkg");
         AssertPackage(library, Version);
-        Assert.Equal([library], Directory.GetFiles(packages, "*.nupkg"));
+        Assert.AreSequenceEqual([library], Directory.GetFiles(packages, "*.nupkg"));
         SmallProject = Instantiate(packages);
     }
 
@@ -306,7 +320,7 @@ public sealed class PackedTemplates : IDisposable
         var folder = Path.Combine(_work, "starter");
         var created = WinshellCli.Run(["new", "starter", "-p", folder]);
         created.AssertExitCode(0);
-        var project = Assert.Single(Directory.GetFiles(folder, "*.csproj"));
+        var project = Assert.ContainsSingle(Directory.GetFiles(folder, "*.csproj"));
         var document = XDocument.Load(project);
         document.Descendants("PackageReference").Single(reference =>
             reference.Attribute("Include")!.Value == "Winshell").SetAttributeValue("Version", Version);
@@ -338,7 +352,7 @@ public sealed class PackedTemplates : IDisposable
 
         using var zip = ZipFile.OpenRead(nupkg);
         var names = zip.Entries.Select(entry => entry.FullName.Replace('\\', '/')).ToList();
-        Assert.Equal(libraries,
+        Assert.AreSequenceEqual(libraries,
             names.Where(name => name.StartsWith("lib/", StringComparison.Ordinal)).Order(StringComparer.Ordinal));
         AssertProps(zip, packageDir);
 
@@ -348,9 +362,9 @@ public sealed class PackedTemplates : IDisposable
         {
             var dll = Path.Combine(extracted, Path.GetFileName(library));
             zip.GetEntry(library)!.ExtractToFile(dll);
-            Assert.Equal(version, InformationalVersion(dll));
+            Assert.AreEqual(version, InformationalVersion(dll));
             if (Path.GetFileName(library) == "Winshell.Services.dll")
-                Assert.False(IsPublic(dll, "Winshell", "ShellProject"));
+                Assert.IsFalse(IsPublic(dll, "Winshell", "ShellProject"));
         }
 
         Directory.Delete(extracted, true);
@@ -363,16 +377,16 @@ public sealed class PackedTemplates : IDisposable
         var pinned = XDocument.Load(Path.Combine(Repo.Root, "Directory.Packages.props")).Descendants("PackageVersion")
             .ToDictionary(element => element.Attribute("Include")!.Value,
                 element => element.Attribute("Version")!.Value);
-        Assert.Equal(pinned["Microsoft.UI.Reactor"], dependencies["Microsoft.UI.Reactor"]);
-        Assert.Equal(pinned["Microsoft.WindowsAppSDK.Runtime"], dependencies["Microsoft.WindowsAppSDK.Runtime"]);
+        Assert.AreEqual(pinned["Microsoft.UI.Reactor"], dependencies["Microsoft.UI.Reactor"]);
+        Assert.AreEqual(pinned["Microsoft.WindowsAppSDK.Runtime"], dependencies["Microsoft.WindowsAppSDK.Runtime"]);
         var declared = packageProject.Descendants("PackageReference")
             .Where(reference => !IsPrivate(reference))
             .Select(reference => reference.Attribute("Include")!.Value)
             .Order(StringComparer.OrdinalIgnoreCase)
             .ToList();
-        Assert.Equal(declared, dependencies.Keys.Order(StringComparer.OrdinalIgnoreCase));
+        Assert.AreSequenceEqual(declared, dependencies.Keys.Order(StringComparer.OrdinalIgnoreCase));
         foreach (var id in declared)
-            Assert.Equal(pinned[id], dependencies[id]);
+            Assert.AreEqual(pinned[id], dependencies[id]);
     }
 
     private static bool IsPrivate(XElement reference)
@@ -394,13 +408,13 @@ public sealed class PackedTemplates : IDisposable
     private static void AssertPacked(ZipArchive zip, string packageDir, string path)
     {
         var entry = zip.GetEntry(path);
-        Assert.NotNull(entry);
+        Assert.IsNotNull(entry);
         using var stream = entry.Open();
         using var reader = new StreamReader(stream);
         var packed = reader.ReadToEnd().Replace("\r\n", "\n", StringComparison.Ordinal);
         var source = File.ReadAllText(Path.Combine(packageDir, path.Replace('/', Path.DirectorySeparatorChar)))
             .Replace("\r\n", "\n", StringComparison.Ordinal);
-        Assert.Equal(source, packed);
+        Assert.AreEqual(source, packed);
     }
 
     private static string InformationalVersion(string path)

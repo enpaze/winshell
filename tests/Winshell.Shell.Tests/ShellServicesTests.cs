@@ -3,10 +3,11 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class ShellServicesTests
 {
-    [Fact]
+    [TestMethod]
     public async Task Winland_resolves_windows_from_the_shells_window_list()
     {
         var resolved = await ShellFixture.On(async shell =>
@@ -14,7 +15,7 @@ public sealed class ShellServicesTests
             var winland = shell.Winland;
             var hwnd = NativeWindow.OfClass("STATIC", "winshell-listed-window",
                 (uint)WINDOW_STYLE.WS_OVERLAPPEDWINDOW, 0, 80, 80, 40, 0, PInvoke.GetModuleHandle(null));
-            Assert.NotEqual(0, hwnd);
+            Assert.AreNotEqual(0, hwnd);
             try
             {
                 PInvoke.ShowWindow((HWND)hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
@@ -28,6 +29,6 @@ public sealed class ShellServicesTests
             }
         });
 
-        Assert.True(resolved);
+        Assert.IsTrue(resolved);
     }
 }

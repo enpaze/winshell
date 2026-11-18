@@ -5,6 +5,7 @@ using Winshell.Network;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class NetworkingServiceTests
 {
     private const string Secret = "winshell-profile-key-9f3a";
@@ -89,44 +90,44 @@ public sealed class NetworkingServiceTests
         return messages;
     }
 
-    [Fact]
+    [TestMethod]
     public void A_snapshot_changes_only_the_properties_that_differ()
     {
         using var session = new Session(Snapshot(Wifi()));
         var changes = Watch(session.Network);
 
         session.Backend.Publish(Snapshot(Wifi(strength: .9)));
-        Assert.Empty(changes);
+        Assert.IsEmpty(changes);
         session.Loop.Process();
 
-        Assert.Equal([nameof(WifiNetwork.SignalStrength)], changes);
-        Assert.Equal(.9, session.Network.SignalStrength);
+        Assert.AreSequenceEqual([nameof(WifiNetwork.SignalStrength)], changes);
+        Assert.AreEqual(.9, session.Network.SignalStrength);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_snapshot_keeps_the_objects_that_stay_and_lets_go_of_the_others()
     {
         using var session = new Session(Snapshot(Wifi(), Wifi("Other", .4)));
         var device = session.Device;
         var kept = device.Networks[1];
-        var profile = Assert.Single(session.Service.Profiles);
-        Assert.True(profile.Metered);
-        Assert.Equal(AdapterId.ToString(), profile.AdapterId);
+        var profile = Assert.ContainsSingle(session.Service.Profiles);
+        Assert.IsTrue(profile.Metered);
+        Assert.AreEqual(AdapterId.ToString(), profile.AdapterId);
 
         session.Show(Snapshot(Wifi("Other", .9)));
 
-        Assert.Same(device, session.Device);
-        Assert.Same(kept, Assert.Single(device.Networks));
-        Assert.Same(profile, Assert.Single(session.Service.Profiles));
-        Assert.Equal(.9, Assert.IsType<WifiNetwork>(kept).SignalStrength);
+        Assert.AreSame(device, session.Device);
+        Assert.AreSame(kept, Assert.ContainsSingle(device.Networks));
+        Assert.AreSame(profile, Assert.ContainsSingle(session.Service.Profiles));
+        Assert.AreEqual(.9, Assert.IsExactInstanceOfType<WifiNetwork>(kept).SignalStrength);
 
         session.Show(NetworkSnapshot.Initial);
 
-        Assert.Empty(session.Service.Devices);
-        Assert.Empty(session.Service.Profiles);
+        Assert.IsEmpty(session.Service.Devices);
+        Assert.IsEmpty(session.Service.Profiles);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_disposed_service_stops_following_the_backend()
     {
         var backend = new FakeBackend();
@@ -134,15 +135,15 @@ public sealed class NetworkingServiceTests
         var service = new NetworkingService(loop, Log.Default, backend);
 
         backend.Publish(Snapshot(Wifi()));
-        Assert.Empty(service.Devices);
+        Assert.IsEmpty(service.Devices);
         service.Dispose();
         loop.Process();
 
-        Assert.Empty(service.Devices);
-        Assert.True(backend.Disposed);
+        Assert.IsEmpty(service.Devices);
+        Assert.IsTrue(backend.Disposed);
     }
 
-    [Fact]
+    [TestMethod]
     public void Reading_never_performs_an_action_or_asks_for_permission()
     {
         using var session = new Session(Snapshot(Wifi(profiles: Described())));
@@ -151,10 +152,10 @@ public sealed class NetworkingServiceTests
         _ = session.Profile.Security;
         _ = session.Profile.HasPassword;
 
-        Assert.Empty(session.Backend.Calls);
+        Assert.IsEmpty(session.Backend.Calls);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_failed_action_ends_busy_then_sets_the_error_then_reports_it()
     {
         using var session = new Session(Snapshot(Wifi()));
@@ -179,7 +180,7 @@ public sealed class NetworkingServiceTests
         await network.DisconnectAsync();
         session.Loop.Process();
 
-        Assert.Equal(
+        Assert.AreSequenceEqual(
         [
             "network Busy", "network Busy", "network Error", "network failed Access revoked",
             "device Scanning", "device Scanning", "device Error", "device failed Access revoked",
@@ -187,7 +188,7 @@ public sealed class NetworkingServiceTests
         ], heard);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Actions_call_the_backend_and_report_failure()
     {
         using var session = new Session(Snapshot(Wifi()));
@@ -196,33 +197,33 @@ public sealed class NetworkingServiceTests
 
         await network.ConnectAsync("secret");
         session.Loop.Process();
-        Assert.Equal((AdapterId, "Cafe", "secret"), session.Backend.Connection);
-        Assert.Equal("", network.Error);
+        Assert.AreEqual((AdapterId, "Cafe", "secret"), session.Backend.Connection);
+        Assert.AreEqual("", network.Error);
         await network.DisconnectAsync();
         session.Loop.Process();
         await network.ForgetAsync();
         session.Loop.Process();
         await session.Device.ScanAsync();
         session.Loop.Process();
-        Assert.Equal(["connect", "disconnect", "forget", "scan"], session.Backend.Calls);
+        Assert.AreSequenceEqual(["connect", "disconnect", "forget", "scan"], session.Backend.Calls);
 
         session.Backend.Failure = new UnauthorizedAccessException("Access revoked");
         await network.ConnectAsync(null);
         session.Loop.Process();
-        Assert.False(network.Busy);
-        Assert.Equal("Access revoked", network.Error);
-        Assert.Equal(["Access revoked"], failed);
+        Assert.IsFalse(network.Busy);
+        Assert.AreEqual("Access revoked", network.Error);
+        Assert.AreSequenceEqual(["Access revoked"], failed);
         await session.Device.ScanAsync();
         session.Loop.Process();
-        Assert.False(session.Device.Scanning);
-        Assert.Equal("Access revoked", session.Device.Error);
+        Assert.IsFalse(session.Device.Scanning);
+        Assert.AreEqual("Access revoked", session.Device.Error);
 
         session.Backend.Failure = null;
         session.Backend.ScanResult = "Call NetworkingService.RequestAccess() before scanning Wi-Fi networks.";
         await session.Device.ScanAsync();
         session.Loop.Process();
-        Assert.False(session.Device.Scanning);
-        Assert.Equal(
+        Assert.IsFalse(session.Device.Scanning);
+        Assert.AreEqual(
             "Call NetworkingService.RequestAccess() before scanning Wi-Fi networks.",
             session.Device.Error);
 
@@ -230,10 +231,10 @@ public sealed class NetworkingServiceTests
         session.Backend.ConnectResult = ConnectionFailReason.InvalidPassword;
         await network.ConnectAsync("wrong");
         session.Loop.Process();
-        Assert.Equal("InvalidPassword", network.Error);
+        Assert.AreEqual("InvalidPassword", network.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_action_in_flight_ignores_another_and_a_network_that_left_hears_nothing()
     {
         using var session = new Session(Snapshot(Wifi()));
@@ -244,21 +245,21 @@ public sealed class NetworkingServiceTests
 
         var first = network.ConnectAsync(null);
         await network.ConnectAsync(null);
-        Assert.True(network.Busy);
-        Assert.Single(session.Backend.Calls);
+        Assert.IsTrue(network.Busy);
+        Assert.ContainsSingle(session.Backend.Calls);
 
         session.Show(Snapshot());
         pending.SetResult(ConnectionFailReason.Timeout);
         await first;
         session.Loop.Process();
-        Assert.Equal("", network.Error);
-        Assert.Empty(failed);
+        Assert.AreEqual("", network.Error);
+        Assert.IsEmpty(failed);
 
         network.Connect();
-        Assert.Single(session.Backend.Calls);
+        Assert.ContainsSingle(session.Backend.Calls);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Access_is_explicit_and_reports_a_failure()
     {
         using var session = new Session(NetworkSnapshot.Initial);
@@ -268,38 +269,38 @@ public sealed class NetworkingServiceTests
 
         var request = session.Service.RequestAccessAsync();
         await session.Service.RequestAccessAsync();
-        Assert.Single(session.Backend.Calls);
-        Assert.True(session.Service.RequestingAccess);
+        Assert.ContainsSingle(session.Backend.Calls);
+        Assert.IsTrue(session.Service.RequestingAccess);
         completion.SetResult();
         await request;
         session.Loop.Process();
-        Assert.False(session.Service.RequestingAccess);
+        Assert.IsFalse(session.Service.RequestingAccess);
 
         session.Backend.Failure = new UnauthorizedAccessException("Denied");
         await session.Service.RequestAccessAsync();
         session.Loop.Process();
-        Assert.Equal("Denied", session.Service.Error);
-        Assert.Equal(["Denied"], failed);
+        Assert.AreEqual("Denied", session.Service.Error);
+        Assert.AreSequenceEqual(["Denied"], failed);
     }
 
-    [Theory]
-    [InlineData(NetworkCost.Unknown, false, false, false)]
-    [InlineData(NetworkCost.Unrestricted, false, false, false)]
-    [InlineData(NetworkCost.Fixed, false, false, true)]
-    [InlineData(NetworkCost.Variable, false, false, true)]
-    [InlineData(NetworkCost.Unrestricted, true, false, true)]
-    [InlineData(NetworkCost.Unrestricted, false, true, true)]
+    [TestMethod]
+    [DataRow(NetworkCost.Unknown, false, false, false)]
+    [DataRow(NetworkCost.Unrestricted, false, false, false)]
+    [DataRow(NetworkCost.Fixed, false, false, true)]
+    [DataRow(NetworkCost.Variable, false, false, true)]
+    [DataRow(NetworkCost.Unrestricted, true, false, true)]
+    [DataRow(NetworkCost.Unrestricted, false, true, true)]
     public void Metered_uses_cost_roaming_and_data_limit(NetworkCost cost, bool roaming, bool overLimit, bool expected)
     {
         var profile = new NetworkProfile(new NetworkProfileInfo("profile", "Home", AdapterId,
             NetworkConnectivity.LocalAccess, cost, roaming, overLimit, null));
 
-        Assert.Equal(expected, profile.Metered);
-        Assert.False(profile.SignalAvailable);
-        Assert.Equal(0, profile.SignalStrength);
+        Assert.AreEqual(expected, profile.Metered);
+        Assert.IsFalse(profile.SignalAvailable);
+        Assert.AreEqual(0, profile.SignalStrength);
     }
 
-    [Fact]
+    [TestMethod]
     public void Wired_and_wifi_adapters_report_their_own_state_and_only_a_real_change()
     {
         var wiredId = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -312,12 +313,12 @@ public sealed class NetworkingServiceTests
         }
 
         using var session = new Session(Shot(Adapter(), wired));
-        var device = Assert.IsType<WifiDevice>(session.Service.Devices[0]);
-        var ethernet = Assert.IsType<WiredDevice>(session.Service.Devices[1]);
-        Assert.Equal(WifiDeviceMode.Station, device.Mode);
-        Assert.Equal(1000, ethernet.LinkSpeed);
-        Assert.True(ethernet.HasLink);
-        Assert.True(ethernet.Connected);
+        var device = Assert.IsExactInstanceOfType<WifiDevice>(session.Service.Devices[0]);
+        var ethernet = Assert.IsExactInstanceOfType<WiredDevice>(session.Service.Devices[1]);
+        Assert.AreEqual(WifiDeviceMode.Station, device.Mode);
+        Assert.AreEqual(1000, ethernet.LinkSpeed);
+        Assert.IsTrue(ethernet.HasLink);
+        Assert.IsTrue(ethernet.Connected);
         var changes = Watch(device);
         var wiredChanges = Watch(ethernet);
 
@@ -325,34 +326,34 @@ public sealed class NetworkingServiceTests
         session.Show(Shot(Adapter() with { Name = "Wi-Fi 2", Mode = WifiDeviceMode.AccessPoint },
             wired with { HasLink = false, LinkSpeed = 0 }));
 
-        Assert.Equal([nameof(WifiDevice.Name), nameof(WifiDevice.Mode)], changes);
-        Assert.Equal([nameof(WiredDevice.LinkSpeed), nameof(WiredDevice.HasLink)], wiredChanges);
+        Assert.AreSequenceEqual([nameof(WifiDevice.Name), nameof(WifiDevice.Mode)], changes);
+        Assert.AreSequenceEqual([nameof(WiredDevice.LinkSpeed), nameof(WiredDevice.HasLink)], wiredChanges);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Scanning_without_an_adapter_reports_the_request_error()
     {
         using var backend = new NetworkBackend(Log.Default);
 
-        Assert.Equal("Call NetworkingService.RequestAccess() before scanning Wi-Fi networks.",
+        Assert.AreEqual("Call NetworkingService.RequestAccess() before scanning Wi-Fi networks.",
             await backend.ScanAsync(Guid.NewGuid()));
     }
 
-    [Theory]
-    [InlineData(RadioState.On, WifiRadioState.On, true, true)]
-    [InlineData(RadioState.Off, WifiRadioState.Off, false, true)]
-    [InlineData(RadioState.Disabled, WifiRadioState.Disabled, false, false)]
-    [InlineData(RadioState.Unknown, WifiRadioState.Unknown, false, false)]
+    [TestMethod]
+    [DataRow(RadioState.On, WifiRadioState.On, true, true)]
+    [DataRow(RadioState.Off, WifiRadioState.Off, false, true)]
+    [DataRow(RadioState.Disabled, WifiRadioState.Disabled, false, false)]
+    [DataRow(RadioState.Unknown, WifiRadioState.Unknown, false, false)]
     public void Wifi_reports_its_radios_state(RadioState radio, WifiRadioState expected, bool enabled, bool hardware)
     {
         using var session = new Session(Reading(new FakeRadio(RadioKind.WiFi, radio)));
 
-        Assert.Equal(expected, session.Service.WifiState);
-        Assert.Equal(enabled, session.Service.WifiEnabled);
-        Assert.Equal(hardware, session.Service.WifiHardwareEnabled);
+        Assert.AreEqual(expected, session.Service.WifiState);
+        Assert.AreEqual(enabled, session.Service.WifiEnabled);
+        Assert.AreEqual(hardware, session.Service.WifiHardwareEnabled);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Setting_wifi_without_a_radio_reports_it()
     {
         using var session = new Session(Snapshot() with { Wifi = RadioReading.None });
@@ -360,11 +361,11 @@ public sealed class NetworkingServiceTests
         await session.Service.SetWifiEnabledAsync(true);
         session.Loop.Process();
 
-        Assert.False(session.Service.WifiEnabled);
-        Assert.Equal("Windows reports no Wi-Fi radio.", session.Service.Error);
+        Assert.IsFalse(session.Service.WifiEnabled);
+        Assert.AreEqual("Windows reports no Wi-Fi radio.", session.Service.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_switch_sentence_still_shows_when_the_radio_list_failed()
     {
         using var session = new Session(Snapshot() with
@@ -372,15 +373,15 @@ public sealed class NetworkingServiceTests
             Wifi = RadioReading.None,
             Error = "Windows would not list the radios."
         });
-        Assert.Equal("Windows would not list the radios.", session.Service.Error);
+        Assert.AreEqual("Windows would not list the radios.", session.Service.Error);
 
         await session.Service.SetWifiEnabledAsync(true);
         session.Loop.Process();
 
-        Assert.Equal("Windows reports no Wi-Fi radio.", session.Service.Error);
+        Assert.AreEqual("Windows reports no Wi-Fi radio.", session.Service.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Setting_wifi_follows_the_snapshot_and_a_refusal_stays_until_the_radios_change()
     {
         var radio = new FakeRadio(RadioKind.WiFi, RadioState.Off);
@@ -389,47 +390,47 @@ public sealed class NetworkingServiceTests
         var failed = Failures(h => service.OperationFailed += h);
 
         await service.SetWifiEnabledAsync(false);
-        Assert.Equal(0, radio.Sets);
+        Assert.AreEqual(0, radio.Sets);
 
         await service.SetWifiEnabledAsync(true);
-        Assert.False(service.WifiEnabled);
+        Assert.IsFalse(service.WifiEnabled);
         session.Loop.Process();
-        Assert.True(service.WifiEnabled);
-        Assert.Equal(RadioState.On, radio.State);
-        Assert.Equal("", service.Error);
-        Assert.Empty(failed);
+        Assert.IsTrue(service.WifiEnabled);
+        Assert.AreEqual(RadioState.On, radio.State);
+        Assert.AreEqual("", service.Error);
+        Assert.IsEmpty(failed);
 
         radio.Access = RadioAccessStatus.DeniedByUser;
         await service.SetWifiEnabledAsync(false);
         session.Loop.Process();
-        Assert.True(service.WifiEnabled);
-        Assert.Equal("The user denied radio control.", service.Error);
-        Assert.Equal(1, radio.Sets);
+        Assert.IsTrue(service.WifiEnabled);
+        Assert.AreEqual("The user denied radio control.", service.Error);
+        Assert.AreEqual(1, radio.Sets);
 
         radio.Access = RadioAccessStatus.Unspecified;
         await service.SetWifiEnabledAsync(false);
         session.Loop.Process();
-        Assert.True(service.WifiEnabled);
-        Assert.Equal("Windows did not allow radio control.", service.Error);
-        Assert.Equal(1, radio.Sets);
+        Assert.IsTrue(service.WifiEnabled);
+        Assert.AreEqual("Windows did not allow radio control.", service.Error);
+        Assert.AreEqual(1, radio.Sets);
 
         radio.Access = RadioAccessStatus.Allowed;
         radio.Result = RadioAccessStatus.DeniedBySystem;
         await service.SetWifiEnabledAsync(false);
         session.Loop.Process();
-        Assert.True(service.WifiEnabled);
-        Assert.Equal("Windows or its policy denied radio control.", service.Error);
-        Assert.Equal(RadioState.On, radio.State);
+        Assert.IsTrue(service.WifiEnabled);
+        Assert.AreEqual("Windows or its policy denied radio control.", service.Error);
+        Assert.AreEqual(RadioState.On, radio.State);
 
         radio.Result = RadioAccessStatus.Allowed;
         radio.Reach = false;
         await service.SetWifiEnabledAsync(false);
         session.Loop.Process();
-        Assert.Equal(RadioSwitch.Unchanged, service.Error);
-        Assert.Equal(RadioState.On, radio.State);
+        Assert.AreEqual(RadioSwitch.Unchanged, service.Error);
+        Assert.AreEqual(RadioState.On, radio.State);
         session.Show(Reading(radio));
-        Assert.Equal(RadioSwitch.Unchanged, service.Error);
-        Assert.Equal(
+        Assert.AreEqual(RadioSwitch.Unchanged, service.Error);
+        Assert.AreSequenceEqual(
             [
                 "The user denied radio control.",
                 "Windows did not allow radio control.",
@@ -441,14 +442,14 @@ public sealed class NetworkingServiceTests
         radio.Failure = new UnauthorizedAccessException("Access revoked");
         await service.SetWifiEnabledAsync(false);
         session.Loop.Process();
-        Assert.Equal("Access revoked", service.Error);
+        Assert.AreEqual("Access revoked", service.Error);
 
         session.Show(Reading(new FakeRadio(RadioKind.WiFi, RadioState.Off)));
-        Assert.False(service.WifiEnabled);
-        Assert.Equal("", service.Error);
+        Assert.IsFalse(service.WifiEnabled);
+        Assert.AreEqual("", service.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_wifi_request_in_flight_ignores_another_and_a_late_answer_is_dropped()
     {
         var gate = new TaskCompletionSource<RadioAccessStatus>();
@@ -457,28 +458,28 @@ public sealed class NetworkingServiceTests
 
         var first = session.Service.SetWifiEnabledAsync(true);
         await session.Service.SetWifiEnabledAsync(false);
-        Assert.Equal(1, radio.Sets);
+        Assert.AreEqual(1, radio.Sets);
 
         session.Service.Dispose();
         gate.SetResult(RadioAccessStatus.Allowed);
         await first;
         session.Loop.Process();
-        Assert.Equal("", session.Service.Error);
+        Assert.AreEqual("", session.Service.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_profile_exposes_its_fields_and_no_key()
     {
         using var session = new Session(Snapshot(Wifi(profiles: Described())));
         var profile = session.Profile;
 
-        Assert.Equal(WifiSecurityType.Wpa2Psk, profile.Security);
-        Assert.True(profile.HasPassword);
-        Assert.True(profile.Loaded);
-        Assert.True(profile.AutoConnect);
-        Assert.Equal(AdapterId + ":Office", profile.Id);
-        Assert.Equal("Office", profile.Name);
-        Assert.Equal("Cafe", profile.Ssid);
+        Assert.AreEqual(WifiSecurityType.Wpa2Psk, profile.Security);
+        Assert.IsTrue(profile.HasPassword);
+        Assert.IsTrue(profile.Loaded);
+        Assert.IsTrue(profile.AutoConnect);
+        Assert.AreEqual(AdapterId + ":Office", profile.Id);
+        Assert.AreEqual("Office", profile.Name);
+        Assert.AreEqual("Cafe", profile.Ssid);
         foreach (var property in typeof(WifiProfile).GetProperties())
         {
             if (property.GetValue(profile) is string text)
@@ -486,7 +487,7 @@ public sealed class NetworkingServiceTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_unexpected_failure_ends_the_action_and_still_fails_its_task()
     {
         using var session = new Session(Snapshot(Wifi(profiles: Described())));
@@ -500,24 +501,24 @@ public sealed class NetworkingServiceTests
         var scanning = Watch(device);
         var requesting = Watch(session.Service);
 
-        Assert.Same(bug, await Assert.ThrowsAsync<NullReferenceException>(() => network.ConnectAsync(null)));
-        Assert.Same(bug, await Assert.ThrowsAsync<NullReferenceException>(device.ScanAsync));
-        Assert.Same(bug, await Assert.ThrowsAsync<NullReferenceException>(session.Service.RequestAccessAsync));
-        Assert.Same(bug, await Assert.ThrowsAsync<NullReferenceException>(() => profile.SetAutoConnectAsync(true)));
+        Assert.AreSame(bug, await Assert.ThrowsExactlyAsync<NullReferenceException>(() => network.ConnectAsync(null)));
+        Assert.AreSame(bug, await Assert.ThrowsExactlyAsync<NullReferenceException>(device.ScanAsync));
+        Assert.AreSame(bug, await Assert.ThrowsExactlyAsync<NullReferenceException>(session.Service.RequestAccessAsync));
+        Assert.AreSame(bug, await Assert.ThrowsExactlyAsync<NullReferenceException>(() => profile.SetAutoConnectAsync(true)));
         session.Loop.Process();
 
-        Assert.False(network.Busy);
-        Assert.False(device.Scanning);
-        Assert.False(session.Service.RequestingAccess);
-        Assert.Equal(2, busy.Count(name => name == "Busy"));
-        Assert.Equal(2, scanning.Count(name => name == "Scanning"));
-        Assert.Equal(2, requesting.Count(name => name == "RequestingAccess"));
+        Assert.IsFalse(network.Busy);
+        Assert.IsFalse(device.Scanning);
+        Assert.IsFalse(session.Service.RequestingAccess);
+        Assert.AreEqual(2, busy.Count(name => name == "Busy"));
+        Assert.AreEqual(2, scanning.Count(name => name == "Scanning"));
+        Assert.AreEqual(2, requesting.Count(name => name == "RequestingAccess"));
         session.Backend.AutoException = null;
         await profile.SetAutoConnectAsync(false);
-        Assert.Equal([true, false], session.Backend.Autos.Select(a => a.Auto));
+        Assert.AreSequenceEqual([true, false], session.Backend.Autos.Select(a => a.Auto));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_saved_profile_keeps_its_object_and_a_failed_read_raises_nothing()
     {
         var failedRead = new WifiProfileInfo(WifiFields.Id(AdapterId, "Office"), "Office", "", false,
@@ -527,25 +528,25 @@ public sealed class NetworkingServiceTests
         var failed = Failures(h => profile.OperationFailed += h);
 
         session.Show(Snapshot(Wifi(profiles: failedRead)));
-        Assert.Same(profile, session.Profile);
-        Assert.False(profile.Loaded);
-        Assert.Equal(WifiProfileXml.Unreadable, profile.Error);
-        Assert.Empty(failed);
+        Assert.AreSame(profile, session.Profile);
+        Assert.IsFalse(profile.Loaded);
+        Assert.AreEqual(WifiProfileXml.Unreadable, profile.Error);
+        Assert.IsEmpty(failed);
 
         var changes = Watch(profile);
         session.Show(Snapshot(Wifi(profiles: failedRead with { AutoConnect = true })));
-        Assert.Equal([nameof(WifiProfile.AutoConnect)], changes);
+        Assert.AreSequenceEqual([nameof(WifiProfile.AutoConnect)], changes);
 
         var second = Described() with { Name = "Office-5", Id = WifiFields.Id(AdapterId, "Office-5") };
         session.Show(Snapshot(Wifi(profiles: [Described(), second])));
-        Assert.Equal(["Office", "Office-5"], session.Network.SavedProfiles.Select(p => p.Name));
-        Assert.Same(profile, session.Network.SavedProfiles[0]);
+        Assert.AreSequenceEqual(["Office", "Office-5"], session.Network.SavedProfiles.Select(p => p.Name));
+        Assert.AreSame(profile, session.Network.SavedProfiles[0]);
 
         session.Show(Snapshot(Wifi()));
-        Assert.Empty(session.Network.SavedProfiles);
+        Assert.IsEmpty(session.Network.SavedProfiles);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task AutoConnect_waits_for_a_snapshot_and_ignores_an_overlapping_write()
     {
         using var session = new Session(Snapshot(Wifi(profiles: Described())));
@@ -554,26 +555,26 @@ public sealed class NetworkingServiceTests
 
         await profile.SetAutoConnectAsync(false);
         session.Loop.Process();
-        Assert.True(profile.AutoConnect);
-        Assert.Equal("", profile.Error);
-        Assert.Equal((AdapterId, "Office", false), Assert.Single(session.Backend.Autos));
+        Assert.IsTrue(profile.AutoConnect);
+        Assert.AreEqual("", profile.Error);
+        Assert.AreEqual((AdapterId, "Office", false), Assert.ContainsSingle(session.Backend.Autos));
 
         session.Show(Snapshot(Wifi(profiles: Described() with { AutoConnect = false })));
-        Assert.Same(profile, session.Profile);
-        Assert.False(profile.AutoConnect);
+        Assert.AreSame(profile, session.Profile);
+        Assert.IsFalse(profile.AutoConnect);
 
         session.Backend.AutoError = "denied";
         await profile.SetAutoConnectAsync(true);
         session.Loop.Process();
-        Assert.Equal(["denied"], failed);
-        Assert.Equal("denied", profile.Error);
-        Assert.False(profile.AutoConnect);
+        Assert.AreSequenceEqual(["denied"], failed);
+        Assert.AreEqual("denied", profile.Error);
+        Assert.IsFalse(profile.AutoConnect);
 
         session.Backend.AutoError = null;
         session.Backend.AutoException = new UnauthorizedAccessException("Access revoked");
         await profile.SetAutoConnectAsync(true);
         session.Loop.Process();
-        Assert.Equal("Access revoked", profile.Error);
+        Assert.AreEqual("Access revoked", profile.Error);
 
         session.Backend.AutoException = null;
         var gate = new TaskCompletionSource<string?>();
@@ -581,14 +582,14 @@ public sealed class NetworkingServiceTests
         session.Backend.Autos.Clear();
         var first = profile.SetAutoConnectAsync(true);
         profile.AutoConnect = true;
-        Assert.Equal((AdapterId, "Office", true), Assert.Single(session.Backend.Autos));
+        Assert.AreEqual((AdapterId, "Office", true), Assert.ContainsSingle(session.Backend.Autos));
         gate.SetResult(null);
         await first;
         session.Loop.Process();
-        Assert.False(profile.AutoConnect);
+        Assert.IsFalse(profile.AutoConnect);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Clear_and_forget_use_the_profile_name()
     {
         using var session = new Session(Snapshot(Wifi(profiles: Described())));
@@ -597,17 +598,17 @@ public sealed class NetworkingServiceTests
 
         await profile.ClearPasswordAsync();
         session.Loop.Process();
-        Assert.Equal((AdapterId, "Office"), Assert.Single(session.Backend.Clears));
+        Assert.AreEqual((AdapterId, "Office"), Assert.ContainsSingle(session.Backend.Clears));
 
         session.Backend.ForgetError = "Access is denied.";
         await profile.ForgetAsync();
         session.Loop.Process();
-        Assert.Equal((AdapterId, "Office"), Assert.Single(session.Backend.Forgets));
-        Assert.Equal(["Access is denied."], failed);
+        Assert.AreEqual((AdapterId, "Office"), Assert.ContainsSingle(session.Backend.Forgets));
+        Assert.AreSequenceEqual(["Access is denied."], failed);
         Assert.DoesNotContain(Secret, profile.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Connecting_with_a_profile_uses_the_network_result_and_refuses_another_networks_profile()
     {
         using var session = new Session(Snapshot(Wifi(profiles: Described())));
@@ -618,42 +619,42 @@ public sealed class NetworkingServiceTests
         session.Backend.ConnectGate = gate;
 
         var first = network.ConnectProfileAsync(profile);
-        Assert.True(network.Busy);
+        Assert.IsTrue(network.Busy);
         await network.ConnectProfileAsync(profile);
-        Assert.Equal((AdapterId, "Office", true), Assert.Single(session.Backend.Connects));
+        Assert.AreEqual((AdapterId, "Office", true), Assert.ContainsSingle(session.Backend.Connects));
         gate.SetResult(null);
         await first;
         session.Loop.Process();
-        Assert.False(network.Busy);
-        Assert.Equal("", network.Error);
+        Assert.IsFalse(network.Busy);
+        Assert.AreEqual("", network.Error);
 
         session.Backend.ConnectGate = null;
         session.Backend.ConnectError = "refused";
         await network.ConnectProfileAsync(profile);
         session.Loop.Process();
-        Assert.Equal(["refused"], failed);
-        Assert.Equal("", profile.Error);
+        Assert.AreSequenceEqual(["refused"], failed);
+        Assert.AreEqual("", profile.Error);
 
         await network.ConnectProfileAsync(null);
         session.Loop.Process();
-        Assert.Equal("That saved profile is not on this network.", network.Error);
+        Assert.AreEqual("That saved profile is not on this network.", network.Error);
 
         var other = Described() with { Name = "Home", Ssid = "Home", Id = WifiFields.Id(AdapterId, "Home") };
         session.Backend.Connects.Clear();
         session.Show(Snapshot(Wifi(profiles: Described()), Wifi("Home", profiles: other)));
-        var foreign = Assert.Single(session.Device.Networks[1].SavedProfiles);
+        var foreign = Assert.ContainsSingle(session.Device.Networks[1].SavedProfiles);
         await network.ConnectProfileAsync(foreign);
         session.Loop.Process();
-        Assert.Equal("That saved profile is not on this network.", network.Error);
+        Assert.AreEqual("That saved profile is not on this network.", network.Error);
 
         session.Show(Snapshot(Wifi(profiles: Described())));
-        await Assert.IsType<WifiNetwork>(session.Device.Networks[0]).ConnectProfileAsync(foreign);
+        await Assert.IsExactInstanceOfType<WifiNetwork>(session.Device.Networks[0]).ConnectProfileAsync(foreign);
         session.Loop.Process();
-        Assert.Equal("That saved profile is not on this network.", network.Error);
-        Assert.Empty(session.Backend.Connects);
+        Assert.AreEqual("That saved profile is not on this network.", network.Error);
+        Assert.IsEmpty(session.Backend.Connects);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_wired_network_shares_the_one_list_and_has_no_wifi_command()
     {
         var wiredId = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -664,25 +665,25 @@ public sealed class NetworkingServiceTests
             NetworkConnectivity.LocalAccess, WifiOn()));
 
         var networks = session.Service.Devices.SelectMany(device => device.Networks).ToArray();
-        Assert.Equal(2, networks.Length);
-        Assert.DoesNotContain(typeof(NetworkingService).GetProperties(), IsNetworkList);
-        Assert.Equal(nameof(NetworkDevice.Networks),
-            Assert.Single(typeof(NetworkDevice).GetProperties(), IsNetworkList).Name);
+        Assert.AreEqual(2, networks.Length);
+        Assert.DoesNotContain(IsNetworkList, typeof(NetworkingService).GetProperties());
+        Assert.AreEqual(nameof(NetworkDevice.Networks),
+            Assert.ContainsSingle(IsNetworkList, typeof(NetworkDevice).GetProperties()).Name);
 
-        Assert.True(typeof(Winshell.Network.Network).IsAbstract);
-        var wireless = Assert.IsType<WifiNetwork>(
-            Assert.Single(networks, network => network.Device.Type == DeviceType.Wifi));
-        var ethernet = Assert.IsType<WiredNetwork>(
-            Assert.Single(networks, network => network.Device.Type == DeviceType.Wired));
-        Assert.Equal("Office", ethernet.Name);
-        Assert.Equal(ConnectionState.Connected, ethernet.State);
-        Assert.Equal(wiredId.ToString(), ethernet.Device.Id);
-        Assert.Empty(ethernet.SavedProfiles);
-        Assert.Empty(WifiCommands(ethernet.GetType()));
-        Assert.Empty(WifiCommands(typeof(Winshell.Network.Network)));
-        Assert.Equal(["Connect", "ConnectWithPassword", "ConnectWithProfile", "Disconnect", "Forget"],
+        Assert.IsTrue(typeof(Winshell.Network.Network).IsAbstract);
+        var wireless = Assert.IsExactInstanceOfType<WifiNetwork>(
+            Assert.ContainsSingle(network => network.Device.Type == DeviceType.Wifi, networks));
+        var ethernet = Assert.IsExactInstanceOfType<WiredNetwork>(
+            Assert.ContainsSingle(network => network.Device.Type == DeviceType.Wired, networks));
+        Assert.AreEqual("Office", ethernet.Name);
+        Assert.AreEqual(ConnectionState.Connected, ethernet.State);
+        Assert.AreEqual(wiredId.ToString(), ethernet.Device.Id);
+        Assert.IsEmpty(ethernet.SavedProfiles);
+        Assert.IsEmpty(WifiCommands(ethernet.GetType()));
+        Assert.IsEmpty(WifiCommands(typeof(Winshell.Network.Network)));
+        Assert.AreSequenceEqual(["Connect", "ConnectWithPassword", "ConnectWithProfile", "Disconnect", "Forget"],
             WifiCommands(wireless.GetType()).Order(StringComparer.Ordinal).ToArray());
-        Assert.Empty(session.Backend.Calls);
+        Assert.IsEmpty(session.Backend.Calls);
     }
 
     private static bool IsNetworkList(PropertyInfo property)
@@ -714,11 +715,11 @@ public sealed class NetworkingServiceTests
 
         public NetworkingService Service { get; }
 
-        public WifiDevice Device => Assert.IsType<WifiDevice>(Assert.Single(Service.Devices));
+        public WifiDevice Device => Assert.IsExactInstanceOfType<WifiDevice>(Assert.ContainsSingle(Service.Devices));
 
-        public WifiNetwork Network => Assert.IsType<WifiNetwork>(Device.Networks[0]);
+        public WifiNetwork Network => Assert.IsExactInstanceOfType<WifiNetwork>(Device.Networks[0]);
 
-        public WifiProfile Profile => Assert.Single(Network.SavedProfiles);
+        public WifiProfile Profile => Assert.ContainsSingle(Network.SavedProfiles);
 
         public void Show(NetworkSnapshot snapshot)
         {
@@ -795,7 +796,7 @@ public sealed class NetworkingServiceTests
         public Task<string?> ScanAsync(Guid device)
         {
             Calls.Add("scan");
-            Assert.Equal(AdapterId, device);
+            Assert.AreEqual(AdapterId, device);
             return Failure is { } e ? Task.FromException<string?>(e) : Task.FromResult(ScanResult);
         }
 
@@ -811,7 +812,7 @@ public sealed class NetworkingServiceTests
         public Task<string?> DisconnectAsync(Guid device)
         {
             Calls.Add("disconnect");
-            Assert.Equal(AdapterId, device);
+            Assert.AreEqual(AdapterId, device);
             return Task.FromResult<string?>(null);
         }
 

@@ -94,20 +94,20 @@ dotnet run --project src/Winshell -- kill -i <id>
 ## Run one test
 
 ```powershell
-dotnet test tests/Winshell.Core.Tests --filter FullyQualifiedName~DirectoryWatchTests
+dotnet test --project tests/Winshell.Core.Tests --filter FullyQualifiedName~DirectoryWatchTests
 ```
 
-`--filter` takes a class or a test name. `Winshell.Architecture.Tests`, `Winshell.Core.Tests`, `Winshell.Services.Tests`, `Winshell.Shell.Tests` and `Winshell.Tests` open no windows, so they're safe to run while you work, except for a test in the category `Window`, such as `FocusTakeoverTests` in the Services suite, `PanelWindowTests` in the Shell suite or `InspectCommandTests` in the CLI suite. `--filter Category!=Window` leaves those out.
+`--filter` takes a class or a test name. `Winshell.Architecture.Tests`, `Winshell.Core.Tests`, `Winshell.Services.Tests`, `Winshell.Shell.Tests` and `Winshell.Tests` open no windows, so they're safe to run while you work, except for a test in the category `Window`, such as `FocusTakeoverTests` in the Services suite, `PanelWindowTests` in the Shell suite or `InspectCommandTests` in the CLI suite. `--filter TestCategory!=Window` leaves those out.
 
 ### A windowed test
 
-A test is windowed when it shows a window on the desktop, takes the foreground, sends real input, or hides Explorer's taskbar. It carries `[Trait("Category", "Window")]`. The full check leaves them all out, and CI's [test shards](#test-shards) run them on every PR.
+A test is windowed when it shows a window on the desktop, takes the foreground, sends real input, or hides Explorer's taskbar. It carries `[TestCategory("Window")]`. The full check leaves them all out, and CI's [test shards](#test-shards) run them on every PR.
 
 To run one on purpose, such as a test you changed, to see it fail and then pass, follow [Live UI with Winland running](#live-ui-with-winland-running):
 
 ```powershell
-dotnet test tests/Winshell.Shell.Tests --filter FullyQualifiedName~PanelWindowTests
-dotnet test tests/Winshell.Services.Tests --filter Category=Window
+dotnet test --project tests/Winshell.Shell.Tests --filter FullyQualifiedName~PanelWindowTests
+dotnet test --project tests/Winshell.Services.Tests --filter TestCategory=Window
 ```
 
 ## Live UI with Winland running
@@ -168,7 +168,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 
 | Command | What it does |
 | --- | --- |
-| `pwsh scripts/check.ps1 [-Tier Tests\|Docs\|Package] [-Seed <seed>] [-NoBuild]` | By default, builds, verifies formatting, and runs the .NET tests that open no windows and the PowerShell suites. See [The full check](#the-full-check). |
+| `pwsh scripts/check.ps1 [-Tier Tests\|Docs\|Package] [-NoBuild]` | By default, builds, verifies formatting, and runs the .NET tests that open no windows and the PowerShell suites. See [The full check](#the-full-check). |
 | `pwsh -NoProfile scripts/check.ps1 -Lint` | Checks Markdown links and workflows, without building. See [Lint](#lint). |
 | `Invoke-Pester -Path tests/Scripts/<Name>.Tests.ps1` | Runs one of the PowerShell suites `check.ps1` runs, each named after the script or tooling it tests. None changes the checkout or GitHub. Requires the Pester version in `scripts/tool-pins.psd1` and PowerShell 7; `Install.Tests.ps1` also runs on Windows PowerShell 5.1. |
 | `pwsh -NoProfile scripts/format.ps1 [-VerifyNoChanges]` | Formats handwritten C# files, or verifies them. See [What the formatter covers](#what-the-formatter-covers). |
@@ -194,8 +194,7 @@ It opens no windows, so any number of agents can run it at once, one per worktre
 | --- | --- |
 | `-Tier Tests` | The default. |
 | `-Tier Docs` | Selects only `DocsTests`. |
-| `-Tier Package` | Selects only the packed shell deployment tests (`Category=Package`), which the default leaves out: it packs the library, creates the starter with `winshell new`, builds it and runs it. |
-| `-Seed <seed>` | Replays the randomized .NET test order. |
+| `-Tier Package` | Selects only the packed shell deployment tests (`TestCategory=Package`), which the default leaves out: it packs the library, creates the starter with `winshell new`, builds it and runs it. |
 | `-NoBuild` | Uses an existing solution build. Template and reference-program compilation still run. |
 
 - Missing the Pester version in `scripts/tool-pins.psd1` fails with an installation command; it is never silently skipped or downloaded.
@@ -223,7 +222,7 @@ Install the lychee, actionlint and zizmor versions named in [`scripts/tool-pins.
 
 - **The library** carries `Winshell.Native`, `Winshell.Core`, `Winshell.Services` and `Winshell.Shell`, and depends on `Microsoft.WindowsAppSDK.WinUI`, `Microsoft.WindowsAppSDK.Foundation`, `Microsoft.WindowsAppSDK.Runtime` and `Microsoft.UI.Reactor` at the versions in `Directory.Packages.props`. Runtime is pinned to the same Windows App SDK version as WinUI: Reactor's minimum is older, and that older package rejects a newer WinUI. CsWin32 generates Native's declarations at build time and is not a package consumer dependency.
 - **The library is not published to a feed.** `scripts/package.ps1` puts the library in each release.
-- The Package workflow runs the `Category=Package` tests, which call `scripts/pack.ps1`, create the starter with `winshell new` and build and run it against that library.
+- The Package workflow runs the `TestCategory=Package` tests, which call `scripts/pack.ps1`, create the starter with `winshell new` and build and run it against that library.
 - `-Out` chooses the folder, and `-Version` overrides the release from `.release-please-manifest.json`.
 
 ### Package a release
@@ -486,7 +485,7 @@ How a version is cut, tagged, stamped, and published is [Releasing](releasing.md
 │   ├── Winshell.Services.Tests/     # The services; only the category Window opens a window
 │   ├── Winshell.Shell.Tests/        # A real shell and the event-loop contract; only the category Window opens a window
 │   ├── Winshell.Tests/              # Runs winshell.exe instances side by side; only the category Window opens a window
-│   ├── Winshell.Package.Tests/      # Packs the library and runs the starter from winshell new; Category=Package, left out of the main run
+│   ├── Winshell.Package.Tests/      # Packs the library and runs the starter from winshell new; TestCategory=Package, left out of the main run
 │   ├── Scripts/                     # PowerShell tooling tests and their fixtures
 │   ├── TestSupport/                 # Source files every test project links instead of copying
 │   └── Directory.Build.props        # What every test project shares

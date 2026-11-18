@@ -9,7 +9,8 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class PanelWindowTests
 {
     private static PanelWindow Panel(FrameworkElement content)
@@ -24,7 +25,7 @@ public sealed class PanelWindowTests
         };
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_panel_lays_out_its_content_at_the_size_it_was_given()
     {
         var size = await ShellFixture.On(async _ =>
@@ -36,10 +37,10 @@ public sealed class PanelWindowTests
             return (content.ActualWidth, content.ActualHeight, panel.ActualWidth, panel.ActualHeight);
         });
 
-        Assert.Equal((320d, 60d, 320d, 60d), size);
+        Assert.AreEqual((320d, 60d, 320d, 60d), size);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_panel_keeps_the_styles_that_stop_it_taking_activation()
     {
         var styles = await ShellFixture.On(_ =>
@@ -49,14 +50,14 @@ public sealed class PanelWindowTests
             return (uint)PInvoke.GetWindowLongPtr((HWND)panel.Host!.Handle, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
         });
 
-        Assert.Equal((uint)WINDOW_EX_STYLE.WS_EX_NOACTIVATE, styles & (uint)WINDOW_EX_STYLE.WS_EX_NOACTIVATE);
-        Assert.Equal((uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW, styles & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW);
-        Assert.Equal((uint)WINDOW_EX_STYLE.WS_EX_TOPMOST, styles & (uint)WINDOW_EX_STYLE.WS_EX_TOPMOST);
-        Assert.Equal((uint)WINDOW_EX_STYLE.WS_EX_NOREDIRECTIONBITMAP,
+        Assert.AreEqual((uint)WINDOW_EX_STYLE.WS_EX_NOACTIVATE, styles & (uint)WINDOW_EX_STYLE.WS_EX_NOACTIVATE);
+        Assert.AreEqual((uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW, styles & (uint)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW);
+        Assert.AreEqual((uint)WINDOW_EX_STYLE.WS_EX_TOPMOST, styles & (uint)WINDOW_EX_STYLE.WS_EX_TOPMOST);
+        Assert.AreEqual((uint)WINDOW_EX_STYLE.WS_EX_NOREDIRECTIONBITMAP,
             styles & (uint)WINDOW_EX_STYLE.WS_EX_NOREDIRECTIONBITMAP);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_panel_draws_its_content()
     {
         var pixels = await ShellFixture.On(async _ =>
@@ -71,11 +72,11 @@ public sealed class PanelWindowTests
             return (bitmap.PixelWidth, Bytes: buffer.ToArray());
         });
 
-        Assert.True(pixels.PixelWidth > 0);
-        Assert.Equal([0, 0, 255, 255], pixels.Bytes[..4]);
+        Assert.IsTrue(pixels.PixelWidth > 0);
+        Assert.AreSequenceEqual<byte>([0, 0, 255, 255], pixels.Bytes[..4]);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_disposed_panel_destroys_its_native_window()
     {
         var alive = await ShellFixture.On(_ =>
@@ -87,6 +88,6 @@ public sealed class PanelWindowTests
             return PInvoke.IsWindow((HWND)handle);
         });
 
-        Assert.False(alive);
+        Assert.IsFalse(alive);
     }
 }

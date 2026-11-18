@@ -8,6 +8,7 @@ using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class TrayBackendTests : IDisposable
 {
     private static readonly uint TaskbarCreated = PInvoke.RegisterWindowMessage("TaskbarCreated");
@@ -17,60 +18,60 @@ public sealed class TrayBackendTests : IDisposable
     private readonly List<TrayBackend> _backends = [];
     private readonly nint _app;
 
-    public TrayBackendTests(ITestOutputHelper output)
+    public TrayBackendTests(TestContext output)
     {
         _log = new Log { Sink = (_, category, message) => output.WriteLine($"{category}: {message}") };
         _app = NativeWindow.OfClass("STATIC", "", 0, 0, 0, 0, 0, HWND.HWND_MESSAGE, 0);
-        Assert.NotEqual(0, _app);
+        Assert.AreNotEqual(0, _app);
     }
 
     private string ExplorerClass => $"WinshellTestExplorer-{_id}";
 
     private TrayNames HostNames => new($"WinshellTestTray-{_id}", ExplorerClass, $@"Local\winshell-test-tray-{_id}");
 
-    [Fact]
+    [TestMethod]
     public void Apps_reach_the_host_and_explorer_still_gets_every_message()
     {
         var explorer = OpenExplorer();
         var host = Open(HostNames);
-        Assert.NotEqual(0, host.Window);
+        Assert.AreNotEqual(0, host.Window);
 
         Send(host.Window, TrayCall.Build(TrayProtocol.Add, (int)_app, 1, TrayProtocol.NIF_TIP, tip: "Backup"));
-        Assert.Equal("Backup", Assert.Single(host.Icons).Tip);
-        Assert.Equal("Backup", Assert.Single(explorer.Icons).Tip);
+        Assert.AreEqual("Backup", Assert.ContainsSingle(host.Icons).Tip);
+        Assert.AreEqual("Backup", Assert.ContainsSingle(explorer.Icons).Tip);
 
         Send(host.Window, new byte[16], 0);
 
         Send(host.Window, TrayCall.Build(TrayProtocol.Delete, (int)_app, 1, 0));
-        Assert.Empty(host.Icons);
-        Assert.Empty(explorer.Icons);
+        Assert.IsEmpty(host.Icons);
+        Assert.IsEmpty(explorer.Icons);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_app_that_changes_an_icon_the_host_does_not_have_is_told_so_and_adds_it()
     {
         var explorer = OpenExplorer();
         var host = Open(HostNames);
         var guid = Guid.NewGuid();
         var flags = TrayProtocol.NIF_TIP | TrayProtocol.NIF_GUID;
-        Assert.Equal(1,
+        Assert.AreEqual(1,
             Send(explorer.Window, TrayCall.Build(TrayProtocol.Add, (int)_app, 1, flags, tip: "Security", guid: guid)));
-        Assert.Equal(0,
+        Assert.AreEqual(0,
             Send(host.Window, TrayCall.Build(TrayProtocol.Modify, (int)_app, 1, flags, tip: "Security", guid: guid)));
-        Assert.Empty(host.Icons);
+        Assert.IsEmpty(host.Icons);
 
-        Assert.Equal(1,
+        Assert.AreEqual(1,
             Send(host.Window, TrayCall.Build(TrayProtocol.Add, (int)_app, 1, flags, tip: "Security", guid: guid)));
-        Assert.Equal(1,
+        Assert.AreEqual(1,
             Send(host.Window, TrayCall.Build(TrayProtocol.Modify, (int)_app, 1, flags, tip: "Secure", guid: guid)));
-        Assert.Equal("Secure", Assert.Single(host.Icons).Tip);
+        Assert.AreEqual("Secure", Assert.ContainsSingle(host.Icons).Tip);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_broadcast_reaches_message_only_windows_while_others_come_and_go()
     {
         var window = NativeWindow.OfClass("STATIC", "", 0, 0, 0, 0, 0, HWND.HWND_MESSAGE, 0);
-        Assert.NotEqual(0, window);
+        Assert.AreNotEqual(0, window);
         var stop = new StrongBox<bool>(false);
         var churn = new Thread(() =>
         {
@@ -90,14 +91,14 @@ public sealed class TrayBackendTests : IDisposable
         finally
         {
             Volatile.Write(ref stop.Value, true);
-            Assert.True(churn.Join(TimeSpan.FromMinutes(1)), "The thread that opens and closes windows did not stop");
+            Assert.IsTrue(churn.Join(TimeSpan.FromMinutes(1)), "The thread that opens and closes windows did not stop");
             PInvoke.DestroyWindow((HWND)window);
         }
 
         Assert.DoesNotContain(window, WindowTree.MessageOnly());
     }
 
-    [Fact]
+    [TestMethod]
     public void A_restarted_explorer_is_heard_and_gets_the_messages()
     {
         var explorer = OpenExplorer();
@@ -108,49 +109,49 @@ public sealed class TrayBackendTests : IDisposable
         Close(explorer);
         explorer = OpenExplorer();
         PInvoke.SendMessage((HWND)host.Window, TaskbarCreated, 0, 0);
-        Assert.Equal(1, created);
+        Assert.AreEqual(1, created);
 
         Send(host.Window, TrayCall.Build(TrayProtocol.Add, (int)_app, 1, TrayProtocol.NIF_TIP, tip: "Again"));
-        Assert.Equal("Again", Assert.Single(explorer.Icons).Tip);
+        Assert.AreEqual("Again", Assert.ContainsSingle(explorer.Icons).Tip);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
     public void The_next_instance_has_the_notification_area_once_the_owner_exits_or_crashes(bool clean)
     {
         var names = HostNames;
         var owner = new OtherInstance(names, _log);
         var next = new TrayBackend(_loop, _log, names);
         _backends.Add(next);
-        Assert.False(next.TryOwn());
+        Assert.IsFalse(next.TryOwn());
 
         var window = owner.Window;
         owner.Exit(clean);
         if (clean)
-            Assert.False(PInvoke.IsWindow((HWND)window));
+            Assert.IsFalse(PInvoke.IsWindow((HWND)window));
 
         Wait.Until(next.TryOwn, "the next instance to own the notification area");
-        Assert.True(next.Open(_ => true));
-        Assert.NotEqual(0, next.Window);
+        Assert.IsTrue(next.Open(_ => true));
+        Assert.AreNotEqual(0, next.Window);
     }
 
-    [Fact]
+    [TestMethod]
     public void Lower_puts_the_host_behind_explorers_taskbar_and_raise_puts_it_back_in_front()
     {
         var explorer = OpenExplorer();
         var host = Open(HostNames);
         host.Backend.Raise();
-        Assert.True(Above(host.Window, explorer.Window));
+        Assert.IsTrue(Above(host.Window, explorer.Window));
 
-        Assert.True(host.Backend.Lower());
-        Assert.True(Above(explorer.Window, host.Window));
+        Assert.IsTrue(host.Backend.Lower());
+        Assert.IsTrue(Above(explorer.Window, host.Window));
 
         host.Backend.Raise();
-        Assert.True(Above(host.Window, explorer.Window));
+        Assert.IsTrue(Above(host.Window, explorer.Window));
     }
 
-    [Fact]
+    [TestMethod]
     public void Commands_posted_to_the_host_reach_explorers_taskbar()
     {
         var explorer = new ExplorerThread(ExplorerNames, _log);
@@ -166,8 +167,8 @@ public sealed class TrayBackendTests : IDisposable
 
             foreach (var command in commands)
             {
-                Assert.True(explorer.Posted.TryTake(out var posted, TimeSpan.FromSeconds(5)));
-                Assert.Equal(command, posted);
+                Assert.IsTrue(explorer.Posted.TryTake(out var posted, TimeSpan.FromSeconds(5)));
+                Assert.AreEqual(command, posted);
             }
         }
         finally
@@ -176,7 +177,7 @@ public sealed class TrayBackendTests : IDisposable
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void A_busy_explorer_holds_up_an_icon_only_briefly()
     {
         using var busy = new ManualResetEventSlim();
@@ -184,13 +185,13 @@ public sealed class TrayBackendTests : IDisposable
         try
         {
             var host = Open(HostNames);
-            Assert.Equal(1,
+            Assert.AreEqual(1,
                 Send(host.Window, TrayCall.Build(TrayProtocol.Add, (int)_app, 1, TrayProtocol.NIF_TIP, tip: "Backup")));
             var fastest = TimeSpan.MaxValue;
             for (var i = 0; i < 3; i++)
             {
                 var started = TimeProvider.System.GetTimestamp();
-                Assert.Equal(1,
+                Assert.AreEqual(1,
                     Send(host.Window,
                         TrayCall.Build(TrayProtocol.Modify, (int)_app, 1, TrayProtocol.NIF_TIP, tip: "Backup")));
                 var elapsed = TimeProvider.System.GetElapsedTime(started);
@@ -198,8 +199,8 @@ public sealed class TrayBackendTests : IDisposable
                     fastest = elapsed;
             }
 
-            Assert.Equal("Backup", Assert.Single(host.Icons).Tip);
-            Assert.True(fastest < TimeSpan.FromSeconds(1),
+            Assert.AreEqual("Backup", Assert.ContainsSingle(host.Icons).Tip);
+            Assert.IsTrue(fastest < TimeSpan.FromSeconds(1),
                 $"The icon waited {fastest.TotalMilliseconds} ms for Explorer");
         }
         finally
@@ -239,8 +240,8 @@ public sealed class TrayBackendTests : IDisposable
                 })
             { IsBackground = true };
             _thread.Start();
-            _started.Wait(TestContext.Current.CancellationToken);
-            Assert.NotEqual(0, Window);
+            _started.Wait(CurrentTest.Cancellation);
+            Assert.AreNotEqual(0, Window);
         }
 
         public nint Window { get; private set; }
@@ -250,17 +251,17 @@ public sealed class TrayBackendTests : IDisposable
         public void Exit()
         {
             PInvoke.PostMessage((HWND)Window, Quit, 0, 0);
-            Assert.True(_thread.Join(TimeSpan.FromMinutes(1)), "The stand-in Explorer did not exit");
+            Assert.IsTrue(_thread.Join(TimeSpan.FromMinutes(1)), "The stand-in Explorer did not exit");
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void Explorer_coming_to_the_front_is_signalled_without_waiting_for_a_timer()
     {
         var explorer = OpenExplorer();
         var host = Open(HostNames);
         host.Backend.Raise();
-        Assert.True(Above(host.Window, explorer.Window));
+        Assert.IsTrue(Above(host.Window, explorer.Window));
         var signals = 0;
         host.Backend.ExplorerInFront += () => signals++;
 
@@ -272,7 +273,7 @@ public sealed class TrayBackendTests : IDisposable
             while (PInvoke.PeekMessage(out var msg, HWND.Null, 0, 0, PEEK_MESSAGE_REMOVE_TYPE.PM_REMOVE))
                 PInvoke.DispatchMessage(msg);
         });
-        Assert.True(Above(explorer.Window, host.Window));
+        Assert.IsTrue(Above(explorer.Window, host.Window));
     }
 
     private static bool Above(nint upper, nint lower)
@@ -285,13 +286,13 @@ public sealed class TrayBackendTests : IDisposable
         return false;
     }
 
-    [Fact]
+    [TestMethod]
     public void An_icon_from_a_resource_is_drawn_again_at_the_size_asked_for()
     {
         using var loaded = OwnedIcon.Load(Path.Combine(Environment.SystemDirectory, "shell32.dll"), 4, "", 16);
-        Assert.NotNull(loaded);
+        Assert.IsNotNull(loaded);
         var copied = PInvoke.CopyIcon((HICON)loaded.Handle);
-        Assert.NotEqual(0, (nint)copied);
+        Assert.AreNotEqual(0, (nint)copied);
         try
         {
             var host = Open(HostNames);
@@ -301,9 +302,9 @@ public sealed class TrayBackendTests : IDisposable
                 TrayCall.Build(TrayProtocol.Add, (int)_app, 2, TrayProtocol.NIF_ICON, icon: (int)(nint)copied));
             var fromResource = host.Icons.Single(i => i.Id == 1);
             var drawn = host.Icons.Single(i => i.Id == 2);
-            Assert.NotNull(fromResource.Resource);
-            Assert.Null(drawn.Resource);
-            Assert.Equal(16, fromResource.Image?.Width);
+            Assert.IsNotNull(fromResource.Resource);
+            Assert.IsNull(drawn.Resource);
+            Assert.AreEqual(16, fromResource.Image?.Width);
         }
         finally
         {
@@ -311,7 +312,7 @@ public sealed class TrayBackendTests : IDisposable
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void An_apps_callback_reaches_its_window()
     {
         var seen = new List<string>();
@@ -336,7 +337,7 @@ public sealed class TrayBackendTests : IDisposable
             GC.KeepAlive(record);
         }
 
-        Assert.Equal(["callback 1 201", "callback 1 202"], seen);
+        Assert.AreSequenceEqual(["callback 1 201", "callback 1 202"], seen);
     }
 
     private delegate nint WindowProc(nint hwnd, uint msg, nint wParam, nint lParam);
@@ -360,8 +361,8 @@ public sealed class TrayBackendTests : IDisposable
         _backends.Add(backend);
         var icons = new TrayIcons(backend.ReadIcon,
             window => ((int)backend.ProcessOf(window), backend.ProgramOf(window)));
-        Assert.True(backend.TryOwn());
-        Assert.True(backend.Open(icons.Apply));
+        Assert.IsTrue(backend.TryOwn());
+        Assert.IsTrue(backend.Open(icons.Apply));
         return new Host(backend, icons);
     }
 
@@ -418,8 +419,8 @@ public sealed class TrayBackendTests : IDisposable
                     backend.Dispose();
             });
             _thread.Start();
-            _started.Wait(TestContext.Current.CancellationToken);
-            Assert.NotEqual(0, Window);
+            _started.Wait(CurrentTest.Cancellation);
+            Assert.AreNotEqual(0, Window);
         }
 
         public nint Window { get; private set; }
@@ -428,7 +429,7 @@ public sealed class TrayBackendTests : IDisposable
         {
             _clean = clean;
             _exit.Set();
-            Assert.True(_thread.Join(TimeSpan.FromMinutes(1)), "The other instance did not exit");
+            Assert.IsTrue(_thread.Join(TimeSpan.FromMinutes(1)), "The other instance did not exit");
         }
     }
 }

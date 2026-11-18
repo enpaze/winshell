@@ -3,6 +3,7 @@ using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class SystemTrayTests
 {
     private const nint App = 0x100;
@@ -49,7 +50,7 @@ public sealed class SystemTrayTests
         return changes;
     }
 
-    [Fact]
+    [TestMethod]
     public void An_icon_keeps_its_item_and_only_what_differs_changes()
     {
         using var tray = Tray();
@@ -67,29 +68,29 @@ public sealed class SystemTrayTests
         _backend.Send(change);
         _backend.Send(change);
 
-        Assert.Same(item, Assert.Single(tray.Items));
-        Assert.Equal([nameof(SystemTrayItem.Icon), nameof(SystemTrayItem.Tooltip)], changes);
-        Assert.Equal("Changed", item.Tooltip);
-        Assert.Same(image, item.Icon);
+        Assert.AreSame(item, Assert.ContainsSingle(tray.Items));
+        Assert.AreSequenceEqual([nameof(SystemTrayItem.Icon), nameof(SystemTrayItem.Tooltip)], changes);
+        Assert.AreEqual("Changed", item.Tooltip);
+        Assert.AreSame(image, item.Icon);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_icon_the_app_hides_leaves_the_list_until_it_shows_it_again()
     {
         using var tray = Tray();
         _backend.Send(Add());
 
         _backend.Send(Hide(true));
-        Assert.Empty(tray.Items);
+        Assert.IsEmpty(tray.Items);
 
         _backend.Send(Hide(false));
-        Assert.Single(tray.Items);
+        Assert.ContainsSingle(tray.Items);
 
         _backend.Send(Call(TrayProtocol.Delete));
-        Assert.Empty(tray.Items);
+        Assert.IsEmpty(tray.Items);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_item_is_ready_once_it_is_listed()
     {
         using var tray = Tray();
@@ -100,14 +101,14 @@ public sealed class SystemTrayTests
         _loop.Process();
         _loop.Process();
 
-        Assert.Equal(1, ready);
+        Assert.AreEqual(1, ready);
     }
 
-    [Theory]
-    [InlineData(0u, BalloonIcon.None)]
-    [InlineData(2u | 0x10u, BalloonIcon.Warning)]
-    [InlineData(4u, BalloonIcon.App)]
-    [InlineData(9u, BalloonIcon.None)]
+    [TestMethod]
+    [DataRow(0u, BalloonIcon.None)]
+    [DataRow(2u | 0x10u, BalloonIcon.Warning)]
+    [DataRow(4u, BalloonIcon.App)]
+    [DataRow(9u, BalloonIcon.None)]
     public void A_balloon_reaches_its_item(uint flags, BalloonIcon expected)
     {
         using var tray = Tray();
@@ -122,10 +123,10 @@ public sealed class SystemTrayTests
             InfoFlags = flags
         });
 
-        Assert.Equal(("Title", "Message", expected), Assert.Single(balloons));
+        Assert.AreEqual(("Title", "Message", expected), Assert.ContainsSingle(balloons));
     }
 
-    [Fact]
+    [TestMethod]
     public void Clicks_reach_the_app_with_the_point_they_name()
     {
         using var tray = Tray();
@@ -142,7 +143,7 @@ public sealed class SystemTrayTests
             () => item.Display(10, 20)
         ];
 
-        Assert.Equal(
+        Assert.AreSequenceEqual(
         [
             "201 202 400 at 5,6",
             "201 202 400 203 202 400 at 5,6",
@@ -161,22 +162,23 @@ public sealed class SystemTrayTests
             $"{string.Join(" ", _backend.Notified.Select(sent => $"{sent.LParam & 0xffff:x}"))} at {point & 0xffff},{point >> 16}";
     }
 
-    [Fact]
+    [TestMethod]
     public void A_system_message_is_never_an_icons_callback()
     {
         using var tray = Tray();
         _backend.Send(Call(TrayProtocol.Add, TrayProtocol.NIF_MESSAGE) with { CallbackMessage = 0x8001 });
         tray.Items[0].Click();
-        Assert.All(_backend.Notified, sent => Assert.Equal(0x8001u, sent.Message));
-        Assert.NotEmpty(_backend.Notified);
+        foreach (var sent in _backend.Notified)
+            Assert.AreEqual(0x8001u, sent.Message);
+        Assert.IsNotEmpty(_backend.Notified);
 
         _backend.Send(Call(TrayProtocol.Modify, TrayProtocol.NIF_MESSAGE) with { CallbackMessage = 0x0010 });
         _backend.Notified.Clear();
         tray.Items[0].Click();
-        Assert.Empty(_backend.Notified);
+        Assert.IsEmpty(_backend.Notified);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_icon_with_no_resource_is_the_apps_own_bitmap_at_any_size()
     {
         using var tray = Tray();
@@ -184,10 +186,10 @@ public sealed class SystemTrayTests
         _backend.Images[0x42] = image;
         _backend.Send(Call(TrayProtocol.Add, TrayProtocol.NIF_ICON) with { Icon = 0x42 });
 
-        Assert.Same(image, tray.Items[0].IconAt(32));
+        Assert.AreSame(image, tray.Items[0].IconAt(32));
     }
 
-    [Fact]
+    [TestMethod]
     public void Changing_an_icons_bitmap_raises_the_icon()
     {
         using var tray = Tray();
@@ -201,10 +203,10 @@ public sealed class SystemTrayTests
         _backend.Send(Call(TrayProtocol.Modify, TrayProtocol.NIF_ICON) with { Icon = 0x43 });
 
         Assert.Contains(nameof(SystemTrayItem.Icon), changes);
-        Assert.Same(changed, item.IconAt(32));
+        Assert.AreSame(changed, item.IconAt(32));
     }
 
-    [Fact]
+    [TestMethod]
     public void An_icon_from_a_resource_is_drawn_again_at_a_new_size()
     {
         using var tray = Tray();
@@ -217,51 +219,51 @@ public sealed class SystemTrayTests
         _backend.Send(Call(TrayProtocol.Add, TrayProtocol.NIF_ICON) with { Icon = 0x42 });
         var item = tray.Items[0];
 
-        Assert.Same(sharp, item.IconAt(32));
-        Assert.Same(image, item.IconAt(16));
-        Assert.Same(image, item.IconAt(48));
+        Assert.AreSame(sharp, item.IconAt(32));
+        Assert.AreSame(image, item.IconAt(16));
+        Assert.AreSame(image, item.IconAt(48));
     }
 
-    [Fact]
+    [TestMethod]
     public void Windows_settings_move_an_icon_onto_the_taskbar()
     {
         const string program = @"C:\Apps\sync.exe";
         _backend.Programs[App] = program;
         using var tray = Tray();
         _backend.Send(Add());
-        Assert.True(tray.Items[0].Overflow);
+        Assert.IsTrue(tray.Items[0].Overflow);
 
         _backend.Settings.Add(new TrayIconSetting(Guid.Empty, program, 1, true));
         _backend.SignalSettingsChanged();
 
-        Assert.False(tray.Items[0].Overflow);
+        Assert.IsFalse(tray.Items[0].Overflow);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_tray_waits_for_the_instance_that_has_the_notification_area_and_takes_over_when_it_exits()
     {
         _backend.Taken = true;
         using var tray = Tray();
-        Assert.False(_backend.IsOpen);
+        Assert.IsFalse(_backend.IsOpen);
         _loop.Advance(TimeSpan.FromSeconds(1));
-        Assert.False(_backend.IsOpen);
-        Assert.Equal(0, Broadcasts);
+        Assert.IsFalse(_backend.IsOpen);
+        Assert.AreEqual(0, Broadcasts);
 
         _backend.Taken = false;
         _loop.Advance(TimeSpan.FromMilliseconds(500));
-        Assert.True(_backend.IsOpen);
-        Assert.Equal(1, Broadcasts);
+        Assert.IsTrue(_backend.IsOpen);
+        Assert.AreEqual(1, Broadcasts);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_active_tray_has_no_half_second_poll()
     {
         using var tray = Tray();
-        Assert.True(_backend.IsOpen);
-        Assert.Equal(TimeSpan.FromSeconds(30), _loop.NextDue - _loop.Now);
+        Assert.IsTrue(_backend.IsOpen);
+        Assert.AreEqual(TimeSpan.FromSeconds(30), _loop.NextDue - _loop.Now);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_icon_whose_window_is_gone_leaves_at_the_next_check()
     {
         using var tray = Tray();
@@ -269,12 +271,12 @@ public sealed class SystemTrayTests
         _backend.Windows.Remove(App);
 
         _loop.Advance(TimeSpan.FromSeconds(29));
-        Assert.Single(tray.Items);
+        Assert.ContainsSingle(tray.Items);
         _loop.Advance(TimeSpan.FromSeconds(1));
-        Assert.Empty(tray.Items);
+        Assert.IsEmpty(tray.Items);
     }
 
-    [Fact]
+    [TestMethod]
     public void Explorer_coming_to_the_front_raises_the_tray_without_waiting_for_a_timer()
     {
         using var tray = Tray();
@@ -282,33 +284,33 @@ public sealed class SystemTrayTests
 
         _backend.SignalExplorerInFront();
 
-        Assert.Equal(["raise"], _backend.Calls);
+        Assert.AreSequenceEqual(["raise"], _backend.Calls);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_restarted_explorer_is_answered_once()
     {
         using var tray = Tray();
-        Assert.Equal(1, Broadcasts);
+        Assert.AreEqual(1, Broadcasts);
 
         _backend.SignalTaskbarCreated();
         _loop.Advance(TimeSpan.FromSeconds(2));
-        Assert.Equal(1, Broadcasts);
+        Assert.AreEqual(1, Broadcasts);
 
         _backend.Explorer = 0;
         _loop.Advance(TimeSpan.FromSeconds(1));
         _backend.Explorer = 0x600;
         _backend.SignalTaskbarCreated();
-        Assert.Equal(1, Broadcasts);
+        Assert.AreEqual(1, Broadcasts);
         _loop.Advance(TimeSpan.FromSeconds(1));
-        Assert.Equal(2, Broadcasts);
+        Assert.AreEqual(2, Broadcasts);
 
         _backend.SignalTaskbarCreated();
         _loop.Advance(TimeSpan.FromSeconds(2));
-        Assert.Equal(2, Broadcasts);
+        Assert.AreEqual(2, Broadcasts);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_app_bar_message_lowers_each_open_tray_behind_Explorers_taskbar_and_raises_it_again()
     {
         using (Tray())
@@ -317,16 +319,16 @@ public sealed class SystemTrayTests
 
             AppBarMessages.Autohide(0);
 
-            Assert.Equal(["lower", "raise"], _backend.Calls);
+            Assert.AreSequenceEqual(["lower", "raise"], _backend.Calls);
         }
 
         _backend.Calls.Clear();
         AppBarMessages.Autohide(0);
 
-        Assert.Empty(_backend.Calls);
+        Assert.IsEmpty(_backend.Calls);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_disposed_tray_gives_the_notification_area_up_and_stops_following_it()
     {
         var tray = Tray();
@@ -338,21 +340,21 @@ public sealed class SystemTrayTests
         tray.Dispose();
         _loop.Advance(TimeSpan.FromSeconds(30));
 
-        Assert.Single(tray.Items);
-        Assert.Equal(0, ready);
-        Assert.False(_backend.IsOpen);
-        Assert.Equal(["close", "broadcast", "dispose"], _backend.Calls);
+        Assert.ContainsSingle(tray.Items);
+        Assert.AreEqual(0, ready);
+        Assert.IsFalse(_backend.IsOpen);
+        Assert.AreSequenceEqual(["close", "broadcast", "dispose"], _backend.Calls);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_image_is_drawn_from_a_local_module_with_straight_alpha()
     {
         var image = IconImage.FromResource(
             new IconResource(Path.Combine(Environment.SystemDirectory, "shell32.dll"), 3, ""), 32);
 
-        Assert.NotNull(image);
-        Assert.Equal(32, image.Width);
-        Assert.Equal(32 * 32 * 4, image.Bgra.Length);
-        Assert.False(image.Premultiplied);
+        Assert.IsNotNull(image);
+        Assert.AreEqual(32, image.Width);
+        Assert.AreEqual(32 * 32 * 4, image.Bgra.Length);
+        Assert.IsFalse(image.Premultiplied);
     }
 }

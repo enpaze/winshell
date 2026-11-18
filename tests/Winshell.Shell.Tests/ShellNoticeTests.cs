@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Media;
 
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed partial class ShellNoticeTests : IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
@@ -49,41 +50,41 @@ public sealed partial class ShellNoticeTests : IDisposable
         return new Closes(this);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_file_that_does_not_read_shows_until_it_is_fixed()
     {
         _notices.FollowFileErrors();
         _log.ReportFileError(@"C:\config\preferences.toml", "preferences.toml[3:1]: expected a value");
 
-        var notice = Assert.Single(_shown);
-        Assert.Equal(NoticeKind.FileError, notice.Kind);
-        Assert.Equal("preferences.toml", notice.Detail);
+        var notice = Assert.ContainsSingle(_shown);
+        Assert.AreEqual(NoticeKind.FileError, notice.Kind);
+        Assert.AreEqual("preferences.toml", notice.Detail);
         Assert.Contains("[3:1]", notice.Body, StringComparison.Ordinal);
-        Assert.Equal(TimeSpan.Zero, notice.Timeout);
+        Assert.AreEqual(TimeSpan.Zero, notice.Timeout);
 
         _log.ReportFileError(@"C:\config\preferences.toml", "");
 
-        Assert.Null(_notices.Current);
+        Assert.IsNull(_notices.Current);
     }
 
-    [Fact]
+    [TestMethod]
     public void Fixing_one_file_leaves_the_notice_of_another()
     {
         _notices.ShowFileError(@"C:\config\launcher.toml", "broken");
 
         _notices.ShowFileError(@"C:\config\preferences.toml", "");
 
-        Assert.NotNull(_notices.Current);
+        Assert.IsNotNull(_notices.Current);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_fixed_file_leaves_a_build_error_on_screen()
     {
         _notices.Show(ShellNotices.ForBuildError("no", "Mine.csproj"));
 
         _notices.ShowFileError(@"C:\config\preferences.toml", "");
 
-        Assert.Equal(NoticeKind.BuildError, _notices.Current?.Kind);
+        Assert.AreEqual(NoticeKind.BuildError, _notices.Current?.Kind);
     }
 
     private sealed partial class Closes(ShellNoticeTests test) : IDisposable
@@ -109,105 +110,105 @@ public sealed partial class ShellNoticeTests : IDisposable
         return ShellNotices.ForBuildError("Bar.cs(1,1): error CS1002: ; expected", @"C:\mine\Bar.csproj");
     }
 
-    [Fact]
+    [TestMethod]
     public void A_failure_says_what_stopped_and_what_Winshell_did()
     {
         Fail();
 
-        var notice = Assert.Single(_shown);
-        Assert.Equal(NoticeKind.Crash, notice.Kind);
-        Assert.Equal("The taskbar stopped working", notice.Title);
-        Assert.Equal("Winshell opened it again.", notice.Body);
-        Assert.Equal("Open report", notice.ActionText);
-        Assert.True(notice.Timeout >= ShellNotices.CrashTimeout);
+        var notice = Assert.ContainsSingle(_shown);
+        Assert.AreEqual(NoticeKind.Crash, notice.Kind);
+        Assert.AreEqual("The taskbar stopped working", notice.Title);
+        Assert.AreEqual("Winshell opened it again.", notice.Body);
+        Assert.AreEqual("Open report", notice.ActionText);
+        Assert.IsTrue(notice.Timeout >= ShellNotices.CrashTimeout);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_failure_that_ends_the_process_or_has_no_recovery_shows_nothing()
     {
         Fail(true);
         Fail(recovery: "");
 
-        Assert.Empty(_shown);
+        Assert.IsEmpty(_shown);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_previous_close_is_shown_from_the_report()
     {
         var report = _crashes.Write("Winshell", new InvalidOperationException("boom"), true);
-        Assert.NotNull(report);
+        Assert.IsNotNull(report);
         var state = Path.Combine(_dir, "last-exit.toml");
 
         _notices.ShowPrevious(state);
         _loop.Process();
 
-        var notice = Assert.Single(_shown);
-        Assert.Equal("Winshell stopped working", notice.Title);
+        var notice = Assert.ContainsSingle(_shown);
+        Assert.AreEqual("Winshell stopped working", notice.Title);
         Assert.Contains("boom", notice.Body, StringComparison.Ordinal);
-        Assert.Equal(report.Path, notice.Target);
+        Assert.AreEqual(report.Path, notice.Target);
 
         _notices.ShowPrevious(state);
         _loop.Process();
 
-        Assert.Single(_shown);
+        Assert.ContainsSingle(_shown);
     }
 
-    [Theory]
-    [InlineData(2, true)]
-    [InlineData(3, true)]
-    [InlineData(4, true)]
-    [InlineData(6, true)]
-    [InlineData(5, false)]
+    [TestMethod]
+    [DataRow(2, true)]
+    [DataRow(3, true)]
+    [DataRow(4, true)]
+    [DataRow(6, true)]
+    [DataRow(5, false)]
     public void Windows_holding_notifications_back_is_read_as_a_toast_reads_it(int state, bool quiet)
     {
-        Assert.Equal(quiet, ShellNotices.QuietState(state));
+        Assert.AreEqual(quiet, ShellNotices.QuietState(state));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_quiet_Windows_holds_a_failure_back_and_the_log_says_where_it_went()
     {
         _quiet = true;
 
         Fail();
 
-        Assert.Empty(_shown);
-        Assert.Contains(_logged, line => line.Contains("held back", StringComparison.Ordinal));
+        Assert.IsEmpty(_shown);
+        Assert.Contains(line => line.Contains("held back", StringComparison.Ordinal), _logged);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_failure_does_not_replace_a_build_error()
     {
         _notices.Show(Build());
 
         Fail();
 
-        Assert.Single(_shown);
-        Assert.Equal(NoticeKind.BuildError, _notices.Current?.Kind);
+        Assert.ContainsSingle(_shown);
+        Assert.AreEqual(NoticeKind.BuildError, _notices.Current?.Kind);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_build_error_replaces_a_failure_and_stays_until_it_is_dismissed()
     {
         Fail();
 
         _notices.Show(Build());
 
-        Assert.Equal(1, _closed);
-        Assert.Equal(NoticeKind.BuildError, _notices.Current?.Kind);
-        Assert.Equal(TimeSpan.Zero, _notices.Current?.Timeout);
+        Assert.AreEqual(1, _closed);
+        Assert.AreEqual(NoticeKind.BuildError, _notices.Current?.Kind);
+        Assert.AreEqual(TimeSpan.Zero, _notices.Current?.Timeout);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_build_error_names_the_project_and_what_keeps_running()
     {
         var notice = Build();
 
-        Assert.Equal("Bar.csproj", notice.Detail);
-        Assert.Equal(@"C:\mine\Bar.csproj", notice.Target);
+        Assert.AreEqual("Bar.csproj", notice.Detail);
+        Assert.AreEqual(@"C:\mine\Bar.csproj", notice.Target);
         Assert.Contains("keeps running", notice.Note, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_button_opens_the_file_and_closes_the_notice()
     {
         _notices.Show(Build());
@@ -215,26 +216,26 @@ public sealed partial class ShellNoticeTests : IDisposable
         _act();
         _loop.Process();
 
-        Assert.Equal([@"C:\mine\Bar.csproj"], _opened.Select(opened => opened.Path));
-        Assert.Equal(["edit"], _opened.Select(opened => opened.Verb));
-        Assert.Null(_notices.Current);
-        Assert.Equal(1, _closed);
+        Assert.AreSequenceEqual([@"C:\mine\Bar.csproj"], _opened.Select(opened => opened.Path));
+        Assert.AreSequenceEqual(["edit"], _opened.Select(opened => opened.Verb));
+        Assert.IsNull(_notices.Current);
+        Assert.AreEqual(1, _closed);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_crash_report_opens_with_the_default_verb()
     {
         Fail();
-        var report = Assert.Single(_shown).Target;
+        var report = Assert.ContainsSingle(_shown).Target;
 
         _act();
         _loop.Process();
 
-        Assert.Equal([report], _opened.Select(opened => opened.Path));
-        Assert.Equal([null], _opened.Select(opened => opened.Verb));
+        Assert.AreSequenceEqual([report], _opened.Select(opened => opened.Path));
+        Assert.AreSequenceEqual([null], _opened.Select(opened => opened.Verb));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_text_log_opens_to_edit()
     {
         _notices.ShowFileError(@"C:\logs\log.txt", "could not read");
@@ -242,36 +243,36 @@ public sealed partial class ShellNoticeTests : IDisposable
         _act();
         _loop.Process();
 
-        Assert.Equal([@"C:\logs\log.txt"], _opened.Select(opened => opened.Path));
-        Assert.Equal(["edit"], _opened.Select(opened => opened.Verb));
+        Assert.AreSequenceEqual([@"C:\logs\log.txt"], _opened.Select(opened => opened.Path));
+        Assert.AreSequenceEqual(["edit"], _opened.Select(opened => opened.Verb));
     }
 
-    [Fact]
+    [TestMethod]
     public void Dismissing_closes_it_from_the_loop_and_opens_nothing()
     {
         _notices.Show(Build());
 
         _dismiss();
-        Assert.NotNull(_notices.Current);
+        Assert.IsNotNull(_notices.Current);
         _loop.Process();
 
-        Assert.Null(_notices.Current);
-        Assert.Empty(_opened);
+        Assert.IsNull(_notices.Current);
+        Assert.IsEmpty(_opened);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_notice_that_cannot_show_goes_to_the_log()
     {
         _showFails = true;
 
         _notices.Show(Build());
 
-        Assert.Null(_notices.Current);
-        Assert.Contains(_logged, line => line.StartsWith("notice: Could not show", StringComparison.Ordinal));
+        Assert.IsNull(_notices.Current);
+        Assert.Contains(line => line.StartsWith("notice: Could not show", StringComparison.Ordinal), _logged);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task The_window_sits_above_the_taskbar_at_the_right_of_the_screen_and_says_the_whole_notice()
     {
         var read = await ShellFixture.On(async shell =>
@@ -287,15 +288,15 @@ public sealed partial class ShellNoticeTests : IDisposable
                 Live: AutomationProperties.GetLiveSetting(root));
         });
 
-        Assert.Equal(364, read.Width);
-        Assert.True(read.Height > 100);
+        Assert.AreEqual(364, read.Width);
+        Assert.IsTrue(read.Height > 100);
         Assert.Contains("did not build", read.Name, StringComparison.Ordinal);
         Assert.Contains("CS1002", read.Name, StringComparison.Ordinal);
-        Assert.Equal(AutomationLiveSetting.Assertive, read.Live);
+        Assert.AreEqual(AutomationLiveSetting.Assertive, read.Live);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task The_window_is_tall_enough_for_its_button()
     {
         var fits = await ShellFixture.On(async shell =>
@@ -312,11 +313,11 @@ public sealed partial class ShellNoticeTests : IDisposable
             return true;
         });
 
-        Assert.True(fits);
+        Assert.IsTrue(fits);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_timed_window_closes_itself_and_an_untimed_one_waits()
     {
         var dismissed = await ShellFixture.On(shell =>
@@ -333,11 +334,11 @@ public sealed partial class ShellNoticeTests : IDisposable
             return (timed, untimed);
         });
 
-        Assert.Equal((1, 0), dismissed);
+        Assert.AreEqual((1, 0), dismissed);
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_build_failure_notice_is_drawn_by_a_component()
     {
         var type = await ShellFixture.On(async shell =>
@@ -350,7 +351,7 @@ public sealed partial class ShellNoticeTests : IDisposable
                 .GetProperty("content").GetProperty("type").GetString();
         });
 
-        Assert.Equal("NoticeComponent", type);
+        Assert.AreEqual("NoticeComponent", type);
     }
 
     private static async Task<Grid> Shown(PanelWindow panel)

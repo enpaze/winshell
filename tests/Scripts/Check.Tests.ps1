@@ -22,7 +22,7 @@ BeforeAll {
             '<RunInfo outcome="Error"><Text>The active test run was aborted. Reason: Test host process crashed</Text></RunInfo>'
         }
         elseif ($failures -gt 0) {
-            '<RunInfo outcome="Error"><Text>[xUnit.net 00:00:00.21] Ns.Class.Test [FAIL]</Text></RunInfo>'
+            '<RunInfo outcome="Error"><Text>Ns.Class.Test failed</Text></RunInfo>'
         }
         else {
             '<RunInfo outcome="Warning"><Text>No test matches</Text></RunInfo>'
@@ -50,7 +50,7 @@ Describe 'Choosing tests' {
             $run = Get-TestRun
             $run.Projects | Should -Be $script:Projects
             $run.Projects.Count | Should -Be 5
-            $run.Filter | Should -Be 'Category!=Package&Category!=Window'
+            $run.Filter | Should -Be 'TestCategory!=Package&TestCategory!=Window'
         } finally { $script:Root = $root }
     }
 
@@ -63,7 +63,7 @@ Describe 'Choosing tests' {
             ($routed | Sort-Object) | Should -Be ($script:Projects | Sort-Object)
             (Get-TestRun -Shard 4).Projects.Count | Should -Be 2
             (Get-TestRun -Shard 1).Projects | Should -Be @('tests/Winshell.Tests/Winshell.Tests.csproj')
-            foreach ($shard in 1..4) { (Get-TestRun -Shard $shard).Filter | Should -Not -Match 'Category!=Window' }
+            foreach ($shard in 1..4) { (Get-TestRun -Shard $shard).Filter | Should -Not -Match 'TestCategory!=Window' }
             { Get-TestRun -Shard 5 } | Should -Throw
         } finally { $script:Root = $root }
     }
@@ -73,7 +73,7 @@ Describe 'Choosing tests' {
         $script:Root = $TestDrive
         try {
             Set-WinshellSolution
-            foreach ($shard in 1..4) { (Get-TestRun -Shard $shard).Filter | Should -Be 'Category!=Package' }
+            foreach ($shard in 1..4) { (Get-TestRun -Shard $shard).Filter | Should -Be 'TestCategory!=Package' }
             (Get-TestRun -Shard 2).CompileTemplateExamplesReferenceAndLogo | Should -BeTrue
             foreach ($shard in @(0, 1, 3, 4)) { (Get-TestRun -Shard $shard).CompileTemplateExamplesReferenceAndLogo | Should -BeFalse }
         } finally { $script:Root = $root }
@@ -151,8 +151,8 @@ Describe 'Running the suite' {
     }
 
     It 'passes when every test passes' {
-        Invoke-TestRun -Seed 7 | Should -Be 0
-        Should -Invoke Invoke-DotnetTest -Times 1 -Exactly -ParameterFilter { $Seed -eq 7 }
+        Invoke-TestRun | Should -Be 0
+        Should -Invoke Invoke-DotnetTest -Times 1 -Exactly
         Test-Path -LiteralPath $script:WrittenResults | Should -BeFalse
     }
 
@@ -163,13 +163,13 @@ Describe 'Running the suite' {
         $script:Rows = @($Row)
         $script:Exit = $Exit
         $parent = Join-Path $TestDrive "retained-$Outcome"
-        Invoke-TestRun -Seed 7 -ResultsDirectory $parent | Should -Be $Exit
+        Invoke-TestRun -ResultsDirectory $parent | Should -Be $Exit
         @(Get-ChildItem -LiteralPath $parent -Filter '*.trx' -Recurse) | Should -HaveCount 1
         Set-Solution 2
         $script:Silent = 'tests/T2.Tests/T2.Tests.csproj'
         $script:Rows = @('Ns.Class.Good=Passed')
         $script:Exit = 0
-        Invoke-TestRun -Seed 7 -ResultsDirectory $parent | Should -Be 1
+        Invoke-TestRun -ResultsDirectory $parent | Should -Be 1
         @(Get-ChildItem -LiteralPath $parent -Directory) | Should -HaveCount 2
     }
 
@@ -205,25 +205,6 @@ Describe 'Running the suite' {
         $script:Exit = $Exit
         Invoke-TestRun | Should -Be $Exit
         Should -Invoke Write-Host -ParameterFilter { $Object -eq 'Skipped Ns.Class.Busy: Someone was using this PC' }
-    }
-
-    It 'chooses a seed of its own and prints it' {
-        Mock Write-Host { }
-        Invoke-TestRun | Should -Be 0
-        Should -Invoke Write-Host -ParameterFilter { $Object -match 'Test order seed: \d+' }
-    }
-
-    It 'prints how to play back the tier it ran' {
-        Mock Write-Host { }
-        Invoke-TestRun -Seed 7 | Should -Be 0
-        Should -Invoke Write-Host -ParameterFilter { $Object -match 'check\.ps1 -Tier Tests -Seed 7' }
-    }
-
-    It 'prints how to play back a shard with dotnet test' {
-        Mock Write-Host { }
-        Invoke-TestRun -Seed 7 -Shard 4 | Should -Be 0
-        Should -Invoke Write-Host -ParameterFilter { $Object -match '-- xUnit\.Seed=7' }
-        Should -Invoke Write-Host -Times 0 -ParameterFilter { $Object -match 'check\.ps1' }
     }
 
     Context 'watching for windows' {
@@ -320,7 +301,7 @@ Start-Sleep -Seconds 120
 param($tests, $folder, $signals)
 . $tests
 $script:Root = $folder
-function Invoke-DotnetTest([string] $Project, [string] $Filter, [string] $ResultsDirectory, [int] $Seed) {
+function Invoke-DotnetTest([string] $Project, [string] $Filter, [string] $ResultsDirectory) {
     New-Item -ItemType File -Path (Join-Path $signals 'watching') | Out-Null
     $deadline = [DateTime]::UtcNow.AddSeconds(60)
     while (-not (Test-Path (Join-Path $signals 'shown'))) {
@@ -424,7 +405,7 @@ function Invoke-Pester {
         $calls | Should -Contain 'dotnet build scripts/render-logo.cs --nologo'
         $test = @($calls | Where-Object { $_ -match '^dotnet test ' })
         $test | Should -HaveCount $script:ProjectCount
-        $test | ForEach-Object { $_ | Should -Match '--filter Category!=Package&Category!=Window ' }
+        $test | ForEach-Object { $_ | Should -Match '--filter TestCategory!=Package&TestCategory!=Window ' }
         $calls[-1] | Should -Be 'Pester tests/Scripts'
     }
 
@@ -436,15 +417,13 @@ function Invoke-Pester {
         @($calls | Where-Object { $_ -match '^dotnet test |^Pester ' }) | Should -HaveCount 0
     }
 
-    It 'uses an existing build and forwards the seed and hang timeout' {
-        Invoke-Check @{ NoBuild = $true; Seed = 7 } | Out-Null
+    It 'uses an existing build and writes a TRX report' {
+        Invoke-Check @{ NoBuild = $true } | Out-Null
         $LASTEXITCODE | Should -Be 0
         $calls = @(Get-Content -LiteralPath $env:WINSHELL_CHECK_LOG)
         $calls[0] | Should -Not -Match '^dotnet build '
         $test = @($calls | Where-Object { $_ -match '^dotnet test ' })
-        $test[0] | Should -Match 'xUnit.Seed=7'
-        $test[0] | Should -Match 'xUnit.MaxParallelThreads=2x'
-        $test[0] | Should -Match '--blame-hang-timeout 3m'
+        $test[0] | Should -Match ' --report-trx --results-directory '
     }
 
     It 'builds and runs only <Project>, without Pester' -ForEach @(
@@ -457,7 +436,7 @@ function Invoke-Pester {
         $calls = @(Get-Content -LiteralPath $env:WINSHELL_CHECK_LOG)
         $calls | Should -HaveCount 2
         $calls[0] | Should -Be "dotnet build $Project -warnaserror --nologo"
-        $calls[1] | Should -Match "^dotnet test \S*\\$([regex]::Escape($Project)) --no-build "
+        $calls[1] | Should -Match "^dotnet test --project \S*\\$([regex]::Escape($Project)) --no-build "
     }
 
     It 'fails a <Tier> run that ran no tests' -ForEach @(

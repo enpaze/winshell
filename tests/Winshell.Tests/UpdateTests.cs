@@ -9,48 +9,49 @@ using Winshell.Commands;
 
 namespace Winshell.Tests;
 
+[TestClass]
 public class UpdateCommandTests
 {
     private const string CommitA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     private const string CommitB = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
-    [Fact]
+    [TestMethod]
     public async Task Missing_channel_file_uses_stable_and_writes_nothing()
     {
         using var temp = new TempFolder();
         var feed = new FakeFeed(Listing("1.2.3", CommitA), [], "");
         var (code, output, error) = await Run(temp, feed, "1.2.3+aaaaaaaa", requested: null, installed: true);
 
-        Assert.Equal(0, code);
-        Assert.Equal("Winshell is up to date.", output.Trim());
-        Assert.Equal("", error);
-        Assert.Equal(UpdateChannel.Stable, feed.Seen);
-        Assert.Equal(0, feed.Downloads);
-        Assert.False(File.Exists(Path.Combine(Config(temp), "update.toml")));
+        Assert.AreEqual(0, code);
+        Assert.AreEqual("Winshell is up to date.", output.Trim());
+        Assert.AreEqual("", error);
+        Assert.AreEqual(UpdateChannel.Stable, feed.Seen);
+        Assert.AreEqual(0, feed.Downloads);
+        Assert.IsFalse(File.Exists(Path.Combine(Config(temp), "update.toml")));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Channel_flag_on_a_current_build_is_remembered_and_the_next_call_uses_it()
     {
         using var temp = new TempFolder();
         var feed = new FakeFeed(Listing("1.2.3-dev.4", CommitA), [], "");
         var (code, output, _) = await Run(temp, feed, "0.0.0-dev.1+" + CommitA, requested: "dev", installed: true);
 
-        Assert.Equal(0, code);
-        Assert.Equal("Winshell is up to date.", output.Trim());
-        Assert.Equal("channel = \"dev\"\n", File.ReadAllText(Path.Combine(Config(temp), "update.toml")));
-        Assert.Equal(0, feed.Downloads);
+        Assert.AreEqual(0, code);
+        Assert.AreEqual("Winshell is up to date.", output.Trim());
+        Assert.AreEqual("channel = \"dev\"\n", File.ReadAllText(Path.Combine(Config(temp), "update.toml")));
+        Assert.AreEqual(0, feed.Downloads);
 
         feed.Seen = null;
         var again = await Run(temp, feed, "0.0.0-dev.1+" + CommitA.ToUpperInvariant(), requested: null, installed: true);
-        Assert.Equal(0, again.Code);
-        Assert.Equal(UpdateChannel.Dev, feed.Seen);
-        Assert.Equal(0, feed.Downloads);
-        Assert.Equal("channel = \"dev\"\n", File.ReadAllText(Path.Combine(Config(temp), "update.toml")));
+        Assert.AreEqual(0, again.Code);
+        Assert.AreEqual(UpdateChannel.Dev, feed.Seen);
+        Assert.AreEqual(0, feed.Downloads);
+        Assert.AreEqual("channel = \"dev\"\n", File.ReadAllText(Path.Combine(Config(temp), "update.toml")));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Saved_channel_other_than_stable_or_dev_fails_before_any_download()
     {
         using var temp = new TempFolder();
@@ -59,27 +60,27 @@ public class UpdateCommandTests
         File.WriteAllText(path, "channel = \"nightly\"\n");
         var feed = new ExplodingFeed();
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var error = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
             Run(temp, feed, "1.2.3", requested: null, installed: true));
 
-        Assert.Equal("The saved update channel is not stable or dev.", error.Message);
-        Assert.Equal("channel = \"nightly\"\n", File.ReadAllText(path));
+        Assert.AreEqual("The saved update channel is not stable or dev.", error.Message);
+        Assert.AreEqual("channel = \"nightly\"\n", File.ReadAllText(path));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_channel_file_with_an_extra_key_is_rejected()
     {
         using var temp = new TempFolder();
         Directory.CreateDirectory(Config(temp));
         File.WriteAllText(Path.Combine(Config(temp), "update.toml"), "channel = \"dev\"\nother = 1\n");
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var error = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
             Run(temp, new ExplodingFeed(), "1.2.3", requested: null, installed: true));
 
-        Assert.Equal("The saved update channel is not stable or dev.", error.Message);
+        Assert.AreEqual("The saved update channel is not stable or dev.", error.Message);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Uppercase_saved_channel_selects_dev()
     {
         using var temp = new TempFolder();
@@ -89,36 +90,36 @@ public class UpdateCommandTests
 
         var (code, _, _) = await Run(temp, feed, "0.0.0+" + CommitA, requested: null, installed: true);
 
-        Assert.Equal(0, code);
-        Assert.Equal(UpdateChannel.Dev, feed.Seen);
-        Assert.Equal(0, feed.Downloads);
+        Assert.AreEqual(0, code);
+        Assert.AreEqual(UpdateChannel.Dev, feed.Seen);
+        Assert.AreEqual(0, feed.Downloads);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Other_channel_flag_fails_and_writes_nothing()
     {
         using var temp = new TempFolder();
-        var error = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var error = await Assert.ThrowsExactlyAsync<ArgumentException>(() =>
             Run(temp, new ExplodingFeed(), "1.2.3", requested: "other", installed: true));
 
-        Assert.Equal("winshell update --channel needs stable or dev.", error.Message);
-        Assert.False(File.Exists(Path.Combine(Config(temp), "update.toml")));
+        Assert.AreEqual("winshell update --channel needs stable or dev.", error.Message);
+        Assert.IsFalse(File.Exists(Path.Combine(Config(temp), "update.toml")));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Not_installed_prints_the_sentence_and_downloads_nothing()
     {
         using var temp = new TempFolder();
         var (code, output, error) = await Run(temp, new ExplodingFeed(), "1.2.3", requested: "dev", installed: false);
 
-        Assert.Equal(1, code);
-        Assert.Equal("", output);
-        Assert.Equal("Winshell is not installed. Run the install script.", error.Trim());
-        Assert.False(File.Exists(Path.Combine(Config(temp), "update.toml")));
-        Assert.False(Directory.Exists(Path.Combine(Install(temp), "bin.new")));
+        Assert.AreEqual(1, code);
+        Assert.AreEqual("", output);
+        Assert.AreEqual("Winshell is not installed. Run the install script.", error.Trim());
+        Assert.IsFalse(File.Exists(Path.Combine(Config(temp), "update.toml")));
+        Assert.IsFalse(Directory.Exists(Path.Combine(Install(temp), "bin.new")));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Already_current_stable_does_not_extract()
     {
         using var temp = new TempFolder();
@@ -131,15 +132,15 @@ public class UpdateCommandTests
 
         var (code, output, _) = await Run(temp, feed, "1.2.3+deadbeef", requested: "stable", installed: true);
 
-        Assert.Equal(0, code);
-        Assert.Equal("Winshell is up to date.", output.Trim());
-        Assert.Equal(0, feed.Downloads);
-        Assert.Equal("same", File.ReadAllText(Path.Combine(bin, "keep.txt")));
-        Assert.False(Directory.Exists(Path.Combine(Install(temp), "bin.new")));
-        Assert.Equal("channel = \"stable\"\n", File.ReadAllText(Path.Combine(Config(temp), "update.toml")));
+        Assert.AreEqual(0, code);
+        Assert.AreEqual("Winshell is up to date.", output.Trim());
+        Assert.AreEqual(0, feed.Downloads);
+        Assert.AreEqual("same", File.ReadAllText(Path.Combine(bin, "keep.txt")));
+        Assert.IsFalse(Directory.Exists(Path.Combine(Install(temp), "bin.new")));
+        Assert.AreEqual("channel = \"stable\"\n", File.ReadAllText(Path.Combine(Config(temp), "update.toml")));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_newer_stable_build_replaces_the_files_and_reports_that_version()
     {
         using var temp = new TempFolder();
@@ -152,16 +153,16 @@ public class UpdateCommandTests
 
         var (code, output, error) = await Run(temp, feed, "1.0.0", requested: "stable", installed: true);
 
-        Assert.Equal(0, code);
-        Assert.Equal("", error);
-        Assert.Equal("Winshell is updated to 9.9.9.", output.Trim());
-        Assert.False(File.Exists(Path.Combine(bin, "keep.txt")));
-        Assert.Equal(File.ReadAllBytes(Path.Combine(UpdateStub.Build("NEW"), "winshellw.exe")), File.ReadAllBytes(Path.Combine(bin, "winshellw.exe")));
-        Assert.Equal("channel = \"stable\"\n", File.ReadAllText(Path.Combine(Config(temp), "update.toml")));
-        Assert.False(Directory.Exists(Path.Combine(Install(temp), "bin.new")));
+        Assert.AreEqual(0, code);
+        Assert.AreEqual("", error);
+        Assert.AreEqual("Winshell is updated to 9.9.9.", output.Trim());
+        Assert.IsFalse(File.Exists(Path.Combine(bin, "keep.txt")));
+        Assert.AreSequenceEqual(File.ReadAllBytes(Path.Combine(UpdateStub.Build("NEW"), "winshellw.exe")), File.ReadAllBytes(Path.Combine(bin, "winshellw.exe")));
+        Assert.AreEqual("channel = \"stable\"\n", File.ReadAllText(Path.Combine(Config(temp), "update.toml")));
+        Assert.IsFalse(Directory.Exists(Path.Combine(Install(temp), "bin.new")));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_bad_checksum_replaces_nothing_and_does_not_write_the_channel()
     {
         using var temp = new TempFolder();
@@ -173,17 +174,17 @@ public class UpdateCommandTests
 
         var (code, output, error) = await Run(temp, feed, "1.0.0", requested: "dev", installed: true);
 
-        Assert.Equal(1, code);
-        Assert.Equal("", output);
-        Assert.Equal(
+        Assert.AreEqual(1, code);
+        Assert.AreEqual("", output);
+        Assert.AreEqual(
             "Refusing the update: the SHA-256 of " + name + " does not match SHA256SUMS.txt. The release may still be uploading. Try again in a minute.",
             error.Trim());
-        Assert.Equal("old", File.ReadAllText(Path.Combine(bin, "keep.txt")));
-        Assert.False(File.Exists(Path.Combine(Config(temp), "update.toml")));
-        Assert.False(Directory.Exists(Path.Combine(Install(temp), "bin.new")));
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(bin, "keep.txt")));
+        Assert.IsFalse(File.Exists(Path.Combine(Config(temp), "update.toml")));
+        Assert.IsFalse(Directory.Exists(Path.Combine(Install(temp), "bin.new")));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_space_star_checksum_line_is_accepted()
     {
         using var temp = new TempFolder();
@@ -195,12 +196,12 @@ public class UpdateCommandTests
 
         var (code, output, _) = await Run(temp, feed, "1.0.0", requested: null, installed: true);
 
-        Assert.Equal(0, code);
-        Assert.Equal("Winshell is updated to 3.0.0.", output.Trim());
-        Assert.False(File.Exists(Path.Combine(Config(temp), "update.toml")));
+        Assert.AreEqual(0, code);
+        Assert.AreEqual("Winshell is updated to 3.0.0.", output.Trim());
+        Assert.IsFalse(File.Exists(Path.Combine(Config(temp), "update.toml")));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task The_same_dev_commit_is_current_and_a_different_one_updates()
     {
         using var temp = new TempFolder();
@@ -211,21 +212,21 @@ public class UpdateCommandTests
         File.WriteAllText(Path.Combine(Config(temp), "update.toml"), "channel = \"dev\"\n");
         var same = new FakeFeed(Listing("1.2.3-dev.4", CommitA), [1], "nope");
         var (code, _, _) = await Run(temp, same, "9.9.9+" + CommitA, requested: null, installed: true);
-        Assert.Equal(0, code);
-        Assert.Equal(0, same.Downloads);
-        Assert.Equal("old", File.ReadAllText(Path.Combine(bin, "keep.txt")));
+        Assert.AreEqual(0, code);
+        Assert.AreEqual(0, same.Downloads);
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(bin, "keep.txt")));
 
         var name = ReleaseSources.ZipName("1.2.3-dev.5+" + CommitB[..7]);
         var zip = UpdateStub.Archive("NEW");
         var next = new FakeFeed(Listing("1.2.3-dev.5+" + CommitB[..7], CommitB), zip, Sums(name, zip));
         var updated = await Run(temp, next, "9.9.9+" + CommitA, requested: "dev", installed: true);
-        Assert.Equal(0, updated.Code);
-        Assert.Equal("Winshell is updated to 1.2.3-dev.5+" + CommitB[..7] + ".", updated.Output.Trim());
-        Assert.False(File.Exists(Path.Combine(bin, "keep.txt")));
-        Assert.Equal("channel = \"dev\"\n", File.ReadAllText(Path.Combine(Config(temp), "update.toml")));
+        Assert.AreEqual(0, updated.Code);
+        Assert.AreEqual("Winshell is updated to 1.2.3-dev.5+" + CommitB[..7] + ".", updated.Output.Trim());
+        Assert.IsFalse(File.Exists(Path.Combine(bin, "keep.txt")));
+        Assert.AreEqual("channel = \"dev\"\n", File.ReadAllText(Path.Combine(Config(temp), "update.toml")));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Switching_to_stable_installs_that_zip_when_its_version_is_older()
     {
         using var temp = new TempFolder();
@@ -236,13 +237,13 @@ public class UpdateCommandTests
 
         var (code, output, _) = await Run(temp, feed, "9.0.0+" + CommitB, requested: "stable", installed: true);
 
-        Assert.Equal(0, code);
-        Assert.Equal("Winshell is updated to 1.0.0.", output.Trim());
-        Assert.Equal(File.ReadAllBytes(Path.Combine(UpdateStub.Build("OLD"), "winshellw.exe")), File.ReadAllBytes(Path.Combine(Bin(temp), "winshellw.exe")));
-        Assert.Equal("channel = \"stable\"\n", File.ReadAllText(Path.Combine(Config(temp), "update.toml")));
+        Assert.AreEqual(0, code);
+        Assert.AreEqual("Winshell is updated to 1.0.0.", output.Trim());
+        Assert.AreSequenceEqual(File.ReadAllBytes(Path.Combine(UpdateStub.Build("OLD"), "winshellw.exe")), File.ReadAllBytes(Path.Combine(Bin(temp), "winshellw.exe")));
+        Assert.AreEqual("channel = \"stable\"\n", File.ReadAllText(Path.Combine(Config(temp), "update.toml")));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_empty_dev_suffix_is_not_current()
     {
         using var temp = new TempFolder();
@@ -256,12 +257,12 @@ public class UpdateCommandTests
 
         var (code, output, _) = await Run(temp, feed, "1.2.3-dev.2+", requested: null, installed: true);
 
-        Assert.Equal(0, code);
-        Assert.Equal("Winshell is updated to " + version + ".", output.Trim());
-        Assert.True(feed.Downloads > 0);
+        Assert.AreEqual(0, code);
+        Assert.AreEqual("Winshell is updated to " + version + ".", output.Trim());
+        Assert.IsTrue(feed.Downloads > 0);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_bad_archive_deletes_the_stage_and_leaves_the_install()
     {
         using var temp = new TempFolder();
@@ -272,16 +273,16 @@ public class UpdateCommandTests
         var zip = ZipOf(("note.txt", "hello"u8.ToArray()));
         var feed = new FakeFeed(Listing("2.0.0", CommitA), zip, Sums(name, zip));
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var error = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
             Run(temp, feed, "1.0.0", requested: "stable", installed: true));
 
-        Assert.Equal("The release archive has no winshell.exe and winshellw.exe.", error.Message);
-        Assert.Equal("old", File.ReadAllText(Path.Combine(bin, "keep.txt")));
-        Assert.False(Directory.Exists(Path.Combine(Install(temp), "bin.new")));
-        Assert.False(File.Exists(Path.Combine(Config(temp), "update.toml")));
+        Assert.AreEqual("The release archive has no winshell.exe and winshellw.exe.", error.Message);
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(bin, "keep.txt")));
+        Assert.IsFalse(Directory.Exists(Path.Combine(Install(temp), "bin.new")));
+        Assert.IsFalse(File.Exists(Path.Combine(Config(temp), "update.toml")));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_zip_that_escapes_the_stage_changes_nothing()
     {
         using var temp = new TempFolder();
@@ -292,16 +293,16 @@ public class UpdateCommandTests
         var zip = ZipOf(("../outside.txt", "nope"u8.ToArray()));
         var feed = new FakeFeed(Listing("2.0.0", CommitA), zip, Sums(name, zip));
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var error = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
             Run(temp, feed, "1.0.0", requested: null, installed: true));
 
-        Assert.Equal("The release archive is not a winshell folder.", error.Message);
-        Assert.Equal("old", File.ReadAllText(Path.Combine(bin, "keep.txt")));
-        Assert.False(File.Exists(Path.Combine(temp.Path, "outside.txt")));
-        Assert.False(Directory.Exists(Path.Combine(Install(temp), "bin.new")));
+        Assert.AreEqual("The release archive is not a winshell folder.", error.Message);
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(bin, "keep.txt")));
+        Assert.IsFalse(File.Exists(Path.Combine(temp.Path, "outside.txt")));
+        Assert.IsFalse(Directory.Exists(Path.Combine(Install(temp), "bin.new")));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_shell_that_does_not_stop_leaves_the_install_and_exits_1()
     {
         using var temp = new TempFolder();
@@ -314,15 +315,15 @@ public class UpdateCommandTests
 
         var (code, output, error) = await Run(temp, feed, "1.0.0", requested: "dev", installed: true, stop: () => Task.FromResult(false));
 
-        Assert.Equal(1, code);
-        Assert.Equal("", output);
-        Assert.Equal("", error);
-        Assert.Equal("old", File.ReadAllText(Path.Combine(bin, "keep.txt")));
-        Assert.False(Directory.Exists(Path.Combine(Install(temp), "bin.new")));
-        Assert.False(File.Exists(Path.Combine(Config(temp), "update.toml")));
+        Assert.AreEqual(1, code);
+        Assert.AreEqual("", output);
+        Assert.AreEqual("", error);
+        Assert.AreEqual("old", File.ReadAllText(Path.Combine(bin, "keep.txt")));
+        Assert.IsFalse(Directory.Exists(Path.Combine(Install(temp), "bin.new")));
+        Assert.IsFalse(File.Exists(Path.Combine(Config(temp), "update.toml")));
     }
 
-    [Fact]
+    [TestMethod]
     public void Update_help_and_a_bad_channel_do_not_write_or_download()
     {
         using var temp = new TempFolder();
@@ -330,7 +331,7 @@ public class UpdateCommandTests
         help.AssertExitCode(0);
         Assert.Contains("Installs the newest build of the saved channel.", help.Output, StringComparison.Ordinal);
         help.AssertNoError();
-        Assert.False(File.Exists(Path.Combine(temp.Path, "update.toml")));
+        Assert.IsFalse(File.Exists(Path.Combine(temp.Path, "update.toml")));
 
         var version = WinshellCli.Run(["update", "-V"], ("WINSHELL_CONFIG_DIR", temp.Path));
         version.AssertExitCode(0);
@@ -339,33 +340,33 @@ public class UpdateCommandTests
 
         var missing = WinshellCli.Run(["update", "--channel"], ("WINSHELL_CONFIG_DIR", temp.Path));
         missing.AssertExitCode(2);
-        Assert.Equal("winshell update --channel needs stable or dev.", missing.Error.Trim());
+        Assert.AreEqual("winshell update --channel needs stable or dev.", missing.Error.Trim());
 
         var other = WinshellCli.Run(["update", "--channel", "other"], ("WINSHELL_CONFIG_DIR", temp.Path));
         other.AssertExitCode(2);
-        Assert.Equal("winshell update --channel needs stable or dev.", other.Error.Trim());
-        Assert.False(File.Exists(Path.Combine(temp.Path, "update.toml")));
+        Assert.AreEqual("winshell update --channel needs stable or dev.", other.Error.Trim());
+        Assert.IsFalse(File.Exists(Path.Combine(temp.Path, "update.toml")));
 
         var spare = WinshellCli.Run(["update", "extra"], ("WINSHELL_CONFIG_DIR", temp.Path));
         spare.AssertExitCode(2);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_real_command_reports_not_installed_and_a_bad_saved_channel()
     {
         using var temp = new TempFolder();
         var missing = WinshellCli.Run(["update"], ("WINSHELL_CONFIG_DIR", temp.Path));
         missing.AssertExitCode(1);
-        Assert.Equal("Winshell is not installed. Run the install script.", missing.Error.Trim());
-        Assert.Equal("", missing.Output.Trim());
-        Assert.False(File.Exists(Path.Combine(temp.Path, "update.toml")));
+        Assert.AreEqual("Winshell is not installed. Run the install script.", missing.Error.Trim());
+        Assert.AreEqual("", missing.Output.Trim());
+        Assert.IsFalse(File.Exists(Path.Combine(temp.Path, "update.toml")));
 
         var path = Path.Combine(temp.Path, "update.toml");
         File.WriteAllText(path, "channel = \"nope\"\n");
         var bad = WinshellCli.Run(["update"], ("WINSHELL_CONFIG_DIR", temp.Path));
-        Assert.Equal(1, bad.Code);
+        Assert.AreEqual(1, bad.Code);
         Assert.Contains("The saved update channel is not stable or dev.", bad.Error, StringComparison.Ordinal);
-        Assert.Equal("channel = \"nope\"\n", File.ReadAllText(path));
+        Assert.AreEqual("channel = \"nope\"\n", File.ReadAllText(path));
     }
 
     private static async Task<(int Code, string Output, string Error)> Run(
@@ -466,35 +467,36 @@ public class UpdateCommandTests
     }
 }
 
+[TestClass]
 public class ReleaseFeedTests
 {
-    [Fact]
+    [TestMethod]
     public void A_disallowed_release_base_is_rejected()
     {
-        var error = Assert.Throws<InvalidOperationException>(() => ReleaseSources.Create("https://example.com/winshell"));
-        Assert.Equal(
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => ReleaseSources.Create("https://example.com/winshell"));
+        Assert.AreEqual(
             "WINSHELL_RELEASE_BASE must be https://github.com/enpaze/winshell/releases or an http://127.0.0.1 test server.",
             error.Message);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_github_releases_page_is_allowed_and_does_not_download()
     {
         using var http = new HttpClient(new Script(_ => throw new InvalidOperationException("downloaded")));
         var feed = ReleaseSources.Create("https://github.com/enpaze/winshell/releases", http);
-        Assert.NotNull(feed);
+        Assert.IsNotNull(feed);
     }
 
-    [Fact]
+    [TestMethod]
     public void Stable_rejects_a_draft_and_a_prerelease()
     {
-        var draft = Assert.Throws<InvalidOperationException>(() => Latest(false, """{"draft":true,"prerelease":false,"assets":[]}"""));
-        Assert.Equal("The latest release is not a published release.", draft.Message);
-        var preview = Assert.Throws<InvalidOperationException>(() => Latest(false, """{"draft":false,"prerelease":true,"assets":[]}"""));
-        Assert.Equal("The latest release is not a published release.", preview.Message);
+        var draft = Assert.ThrowsExactly<InvalidOperationException>(() => Latest(false, """{"draft":true,"prerelease":false,"assets":[]}"""));
+        Assert.AreEqual("The latest release is not a published release.", draft.Message);
+        var preview = Assert.ThrowsExactly<InvalidOperationException>(() => Latest(false, """{"draft":false,"prerelease":true,"assets":[]}"""));
+        Assert.AreEqual("The latest release is not a published release.", preview.Message);
     }
 
-    [Fact]
+    [TestMethod]
     public void Dev_reads_the_newest_published_dev_prerelease()
     {
         var zip = ReleaseSources.ZipName("1.2.3-dev.4");
@@ -514,22 +516,22 @@ public class ReleaseFeedTests
             return Text(HttpStatusCode.OK, url.EndsWith("/list", StringComparison.Ordinal) ? list : version);
         });
 
-        Assert.Equal("1.2.3-dev.4", listing.Version);
-        Assert.Equal("abcdefabcdefabcdefabcdefabcdefabcdefabcd", listing.Commit);
-        Assert.Equal("https://example.invalid/dev-3333333/" + zip, listing.ArchiveUrl);
-        Assert.Equal(["http://127.0.0.1:9/releases/list", "https://example.invalid/dev-3333333/version.json"], seen);
+        Assert.AreEqual("1.2.3-dev.4", listing.Version);
+        Assert.AreEqual("abcdefabcdefabcdefabcdefabcdefabcdefabcd", listing.Commit);
+        Assert.AreEqual("https://example.invalid/dev-3333333/" + zip, listing.ArchiveUrl);
+        Assert.AreSequenceEqual(["http://127.0.0.1:9/releases/list", "https://example.invalid/dev-3333333/version.json"], seen);
     }
 
-    [Fact]
+    [TestMethod]
     public void Dev_with_no_published_dev_prerelease_is_not_found()
     {
         var zip = ReleaseSources.ZipName("1.2.3-dev.4");
         var list = "[" + DevJson("dev-1111111", "2026-11-18T05:00:00Z", zip, draft: true) + "]";
-        var error = Assert.Throws<InvalidOperationException>(() => Latest(true, list));
-        Assert.Equal("No dev release was found.", error.Message);
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => Latest(true, list));
+        Assert.AreEqual("No dev release was found.", error.Message);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_stable_release_reads_version_commit_and_asset_names()
     {
         var version = VersionJson("1.2.3", "abcdefabcdefabcdefabcdefabcdefabcdefabcd", "2026-11-18T01:02:03+00:00");
@@ -549,25 +551,25 @@ public class ReleaseFeedTests
             return Text(HttpStatusCode.OK, version);
         });
 
-        Assert.Equal("1.2.3", listing.Version);
-        Assert.Equal("abcdefabcdefabcdefabcdefabcdefabcdefabcd", listing.Commit);
-        Assert.Contains("winshell", agent, StringComparison.Ordinal);
-        Assert.Contains("application/vnd.github+json", accept, StringComparison.Ordinal);
+        Assert.AreEqual("1.2.3", listing.Version);
+        Assert.AreEqual("abcdefabcdefabcdefabcdefabcdefabcdefabcd", listing.Commit);
+        Assert.Contains("winshell", agent!, StringComparison.Ordinal);
+        Assert.Contains("application/vnd.github+json", accept!, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData(false, "No published release was found.")]
-    [InlineData(true, "No dev release was found.")]
+    [TestMethod]
+    [DataRow(false, "No published release was found.")]
+    [DataRow(true, "No dev release was found.")]
     public void A_missing_release_names_the_channel(bool dev, string message)
     {
-        var error = Assert.Throws<InvalidOperationException>(() => Latest(dev, status: HttpStatusCode.NotFound));
-        Assert.Equal(message, error.Message);
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => Latest(dev, status: HttpStatusCode.NotFound));
+        Assert.AreEqual(message, error.Message);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_rate_limit_sentence_includes_the_reset_time()
     {
-        var error = Assert.Throws<InvalidOperationException>(() => Read(false, _ =>
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => Read(false, _ =>
         {
             var response = new HttpResponseMessage(HttpStatusCode.Forbidden);
             response.Headers.TryAddWithoutValidation("x-ratelimit-remaining", "0");
@@ -575,14 +577,14 @@ public class ReleaseFeedTests
             response.Content = new ByteArrayContent([]);
             return response;
         }));
-        Assert.Equal("The GitHub API rate limit is used up. Try again after 1970-01-01 00:00:00 UTC.", error.Message);
+        Assert.AreEqual("The GitHub API rate limit is used up. Try again after 1970-01-01 00:00:00 UTC.", error.Message);
     }
 
-    [Fact]
+    [TestMethod]
     public void Version_json_without_a_utc_date_is_rejected()
     {
         var zip = ReleaseSources.ZipName("1.2.3");
-        var error = Assert.Throws<InvalidOperationException>(() => Read(false, request =>
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => Read(false, request =>
         {
             var url = request.RequestUri!.AbsoluteUri;
             var body = url.EndsWith("/latest", StringComparison.Ordinal)
@@ -590,18 +592,18 @@ public class ReleaseFeedTests
                 : VersionJson("1.2.3", "abcdefabcdefabcdefabcdefabcdefabcdefabcd", "2026-11-18T01:02:03+01:00");
             return Text(HttpStatusCode.OK, body);
         }));
-        Assert.Equal("The published release's version.json has no date.", error.Message);
+        Assert.AreEqual("The published release's version.json has no date.", error.Message);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_http_asset_on_the_github_feed_is_refused()
     {
-        var error = Assert.Throws<InvalidOperationException>(() => Read(false, _ => Text(HttpStatusCode.OK, """
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => Read(false, _ => Text(HttpStatusCode.OK, """
             {"draft":false,"prerelease":false,"assets":[
               {"name":"version.json","browser_download_url":"http://example.com/version.json"},
               {"name":"SHA256SUMS.txt","browser_download_url":"https://example.com/SHA256SUMS.txt"}]}
             """)));
-        Assert.Equal("The release feed refused a download that is not https.", error.Message);
+        Assert.AreEqual("The release feed refused a download that is not https.", error.Message);
     }
 
     private static ReleaseListing Latest(bool dev, string json = "{}", HttpStatusCode status = HttpStatusCode.OK) =>
@@ -657,9 +659,10 @@ public class ReleaseFeedTests
     }
 }
 
+[TestClass]
 public class ReleaseSwapTests
 {
-    [Fact]
+    [TestMethod]
     public async Task A_running_process_is_replaced_by_the_new_build_with_no_window()
     {
         using var temp = new TempFolder();
@@ -687,21 +690,21 @@ public class ReleaseSwapTests
                     sleeper.WaitForExit();
                 });
 
-            var updated = Assert.IsType<UpdateResult.Updated>(result);
-            Assert.Equal("9.9.9", updated.Version);
-            Assert.True(updated.Restarted);
-            Assert.Equal(
+            var updated = Assert.IsExactInstanceOfType<UpdateResult.Updated>(result);
+            Assert.AreEqual("9.9.9", updated.Version);
+            Assert.IsTrue(updated.Restarted);
+            Assert.AreSequenceEqual(
                 File.ReadAllBytes(Path.Combine(UpdateStub.Build("NEW"), "winshellw.exe")),
                 File.ReadAllBytes(Path.Combine(bin, "winshellw.exe")));
             UpdateStub.WaitUntil(() => Status(status, "NEW") is not null, null, "new build");
             var line = Status(status, "NEW");
-            Assert.NotNull(line);
-            Assert.Equal("0", line![2]);
+            Assert.IsNotNull(line);
+            Assert.AreEqual("0", line![2]);
             Assert.Contains("--hold", line[3], StringComparison.Ordinal);
             var running = UpdateStub.Find(Path.Combine(bin, "winshellw.exe"));
-            Assert.NotNull(running);
+            Assert.IsNotNull(running);
             running!.Refresh();
-            Assert.Equal(IntPtr.Zero, running.MainWindowHandle);
+            Assert.AreEqual(IntPtr.Zero, running.MainWindowHandle);
         }
         finally
         {
@@ -710,7 +713,7 @@ public class ReleaseSwapTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void The_staged_helper_starts_the_new_build_with_no_window()
     {
         using var temp = new TempFolder();
@@ -734,16 +737,16 @@ public class ReleaseSwapTests
             result.AssertNoError();
             UpdateStub.WaitUntil(() => Status(status, "NEW") is not null, null, "helper");
             var line = Status(status, "NEW")!;
-            Assert.Equal("0", line[2]);
+            Assert.AreEqual("0", line[2]);
             Assert.Contains("--hold", line[3], StringComparison.Ordinal);
-            Assert.Equal(
+            Assert.AreSequenceEqual(
                 File.ReadAllBytes(Path.Combine(UpdateStub.Build("NEW"), "winshellw.exe")),
                 File.ReadAllBytes(Path.Combine(install, "bin", "winshellw.exe")));
-            Assert.True(File.Exists(Path.Combine(install, "bin.old", "winshellw.exe")));
+            Assert.IsTrue(File.Exists(Path.Combine(install, "bin.old", "winshellw.exe")));
             var running = UpdateStub.Find(Path.Combine(install, "bin", "winshellw.exe"));
-            Assert.NotNull(running);
+            Assert.IsNotNull(running);
             running!.Refresh();
-            Assert.Equal(IntPtr.Zero, running.MainWindowHandle);
+            Assert.AreEqual(IntPtr.Zero, running.MainWindowHandle);
         }
         finally
         {

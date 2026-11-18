@@ -4,13 +4,14 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace Winshell.Architecture.Tests;
 
+[TestClass]
 public class WinUISourceTests
 {
     private static readonly Regex ExistsCondition = new(
         @"^Exists\(\s*'(?<path>[^']*)'\s*\)$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-    [Fact]
+    [TestMethod]
     public void Hand_written_code_in_a_WinUI_project_has_no_unsafe_code()
     {
         var projects = XDocument.Load(Path.Combine(Repo.Root, "winshell.slnx")).Descendants("Project")
@@ -18,14 +19,14 @@ public class WinUISourceTests
             .ToList();
         var unseen = new List<string>();
         var winui = projects.Where(path => UsesWinUI(path, unseen)).ToList();
-        Assert.True(unseen.Count == 0, string.Join(Environment.NewLine, unseen));
-        Assert.NotEmpty(winui);
+        Assert.IsTrue(unseen.Count == 0, string.Join(Environment.NewLine, unseen));
+        Assert.IsNotEmpty(winui);
         projects = winui;
 
         var found = projects.SelectMany(Sources).Distinct(StringComparer.OrdinalIgnoreCase).SelectMany(UnsafeCode)
             .ToList();
 
-        Assert.True(found.Count == 0, string.Join(Environment.NewLine, found));
+        Assert.IsTrue(found.Count == 0, string.Join(Environment.NewLine, found));
     }
 
     private static bool UsesWinUI(string path, List<string> unseen)

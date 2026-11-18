@@ -2,18 +2,19 @@ using Winshell.Native;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public class ProcessImageTests
 {
-    [Fact]
+    [TestMethod]
     public void This_process_image_is_the_running_program()
     {
         var path = ProcessImage.TryRead((uint)Environment.ProcessId);
-        Assert.Equal(Environment.ProcessPath, path, StringComparer.OrdinalIgnoreCase);
+        Assert.AreEqual(Environment.ProcessPath, path, StringComparer.OrdinalIgnoreCase);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_unknown_process_has_no_image()
     {
-        Assert.Null(ProcessImage.TryRead(0));
+        Assert.IsNull(ProcessImage.TryRead(0));
     }
 }

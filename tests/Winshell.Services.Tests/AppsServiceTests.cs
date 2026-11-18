@@ -3,6 +3,7 @@ using Winshell.Apps;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class AppsServiceTests : IDisposable
 {
     private readonly string _folder =
@@ -60,22 +61,22 @@ public sealed class AppsServiceTests : IDisposable
         return entries.Select(entry => entry.Name).ToList();
     }
 
-    [Fact]
+    [TestMethod]
     public void Hidden_apps_stay_out_of_the_lists_and_can_still_be_found()
     {
         using var apps = Start([App("Alpha"), App("Uninstall", true), App("Zeta")]);
 
-        Assert.Equal(["Alpha", "Zeta"], Names(apps.Apps));
-        Assert.Equal("Uninstall", apps.ById("Uninstall!App")?.Name);
-        Assert.Equal("Uninstall", apps.Find("uninstall")?.Name);
-        Assert.Null(apps.ById("Nothing"));
-        Assert.Null(apps.Find(""));
-        Assert.Equal(["Alpha"], Names(apps.Search("alp")));
-        Assert.Empty(apps.Search("uninstall"));
-        Assert.Empty(apps.Search("   "));
+        Assert.AreSequenceEqual(["Alpha", "Zeta"], Names(apps.Apps));
+        Assert.AreEqual("Uninstall", apps.ById("Uninstall!App")?.Name);
+        Assert.AreEqual("Uninstall", apps.Find("uninstall")?.Name);
+        Assert.IsNull(apps.ById("Nothing"));
+        Assert.IsNull(apps.Find(""));
+        Assert.AreSequenceEqual(["Alpha"], Names(apps.Search("alp")));
+        Assert.IsEmpty(apps.Search("uninstall"));
+        Assert.IsEmpty(apps.Search("   "));
     }
 
-    [Fact]
+    [TestMethod]
     public void Changing_the_apps_raises_entries_even_when_a_hidden_app_stays_out_of_the_lists()
     {
         using var apps = Start([App("Alpha")]);
@@ -84,51 +85,51 @@ public sealed class AppsServiceTests : IDisposable
 
         Change([App("Alpha"), App("Uninstall", true)]);
         Assert.Contains("Entries", names);
-        Assert.Equal("Uninstall", apps.Find("uninstall")?.Name);
+        Assert.AreEqual("Uninstall", apps.Find("uninstall")?.Name);
 
         names.Clear();
         Change([App("Alpine")]);
         Assert.Contains("Entries", names);
-        Assert.Equal(["Alpine"], Names(apps.Search("alp")));
+        Assert.AreSequenceEqual(["Alpine"], Names(apps.Search("alp")));
     }
 
-    [Fact]
+    [TestMethod]
     public void An_app_that_stays_is_the_same_object_and_an_app_that_goes_leaves_every_list()
     {
         var usage = Usage(("Beta!App", new AppUsage(3, 1000)));
         using var apps = Start([App("Alpha"), App("Beta")], usage);
         var alpha = apps.ById("Alpha!App")!;
         var beta = apps.ById("Beta!App")!;
-        Assert.Equal(["Beta"], Names(apps.Recent));
-        Assert.Equal(["Beta"], Names(apps.Frequent));
+        Assert.AreSequenceEqual(["Beta"], Names(apps.Recent));
+        Assert.AreSequenceEqual(["Beta"], Names(apps.Frequent));
 
         Change([App("Alpha")], usage);
 
-        Assert.Same(alpha, Assert.Single(apps.Apps));
-        Assert.Empty(apps.Recent);
-        Assert.Empty(apps.Frequent);
-        Assert.Null(apps.ById("Beta!App"));
+        Assert.AreSame(alpha, Assert.ContainsSingle(apps.Apps));
+        Assert.IsEmpty(apps.Recent);
+        Assert.IsEmpty(apps.Frequent);
+        Assert.IsNull(apps.ById("Beta!App"));
 
         beta.Launch();
         _loop.Process();
         Change([App("Alpha"), App("Beta")], usage);
-        Assert.Equal(3, apps.ById("Beta!App")!.RunCount);
+        Assert.AreEqual(3, apps.ById("Beta!App")!.RunCount);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_use_of_an_app_orders_recent_and_frequent()
     {
         using var apps = Start(
             [App("Alpha"), App("Beta")],
             Usage(("Alpha!App", new AppUsage(1, 2000)), ("Beta!App", new AppUsage(5, 1000))));
 
-        Assert.Equal(["Alpha", "Beta"], Names(apps.Recent));
-        Assert.Equal(["Beta", "Alpha"], Names(apps.Frequent));
-        Assert.Equal(5, apps.ById("Beta!App")!.RunCount);
-        Assert.Equal(2000, apps.ById("Alpha!App")!.LastUsed);
+        Assert.AreSequenceEqual(["Alpha", "Beta"], Names(apps.Recent));
+        Assert.AreSequenceEqual(["Beta", "Alpha"], Names(apps.Frequent));
+        Assert.AreEqual(5, apps.ById("Beta!App")!.RunCount);
+        Assert.AreEqual(2000, apps.ById("Alpha!App")!.LastUsed);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_shortcut_opens_with_its_start_in_folder_and_counts_as_a_use_at_once()
     {
         var notepad = Shortcut("Notepad");
@@ -139,15 +140,15 @@ public sealed class AppsServiceTests : IDisposable
 
         entry.Launch();
 
-        Assert.Equal([@"shortcut C:\Menu\Notepad.lnk in C:\Users\Me"], _backend.Opened);
-        Assert.Equal(1, entry.RunCount);
-        Assert.Equal(_loop.Time.GetUtcNow().ToUnixTimeMilliseconds(), entry.LastUsed);
-        Assert.Equal([nameof(AppEntry.RunCount), nameof(AppEntry.LastUsed)], changes);
-        Assert.Same(entry, Assert.Single(apps.Recent));
-        Assert.Same(entry, Assert.Single(apps.Frequent));
+        Assert.AreSequenceEqual([@"shortcut C:\Menu\Notepad.lnk in C:\Users\Me"], _backend.Opened);
+        Assert.AreEqual(1, entry.RunCount);
+        Assert.AreEqual(_loop.Time.GetUtcNow().ToUnixTimeMilliseconds(), entry.LastUsed);
+        Assert.AreSequenceEqual([nameof(AppEntry.RunCount), nameof(AppEntry.LastUsed)], changes);
+        Assert.AreSame(entry, Assert.ContainsSingle(apps.Recent));
+        Assert.AreSame(entry, Assert.ContainsSingle(apps.Frequent));
     }
 
-    [Fact(Timeout = 30_000)]
+    [TestMethod, Timeout(30_000)]
     public async Task A_packaged_launch_returns_before_activation_and_falls_back_on_the_loop()
     {
         using var apps = Start([App("Alpha")]);
@@ -157,27 +158,27 @@ public sealed class AppsServiceTests : IDisposable
         var posts = 0;
         _loop.Woken += () => Interlocked.Increment(ref posts);
 
-        await Task.Run(entry.Launch, TestContext.Current.CancellationToken)
-            .WaitAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(["activate Alpha!App"], _backend.Opened);
-        Assert.Equal(0, Volatile.Read(ref posts));
+        await Task.Run(entry.Launch, CurrentTest.Cancellation)
+            .WaitAsync(CurrentTest.Cancellation);
+        Assert.AreSequenceEqual(["activate Alpha!App"], _backend.Opened);
+        Assert.AreEqual(0, Volatile.Read(ref posts));
 
         activation.SetResult("not registered");
-        Assert.Equal(1, Volatile.Read(ref posts));
-        Assert.Empty(_warnings);
-        Assert.Equal(["activate Alpha!App"], _backend.Opened);
-        Assert.Equal(0, entry.RunCount);
+        Assert.AreEqual(1, Volatile.Read(ref posts));
+        Assert.IsEmpty(_warnings);
+        Assert.AreSequenceEqual(["activate Alpha!App"], _backend.Opened);
+        Assert.AreEqual(0, entry.RunCount);
 
         _loop.Process();
-        Assert.Equal(["apps: Failed to launch Alpha: not registered"], _warnings);
-        Assert.Equal(["activate Alpha!App", "apps folder Alpha!App"], _backend.Opened);
-        Assert.Equal(Environment.CurrentManagedThreadId, _backend.AppsFolderThread);
-        Assert.Equal(1, entry.RunCount);
+        Assert.AreSequenceEqual(["apps: Failed to launch Alpha: not registered"], _warnings);
+        Assert.AreSequenceEqual(["activate Alpha!App", "apps folder Alpha!App"], _backend.Opened);
+        Assert.AreEqual(Environment.CurrentManagedThreadId, _backend.AppsFolderThread);
+        Assert.AreEqual(1, entry.RunCount);
     }
 
-    [Theory]
-    [InlineData(false, new[] { "apps: Failed to launch Alpha: no such file" })]
-    [InlineData(true,
+    [TestMethod]
+    [DataRow(false, new[] { "apps: Failed to launch Alpha: no such file" })]
+    [DataRow(true,
         new[] { "apps: Failed to launch Alpha: not registered", "apps: Failed to launch Alpha: no such file" })]
     public void A_launch_that_opens_nothing_is_logged_and_not_counted(bool packaged, string[] warnings)
     {
@@ -190,12 +191,12 @@ public sealed class AppsServiceTests : IDisposable
         apps.ById(alpha.Id)!.Launch();
         _loop.Process();
 
-        Assert.Equal(warnings, _warnings);
-        Assert.Equal(0, apps.ById(alpha.Id)!.RunCount);
-        Assert.Empty(apps.Recent);
+        Assert.AreSequenceEqual(warnings, _warnings);
+        Assert.AreEqual(0, apps.ById(alpha.Id)!.RunCount);
+        Assert.IsEmpty(apps.Recent);
     }
 
-    [Fact]
+    [TestMethod]
     public void Changes_are_read_once_they_have_been_quiet_for_a_second()
     {
         using var apps = Start([App("Alpha")]);
@@ -204,27 +205,27 @@ public sealed class AppsServiceTests : IDisposable
         _loop.Advance(TimeSpan.FromMilliseconds(900));
         _backend.Show(new AppSnapshot([App("Alpha"), App("Beta"), App("Gamma")], Usage()));
         _loop.Advance(TimeSpan.FromMilliseconds(900));
-        Assert.Equal(["Alpha"], Names(apps.Apps));
+        Assert.AreSequenceEqual(["Alpha"], Names(apps.Apps));
 
         _loop.Advance(TimeSpan.FromMilliseconds(100));
-        Assert.Equal(["Alpha", "Beta", "Gamma"], Names(apps.Apps));
+        Assert.AreSequenceEqual(["Alpha", "Beta", "Gamma"], Names(apps.Apps));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_failed_read_is_warned_and_the_next_change_reads_again()
     {
         _backend.Failure = new InvalidCastException("read broke");
         using var apps = Start([App("Alpha")]);
-        Assert.Equal(["apps: InvalidCastException: read broke"], _warnings);
-        Assert.Empty(apps.Apps);
+        Assert.AreSequenceEqual(["apps: InvalidCastException: read broke"], _warnings);
+        Assert.IsEmpty(apps.Apps);
 
         _backend.Failure = null;
         Change([App("Alpha")]);
 
-        Assert.Equal(["Alpha"], Names(apps.Apps));
+        Assert.AreSequenceEqual(["Alpha"], Names(apps.Apps));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_disposed_service_stops_following_the_backend()
     {
         var apps = Start([App("Alpha")]);
@@ -232,10 +233,10 @@ public sealed class AppsServiceTests : IDisposable
         apps.Dispose();
         Change([]);
 
-        Assert.Single(apps.Apps);
+        Assert.ContainsSingle(apps.Apps);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_jump_list_is_read_for_an_id_and_stays_the_same_object()
     {
         var reader = new ScriptJumpLists
@@ -245,22 +246,22 @@ public sealed class AppsServiceTests : IDisposable
         var lists = new JumpListService(reader);
 
         var found = lists.ForApp("Contoso.Notes");
-        Assert.True(found.Available);
-        Assert.Equal(["Budget.xlsx", "Notes.txt"], found.Destinations);
+        Assert.IsTrue(found.Available);
+        Assert.AreSequenceEqual(["Budget.xlsx", "Notes.txt"], found.Destinations);
 
         var blank = lists.ForApp("  ");
-        Assert.False(blank.Available);
-        Assert.Empty(blank.Destinations);
-        Assert.Equal(["Contoso.Notes"], reader.Asked);
+        Assert.IsFalse(blank.Available);
+        Assert.IsEmpty(blank.Destinations);
+        Assert.AreSequenceEqual(["Contoso.Notes"], reader.Asked);
 
         reader.Result["Contoso.Notes"] = JumpListRead.Missing;
         var missing = lists.ForApp("Contoso.Notes");
-        Assert.Same(found, missing);
-        Assert.False(missing.Available);
-        Assert.Empty(missing.Destinations);
+        Assert.AreSame(found, missing);
+        Assert.IsFalse(missing.Available);
+        Assert.IsEmpty(missing.Destinations);
     }
 
-    [Fact]
+    [TestMethod]
     public void Recent_documents_match_every_word_newest_first_and_a_blank_query_reads_nothing()
     {
         Touch("Budget report.lnk", 2);
@@ -268,33 +269,33 @@ public sealed class AppsServiceTests : IDisposable
         Touch("Budget.lnk", 1);
         var documents = new RecentDocuments(_folder);
 
-        Assert.Equal(["Report notes", "Budget report"], documents.Search("report").Select(document => document.Name));
-        var hit = Assert.Single(documents.Search("budget REPORT"));
-        Assert.Equal(Path.Combine(_folder, "Budget report.lnk"), hit.Path);
-        Assert.Empty(documents.Search("   "));
-        Assert.Empty(documents.Search("budget missing"));
-        Assert.Empty(new RecentDocuments(Path.Combine(_folder, "missing")).Search("report"));
+        Assert.AreSequenceEqual(["Report notes", "Budget report"], documents.Search("report").Select(document => document.Name));
+        var hit = Assert.ContainsSingle(documents.Search("budget REPORT"));
+        Assert.AreEqual(Path.Combine(_folder, "Budget report.lnk"), hit.Path);
+        Assert.IsEmpty(documents.Search("   "));
+        Assert.IsEmpty(documents.Search("budget missing"));
+        Assert.IsEmpty(new RecentDocuments(Path.Combine(_folder, "missing")).Search("report"));
 
         Touch("Agenda.txt", 4);
         var nested = Path.Combine(_folder, "nested");
         Directory.CreateDirectory(nested);
         File.WriteAllBytes(Path.Combine(nested, "Secret Agenda.lnk"), []);
-        Assert.Empty(documents.Search("agenda"));
-        Assert.Empty(documents.Search(Path.GetFileName(_folder)));
+        Assert.IsEmpty(documents.Search("agenda"));
+        Assert.IsEmpty(documents.Search(Path.GetFileName(_folder)));
 
         var same = new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc);
         File.WriteAllBytes(Path.Combine(_folder, "Beta.lnk"), []);
         File.WriteAllBytes(Path.Combine(_folder, "Able.lnk"), []);
         File.SetLastWriteTimeUtc(Path.Combine(_folder, "Beta.lnk"), same);
         File.SetLastWriteTimeUtc(Path.Combine(_folder, "Able.lnk"), same);
-        Assert.Equal(["Able", "Beta"],
+        Assert.AreSequenceEqual(["Able", "Beta"],
             documents.Search("a").Select(document => document.Name).Where(name => name is "Able" or "Beta"));
 
-        Assert.Empty(documents.Search(""));
-        Assert.Empty(documents.Search("\t"));
+        Assert.IsEmpty(documents.Search(""));
+        Assert.IsEmpty(documents.Search("\t"));
     }
 
-    [Fact]
+    [TestMethod]
     public void Recent_documents_stop_at_the_limit()
     {
         for (var i = 0; i < RecentDocuments.Limit + 1; i++)
@@ -302,9 +303,9 @@ public sealed class AppsServiceTests : IDisposable
 
         var found = new RecentDocuments(_folder).Search("doc");
 
-        Assert.Equal(RecentDocuments.Limit, found.Count);
-        Assert.Equal("Doc 20", found[0].Name);
-        Assert.Equal("Doc 01", found[^1].Name);
+        Assert.AreEqual(RecentDocuments.Limit, found.Count);
+        Assert.AreEqual("Doc 20", found[0].Name);
+        Assert.AreEqual("Doc 01", found[^1].Name);
     }
 
     private void Touch(string name, int day)

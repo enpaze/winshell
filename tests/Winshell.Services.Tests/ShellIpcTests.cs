@@ -3,6 +3,7 @@ using Windows.UI;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class ShellIpcTests
 {
     private readonly List<string> _warnings = [];
@@ -12,7 +13,7 @@ public sealed class ShellIpcTests
         return new ShellIpc(new Log { Sink = (_, _, message) => _warnings.Add(message) });
     }
 
-    [Fact]
+    [TestMethod]
     public void A_handler_gets_its_arguments_as_the_types_it_declares()
     {
         var ipc = Ipc();
@@ -25,14 +26,14 @@ public sealed class ShellIpcTests
 
         ipc.Call("t", "all", ["a b", "-7", "1", "2.5", "0.5", "#ff102030"]);
 
-        Assert.Equal(("a b", -7, true, 2.5, 0.5f, Color.FromArgb(255, 0x10, 0x20, 0x30)), seen);
+        Assert.AreEqual(("a b", -7, true, 2.5, 0.5f, Color.FromArgb(255, 0x10, 0x20, 0x30)), seen);
     }
 
-    [Theory]
-    [InlineData("f00", 255, 255, 0, 0)]
-    [InlineData("#8f00", 136, 255, 0, 0)]
-    [InlineData("#102030", 255, 0x10, 0x20, 0x30)]
-    [InlineData("80102030", 0x80, 0x10, 0x20, 0x30)]
+    [TestMethod]
+    [DataRow("f00", 255, 255, 0, 0)]
+    [DataRow("#8f00", 136, 255, 0, 0)]
+    [DataRow("#102030", 255, 0x10, 0x20, 0x30)]
+    [DataRow("80102030", 0x80, 0x10, 0x20, 0x30)]
     public void A_color_is_hex_with_or_without_its_hash(string text, int a, int r, int g, int b)
     {
         var ipc = Ipc();
@@ -41,10 +42,10 @@ public sealed class ShellIpcTests
 
         ipc.Call("t", "paint", [text]);
 
-        Assert.Equal(Color.FromArgb((byte)a, (byte)r, (byte)g, (byte)b), seen);
+        Assert.AreEqual(Color.FromArgb((byte)a, (byte)r, (byte)g, (byte)b), seen);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_result_comes_back_as_text()
     {
         var ipc = Ipc();
@@ -55,17 +56,17 @@ public sealed class ShellIpcTests
         ipc.Handle("t", "text", () => (string)null!);
         ipc.Handle("t", "nothing", () => { });
 
-        Assert.Equal("1234", ipc.Call("t", "number", []));
-        Assert.Equal("1.5", ipc.Call("t", "real", []));
-        Assert.Equal("true", ipc.Call("t", "flag", []));
-        Assert.Equal("#01020304", ipc.Call("t", "color", []));
-        Assert.Equal("", ipc.Call("t", "text", []));
-        Assert.Equal("", ipc.Call("t", "nothing", []));
+        Assert.AreEqual("1234", ipc.Call("t", "number", []));
+        Assert.AreEqual("1.5", ipc.Call("t", "real", []));
+        Assert.AreEqual("true", ipc.Call("t", "flag", []));
+        Assert.AreEqual("#01020304", ipc.Call("t", "color", []));
+        Assert.AreEqual("", ipc.Call("t", "text", []));
+        Assert.AreEqual("", ipc.Call("t", "nothing", []));
     }
 
-    [Theory]
-    [InlineData("0", "1")]
-    [InlineData("true", "false")]
+    [TestMethod]
+    [DataRow("0", "1")]
+    [DataRow("true", "false")]
     public void A_bool_is_a_word_or_a_number(string on, string other)
     {
         var ipc = Ipc();
@@ -75,45 +76,45 @@ public sealed class ShellIpcTests
         ipc.Call("t", "set", [on]);
         ipc.Call("t", "set", [other]);
 
-        Assert.NotEqual(flags[0], flags[1]);
+        Assert.AreNotEqual(flags[0], flags[1]);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_wrong_number_of_arguments_is_refused_and_nothing_runs()
     {
         var ipc = Ipc();
         var ran = false;
         ipc.Handle("t", "one", (string _) => ran = true);
 
-        Assert.Equal("Function t.one takes 1 argument, 0 given.",
-            Assert.Throws<IpcException>(() => ipc.Call("t", "one", [])).Message);
-        Assert.Equal("Function t.one takes 1 argument, 2 given.",
-            Assert.Throws<IpcException>(() => ipc.Call("t", "one", ["a", "b"])).Message);
-        Assert.False(ran);
+        Assert.AreEqual("Function t.one takes 1 argument, 0 given.",
+            Assert.ThrowsExactly<IpcException>(() => ipc.Call("t", "one", [])).Message);
+        Assert.AreEqual("Function t.one takes 1 argument, 2 given.",
+            Assert.ThrowsExactly<IpcException>(() => ipc.Call("t", "one", ["a", "b"])).Message);
+        Assert.IsFalse(ran);
     }
 
-    [Theory]
-    [InlineData("many", "Argument n is not an int: many.")]
-    [InlineData("1.5", "Argument n is not an int: 1.5.")]
+    [TestMethod]
+    [DataRow("many", "Argument n is not an int: many.")]
+    [DataRow("1.5", "Argument n is not an int: 1.5.")]
     public void Text_that_is_not_the_declared_type_is_refused(string text, string message)
     {
         var ipc = Ipc();
         ipc.Handle("t", "count", (int n) => n);
 
-        Assert.Equal(message, Assert.Throws<IpcException>(() => ipc.Call("t", "count", [text])).Message);
+        Assert.AreEqual(message, Assert.ThrowsExactly<IpcException>(() => ipc.Call("t", "count", [text])).Message);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_color_that_is_not_hex_is_refused()
     {
         var ipc = Ipc();
         ipc.Handle("t", "paint", (Color color) => { });
 
-        Assert.Equal("Argument color is not a color: 12.",
-            Assert.Throws<IpcException>(() => ipc.Call("t", "paint", ["12"])).Message);
+        Assert.AreEqual("Argument color is not a color: 12.",
+            Assert.ThrowsExactly<IpcException>(() => ipc.Call("t", "paint", ["12"])).Message);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_handler_with_a_type_ipc_cant_pass_is_refused_when_it_registers()
     {
         Delegate[] unpassable =
@@ -127,36 +128,36 @@ public sealed class ShellIpcTests
 
         foreach (var handler in unpassable)
         {
-            var error = Assert.Throws<ArgumentException>(() => Ipc().Handle("t", "bad", handler));
+            var error = Assert.ThrowsExactly<ArgumentException>(() => Ipc().Handle("t", "bad", handler));
             Assert.Contains("Function t.bad has a type IPC can't pass.", error.Message, StringComparison.Ordinal);
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void More_than_ten_parameters_is_refused()
     {
         var eleven = (int a, int b, int c, int d, int e, int f, int g, int h, int i, int j, int k) => { };
 
-        Assert.Throws<ArgumentException>(() => Ipc().Handle("t", "bad", eleven));
+        Assert.ThrowsExactly<ArgumentException>(() => Ipc().Handle("t", "bad", eleven));
     }
 
-    [Fact]
+    [TestMethod]
     public void What_is_missing_is_named_as_an_IpcHandler_names_it()
     {
         var ipc = Ipc();
         ipc.Handle("t", "known", () => { });
 
-        Assert.Equal("Target not found: other.",
-            Assert.Throws<IpcException>(() => ipc.Call("other", "known", [])).Message);
-        Assert.Equal("Function not found: t.other.",
-            Assert.Throws<IpcException>(() => ipc.Call("t", "other", [])).Message);
-        Assert.Equal("Property not found: t.other.",
-            Assert.Throws<IpcException>(() => ipc.GetProperty("t", "other")).Message);
-        Assert.Equal("Signal not found: t.other.",
-            Assert.Throws<IpcException>(() => ipc.Listen("t", "other", _ => { })).Message);
+        Assert.AreEqual("Target not found: other.",
+            Assert.ThrowsExactly<IpcException>(() => ipc.Call("other", "known", [])).Message);
+        Assert.AreEqual("Function not found: t.other.",
+            Assert.ThrowsExactly<IpcException>(() => ipc.Call("t", "other", [])).Message);
+        Assert.AreEqual("Property not found: t.other.",
+            Assert.ThrowsExactly<IpcException>(() => ipc.GetProperty("t", "other")).Message);
+        Assert.AreEqual("Signal not found: t.other.",
+            Assert.ThrowsExactly<IpcException>(() => ipc.Listen("t", "other", _ => { })).Message);
     }
 
-    [Fact]
+    [TestMethod]
     public void Show_lists_targets_in_order_with_their_declared_types()
     {
         var ipc = Ipc();
@@ -165,31 +166,31 @@ public sealed class ShellIpcTests
         ipc.Signal("settings", "changed");
         ipc.Handle("audio", "mute", () => { });
 
-        Assert.Equal(
+        Assert.AreEqual(
             "target audio\n  function mute(): void\n"
             + "target settings\n  function open(page: string, tab: int): bool\n  property page: string\n  signal changed()\n",
             ipc.Show());
     }
 
-    [Fact]
+    [TestMethod]
     public void A_property_reads_its_value_each_time()
     {
         var ipc = Ipc();
         var value = new StrongBox<int>(1);
         ipc.Property("t", "value", () => value.Value);
 
-        Assert.Equal("1", ipc.GetProperty("t", "value"));
+        Assert.AreEqual("1", ipc.GetProperty("t", "value"));
         value.Value = 2;
-        Assert.Equal("2", ipc.GetProperty("t", "value"));
+        Assert.AreEqual("2", ipc.GetProperty("t", "value"));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_property_of_a_type_ipc_cant_pass_is_refused()
     {
-        Assert.Throws<ArgumentException>(() => Ipc().Property("t", "value", () => new object()));
+        Assert.ThrowsExactly<ArgumentException>(() => Ipc().Property("t", "value", () => new object()));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_signal_reaches_its_listeners_until_they_leave()
     {
         var ipc = Ipc();
@@ -201,10 +202,10 @@ public sealed class ShellIpcTests
         listening.Dispose();
         signal.Emit("two");
 
-        Assert.Equal(["one"], seen);
+        Assert.AreSequenceEqual(["one"], seen);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_later_handler_wins_and_says_so_and_the_earlier_ones_removal_leaves_it()
     {
         var ipc = Ipc();
@@ -213,11 +214,11 @@ public sealed class ShellIpcTests
 
         earlier.Dispose();
 
-        Assert.Equal("later", ipc.Call("t", "name", []));
+        Assert.AreEqual("later", ipc.Call("t", "name", []));
         Assert.Contains("Duplicate IPC name \"t.name\"; the later one wins.", _warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_target_with_nothing_left_is_gone()
     {
         var ipc = Ipc();
@@ -225,16 +226,16 @@ public sealed class ShellIpcTests
 
         handler.Dispose();
 
-        Assert.Empty(ipc.Describe());
-        Assert.Throws<IpcException>(() => ipc.Call("t", "name", []));
+        Assert.IsEmpty(ipc.Describe());
+        Assert.ThrowsExactly<IpcException>(() => ipc.Call("t", "name", []));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_handler_that_throws_fails_with_its_own_exception()
     {
         var ipc = Ipc();
         ipc.Handle("t", "fail", new Action(() => throw new InvalidOperationException("no")));
 
-        Assert.Equal("no", Assert.Throws<InvalidOperationException>(() => ipc.Call("t", "fail", [])).Message);
+        Assert.AreEqual("no", Assert.ThrowsExactly<InvalidOperationException>(() => ipc.Call("t", "fail", [])).Message);
     }
 }

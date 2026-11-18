@@ -3,10 +3,11 @@ using Winshell.Diagnostics;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class PanelPlacerTests
 {
-    [Fact]
+    [TestMethod]
     public async Task The_doctor_knows_a_panel_for_Winshell_s_own()
     {
         var classes = await ShellFixture.On(_ =>

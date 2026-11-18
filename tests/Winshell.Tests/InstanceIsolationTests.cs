@@ -1,11 +1,11 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
-using Xunit.Sdk;
 
 namespace Winshell.Tests;
 
-public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<ProbeBuild>
+[TestClass]
+public sealed partial class InstanceIsolationTests : ProbeBuild, IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<(Process Process, string Local)> _started = [];
@@ -24,7 +24,7 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
         return dir;
     }
 
-    [Fact]
+    [TestMethod]
     public void Instances_keep_apart_and_outlive_one_that_crashes()
     {
         var locals = new[] { Path.Combine(_dir, "local-a"), Path.Combine(_dir, "local-b"), Path.Combine(_dir, "local-c") };
@@ -33,25 +33,25 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
         var c = Start(Config("c"), locals[2], "other");
         var infos = new[] { Info(a, locals[0]), Info(b, locals[1]), Info(c, locals[2]) };
 
-        Assert.Equal(3, infos.Select(i => i.GetProperty("id").GetString()).Distinct().Count());
-        Assert.Equal(3, infos.Select(i => i.GetProperty("pipe").GetString()).Distinct().Count());
-        Assert.Equal(3, infos.Select(i => i.GetProperty("log").GetString()).Distinct().Count());
-        Assert.Equal("probe", infos[0].GetProperty("shellId").GetString());
-        Assert.Equal("probe", infos[1].GetProperty("shellId").GetString());
-        Assert.Equal("other", infos[2].GetProperty("shellId").GetString());
-        Assert.Equal(0, Show(a, locals[0]));
-        Assert.Equal(0, Show(b, locals[1]));
-        Assert.Equal(0, Show(c, locals[2]));
+        Assert.AreEqual(3, infos.Select(i => i.GetProperty("id").GetString()).Distinct().Count());
+        Assert.AreEqual(3, infos.Select(i => i.GetProperty("pipe").GetString()).Distinct().Count());
+        Assert.AreEqual(3, infos.Select(i => i.GetProperty("log").GetString()).Distinct().Count());
+        Assert.AreEqual("probe", infos[0].GetProperty("shellId").GetString());
+        Assert.AreEqual("probe", infos[1].GetProperty("shellId").GetString());
+        Assert.AreEqual("other", infos[2].GetProperty("shellId").GetString());
+        Assert.AreEqual(0, Show(a, locals[0]));
+        Assert.AreEqual(0, Show(b, locals[1]));
+        Assert.AreEqual(0, Show(c, locals[2]));
 
         b.Kill();
         b.WaitForExit();
 
-        Assert.Equal(0, Show(a, locals[0]));
-        Assert.Equal(0, Show(c, locals[2]));
-        Assert.DoesNotContain(Listed(locals[1]), i => i.GetProperty("pid").GetInt32() == b.Id);
+        Assert.AreEqual(0, Show(a, locals[0]));
+        Assert.AreEqual(0, Show(c, locals[2]));
+        Assert.DoesNotContain(i => i.GetProperty("pid").GetInt32() == b.Id, Listed(locals[1]));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_reused_process_id_is_listed_for_the_instance_that_owns_it()
     {
         using var process = Process.GetCurrentProcess();
@@ -76,8 +76,8 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
         });
 
         var rows = Listed(Local).Where(i => i.GetProperty("pid").GetInt32() == process.Id).ToList();
-        Assert.Single(rows);
-        Assert.Equal(liveId, rows[0].GetProperty("id").GetString());
+        Assert.ContainsSingle(rows);
+        Assert.AreEqual(liveId, rows[0].GetProperty("id").GetString());
     }
 
     private Process Start(string configDir, string local, string? shellId = null)
@@ -125,7 +125,7 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
                 {
                     Winshell(local, "kill", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
                 }
-                catch (XunitException)
+                catch (UnitTestAssertException)
                 {
                 }
 

@@ -2,111 +2,113 @@ using System.Globalization;
 
 namespace Winshell.Tests;
 
+[TestClass]
 public class CommandOptionTests
 {
-    [Theory]
-    [InlineData("list --force", "winshell list does not take \"--force\".")]
-    [InlineData("list -c work", "winshell list does not take \"-c\".")]
-    [InlineData("kill -j", "winshell kill does not take \"-j\".")]
-    [InlineData("-d kill", "winshell kill does not take \"-d\".")]
-    [InlineData("reload --no-build", "winshell reload does not take \"--no-build\".")]
-    [InlineData("inspect --force tree", "winshell inspect does not take \"--force\".")]
-    [InlineData("inspect screenshot out.png --fps 30", "winshell inspect screenshot does not take \"--fps\".")]
-    [InlineData("inspect tree --screen", "winshell inspect tree does not take \"--screen\".")]
-    [InlineData("inspect point Menu --right", "winshell inspect point does not take \"--right\".")]
-    [InlineData("dev -j", "winshell dev does not take \"-j\".")]
-    [InlineData("doctor --pid 5", "winshell doctor does not take \"--pid\".")]
-    [InlineData("run -j", "winshell run does not take \"-j\".")]
-    [InlineData("help -j", "winshell help does not take \"-j\".")]
+    [TestMethod]
+    [DataRow("list --force", "winshell list does not take \"--force\".")]
+    [DataRow("list -c work", "winshell list does not take \"-c\".")]
+    [DataRow("kill -j", "winshell kill does not take \"-j\".")]
+    [DataRow("-d kill", "winshell kill does not take \"-d\".")]
+    [DataRow("reload --no-build", "winshell reload does not take \"--no-build\".")]
+    [DataRow("inspect --force tree", "winshell inspect does not take \"--force\".")]
+    [DataRow("inspect screenshot out.png --fps 30", "winshell inspect screenshot does not take \"--fps\".")]
+    [DataRow("inspect tree --screen", "winshell inspect tree does not take \"--screen\".")]
+    [DataRow("inspect point Menu --right", "winshell inspect point does not take \"--right\".")]
+    [DataRow("dev -j", "winshell dev does not take \"-j\".")]
+    [DataRow("doctor --pid 5", "winshell doctor does not take \"--pid\".")]
+    [DataRow("run -j", "winshell run does not take \"-j\".")]
+    [DataRow("help -j", "winshell help does not take \"-j\".")]
     public void An_option_the_command_does_not_take_is_named(string line, string message)
     {
-        var e = Assert.Throws<ArgumentException>(() => CliParser.Parse(line.Split(' ')));
+        var e = Assert.ThrowsExactly<ArgumentException>(() => CliParser.Parse(line.Split(' ')));
 
-        Assert.Equal(message, e.Message);
+        Assert.AreEqual(message, e.Message);
     }
 
-    [Theory]
-    [InlineData("run -p missing --pth", "Unknown option \"--pth\".")]
-    [InlineData("run -p missing --log-times", "Unknown option \"--log-times\".")]
-    [InlineData("run -p missing --any-display", "Unknown option \"--any-display\".")]
-    [InlineData("run -p missing --newest", "Unknown option \"--newest\".")]
-    [InlineData("run -p missing --log-rules x", "Unknown option \"--log-rules\".")]
-    [InlineData("run -p missing -m MyShell.exe", "Unknown option \"-m\".")]
-    [InlineData("run -p missing --manifest MyShell.exe", "Unknown option \"--manifest\".")]
-    [InlineData("run -p missing --debug 1", "Unknown option \"--debug\".")]
-    [InlineData("list -a", "Unknown option \"-a\".")]
-    [InlineData("list --all", "Unknown option \"--all\".")]
-    [InlineData("reload --pid 0 --hard", "Unknown option \"--hard\".")]
-    [InlineData("list extra", "Unexpected argument \"extra\".")]
-    [InlineData("kill --pid 0 extra", "Unexpected argument \"extra\".")]
-    [InlineData("run -p missing extra", "Unexpected argument \"extra\".")]
-    [InlineData("doctor extra", "Unexpected argument \"extra\".")]
-    [InlineData("log one two", "Unexpected argument \"two\".")]
-    [InlineData("kill --pid abc", "--pid needs a whole number.")]
-    [InlineData("kill --pid 1.5", "--pid needs a whole number.")]
-    [InlineData("kill --pid 999999999999", "--pid needs a whole number.")]
-    [InlineData("kill --pid -1", "--pid needs a whole number.")]
-    [InlineData("kill --pid ''", "--pid needs a whole number.")]
-    [InlineData("log --tail ten", "--tail needs a whole number.")]
-    [InlineData("log --tail -5", "--tail needs a whole number.")]
-    [InlineData("log -t ten", "-t needs a whole number.")]
-    [InlineData("kill --pid", "--pid needs a value.")]
-    [InlineData("log --tail", "--tail needs a value.")]
-    [InlineData("inspect record out.mp4 --for", "--for needs a value.")]
-    [InlineData("inspect record out.mp4 --for 0", "--for needs a time, such as 5s or 500ms.")]
-    [InlineData("inspect record out.mp4 --for 5m", "--for needs a time, such as 5s or 500ms.")]
-    [InlineData("inspect record out.mp4 --for -1s", "--for needs a time, such as 5s or 500ms.")]
-    [InlineData("inspect record out.mp4 --for 1s --fps 0", "--fps needs a whole number above 0.")]
-    [InlineData("inspect record out.mp4 --for 1s --fps 2.5", "--fps needs a whole number.")]
+    [TestMethod]
+    [DataRow("run -p missing --pth", "Unknown option \"--pth\".")]
+    [DataRow("run -p missing --log-times", "Unknown option \"--log-times\".")]
+    [DataRow("run -p missing --any-display", "Unknown option \"--any-display\".")]
+    [DataRow("run -p missing --newest", "Unknown option \"--newest\".")]
+    [DataRow("run -p missing --log-rules x", "Unknown option \"--log-rules\".")]
+    [DataRow("run -p missing -m MyShell.exe", "Unknown option \"-m\".")]
+    [DataRow("run -p missing --manifest MyShell.exe", "Unknown option \"--manifest\".")]
+    [DataRow("run -p missing --debug 1", "Unknown option \"--debug\".")]
+    [DataRow("list -a", "Unknown option \"-a\".")]
+    [DataRow("list --all", "Unknown option \"--all\".")]
+    [DataRow("reload --pid 0 --hard", "Unknown option \"--hard\".")]
+    [DataRow("list extra", "Unexpected argument \"extra\".")]
+    [DataRow("kill --pid 0 extra", "Unexpected argument \"extra\".")]
+    [DataRow("run -p missing extra", "Unexpected argument \"extra\".")]
+    [DataRow("doctor extra", "Unexpected argument \"extra\".")]
+    [DataRow("log one two", "Unexpected argument \"two\".")]
+    [DataRow("kill --pid abc", "--pid needs a whole number.")]
+    [DataRow("kill --pid 1.5", "--pid needs a whole number.")]
+    [DataRow("kill --pid 999999999999", "--pid needs a whole number.")]
+    [DataRow("kill --pid -1", "--pid needs a whole number.")]
+    [DataRow("kill --pid ''", "--pid needs a whole number.")]
+    [DataRow("log --tail ten", "--tail needs a whole number.")]
+    [DataRow("log --tail -5", "--tail needs a whole number.")]
+    [DataRow("log -t ten", "-t needs a whole number.")]
+    [DataRow("kill --pid", "--pid needs a value.")]
+    [DataRow("log --tail", "--tail needs a value.")]
+    [DataRow("inspect record out.mp4 --for", "--for needs a value.")]
+    [DataRow("inspect record out.mp4 --for 0", "--for needs a time, such as 5s or 500ms.")]
+    [DataRow("inspect record out.mp4 --for 5m", "--for needs a time, such as 5s or 500ms.")]
+    [DataRow("inspect record out.mp4 --for -1s", "--for needs a time, such as 5s or 500ms.")]
+    [DataRow("inspect record out.mp4 --for 1s --fps 0", "--fps needs a whole number above 0.")]
+    [DataRow("inspect record out.mp4 --for 1s --fps 2.5", "--fps needs a whole number.")]
     public void A_bad_option_argument_or_number_is_named(string line, string message)
     {
         var args = line.Split(' ').Select(word => word == "''" ? "" : word).ToArray();
 
-        var e = Assert.Throws<ArgumentException>(() => CliParser.Parse(args));
+        var e = Assert.ThrowsExactly<ArgumentException>(() => CliParser.Parse(args));
 
-        Assert.Equal(message, e.Message);
+        Assert.AreEqual(message, e.Message);
     }
 
-    [Theory]
-    [InlineData("run -p dir", "path", "dir")]
-    [InlineData("run -c work", "config", "work")]
-    [InlineData("run -d", "daemonize", "")]
-    [InlineData("run -n", "no-duplicate", "")]
-    [InlineData("run --no-build", "no-build", "")]
-    [InlineData("list -j", "json", "")]
-    [InlineData("kill --force", "force", "")]
-    [InlineData("kill -i ab", "id", "ab")]
-    [InlineData("kill --pid 4", "pid", "4")]
-    [InlineData("reload -c work", "config", "work")]
-    [InlineData("log -t 2", "tail", "2")]
-    [InlineData("log -f", "follow", "")]
-    [InlineData("ipc show -j", "json", "")]
-    [InlineData("inspect tree -i ab", "id", "ab")]
-    [InlineData("dev -p dir", "path", "dir")]
-    [InlineData("doctor --no-color", "no-color", "")]
-    [InlineData("doctor -j", "json", "")]
+    [TestMethod]
+    [DataRow("run -p dir", "path", "dir")]
+    [DataRow("run -c work", "config", "work")]
+    [DataRow("run -d", "daemonize", "")]
+    [DataRow("run -n", "no-duplicate", "")]
+    [DataRow("run --no-build", "no-build", "")]
+    [DataRow("list -j", "json", "")]
+    [DataRow("kill --force", "force", "")]
+    [DataRow("kill -i ab", "id", "ab")]
+    [DataRow("kill --pid 4", "pid", "4")]
+    [DataRow("reload -c work", "config", "work")]
+    [DataRow("log -t 2", "tail", "2")]
+    [DataRow("log -f", "follow", "")]
+    [DataRow("ipc show -j", "json", "")]
+    [DataRow("inspect tree -i ab", "id", "ab")]
+    [DataRow("dev -p dir", "path", "dir")]
+    [DataRow("doctor --no-color", "no-color", "")]
+    [DataRow("doctor -j", "json", "")]
     public void A_command_reads_the_options_it_accepts(string line, string field, string value)
     {
         var parsed = CliParser.Parse(line.Split(' '));
 
-        Assert.Equal(line.Split(' ')[0], parsed.Command);
-        Assert.Equal(value, Field(parsed, field));
+        Assert.AreEqual(line.Split(' ')[0], parsed.Command);
+        Assert.AreEqual(value, Field(parsed, field));
     }
 
-    [Fact]
+    [TestMethod]
     public void An_option_before_the_command_is_that_command_s()
     {
         var parsed = CliParser.Parse(["--pid", "4", "kill"]);
 
-        Assert.Equal("kill", parsed.Command);
-        Assert.Equal("4", Field(parsed, "pid"));
+        Assert.AreEqual("kill", parsed.Command);
+        Assert.AreEqual("4", Field(parsed, "pid"));
     }
 
-    [Fact]
+    [TestMethod]
     public void Every_command_takes_verbose()
     {
-        Assert.All(CliParser.Entries, entry => Assert.True(entry.Accepts(CliFlags.Verbose)));
-        Assert.True(CliParser.Parse(["run", "-v"]).Verbose);
+        foreach (var entry in CliParser.Entries)
+            Assert.IsTrue(entry.Accepts(CliFlags.Verbose));
+        Assert.IsTrue(CliParser.Parse(["run", "-v"]).Verbose);
     }
 
     private static string Field(Invocation parsed, string field)

@@ -31,7 +31,7 @@ internal static class WinshellCli
 
     internal static ChildProcess Run(IEnumerable<string> args, params (string Name, string Value)[] environment)
     {
-        Assert.True(File.Exists(Exe), $"No CLI at {Exe}");
+        Assert.IsTrue(File.Exists(Exe), $"No CLI at {Exe}");
         var info = StartInfo(args);
         foreach (var (name, value) in environment)
             info.Environment[name] = value;

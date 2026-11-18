@@ -3,9 +3,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Winshell.Architecture.Tests;
 
+[TestClass]
 public class InputClockTests
 {
-    [Fact]
+    [TestMethod]
     public void Only_SentInput_reads_the_tick_count()
     {
         var src = Path.Combine(Repo.Root, "src");
@@ -16,7 +17,7 @@ public class InputClockTests
             .Order(StringComparer.Ordinal)
             .ToList();
 
-        Assert.Equal(["Winshell.Native/Input/SentInput.cs"], readers);
+        Assert.AreSequenceEqual(["Winshell.Native/Input/SentInput.cs"], readers);
     }
 
     private static bool ReadsTickCount(string path)

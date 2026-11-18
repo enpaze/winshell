@@ -2,6 +2,7 @@ using Winshell.Capture;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class FramePacingTests
 {
     private static TimeSpan Ms(double milliseconds)
@@ -9,7 +10,7 @@ public sealed class FramePacingTests
         return TimeSpan.FromMilliseconds(milliseconds);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_cap_keeps_the_first_frame_in_each_slot_by_its_timestamp()
     {
         var cap = new FrameCap(10);
@@ -17,18 +18,19 @@ public sealed class FramePacingTests
 
         var kept = times.Where(at => cap.Keep(Ms(at))).ToArray();
 
-        Assert.Equal([0, 100, 250, 520], kept);
+        Assert.AreSequenceEqual([0, 100, 250, 520], kept);
     }
 
-    [Fact]
+    [TestMethod]
     public void Without_a_cap_every_frame_is_kept()
     {
         var cap = new FrameCap(null);
 
-        Assert.All([0, 1, 1, 2], at => Assert.True(cap.Keep(Ms(at))));
+        foreach (var at in new[] { 0, 1, 1, 2 })
+            Assert.IsTrue(cap.Keep(Ms(at)));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_frame_repeats_until_the_next_and_only_the_last_in_a_video_frame_is_shown()
     {
         var shown = new List<(string Frame, int Count)>();
@@ -40,13 +42,13 @@ public sealed class FramePacingTests
         pace.Add("d", Ms(410));
         pace.Finish(Ms(1000));
 
-        Assert.Equal([("a", 2), ("c", 2), ("d", 6)], shown);
+        Assert.AreSequenceEqual([("a", 2), ("c", 2), ("d", 6)], shown);
     }
 
-    [Theory]
-    [InlineData(1000, 10)]
-    [InlineData(1050, 11)]
-    [InlineData(1, 1)]
+    [TestMethod]
+    [DataRow(1000, 10)]
+    [DataRow(1050, 11)]
+    [DataRow(1, 1)]
     public void The_video_is_as_long_as_the_recording_rounded_up_to_a_whole_frame(double length, int frames)
     {
         var shown = 0;
@@ -55,6 +57,6 @@ public sealed class FramePacingTests
         pace.Add("a", Ms(0));
         pace.Finish(Ms(length));
 
-        Assert.Equal(frames, shown);
+        Assert.AreEqual(frames, shown);
     }
 }

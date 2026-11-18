@@ -1,18 +1,19 @@
 namespace Winshell.Tests;
 
+[TestClass]
 public class CliUsageTests
 {
-    [Fact]
+    [TestMethod]
     public void A_whole_number_pid_that_is_not_an_instance_exits_1()
     {
         var result = WinshellCli.RunWithEmptyConfig(["kill", "--pid", "0"]);
 
         result.AssertExitCode(1);
-        Assert.Equal("", result.Output);
-        Assert.Equal("No instance with process id 0." + Environment.NewLine, result.Error);
+        Assert.AreEqual("", result.Output);
+        Assert.AreEqual("No instance with process id 0." + Environment.NewLine, result.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public void Tail_of_int_max_prints_the_file()
     {
         using var dir = new TempFolder();
@@ -23,6 +24,6 @@ public class CliUsageTests
 
         result.AssertExitCode(0);
         result.AssertNoError();
-        Assert.Equal("one" + Environment.NewLine + "two" + Environment.NewLine, result.Output);
+        Assert.AreEqual("one" + Environment.NewLine + "two" + Environment.NewLine, result.Output);
     }
 }

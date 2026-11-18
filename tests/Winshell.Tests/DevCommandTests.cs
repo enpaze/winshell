@@ -9,6 +9,7 @@ using Windows.Win32;
 
 namespace Winshell.Tests;
 
+[TestClass]
 public sealed partial class DevCommandTests : IDisposable
 {
     private static readonly TimeSpan BuildPatience = TimeSpan.FromSeconds(140);
@@ -111,7 +112,7 @@ public sealed partial class DevCommandTests : IDisposable
             _dev.Dispose();
             lock (_printed)
             {
-                TestContext.Current.TestOutputHelper?.WriteLine(_printed.ToString());
+                CurrentTest.Context?.WriteLine(_printed.ToString());
             }
         }
 
@@ -150,7 +151,7 @@ public sealed partial class DevCommandTests : IDisposable
         if (instance is null)
             return (1, "");
         var answer = await InstanceCall.AskAsync(instance, IpcRequest.ForCall("probe", member, []),
-            TestContext.Current.CancellationToken);
+            CurrentTest.Cancellation);
         return answer.Response is { Ok: true } response ? (0, response.Value?.Trim() ?? "") : (1, "");
     }
 
@@ -222,7 +223,7 @@ public sealed partial class DevCommandTests : IDisposable
 
     private async Task NodesExit()
     {
-        var token = TestContext.Current.CancellationToken;
+        var token = CurrentTest.Cancellation;
         try
         {
             await Task.WhenAll(_nodes.Values.Select(node => node.WaitForExitAsync(token)))
@@ -303,7 +304,7 @@ public sealed partial class DevCommandTests : IDisposable
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void With_no_project_it_says_how_to_make_one()
     {
         var result = WinshellCli.Run(["dev"], Folders);
@@ -312,12 +313,12 @@ public sealed partial class DevCommandTests : IDisposable
         Assert.Contains("Run winshell new to make one.", result.Error, StringComparison.Ordinal);
     }
 
-    [Fact(Timeout = 420_000)]
-    [Trait("Category", "Window")]
+    [TestMethod, Timeout(420_000)]
+    [TestCategory("Window")]
     public async Task Edits_an_opened_app_and_Ctrl_Break_keep_the_watch_lifecycle_correct()
     {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-        Assert.True(ProcessConsole.Window() != 0 || PInvoke.GetConsoleProcessList(new uint[1]) > 0,
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
+        Assert.IsTrue(ProcessConsole.Window() != 0 || PInvoke.GetConsoleProcessList(new uint[1]) > 0,
             "The test program has no console to send a Ctrl+Break on.");
         CreateProbeShortcut();
         StartDev(true);
@@ -326,12 +327,12 @@ public sealed partial class DevCommandTests : IDisposable
             NoteDevNodes();
             return await Value() == (0, "one");
         }, "the first build", BuildPatience);
-        Assert.True(Printed("dotnet watch : "), "winshell dev printed nothing of dotnet watch's.");
-        Assert.False(Printed("Ctrl+R") || Printed("Ctrl + R"), "winshell dev printed dotnet watch's Ctrl+R hint.");
-        Assert.Contains(FromProject(), p => p.StartsWith("Dev.exe ", StringComparison.Ordinal));
+        Assert.IsTrue(Printed("dotnet watch : "), "winshell dev printed nothing of dotnet watch's.");
+        Assert.IsFalse(Printed("Ctrl+R") || Printed("Ctrl + R"), "winshell dev printed dotnet watch's Ctrl+R hint.");
+        Assert.Contains(p => p.StartsWith("Dev.exe ", StringComparison.Ordinal), FromProject());
         var reuse = await ReadValue("reuse");
-        Assert.Equal(0, reuse.Code);
-        Assert.Equal("", reuse.Text);
+        Assert.AreEqual(0, reuse.Code);
+        Assert.AreEqual("", reuse.Text);
         await NodesExit();
         var shell = ShellProcess();
         var id = InstanceId();
@@ -339,8 +340,8 @@ public sealed partial class DevCommandTests : IDisposable
             TimeSpan.FromSeconds(60));
         await Wait.UntilAsync(ProbeAlive, "the opened app");
         await Wait.UntilAsync(() => File.Exists(Path.Combine(_dir, "reuse.txt")), "the opened app's environment");
-        Assert.Equal("", (await File.ReadAllTextAsync(Path.Combine(_dir, "reuse.txt"),
-            TestContext.Current.CancellationToken)).Trim());
+        Assert.AreEqual("", (await File.ReadAllTextAsync(Path.Combine(_dir, "reuse.txt"),
+            CurrentTest.Cancellation)).Trim());
         Mark("""=> "two";""");
         await Wait.UntilAsync(async () => (await Value()).Text == "two", "the first edit", BuildPatience);
 
@@ -348,7 +349,7 @@ public sealed partial class DevCommandTests : IDisposable
         await Wait.UntilAsync(() => Printed("error CS1002"), "the compile error");
         var value = CallValue();
         value.AssertExitCode(0);
-        Assert.Equal("two", value.Output.Trim());
+        Assert.AreEqual("two", value.Output.Trim());
         await Wait.UntilAsync(
             () => WinshellCli.Run(["log", "-t", "20"], Folders).Output
                 .Contains("Your configuration did not build", StringComparison.Ordinal), "the notice");
@@ -356,16 +357,16 @@ public sealed partial class DevCommandTests : IDisposable
         Mark("""=> "three";""");
         await Wait.UntilAsync(async () => (await Value()).Text == "three", "the fix", BuildPatience);
 
-        Assert.Equal(shell, ShellProcess());
-        Assert.True(ProbeAlive(), "The app opened from the shell ended when the edit was applied.");
+        Assert.AreEqual(shell, ShellProcess());
+        Assert.IsTrue(ProbeAlive(), "The app opened from the shell ended when the edit was applied.");
 
-        Assert.True(PInvoke.GenerateConsoleCtrlEvent(CtrlBreakEvent, (uint)_dev!.Id), "Ctrl+Break was not sent.");
+        Assert.IsTrue(PInvoke.GenerateConsoleCtrlEvent(CtrlBreakEvent, (uint)_dev!.Id), "Ctrl+Break was not sent.");
         Wait.Until(() => _dev.HasExited, "winshell dev to exit");
         Wait.Until(() => FromProject().Count == 0, "dotnet watch and the shell to end", TimeSpan.FromSeconds(30));
         var record = await File.ReadAllTextAsync(Path.Combine(_dir, "local", "run", id, "instance.json"),
-            TestContext.Current.CancellationToken);
-        Assert.NotNull(JsonSerializer.Deserialize(record, InstanceJson.Default.InstanceInfo)?.ExitedAt);
-        Assert.True(ProbeAlive(), "The app opened from the shell ended when winshell dev ended.");
+            CurrentTest.Cancellation);
+        Assert.IsNotNull(JsonSerializer.Deserialize(record, InstanceJson.Default.InstanceInfo)?.ExitedAt);
+        Assert.IsTrue(ProbeAlive(), "The app opened from the shell ended when winshell dev ended.");
     }
 
     private const uint CtrlBreakEvent = 1;
@@ -380,7 +381,7 @@ public sealed partial class DevCommandTests : IDisposable
                         "' -Value $PID; Set-Content -LiteralPath '" + Path.Combine(_dir, "reuse.txt") +
                         "' -Value ([string]$env:MSBUILDDISABLENODEREUSE); Start-Sleep -Seconds 900\"";
         var shellType = Type.GetTypeFromProgID("WScript.Shell");
-        Assert.NotNull(shellType);
+        Assert.IsNotNull(shellType);
         var shell = Activator.CreateInstance(shellType)!;
         var link = shellType.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, shell, [_probeLink],
             CultureInfo.InvariantCulture)!;
@@ -400,7 +401,7 @@ public sealed partial class DevCommandTests : IDisposable
         if (instance is null)
             return "";
         var answer = await InstanceCall.AskAsync(instance, IpcRequest.ForCall("probe", "launch", [ProbeApp]),
-            TestContext.Current.CancellationToken);
+            CurrentTest.Cancellation);
         return answer.Response is { Ok: true } response ? response.Value?.Trim() ?? "" : "";
     }
 

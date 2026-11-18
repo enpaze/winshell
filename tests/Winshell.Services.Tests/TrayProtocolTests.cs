@@ -4,45 +4,46 @@ using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public class TrayProtocolTests
 {
-    [Fact]
+    [TestMethod]
     public void Version_4_callbacks_carry_the_point_and_the_icon_id()
     {
         var (w, l) = TrayProtocol.Callback(TrayProtocol.Version4, 7, 0x0205, 20, 40);
-        Assert.Equal((nint)(20u | (40u << 16)), w);
-        Assert.Equal((nint)(0x0205u | (7u << 16)), l);
+        Assert.AreEqual((nint)(20u | (40u << 16)), w);
+        Assert.AreEqual((nint)(0x0205u | (7u << 16)), l);
     }
 
-    [Fact]
+    [TestMethod]
     public void Older_callbacks_carry_the_icon_id_and_the_message()
     {
         var (w, l) = TrayProtocol.Callback(TrayProtocol.Version, 7, 0x0205, 20, 40);
-        Assert.Equal(7, w);
-        Assert.Equal(0x0205, l);
+        Assert.AreEqual(7, w);
+        Assert.AreEqual(0x0205, l);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_point_left_of_the_origin_keeps_its_low_16_bits()
     {
         var (w, _) = TrayProtocol.Callback(TrayProtocol.Version4, 1, 0x007B, -8, 100);
-        Assert.Equal((nint)(0xfff8u | (100u << 16)), w);
+        Assert.AreEqual((nint)(0xfff8u | (100u << 16)), w);
     }
 
-    [Theory]
-    [InlineData(TrayClick.Left, 0u, new uint[] { 0x0201, 0x0202 })]
-    [InlineData(TrayClick.Left, 4u, new uint[] { 0x0201, 0x0202, 0x0400 })]
-    [InlineData(TrayClick.Double, 0u, new uint[] { 0x0201, 0x0202, 0x0203, 0x0202 })]
-    [InlineData(TrayClick.Double, 3u, new uint[] { 0x0201, 0x0202, 0x0400, 0x0203, 0x0202, 0x0400 })]
-    [InlineData(TrayClick.Middle, 4u, new uint[] { 0x0207, 0x0208 })]
-    [InlineData(TrayClick.Menu, 0u, new uint[] { 0x0204, 0x0205 })]
-    [InlineData(TrayClick.Menu, 3u, new uint[] { 0x0204, 0x0205, 0x007B })]
-    internal void Clicks_send_what_explorer_sends(TrayClick click, uint version, uint[] messages)
+    [TestMethod]
+    [DataRow((int)TrayClick.Left, 0u, new uint[] { 0x0201, 0x0202 })]
+    [DataRow((int)TrayClick.Left, 4u, new uint[] { 0x0201, 0x0202, 0x0400 })]
+    [DataRow((int)TrayClick.Double, 0u, new uint[] { 0x0201, 0x0202, 0x0203, 0x0202 })]
+    [DataRow((int)TrayClick.Double, 3u, new uint[] { 0x0201, 0x0202, 0x0400, 0x0203, 0x0202, 0x0400 })]
+    [DataRow((int)TrayClick.Middle, 4u, new uint[] { 0x0207, 0x0208 })]
+    [DataRow((int)TrayClick.Menu, 0u, new uint[] { 0x0204, 0x0205 })]
+    [DataRow((int)TrayClick.Menu, 3u, new uint[] { 0x0204, 0x0205, 0x007B })]
+    public void Clicks_send_what_explorer_sends(int click, uint version, uint[] messages)
     {
-        Assert.Equal(messages, TrayProtocol.ClickMessages(click, version));
+        Assert.AreSequenceEqual(messages, TrayProtocol.ClickMessages((TrayClick)click, version));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_full_structure_reads_every_field()
     {
         var guid = Guid.NewGuid();
@@ -51,49 +52,49 @@ public class TrayProtocolTests
             TrayProtocol.NIF_GUID,
             0x8001, 0x0042, "Sync\nUp to date", 1, 1, "Done", 10000,
             "Backup", 2, guid));
-        Assert.NotNull(call);
-        Assert.Equal(TrayProtocol.Modify, call.Message);
-        Assert.Equal(unchecked((int)0x80001234), call.Window);
-        Assert.Equal(9u, call.Id);
-        Assert.Equal(0x8001u, call.CallbackMessage);
-        Assert.Equal(0x42, call.Icon);
-        Assert.Equal("Sync\nUp to date", call.Tip);
-        Assert.Equal(1u, call.State);
-        Assert.Equal(1u, call.StateMask);
-        Assert.Equal("Done", call.Info);
-        Assert.Equal(10000u, call.TimeoutOrVersion);
-        Assert.Equal("Backup", call.InfoTitle);
-        Assert.Equal(2u, call.InfoFlags);
-        Assert.Equal(guid, call.Guid);
+        Assert.IsNotNull(call);
+        Assert.AreEqual(TrayProtocol.Modify, call.Message);
+        Assert.AreEqual(unchecked((int)0x80001234), call.Window);
+        Assert.AreEqual(9u, call.Id);
+        Assert.AreEqual(0x8001u, call.CallbackMessage);
+        Assert.AreEqual(0x42, call.Icon);
+        Assert.AreEqual("Sync\nUp to date", call.Tip);
+        Assert.AreEqual(1u, call.State);
+        Assert.AreEqual(1u, call.StateMask);
+        Assert.AreEqual("Done", call.Info);
+        Assert.AreEqual(10000u, call.TimeoutOrVersion);
+        Assert.AreEqual("Backup", call.InfoTitle);
+        Assert.AreEqual(2u, call.InfoFlags);
+        Assert.AreEqual(guid, call.Guid);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_structure_from_an_older_app_reads_what_it_sent()
     {
         var call = TrayProtocol.Read(TrayCall.Build(TrayProtocol.Add, 0x100, 1,
             TrayProtocol.NIF_TIP | TrayProtocol.NIF_GUID,
             tip: "Old app", guid: Guid.NewGuid(), size: 24 + 64 * 2));
-        Assert.NotNull(call);
-        Assert.Equal("Old app", call.Tip);
-        Assert.Equal(Guid.Empty, call.Guid);
-        Assert.Equal(0u, call.TimeoutOrVersion);
+        Assert.IsNotNull(call);
+        Assert.AreEqual("Old app", call.Tip);
+        Assert.AreEqual(Guid.Empty, call.Guid);
+        Assert.AreEqual(0u, call.TimeoutOrVersion);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_longer_structure_from_a_newer_windows_still_reads()
     {
         var payload = TrayCall.Build(TrayProtocol.Add, 0x100, 1, TrayProtocol.NIF_TIP, tip: "Future",
             size: TrayProtocol.FullSize + 64);
-        Assert.Equal("Future", TrayProtocol.Read(payload)?.Tip);
+        Assert.AreEqual("Future", TrayProtocol.Read(payload)?.Tip);
     }
 
-    [Fact]
+    [TestMethod]
     public void Anything_else_is_not_a_call()
     {
-        Assert.Null(TrayProtocol.Read(new byte[16]));
+        Assert.IsNull(TrayProtocol.Read(new byte[16]));
         var payload = TrayCall.Build(TrayProtocol.Add, 0x100, 1, 0);
         payload[0] ^= 0xff;
-        Assert.Null(TrayProtocol.Read(payload));
+        Assert.IsNull(TrayProtocol.Read(payload));
     }
 }
 

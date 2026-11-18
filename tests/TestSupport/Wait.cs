@@ -13,12 +13,12 @@ internal static class Wait
 
     internal static void Until(Func<bool> done, string what, TimeSpan patience, Action? between = null)
     {
-        var token = TestContext.Current.CancellationToken;
+        var token = CurrentTest.Cancellation;
         var started = TimeProvider.System.GetTimestamp();
         var pause = FirstPause;
         while (!done())
         {
-            Assert.True(TimeProvider.System.GetElapsedTime(started) < patience, $"Timed out: {what}");
+            Assert.IsTrue(TimeProvider.System.GetElapsedTime(started) < patience, $"Timed out: {what}");
             token.WaitHandle.WaitOne(pause);
             token.ThrowIfCancellationRequested();
             pause = Next(pause);
@@ -37,12 +37,12 @@ internal static class Wait
 
     internal static async Task UntilAsync(Func<bool> done, string what, Func<Task> between)
     {
-        var token = TestContext.Current.CancellationToken;
+        var token = CurrentTest.Cancellation;
         var started = TimeProvider.System.GetTimestamp();
         var pause = FirstPause;
         while (!done())
         {
-            Assert.True(TimeProvider.System.GetElapsedTime(started) < Patience, $"Timed out: {what}");
+            Assert.IsTrue(TimeProvider.System.GetElapsedTime(started) < Patience, $"Timed out: {what}");
             await Task.Delay(pause, token);
             pause = Next(pause);
             await between();
@@ -51,12 +51,12 @@ internal static class Wait
 
     internal static async Task UntilAsync(Func<Task<bool>> done, string what, TimeSpan? patience = null)
     {
-        var token = TestContext.Current.CancellationToken;
+        var token = CurrentTest.Cancellation;
         var started = TimeProvider.System.GetTimestamp();
         var pause = FirstPause;
         while (!await done())
         {
-            Assert.True(TimeProvider.System.GetElapsedTime(started) < (patience ?? Patience), $"Timed out: {what}");
+            Assert.IsTrue(TimeProvider.System.GetElapsedTime(started) < (patience ?? Patience), $"Timed out: {what}");
             await Task.Delay(pause, token);
             pause = Next(pause);
         }
@@ -64,7 +64,7 @@ internal static class Wait
 
     internal static void ForNothingToHappen(TimeSpan time)
     {
-        var token = TestContext.Current.CancellationToken;
+        var token = CurrentTest.Cancellation;
         token.WaitHandle.WaitOne(time);
         token.ThrowIfCancellationRequested();
     }

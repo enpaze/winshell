@@ -9,12 +9,13 @@ using Winshell.Native;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class AppIndexTests
 {
     private static readonly long Now = DateTimeOffset.Parse("2026-06-15T12:00:00Z", CultureInfo.InvariantCulture)
         .ToUnixTimeMilliseconds();
 
-    [Fact]
+    [TestMethod]
     public async Task Shortcuts_keep_the_user_folder_and_hide_what_start_hides()
     {
         var root = Temp();
@@ -27,7 +28,7 @@ public sealed class AppIndexTests
             var demo = Path.Combine(program, "demo.exe");
             File.WriteAllBytes(demo, []);
             var readme = Path.Combine(root, "readme.txt");
-            await File.WriteAllTextAsync(readme, "notes", TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(readme, "notes", CurrentTest.Cancellation);
             var cmd = Cmd();
 
             WriteLink(Path.Combine(common, "Accessories", "Edit.lnk"), demo, "/common", program, "common editor");
@@ -42,25 +43,25 @@ public sealed class AppIndexTests
             using var catalog = Catalog(common, user);
             var apps = (await catalog.ReadAsync()).Entries;
 
-            var edit = Assert.Single(apps, app => app.Id == "Accessories/Edit");
-            Assert.Equal("/user", edit.Arguments);
-            Assert.Equal("user editor", edit.Description);
-            Assert.Equal(["Accessories"], edit.Folders);
-            Assert.Equal(demo, edit.Target);
-            Assert.Equal(program, edit.StartIn);
-            Assert.Equal("demo", edit.AppId);
-            Assert.Equal($"\"{demo}\" /user", edit.CommandLine);
-            Assert.Equal(Path.Combine(user, "Accessories", "Edit.lnk"), edit.Path);
-            Assert.False(edit.Hidden);
-            Assert.False(edit.Packaged);
+            var edit = Assert.ContainsSingle(app => app.Id == "Accessories/Edit", apps);
+            Assert.AreEqual("/user", edit.Arguments);
+            Assert.AreEqual("user editor", edit.Description);
+            Assert.AreSequenceEqual(["Accessories"], edit.Folders);
+            Assert.AreEqual(demo, edit.Target);
+            Assert.AreEqual(program, edit.StartIn);
+            Assert.AreEqual("demo", edit.AppId);
+            Assert.AreEqual($"\"{demo}\" /user", edit.CommandLine);
+            Assert.AreEqual(Path.Combine(user, "Accessories", "Edit.lnk"), edit.Path);
+            Assert.IsFalse(edit.Hidden);
+            Assert.IsFalse(edit.Packaged);
 
-            Assert.DoesNotContain(apps, app => app.Id.Contains("Startup", StringComparison.OrdinalIgnoreCase));
-            Assert.DoesNotContain(apps, app => app.Name == "Secret");
+            Assert.DoesNotContain(app => app.Id.Contains("Startup", StringComparison.OrdinalIgnoreCase), apps);
+            Assert.DoesNotContain(app => app.Name == "Secret", apps);
 
-            var uninstall = Assert.Single(apps, app => app.Name == "Uninstall Edit");
-            Assert.True(uninstall.Hidden);
-            var document = Assert.Single(apps, app => app.Name == "Readme");
-            Assert.True(document.Hidden);
+            var uninstall = Assert.ContainsSingle(app => app.Name == "Uninstall Edit", apps);
+            Assert.IsTrue(uninstall.Hidden);
+            var document = Assert.ContainsSingle(app => app.Name == "Readme", apps);
+            Assert.IsTrue(document.Hidden);
         }
         finally
         {
@@ -68,51 +69,51 @@ public sealed class AppIndexTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void Packaged_apps_replace_a_shortcut_with_the_same_app_id()
     {
-        Assert.Null(AppIndex.Packaged("", "Calculator", ""));
-        Assert.Null(AppIndex.Packaged("id", "ms-resource:Name", ""));
-        Assert.Null(AppIndex.Packaged("id", "  ", ""));
+        Assert.IsNull(AppIndex.Packaged("", "Calculator", ""));
+        Assert.IsNull(AppIndex.Packaged("id", "ms-resource:Name", ""));
+        Assert.IsNull(AppIndex.Packaged("id", "  ", ""));
 
         var packaged = AppIndex.Packaged("Microsoft.WindowsCalculator_8wekyb3d8bbwe!App", " Calculator ",
             " A calculator ");
-        Assert.NotNull(packaged);
-        Assert.True(packaged.Packaged);
-        Assert.Equal(packaged.Id, packaged.AppId);
-        Assert.Equal(@"shell:AppsFolder\Microsoft.WindowsCalculator_8wekyb3d8bbwe!App", packaged.Path);
-        Assert.Equal("Calculator", packaged.Name);
-        Assert.Equal("A calculator", packaged.Description);
-        Assert.False(packaged.Hidden);
+        Assert.IsNotNull(packaged);
+        Assert.IsTrue(packaged.Packaged);
+        Assert.AreEqual(packaged.Id, packaged.AppId);
+        Assert.AreEqual(@"shell:AppsFolder\Microsoft.WindowsCalculator_8wekyb3d8bbwe!App", packaged.Path);
+        Assert.AreEqual("Calculator", packaged.Name);
+        Assert.AreEqual("A calculator", packaged.Description);
+        Assert.IsFalse(packaged.Hidden);
 
         var shortcut = Entry("Calculator", "Calculator", packaged.AppId, target: Cmd());
         var custom = Entry("Editor", "Accessories/Editor", "demo", target: Cmd());
         var apps = AppIndex.Combine([shortcut, custom], [packaged]);
 
-        Assert.DoesNotContain(apps, app => app.Id == "Calculator");
-        var calc = Assert.Single(apps, app => app.Packaged);
-        Assert.Equal(packaged.Id, calc.Id);
-        Assert.Contains(apps, app => app.Id == "Accessories/Editor");
-        Assert.Equal([packaged.Id, "Accessories/Editor"], apps.Select(app => app.Id));
+        Assert.DoesNotContain(app => app.Id == "Calculator", apps);
+        var calc = Assert.ContainsSingle(app => app.Packaged, apps);
+        Assert.AreEqual(packaged.Id, calc.Id);
+        Assert.Contains(app => app.Id == "Accessories/Editor", apps);
+        Assert.AreSequenceEqual([packaged.Id, "Accessories/Editor"], apps.Select(app => app.Id));
     }
 
-    [Fact]
+    [TestMethod]
     public void Find_matches_id_then_app_id_then_name()
     {
         var hidden = Entry("Uninstall Notes", "Uninstall Notes", hidden: true);
         var notepad = Entry("Notepad", "Accessories/Notepad", "notepad");
         var apps = new List<AppRecord> { notepad, hidden };
 
-        Assert.Equal("Accessories/Notepad", AppIndex.Find(apps, "Accessories/Notepad")!.Id);
-        Assert.Equal("Accessories/Notepad", AppIndex.Find(apps, "accessories/notepad")!.Id);
-        Assert.Equal("Accessories/Notepad", AppIndex.Find(apps, "notepad")!.Id);
-        Assert.Equal("Accessories/Notepad", AppIndex.Find(apps, "Notepad")!.Id);
-        Assert.Equal("Uninstall Notes", AppIndex.Find(apps, "Uninstall Notes")!.Id);
-        Assert.Null(AppIndex.Find(apps, ""));
-        Assert.Null(AppIndex.Find(apps, "missing"));
+        Assert.AreEqual("Accessories/Notepad", AppIndex.Find(apps, "Accessories/Notepad")!.Id);
+        Assert.AreEqual("Accessories/Notepad", AppIndex.Find(apps, "accessories/notepad")!.Id);
+        Assert.AreEqual("Accessories/Notepad", AppIndex.Find(apps, "notepad")!.Id);
+        Assert.AreEqual("Accessories/Notepad", AppIndex.Find(apps, "Notepad")!.Id);
+        Assert.AreEqual("Uninstall Notes", AppIndex.Find(apps, "Uninstall Notes")!.Id);
+        Assert.IsNull(AppIndex.Find(apps, ""));
+        Assert.IsNull(AppIndex.Find(apps, "missing"));
     }
 
-    [Fact]
+    [TestMethod]
     public void Search_ranks_the_name_ahead_of_usage()
     {
         var notes = Entry("Notes");
@@ -125,33 +126,33 @@ public sealed class AppIndexTests
         var hidden = Entry("Uninstall Notes", hidden: true);
         var apps = new List<AppRecord> { oneNote, code, toolbox, alpha, paint, hidden, notepad, notes };
 
-        Assert.Equal(["Notes", "Notepad", "OneNote"], Names("note", apps));
-        Assert.Equal(["Notes", "Notepad", "OneNote"], Names("NOTE", apps));
-        Assert.Equal(["Notepad"], Names("notpad", apps));
-        Assert.Equal(["Visual Studio Code"], Names("vsc", apps));
-        Assert.Equal(["Toolbox", "Alpha Tool"], Names("tool", apps));
-        Assert.Equal(["Paint"], Names("draw", apps));
-        Assert.Empty(Names("xyz", apps));
-        Assert.Empty(Names("   ", apps));
-        Assert.Empty(Names("notes", [hidden]));
+        Assert.AreSequenceEqual(["Notes", "Notepad", "OneNote"], Names("note", apps));
+        Assert.AreSequenceEqual(["Notes", "Notepad", "OneNote"], Names("NOTE", apps));
+        Assert.AreSequenceEqual(["Notepad"], Names("notpad", apps));
+        Assert.AreSequenceEqual(["Visual Studio Code"], Names("vsc", apps));
+        Assert.AreSequenceEqual(["Toolbox", "Alpha Tool"], Names("tool", apps));
+        Assert.AreSequenceEqual(["Paint"], Names("draw", apps));
+        Assert.IsEmpty(Names("xyz", apps));
+        Assert.IsEmpty(Names("   ", apps));
+        Assert.IsEmpty(Names("notes", [hidden]));
 
         var used = new Dictionary<string, AppUsage>(StringComparer.OrdinalIgnoreCase)
         {
             ["Notepad"] = new(50, Now - 1_000)
         };
-        Assert.Equal(["Notepad", "Notes", "OneNote"],
+        Assert.AreSequenceEqual(["Notepad", "Notes", "OneNote"],
             Names("note", apps, app => used.GetValueOrDefault(app.Id)));
 
         var heavy = new AppUsage(100, Now);
-        Assert.True(AppRank.Score("note", notepad, default, Now) > AppRank.Score("draw", paint, heavy, Now));
-        Assert.True(AppRank.Score("Notepad", notepad, default, Now) > AppRank.Score("note", notepad, default, Now));
-        Assert.True(AppRank.Score("note", notepad, default, Now) > AppRank.Score("pad", notepad, default, Now));
-        Assert.True(AppRank.Score("pad", notepad, default, Now) > AppRank.Score("notpad", notepad, default, Now));
-        Assert.True(AppRank.Score("notpad", notepad, default, Now) > AppRank.Score("draw", paint, default, Now));
-        Assert.Equal(0, AppRank.Score("xyz", notepad, heavy, Now));
+        Assert.IsTrue(AppRank.Score("note", notepad, default, Now) > AppRank.Score("draw", paint, heavy, Now));
+        Assert.IsTrue(AppRank.Score("Notepad", notepad, default, Now) > AppRank.Score("note", notepad, default, Now));
+        Assert.IsTrue(AppRank.Score("note", notepad, default, Now) > AppRank.Score("pad", notepad, default, Now));
+        Assert.IsTrue(AppRank.Score("pad", notepad, default, Now) > AppRank.Score("notpad", notepad, default, Now));
+        Assert.IsTrue(AppRank.Score("notpad", notepad, default, Now) > AppRank.Score("draw", paint, default, Now));
+        Assert.AreEqual(0, AppRank.Score("xyz", notepad, heavy, Now));
     }
 
-    [Fact]
+    [TestMethod]
     public void Recent_and_frequent_follow_usage()
     {
         var alpha = Entry("Alpha");
@@ -172,11 +173,11 @@ public sealed class AppIndexTests
             return usage.GetValueOrDefault(app.Id);
         }
 
-        Assert.Equal(["Alpha", "Beta"], AppIndex.Recent(apps, Use).Select(app => app.Name).ToArray());
-        Assert.Equal(["Beta", "Alpha"], AppIndex.Frequent(apps, Use).Select(app => app.Name).ToArray());
+        Assert.AreSequenceEqual(["Alpha", "Beta"], AppIndex.Recent(apps, Use).Select(app => app.Name).ToArray());
+        Assert.AreSequenceEqual(["Beta", "Alpha"], AppIndex.Frequent(apps, Use).Select(app => app.Name).ToArray());
     }
 
-    [Fact]
+    [TestMethod]
     public void Usage_reads_feature_counts_and_user_assist()
     {
         var when = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero);
@@ -185,16 +186,16 @@ public sealed class AppIndexTests
         var legacy = new byte[16];
         BitConverter.TryWriteBytes(legacy.AsSpan(0), 3);
         BitConverter.TryWriteBytes(legacy.AsSpan(8), when.ToFileTime());
-        Assert.True(AppUsageReader.TryParse(data, now, out var parsed));
-        Assert.Equal(14, parsed.RunCount);
-        Assert.Equal(when.ToUnixTimeMilliseconds(), parsed.LastUsedUnixMilliseconds);
-        Assert.True(AppUsageReader.TryParse(legacy, now, out var old));
-        Assert.Equal(3, old.RunCount);
-        Assert.False(AppUsageReader.TryParse(new byte[72], now, out _));
+        Assert.IsTrue(AppUsageReader.TryParse(data, now, out var parsed));
+        Assert.AreEqual(14, parsed.RunCount);
+        Assert.AreEqual(when.ToUnixTimeMilliseconds(), parsed.LastUsedUnixMilliseconds);
+        Assert.IsTrue(AppUsageReader.TryParse(legacy, now, out var old));
+        Assert.AreEqual(3, old.RunCount);
+        Assert.IsFalse(AppUsageReader.TryParse(new byte[72], now, out _));
 
         var path = @"C:\Windows\System32\notepad.exe";
         var folder = AppIdentity.ExpandKnownFolder(@" {1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\notepad.exe".Trim());
-        Assert.Equal(Path.Combine(Environment.SystemDirectory, "notepad.exe"), folder,
+        Assert.AreEqual(Path.Combine(Environment.SystemDirectory, "notepad.exe"), folder,
             StringComparer.OrdinalIgnoreCase);
 
         var usage = AppUsageReader.From(
@@ -206,17 +207,17 @@ public sealed class AppIndexTests
                 ("HRZR_PGYPHNPbhag:pgbe", data)
             ], now);
 
-        Assert.Equal(14, usage[path].RunCount);
-        Assert.Equal(when.ToUnixTimeMilliseconds(), usage[path].LastUsedUnixMilliseconds);
-        Assert.Equal(2, usage["OnlySwitched"].RunCount);
-        Assert.Equal(14, usage[folder].RunCount);
-        Assert.DoesNotContain(usage.Keys, key => key.Contains("UEME_", StringComparison.Ordinal));
+        Assert.AreEqual(14, usage[path].RunCount);
+        Assert.AreEqual(when.ToUnixTimeMilliseconds(), usage[path].LastUsedUnixMilliseconds);
+        Assert.AreEqual(2, usage["OnlySwitched"].RunCount);
+        Assert.AreEqual(14, usage[folder].RunCount);
+        Assert.DoesNotContain(key => key.Contains("UEME_", StringComparison.Ordinal), usage.Keys);
 
         var notepad = Entry("Notepad", appId: "notepad", target: path);
-        Assert.Equal(14, AppUsage.Lookup(usage, notepad).RunCount);
+        Assert.AreEqual(14, AppUsage.Lookup(usage, notepad).RunCount);
     }
 
-    [Fact]
+    [TestMethod]
     public void Catalog_updates_when_a_shortcut_is_added_and_removed()
     {
         var root = Temp();
@@ -238,7 +239,7 @@ public sealed class AppIndexTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void A_folder_that_comes_back_is_watched_again()
     {
         var root = Temp();
@@ -262,7 +263,7 @@ public sealed class AppIndexTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void Disposing_does_not_wait_for_a_read_that_blocks()
     {
         using var reading = new ManualResetEventSlim();
@@ -271,14 +272,14 @@ public sealed class AppIndexTests
         var catalog = new AppsBackend(new Log(), [], () =>
         {
             reading.Set();
-            release.Wait(TimeSpan.FromSeconds(10));
+            release.Wait(TimeSpan.FromSeconds(10), CurrentTest.Cancellation);
             Volatile.Write(ref ended, true);
             return [];
         }, () => new Dictionary<string, AppUsage>(StringComparer.OrdinalIgnoreCase));
         var apps = new AppsService(new ManualEventLoop(), new Log(), catalog);
         try
         {
-            reading.Wait(TestContext.Current.CancellationToken);
+            reading.Wait(CurrentTest.Cancellation);
         }
         catch (OperationCanceledException)
         {
@@ -287,14 +288,14 @@ public sealed class AppIndexTests
 
         apps.Dispose();
 
-        Assert.False(Volatile.Read(ref ended));
+        Assert.IsFalse(Volatile.Read(ref ended));
         release.Set();
         Wait.Until(() => Volatile.Read(ref ended), "the read to end");
     }
 
-    [Theory]
-    [InlineData(true, "apps: Could not read the installed apps: COMException: no packages")]
-    [InlineData(false, "apps: Could not read how often apps are used: UnauthorizedAccessException: no usage")]
+    [TestMethod]
+    [DataRow(true, "apps: Could not read the installed apps: COMException: no packages")]
+    [DataRow(false, "apps: Could not read how often apps are used: UnauthorizedAccessException: no usage")]
     public async Task A_read_that_keeps_failing_keeps_the_last_good_one_and_is_warned_once(bool packagesFail,
         string warning)
     {
@@ -321,9 +322,9 @@ public sealed class AppIndexTests
             await catalog.ReadAsync();
             var snapshot = await catalog.ReadAsync();
 
-            Assert.Contains(snapshot.Entries, app => app.Id == calc.Id);
-            Assert.Equal(new AppUsage(3, 0), snapshot.Usage.GetValueOrDefault(calc.Id));
-            Assert.Single(messages, message => message == warning);
+            Assert.Contains(app => app.Id == calc.Id, snapshot.Entries);
+            Assert.AreEqual(new AppUsage(3, 0), snapshot.Usage.GetValueOrDefault(calc.Id));
+            Assert.ContainsSingle(message => message == warning, messages);
         }
         finally
         {
@@ -331,7 +332,7 @@ public sealed class AppIndexTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_unreadable_folder_keeps_its_last_shortcuts_and_a_gone_one_has_none()
     {
         var root = Temp();
@@ -345,7 +346,7 @@ public sealed class AppIndexTests
         {
             using var catalog = new AppsBackend(log, [locked, open], () => [],
                 () => new Dictionary<string, AppUsage>(StringComparer.OrdinalIgnoreCase));
-            Assert.True(Listed(await catalog.ReadAsync(), "Kept"));
+            Assert.IsTrue(Listed(await catalog.ReadAsync(), "Kept"));
 
             var folder = new DirectoryInfo(locked);
             var deny = new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!, FileSystemRights.ListDirectory,
@@ -359,10 +360,10 @@ public sealed class AppIndexTests
                 await catalog.ReadAsync();
                 var snapshot = await catalog.ReadAsync();
 
-                Assert.True(Listed(snapshot, "Kept"));
-                Assert.True(Listed(snapshot, "First"));
-                Assert.Single(messages, message => message.StartsWith("apps: Could not read the shortcuts",
-                    StringComparison.Ordinal));
+                Assert.IsTrue(Listed(snapshot, "Kept"));
+                Assert.IsTrue(Listed(snapshot, "First"));
+                Assert.ContainsSingle(message => message.StartsWith("apps: Could not read the shortcuts",
+                    StringComparison.Ordinal), messages);
             }
             finally
             {
@@ -371,7 +372,7 @@ public sealed class AppIndexTests
             }
 
             Directory.Delete(locked, true);
-            Assert.False(Listed(await catalog.ReadAsync(), "Kept"));
+            Assert.IsFalse(Listed(await catalog.ReadAsync(), "Kept"));
         }
         finally
         {
