@@ -152,8 +152,8 @@ public sealed class ShellInstanceTests
         var error = new InvalidOperationException("SENTINEL crash");
         var before = File.Exists(ShellInstance.ExitState) ? File.ReadAllText(ShellInstance.ExitState) : null;
 
-        Assert.False(instance.ReportFatal(error));
-        Assert.False(instance.ReportFatal(error));
+        instance.ReportFatal(error);
+        instance.ReportFatal(error);
         instance.MarkCleanExit();
         instance.Close();
 

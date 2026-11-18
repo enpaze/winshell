@@ -108,15 +108,14 @@ internal sealed class ShellInstance
             ProcessName: process.ProcessName));
     }
 
-    public bool ReportFatal(Exception error)
+    public void ReportFatal(Exception error)
     {
         if (ReferenceEquals(_fatal, error))
-            return false;
+            return;
         _fatal = error;
         var report = Crashes.Write("Winshell", error, true);
         Quietly(() => Log.Write(LogLevel.Fatal, "", $"Winshell crashed: {error}"));
         Reported(report);
-        return false;
     }
 
     public void Reported(CrashReport? report)

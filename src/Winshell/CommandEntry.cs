@@ -16,8 +16,6 @@ internal sealed record CommandEntry
 
     public int MinWords { get; init; }
 
-    public int? MaxWords { get; init; }
-
     public string? Missing { get; init; }
 
     public bool RawAfter { get; init; }

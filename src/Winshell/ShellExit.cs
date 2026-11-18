@@ -12,7 +12,7 @@ internal enum ExitIntent
     Stop
 }
 
-internal static partial class ShellExit
+internal static class ShellExit
 {
     internal sealed record Patience(TimeSpan Ask, TimeSpan Wait)
     {
@@ -33,7 +33,7 @@ internal static partial class ShellExit
 
     internal readonly record struct Outcome(bool Exited, InstanceCall.Answer Answer);
 
-    internal sealed partial class Supervision(int pid) : IDisposable
+    internal sealed class Supervision(int pid) : IDisposable
     {
         private readonly EventWaitHandle
             _stop = new(false, EventResetMode.ManualReset, EventName(ExitIntent.Stop, pid));

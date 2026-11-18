@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace Winshell;
 
-internal sealed partial class ShellProcess : IShellChild
+internal sealed class ShellProcess : IShellChild
 {
     private readonly Process _process;
     private readonly ShellExit.Supervision _supervision;
