@@ -10,7 +10,7 @@ A `Bar` is a panel along one edge of every screen, with three widget areas: star
 - `reserve` reserves the edge, or lays the bar over maximized windows with `Reserve = false`.
 - `thickness` is the style's slot size, or `Thickness`; the ends keep the style's padding, or `Padding`.
 - `style` takes the bar's own `Style` over the shell's.
-- `preferences` reads `edge` and the three lists from the bar's section of the preferences file, and applies a save live.
+- `preferences` reads `edge` and the three lists from the bar's section of the preferences file, where each item is a widget name or a table, and applies a save live.
 - `per-screen` lets a `[[bar.screen]]` row change the edge or the lists for one monitor.
 - `several` lets a shell have several bars, each with its own `Name` and preferences section.
 

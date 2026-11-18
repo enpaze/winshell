@@ -12,7 +12,7 @@ The starter's `battery` widget is the text at the end of its bar that shows the 
 
 - Run `winshell new starter` and then `winshell run -c starter`.
 - The starter registers it with `Widgets.Register<Battery>("battery")` and places it in the bar's `End` list.
-- Place it elsewhere with `{ widget = "battery" }` in a list of the `[bar]` section of the preferences file, or with `Start = ["battery"]` in the starter's code.
+- Place it elsewhere with `"battery"` in a list of the `[bar]` section of the preferences file, or with `Start = ["battery"]` in the starter's code.
 
 ## Driving it with winshell inspect
 
