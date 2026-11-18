@@ -8,6 +8,29 @@ internal enum AudioNodeType
     RecordingSession
 }
 
+public enum AudioFormFactor
+{
+    Unknown,
+
+    Speakers,
+
+    Headphones,
+
+    Headset,
+
+    Handset,
+
+    Microphone,
+
+    Line,
+
+    Spdif,
+
+    Hdmi,
+
+    Network
+}
+
 public enum AudioChannel
 {
     Unknown,

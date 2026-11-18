@@ -73,10 +73,9 @@ internal static class Glyphs
         };
     }
 
-    public static string Audio(AudioNode device)
+    public static string Audio(PlaybackDevice device)
     {
-        var form = device.Properties.GetValueOrDefault(AudioProperty.FormFactor);
-        if (form is "headphone" or "headset")
+        if (device.FormFactor is AudioFormFactor.Headphones or AudioFormFactor.Headset)
             return Headphones;
         if (device.Muted)
             return Muted;

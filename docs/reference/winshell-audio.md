@@ -29,25 +29,29 @@ Playback and recording devices, sessions, volume, mute and levels. Reach them fr
 | `TopBackCenter` | 18 |
 | `TopBackRight` | 19 |
 
-## AudioNode
+## AudioDevice
 
-Has the members of [ObservableObject](winshell.md#observableobject).
+Has the members of [AudioVolume](#audiovolume).
 
 | Member | Type |
 | --- | --- |
-| `Active` | bool, read-only |
-| `Channels` | IReadOnlyList of [AudioChannel](#audiochannel), read-only |
-| `Description` | string, read-only |
-| `Device` | [AudioNode](#audionode)?, read-only |
-| `Id` | int, read-only |
-| `InterfaceName` | string, read-only |
-| `IsPlayback` | bool, read-only |
-| `IsSession` | bool, read-only |
-| `Muted` | bool |
-| `Name` | string, read-only |
-| `Properties` | IReadOnlyDictionary of string, string, read-only |
-| `Volume` | double |
-| `Volumes` | IReadOnlyList of double |
+| `FormFactor` | [AudioFormFactor](#audioformfactor), read-only |
+| `Sessions` | ObservableList of [AudioSession](#audiosession), read-only |
+
+## AudioFormFactor
+
+| Value | Number |
+| --- | --- |
+| `Unknown` | 0 |
+| `Speakers` | 1 |
+| `Headphones` | 2 |
+| `Headset` | 3 |
+| `Handset` | 4 |
+| `Microphone` | 5 |
+| `Line` | 6 |
+| `Spdif` | 7 |
+| `Hdmi` | 8 |
+| `Network` | 9 |
 
 ## AudioPeakMonitor
 
@@ -56,28 +60,12 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | Member | Type |
 | --- | --- |
 | `AudioPeakMonitor([IEventLoop](winshell.md#ieventloop) loop)` | constructor |
+| `Audio` | [AudioVolume](#audiovolume)? |
 | `Channels` | IReadOnlyList of [AudioChannel](#audiochannel), read-only |
 | `Enabled` | bool |
-| `Node` | [AudioNode](#audionode)? |
 | `Peak` | double, read-only |
 | `Peaks` | IReadOnlyList of double, read-only |
 | `Dispose()` | void |
-
-## AudioProperty
-
-| Member | Type |
-| --- | --- |
-| `Adapter` | string, static |
-| `AppName` | string, static |
-| `EndpointId` | string, static |
-| `Flow` | string, static |
-| `FormFactor` | string, static |
-| `FriendlyName` | string, static |
-| `Icon` | string, static |
-| `InterfaceName` | string, static |
-| `ProcessId` | string, static |
-| `ProcessName` | string, static |
-| `SessionId` | string, static |
 
 ## AudioService
 
@@ -85,8 +73,39 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 
 | Member | Type |
 | --- | --- |
-| `DefaultPlaybackDevice` | [AudioNode](#audionode)? |
-| `DefaultRecordingDevice` | [AudioNode](#audionode)? |
-| `Nodes` | ObservableList of [AudioNode](#audionode), read-only |
+| `DefaultPlaybackDevice` | [PlaybackDevice](#playbackdevice)? |
+| `DefaultRecordingDevice` | [RecordingDevice](#recordingdevice)? |
+| `PlaybackDevices` | ObservableList of [PlaybackDevice](#playbackdevice), read-only |
 | `Ready` | bool, read-only |
+| `RecordingDevices` | ObservableList of [RecordingDevice](#recordingdevice), read-only |
 | `Dispose()` | void |
+
+## AudioSession
+
+Has the members of [AudioVolume](#audiovolume).
+
+| Member | Type |
+| --- | --- |
+| `Active` | bool, read-only |
+| `Device` | [AudioDevice](#audiodevice), read-only |
+
+## AudioVolume
+
+Has the members of [ObservableObject](winshell.md#observableobject).
+
+| Member | Type |
+| --- | --- |
+| `Channels` | IReadOnlyList of [AudioChannel](#audiochannel), read-only |
+| `Muted` | bool |
+| `Name` | string, read-only |
+| `Volume` | double |
+| `Volumes` | IReadOnlyList of double |
+
+## PlaybackDevice
+
+Has the members of [AudioDevice](#audiodevice).
+
+
+## RecordingDevice
+
+Has the members of [AudioDevice](#audiodevice).
