@@ -127,7 +127,7 @@ windowrule = ignore, exe:(winshell|winshellw|Winshell\..*Tests|Probe|Dev)\.exe
 
 ## See what you changed
 
-The [verify-winshell skill](../.agents/skills/verify-winshell/SKILL.md) is how to see a change working in a real shell, and how to verify a visual change. It builds `winshell` from this checkout, starts a shell in a private session under [Live UI with Winland running](#live-ui-with-winland-running), and drives it with `winshell inspect`, which reads the shell from inside without moving the user's pointer or focus. Its [feature map](../.agents/skills/verify-winshell/features/README.md) lists every feature a user can reach: each `winshell` command, each service on `Shell`, each widget the starter and the examples register, and each building block a user sees, with the steps that prove it.
+The [verify-winshell skill](../.agents/skills/verify-winshell/SKILL.md) is how to see a change working in a real shell, and how to verify a visual change. It builds `winshell` from this checkout, starts a shell in a private session under [Live UI with Winland running](#live-ui-with-winland-running), and drives it with `winshell inspect`, which reads the shell from inside without moving the user's pointer or focus. Its [feature map](../.agents/skills/verify-winshell/features/README.md) lists every feature a user can reach: each `winshell` command, each service on `Shell`, each widget the starter and the examples have, and each building block a user sees, with the steps that prove it.
 
 ```powershell
 pwsh .agents/skills/verify-winshell/scripts/launch.ps1                 # build winshell and start the feature shell

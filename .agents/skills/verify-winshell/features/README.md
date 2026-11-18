@@ -1,6 +1,6 @@
 # Winshell verification map
 
-This folder is the maintained source for verifying what a Winshell user can reach: each `winshell` command, each service on `Shell`, each widget the starter and the examples register, and each building block a user sees. Read this index before you drive a shell, then use the matching feature file as the recipe. `scripts/drive.ps1` runs every file's steps and prints `PASS` or `FAIL` for each feature.
+This folder is the maintained source for verifying what a Winshell user can reach: each `winshell` command, each service on `Shell`, each widget the starter and the examples have, and each building block a user sees. Read this index before you drive a shell, then use the matching feature file as the recipe. `scripts/drive.ps1` runs every file's steps and prints `PASS` or `FAIL` for each feature.
 
 ## Baseline preconditions
 

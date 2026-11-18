@@ -13,7 +13,7 @@ The `clock` widget is the text in the center of the omarchy-style bar. It shows 
 ## How to get to it (user POV)
 
 - Run `winshell new omarchy-style` and then `winshell run -c omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
-- The example registers it with `Widgets.Register<ClockWidget>("clock")` and places it in the bar's `Center` list.
+- The example finds `ClockWidget` as the widget `clock` and places it in the bar's `Center` list.
 - Add another clock with `{ widget = "clock", timezone = "UTC" }` in a list of the `[bar]` section of the preferences file.
 
 ## Driving it with winshell inspect

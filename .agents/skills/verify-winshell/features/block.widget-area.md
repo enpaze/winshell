@@ -4,7 +4,7 @@ A `WidgetArea` is a component that makes a widget for each placement in its list
 
 ## Sub-features
 
-- `place` makes each registered widget a placement names, in order, and gives it the running `Shell`, its window, the placement's settings and the area's orientation.
+- `place` makes each widget a placement names, in order, and gives it the running `Shell`, its window, the placement's settings and the area's orientation.
 - `settings` passes a placement's other keys, nested tables included, as `Settings`.
 - `orientation` lays the widgets out across or down, from `Orientation`.
 - `preferences` lets the user replace a named area's whole list in the `widgets` key of its section of the preferences file, where each item is a widget name or a table, and applies a save live.
@@ -15,7 +15,7 @@ A `WidgetArea` is a component that makes a widget for each placement in its list
 ## How to get to it (user POV)
 
 - In a Reactor component, return `WidgetArea("end", [new("message", new Dictionary<string, object> { ["text"] = "Hello" })])`.
-- Register each widget it places, a class that derives from `Widget`, with `Widgets.Register<T>("name")` in the function a shell passes to `Shell.Run`.
+- Each name it places is a widget the shell finds at start: a public class that derives from `Widget`, named after its class in kebab case without a trailing `Widget`, or by its `[WidgetName("name")]`.
 - Every `Bar` has a start, a center and an end area, from its `Start`, `Center` and `End` lists.
 - Edit the area's section of `preferences\<shell id>.toml`, such as `[end]` with `widgets = ["clock", { widget = "message", text = "Hi" }]`, and save it.
 
@@ -36,6 +36,6 @@ Preconditions:
 ## Gotchas
 
 - The feature area has no name, so it always uses its defaults and has no section in the preferences file. The step does not prove the preferences path.
-- Widget names are case-sensitive. A name that no widget is registered under shows a placeholder, and the reason is logged under `widgets`; `winshell log` prints it.
+- Widget names are case-sensitive. A name that no widget has shows a placeholder, and the reason is logged under `widgets`; `winshell log` prints it.
 - A name registered twice fails when the shell starts.
 - A preferences list with a syntax error, or with an item that is neither a widget name nor a table with a string `widget`, keeps the last valid list and logs the file location under `preferences`.

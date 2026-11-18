@@ -10,7 +10,7 @@ The starter's `clock` widget is the text in the center of its bar that shows the
 ## How to get to it (user POV)
 
 - Run `winshell new starter` and then `winshell run -c starter`.
-- The starter registers it with `Widgets.Register<Clock>("clock")` and places it in the bar's `Center` list.
+- The starter finds `Clock` as the widget `clock` and places it in the bar's `Center` list.
 - Run the starter under `winshell dev -c starter` and change `{time:t}` to `{time:T}` in `Clock.cs` to show the seconds.
 
 ## Driving it with winshell inspect
