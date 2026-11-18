@@ -527,9 +527,14 @@ A widget other people use can be a class library: a WinUI library that reference
 
 `0.7.0` stands in for the release you built the widget against. The package is not on nuget.org. A release keeps it in a `packages` folder beside `winshell.exe`, and `winshell new` writes a `nuget.config` that adds that folder.
 
-The component takes the shell's [style](#style), because a plain text block does. There is no XAML file. `Render` reads the placement as `Props`:
+The component takes the shell's [style](#style), because a plain text block does. There is no XAML file. The class is in `MessageWidget`, the project's root namespace, which the package also adds as a using. `Render` reads the placement as `Props`:
 
 ```csharp
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+
+namespace MessageWidget;
+
 public sealed class Message : Component<WidgetContext>
 {
     public override Element Render()

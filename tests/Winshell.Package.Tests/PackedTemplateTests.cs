@@ -151,6 +151,32 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         });
     }
 
+    [Fact(Timeout = PatienceMs)]
+    public void The_guides_widget_library_builds_against_the_package_and_exposes_its_component()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        using var root = new TempFolder();
+        File.Copy(Path.Combine(Repo.Root, "global.json"), Path.Combine(root.Path, "global.json"));
+        var libDir = Path.Combine(root.Path, "MessageWidget");
+        Directory.CreateDirectory(libDir);
+        foreach (var file in Directory.GetFiles(Path.Combine(Repo.Root, "tests", "Winshell.Package.Tests", "MessageWidget")))
+            File.Copy(file, Path.Combine(libDir, Path.GetFileName(file)));
+        File.Copy(Path.Combine(Path.GetDirectoryName(templates.SmallProject)!, "nuget.config"),
+            Path.Combine(libDir, "nuget.config"));
+        var project = Path.Combine(libDir, "MessageWidget.csproj");
+        var document = XDocument.Load(project);
+        document.Descendants("PackageReference").Single(reference =>
+            reference.Attribute("Include")!.Value == "Winshell").SetAttributeValue("Version", templates.Version);
+        document.Save(project);
+
+        var built = ShellProject.Run("dotnet", ["build", project, "-warnaserror", "--nologo"], libDir);
+
+        Assert.True(built.ExitCode == 0, built.Output);
+        var library = Assert.Single(Directory.GetFiles(Path.Combine(libDir, "bin"), "MessageWidget.dll",
+            SearchOption.AllDirectories));
+        Assert.True(PackedTemplates.IsPublic(library, "MessageWidget", "Message"));
+    }
+
     private string CopyStarter(string folder)
     {
         foreach (var file in Directory.GetFiles(Path.GetDirectoryName(templates.SmallProject)!))
@@ -420,7 +446,7 @@ public sealed class PackedTemplates : IDisposable
         throw new InvalidOperationException($"No informational version in {path}");
     }
 
-    private static bool IsPublic(string path, string ns, string name)
+    internal static bool IsPublic(string path, string ns, string name)
     {
         using var stream = File.OpenRead(path);
         using var pe = new PEReader(stream);
