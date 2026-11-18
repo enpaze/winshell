@@ -1,6 +1,6 @@
 namespace Winshell;
 
-public sealed class ScreenWindows : IDisposable
+public sealed partial class ScreenWindows : IDisposable
 {
     private readonly string _name;
     private readonly Func<ScreenInfo, IReadOnlyDictionary<string, object?>?, IDisposable> _make;
@@ -123,12 +123,9 @@ public sealed class ScreenWindows : IDisposable
         Shell.DisposeEach(windows);
     }
 
-    private sealed class ScreenRows(string name) : Preferences(name)
+    private sealed partial class ScreenRows(string name) : Preferences(name)
     {
-        public IReadOnlyList<IReadOnlyDictionary<string, object?>>? Screen
-        {
-            get;
-            set => Set(ref field, value);
-        }
+        [Preference]
+        public partial IReadOnlyList<IReadOnlyDictionary<string, object?>>? Screen { get; set; }
     }
 }

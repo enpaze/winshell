@@ -5,38 +5,28 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
-public sealed class PreferencesTests
+public sealed partial class PreferencesTests
 {
     private sealed partial class Own : Preferences
     {
+        [Preference]
         [TomlComment("Show 13:00 rather than 1:00 PM.")]
-        public bool Clock24
-        {
-            get;
-            set => Set(ref field, value);
-        }
+        public partial bool Clock24 { get; set; }
 
-        public string? Note
-        {
-            get;
-            set => Set(ref field, value);
-        }
+        [Preference]
+        public partial string? Note { get; set; }
+
+        public string Plain { get; set; } = "code";
     }
 
     private sealed partial class BarPreferences(string name) : Preferences(name)
     {
+        [Preference]
         [TomlComment("top, bottom, left or right.")]
-        public string Edge
-        {
-            get;
-            set => Set(ref field, value);
-        } = "top";
+        public partial string Edge { get; set; } = "top";
 
-        public int Size
-        {
-            get;
-            set => Set(ref field, value);
-        } = 32;
+        [Preference]
+        public partial int Size { get; set; } = 32;
     }
 
     internal static string PathOf(Shell shell)
@@ -125,6 +115,35 @@ public sealed class PreferencesTests
                 Assert.Equal([nameof(BarPreferences.Edge)], topChanges);
                 Assert.Equal([nameof(BarPreferences.Size)], bottomChanges);
                 Assert.Empty(ownChanges);
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task A_property_without_Preference_is_neither_read_nor_written()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var path = PathOf(shell);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, "plain = \"file\"\n");
+            try
+            {
+                using var own = new Own();
+                Assert.Equal("code", own.Plain);
+
+                own.Plain = "assigned";
+                own.Clock24 = true;
+                await NextTurn(shell);
+
+                Assert.Equal("plain = \"file\"\n\n# Show 13:00 rather than 1:00 PM.\nclock24 = true\n",
+                    File.ReadAllText(path));
             }
             finally
             {

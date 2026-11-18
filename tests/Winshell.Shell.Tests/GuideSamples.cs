@@ -209,29 +209,21 @@ public sealed class ClockLabel : Component
     }
 }
 
-#pragma warning disable CsWinRT1028
-public sealed class ShellPreferences : Preferences
+public sealed partial class ShellPreferences : Preferences
 {
+    [Preference]
     [TomlComment("Show 13:00 rather than 1:00 PM.")]
-    public bool Clock24
-    {
-        get => Read(field);
-        set => Set(ref field, value);
-    }
+    public partial bool Clock24 { get; set; }
 }
 
-public sealed class DockPreferences(string name) : Preferences(name, Check)
+public sealed partial class DockPreferences(string name) : Preferences(name, Check)
 {
+    [Preference]
     [TomlComment("bottom, left or right.")]
-    public string Edge
-    {
-        get => Read(field);
-        set => Set(ref field, value);
-    } = "bottom";
+    public partial string Edge { get; set; } = "bottom";
 
     private static string Check(string key, object value)
     {
         return key == "edge" && value is not ("bottom" or "left" or "right") ? "must be bottom, left or right" : "";
     }
 }
-#pragma warning restore CsWinRT1028

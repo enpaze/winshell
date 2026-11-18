@@ -12,7 +12,7 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
-public sealed class Launcher : ObservableObject, IDisposable
+public sealed partial class Launcher : ObservableObject, IDisposable
 {
     private const double Width = 640;
     private const double Height = 420;
@@ -130,14 +130,11 @@ public sealed class Launcher : ObservableObject, IDisposable
         _window?.Dispose();
     }
 
-    private sealed class LauncherPreferences(Launcher launcher) : Preferences(launcher.Name)
+    private sealed partial class LauncherPreferences(Launcher launcher) : Preferences(launcher.Name)
     {
+        [Preference]
         [TomlComment("The hotkey that opens and closes the launcher, such as Alt+Space or Ctrl+Shift+K.")]
-        public string Hotkey
-        {
-            get;
-            set => Set(ref field, value);
-        } = launcher.Hotkey;
+        public partial string Hotkey { get; set; } = launcher.Hotkey;
     }
 }
 

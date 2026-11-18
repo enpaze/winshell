@@ -6,26 +6,37 @@ public sealed class TomlKeysTests
 
     private sealed class Settings
     {
+        [Preference]
         public string Name { get; set; } = "default";
 
+        [Preference]
         public bool On { get; set; } = true;
 
+        [Preference]
         public int Size { get; set; } = 3;
 
+        [Preference]
         public double Scale { get; set; } = 1.5;
 
+        [Preference]
         public IReadOnlyList<string> Tiles { get; set; } = ["wifi"];
 
+        [Preference]
         public IReadOnlyList<IReadOnlyDictionary<string, object?>> Hidden { get; set; } = [];
 
+        [Preference]
         public long Number { get; set; }
 
+        [Preference]
         public int? Maybe { get; set; }
 
+        [Preference]
         public object? Anything { get; set; }
 
+        [Preference]
         public IReadOnlyDictionary<string, object?>? Taskbar { get; set; }
 
+        [Preference]
         public IReadOnlyList<string>? Pins { get; set; }
     }
 
