@@ -393,7 +393,7 @@ A [widget area](reference/winshell.md#widgetarea) is a component. A window mount
 
 The shell finds the widgets when it starts, before the function passed to `Shell.Run` runs. A widget is a public class that derives from `Widget` and has a public parameterless constructor, in your project or in a project or package it references that references Winshell. An abstract or generic class is not a widget, and neither is a class that is not public.
 
-A widget's name is its class name in kebab case, without a trailing `Widget`: `ClockWidget` and `Clock` are both `clock`, `NetworkSpeed` is `network-speed`, and `CPUUsage` is `cpu-usage`. Names are case-sensitive. `[WidgetName]` gives a widget another name. Two widgets with one name stop the shell when it starts, with an error that names both classes, and so does a widget with no public parameterless constructor.
+A widget's name is its class name in kebab case, without a trailing `Widget`: `ClockWidget` and `Clock` are both `clock`, `NetworkSpeed` is `network-speed`, and `CPUUsage` is `cpu-usage`. Names are case-sensitive. `[WidgetName]` gives a widget another name. Two widgets with one name stop the shell when it starts, with an error that names both classes, and so do a widget with no public parameterless constructor and a `[WidgetName]` that is empty. The error names every such class. A file the shell can't read or load while it looks for widgets is skipped, with a warning in the log that names it and says why.
 
 A widget derives from [Widget](reference/winshell.md#widget), a component whose props are a `WidgetContext`. `Render` reads them without `Props`:
 

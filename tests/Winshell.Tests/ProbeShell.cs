@@ -91,20 +91,20 @@ internal static class ProbeShell
         lock (Gate)
         {
             if (program is null || !File.Exists(program))
-                Volatile.Write(ref program, BuildLocked(folder, shellProperties));
+                Volatile.Write(ref program, BuildLocked(folder, shellProperties, Source));
             return program;
         }
     }
 
-    internal static string Build(string folder)
+    internal static string Build(string folder, string source = Source)
     {
         lock (Gate)
         {
-            return BuildLocked(folder, ProbeProperties);
+            return BuildLocked(folder, ProbeProperties, source);
         }
     }
 
-    private static string BuildLocked(string folder, string shellProperties)
+    private static string BuildLocked(string folder, string shellProperties, string source)
     {
         var root = Repo.Root;
         Directory.CreateDirectory(folder);
@@ -113,7 +113,7 @@ internal static class ProbeShell
         var project = Path.Combine(folder, "Probe.csproj");
         WriteIfDifferent(project,
             Project(Path.Combine(root, "src", "Winshell.Shell", "Winshell.Shell.csproj"), shellProperties));
-        WriteIfDifferent(Path.Combine(folder, "Program.cs"), Source);
+        WriteIfDifferent(Path.Combine(folder, "Program.cs"), source);
         var program = Path.Combine(folder, "bin", "shell", "Probe.exe");
         var info = new ProcessStartInfo("dotnet") { WorkingDirectory = folder };
         info.ArgumentList.Add("build");

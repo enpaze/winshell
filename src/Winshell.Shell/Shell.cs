@@ -162,7 +162,7 @@ public sealed partial class Shell : IDisposable
                 Shell? shell = null;
                 try
                 {
-                    var widgets = WidgetRegistry.Discover();
+                    var widgets = WidgetRegistry.Discover(session.Log);
                     var loop = new DispatcherLoop(queue, session.Log);
                     loop.Failed += e => instance.Reported(instance.Crashes.WriteOnce("event loop", e, "Winshell",
                         "Something in Winshell failed. It is still running."));
