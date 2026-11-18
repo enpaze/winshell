@@ -2,6 +2,8 @@
 
 param(
     [string] $Version,
+    [ValidateSet('stable', 'dev')]
+    [string] $Channel = 'stable',
     [switch] $AutoStart
 )
 
@@ -77,15 +79,23 @@ function Get-WinshellSignInCommand([string] $Exe) {
             ForEach-Object { if ($_ -match '\s') { '"' + $_ + '"' } else { $_ } }) -join ' '
 }
 
-function Install-Winshell([string] $Version, [switch] $AutoStart, [switch] $SessionKeepsPath) {
+function Install-Winshell([string] $Version, [string] $Channel, [switch] $AutoStart, [switch] $SessionKeepsPath) {
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
     Assert-WinshellTestIsolation
-    $Version = "$Version".Trim()
-    if (-not $Version) { $Version = "$env:WINSHELL_VERSION".Trim() }
-    if ($Version) {
-        $Version = $Version -replace '^v', ''
-        if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "Version must be x.y.z, not '$Version'." }
+    $Channel = "$Channel".Trim().ToLowerInvariant()
+    if (-not $Channel) { $Channel = "$env:WINSHELL_CHANNEL".Trim().ToLowerInvariant() }
+    if (-not $Channel) { $Channel = 'stable' }
+    if ($Channel -ne 'stable' -and $Channel -ne 'dev') { throw "Channel must be stable or dev, not '$Channel'." }
+    if ($Channel -eq 'dev') {
+        $Version = ''
+    } else {
+        $Version = "$Version".Trim()
+        if (-not $Version) { $Version = "$env:WINSHELL_VERSION".Trim() }
+        if ($Version) {
+            $Version = $Version -replace '^v', ''
+            if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "Version must be x.y.z, not '$Version'." }
+        }
     }
     $signIn = $AutoStart -or ("$env:WINSHELL_AUTOSTART".Trim() -match '^(1|true|yes)$')
     $arch = switch ([string][Runtime.InteropServices.RuntimeInformation]::OSArchitecture) {
@@ -106,7 +116,9 @@ function Install-Winshell([string] $Version, [switch] $AutoStart, [switch] $Sess
     $stage = Join-Path $root 'bin.new'
     $old = Join-Path $root 'bin.old'
     Assert-WinshellNotRunning $root 'installer'
-    if ($Version) {
+    if ($Channel -eq 'dev') {
+        Write-WinshellLine "Installing the dev Winshell (win-$arch)."
+    } elseif ($Version) {
         Write-WinshellLine "Installing Winshell $Version (win-$arch)."
     } else {
         Write-WinshellLine "Installing the latest Winshell (win-$arch)."
@@ -114,20 +126,34 @@ function Install-Winshell([string] $Version, [switch] $AutoStart, [switch] $Sess
     if ($PSVersionTable.PSVersion.Major -lt 6) {
         [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     }
-    $release = if ($Version) { "$base/download/v$Version" } else { "$base/latest/download" }
+    $release = if ($Channel -eq 'dev') {
+        "$base/download/dev"
+    } elseif ($Version) {
+        "$base/download/v$Version"
+    } else {
+        "$base/latest/download"
+    }
     $temp = Join-Path ([IO.Path]::GetTempPath()) ('winshell-install-' + [guid]::NewGuid().ToString('n'))
     New-Item -ItemType Directory -Path $temp | Out-Null
     try {
         Write-WinshellLine 'Downloading SHA256SUMS.txt.'
         Receive-WinshellFile "$release/SHA256SUMS.txt" (Join-Path $temp 'SHA256SUMS.txt')
-        $name = if ($Version) { [regex]::Escape("winshell-$Version-win-$arch.zip") } else { "winshell-\d+\.\d+\.\d+-win-$arch\.zip" }
+        $name = if ($Channel -eq 'dev') {
+            "winshell-.+-win-$arch\.zip"
+        } elseif ($Version) {
+            [regex]::Escape("winshell-$Version-win-$arch.zip")
+        } else {
+            "winshell-\d+\.\d+\.\d+-win-$arch\.zip"
+        }
         $line = [regex]::Match([IO.File]::ReadAllText((Join-Path $temp 'SHA256SUMS.txt')), "(?m)^([0-9A-Fa-f]{64}) [ *]($name)\r?$")
         if (-not $line.Success) { throw "That release lists no win-$arch zip in SHA256SUMS.txt." }
         $package = $line.Groups[2].Value
-        $installed = $package.Split('-')[1]
+        if ($package -notmatch '^winshell-(.+)-win-(x64|arm64)\.zip$') { throw "That release lists no win-$arch zip in SHA256SUMS.txt." }
+        $installed = $Matches[1]
         Write-WinshellLine "Downloading $package."
         $zip = Join-Path $temp $package
-        Receive-WinshellFile "$base/download/v$installed/$package" $zip
+        $folder = if ($Channel -eq 'dev') { 'dev' } else { "v$installed" }
+        Receive-WinshellFile "$base/download/$folder/$package" $zip
         Write-WinshellLine 'Verifying SHA256.'
         $expected = $line.Groups[1].Value.ToLowerInvariant()
         $actual = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -153,6 +179,12 @@ function Install-Winshell([string] $Version, [switch] $AutoStart, [switch] $Sess
     } catch {
         Write-WinshellLine "The previous copy is still at $old. $($_.Exception.Message)"
     }
+
+    $saved = Start-Process -FilePath (Join-Path $bin 'winshell.exe') -ArgumentList @('update', '--channel', $Channel) -WindowStyle Hidden -Wait -PassThru
+    if ($saved.ExitCode -ne 0) {
+        throw "Winshell $installed is installed, and winshell update --channel $Channel failed with exit $($saved.ExitCode)."
+    }
+    Start-Process -FilePath (Join-Path $bin 'winshellw.exe') -ArgumentList '--no-duplicate' -WindowStyle Hidden | Out-Null
 
     $parts = @((Get-WinshellUserPath).Split(';') | Where-Object { $_ })
     if ($parts | Where-Object { $_.TrimEnd('\') -eq $bin }) {
@@ -209,7 +241,11 @@ if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
 } else {
     try {
         $keeps = -not $PSCommandPath -or $MyInvocation.InvocationName -eq '&'
-        Install-Winshell -Version $Version -AutoStart:$AutoStart -SessionKeepsPath:$keeps
+        if ($PSBoundParameters -and $PSBoundParameters.ContainsKey('Channel')) {
+            Install-Winshell -Version $Version -Channel $Channel -AutoStart:$AutoStart -SessionKeepsPath:$keeps
+        } else {
+            Install-Winshell -Version $Version -AutoStart:$AutoStart -SessionKeepsPath:$keeps
+        }
     } catch {
         [Console]::Error.WriteLine($_.Exception.Message)
         if ($PSCommandPath) { exit 1 }

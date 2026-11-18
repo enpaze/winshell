@@ -35,21 +35,24 @@ Describe 'install.ps1 and uninstall.ps1' {
             }).AddArgument($script:Listener).AddArgument($script:Served)
         $script:Serving = $script:Server.BeginInvoke()
 
-        function Publish-Release([string] $Version, [switch] $Latest, [switch] $WrongHash) {
-            $folder = Join-Path $script:Served "releases\download\v$Version"
+        function Publish-Release([string] $Version, [switch] $Latest, [switch] $WrongHash, [switch] $Dev) {
+            $folder = if ($Dev) { Join-Path $script:Served 'releases\download\dev' } else { Join-Path $script:Served "releases\download\v$Version" }
             New-Item -ItemType Directory -Force -Path $folder | Out-Null
             $name = Get-ReleaseZipName $Version "win-$script:Arch"
             $zip = [IO.Compression.ZipFile]::Open((Join-Path $folder $name), 'Create')
             try {
-                foreach ($file in 'winshell.exe', 'winshellw.exe', "packages/Winshell.$Version.nupkg") {
-                    $writer = [IO.StreamWriter]::new($zip.CreateEntry($file).Open())
-                    try { $writer.Write($Version) } finally { $writer.Dispose() }
+                $stub = [IO.File]::ReadAllBytes($script:Stub)
+                foreach ($file in 'winshell.exe', 'winshellw.exe') {
+                    $body = $zip.CreateEntry($file).Open()
+                    try { $body.Write($stub, 0, $stub.Length) } finally { $body.Dispose() }
                 }
+                $writer = [IO.StreamWriter]::new($zip.CreateEntry("packages/Winshell.$Version.nupkg").Open())
+                try { $writer.Write($Version) } finally { $writer.Dispose() }
             } finally { $zip.Dispose() }
             $hash = (Get-FileHash -LiteralPath (Join-Path $folder $name) -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($WrongHash) { $hash = 'ab' * 32 }
             [IO.File]::WriteAllText((Join-Path $folder 'SHA256SUMS.txt'), "$hash  $name`n")
-            if ($Latest) {
+            if ($Latest -and -not $Dev) {
                 $moving = Join-Path $script:Served 'releases\latest\download'
                 New-Item -ItemType Directory -Force -Path $moving | Out-Null
                 Copy-Item -LiteralPath (Join-Path $folder 'SHA256SUMS.txt') -Destination $moving
@@ -105,9 +108,46 @@ Describe 'install.ps1 and uninstall.ps1' {
 
         function Get-Text([string] $Path) { [IO.File]::ReadAllText($Path) }
 
+        $script:Stub = Join-Path $TestDrive 'winshell-stub.exe'
+        $stubSource = Join-Path $TestDrive 'winshell-stub.cs'
+        [IO.File]::WriteAllText($stubSource, @'
+using System;
+using System.IO;
+using System.Text;
+
+static class Program
+{
+    static int Main(string[] args)
+    {
+        var root = Environment.GetEnvironmentVariable("APPDATA");
+        if (string.IsNullOrEmpty(root))
+            return 0;
+        var dir = Path.Combine(root, "winshell");
+        Directory.CreateDirectory(dir);
+        var utf8 = new UTF8Encoding(false);
+        if (args.Length >= 3 && args[0] == "update" && args[1] == "--channel")
+        {
+            var channel = args[2];
+            if (channel != "stable" && channel != "dev")
+                return 2;
+            File.WriteAllText(Path.Combine(dir, "update.toml"), "channel = \"" + channel + "\"\n", utf8);
+            return 0;
+        }
+
+        File.AppendAllText(Path.Combine(dir, "started.txt"), string.Join(" ", args) + "\n", utf8);
+        return 0;
+    }
+}
+'@)
+        $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+        if (-not (Test-Path -LiteralPath $csc)) { $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\csc.exe' }
+        & $csc /nologo "/out:$($script:Stub)" $stubSource
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $script:Stub)) { throw 'The install test stub did not compile.' }
+
         Publish-Release '0.4.0' -WrongHash
         Publish-Release '0.5.0'
         Publish-Release '0.6.0' -Latest
+        Publish-Release '0.6.0-dev.4' -Dev
     }
 
     AfterAll {
@@ -165,7 +205,6 @@ Describe 'install.ps1 and uninstall.ps1' {
         $result.Error | Should -BeNullOrEmpty
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match 'Verifying SHA256'
-        Get-Text (Join-Path $p.Bin 'winshellw.exe') | Should -Be '0.6.0'
         Get-Text (Join-Path $p.Bin 'packages\Winshell.0.6.0.nupkg') | Should -Be '0.6.0'
         Get-Text $p.PathFile | Should -Be "C:\Windows;C:\Tools;$($p.Bin)"
         $link = (New-Object -ComObject WScript.Shell).CreateShortcut($p.Shortcut)
@@ -191,7 +230,7 @@ function Get-AppxPackage {
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match 'Could not check for a Microsoft Store copy of Winshell, so that check was skipped\. Store query failed\.'
         ($result.Error -replace '(?s)#< CLIXML.*', '').Trim() | Should -BeNullOrEmpty
-        Get-Text (Join-Path $p.Bin 'winshell.exe') | Should -Be '0.5.0'
+        Get-Text (Join-Path $p.Bin 'packages\Winshell.0.5.0.nupkg') | Should -Be '0.5.0'
     }
 
     It 'reinstalls a pinned version over the latest, given with a leading v' {
@@ -200,7 +239,7 @@ function Get-AppxPackage {
         $result = Invoke-Script $p -File $Install, '-Version', 'v0.5.0'
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match "$([regex]::Escape($p.Bin)) is already on your PATH"
-        Get-Text (Join-Path $p.Bin 'winshell.exe') | Should -Be '0.5.0'
+        Get-Text (Join-Path $p.Bin 'packages\Winshell.0.5.0.nupkg') | Should -Be '0.5.0'
         Get-Text $p.PathFile | Should -Be "C:\Windows;C:\Tools;$($p.Bin)"
         Get-ChildItem -LiteralPath $p.Root -Name | Should -Be 'bin'
         Test-Path -LiteralPath $p.SignIn | Should -BeFalse
@@ -212,7 +251,7 @@ function Get-AppxPackage {
         $result = Invoke-Script $p -File $Install, '-Version', '0.4.0'
         $result.ExitCode | Should -Be 1
         $result.Error | Should -Match 'SHA256 mismatch for winshell-0\.4\.0'
-        Get-Text (Join-Path $p.Bin 'winshell.exe') | Should -Be '0.6.0'
+        Get-Text (Join-Path $p.Bin 'packages\Winshell.0.6.0.nupkg') | Should -Be '0.6.0'
         Get-ChildItem -LiteralPath $p.Root -Name | Should -Be 'bin'
     }
 
@@ -236,7 +275,7 @@ function Get-AppxPackage {
             $running.Kill()
             $running.WaitForExit()
         }
-        Get-Text (Join-Path $p.Bin 'winshellw.exe') | Should -Be '0.6.0'
+        Get-Text (Join-Path $p.Bin 'packages\Winshell.0.6.0.nupkg') | Should -Be '0.6.0'
         Get-Text $p.PathFile | Should -Be "C:\Windows;C:\Tools;$($p.Bin)"
     }
 
@@ -249,7 +288,7 @@ function Get-AppxPackage {
         $result.Error | Should -Match "Version must be x\.y\.z, not 'not-a-version'"
         $result.Output | Should -Match 'still here'
         $result.Output | Should -Match 'Winshell 0\.5\.0 is installed\. Run winshell\.'
-        Get-Text (Join-Path $p.Bin 'winshell.exe') | Should -Be '0.5.0'
+        Get-Text (Join-Path $p.Bin 'packages\Winshell.0.5.0.nupkg') | Should -Be '0.5.0'
     }
 
     It 'uninstalls what it installed, keeps configuration and logs, and does nothing the second time' {
@@ -257,7 +296,7 @@ function Get-AppxPackage {
         (Invoke-Script $p -File $Install, '-AutoStart').ExitCode | Should -Be 0
         $config = Join-Path $p.Roaming 'winshell\config.toml'
         $log = Join-Path $p.Local 'winshell\logs\winshell.log'
-        New-Item -ItemType Directory -Path (Split-Path $config), (Split-Path $log) | Out-Null
+        New-Item -ItemType Directory -Force -Path (Split-Path $config), (Split-Path $log) | Out-Null
         [IO.File]::WriteAllText($config, 'config')
         [IO.File]::WriteAllText($log, 'log')
         $result = Invoke-Script $p -File $Uninstall
@@ -286,5 +325,37 @@ function Get-AppxPackage {
         Test-Path -LiteralPath $p.Root | Should -BeFalse
         (New-Object -ComObject WScript.Shell).CreateShortcut($p.Shortcut).TargetPath | Should -Be $other
         Get-Text $p.SignIn | Should -Be "C:\Windows\System32\conhost.exe --headless $other --no-duplicate"
+    }
+
+    It 'remembers stable and starts the installed shell' {
+        $p = New-TestProfile
+        $result = Invoke-Script $p -File $Install, '-Channel', 'stable'
+        $result.Error | Should -BeNullOrEmpty
+        $result.ExitCode | Should -Be 0
+        Get-Text (Join-Path $p.Roaming 'winshell\update.toml') | Should -Be "channel = `"stable`"`n"
+        Get-Text (Join-Path $p.Roaming 'winshell\started.txt') | Should -Be "--no-duplicate`n"
+        Get-Text (Join-Path $p.Bin 'packages\Winshell.0.6.0.nupkg') | Should -Be '0.6.0'
+    }
+
+    It 'installs the dev zip and remembers dev' {
+        $p = New-TestProfile
+        $result = Invoke-Script $p -File $Install, '-Channel', 'dev'
+        $result.Error | Should -BeNullOrEmpty
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'Installing the dev Winshell'
+        $result.Output | Should -Match 'Winshell 0\.6\.0-dev\.4 is installed'
+        Get-Text (Join-Path $p.Roaming 'winshell\update.toml') | Should -Be "channel = `"dev`"`n"
+        Get-Text (Join-Path $p.Bin 'packages\Winshell.0.6.0-dev.4.nupkg') | Should -Be '0.6.0-dev.4'
+        Test-Path -LiteralPath (Join-Path $p.Bin 'packages\Winshell.0.6.0.nupkg') | Should -BeFalse
+    }
+
+    It 'honors WINSHELL_CHANNEL when the script is invoked with iex' {
+        $p = New-TestProfile
+        $iex = "Get-Content -Raw -LiteralPath '$Install' | Invoke-Expression"
+        $result = Invoke-Script $p -Command "`$env:WINSHELL_CHANNEL = 'dev'; $iex"
+        ($result.Error -replace '(?s)#< CLIXML.*', '').Trim() | Should -BeNullOrEmpty
+        $result.ExitCode | Should -Be 0
+        Get-Text (Join-Path $p.Roaming 'winshell\update.toml') | Should -Be "channel = `"dev`"`n"
+        Get-Text (Join-Path $p.Bin 'packages\Winshell.0.6.0-dev.4.nupkg') | Should -Be '0.6.0-dev.4'
     }
 }
