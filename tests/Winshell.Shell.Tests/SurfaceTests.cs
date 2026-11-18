@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
@@ -75,6 +76,58 @@ public sealed class SurfaceTests
                 host.RequestedTheme = requested;
                 var windows = WidgetAreaTests.WindowsColor(theme, "SolidBackgroundFillColorBase");
                 await Wait.UntilAsync(() => BarTests.BackgroundOf(host) == windows, "the surface to paint Windows' background");
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task An_alert_in_a_surface_takes_each_new_style_without_a_theme_switch()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var text = new TextBlock { Text = "alert" };
+            using var surface = new Mounted<Surface, SurfaceProps>(new SurfaceProps
+            {
+                Content = XamlHost(() => text).Alert(),
+                Style = TestStyles.Other()
+            });
+            var host = surface.Host;
+            host.RequestedTheme = ElementTheme.Light;
+            using var window = new PanelWindow { Width = 100, Height = 40, Content = host, Visible = true };
+            var contrast = shell.Platform.IsHighContrast;
+            var highlight = WidgetAreaTests.WindowsColor("HighContrast", "SystemColorHighlightColor");
+            var critical = WidgetAreaTests.WindowsColor("Light", "SystemFillColorCritical");
+            async Task Shows(global::Windows.UI.Color? alert, double size, string what)
+            {
+                var color = contrast ? highlight : alert ?? critical;
+                await Wait.UntilAsync(
+                    () => text.Foreground is SolidColorBrush brush && brush.Color == color && text.FontSize == size, what);
+            }
+
+            try
+            {
+                await Shows(Microsoft.UI.Colors.Orange, 18, "the alert to take the surface style's alert color");
+
+                surface.Set(surface.Props with { Style = new ShellStyle { FontSize = 12 } });
+                await Shows(null, 12, "the alert to take Windows' critical color under a font-only style");
+
+                surface.Set(surface.Props with { Style = TestStyles.Other() });
+                await Shows(Microsoft.UI.Colors.Orange, 18, "the alert to take the new style's alert color");
+
+                surface.Set(surface.Props with { Style = null });
+                await Shows(null, 14, "the alert to follow the shell's default style");
+
+                shell.Style = TestStyles.Other();
+                await Shows(Microsoft.UI.Colors.Orange, 18, "the alert to follow the shell style's alert color");
+
+                shell.Style = new ShellStyle { FontSize = 12 };
+                await Shows(null, 12, "the alert to follow a font-only shell style");
+            }
+            finally
+            {
+                shell.Style = new();
             }
 
             return true;
