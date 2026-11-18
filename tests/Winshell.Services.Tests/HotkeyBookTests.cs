@@ -62,9 +62,8 @@ public sealed class HotkeyBookTests
     public void Two_listeners_share_a_chord_until_the_last_one_releases_it()
     {
         var book = new HotkeyBook();
-        var loop = new ManualEventLoop();
-        var first = new Probe(loop);
-        var second = new Probe(loop);
+        var first = new Probe();
+        var second = new Probe();
         var key = Parse("Ctrl+K").Chords[0].OsKey;
         book.Add(first, Parse("Ctrl+K"));
         book.Add(second, Parse("Ctrl+K"));
@@ -82,10 +81,9 @@ public sealed class HotkeyBookTests
     public void Windows_key_tap_fires_that_side_and_either_but_not_the_other_side()
     {
         var book = new HotkeyBook();
-        var loop = new ManualEventLoop();
-        var left = new Probe(loop);
-        var right = new Probe(loop);
-        var either = new Probe(loop);
+        var left = new Probe();
+        var right = new Probe();
+        var either = new Probe();
         book.Add(left, Parse("Left Win"));
         book.Add(right, Parse("Right Win"));
         book.Add(either, Parse("Win"));
@@ -105,7 +103,7 @@ public sealed class HotkeyBookTests
     public void Windows_key_used_as_a_modifier_does_not_fire_and_repeats_do_not_reset_that()
     {
         var book = new HotkeyBook();
-        var either = new Probe(new ManualEventLoop());
+        var either = new Probe();
         book.Add(either, Parse("Win"));
         book.Hook(VirtualKeys.LeftWin, false, HotkeyModifiers.None, 0);
         book.Hook('E', false, HotkeyModifiers.Win, 0);
@@ -119,7 +117,7 @@ public sealed class HotkeyBookTests
     public void Sequence_swallows_a_match_and_a_mismatch_or_modifier_does_not_steal_the_key()
     {
         var book = new HotkeyBook();
-        var listener = new Probe(new ManualEventLoop());
+        var listener = new Probe();
         book.Add(listener, Parse("Ctrl+K, C"));
         book.Trigger(Parse("Ctrl+K").Chords[0].OsKey, 0);
         var shift = book.Hook(0x10, false, HotkeyModifiers.Shift, 0);
@@ -142,7 +140,7 @@ public sealed class HotkeyBookTests
     public void Extending_a_sequence_keeps_a_new_token_and_the_old_disarm_does_nothing()
     {
         var book = new HotkeyBook();
-        var listener = new Probe(new ManualEventLoop());
+        var listener = new Probe();
         book.Add(listener, Parse("A, B, C"));
         var started = book.Trigger(Parse("A").Chords[0].OsKey, 0);
         var token = Assert.Single(started.Armed).Token;
@@ -157,7 +155,7 @@ public sealed class HotkeyBookTests
     public void A_sequence_expires_when_the_deadline_is_reached()
     {
         var book = new HotkeyBook();
-        var listener = new Probe(new ManualEventLoop());
+        var listener = new Probe();
         book.Add(listener, Parse("A, B"));
         book.Trigger(Parse("A").Chords[0].OsKey, 0);
         var late = book.Hook('B', false, HotkeyModifiers.None, 1000);
@@ -170,9 +168,8 @@ public sealed class HotkeyBookTests
     public void Windows_tap_finishes_a_waiting_sequence_and_still_starts_one()
     {
         var book = new HotkeyBook();
-        var loop = new ManualEventLoop();
-        var starter = new Probe(loop);
-        var finisher = new Probe(loop);
+        var starter = new Probe();
+        var finisher = new Probe();
         book.Add(starter, Parse("Win, K"));
         book.Add(finisher, Parse("Ctrl+K, Win"));
         book.Trigger(Parse("Ctrl+K").Chords[0].OsKey, 0);
@@ -244,11 +241,9 @@ public sealed class HotkeyBookTests
         return sequence!;
     }
 
-    private sealed class Probe(IEventLoop loop) : IHotkeyListener
+    private sealed class Probe : IHotkeyListener
     {
-        public IEventLoop Loop { get; } = loop;
-
-        public void OnPressed(bool deliversRelease)
+        public void OnPressed()
         {
         }
 

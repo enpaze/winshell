@@ -42,17 +42,11 @@ internal sealed class HotkeyRegistrar : IDisposable
         return _backend.IsKeyDown(virtualKey);
     }
 
-    public HotkeyClaim Claim(IHotkeyListener listener, HotkeySequence? sequence)
+    public HotkeyClaim Claim(IHotkeyListener listener, HotkeySequence sequence)
     {
         if (_disposed)
             return HotkeyClaim.Invalid("Hotkeys are shut down.");
         ReleaseListener(listener);
-        if (sequence is null || sequence.Chords.Count == 0)
-        {
-            SyncHook();
-            return HotkeyClaim.Idle;
-        }
-
         var first = sequence.Chords[0];
         if (!first.IsWinOnly)
         {
@@ -157,7 +151,7 @@ internal sealed class HotkeyRegistrar : IDisposable
         foreach (var listener in result.Pressed)
             try
             {
-                listener.OnPressed(false);
+                listener.OnPressed();
             }
             catch (Exception e)
             {
@@ -174,7 +168,7 @@ internal sealed class HotkeyRegistrar : IDisposable
         var listener = arm.Listener;
         var token = arm.Token;
         var delay = TimeSpan.FromMilliseconds(Math.Max(0, arm.DeadlineMs - NowMs()));
-        var timer = listener.Loop.Schedule(delay, () => Disarm(listener, token));
+        var timer = _loop.Schedule(delay, () => Disarm(listener, token));
         _timers[listener] = timer;
     }
 

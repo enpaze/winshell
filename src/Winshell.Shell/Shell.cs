@@ -237,7 +237,7 @@ public sealed partial class Shell : IDisposable
                 catch (Exception e) when (e is not OutOfMemoryException)
                 {
                     if (shell is null)
-                        ExplorerTaskbarLease.ReleaseUnclaimed();
+                        ExplorerTaskbarLease.ReleaseUnclaimed(ShellLocations.Current);
                     else
                         shell.ReleaseUnclaimedTaskbar();
                     instance.ReportFatal(e);
@@ -313,7 +313,7 @@ public sealed partial class Shell : IDisposable
     {
         if (_explorerTaskbar is { Hidden: true })
             return;
-        ExplorerTaskbarLease.ReleaseUnclaimed();
+        ExplorerTaskbarLease.ReleaseUnclaimed(ShellLocations.Current);
     }
 
     private void ReleaseForCrash()

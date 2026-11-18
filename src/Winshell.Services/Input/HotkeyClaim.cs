@@ -2,7 +2,6 @@ namespace Winshell.Input;
 
 internal enum HotkeyClaimStatus
 {
-    Idle,
     Active,
     Taken,
     Invalid
@@ -10,8 +9,6 @@ internal enum HotkeyClaimStatus
 
 internal readonly record struct HotkeyClaim(HotkeyClaimStatus Status, string Error)
 {
-    public static HotkeyClaim Idle { get; } = new(HotkeyClaimStatus.Idle, "");
-
     public static HotkeyClaim Active { get; } = new(HotkeyClaimStatus.Active, "");
 
     public static HotkeyClaim Taken(string error)
@@ -27,9 +24,7 @@ internal readonly record struct HotkeyClaim(HotkeyClaimStatus Status, string Err
 
 internal interface IHotkeyListener
 {
-    IEventLoop Loop { get; }
-
-    void OnPressed(bool deliversRelease);
+    void OnPressed();
 
     void OnReleased();
 }

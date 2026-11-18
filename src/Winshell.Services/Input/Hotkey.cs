@@ -58,16 +58,13 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
 
     public event EventHandler? Released;
 
-    IEventLoop IHotkeyListener.Loop => _loop;
-
-    void IHotkeyListener.OnPressed(bool deliversRelease)
+    void IHotkeyListener.OnPressed()
     {
         if (_disposed)
             return;
         if (Set(ref _pressed, true, nameof(IsPressed)))
             Pressed?.Invoke(this, EventArgs.Empty);
-        if (!deliversRelease)
-            StartPoll();
+        StartPoll();
     }
 
     void IHotkeyListener.OnReleased()
@@ -99,7 +96,7 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
             return;
         }
 
-        var claim = _registrar.Claim(this, parsed);
+        var claim = _registrar.Claim(this, parsed!);
         SetStatus(claim.Status == HotkeyClaimStatus.Active, claim.Status == HotkeyClaimStatus.Taken, claim.Error);
     }
 

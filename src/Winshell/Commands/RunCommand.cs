@@ -111,7 +111,8 @@ internal static class RunCommand
         }
 
         var supervisor = new ShellSupervisor(Start, ExplorerTaskbarRecovery.AnyHidden,
-            ExplorerTaskbarLease.LeaveHidden, ExplorerTaskbarLease.Recover, TimeProvider.System);
+            (childPid, hiddenAtStart) => ExplorerTaskbarLease.LeaveHidden(ShellLocations.Current, childPid, hiddenAtStart),
+            ExplorerTaskbarLease.Recover, TimeProvider.System);
         using var stop = new CancellationTokenSource();
         Task<int>? supervision = null;
 
