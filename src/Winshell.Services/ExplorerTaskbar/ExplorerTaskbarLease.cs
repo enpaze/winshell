@@ -45,9 +45,15 @@ internal static partial class ExplorerTaskbarLease
         return TryRead(locations, out var lease) ? lease.Windows.Select(ToSaved).ToList() : [];
     }
 
-    internal static bool Write(ShellLocations locations, int owner, IReadOnlyList<ExplorerTaskbarWindow.Saved> windows)
+    internal static uint? AppBarState(ShellLocations locations)
     {
-        var file = new TaskbarLeaseFile(owner, windows.Select(FromSaved).ToList());
+        return TryRead(locations, out var lease) ? lease.AppBarState : null;
+    }
+
+    internal static bool Write(ShellLocations locations, int owner, IReadOnlyList<ExplorerTaskbarWindow.Saved> windows,
+        uint? appBarState = null)
+    {
+        var file = new TaskbarLeaseFile(owner, windows.Select(FromSaved).ToList(), appBarState);
         return Save(locations, file);
     }
 
@@ -71,6 +77,8 @@ internal static partial class ExplorerTaskbarLease
 
     private static void Restore(ShellLocations locations, TaskbarLeaseFile lease)
     {
+        if (lease.AppBarState is uint state)
+            AppBarMessages.SetState(state);
         foreach (var window in lease.Windows)
             ExplorerTaskbarWindow.PutBack(ToSaved(window));
         Forget(locations);
@@ -153,7 +161,8 @@ internal static partial class ExplorerTaskbarLease
 
     private sealed record TaskbarLeaseFile(
         [property: JsonPropertyName("owner")] int Owner,
-        [property: JsonPropertyName("windows")] List<TaskbarWindowState> Windows);
+        [property: JsonPropertyName("windows")] List<TaskbarWindowState> Windows,
+        [property: JsonPropertyName("appBarState")] uint? AppBarState);
 
     private sealed record TaskbarWindowState(
         [property: JsonPropertyName("hwnd")] long Hwnd,
