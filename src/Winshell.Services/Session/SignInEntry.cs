@@ -41,7 +41,7 @@ internal static class SignInEntry
     internal static string? Command(string program, string? supervisor)
     {
         if (supervisor is null || !WinshellHost.Is(supervisor) ||
-            ConfigurationProject.RunPath(program) is not { } project)
+            ShellProject.RunPath(program) is not { } project)
             return null;
         return CommandLine.ForSignIn(supervisor, [CommandWords.Run, CommandWords.Path.Short!, project]);
     }
@@ -96,7 +96,7 @@ internal static class SignInEntry
 
     internal static string InstallExe(string processPath, string? supervisor)
     {
-        return ConfigurationProject.FolderOf(processPath) is not null && supervisor is not null
+        return ShellProject.FolderOf(processPath) is not null && supervisor is not null
             ? supervisor
             : processPath;
     }
@@ -107,7 +107,7 @@ internal static class SignInEntry
             return null;
         try
         {
-            return ConfigurationProject.Find(launch.Path, launch.Name, configRoot, out _)?.ProjectFile;
+            return ShellProject.Find(launch.Path, launch.Name, configRoot, out _)?.ProjectFile;
         }
         catch (Exception e) when (e is ArgumentException or NotSupportedException)
         {

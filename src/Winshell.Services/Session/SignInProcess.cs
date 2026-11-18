@@ -12,7 +12,7 @@ internal static class SignInProcess
         {
             if (Environment.ProcessPath is not { } exe)
                 return null;
-            var command = ConfigurationProject.FolderOf(exe) is null
+            var command = ShellProject.FolderOf(exe) is null
                 ? CommandLine.ForSignIn(exe, Environment.GetCommandLineArgs().Skip(1))
                 : SignInEntry.Command(exe, WinshellHost.Supervising());
             return command is null
@@ -28,7 +28,7 @@ internal static class SignInProcess
             task => SignInVerdict.FromTask(task?.State),
             () =>
             {
-                var supervisor = ConfigurationProject.FolderOf(processPath) is null
+                var supervisor = ShellProject.FolderOf(processPath) is null
                     ? null
                     : WinshellHost.Supervising();
                 return SignInVerdict.FromRun(SignInEntry.RegisteredCommand(), SignInEntry.TurnedOffInWindows(),

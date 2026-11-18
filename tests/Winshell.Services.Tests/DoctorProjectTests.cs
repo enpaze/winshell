@@ -2,11 +2,11 @@ using Winshell.Diagnostics;
 
 namespace Winshell.Services.Tests;
 
-public sealed class DoctorConfigurationTests : IDisposable
+public sealed class DoctorProjectTests : IDisposable
 {
     private readonly string _root = TempFolder.NewPath();
 
-    public DoctorConfigurationTests()
+    public DoctorProjectTests()
     {
         Directory.CreateDirectory(_root);
     }
@@ -92,8 +92,8 @@ public sealed class DoctorConfigurationTests : IDisposable
 
     private static IReadOnlyList<DoctorCheck> Checks(string configRoot)
     {
-        var project = ConfigurationProject.Find(null, null, configRoot, out var problem);
-        return DoctorProject.Configuration(project, problem);
+        var project = ShellProject.Find(null, null, configRoot, out var problem);
+        return DoctorProject.Checks(project, problem);
     }
 
     private string Project(string relative, string text = Plain)

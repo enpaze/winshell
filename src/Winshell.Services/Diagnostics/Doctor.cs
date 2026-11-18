@@ -30,14 +30,14 @@ public static class Doctor
     }
 
     private readonly record struct Chosen(
-        ConfigurationProject? Project,
+        ShellProject? Project,
         string? Problem,
         string Folder,
         string? SignInProject);
 
     private static Chosen ChooseUser(string configRoot, string? path, string? config)
     {
-        var project = ConfigurationProject.Find(path, config, configRoot, out var problem);
+        var project = ShellProject.Find(path, config, configRoot, out var problem);
         var folder = project?.Folder ?? AskedFolder(configRoot, path, config);
         return new Chosen(project, problem, folder, project?.ProjectFile);
     }
@@ -46,14 +46,14 @@ public static class Doctor
     {
         try
         {
-            if (ConfigurationProject.ForProgram(program) is { } own)
+            if (ShellProject.ForProgram(program) is { } own)
                 return new Chosen(own, null, own.Folder, own.ProjectFile);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
         }
 
-        var project = ConfigurationProject.Find(null, null, configRoot, out var problem);
+        var project = ShellProject.Find(null, null, configRoot, out var problem);
         return new Chosen(project, problem, configRoot, null);
     }
 
@@ -71,10 +71,10 @@ public static class Doctor
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         var process = Environment.ProcessPath ?? "";
         var configFolder = chosen.Folder;
-        var configuration = DoctorProject.Configuration(chosen.Project, chosen.Problem).ToList();
-        if (configuration[0].Status == CheckStatus.Pass && chosen.Project is { } project &&
+        var projectChecks = DoctorProject.Checks(chosen.Project, chosen.Problem).ToList();
+        if (projectChecks[0].Status == CheckStatus.Pass && chosen.Project is { } project &&
             DoctorProbe.PreferencesProblem(context.Locations, project) is { } preferences)
-            configuration[0] = WithPreferences(configuration[0], preferences);
+            projectChecks[0] = WithPreferences(projectChecks[0], preferences);
         var instances = ListedInstances(context.Locations.Instances);
         var monitors = new Lazy<IReadOnlyList<DoctorScreens.MonitorFacts>>(DoctorProbe.Monitors);
         DoctorCheck[] checks =
@@ -86,7 +86,7 @@ public static class Doctor
             Guard("dotnet", ".NET",
                 () => DotNet(Environment.Version, RuntimeInformation.FrameworkDescription,
                     DoctorProbe.SelfContained(process))),
-            .. configuration,
+            .. projectChecks,
             Guard("folders", "Folders", () => Folders(
                 [
                     ("the config folder", configFolder, DoctorProbe.CanWrite(configFolder)),

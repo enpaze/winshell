@@ -12,7 +12,7 @@ internal sealed record ShellIdentity(string ShellId, string DataDir, string Stat
     {
         var id = shellId ?? DefaultId(program, locations.ConfigRoot);
         var earlier = shellId is null ? Hashed(program) : id;
-        var relativeTo = ConfigurationProject.FolderOf(program) ?? Path.GetDirectoryName(program)!;
+        var relativeTo = ShellProject.FolderOf(program) ?? Path.GetDirectoryName(program)!;
         var moves = new List<(string, string)>();
 
         string Folder(string? given, string root)
@@ -31,7 +31,7 @@ internal sealed record ShellIdentity(string ShellId, string DataDir, string Stat
 
     private static string DefaultId(string program, string configRoot)
     {
-        if (configRoot.Length > 0 && ConfigurationProject.FolderOf(program) is { } folder)
+        if (configRoot.Length > 0 && ShellProject.FolderOf(program) is { } folder)
         {
             var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(configRoot));
             if (string.Equals(folder, root, StringComparison.OrdinalIgnoreCase))
@@ -45,7 +45,7 @@ internal sealed record ShellIdentity(string ShellId, string DataDir, string Stat
 
     private static string Hashed(string program)
     {
-        var path = ConfigurationProject.InOutputFolder(program) ?? program;
+        var path = ShellProject.InOutputFolder(program) ?? program;
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(path.ToLowerInvariant())))[..32];
     }
 

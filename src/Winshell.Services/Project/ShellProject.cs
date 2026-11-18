@@ -10,14 +10,14 @@ internal sealed record CommandResult(int ExitCode, string Output);
 
 internal delegate CommandResult RunProcess(string file, IReadOnlyList<string> arguments, string folder);
 
-internal enum ConfigurationBuild
+internal enum ShellProjectBuild
 {
     Run,
 
     Dev
 }
 
-internal sealed partial class ConfigurationProject
+internal sealed partial class ShellProject
 {
     internal const int MostErrors = 10;
 
@@ -26,7 +26,7 @@ internal sealed partial class ConfigurationProject
     private static readonly TimeSpan BuildLimit = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan StreamLimit = TimeSpan.FromSeconds(1);
 
-    private ConfigurationProject(string projectFile)
+    private ShellProject(string projectFile)
     {
         ProjectFile = projectFile;
         Folder = Path.GetDirectoryName(projectFile)!;
@@ -66,12 +66,12 @@ internal sealed partial class ConfigurationProject
         return FolderOf(program) is { } folder ? Path.Combine(folder, "bin", Output, Path.GetFileName(program)) : null;
     }
 
-    public static ConfigurationProject? ForProgram(string program)
+    public static ShellProject? ForProgram(string program)
     {
         if (FolderOf(program) is not { } folder)
             return null;
         var full = Path.GetFullPath(program);
-        return Projects(folder).Select(file => new ConfigurationProject(file))
+        return Projects(folder).Select(file => new ShellProject(file))
             .FirstOrDefault(project => project.IsProgram(full));
     }
 
@@ -89,17 +89,17 @@ internal sealed partial class ConfigurationProject
         }
     }
 
-    public IEnumerable<InstanceInfo> InstancesOf(ConfigurationBuild build, IEnumerable<InstanceInfo> instances)
+    public IEnumerable<InstanceInfo> InstancesOf(ShellProjectBuild build, IEnumerable<InstanceInfo> instances)
     {
         return instances.Where(instance => BuildOf(instance.ConfigPath) == build);
     }
 
-    private ConfigurationBuild? BuildOf(string program)
+    private ShellProjectBuild? BuildOf(string program)
     {
         if (Full(program) is not { } full || !full.StartsWith(Path.GetFullPath(Folder) + Path.DirectorySeparatorChar,
                 StringComparison.OrdinalIgnoreCase))
             return null;
-        return IsProgram(full) ? ConfigurationBuild.Run : ConfigurationBuild.Dev;
+        return IsProgram(full) ? ShellProjectBuild.Run : ShellProjectBuild.Dev;
     }
 
     private bool IsProgram(string full)
@@ -168,7 +168,7 @@ internal sealed partial class ConfigurationProject
             : [];
     }
 
-    public static ConfigurationProject? Find(string? path, string? name, string root, out string? error)
+    public static ShellProject? Find(string? path, string? name, string root, out string? error)
     {
         try
         {
@@ -182,7 +182,7 @@ internal sealed partial class ConfigurationProject
         }
     }
 
-    private static ConfigurationProject? Choose(string? path, string? name, string root, out string? error)
+    private static ShellProject? Choose(string? path, string? name, string root, out string? error)
     {
         error = null;
         if (path is not null)
@@ -191,7 +191,7 @@ internal sealed partial class ConfigurationProject
             if (File.Exists(full))
             {
                 if (full.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
-                    return new ConfigurationProject(full);
+                    return new ShellProject(full);
                 error = $"No .csproj at {full}.";
                 return null;
             }
@@ -426,7 +426,7 @@ internal sealed partial class ConfigurationProject
         }
     }
 
-    private static ConfigurationProject? In(string folder, out string? error)
+    private static ShellProject? In(string folder, out string? error)
     {
         error = null;
         var projects = Projects(folder);
@@ -437,7 +437,7 @@ internal sealed partial class ConfigurationProject
             return null;
         }
 
-        return projects.Length == 1 ? new ConfigurationProject(projects[0]) : null;
+        return projects.Length == 1 ? new ShellProject(projects[0]) : null;
     }
 
     private static string[] Projects(string folder)

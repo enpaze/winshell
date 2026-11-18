@@ -30,13 +30,13 @@ public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
         Assert.NotNull(UseCommand.Choose("a", Config, Fails, out _));
         Assert.Null(UseCommand.Choose("b", Config, Fails, out var error));
 
-        Assert.Equal("a", ConfigurationProject.Chosen(Config));
+        Assert.Equal("a", ShellProject.Chosen(Config));
         Assert.Contains("error CS1002", error, StringComparison.Ordinal);
         Assert.EndsWith("\nNothing changed.", error, StringComparison.Ordinal);
 
         Assert.NotNull(UseCommand.Choose("b", Config, Builds, out _));
 
-        Assert.Equal("b", ConfigurationProject.Chosen(Config));
+        Assert.Equal("b", ShellProject.Chosen(Config));
         Assert.True(File.Exists(Path.Combine(Config, "b", "bin", "shell", "b.exe")));
         return;
 

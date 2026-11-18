@@ -19,7 +19,7 @@ Winshell.Shell -> Winshell.Services -> Winshell.Core -> Winshell.Native
 | --- | --- |
 | `Winshell.Native` | Native declarations, COM contracts, unsafe interop, marshaling, native resource ownership and safe managed operations. |
 | `Winshell.Core` | `IEventLoop`, `Log`, `ObservableObject` and `ObservableList`, which raise property and collection changes, TOML and Crashes, with the file and version helpers they use. Shared infrastructure has no dependency on a service feature or WinUI. |
-| `Winshell.Services` | One assembly of feature folders. Services apply policy and publish state on the event loop; feature backends perform platform work. Configuration builds live here (`ConfigurationProject`), which the CLI commands, sign-in and doctor call. |
+| `Winshell.Services` | One assembly of feature folders. Services apply policy and publish state on the event loop; feature backends perform platform work. Shell project builds live here (`ShellProject`), which the CLI commands, sign-in and doctor call. |
 | `Winshell.Shell` | WinUI hosting, the production event loop, window lifecycle, and a window whose content is one `UIElement`. |
 | CLI (`src/Winshell`) | The commands that invoke those builds, and shell process supervision. |
 

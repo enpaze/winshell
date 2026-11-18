@@ -8,14 +8,14 @@ internal static class DevSession
 {
     private const int ErrorFileNotFound = 2;
 
-    private static void StopShellAndWatch(ConfigurationProject project, Process watch, ShellExit.Patience patience)
+    private static void StopShellAndWatch(ShellProject project, Process watch, ShellExit.Patience patience)
     {
         if (ShellOf(project) is { } shell)
             ConsoleEnding.Quit(shell, patience);
         ConsoleEnding.Kill(watch);
     }
 
-    public static async Task<int> Run(ConfigurationProject project)
+    public static async Task<int> Run(ShellProject project)
     {
         var start = new ProcessStartInfo("dotnet")
         {
@@ -60,7 +60,7 @@ internal static class DevSession
 
     private static Process? Start(ProcessStartInfo start, out string failure)
     {
-        failure = ConfigurationProject.NeedsSdk;
+        failure = ShellProject.NeedsSdk;
         try
         {
             return Process.Start(start);
@@ -82,14 +82,14 @@ internal static class DevSession
             await lines.WriteAsync(line);
     }
 
-    private static InstanceInfo? ShellOf(ConfigurationProject project)
+    private static InstanceInfo? ShellOf(ShellProject project)
     {
         return project
-            .InstancesOf(ConfigurationBuild.Dev, ShellLocations.Current.Instances.List(false).Select(i => i.Info))
+            .InstancesOf(ShellProjectBuild.Dev, ShellLocations.Current.Instances.List(false).Select(i => i.Info))
             .FirstOrDefault();
     }
 
-    private static async Task Show(ConfigurationProject project, string notice)
+    private static async Task Show(ShellProject project, string notice)
     {
         if (ShellOf(project) is not { } shell)
             return;

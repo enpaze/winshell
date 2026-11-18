@@ -64,7 +64,7 @@ internal static class RunCommand
     {
         var path = parsed.Text(CliFlags.Path);
         var config = parsed.Text(CliFlags.Config);
-        var project = ConfigurationProject.Find(path, config, ShellLocations.Current.ConfigRoot, out var error);
+        var project = ShellProject.Find(path, config, ShellLocations.Current.ConfigRoot, out var error);
         if (error is not null)
         {
             StartupError.Report(error, StartupError.FolderFor(path, ShellLocations.Current.ConfigRoot));
@@ -74,10 +74,10 @@ internal static class RunCommand
         if (project is null)
             return 0;
         if (parsed.IsSet(CliFlags.NoDuplicate) &&
-            project.InstancesOf(ConfigurationBuild.Run,
+            project.InstancesOf(ShellProjectBuild.Run,
                 ShellLocations.Current.Instances.List(false).Select(i => i.Info)).Any())
             return 0;
-        var reason = project.Prepare(parsed.IsSet(CliFlags.NoBuild), ConfigurationProject.Run);
+        var reason = project.Prepare(parsed.IsSet(CliFlags.NoBuild), ShellProject.Run);
         if (reason is not null)
         {
             StartupError.Report(reason, project.Folder);
@@ -102,7 +102,7 @@ internal static class RunCommand
         return 1;
     }
 
-    private static int Supervise(ProcessStartInfo shell, ConfigurationProject project)
+    private static int Supervise(ProcessStartInfo shell, ShellProject project)
     {
         IShellChild? Start()
         {

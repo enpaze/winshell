@@ -383,7 +383,7 @@ public sealed class StartupRegistryTests : IDisposable
         using (var key = Registry.CurrentUser.OpenSubKey(run)!)
         {
             var launch = CommandLine.ReadSignIn((string)key.GetValue(SignInEntry.Name)!);
-            Assert.Equal(play, ConfigurationProject.Find(launch.Path, null, _configRoot.Path, out _)?.ProjectFile);
+            Assert.Equal(play, ShellProject.Find(launch.Path, null, _configRoot.Path, out _)?.ProjectFile);
         }
 
         Assert.True(playing.RunAtSignIn);

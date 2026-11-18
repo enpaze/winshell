@@ -61,7 +61,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
                 new XAttribute("Type", "Missing.Widget()"))));
         document.Save(projectFile);
 
-        var built = ConfigurationProject.Run(
+        var built = ShellProject.Run(
             "dotnet", ["build", projectFile, "-c", "Release", "-warnaserror", "--nologo"], folder.Path);
 
         Assert.True(built.ExitCode == 0, built.Output);
@@ -143,7 +143,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             }
             """);
 
-        var library = ConfigurationProject.Run(
+        var library = ShellProject.Run(
             "dotnet", ["build", libProject, "-warnaserror", "--nologo"], libDir);
         Assert.True(library.ExitCode == 0, library.Output);
 
@@ -172,9 +172,9 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
 
     private void Run(string projectFile, Action<string, (string Name, string Value)[]>? inspect = null)
     {
-        var project = ConfigurationProject.Find(projectFile, null, Path.GetDirectoryName(projectFile)!, out var error);
+        var project = ShellProject.Find(projectFile, null, Path.GetDirectoryName(projectFile)!, out var error);
         Assert.Null(error);
-        var why = project!.Prepare(false, ConfigurationProject.Run);
+        var why = project!.Prepare(false, ShellProject.Run);
         Assert.True(why is null, why);
 
         var dir = TempFolder.NewPath();
@@ -261,7 +261,7 @@ public sealed class PackedTemplates : IDisposable
         var root = Repo.Root;
         Version = Repo.ReleaseVersion() + "-test." + Guid.NewGuid().ToString("N")[..12];
         var packages = Path.Combine(_work, "packages");
-        var packed = ConfigurationProject.Run("pwsh",
+        var packed = ShellProject.Run("pwsh",
             ["-NoProfile", "-File", Path.Combine(root, "scripts", "pack.ps1"), "-Out", packages, "-Version", Version],
             root);
         Assert.True(packed.ExitCode == 0, packed.Output);
@@ -350,7 +350,7 @@ public sealed class PackedTemplates : IDisposable
             zip.GetEntry(library)!.ExtractToFile(dll);
             Assert.Equal(version, InformationalVersion(dll));
             if (Path.GetFileName(library) == "Winshell.Services.dll")
-                Assert.False(IsPublic(dll, "Winshell", "ConfigurationProject"));
+                Assert.False(IsPublic(dll, "Winshell", "ShellProject"));
         }
 
         Directory.Delete(extracted, true);

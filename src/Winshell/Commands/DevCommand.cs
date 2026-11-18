@@ -22,7 +22,7 @@ internal static class DevCommand
 
     internal static async Task<int> Execute(Invocation parsed)
     {
-        var project = ConfigurationProject.Find(parsed.Text(CliFlags.Path), parsed.Text(CliFlags.Config),
+        var project = ShellProject.Find(parsed.Text(CliFlags.Path), parsed.Text(CliFlags.Config),
             ShellLocations.Current.ConfigRoot, out var error);
         if (error is not null)
         {

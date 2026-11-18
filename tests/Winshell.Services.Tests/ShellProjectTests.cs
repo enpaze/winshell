@@ -4,12 +4,12 @@ using System.Security.Principal;
 
 namespace Winshell.Services.Tests;
 
-public sealed class ConfigurationProjectTests : IDisposable
+public sealed class ShellProjectTests : IDisposable
 {
     private readonly string _root = TempFolder.NewPath();
     private readonly List<string> _commands = [];
 
-    public ConfigurationProjectTests()
+    public ShellProjectTests()
     {
         Directory.CreateDirectory(_root);
     }
@@ -29,16 +29,16 @@ public sealed class ConfigurationProjectTests : IDisposable
         return path;
     }
 
-    private ConfigurationProject Found(string? path = null, string? name = null)
+    private ShellProject Found(string? path = null, string? name = null)
     {
-        var project = ConfigurationProject.Find(path, name, _root, out var error);
+        var project = ShellProject.Find(path, name, _root, out var error);
         Assert.Null(error);
-        return Assert.IsType<ConfigurationProject>(project);
+        return Assert.IsType<ShellProject>(project);
     }
 
     private string? Refusal(string? path = null, string? name = null)
     {
-        Assert.Null(ConfigurationProject.Find(path, name, _root, out var error));
+        Assert.Null(ShellProject.Find(path, name, _root, out var error));
         return error;
     }
 
@@ -48,7 +48,7 @@ public sealed class ConfigurationProjectTests : IDisposable
         return new CommandResult(0, "");
     }
 
-    private static void Built(ConfigurationProject project, DateTime when)
+    private static void Built(ShellProject project, DateTime when)
     {
         Directory.CreateDirectory(project.OutputFolder);
         File.WriteAllText(project.Program, "");
@@ -125,7 +125,7 @@ public sealed class ConfigurationProjectTests : IDisposable
         Project("default\\Default.csproj");
         Project("Top.csproj");
 
-        ConfigurationProject.Record(_root, "b");
+        ShellProject.Record(_root, "b");
 
         Assert.Equal(chosen, Found().ProjectFile);
     }
@@ -134,7 +134,7 @@ public sealed class ConfigurationProjectTests : IDisposable
     public void A_chosen_config_that_is_gone_says_to_choose_one()
     {
         Project("default\\Default.csproj");
-        ConfigurationProject.Record(_root, "gone");
+        ShellProject.Record(_root, "gone");
 
         Assert.Equal($"The chosen config \"gone\" is not in {_root}. Choose one with winshell use <name>.", Refusal());
     }
@@ -142,7 +142,7 @@ public sealed class ConfigurationProjectTests : IDisposable
     [Fact]
     public void No_project_at_all_is_no_error_so_the_default_shell_runs()
     {
-        Assert.Null(ConfigurationProject.Find(null, null, Path.Combine(_root, "missing"), out var error));
+        Assert.Null(ShellProject.Find(null, null, Path.Combine(_root, "missing"), out var error));
         Assert.Null(error);
     }
 
@@ -161,11 +161,11 @@ public sealed class ConfigurationProjectTests : IDisposable
         var project = Found(Path.Combine(_root, "mine"));
 
         Assert.Equal(file, project.ProjectFile);
-        Assert.Equal(file, ConfigurationProject.ForProgram(project.Program)!.ProjectFile);
+        Assert.Equal(file, ShellProject.ForProgram(project.Program)!.ProjectFile);
         Assert.Equal(file,
-            ConfigurationProject.ForProgram(Path.Combine(project.OutputFolder + ".next", "Bar.exe"))!.ProjectFile);
-        Assert.Null(ConfigurationProject.ForProgram(Path.Combine(project.OutputFolder, "other.exe")));
-        Assert.Null(ConfigurationProject.ForProgram(Path.Combine(_root, "winshell.exe")));
+            ShellProject.ForProgram(Path.Combine(project.OutputFolder + ".next", "Bar.exe"))!.ProjectFile);
+        Assert.Null(ShellProject.ForProgram(Path.Combine(project.OutputFolder, "other.exe")));
+        Assert.Null(ShellProject.ForProgram(Path.Combine(_root, "winshell.exe")));
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public sealed class ConfigurationProjectTests : IDisposable
         var folder = Path.GetDirectoryName(Project("MyProject\\Bar.csproj"))!;
         var project = Found(folder);
 
-        var run = project.InstancesOf(ConfigurationBuild.Run, [
+        var run = project.InstancesOf(ShellProjectBuild.Run, [
             Instance("run", Path.Combine(folder, "bin", "shell", "Bar.exe")),
             Instance("beside", Path.Combine(folder, "bin", "shell.next", "Bar.exe")),
             Instance("extra", Path.Combine(folder, "bin", "shell.extra", "Bar.exe"))
@@ -189,7 +189,7 @@ public sealed class ConfigurationProjectTests : IDisposable
         var folder = Path.GetDirectoryName(Project("MyProject\\Bar.csproj"))!;
         var project = Found(folder);
 
-        var dev = project.InstancesOf(ConfigurationBuild.Dev, [
+        var dev = project.InstancesOf(ShellProjectBuild.Dev, [
             Instance("run", Path.Combine(folder, "bin", "shell", "Bar.exe")),
             Instance("dev", Path.Combine(folder, "bin", "Debug", "net11.0-windows", "Bar.exe")),
             Instance("other", Path.Combine(folder + "2", "bin", "Debug", "Bar.exe"))
@@ -476,7 +476,7 @@ public sealed class ConfigurationProjectTests : IDisposable
     [Fact]
     public void A_missing_sdk_says_where_to_get_one()
     {
-        var result = ConfigurationProject.Run(Path.Combine(_root, "no-such-dotnet.exe"), [], _root);
+        var result = ShellProject.Run(Path.Combine(_root, "no-such-dotnet.exe"), [], _root);
 
         Assert.Equal(-1, result.ExitCode);
         Assert.Contains("dot.net/download", result.Output, StringComparison.Ordinal);
@@ -497,11 +497,11 @@ public sealed class ConfigurationProjectTests : IDisposable
         var project = Found(Project("Bar.csproj", text));
         Project("Program.cs", "System.Console.Write(\"built\");");
 
-        var why = project.Prepare(false, ConfigurationProject.Run);
+        var why = project.Prepare(false, ShellProject.Run);
 
         Assert.Null(why);
         Assert.False(project.NeedsBuild());
-        Assert.Equal((0, "built"), ToTuple(ConfigurationProject.Run(project.Program, [], project.Folder)));
+        Assert.Equal((0, "built"), ToTuple(ShellProject.Run(project.Program, [], project.Folder)));
     }
 
     [Fact]
@@ -513,7 +513,7 @@ public sealed class ConfigurationProjectTests : IDisposable
         try
         {
             for (var i = 0; i < 8; i++)
-                Assert.Equal((0, "built"), ToTuple(ConfigurationProject.Run("cmd", ["/c", "echo built"], _root)));
+                Assert.Equal((0, "built"), ToTuple(ShellProject.Run("cmd", ["/c", "echo built"], _root)));
         }
         finally
         {
@@ -527,7 +527,7 @@ public sealed class ConfigurationProjectTests : IDisposable
     {
         var folder = Directory.CreateDirectory(TempFolder.NewPath()).FullName;
         var run = Task.Run(() =>
-            ConfigurationProject.Run("cmd", ["/c", "start /b ping -n 60 127.0.0.1 >nul & echo built"], folder));
+            ShellProject.Run("cmd", ["/c", "start /b ping -n 60 127.0.0.1 >nul & echo built"], folder));
 
         await Wait.UntilAsync(() => run.IsCompleted, "the result while the server still runs");
 

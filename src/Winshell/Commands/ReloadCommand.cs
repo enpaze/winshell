@@ -25,9 +25,9 @@ internal static class ReloadCommand
         if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Running, out var code) is not { } info)
             return code;
 
-        var project = ConfigurationProject.ForProgram(info.ConfigPath);
+        var project = ShellProject.ForProgram(info.ConfigPath);
         if (project is not null)
-            if (project.Prepare(false, ConfigurationProject.Run) is { } reason)
+            if (project.Prepare(false, ShellProject.Run) is { } reason)
             {
                 await Console.Error.WriteLineAsync(reason);
                 await BuildNotice.Show(info, reason, project.ProjectFile);
