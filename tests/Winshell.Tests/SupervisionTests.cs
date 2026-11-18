@@ -12,6 +12,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<Process> _started = [];
     private readonly StringBuilder _printed = new();
+    private readonly uint _appBarState = AppBars.State();
     private bool? _taskbarHidden;
 
     public SupervisionTests()
@@ -103,8 +104,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         File.WriteAllText(marker, "");
         var run = Supervise();
         var first = NextShell(0);
-        Wait.Until(() => !File.Exists(marker), "the shell to hide the taskbar");
-        Assert.True(ExplorerTaskbarWindow.AnyHidden());
+        Wait.Until(() => !File.Exists(marker) && ExplorerTaskbarWindow.AnyHidden(), "the shell to hide the taskbar");
 
         using (var crashed = Process.GetProcessById(first))
         {
@@ -193,7 +193,10 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         }
 
         if (_taskbarHidden == false)
+        {
             ExplorerTaskbarWindow.RestoreHidden();
+            AppBars.SetState(_appBarState);
+        }
         try
         {
             Directory.Delete(_dir, true);
