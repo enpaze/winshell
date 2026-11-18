@@ -130,6 +130,10 @@ public sealed class WinlandWorkspace : ObservableObject
 
     public ObservableList<WinlandWindow> Windows { get => Read(field); } = [];
 
+    public IReadOnlyList<string> AppIcons =>
+        Windows.Select(window => window.Window?.Icon ?? "").Where(icon => icon.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
     public JsonElement? LastIpcObject => Read(_lastIpcObject);
 
     private bool IsSpecial => WinlandProtocol.IsSpecial(_name);

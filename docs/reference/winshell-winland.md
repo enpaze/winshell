@@ -80,6 +80,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | Member | Type |
 | --- | --- |
 | `Active` | bool, read-only |
+| `AppIcons` | IReadOnlyList of string, read-only |
 | `Focused` | bool, read-only |
 | `HasFullscreen` | bool, read-only |
 | `Id` | int, read-only |

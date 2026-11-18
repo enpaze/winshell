@@ -8,13 +8,14 @@
 - `workspaces` `Workspaces` lists each `WinlandWorkspace`, with its `Id`, `Name`, monitor, windows and whether it is `Active`, `Focused` or `Urgent`.
 - `monitors` `Monitors`, `FocusedMonitor` and `MonitorFor(screen)` give each Winland monitor and its `ActiveWorkspace`.
 - `windows` `Windows` and `ActiveWindow` list Winland's windows and link each one to its `AppWindow`.
+- `app-icons` `WinlandWorkspace.AppIcons` gives the icon path of each app open on the workspace, once per app, in the order of its windows, for `ShellImage.Load`.
 - `activate` `WinlandWorkspace.Activate()` and `WinlandMonitor.ActivateWorkspace(number)` switch workspaces.
 - `dispatch` `Dispatch(request)` sends a request to Winland, `RawEvent` raises for each event, and `Reload()` reloads Winland's configuration.
 
 ## How to get to it (user POV)
 
 - A configuration reads `shell.Winland`, or `Props.Shell.Winland` in a widget.
-- In the omarchy-style shell, the `workspaces` widget shows the workspaces of the bar's monitor, and the user chooses one to switch to it.
+- In the omarchy-style shell, the `workspaces` widget shows the workspaces of the bar's monitor and the icons of the apps on each, and the user chooses one to switch to it.
 - The user sets `WINLAND_PIPE` to connect to another pipe.
 
 ## Driving it with winshell inspect
