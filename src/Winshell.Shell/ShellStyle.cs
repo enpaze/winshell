@@ -163,7 +163,5 @@ public sealed partial class Shell
     }
 
     internal static ResourceDictionary LoadStyle(ShellStyle? style) =>
-        (ResourceDictionary)XamlReader.Load(DictionaryXaml(style));
-
-    internal static string DictionaryXaml(ShellStyle? style) => (style ?? ShellStyle.BuiltIn).ToXaml();
+        (ResourceDictionary)XamlReader.Load((style ?? ShellStyle.BuiltIn).ToXaml());
 }

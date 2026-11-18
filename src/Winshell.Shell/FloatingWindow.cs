@@ -139,7 +139,7 @@ public sealed partial class FloatingWindow : ShellWindow
 
     internal override IWindowPlacer CreatePlacer(HostWindow host, ShellPlatform platform)
     {
-        return _frame = new FloatingFrame(host, platform);
+        return _frame = new FloatingFrame(host, platform, this);
     }
 
     private protected override void ApplyPlacement()
@@ -159,13 +159,13 @@ public sealed partial class FloatingWindow : ShellWindow
         _stateRequested = false;
     }
 
-    internal override void OnStateChanged(bool maximized, bool minimized)
+    internal void OnStateChanged(bool maximized, bool minimized)
     {
         Set(ref _maximized, maximized, nameof(Maximized));
         Set(ref _minimized, minimized, nameof(Minimized));
     }
 
-    internal override void OnFullscreenChanged(bool fullscreen)
+    internal void OnFullscreenChanged(bool fullscreen)
     {
         Set(ref _fullscreen, fullscreen, nameof(Fullscreen));
     }

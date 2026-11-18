@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
@@ -83,7 +82,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             var settings = placement.Settings ?? EmptySettings;
             WidgetContext context;
             if (i < shown.Count && shown[i].Widget == placement.Widget)
-                context = shown[i] = shown[i].Next(settings, props.Orientation).In(window.Current);
+                context = shown[i] = shown[i] with { Settings = settings, Orientation = props.Orientation, Window = window.Current };
             else
             {
                 context = new WidgetContext(Shell.Current, settings, props.Orientation, window.Current,
@@ -107,7 +106,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             root.Current = element;
             if (element is FrameworkElement panel)
             {
-                AreaSessions.Attach(panel, () =>
+                PanelReload.Register(panel, () =>
                 {
                     generation.Current++;
                     bumpRemake(pulse => pulse + 1);
@@ -265,24 +264,5 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         public ImmutableArray<Placement>? Placements => Widgets is { } rows ? Placement.Parse(rows) : null;
 
         internal override object? Commented(TomlKey key) => Placement.Format(defaults());
-    }
-}
-
-internal static class AreaSessions
-{
-    private static readonly ConditionalWeakTable<FrameworkElement, Action> Areas = new();
-
-    public static void Attach(FrameworkElement panel, Action remake)
-    {
-        if (!Areas.TryGetValue(panel, out _))
-            Areas.Add(panel, remake);
-    }
-
-    public static bool TryGet(DependencyObject element, out Action remake)
-    {
-        if (element is FrameworkElement panel && Areas.TryGetValue(panel, out remake!))
-            return true;
-        remake = null!;
-        return false;
     }
 }

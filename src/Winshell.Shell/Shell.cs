@@ -75,18 +75,19 @@ public sealed partial class Shell : IDisposable
     private PreferencesFile? _preferencesFile;
     private bool _configurationStarted;
 
-    internal PreferencesFile PreferencesFile => OpenPreferences();
-
-    private PreferencesFile OpenPreferences()
+    internal PreferencesFile PreferencesFile
     {
-        if (_preferencesFile is null)
+        get
         {
-            _preferencesFile = new PreferencesFile(Path.Combine(ConfigRoot, "preferences", ShellId + ".toml"), Loop, Log);
-            if (_configurationStarted)
-                _preferencesFile.StartReturned();
-        }
+            if (_preferencesFile is null)
+            {
+                _preferencesFile = new PreferencesFile(Path.Combine(ConfigRoot, "preferences", ShellId + ".toml"), Loop, Log);
+                if (_configurationStarted)
+                    _preferencesFile.StartReturned();
+            }
 
-        return _preferencesFile;
+            return _preferencesFile;
+        }
     }
 
     private void ConfigurationStarted()
@@ -315,11 +316,6 @@ public sealed partial class Shell : IDisposable
         ExplorerTaskbarLease.ReleaseUnclaimed();
     }
 
-    private void Yield()
-    {
-        _explorerTaskbar?.Yield();
-    }
-
     private void ReleaseForCrash()
     {
         _explorerTaskbar?.Restore();
@@ -369,7 +365,7 @@ public sealed partial class Shell : IDisposable
 
         public void Yield()
         {
-            shell.Yield();
+            shell._explorerTaskbar?.Yield();
         }
 
         public void ShowBuildError(string error, string projectFile)

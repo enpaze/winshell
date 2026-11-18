@@ -100,11 +100,6 @@ public sealed record WidgetContext
         return _popups.Wrap(content);
     }
 
-    internal WidgetContext Next(IReadOnlyDictionary<string, object> settings, Orientation orientation) =>
-        this with { Settings = settings, Orientation = orientation };
-
-    internal WidgetContext In(ShellWindow? window) => this with { Window = window };
-
     internal void StopStyling() => _popups.Stop();
 
     private sealed class PopupStyles

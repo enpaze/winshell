@@ -80,7 +80,7 @@ public sealed partial class PanelWindow : ShellWindow
         set
         {
             if (Set(ref _focusable, value))
-                Host?.Focus.SetPanel(value);
+                Host?.Focus.Arm(value);
         }
     }
 
@@ -107,6 +107,6 @@ public sealed partial class PanelWindow : ShellWindow
 
     private protected override void ApplyFocus()
     {
-        Host!.Focus.SetPanel(_focusable);
+        Host!.Focus.Arm(_focusable);
     }
 }

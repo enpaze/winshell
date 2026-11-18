@@ -36,7 +36,7 @@ public sealed partial class PopupWindow : ShellWindow
         set
         {
             if (Set(ref _grabFocus, value))
-                Host?.Focus.SetPopup(value);
+                Host?.Focus.Arm(value);
         }
     }
 
@@ -54,7 +54,7 @@ public sealed partial class PopupWindow : ShellWindow
 
     private protected override void ApplyFocus()
     {
-        Host!.Focus.SetPopup(_grabFocus);
+        Host!.Focus.Arm(_grabFocus);
     }
 
     internal override void OnDismissed()

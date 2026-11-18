@@ -18,7 +18,7 @@ internal sealed record FloatingPlacement(
     HostWindow? Owner,
     bool StateRequested);
 
-internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : IWindowPlacer
+internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform, FloatingWindow window) : IWindowPlacer
 {
     private FloatingPlacement? _placement;
     private bool _placed;
@@ -369,8 +369,8 @@ internal sealed class FloatingFrame(HostWindow host, ShellPlatform platform) : I
             return;
         var fullscreen = ReadsFullscreen();
         _fullscreen = fullscreen;
-        host.Client.OnFullscreenChanged(fullscreen);
-        host.Client.OnStateChanged(PInvoke.IsZoomed((HWND)Handle) && !fullscreen, PInvoke.IsIconic((HWND)Handle));
+        window.OnFullscreenChanged(fullscreen);
+        window.OnStateChanged(PInvoke.IsZoomed((HWND)Handle) && !fullscreen, PInvoke.IsIconic((HWND)Handle));
     }
 
     private bool ReadsFullscreen()

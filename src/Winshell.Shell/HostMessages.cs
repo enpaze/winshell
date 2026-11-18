@@ -6,7 +6,7 @@ internal sealed class HostMessages(HostWindow host, ShellPlatform platform)
 {
     internal void Press()
     {
-        if (host.Kind is WindowKind.Panel or WindowKind.Popup)
+        if (WindowKindDescription.Of(host.Kind).DismissesMenusOnPress)
             NativeMenu.Dismiss();
     }
 

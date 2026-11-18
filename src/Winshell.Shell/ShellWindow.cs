@@ -223,14 +223,6 @@ public abstract class ShellWindow : ObservableObject, IDisposable
     {
     }
 
-    internal virtual void OnStateChanged(bool maximized, bool minimized)
-    {
-    }
-
-    internal virtual void OnFullscreenChanged(bool fullscreen)
-    {
-    }
-
     internal void OnResized(double width, double height, double scale)
     {
         Set(ref _actualWidth, width, nameof(ActualWidth));

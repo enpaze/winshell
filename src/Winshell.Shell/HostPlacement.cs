@@ -167,10 +167,4 @@ internal sealed class HostPlacement(HostWindow host, ShellPlatform platform)
         PInvoke.ReleaseCapture();
         PInvoke.SendMessage((HWND)Handle, PInvoke.WM_SYSCOMMAND, (WPARAM)(nuint)(PInvoke.SC_SIZE + code), 0);
     }
-
-    internal void Release()
-    {
-        host.Focus.Release();
-        host.Placer.Release();
-    }
 }

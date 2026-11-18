@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Reflection.Metadata;
+using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -11,6 +12,14 @@ namespace Winshell;
 
 internal static class PanelReload
 {
+    private static readonly ConditionalWeakTable<FrameworkElement, Action> Remakes = new();
+
+    internal static void Register(FrameworkElement area, Action remake)
+    {
+        if (!Remakes.TryGetValue(area, out _))
+            Remakes.Add(area, remake);
+    }
+
     internal static void UpdateApplication(Type[]? updated)
     {
         if (updated is null || Shell.Running is not { } shell)
@@ -46,7 +55,7 @@ internal static class PanelReload
     private static void Find(DependencyObject element, HashSet<Type> edited, HashSet<Assembly> own,
         List<UIElement> controls, List<Action> remakes)
     {
-        if (AreaSessions.TryGet(element, out _))
+        if (TryGetRemake(element, out _))
         {
             Shows(element, edited, remakes);
             return;
@@ -70,14 +79,22 @@ internal static class PanelReload
     {
         if (edited.Contains(element.GetType()))
             return true;
-        List<Action> inside = AreaSessions.TryGet(element, out _) ? [] : remakes;
+        List<Action> inside = TryGetRemake(element, out _) ? [] : remakes;
         var shows = false;
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(element); i++)
             shows |= Shows(VisualTreeHelper.GetChild(element, i), edited, inside);
-        if (!AreaSessions.TryGet(element, out var remake))
+        if (!TryGetRemake(element, out var remake))
             return shows;
         if (shows || inside.Count > 0)
             remakes.Add(remake);
+        return false;
+    }
+
+    private static bool TryGetRemake(DependencyObject element, out Action remake)
+    {
+        if (element is FrameworkElement area && Remakes.TryGetValue(area, out remake!))
+            return true;
+        remake = null!;
         return false;
     }
 

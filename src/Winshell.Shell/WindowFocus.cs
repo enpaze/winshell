@@ -34,11 +34,7 @@ internal sealed class WindowFocus(WindowKind kind, IFocusEffects effects)
 
     private bool Takes => _kind.AlwaysTakesFocus || (_kind.TakesFocusWhileArmed && _armed);
 
-    internal void SetPanel(bool focusable) => Arm(focusable);
-
-    internal void SetPopup(bool grabFocus) => Arm(grabFocus);
-
-    private void Arm(bool armed)
+    internal void Arm(bool armed)
     {
         _armed = armed;
         effects.AllowActivation(Takes);

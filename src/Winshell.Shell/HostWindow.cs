@@ -90,7 +90,8 @@ internal sealed partial class HostWindow : IDisposable
         if (Released)
             return;
         Released = true;
-        Placement.Release();
+        Focus.Release();
+        Placer.Release();
         Presentation.Dispose();
         Handle = 0;
         _window.Release(destroyWindow);

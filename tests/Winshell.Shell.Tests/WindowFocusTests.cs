@@ -75,7 +75,7 @@ public class WindowFocusTests
     {
         var (focus, window) = Of(WindowKind.Panel);
 
-        focus.SetPanel(focusable);
+        focus.Arm(focusable);
         focus.Show();
         focus.TakeKeyboard();
 
@@ -91,8 +91,8 @@ public class WindowFocusTests
     {
         var (focus, window) = Of(WindowKind.Panel);
 
-        focus.SetPanel(true);
-        focus.SetPanel(false);
+        focus.Arm(true);
+        focus.Arm(false);
         window.Drain();
         focus.TakeKeyboard();
 
@@ -104,7 +104,7 @@ public class WindowFocusTests
     {
         var (focus, window) = Of(WindowKind.Popup);
 
-        focus.SetPopup(false);
+        focus.Arm(false);
         focus.Show();
         focus.TakeKeyboard();
 
@@ -118,7 +118,7 @@ public class WindowFocusTests
     {
         var (focus, window) = Of(WindowKind.Popup);
 
-        focus.SetPopup(true);
+        focus.Arm(true);
         focus.Show();
         focus.TakeKeyboard();
 
@@ -132,7 +132,7 @@ public class WindowFocusTests
     public void A_popup_that_grabs_focus_stops_grabbing_clicks_when_it_hides_and_grabs_again_when_shown()
     {
         var (focus, window) = Of(WindowKind.Popup);
-        focus.SetPopup(true);
+        focus.Arm(true);
         focus.Show();
         window.Drain();
 
@@ -148,12 +148,12 @@ public class WindowFocusTests
     {
         var (focus, window) = Of(WindowKind.Popup);
 
-        focus.SetPopup(true);
+        focus.Arm(true);
         Assert.Equal(["activation allowed"], window.Drain());
 
         focus.Show();
         window.Drain();
-        focus.SetPopup(true);
+        focus.Arm(true);
         Assert.Empty(window.Drain());
     }
 
@@ -161,11 +161,11 @@ public class WindowFocusTests
     public void A_shown_popup_that_stops_grabbing_focus_releases_clicks_and_refuses_the_keyboard()
     {
         var (focus, window) = Of(WindowKind.Popup);
-        focus.SetPopup(true);
+        focus.Arm(true);
         focus.Show();
         window.Drain();
 
-        focus.SetPopup(false);
+        focus.Arm(false);
         focus.TakeKeyboard();
 
         Assert.Equal(["activation refused", "release clicks"], window.Drain());
