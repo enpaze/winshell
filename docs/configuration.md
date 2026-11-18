@@ -393,7 +393,7 @@ A widget was a control whose constructor took a `WidgetContext` and built its el
 
 A Watch block read services and then wrote the controls. That read moves into `Render`. `UseObservable` or `UseObservableTree` names the service, and the elements `Render` returns already show what it holds. The [battery](#a-battery) is that shape: it reads `Shell.Power.DisplayDevice` and returns a text block, collapsed when no battery is present.
 
-A XAML resource dictionary of `Shell*` keys becomes a [ShellStyle](#style). A dictionary that set the background, the font and the slot size becomes `shell.Style` with those values, and the colors it left out keep following Windows. A bar or an area that pointed at a XAML file sets its own `Style` to a `ShellStyle` instead:
+A XAML resource dictionary of `Shell*` keys becomes a [ShellStyle](#style). A dictionary that set the background and the font becomes `shell.Style` with those values, and the colors it left out keep following Windows. A bar or an area that pointed at a XAML file sets its own `Style` to a `ShellStyle` instead:
 
 ```xml
 <SolidColorBrush x:Key="ShellBackgroundBrush" Color="#1A1B26" />
