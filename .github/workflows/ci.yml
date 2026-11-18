@@ -46,6 +46,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - name: Check that the tests use only MSTest
+        shell: pwsh
+        run: ./scripts/test-framework.ps1
       - name: Check links between pages
         shell: pwsh
         run: |

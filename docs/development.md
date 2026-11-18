@@ -73,6 +73,10 @@ dotnet run --project src/Winshell -- kill -i <id>
 - Other standalone C# scripts are not formatted.
 - Verification leaves source files, project references and the Git index unchanged. It fails on formatting drift or tool errors.
 
+### One test framework
+
+The tests run on MSTest 4 and Microsoft.Testing.Platform. `scripts/test-framework.ps1` fails when a file Git tracks names another test framework, and lists each file. The `quality` job in CI runs it on every non-draft PR and push to `main`.
+
 ### No comments
 
 `scripts/comments.ps1` removes every comment from the files Git tracks or would add, and `-VerifyNoChanges` lists each one as `path:line` and fails. The `comments` job in CI runs the check. It requires Git, .NET and PowerShell 7.
@@ -173,6 +177,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | `Invoke-Pester -Path tests/Scripts/<Name>.Tests.ps1` | Runs one of the PowerShell suites `check.ps1` runs, each named after the script or tooling it tests. None changes the checkout or GitHub. Requires the Pester version in `scripts/tool-pins.psd1` and PowerShell 7; `Install.Tests.ps1` also runs on Windows PowerShell 5.1. |
 | `pwsh -NoProfile scripts/format.ps1 [-VerifyNoChanges]` | Formats handwritten C# files, or verifies them. See [What the formatter covers](#what-the-formatter-covers). |
 | `pwsh -NoProfile scripts/comments.ps1 [-VerifyNoChanges]` | Removes code comments, or lists each one and fails. See [No comments](#no-comments). |
+| `pwsh -NoProfile scripts/test-framework.ps1` | Lists each tracked file that names another test framework, and fails. See [One test framework](#one-test-framework). |
 | `pwsh -NoProfile scripts/build-template.ps1` | Compiles the template against the current source libraries. See [The template build](#the-template-build). |
 | `dotnet run scripts/generate-reference.cs` | Builds `Winshell.Shell`, `Winshell.Services` and `Winshell.Core`, then writes `docs/reference/winshell*.md` from their public types. Each page keeps what is above its `<!-- generated below -->` line. Commit the pages after changing a public member; `DocsTests` fails when a page is not what this writes. |
 | `dotnet run scripts/render-logo.cs` | Renders `packaging/logo.svg` into the package's PNGs (the manifest sizes, their scale-125, scale-150, and scale-200 variants, and the unplated target sizes), the Store listing's PNG, and `packaging/winshell.ico`. Commit them after changing the logo. |
