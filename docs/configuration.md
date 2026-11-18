@@ -163,6 +163,22 @@ winshell use                  # lists the configurations, with * before the chos
 - The choice is the name in `chosen.txt` in the config folder.
 - Choosing a configuration never changes its shell id, so its data, its state, its widgets and where they are placed stay its own through every switch.
 
+## The package's usings
+
+A project that references the `Winshell` package and has `ImplicitUsings` on, as the starter does, gets these global usings. Its files need no `using` line for them:
+
+| Using | What it brings |
+| --- | --- |
+| `Winshell` | `Shell`, `Bar`, `WidgetContext` and the other types in the [reference](reference/winshell.md) |
+| `Microsoft.UI.Reactor` and `Microsoft.UI.Reactor.Core` | `Component`, `Element` and the rest of Reactor |
+| `static Microsoft.UI.Reactor.Factories` | Element functions, such as `TextBlock` and `Button` |
+| `static Winshell.Elements` | `Surface` and `WidgetArea` |
+| The project's `RootNamespace` | The project's own types, in every file |
+
+- **Leave them out.** `<WinshellImplicitUsings>false</WinshellImplicitUsings>` in the project file leaves out all of them. `<Using Remove="Microsoft.UI.Reactor.Core" />` in an `ItemGroup` leaves out one.
+- **The root namespace needs a type.** A project with no type in its `RootNamespace` does not build (CS0246). Remove that using, or put a type in the namespace.
+- **Two types share a name.** `ColorScheme` is Winshell's, for `shell.ColorScheme`, and Reactor's, for `UseColorScheme()`. Write `Winshell.ColorScheme` or `Microsoft.UI.Reactor.Core.ColorScheme`. A file with `using Microsoft.UI.Xaml.Controls` has two `IconElement` and two `MenuFlyoutItemBase` types the same way.
+
 ## The program
 
 `Shell.Run` runs until the shell quits. Call it from `Main`, marked `[STAThread]`, as the starter's `Program.cs` does. With a `ShellId`, the call reads:
@@ -319,7 +335,7 @@ public sealed class Dock : Component
         dock.Closed += host.Dispose;
 ```
 
-`using static Winshell.Elements` brings `Surface` and `WidgetArea` into scope. The props are immutable: rendering the component again with a new record is how the tree changes, and disposing the host unmounts it. What a surface holds stays loaded when the style changes. Its own style wins over the shell's, as an area's does. The area inside the tree is an element, not a second host.
+`Surface` and `WidgetArea` come from `Winshell.Elements`, one of [the package's usings](#the-packages-usings). The props are immutable: rendering the component again with a new record is how the tree changes, and disposing the host unmounts it. What a surface holds stays loaded when the style changes. Its own style wins over the shell's, as an area's does. The area inside the tree is an element, not a second host.
 
 ## A launcher
 
@@ -491,7 +507,7 @@ A widget reads the alert color from the style. With none set, `context.Style` is
 
 ## Write a widget
 
-A widget other people use can be a class library: a WinUI library that references the Winshell package. The package imports the props the library needs. A configuration references the library and registers its component the way [Widgets](#widgets) does. The example on this page is `Message`, a component that shows one line of text, with one `text` setting.
+A widget other people use can be a class library: a WinUI library that references the Winshell package. The package imports the props the library needs and adds [its usings](#the-packages-usings). A configuration references the library and registers its component the way [Widgets](#widgets) does. The example on this page is `Message`, a component that shows one line of text, with one `text` setting.
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">

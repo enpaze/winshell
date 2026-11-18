@@ -9,4 +9,13 @@
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
   </PropertyGroup>
 
+  <ItemGroup Condition="('$(ImplicitUsings)' == 'true' or '$(ImplicitUsings)' == 'enable') and '$(WinshellImplicitUsings)' != 'false'">
+    <Using Include="Winshell" />
+    <Using Include="Microsoft.UI.Reactor" />
+    <Using Include="Microsoft.UI.Reactor.Core" />
+    <Using Include="Microsoft.UI.Reactor.Factories" Static="true" />
+    <Using Include="Winshell.Elements" Static="true" />
+    <Using Include="$(RootNamespace)" Condition="'$(RootNamespace)' != ''" />
+  </ItemGroup>
+
 </Project>

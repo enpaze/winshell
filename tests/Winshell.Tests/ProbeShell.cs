@@ -133,6 +133,7 @@ internal static class ProbeShell
                   </ItemDefinitionGroup>
                   <ItemGroup>
                     <ProjectReference Include="{shellProject}" />
+                    <Using Remove="Probe" />
                   </ItemGroup>
                 </Project>
                 """;
@@ -150,8 +151,6 @@ internal static class ProbeShell
 
     private const string Source =
         $$"""
-          using Winshell;
-
           using System.Diagnostics;
           using Microsoft.UI.Xaml.Controls;
           using Windows.Foundation;
