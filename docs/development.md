@@ -69,7 +69,7 @@ dotnet run --project src/Winshell -- kill -i <id>
 
 `scripts/format.ps1` runs `dotnet format whitespace --folder`: folder mode, without loading projects, restoring packages or building. It requires Git, .NET and PowerShell 7.
 
-- Git supplies the existing tracked and untracked C# files under `src/`, `tests/`, `examples/`, `templates/` and `features/`, plus `scripts/generate-reference.cs`, `scripts/reference-pages.cs`, `scripts/render-logo.cs` and the C# under `scripts/lib/`. Ignored build outputs are excluded.
+- Git supplies the existing tracked and untracked C# files under `src/`, `tests/`, `examples/`, `templates/` and `.agents/skills/verify-winshell/shell/`, plus `scripts/generate-reference.cs`, `scripts/reference-pages.cs`, `scripts/render-logo.cs` and the C# under `scripts/lib/`. Ignored build outputs are excluded.
 - Other standalone C# scripts are not formatted.
 - Verification leaves source files, project references and the Git index unchanged. It fails on formatting drift or tool errors.
 
@@ -126,72 +126,16 @@ windowrule = ignore, exe:(winshell|winshellw|Winshell\..*Tests|Probe|Dev)\.exe
 
 ## See what you changed
 
-`winshell inspect` is how to verify a visual change. It reads a running shell from inside, so its `tree`, `screenshot`, `record`, `click` and `hover` need no mouse and no keyboard, and they do not move the user's pointer or focus.
-
-Winshell has no shell of its own, so run one that shows the change: a project made with `winshell new starter`, as the [configuration guide](configuration.md#create-one) shows, with the change in it. A test can start the probe shell in `tests/Winshell.Tests/ProbeShell.cs` instead. Run it under "Live UI with Winland running", with private `WINSHELL_CONFIG_DIR` and `WINSHELL_LOCAL_DIR`, and pass `--pid`:
+The [verify-winshell skill](../.agents/skills/verify-winshell/SKILL.md) is how to see a change working in a real shell, and how to verify a visual change. It builds `winshell` from this checkout, starts a shell in a private session under [Live UI with Winland running](#live-ui-with-winland-running), and drives it with `winshell inspect`, which reads the shell from inside without moving the user's pointer or focus. Its [feature map](../.agents/skills/verify-winshell/features/README.md) lists every feature a user can reach: each `winshell` command, each service on `Shell`, each widget the starter and the examples register, and each building block a user sees, with the steps that prove it.
 
 ```powershell
-winshell run -d -p .\MyShell                                  # build and start the shell
-winshell inspect --pid <pid> tree                             # every open window's elements, sizes and values, as JSON
-winshell inspect --pid <pid> screenshot out.png 0             # window 0 in the tree as a PNG, which you can then read
-winshell inspect --pid <pid> click <name>                     # activate a named element through its automation peer
-winshell inspect --pid <pid> record out.mp4 --for 5s 0 --frames frames
-                                                              # an MP4 of the window, each frame as a PNG, and a contact sheet
+pwsh .agents/skills/verify-winshell/scripts/launch.ps1                 # build winshell and start the feature shell
+pwsh .agents/skills/verify-winshell/scripts/drive.ps1 -Id service.audio # drive one mapped feature, or several separated by commas
+pwsh .agents/skills/verify-winshell/scripts/drive.ps1                  # drive every feature, as CI does
+pwsh .agents/skills/verify-winshell/scripts/drive.ps1 -Check           # check the map's shape without starting anything
 ```
 
-- `winshell list` shows the process id.
-- Look at the screenshot, and check values in the tree rather than trusting that the code ran.
-- The tree marks the element keyboard focus is on with `"focused": true`.
-- A name finds only elements that are not collapsed, as Narrator does, so a control kept collapsed beside a visible twin does not make the name ambiguous.
-- `winshell inspect hover` shows a control's hover look only: a `PointerEntered` handler needs a real pointer.
-
-### Real input
-
-For hover, a press, keyboard focus or an animation, use real input. Record in the background, `point` at the element, then look at the contact sheet:
-
-```powershell
-$record = Start-Process winshell -NoNewWindow -PassThru -ArgumentList 'inspect', '--pid', <pid>, 'record', 'hover.mp4', '--for', '5s', '0', '--frames', 'frames'
-Start-Sleep -Seconds 1                                        # capture takes a moment to start
-winshell inspect --pid <pid> point TrayChevron                # the mouse stays on it: PointerEntered and the hover look run
-winshell inspect --pid <pid> leave                            # the cursor goes back, and PointerExited runs
-$record.WaitForExit()                                         # then read frames\contact-sheet.png
-```
-
-`focus`, `press [--right]`, `scroll` and `key` work the same way.
-
-- The mouse ones move the user's real cursor.
-- Every one refuses while anyone has used the PC in the last 3 seconds, and before each mouse event they check that no other window is on top at the element.
-- Run them only in a live session, never at someone's active desktop.
-- A test does not inject input of its own, but may run these commands.
-
-The [command-line reference](reference/command-line.md) lists each command and refusal.
-
-## Feature map
-
-[`features/map.json`](../features/map.json) lists every feature a user can reach: each `winshell` command, each service on `Shell`, each widget the starter and the examples register, and each building block a user sees. An entry names the files that implement the feature and the steps that drive it. `pwsh scripts/features.ps1` runs those steps through `winshell` and `winshell inspect`, the way [See what you changed](#see-what-you-changed) does by hand, and prints `PASS` or `FAIL` for each feature.
-
-```powershell
-pwsh scripts/features.ps1 -Id service.audio      # drive one feature, or several separated by commas
-pwsh scripts/features.ps1 -Kind widget           # drive one kind: command, service, widget or block
-pwsh scripts/features.ps1 -List                  # print the map without running anything
-```
-
-- The runner builds `src/Winshell`, or uses `-Winshell <exe>`. It copies each shell it needs into a temporary config folder, builds it against this checkout, starts it with `winshell run -d`, and runs the features of that shell in map order. It stops every shell it started when it ends, including after a failure or Ctrl+C.
-- It follows [Live UI with Winland running](#live-ui-with-winland-running): private `WINSHELL_CONFIG_DIR` and `WINSHELL_LOCAL_DIR`, and one run at a time. The starter's bar reserves the top edge and the omarchy-style shell hides Explorer's taskbar while their features run.
-- No driver sends real input. For `focus`, `point`, `leave`, `press`, `scroll` and `key`, the driver checks only a refusal that sends nothing, and the entry's summary says so.
-- `-Keep` keeps the temporary folder: screenshots and recordings are under `scratch\<id>`, and the shells' logs under `local\run`.
-- The feature shell in `features/shell` shows one row per service and one element per building block, each with the feature's id as its automation id.
-
-A step is one of two objects. Each takes `within`, the seconds to retry it until it passes:
-
-| Step | What it checks |
-| --- | --- |
-| `{ "winshell": [args], "exit": 0, "output": "<regex>", "file": "<path>" }` | Runs `winshell` with those arguments. The exit code is one of `exit`, 0 by default, the output matches `output`, and `file` exists and is not empty. `"background": true` leaves it running until the feature ends. `"for": <seconds>` stops it after that long and checks only the output. |
-| `{ "element": "<name>", "window": "<window>", "has": { "<property>": "<regex>" } }` | Finds exactly one element with that `x:Name`, automation id or automation name in `winshell inspect tree`, in the first window whose number, kind or content type is `window`, and matches each property. A property the element doesn't have is empty. It retries for 10 seconds unless `within` says otherwise. |
-
-`{pid}`, `{shell}`, `{scratch}`, `{config}` and `{local}` in a step stand for the running shell's process id, its project folder, an empty folder for the feature, and the private config and local folders. A step that uses `{pid}` starts the feature's shell again when none is running, so `kill` and `reload` can end it.
-
-To add a feature, add its code, then its entry in `features/map.json`, sorted by id. For a service or a building block, add a row to the feature shell with the entry's id as its automation id. `FeatureMapTests` in `tests/Winshell.Tests` fails when a command, service, widget or building block has no entry, when an entry names one that isn't there, or when an entry is malformed. The `features` job in CI runs every driver.
+`FeatureMapTests` in `tests/Winshell.Tests` fails when a command, service, widget or building block has no feature file, or a file names one that winshell does not have. `drive.ps1` fails on a malformed feature file and on a failing step, and the `features` job in CI runs it.
 
 ## Checks by change
 
@@ -199,7 +143,7 @@ Choose checks for the complete change, including renamed and deleted files.
 
 | Change | Checks |
 | --- | --- |
-| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/`, Markdown, `LICENSE` and `.gitignore`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`. No application build, formatting or test suite is needed. |
+| Only prose: the files in `.github/ISSUE_TEMPLATE/`, files under `docs/`, Markdown outside the verify-winshell skill, `LICENSE` and `.gitignore`, without compiled examples or generated reference changes | `pwsh -NoProfile scripts/check.ps1 -Lint`. No application build, formatting or test suite is needed. |
 | A page in `docs/` (outside `docs/agents/`) or `README.md` containing or removing a C# example fence, or a generated `docs/reference/winshell*.md` page | Lint, then `pwsh scripts/check.ps1 -Tier Docs`. This builds the samples and checks the generated reference, without unrelated tests or windows. |
 | Only tooling: `scripts/` and `tests/Scripts/`, except the files that [count as code](#how-checks-are-selected) | `Invoke-Pester -Path tests/Scripts`, and `pwsh -NoProfile scripts/format.ps1 -VerifyNoChanges`. Windows PowerShell 5.1 also runs `tests/Scripts/Install.Tests.ps1`, as the `installer` job does for every such change. |
 | Only workflows: `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | Lint, `pwsh -NoProfile scripts/format.ps1 -VerifyNoChanges`, then `Invoke-Pester -Path tests/Scripts`. |
@@ -210,7 +154,7 @@ Some changes need more than checks:
 - A new or changed windowed test: run it on purpose, as [A windowed test](#a-windowed-test) describes, and see it fail before the change and pass after it.
 - A changed public member of `Winshell.Shell`, `Winshell.Services` or `Winshell.Core`: run `dotnet run scripts/generate-reference.cs`, and commit the pages it writes.
 - An added or changed command, prerequisite, environment variable or top-level folder: update this page or its [project structure](#project-structure).
-- An added or removed command, service, widget or building block: update its entry in the [feature map](#feature-map), and run `pwsh scripts/features.ps1 -Id <id>`.
+- An added or removed command, service, widget or building block: add or remove its file in the verify-winshell skill's [feature map](../.agents/skills/verify-winshell/features/README.md), and run `pwsh .agents/skills/verify-winshell/scripts/drive.ps1 -Id <id>`.
 
 Pages that still contain C# fences get the targeted documentation checks even when the edit changes only their prose. Deleting the last fence or a whole example page also needs those checks. The existing documentation tests own this contract; no application tests are needed just for wording changes.
 
@@ -237,7 +181,7 @@ CI uses `scripts/ci-changes.ps1` to make the same selection for PRs and pushes t
 | `pwsh scripts/publish-release.ps1 -Tag v1.2.3 -PackageDirectory <packages> -Repository enpaze/winshell` | Normally called by CI: uploads the six required files to an existing draft, verifies GitHub's digests, then publishes it. Requires an authenticated `gh`. Refuses an incomplete published release, never replaces an existing asset, and leaves a failed upload/verification as a draft. Use only for an approved release. |
 | `pwsh scripts/install.ps1` | Installs the portable build for the current user from a GitHub release. See [The install scripts](#the-install-scripts). |
 | `pwsh scripts/uninstall.ps1` | Removes that install. See [The install scripts](#the-install-scripts). |
-| `pwsh scripts/features.ps1 [-Id <id>[,<id>]] [-Kind <kind>] [-List] [-Winshell <exe>] [-Keep]` | Drives each feature in `features/map.json` against running shells. See [Feature map](#feature-map). |
+| `pwsh .agents/skills/verify-winshell/scripts/drive.ps1 [-Id <id>[,<id>]] [-Kind <kind>] [-List] [-Check] [-Winshell <exe>]` | Checks the feature map, then drives each chosen feature in a real shell. See [See what you changed](#see-what-you-changed). |
 | `pwsh scripts/ci-changes.ps1 -Files <json> [-MaxFiles <limit>]` | Classifies GitHub changed-file JSON from the checkout root and prints the flags `ci.yml` and `package.yml` use. PR file lists have a 3000-file limit; push comparisons have a 300-file limit. CI fetches this input; local contributors normally choose the checks above directly. |
 
 ### The full check
@@ -343,14 +287,14 @@ The `changes` job selects checks for PRs and pushes to `main`. Each kind of chan
 
 | Kind | Paths | What runs |
 | --- | --- | --- |
-| Prose | Markdown, `docs/`, `.github/ISSUE_TEMPLATE/`, `LICENSE` and `.gitignore` | The link check in `quality`, and `DocsTests` when a page has C# examples or is generated reference |
+| Prose | Markdown, `docs/`, `.github/ISSUE_TEMPLATE/`, `LICENSE` and `.gitignore`, except the verify-winshell skill in `.agents/skills/` and `.claude/skills/`, which the tests read | The link check in `quality`, and `DocsTests` when a page has C# examples or is generated reference |
 | Tooling | `scripts/` and `tests/Scripts/`, except the files that count as code | The formatting check and the PowerShell suites in `quality`, and `installer` |
 | Workflows | `.github/workflows/` except `ci.yml`, and `.github/dependabot.yml` | `actionlint`, and the formatting check and the PowerShell suites in `quality` |
 | Packaging | `packaging/`, except the files that count as code | The Package workflow |
 | Code | Everything else | The four .NET suite shards, which build their own projects, the formatting check and the PowerShell suites, and the jobs that read the file |
 
 - A path no row names is code, and so is every path of an empty or cut-off file list.
-- The suite's own machinery is code, because a change to it could break the shards: `scripts/lib/`, `scripts/build-template.ps1`, `scripts/features.ps1`, `scripts/generate-reference.cs`, `scripts/reference-pages.cs`, `scripts/render-logo.cs`, `.github/workflows/ci.yml` and `.github/actions/`. A change under `.github/actions/` also selects the workflow checks, which is why `actionlint` runs for it.
+- The suite's own machinery is code, because a change to it could break the shards: `scripts/lib/`, `scripts/build-template.ps1`, `scripts/generate-reference.cs`, `scripts/reference-pages.cs`, `scripts/render-logo.cs`, `.github/workflows/ci.yml` and `.github/actions/`. A change under `.github/actions/` also selects the workflow checks, which is why `actionlint` runs for it.
 - So are the files the suite reads: `scripts/install.ps1`, `packaging/winshell.ico` and `packaging/msix/Assets/`.
 - `scripts/tool-pins.psd1` is tooling, and a change to it also selects `actionlint` and the Package workflow. Those jobs install the tools the file names.
 - A draft skips quality checks and suite shards; marking it ready runs them.
@@ -365,7 +309,7 @@ The `changes` job selects checks for PRs and pushes to `main`. Each kind of chan
 | --- | --- | --- |
 | `installer` | PRs and pushes to `main` that change `scripts/`, `tests/Scripts/`, `ci.yml` or `.github/actions/`. | Windows PowerShell 5.1 runs `tests/Scripts/Install.Tests.ps1` with the Pester version in `scripts/tool-pins.psd1` against temporary profiles and releases served on loopback. PowerShell 7 tooling suites run once in `quality`. |
 | `tests (1/4)` through `tests (4/4)` | Non-draft PRs and pushes to `main` that change code, as [How checks are selected](#how-checks-are-selected) says, in `ci.yml`. Results feed the one required `ci` check. | `pwsh scripts/check.ps1` for the tests that open no windows, and [A windowed test](#a-windowed-test) for the rest. See [Test shards](#test-shards). |
-| `features` | Non-draft PRs and pushes to `main` that change code, in `ci.yml`. Its result feeds the required `ci` check, and a failed run keeps the runner's output, screenshots, recordings and logs as the `features` artifact for seven days. | `pwsh scripts/features.ps1`. See [Feature map](#feature-map). |
+| `features` | Non-draft PRs and pushes to `main` that change code, in `ci.yml`. Its result feeds the required `ci` check, and a failed run keeps the session's evidence folder, with the output, screenshots, recordings and logs, as the `features` artifact for seven days. | `pwsh .agents/skills/verify-winshell/scripts/drive.ps1`. See [See what you changed](#see-what-you-changed). |
 | `comments` | Every non-draft PR and push to `main`, in `ci.yml`. Its result feeds the required `ci` check. | `pwsh -NoProfile scripts/comments.ps1 -VerifyNoChanges`. See [No comments](#no-comments). |
 | `trim-caches` | Every push to `main`, after `ci`, in `ci.yml` | Nothing to run. It deletes all but the two newest CodeQL databases of each language from the Actions cache, which would otherwise pass the 10 GB GitHub keeps. |
 | `links` | Pushes to `main` that change docs or Markdown, and every Monday, in `links.yml` | lychee, the version in `scripts/tool-pins.psd1`, over `docs/**/*.md`, `README.md`, `GLOSSARY.md` and `.github/*.md`, excluding `docs/agents`. |
@@ -493,7 +437,7 @@ The startup tests, such as `StartupRegistryTests`, use a fake, or a key of their
 
 ### Hotkeys
 
-Tests may register an unused chord such as Ctrl+Alt+Shift+F24 and may install a keyboard hook while a Windows-key hotkey is enabled or a key sequence is in progress. Each test removes the registration and the hook before it ends. Tests do not inject keystrokes of their own or change keyboard settings. The one exception is `FocusTakeoverTests`, a [windowed test](#a-windowed-test): it sends one key tap, and sets the session's foreground lock timeout and puts it back. A test may run `winshell inspect`'s real input commands, which keep to the rules under [See what you changed](#see-what-you-changed). See [hotkeys](reference/winshell-input.md).
+Tests may register an unused chord such as Ctrl+Alt+Shift+F24 and may install a keyboard hook while a Windows-key hotkey is enabled or a key sequence is in progress. Each test removes the registration and the hook before it ends. Tests do not inject keystrokes of their own or change keyboard settings. The one exception is `FocusTakeoverTests`, a [windowed test](#a-windowed-test): it sends one key tap, and sets the session's foreground lock timeout and puts it back. A test may run `winshell inspect`'s real input commands, which keep to the rules under [Real input](../.agents/skills/verify-winshell/SKILL.md#real-input). See [hotkeys](reference/winshell-input.md).
 
 ### Checks only a live session can do
 
@@ -507,6 +451,8 @@ How a version is cut, tagged, stamped, and published is [Releasing](releasing.md
 
 ```text
 .
+├── .agents/skills/verify-winshell/  # The skill that drives a real shell: its helpers, the feature map and the feature shell
+├── .claude/skills/verify-winshell/  # Where Claude Code finds that skill
 ├── .github/                         # CI, issue templates, Dependabot
 ├── docs/
 │   ├── agents/                      # How agents work on this repo
@@ -516,9 +462,6 @@ How a version is cut, tagged, stamped, and published is [Releasing](releasing.md
 │   └── development.md               # Setup, environment, and every command
 ├── examples/
 │   └── omarchy-style/               # A configuration in the style of Omarchy's top bar; the solution builds it
-├── features/
-│   ├── map.json                     # Every user-facing feature, its code and its driver; scripts/features.ps1 runs them
-│   └── shell/                       # The feature shell, which shows each service and building block
 ├── packaging/
 │   ├── logo.svg                     # The app logo; scripts/render-logo.cs renders its PNGs and winshell.ico
 │   ├── msix/                        # The Microsoft Store package's manifest and assets

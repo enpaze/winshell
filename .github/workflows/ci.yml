@@ -60,7 +60,7 @@ jobs:
             throw "lychee $($pins.lychee.version) SHA-256 is $hash, expected $($pins.lychee.windowsSha256)."
           }
           Expand-Archive -LiteralPath $archive -DestinationPath $env:RUNNER_TEMP
-          & (Join-Path $env:RUNNER_TEMP 'lychee-x86_64-pc-windows-msvc\lychee.exe') --offline --include-fragments --no-progress '**/*.md' '.github/**/*.md'
+          & (Join-Path $env:RUNNER_TEMP 'lychee-x86_64-pc-windows-msvc\lychee.exe') --offline --include-fragments --no-progress '**/*.md' '.github/**/*.md' '.agents/**/*.md' '.claude/**/*.md'
           exit $LASTEXITCODE
       - uses: ./.github/actions/prepare # zizmor: ignore[self-repository]
         if: needs.changes.outputs.powershell != 'false' || needs.changes.outputs.docs == 'true'
@@ -146,24 +146,15 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/prepare # zizmor: ignore[self-repository]
-      - name: Drive every feature in the feature map
+      - name: Drive every feature in the verify-winshell skill's map
         shell: pwsh
-        run: |
-          $evidence = Join-Path $env:RUNNER_TEMP 'features'
-          New-Item -ItemType Directory -Force -Path $evidence | Out-Null
-          $env:TEMP = $evidence
-          $env:TMP = $evidence
-          ./scripts/features.ps1 -Keep | Tee-Object -FilePath (Join-Path $evidence 'output.txt')
-          exit $LASTEXITCODE
+        run: ./.agents/skills/verify-winshell/scripts/drive.ps1 -Session (Join-Path $env:RUNNER_TEMP 'winshell-verify')
       - name: Keep the feature evidence
         if: ${{ failure() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: features
-          path: |
-            ${{ runner.temp }}/features/output.txt
-            ${{ runner.temp }}/features/winshell-features-*/scratch/
-            ${{ runner.temp }}/features/winshell-features-*/local/run/
+          path: ${{ runner.temp }}/winshell-verify/evidence/
           retention-days: 7
           if-no-files-found: ignore
 
