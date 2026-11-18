@@ -18,4 +18,18 @@
     <Using Include="$(RootNamespace)" Condition="'$(RootNamespace)' != ''" />
   </ItemGroup>
 
+  <Target Name="WinshellDeclareRootNamespace"
+          BeforeTargets="BeforeCompile;CoreCompile"
+          DependsOnTargets="PrepareForBuild"
+          Condition="('$(ImplicitUsings)' == 'true' or '$(ImplicitUsings)' == 'enable') and '$(WinshellImplicitUsings)' != 'false' and '$(RootNamespace)' != ''">
+    <PropertyGroup>
+      <WinshellRootNamespaceFile>$(IntermediateOutputPath)$(MSBuildProjectName).RootNamespace.g.cs</WinshellRootNamespaceFile>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(WinshellRootNamespaceFile)" Lines="namespace $(RootNamespace)%3B" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(WinshellRootNamespaceFile)" />
+      <FileWrites Include="$(WinshellRootNamespaceFile)" />
+    </ItemGroup>
+  </Target>
+
 </Project>

@@ -70,6 +70,29 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     }
 
     [Fact(Timeout = PatienceMs)]
+    public void A_shell_whose_only_file_is_a_top_level_Program_builds()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        using var folder = new TempFolder();
+        var projectFile = CopyStarter(folder.Path);
+        foreach (var source in Directory.GetFiles(folder.Path, "*.cs"))
+            File.Delete(source);
+        File.WriteAllText(Path.Combine(folder.Path, "Program.cs"), """
+            Shell.Run<Bare>();
+
+            internal sealed class Bare : ShellConfiguration
+            {
+                public override void Start(Shell shell) => shell.Log.Info("shell", "Started.");
+            }
+            """);
+
+        var built = ShellProject.Run(
+            "dotnet", ["build", projectFile, "-c", "Release", "-warnaserror", "--nologo"], folder.Path);
+
+        Assert.True(built.ExitCode == 0, built.Output);
+    }
+
+    [Fact(Timeout = PatienceMs)]
     public void A_library_widget_registered_in_code_shows_in_an_area()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();

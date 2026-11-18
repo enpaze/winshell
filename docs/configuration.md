@@ -170,7 +170,7 @@ A project that references the `Winshell` package and has `ImplicitUsings` on, as
 | The project's `RootNamespace` | The project's own types, in every file |
 
 - **Leave them out.** `<WinshellImplicitUsings>false</WinshellImplicitUsings>` in the project file leaves out all of them. `<Using Remove="Microsoft.UI.Reactor.Core" />` in an `ItemGroup` leaves out one.
-- **The root namespace needs a type.** A project with no type in its `RootNamespace` does not build (CS0246). Remove that using, or put a type in the namespace.
+- **The root namespace always exists.** The package declares the project's `RootNamespace`, so a shell whose only file is `Program.cs` builds.
 - **Two types share a name.** `ColorScheme` is Winshell's, for `shell.ColorScheme`, and Reactor's, for `UseColorScheme()`. Write `Winshell.ColorScheme` or `Microsoft.UI.Reactor.Core.ColorScheme`. A file with `using Microsoft.UI.Xaml.Controls` has two `IconElement` and two `MenuFlyoutItemBase` types the same way.
 
 ## The program

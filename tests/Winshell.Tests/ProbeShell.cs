@@ -133,7 +133,6 @@ internal static class ProbeShell
                   </ItemDefinitionGroup>
                   <ItemGroup>
                     <ProjectReference Include="{shellProject}" />
-                    <Using Remove="Probe" />
                   </ItemGroup>
                 </Project>
                 """;
