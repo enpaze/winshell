@@ -156,19 +156,13 @@ internal static class ReleaseUpdate
         try
         {
             using var stream = new MemoryStream(bytes, writable: false);
-            using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
-            foreach (var entry in archive.Entries)
+            try
             {
-                var name = entry.FullName.Replace('\\', '/');
-                if (name.Length == 0 || name.EndsWith('/'))
-                    continue;
-                var target = Path.GetFullPath(Path.Combine(stage, name));
-                if (!Under(target, stage))
-                    throw new InvalidOperationException("The release archive is not a winshell folder.");
-                var directory = Path.GetDirectoryName(target);
-                if (directory is not null)
-                    Directory.CreateDirectory(directory);
-                entry.ExtractToFile(target, overwrite: true);
+                ZipFile.ExtractToDirectory(stream, stage, overwriteFiles: true);
+            }
+            catch (IOException)
+            {
+                throw new InvalidOperationException("The release archive is not a winshell folder.");
             }
 
             if (!File.Exists(Path.Combine(stage, "winshell.exe")) || !File.Exists(Path.Combine(stage, "winshellw.exe")))
