@@ -479,7 +479,6 @@ How a version is cut, tagged, stamped, and published is [Releasing](releasing.md
 .
 ├── .github/                         # CI, issue templates, Dependabot
 ├── docs/
-│   ├── adr/                         # Architecture decision records
 │   ├── agents/                      # How agents work on this repo
 │   ├── reference/                   # A page per namespace
 │   ├── research/                    # Research notes that a tracked decision builds on

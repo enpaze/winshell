@@ -16,4 +16,4 @@ Use the five default triage labels. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
-Single-context: `GLOSSARY.md` and `docs/adr/`. Before exploring code or naming domain concepts, read `docs/agents/domain.md`.
+The glossary is `GLOSSARY.md`. Before exploring code or naming domain concepts, read `docs/agents/domain.md`.
