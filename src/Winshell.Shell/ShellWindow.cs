@@ -43,7 +43,7 @@ public abstract class ShellWindow : ObservableObject, IDisposable
             if (!Set(ref _content, value))
                 return;
             if (_host is not null)
-                _host.Presentation.Content = value;
+                _host.Presentation.SetContent(value);
         }
     }
 
@@ -193,7 +193,7 @@ public abstract class ShellWindow : ObservableObject, IDisposable
         if (_host is not null)
             return;
         _host = _shell.Platform.CreateWindow(Kind, this);
-        _host.Presentation.Content = _content;
+        _host.Presentation.SetContent(_content);
         _host.Presentation.SetBackdrop(_backdrop, _corners);
         if (_opacity != 1)
             _host.Presentation.SetOpacity(_opacity);
