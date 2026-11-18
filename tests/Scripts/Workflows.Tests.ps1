@@ -34,7 +34,7 @@ Describe 'The workflows' {
         }
     }
 
-    It 'publishes both architectures to the rolling dev tag' {
+    It 'publishes both architectures as a new dev-<commit> prerelease, since releases are immutable' {
         $dev = Get-Workflow 'dev-release.yml'
         $dev | Should -Match 'windows-2025'
         $dev | Should -Match 'windows-11-arm'
@@ -42,8 +42,9 @@ Describe 'The workflows' {
         $dev | Should -Match 'win-arm64'
         $dev | Should -Match 'SHA256SUMS\.txt'
         $dev | Should -Match 'version\.json'
-        $dev | Should -Match '--clobber'
-        $dev | Should -Match '--latest=false'
+        $dev | Should -Match ([regex]::Escape('$tag = "dev-$($sha.Substring(0, 7))"'))
+        $dev | Should -Match ([regex]::Escape('gh release create $tag --repo $repo --target $sha --prerelease --latest=false'))
+        $dev | Should -Not -Match '--clobber|gh release upload|gh release edit|git/refs/tags'
         @($dev | Select-String -Pattern 'contents: write' -AllMatches).Matches.Count | Should -Be 1
     }
 

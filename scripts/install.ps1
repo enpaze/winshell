@@ -74,6 +74,20 @@ function Receive-WinshellFile([string] $Uri, [string] $Path) {
     }
 }
 
+function Get-WinshellDevTag([string] $Base) {
+    $list = if ($Base -eq 'https://github.com/enpaze/winshell/releases') { 'https://api.github.com/repos/enpaze/winshell/releases?per_page=30' } else { "$Base/list" }
+    try {
+        $releases = Invoke-RestMethod -Uri $list -Headers @{ Accept = 'application/vnd.github+json'; 'User-Agent' = 'winshell' } -UseBasicParsing
+    } catch {
+        throw "Could not download $list. $($_.Exception.Message)"
+    }
+    $newest = @($releases | ForEach-Object { $_ } |
+            Where-Object { $_.draft -ne $true -and $_.prerelease -eq $true -and "$($_.tag_name)" -cmatch '^dev-[0-9a-f]{7}$' -and $_.published_at } |
+            Sort-Object { [datetimeoffset]$_.published_at } -Descending)
+    if (-not $newest) { throw 'No dev release was found.' }
+    return $newest[0].tag_name
+}
+
 function Get-WinshellSignInCommand([string] $Exe) {
     @((Join-Path $env:SystemRoot 'System32\conhost.exe'), '--headless', $Exe, '--no-build', '--no-duplicate' |
             ForEach-Object { if ($_ -match '\s') { '"' + $_ + '"' } else { $_ } }) -join ' '
@@ -126,8 +140,9 @@ function Install-Winshell([string] $Version, [string] $Channel, [switch] $AutoSt
     if ($PSVersionTable.PSVersion.Major -lt 6) {
         [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     }
+    $tag = if ($Channel -eq 'dev') { Get-WinshellDevTag $base }
     $release = if ($Channel -eq 'dev') {
-        "$base/download/dev"
+        "$base/download/$tag"
     } elseif ($Version) {
         "$base/download/v$Version"
     } else {
@@ -152,7 +167,7 @@ function Install-Winshell([string] $Version, [string] $Channel, [switch] $AutoSt
         $installed = $Matches[1]
         Write-WinshellLine "Downloading $package."
         $zip = Join-Path $temp $package
-        $folder = if ($Channel -eq 'dev') { 'dev' } else { "v$installed" }
+        $folder = if ($Channel -eq 'dev') { $tag } else { "v$installed" }
         Receive-WinshellFile "$base/download/$folder/$package" $zip
         Write-WinshellLine 'Verifying SHA256.'
         $expected = $line.Groups[1].Value.ToLowerInvariant()
@@ -180,9 +195,14 @@ function Install-Winshell([string] $Version, [string] $Channel, [switch] $AutoSt
         Write-WinshellLine "The previous copy is still at $old. $($_.Exception.Message)"
     }
 
-    $saved = Start-Process -FilePath (Join-Path $bin 'winshell.exe') -ArgumentList @('update', '--channel', $Channel) -WindowStyle Hidden -Wait -PassThru
-    if ($saved.ExitCode -ne 0) {
-        throw "Winshell $installed is installed, and winshell update --channel $Channel failed with exit $($saved.ExitCode)."
+    if ($Channel -eq 'dev') {
+        $saved = Start-Process -FilePath (Join-Path $bin 'winshell.exe') -ArgumentList @('update', '--channel', 'dev') -WindowStyle Hidden -Wait -PassThru
+        if ($saved.ExitCode -ne 0) {
+            throw "Winshell $installed is installed, and winshell update --channel dev failed with exit $($saved.ExitCode)."
+        }
+    } else {
+        $config = if ("$env:WINSHELL_CONFIG_DIR".Trim()) { [IO.Path]::GetFullPath("$env:WINSHELL_CONFIG_DIR".Trim()) } else { Join-Path $env:APPDATA 'winshell' }
+        Remove-Item -LiteralPath (Join-Path $config 'update.toml') -Force -ErrorAction SilentlyContinue
     }
     Start-Process -FilePath (Join-Path $bin 'winshellw.exe') -ArgumentList '--no-duplicate' -WindowStyle Hidden | Out-Null
 

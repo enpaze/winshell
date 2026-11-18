@@ -46,20 +46,20 @@ jobs:
           git merge-base --is-ancestor $sha origin/main
           if ($LASTEXITCODE -ne 0) { throw "$sha is not on origin/main." }
           $publish = 'true'
-          $meta = gh api "repos/$($env:REPO)/git/ref/tags/dev" 2>$null
-          if ($LASTEXITCODE -eq 0 -and $meta) {
-            $parsed = $meta | ConvertFrom-Json
-            $tagSha = [string]$parsed.object.sha
-            if ($parsed.object.type -eq 'tag') {
-              $tagSha = (gh api "repos/$($env:REPO)/git/tags/$tagSha" --jq .object.sha).Trim()
-              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            }
-            if ($tagSha -ne $sha) {
-              git merge-base --is-ancestor $sha $tagSha 2>$null
-              if ($LASTEXITCODE -eq 0) {
-                Write-Output "Dev is already at $tagSha, which contains $sha. Leaving the newer build in place."
-                $publish = 'false'
-              }
+          $listed = gh api "repos/$($env:REPO)/releases?per_page=30"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $newest = @($listed | ConvertFrom-Json | ForEach-Object { $_ } |
+              Where-Object { -not $_.draft -and $_.prerelease -and "$($_.tag_name)" -cmatch '^dev-[0-9a-f]{7}$' } |
+              Sort-Object { [datetimeoffset]$_.published_at } -Descending) | Select-Object -First 1
+          if ($newest) {
+            $tagSha = (gh api "repos/$($env:REPO)/commits/$($newest.tag_name)" --jq .sha).Trim()
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            git fetch origin $tagSha
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            git merge-base --is-ancestor $sha $tagSha 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              Write-Output "Dev is already $($newest.tag_name) at $tagSha, which contains $sha. Leaving it in place."
+              $publish = 'false'
             }
           }
           "publish=$publish" >> $env:GITHUB_OUTPUT
@@ -232,26 +232,19 @@ jobs:
           foreach ($file in $files) {
             if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "No $(Split-Path -Leaf $file) to publish." }
           }
+          $tag = "dev-$($sha.Substring(0, 7))"
           $title = "Dev $display"
           $notes = Join-Path $env:RUNNER_TEMP 'dev-notes.txt'
           [System.IO.File]::WriteAllText($notes, "Dev build $display`n`nCommit $sha`n")
-          $payload = Join-Path $env:RUNNER_TEMP 'dev-tag.json'
-          [System.IO.File]::WriteAllText($payload, '{"sha":"' + $sha + '","force":true}')
-          gh api --method PATCH "repos/$repo/git/refs/tags/dev" --input $payload 2>$null | Out-Null
-          if ($LASTEXITCODE -ne 0) {
-            gh api "repos/$repo/git/ref/tags/dev" --jq .object.sha 2>$null | Out-Null
-            if ($LASTEXITCODE -eq 0) { throw "The dev tag exists and could not be moved." }
-            [System.IO.File]::WriteAllText($payload, '{"ref":"refs/tags/dev","sha":"' + $sha + '"}')
-            gh api --method POST "repos/$repo/git/refs" --input $payload | Out-Null
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          }
-          gh release view dev --repo $repo --json tagName 2>$null | Out-Null
-          if ($LASTEXITCODE -ne 0) {
-            gh release create dev --repo $repo --target $sha --prerelease --latest=false --title $title --notes-file $notes @files
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            exit 0
-          }
-          gh release edit dev --repo $repo --target $sha --prerelease --latest=false --title $title --notes-file $notes
+          gh release create $tag --repo $repo --target $sha --prerelease --latest=false --title $title --notes-file $notes @files
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          gh release upload dev @files --repo $repo --clobber
+          $listed = gh api "repos/$repo/releases?per_page=100"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $stale = @($listed | ConvertFrom-Json | ForEach-Object { $_ } |
+              Where-Object { $_.prerelease -and "$($_.tag_name)" -cmatch '^dev-[0-9a-f]{7}$' -and $_.tag_name -cne $tag } |
+              Sort-Object { [datetimeoffset]$_.created_at } -Descending | Select-Object -Skip 4)
+          foreach ($release in $stale) {
+            gh release delete $release.tag_name --repo $repo --yes
+            if ($LASTEXITCODE -ne 0) { Write-Output "::warning::Could not delete the dev release $($release.tag_name)." }
+          }
+          exit 0

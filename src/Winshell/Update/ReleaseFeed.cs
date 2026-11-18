@@ -89,7 +89,7 @@ internal sealed class GitHubReleaseFeed : IReleaseFeed
 {
     private const string LatestUrl = "https://api.github.com/repos/enpaze/winshell/releases/latest";
 
-    private const string DevUrl = "https://api.github.com/repos/enpaze/winshell/releases/tags/dev";
+    private const string DevUrl = "https://api.github.com/repos/enpaze/winshell/releases?per_page=30";
 
     private readonly HttpClient _http;
 
@@ -146,7 +146,7 @@ internal sealed class GitHubReleaseFeed : IReleaseFeed
         if (_loopback is null)
             return channel == UpdateChannel.Dev ? DevUrl : LatestUrl;
 
-        return new Uri(_loopback, channel == UpdateChannel.Dev ? "tags/dev" : "latest").AbsoluteUri;
+        return new Uri(_loopback, channel == UpdateChannel.Dev ? "list" : "latest").AbsoluteUri;
     }
 
     private string GetText(string url, bool document, bool dev)
@@ -229,7 +229,7 @@ internal sealed class GitHubReleaseFeed : IReleaseFeed
     }
 }
 
-internal sealed class ReleaseDocument
+internal sealed partial class ReleaseDocument
 {
     private ReleaseDocument(Dictionary<string, string> assets)
     {
@@ -242,15 +242,8 @@ internal sealed class ReleaseDocument
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
         using var document = JsonDocument.Parse(json);
-        var root = document.RootElement;
-        if (Flag(root, "draft"))
-        {
-            throw new InvalidOperationException(dev
-                ? "The dev release is a draft."
-                : "The latest release is not a published release.");
-        }
-
-        if (!dev && Flag(root, "prerelease"))
+        var root = dev ? NewestDev(document.RootElement) : document.RootElement;
+        if (!dev && (Flag(root, "draft") || Flag(root, "prerelease")))
             throw new InvalidOperationException("The latest release is not a published release.");
 
         if (!root.TryGetProperty("assets", out var assets) || assets.ValueKind != JsonValueKind.Array)
@@ -274,6 +267,35 @@ internal sealed class ReleaseDocument
 
         return new ReleaseDocument(found);
     }
+
+    private static JsonElement NewestDev(JsonElement releases)
+    {
+        if (releases.ValueKind != JsonValueKind.Array)
+            throw new JsonException();
+
+        JsonElement? newest = null;
+        var newestAt = DateTimeOffset.MinValue;
+        foreach (var release in releases.EnumerateArray())
+        {
+            if (release.ValueKind != JsonValueKind.Object || Flag(release, "draft") || !Flag(release, "prerelease"))
+                continue;
+            var tag = Text(release, "tag_name");
+            var published = Text(release, "published_at");
+            if (tag is null || !DevTag().IsMatch(tag) || published is null
+                || !DateTimeOffset.TryParse(published, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var at))
+                continue;
+            if (newest is null || at > newestAt)
+            {
+                newest = release;
+                newestAt = at;
+            }
+        }
+
+        return newest ?? throw new InvalidOperationException("No dev release was found.");
+    }
+
+    [GeneratedRegex("^dev-[0-9a-f]{7}$", RegexOptions.CultureInvariant)]
+    private static partial Regex DevTag();
 
     private static bool Flag(JsonElement root, string name)
     {

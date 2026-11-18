@@ -495,27 +495,38 @@ public class ReleaseFeedTests
     }
 
     [Fact]
-    public void Dev_rejects_a_draft_and_reads_a_prerelease()
+    public void Dev_reads_the_newest_published_dev_prerelease()
     {
-        var draft = Assert.Throws<InvalidOperationException>(() => Latest(true, """{"draft":true,"prerelease":true,"assets":[]}"""));
-        Assert.Equal("The dev release is a draft.", draft.Message);
-
-        var version = VersionJson("1.2.3-dev.4", "ABCDEFABCdefabcdefabcdefabcdefabcdefabcd", "2026-11-18T01:02:03Z");
         var zip = ReleaseSources.ZipName("1.2.3-dev.4");
-        var release = ReleaseJson(dev: true, zip);
+        var list = "["
+                   + DevJson("dev-1111111", "2026-11-18T05:00:00Z", zip, draft: true)
+                   + "," + DevJson("v9.9.9", "2026-11-18T04:00:00Z", zip)
+                   + "," + DevJson("dev-2222222", "2026-11-18T01:00:00Z", zip)
+                   + "," + DevJson("dev-3333333", "2026-11-18T03:00:00Z", zip)
+                   + "," + DevJson("dev-4444444", "2026-11-18T06:00:00Z", zip, prerelease: false)
+                   + "]";
+        var version = VersionJson("1.2.3-dev.4", "ABCDEFABCdefabcdefabcdefabcdefabcdefabcd", "2026-11-18T01:02:03Z");
         var seen = new List<string>();
         var listing = Read(true, request =>
         {
             var url = request.RequestUri!.AbsoluteUri;
             seen.Add(url);
-            var body = url.EndsWith("/tags/dev", StringComparison.Ordinal) ? release : version;
-            return Text(HttpStatusCode.OK, body);
+            return Text(HttpStatusCode.OK, url.EndsWith("/list", StringComparison.Ordinal) ? list : version);
         });
 
         Assert.Equal("1.2.3-dev.4", listing.Version);
         Assert.Equal("abcdefabcdefabcdefabcdefabcdefabcdefabcd", listing.Commit);
-        Assert.EndsWith("/" + zip, listing.ArchiveUrl, StringComparison.Ordinal);
-        Assert.Contains(seen, static url => url.Contains("/tags/dev", StringComparison.Ordinal));
+        Assert.Equal("https://example.invalid/dev-3333333/" + zip, listing.ArchiveUrl);
+        Assert.Equal(["http://127.0.0.1:9/releases/list", "https://example.invalid/dev-3333333/version.json"], seen);
+    }
+
+    [Fact]
+    public void Dev_with_no_published_dev_prerelease_is_not_found()
+    {
+        var zip = ReleaseSources.ZipName("1.2.3-dev.4");
+        var list = "[" + DevJson("dev-1111111", "2026-11-18T05:00:00Z", zip, draft: true) + "]";
+        var error = Assert.Throws<InvalidOperationException>(() => Latest(true, list));
+        Assert.Equal("No dev release was found.", error.Message);
     }
 
     [Fact]
@@ -609,8 +620,17 @@ public class ReleaseFeedTests
         + Asset("SHA256SUMS.txt") + ","
         + Asset(zip) + "]}";
 
-    private static string Asset(string name) =>
-        "{\"name\":\"" + name + "\",\"browser_download_url\":\"https://example.invalid/" + name + "\"}";
+    private static string DevJson(string tag, string published, string zip, bool draft = false, bool prerelease = true) =>
+        "{\"tag_name\":\"" + tag + "\",\"published_at\":\"" + published + "\",\"draft\":" + (draft ? "true" : "false")
+        + ",\"prerelease\":" + (prerelease ? "true" : "false") + ",\"assets\":["
+        + Asset(tag + "/version.json", "version.json") + ","
+        + Asset(tag + "/SHA256SUMS.txt", "SHA256SUMS.txt") + ","
+        + Asset(tag + "/" + zip, zip) + "]}";
+
+    private static string Asset(string name) => Asset(name, name);
+
+    private static string Asset(string path, string name) =>
+        "{\"name\":\"" + name + "\",\"browser_download_url\":\"https://example.invalid/" + path + "\"}";
 
     private static string VersionJson(string version, string commit, string date) =>
         "{\"version\":\"" + version + "\",\"commit\":\"" + commit + "\",\"date\":\"" + date + "\"}";

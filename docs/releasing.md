@@ -22,11 +22,11 @@ The same workflow builds and checks the packages, without publishing, on the PRs
 
 ## Dev releases
 
-`.github/workflows/dev-release.yml` runs after the CI workflow succeeds on a push to `main`. It publishes `win-x64` and `win-arm64`, then attaches both zips, `version.json`, and `SHA256SUMS.txt` to the prerelease tag `dev`.
+`.github/workflows/dev-release.yml` runs after the CI workflow succeeds on a push to `main`. It publishes `win-x64` and `win-arm64`, then creates the prerelease `dev-<commit>` with both zips, `version.json`, and `SHA256SUMS.txt`. `<commit>` is the first seven digits of the commit.
 
-The version is the newest published `vX.Y.Z`, then `-dev.` and the number of commits since that tag, then `+` and the seven-character commit. With no stable tag, the base is `0.0.0`. The workflow moves the `dev` tag onto that commit. It edits the prerelease, or creates it with `--latest=false`, and uploads with `--clobber`.
+The version is the newest published `vX.Y.Z`, then `-dev.` and the number of commits since that tag, then `+` and the seven-character commit. With no stable tag, the base is `0.0.0`.
 
-Immutable releases stay off. This workflow moves the `dev` tag and replaces its assets. Stable releases stay the Release Please package workflow.
+Each dev build is its own release, so immutable releases stay on: no tag moves and no asset is replaced. The dev channel is the newest published `dev-<commit>` prerelease. When that one already contains the commit, the workflow publishes nothing. After a publish it deletes all but the five newest dev prereleases. Stable releases stay the Release Please package workflow.
 
 ## winget
 

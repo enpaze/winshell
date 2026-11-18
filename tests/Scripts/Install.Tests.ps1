@@ -35,8 +35,8 @@ Describe 'install.ps1 and uninstall.ps1' {
             }).AddArgument($script:Listener).AddArgument($script:Served)
         $script:Serving = $script:Server.BeginInvoke()
 
-        function Publish-Release([string] $Version, [switch] $Latest, [switch] $WrongHash, [switch] $Dev) {
-            $folder = if ($Dev) { Join-Path $script:Served 'releases\download\dev' } else { Join-Path $script:Served "releases\download\v$Version" }
+        function Publish-Release([string] $Version, [switch] $Latest, [switch] $WrongHash, [string] $Dev) {
+            $folder = if ($Dev) { Join-Path $script:Served "releases\download\$Dev" } else { Join-Path $script:Served "releases\download\v$Version" }
             New-Item -ItemType Directory -Force -Path $folder | Out-Null
             $name = Get-ReleaseZipName $Version "win-$script:Arch"
             $zip = [IO.Compression.ZipFile]::Open((Join-Path $folder $name), 'Create')
@@ -147,7 +147,16 @@ static class Program
         Publish-Release '0.4.0' -WrongHash
         Publish-Release '0.5.0'
         Publish-Release '0.6.0' -Latest
-        Publish-Release '0.6.0-dev.4' -Dev
+        Publish-Release '0.6.0-dev.3' -Dev 'dev-3333333'
+        Publish-Release '0.6.0-dev.4' -Dev 'dev-4444444'
+        Publish-Release '0.6.0-dev.5' -Dev 'dev-5555555'
+        $list = @(
+            @{ tag_name = 'dev-3333333'; draft = $false; prerelease = $true; published_at = '2026-11-18T03:00:00Z' },
+            @{ tag_name = 'dev-5555555'; draft = $true; prerelease = $true; published_at = '2026-11-18T05:00:00Z' },
+            @{ tag_name = 'dev-4444444'; draft = $false; prerelease = $true; published_at = '2026-11-18T04:00:00Z' },
+            @{ tag_name = 'v0.6.0'; draft = $false; prerelease = $false; published_at = '2026-11-18T06:00:00Z' }
+        )
+        [IO.File]::WriteAllText((Join-Path $script:Served 'releases\list'), (ConvertTo-Json -InputObject $list -Depth 3))
     }
 
     AfterAll {
@@ -327,14 +336,26 @@ function Get-AppxPackage {
         Get-Text $p.SignIn | Should -Be "C:\Windows\System32\conhost.exe --headless $other --no-duplicate"
     }
 
-    It 'remembers stable and starts the installed shell' {
+    It 'forgets a saved dev channel on a stable install and starts the installed shell' {
         $p = New-TestProfile
+        New-Item -ItemType Directory -Force -Path (Join-Path $p.Roaming 'winshell') | Out-Null
+        [IO.File]::WriteAllText((Join-Path $p.Roaming 'winshell\update.toml'), "channel = `"dev`"`n")
         $result = Invoke-Script $p -File $Install, '-Channel', 'stable'
         $result.Error | Should -BeNullOrEmpty
         $result.ExitCode | Should -Be 0
-        Get-Text (Join-Path $p.Roaming 'winshell\update.toml') | Should -Be "channel = `"stable`"`n"
+        Test-Path -LiteralPath (Join-Path $p.Roaming 'winshell\update.toml') | Should -BeFalse
         Get-Text (Join-Path $p.Roaming 'winshell\started.txt') | Should -Be "--no-duplicate`n"
         Get-Text (Join-Path $p.Bin 'packages\Winshell.0.6.0.nupkg') | Should -Be '0.6.0'
+    }
+
+    It 'installs a pinned stable version without asking it to update' {
+        $p = New-TestProfile
+        $result = Invoke-Script $p -File $Install, '-Version', '0.5.0'
+        $result.Error | Should -BeNullOrEmpty
+        $result.ExitCode | Should -Be 0
+        Get-Text (Join-Path $p.Bin 'packages\Winshell.0.5.0.nupkg') | Should -Be '0.5.0'
+        Get-Text (Join-Path $p.Roaming 'winshell\started.txt') | Should -Be "--no-duplicate`n"
+        Test-Path -LiteralPath (Join-Path $p.Roaming 'winshell\update.toml') | Should -BeFalse
     }
 
     It 'installs the dev zip and remembers dev' {

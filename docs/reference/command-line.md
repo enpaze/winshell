@@ -202,7 +202,7 @@ An unexpected failure of any command but `run` prints `winshell <command>: <mess
 | Variable | What it does |
 | --- | --- |
 | `WINSHELL_CONFIG_DIR` | The folder configurations load from, instead of `%APPDATA%\winshell`. |
-| `WINSHELL_RELEASE_BASE` | Where `winshell update` reads a release. Unset, it uses the GitHub API for `enpaze/winshell`. It also accepts `https://github.com/enpaze/winshell/releases`, or `http://127.0.0.1` or `http://localhost` with an optional port and path. |
+| `WINSHELL_RELEASE_BASE` | Where `winshell update` reads a release. Unset, it uses the GitHub API for `enpaze/winshell`. It also accepts `https://github.com/enpaze/winshell/releases`, or `http://127.0.0.1` or `http://localhost` with an optional port and path. A test server answers `<base>/latest` with the stable release and `<base>/list` with the release list. |
 | `WINSHELL_LOCAL_DIR` | The folder for logs, crash reports, and each shell's data, state and cache, instead of `%LOCALAPPDATA%\winshell`. |
 | `WINLAND_PIPE` | The named pipe [`Winshell.Winland`](winshell-winland.md) connects to, instead of `winland-<session id>` and then `winland`, which it tries in that order when the variable isn't set. |
 
@@ -212,7 +212,7 @@ An unexpected failure of any command but `run` prints `winshell <command>: <mess
 | --- | --- |
 | Configurations | `%APPDATA%\winshell`, or `WINSHELL_CONFIG_DIR` |
 | The chosen configuration | `chosen.txt` in the config folder: the name `winshell use` recorded |
-| The update channel | `update.toml` in the config folder. The file is `channel = "stable"` or `channel = "dev"`. A missing file means stable. `winshell update` is the only writer. |
+| The update channel | `update.toml` in the config folder. The file is `channel = "stable"` or `channel = "dev"`. A missing file means stable. `winshell update --channel` writes it, `install.ps1 -Channel dev` writes it through that command, and a stable install deletes it. |
 | A project's program | `bin\shell` under the project folder |
 | Per-shell data, state and cache | `%LOCALAPPDATA%\winshell\data\by-shell\<shell id>`, and the same under `state` and `cache`. They are `Shell.DataDir`, `Shell.StateDir` and `Shell.CacheDir`. |
 | Instance logs | `%LOCALAPPDATA%\winshell\run\<instance id>\log.txt`. A shell that exits cleanly keeps that folder, with `exitedAt` set in `instance.json`, so `winshell log` can still print it. A later start deletes a stopped folder once it is a day old, including a folder that has no `instance.json`. |
