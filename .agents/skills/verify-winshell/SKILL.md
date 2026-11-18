@@ -63,7 +63,7 @@ pwsh .agents/skills/verify-winshell/scripts/winshell.ps1 -Session $s inspect --p
 pwsh .agents/skills/verify-winshell/scripts/winshell.ps1 -Session $s inspect --pid <pid> record "$s\evidence\window.mp4" --for 5s FeatureWindow --frames "$s\evidence\frames"
 ```
 
-- Name elements by automation id, `x:Name` or automation name, as the feature files do. The feature shell gives each service row and building block its feature id, such as `service.audio`, and has `features.click`, `features.clicks`, `features.popup`, `features.text` and `features.typed`.
+- Name elements by automation id, `x:Name` or automation name, as the feature files do. The feature shell gives each service row and building block its feature id, such as `service.audio`, and has `features.click`, `features.clicks`, `features.popup`, `features.launcher`, `features.text` and `features.typed`.
 - A `[window]` is a window's content type, such as `FeatureWindow`, `BarView` or `Surface`, or its `window` number in `tree`.
 - A name finds only elements that are not collapsed, as Narrator does. A name that matches more than one element acts on none, and the error lists each match.
 - `inspect hover` shows a control's hover look only. A `PointerEntered` handler needs a real pointer.

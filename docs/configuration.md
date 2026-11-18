@@ -321,6 +321,35 @@ public sealed class Dock : Component
 
 `using static Winshell.Elements` brings `Surface` and `WidgetArea` into scope. The props are immutable: rendering the component again with a new record is how the tree changes, and disposing the host unmounts it. What a surface holds stays loaded when the style changes. Its own style wins over the shell's, as an area's does. The area inside the tree is an element, not a second host.
 
+## A launcher
+
+A [Launcher](reference/winshell.md#launcher) is a search box that a hotkey opens over the other windows. Typing searches the apps Start lists, ranked as [`shell.Apps.Search`](reference/winshell-apps.md) ranks them, and the commands you give it, together. Up and Down choose a result, and Enter runs it.
+
+```csharp
+        var launcher = new Launcher
+        {
+            Hotkey = "Alt+Space",
+            Commands =
+            [
+                new("Lock", () => shell.Session.Lock()),
+                new("Reload shell", () => shell.Reload())
+            ]
+        };
+```
+
+- **When it opens.** Its [hotkey](reference/winshell-input.md) opens it and closes it again. It opens centered near the top of the screen with the active window, or the primary screen. `Show`, `Hide` and `Toggle` do the same from code, such as from a button in a bar. `Dispose` removes it and frees the hotkey.
+- **What it shows.** With nothing typed, it shows the apps used most recently, then the commands. A command goes before the first app whose name matches what was typed less well. It shows the first eight.
+- **When it closes.** Enter, or a click on a result, runs it and closes the launcher. Escape and a click outside it close it without running anything.
+
+The launcher's section of the [preferences file](#preferences), `[launcher]` unless `Name` names another, holds `hotkey`, so the user can choose another one:
+
+```toml
+[launcher]
+hotkey = "Ctrl+Shift+Space"
+```
+
+`Launcher` uses only the public API a configuration has, as `Bar` does, so [its source](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/Compositions/Launcher.cs) is a start for a launcher of your own.
+
 ## Widgets
 
 A [widget area](reference/winshell.md#widgetarea) is a component. A window mounts the component that renders it, and the same element can sit inside a surface. In `Start`, register each widget under the case-sensitive name the area places. Use `Widgets.Register<T>` for your project's components and those from a referenced project or package alike. The component needs a public parameterless constructor.

@@ -49,7 +49,7 @@ public sealed partial class FeatureMapTests
     public void A_block_is_a_public_window_control_component_or_composition_of_the_shell_library()
     {
         Assert.Equal(
-            ["Bar", "CaptureView", "FloatingWindow", "PanelWindow", "PopupWindow", "Surface", "WidgetArea", "WindowThumbnail"],
+            ["Bar", "CaptureView", "FloatingWindow", "Launcher", "PanelWindow", "PopupWindow", "Surface", "WidgetArea", "WindowThumbnail"],
             Blocks());
     }
 

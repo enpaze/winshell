@@ -15,7 +15,7 @@ This folder is the maintained source for verifying what a Winshell user can reac
 | Shell | Source | What it shows |
 | --- | --- | --- |
 | `none` | No shell | Commands that need no running shell. |
-| `features` | [`../shell`](../shell/FeatureShell.cs) | One window with a row for each service and an element for each building block, each with the feature's id as its automation id, plus `features.click`, `features.clicks`, `features.popup`, `features.text` and `features.typed`. It registers the IPC target `features` with the function `echo`, the property `name` and the signal `ticked`, which it raises once a second. |
+| `features` | [`../shell`](../shell/FeatureShell.cs) | One window with a row for each service and an element for each building block, each with the feature's id as its automation id, plus `features.click`, `features.clicks`, `features.popup`, `features.launcher`, `features.text` and `features.typed`. It registers the IPC target `features` with the function `echo`, the property `name` and the signal `ticked`, which it raises once a second. |
 | `starter` | [`templates/winshell`](../../../../templates/winshell/Program.cs) | The project `winshell new starter` copies: a bar with a clock and a battery. |
 | `omarchy-style` | [`examples/omarchy-style`](../../../../examples/omarchy-style/Program.cs) | A top bar in the style of Omarchy, with its own widgets. |
 
@@ -65,6 +65,7 @@ A step is one of two objects. Each takes `within`, the seconds to retry it until
 - [Bar](./block.bar.md) is a panel along one edge of every screen with start, center and end widget areas, driven on the starter's top bar.
 - [CaptureView](./block.capture-view.md) shows the live frames of a capture session of a window or a screen.
 - [FloatingWindow](./block.floating-window.md) is a normal window with a title bar and a size.
+- [Launcher](./block.launcher.md) is a search box a hotkey opens, which finds apps and commands and runs the chosen one.
 - [PanelWindow](./block.panel-window.md) is a frameless window anchored to screen edges that can reserve its edge.
 - [PopupWindow](./block.popup-window.md) is a frameless window placed next to another, opened here by the feature window's `Popup` button.
 - [Surface](./block.surface.md) paints the style's background behind its content and follows the theme.

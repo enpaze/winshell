@@ -7,7 +7,7 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace FeatureMap;
 
-public sealed record FeatureWindowProps(RowProps[] Services, RowProps Floating, Action OpenPopup);
+public sealed record FeatureWindowProps(RowProps[] Services, RowProps Floating, Action OpenPopup, Action OpenLauncher);
 
 public sealed class FeatureWindow : Component<FeatureWindowProps>
 {
@@ -23,7 +23,8 @@ public sealed class FeatureWindow : Component<FeatureWindowProps>
             HStack(8,
                 Button("Click", () => setShown(++clicks.Current)).AutomationId("features.click"),
                 TextBlock($"clicks: {shown}").AutomationId("features.clicks").VAlign(VerticalAlignment.Center),
-                Button("Popup", Props.OpenPopup).AutomationId("features.popup")),
+                Button("Popup", Props.OpenPopup).AutomationId("features.popup"),
+                Button("Launcher", Props.OpenLauncher).AutomationId("features.launcher")),
             HStack(8,
                 TextBox(typed, setTyped, "Type here").AutomationId("features.text").AutomationName("Type here")
                     .Width(160),
