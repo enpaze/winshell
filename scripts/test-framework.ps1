@@ -18,3 +18,4 @@ foreach ($hit in $hits) {
 }
 if ($hits.Count -gt 0) { exit 1 }
 Write-Output "No tracked file names $banned."
+exit 0
