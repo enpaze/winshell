@@ -25,7 +25,7 @@ if ($Lint) {
     }
     Push-Location $root
     try {
-        lychee --offline --include-fragments --no-progress '**/*.md' '.github/**/*.md'
+        lychee --offline --include-fragments --no-progress '**/*.md' '.github/**/*.md' '.agents/**/*.md' '.claude/**/*.md'
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         actionlint
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

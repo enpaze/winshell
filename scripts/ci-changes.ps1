@@ -6,7 +6,7 @@ param(
 
 function Test-Prose {
     param([string] $Path)
-    $Path -match '^docs/|^\.github/ISSUE_TEMPLATE/|\.md$|^(LICENSE|\.gitignore)$'
+    $Path -notmatch '^\.(agents|claude)/skills/verify-winshell/' -and $Path -match '^docs/|^\.github/ISSUE_TEMPLATE/|\.md$|^(LICENSE|\.gitignore)$'
 }
 
 $ErrorActionPreference = 'Stop'
@@ -24,7 +24,7 @@ function Test-Changed {
     param([string] $Pattern)
     $unknown -or @($nonProse -match $Pattern).Count -gt 0
 }
-$noShard = '^scripts/(?!lib/|build-template\.ps1$|features\.ps1$|generate-reference\.cs$|reference-pages\.cs$|render-logo\.cs$|install\.ps1$)|^tests/Scripts/',
+$noShard = '^scripts/(?!lib/|build-template\.ps1$|generate-reference\.cs$|reference-pages\.cs$|render-logo\.cs$|install\.ps1$)|^tests/Scripts/',
     '^\.github/workflows/(?!ci\.yml$)|^\.github/dependabot\.yml$',
     '^packaging/(?!winshell\.ico$|msix/Assets/)' -join '|'
 $checks = [ordered]@{

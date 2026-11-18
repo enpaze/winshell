@@ -37,7 +37,7 @@ Describe 'The workflows' {
     It 'require the feature drivers through ci whenever the code changes' {
         $ci = Get-Workflow 'ci.yml'
         $ci | Should -Match '(?m)^  features:\n    name: features\n    needs: changes\n    if: .*needs\.changes\.outputs\.code != ''false'''
-        $ci | Should -Match '\./scripts/features\.ps1 -Keep'
+        $ci | Should -Match '\./\.agents/skills/verify-winshell/scripts/drive\.ps1 -Session'
         $ci | Should -Match '(?m)^    needs: \[quality, tests, installer, comments, features\]$'
         $ci | Should -Match ([regex]::Escape('test "$FEATURES_RESULT" = success || test "$FEATURES_RESULT" = skipped'))
     }

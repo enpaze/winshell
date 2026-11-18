@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.UI.Xaml;
 using ReactorComponent = Microsoft.UI.Reactor.Core.Component;
@@ -8,53 +7,42 @@ namespace Winshell.Tests;
 
 public sealed partial class FeatureMapTests
 {
-    private static readonly string[] Kinds = ["command", "service", "widget", "block"];
+    private const string RelativeMap = ".agents/skills/verify-winshell/features";
 
-    private static readonly string[] Shells = ["none", "features", "starter", "omarchy-style"];
-
-    private static readonly string[] WinshellKeys = ["winshell", "exit", "output", "file", "within", "background", "for"];
-
-    private static readonly string[] ElementKeys = ["element", "window", "has", "within"];
-
-    private static readonly string MapPath = Path.Combine(Repo.Root, "features", "map.json");
+    private static readonly string MapFolder = Path.Combine(Repo.Root, RelativeMap);
 
     [Fact]
-    public void Every_command_has_one_entry()
+    public void Every_command_has_a_feature_file()
     {
         AssertMatches("command", Commands());
     }
 
     [Fact]
-    public void Every_service_has_one_entry()
+    public void Every_service_has_a_feature_file()
     {
         AssertMatches("service", Services());
     }
 
     [Fact]
-    public void Every_widget_has_one_entry()
+    public void Every_widget_has_a_feature_file()
     {
         AssertMatches("widget", WidgetNames());
     }
 
     [Fact]
-    public void Every_block_has_one_entry()
+    public void Every_block_has_a_feature_file()
     {
         AssertMatches("block", Blocks());
     }
 
     [Fact]
-    public void Every_entry_is_well_formed()
+    public void Every_feature_file_is_of_a_kind_the_inventory_has()
     {
-        var problems = new List<string>();
-        var entries = Entries();
-        var ids = entries.Select(entry => Text(entry, "id")).ToList();
-        foreach (var duplicate in ids.GroupBy(id => id).Where(group => group.Count() > 1))
-            problems.Add($"{duplicate.Key} is in the map {duplicate.Count()} times. Keep one entry.");
-        if (!ids.SequenceEqual(ids.Order(StringComparer.Ordinal)))
-            problems.Add("The entries are not sorted by id. Sort them by id, ordinally.");
-        foreach (var entry in entries)
-            problems.AddRange(Problems(entry));
-        Assert.True(problems.Count == 0, string.Join('\n', problems));
+        var kinds = new[] { "command", "service", "widget", "block" };
+        var strays = FeatureIds().Where(id => !kinds.Contains(id.Split('.')[0])).ToList();
+        Assert.True(strays.Count == 0,
+            string.Join('\n', strays.Select(id =>
+                $"{id}.md in {RelativeMap} is not a command, service, widget or block. Rename it <kind>.<slug>.md, or remove it.")));
     }
 
     [Fact]
@@ -65,76 +53,30 @@ public sealed partial class FeatureMapTests
             Blocks());
     }
 
-    private static List<string> Problems(JsonElement entry)
-    {
-        var id = Text(entry, "id");
-        var kind = Text(entry, "kind");
-        var shell = Text(entry, "shell");
-        var problems = new List<string>();
-        if (!Kinds.Contains(kind))
-            problems.Add($"{id}: kind \"{kind}\" is not one of {string.Join(", ", Kinds)}.");
-        if (!IdPattern().IsMatch(id) || !id.StartsWith(kind + ".", StringComparison.Ordinal))
-            problems.Add($"{id}: an id is <kind>.<slug>, such as {kind}.my-feature, in lowercase with hyphens.");
-        if (!Shells.Contains(shell))
-            problems.Add($"{id}: shell \"{shell}\" is not one of {string.Join(", ", Shells)}.");
-        if (Text(entry, "name").Length == 0)
-            problems.Add($"{id}: name is empty. It is what the inventory of its kind calls it.");
-        if (Text(entry, "summary").Length == 0)
-            problems.Add($"{id}: summary is empty. Say what the driver proves.");
-        var code = Array(entry, "code");
-        if (code.Count == 0)
-            problems.Add($"{id}: code is empty. List the files that implement it.");
-        foreach (var path in code.Select(item => item.GetString() ?? ""))
-            if (!File.Exists(Path.Combine(Repo.Root, path)))
-                problems.Add($"{id}: code path {path} does not exist. Fix the path or remove it.");
-        var steps = Array(entry, "steps");
-        if (steps.Count == 0)
-            problems.Add($"{id}: steps is empty. Add a step that drives the feature.");
-        for (var i = 0; i < steps.Count; i++)
-            problems.AddRange(StepProblems(id, i + 1, steps[i]));
-        if (shell == "features" && kind is "service" or "block" && !steps.Any(step =>
-                step.ValueKind == JsonValueKind.Object && step.TryGetProperty("element", out var element) &&
-                element.GetString() == id))
-            problems.Add(
-                $"{id}: on the features shell, a step must find the element {id}. Give the feature shell's row that automation id.");
-        return problems;
-    }
-
-    private static IEnumerable<string> StepProblems(string id, int number, JsonElement step)
-    {
-        if (step.ValueKind != JsonValueKind.Object)
-        {
-            yield return $"{id}: step {number} is not an object.";
-            yield break;
-        }
-
-        var keys = step.EnumerateObject().Select(property => property.Name).ToList();
-        var isWinshell = keys.Contains("winshell");
-        var isElement = keys.Contains("element");
-        if (isWinshell == isElement)
-        {
-            yield return $"{id}: step {number} needs exactly one of \"winshell\" and \"element\".";
-            yield break;
-        }
-
-        var allowed = isWinshell ? WinshellKeys : ElementKeys;
-        foreach (var key in keys.Where(key => !allowed.Contains(key)))
-            yield return
-                $"{id}: step {number} has \"{key}\", which a {(isWinshell ? "winshell" : "element")} step does not take. It takes {string.Join(", ", allowed)}.";
-    }
-
     private static void AssertMatches(string kind, IReadOnlyCollection<string> inventory)
     {
-        var mapped = Entries().Where(entry => Text(entry, "kind") == kind).Select(entry => Text(entry, "name"))
-            .ToList();
+        var expected = inventory.ToDictionary(name => $"{kind}.{Slug(name)}", StringComparer.Ordinal);
+        var mapped = FeatureIds().Where(id => id.StartsWith(kind + ".", StringComparison.Ordinal)).ToList();
         var problems = new List<string>();
-        foreach (var name in inventory.Except(mapped, StringComparer.Ordinal))
+        foreach (var (id, name) in expected.Where(pair => !mapped.Contains(pair.Key)))
             problems.Add(
-                $"features/map.json has no {kind} entry named \"{name}\". Add one with id {kind}.{Slug(name)}, its code, a driver, and for a service or block a row in features/shell.");
-        foreach (var name in mapped.Except(inventory, StringComparer.Ordinal))
+                $"{RelativeMap} has no file for the {kind} \"{name}\". Add {id}.md in the shape {RelativeMap}/README.md describes, with its line in the index, and for a service or block a row in .agents/skills/verify-winshell/shell. Then run drive.ps1 -Id {id}.");
+        foreach (var id in mapped.Where(id => !expected.ContainsKey(id)))
             problems.Add(
-                $"features/map.json has the {kind} entry \"{name}\", which winshell does not have. Remove it, or fix its name.");
+                $"{RelativeMap}/{id}.md maps a {kind} that winshell does not have. Remove the file and its index line, or rename it to the {kind}'s <kind>.<slug>.md.");
         Assert.True(problems.Count == 0, string.Join('\n', problems));
+    }
+
+    private static List<string> FeatureIds()
+    {
+        return
+        [
+            .. Directory.EnumerateFiles(MapFolder, "*.md")
+                .Select(Path.GetFileNameWithoutExtension)
+                .OfType<string>()
+                .Where(name => name != "README")
+                .Order(StringComparer.Ordinal)
+        ];
     }
 
     private static List<string> Commands()
@@ -212,29 +154,6 @@ public sealed partial class FeatureMapTests
     {
         return SlugPattern().Replace(name.Replace('/', '-').Replace(' ', '-'), "$1-$2").ToLowerInvariant();
     }
-
-    private static List<JsonElement> Entries()
-    {
-        using var document = JsonDocument.Parse(File.ReadAllText(MapPath));
-        return [.. document.RootElement.EnumerateArray().Select(entry => entry.Clone())];
-    }
-
-    private static string Text(JsonElement entry, string property)
-    {
-        return entry.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
-            ? value.GetString()!
-            : "";
-    }
-
-    private static List<JsonElement> Array(JsonElement entry, string property)
-    {
-        return entry.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.Array
-            ? [.. value.EnumerateArray()]
-            : [];
-    }
-
-    [GeneratedRegex(@"^[a-z]+\.[a-z0-9]+(-[a-z0-9]+)*$")]
-    private static partial Regex IdPattern();
 
     [GeneratedRegex("""Widgets\.Register<\w+>\("([^"]+)"\)""")]
     private static partial Regex RegisterPattern();
