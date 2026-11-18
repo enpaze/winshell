@@ -57,6 +57,11 @@ public sealed class AppsService : ObservableObject, IDisposable
             .Select(entry => _byId[entry.Id]).ToList();
     }
 
+    public static int Score(string query, string name)
+    {
+        return AppRank.Name(query, name);
+    }
+
     public static string? ProgramDescription(string path)
     {
         try

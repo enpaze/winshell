@@ -50,6 +50,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `FallbackName(string appId)` | string, static |
 | `Find(string name)` | [AppEntry](#appentry)? |
 | `ProgramDescription(string path)` | string?, static |
+| `Score(string query, string name)` | int, static |
 | `Search(string query)` | IReadOnlyList of [AppEntry](#appentry) |
 
 ## JumpListService

@@ -93,6 +93,30 @@ An exception.
 | `Name` | string, read-only |
 | `Emit(string value = "")` | void |
 
+## Launcher
+
+Has the members of [ObservableObject](#observableobject).
+
+| Member | Type |
+| --- | --- |
+| `Launcher()` | constructor |
+| `Commands` | ImmutableArray of [LauncherCommand](#launchercommand), init |
+| `Hotkey` | string, init |
+| `Name` | string, init |
+| `Visible` | bool, read-only |
+| `Dispose()` | void |
+| `Hide()` | void |
+| `Show()` | void |
+| `Toggle()` | void |
+
+## LauncherCommand
+
+| Member | Type |
+| --- | --- |
+| `LauncherCommand(string Name, Action Run)` | constructor |
+| `Name` | string, init |
+| `Run` | Action, init |
+
 ## Log
 
 | Member | Type |

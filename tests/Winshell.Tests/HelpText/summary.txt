@@ -17,9 +17,9 @@ Usage: winshell run [options]              start a shell
        winshell ipc wait <target> <signal>
        winshell ipc listen <target> <signal>
        winshell inspect tree | screenshot <file> | record <file.mp4> --for <time>
-                        | click <name> | hover <name> | focus <name>
-                        | point <name> | leave | press <name> | scroll <name> <steps>
-                        | key <keys>
+                        | click <name> | hover <name> | type <name> <text>
+                        | focus <name> | point <name> | leave | press <name>
+                        | scroll <name> <steps> | key <keys>
                                            look at a running shell, or act on it
        winshell doctor [config options] [-j] [--no-color]
                                            check this PC's setup for Winshell

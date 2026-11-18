@@ -5,7 +5,7 @@ description: Drive a real Winshell shell on this Windows desktop with `winshell 
 
 # Verify Winshell
 
-Winshell has no shell of its own. A user writes a C# configuration, and `winshell.exe` builds it, starts it and talks to it. To see a change working, build `winshell` from this checkout, start a shell that shows the change in a private session, and drive it with `winshell inspect`. `inspect` reads the running shell from inside: `tree`, `screenshot`, `record`, `click` and `hover` need no mouse and no keyboard, and they do not move the user's pointer or focus.
+Winshell has no shell of its own. A user writes a C# configuration, and `winshell.exe` builds it, starts it and talks to it. To see a change working, build `winshell` from this checkout, start a shell that shows the change in a private session, and drive it with `winshell inspect`. `inspect` reads the running shell from inside: `tree`, `screenshot`, `record`, `click`, `hover` and `type` need no mouse and no keyboard, and they do not move the user's pointer or focus.
 
 [The feature map](features/README.md) lists every user-facing feature with the steps that prove it. Read its README before you drive anything. All the helpers below are in `scripts/`; run them from the repository root with PowerShell 7.
 
@@ -63,7 +63,7 @@ pwsh .agents/skills/verify-winshell/scripts/winshell.ps1 -Session $s inspect --p
 pwsh .agents/skills/verify-winshell/scripts/winshell.ps1 -Session $s inspect --pid <pid> record "$s\evidence\window.mp4" --for 5s FeatureWindow --frames "$s\evidence\frames"
 ```
 
-- Name elements by automation id, `x:Name` or automation name, as the feature files do. The feature shell gives each service row and building block its feature id, such as `service.audio`, and has `features.click`, `features.clicks` and `features.popup`.
+- Name elements by automation id, `x:Name` or automation name, as the feature files do. The feature shell gives each service row and building block its feature id, such as `service.audio`, and has `features.click`, `features.clicks`, `features.popup`, `features.launcher`, `features.text` and `features.typed`.
 - A `[window]` is a window's content type, such as `FeatureWindow`, `BarView` or `Surface`, or its `window` number in `tree`.
 - A name finds only elements that are not collapsed, as Narrator does. A name that matches more than one element acts on none, and the error lists each match.
 - `inspect hover` shows a control's hover look only. A `PointerEntered` handler needs a real pointer.

@@ -29,6 +29,8 @@ public sealed class FeatureShell : ShellConfiguration
         idle.Timeout = 600;
         idle.Enabled = true;
         var jumpList = shell.JumpLists.ForApp("Microsoft.Windows.Explorer");
+        var launcher = new Launcher { Hotkey = "Ctrl+Alt+Shift+F14" };
+        var launched = new Launched(shell, launcher);
 
         var floating = new FloatingWindow { Title = "Winshell features", Width = 460, Height = 760 };
         var panel = new PanelWindow
@@ -49,7 +51,9 @@ public sealed class FeatureShell : ShellConfiguration
         }
 
         floating.Content = Host(() => new FeatureWindow(),
-            new FeatureWindowProps(Rows.Services(shell, hotkey, idle, jumpList), Rows.Window("block.floating-window", floating), OpenPopup));
+            new FeatureWindowProps(
+                [Rows.Launcher(launched), .. Rows.Services(shell, hotkey, idle, jumpList)],
+                Rows.Window("block.floating-window", floating), OpenPopup, launcher.Show));
         panel.Visible = true;
         floating.Visible = true;
     }

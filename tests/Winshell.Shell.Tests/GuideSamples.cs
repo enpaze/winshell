@@ -75,6 +75,20 @@ public static class GuideSamples
         return (bar, side);
     }
 
+    public static Launcher ALauncher(Shell shell)
+    {
+        var launcher = new Launcher
+        {
+            Hotkey = "Alt+Space",
+            Commands =
+            [
+                new("Lock", () => shell.Session.Lock()),
+                new("Reload shell", () => shell.Reload())
+            ]
+        };
+        return launcher;
+    }
+
     public static PanelWindow ASurface()
     {
         var host = new ReactorHostControl { ComponentFactory = () => new Dock() };

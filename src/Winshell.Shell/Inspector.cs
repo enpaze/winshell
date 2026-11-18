@@ -31,6 +31,8 @@ internal static class Inspector
             "tree" => Tree(shell),
             "screenshot" when args.Count > 0 => await Screenshot(Shown(shell, window), args[0], shell.IsDark),
             "click" when args.Count > 0 => Click(Find(shell, command, args[0], window), args[0]),
+            "type" when args.Count > 1 => Type(Find(shell, command, args[0], (string[])[.. args.Skip(2)]), args[0],
+                args[1]),
             "hover" when args.Count > 0 => Hover(Find(shell, command, args[0], window), args[0]),
             "record" => RecordTarget(shell, args),
             "focus" when args.Count > 0 => await shell.Input.Focus(Find(shell, command, args[0], window), args[0]),
@@ -319,6 +321,16 @@ internal static class Inspector
         }
 
         return $"Clicked {name}";
+    }
+
+    private static string Type(FrameworkElement element, string name, string text)
+    {
+        if (element is not TextBox box)
+            throw new IpcException($"{name} is a {element.GetType().Name}, which takes no text.");
+        if (box.IsReadOnly || !box.IsEnabled)
+            throw new IpcException($"{name} is {(box.IsReadOnly ? "read-only" : "disabled")}, so it takes no text.");
+        box.Text = text;
+        return $"Typed into {name}";
     }
 
     private static string Hover(FrameworkElement element, string name)

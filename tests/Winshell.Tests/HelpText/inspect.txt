@@ -10,6 +10,7 @@ winshell inspect [-i <id> | --pid <pid> | -c <name> | -p <path>] <command>
                                   milliseconds, and contact-sheet.png of them all
   click <name> [window]           activate an element, as Narrator does
   hover <name> [window]           put a control in its pointer look
+  type <name> <text> [window]     replace the text in a text box
   Real input, which sends nothing while the PC is in use, no mouse event
   where another window is on top, and puts the cursor back:
   focus <name> [window]           press Tab until keyboard focus is on the element

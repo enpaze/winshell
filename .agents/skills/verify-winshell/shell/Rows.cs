@@ -31,6 +31,11 @@ internal static class Rows
         return new RowProps(id, window, () => $"{kind}: {Size(window.ActualWidth)}x{Size(window.ActualHeight)}");
     }
 
+    public static RowProps Launcher(Launched launched)
+    {
+        return new RowProps("block.launcher", launched, () => launched.Text);
+    }
+
     public static RowProps[] Services(Shell shell, Hotkey hotkey, IdleMonitor idle, AppJumpList jumpList)
     {
         return

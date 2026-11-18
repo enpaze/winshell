@@ -40,9 +40,9 @@ internal static class InspectCommand
         Name = "inspect",
         Overview = """
                           winshell inspect tree | screenshot <file> | record <file.mp4> --for <time>
-                                           | click <name> | hover <name> | focus <name>
-                                           | point <name> | leave | press <name> | scroll <name> <steps>
-                                           | key <keys>
+                                           | click <name> | hover <name> | type <name> <text>
+                                           | focus <name> | point <name> | leave | press <name>
+                                           | scroll <name> <steps> | key <keys>
                                                               look at a running shell, or act on it
                    """,
         Usage = """
@@ -58,6 +58,7 @@ internal static class InspectCommand
                                                   milliseconds, and contact-sheet.png of them all
                   click <name> [window]           activate an element, as Narrator does
                   hover <name> [window]           put a control in its pointer look
+                  type <name> <text> [window]     replace the text in a text box
                   Real input, which sends nothing while the PC is in use, no mouse event
                   where another window is on top, and puts the cursor back:
                   focus <name> [window]           press Tab until keyboard focus is on the element
@@ -81,6 +82,7 @@ internal static class InspectCommand
             Record,
             new CommandEntry { Name = "click", MinWords = 1, Missing = "a name" },
             new CommandEntry { Name = "hover", MinWords = 1, Missing = "a name" },
+            new CommandEntry { Name = "type", MinWords = 2, Missing = "a name and the text" },
             new CommandEntry { Name = "focus", MinWords = 1, Missing = "a name" },
             new CommandEntry { Name = "point", MinWords = 1, Missing = "a name" },
             new CommandEntry { Name = "leave" },
