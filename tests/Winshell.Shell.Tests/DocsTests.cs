@@ -68,6 +68,16 @@ public sealed class DocsTests
             $"Out of date in docs/reference: {string.Join(", ", stale)}. Run: dotnet run scripts/generate-reference.cs");
     }
 
+    [Fact]
+    public void The_reference_keeps_a_ref_parameter_s_modifier()
+    {
+        var folder = Path.Combine(Repo, "docs", "reference");
+        var page = ReferencePages.Generate(folder)["winshell.md"];
+
+        Assert.Contains("| `Set<T>(ref T? field, T? value, string property = \"\")` | bool, protected |", page,
+            StringComparison.Ordinal);
+    }
+
     private static IEnumerable<(string File, int Line, string Code)> Examples()
     {
         foreach (var file in Pages())

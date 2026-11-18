@@ -102,19 +102,20 @@ internal static class ReferencePages
             var winui = baseType.Namespace?.StartsWith("Microsoft.UI", StringComparison.Ordinal) == true
                 ? "WinUI "
                 : "";
-            return $"A {winui}{baseType.Name}. The members here are the ones Winshell adds.";
+            return $"A {winui}{Bare(baseType.Name)}. The members here are the ones Winshell adds.";
         }
 
         private IEnumerable<(string Cell, string Kind)> Rows(Type type)
         {
             foreach (var ctor in type.GetConstructors(Declared).OrderBy(ctor => ctor.GetParameters().Length))
                 yield return ($"{type.Name}({Parameters(ctor)})", "constructor");
-            foreach (var property in type.GetProperties(Declared).Where(member => !Skip(member))
+            foreach (var property in type.GetProperties(Declared | BindingFlags.NonPublic)
+                         .Where(member => !Skip(member) && Shown(member.GetMethod ?? member.SetMethod!))
                          .OrderBy(member => member.Name, StringComparer.Ordinal))
             {
                 var accessor = property.GetMethod ?? property.SetMethod!;
                 var kind = Name(property.PropertyType, _nullability.Create(property).ReadState) +
-                           (accessor.IsStatic ? ", static" : "");
+                           (accessor.IsStatic ? ", static" : "") + (accessor.IsPublic ? "" : ", protected");
                 if (property.SetMethod is not { IsPublic: true } setter)
                     kind += ", read-only";
                 else if (setter.ReturnParameter.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit)))
@@ -133,8 +134,8 @@ internal static class ReferencePages
             foreach (var evt in type.GetEvents(Declared).Where(member => !Skip(member))
                          .OrderBy(member => member.Name, StringComparer.Ordinal))
                 yield return (evt.Name, Name(evt.EventHandlerType!));
-            var methods = type.GetMethods(Declared)
-                .Where(method => !method.IsSpecialName && !Skip(method))
+            var methods = type.GetMethods(Declared | BindingFlags.NonPublic)
+                .Where(method => !method.IsSpecialName && !Skip(method) && Shown(method))
                 .OrderBy(method => method.Name, StringComparer.Ordinal)
                 .ThenBy(method => method.GetParameters().Length);
             foreach (var method in methods)
@@ -143,7 +144,7 @@ internal static class ReferencePages
                     ? "<" + string.Join(", ", method.GetGenericArguments().Select(t => t.Name)) + ">"
                     : "";
                 var kind = Name(method.ReturnType, _nullability.Create(method.ReturnParameter).ReadState) +
-                           (method.IsStatic ? ", static" : "");
+                           (method.IsStatic ? ", static" : "") + (method.IsPublic ? "" : ", protected");
                 yield return ($"{method.Name}{generic}({Parameters(method)})", kind);
             }
         }
@@ -152,8 +153,15 @@ internal static class ReferencePages
         {
             return string.Join(", ", method.GetParameters().Select(parameter =>
             {
+                var modifier = parameter switch
+                {
+                    { IsOut: true } => "out ",
+                    { IsIn: true } => "in ",
+                    { ParameterType.IsByRef: true } => "ref ",
+                    _ => ""
+                };
                 var text =
-                    $"{Name(parameter.ParameterType, _nullability.Create(parameter).ReadState)} {parameter.Name}";
+                    $"{modifier}{Name(parameter.ParameterType, _nullability.Create(parameter).ReadState)} {parameter.Name}";
                 return parameter.HasDefaultValue ? $"{text} = {Literal(parameter)}" : text;
             }));
         }
@@ -226,6 +234,9 @@ internal static class ReferencePages
         var tick = name.IndexOf('`', StringComparison.Ordinal);
         return tick < 0 ? name : name[..tick];
     }
+
+    private static bool Shown(MethodInfo method) =>
+        method.IsPublic || (method.IsFamily || method.IsFamilyOrAssembly) && method.GetBaseDefinition() == method;
 
     private static bool Skip(MemberInfo member)
     {

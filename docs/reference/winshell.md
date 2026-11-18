@@ -155,6 +155,10 @@ Has the members of [ObservableObject](#observableobject).
 | Member | Type |
 | --- | --- |
 | `PropertyChanged` | PropertyChangedEventHandler |
+| `Changed(string property = "")` | void, protected |
+| `Changed(bool changed, string property)` | void, protected |
+| `Read<T>(T? value, string property = "")` | T?, protected |
+| `Set<T>(ref T? field, T? value, string property = "")` | bool, protected |
 
 ## PanelWindow
 
@@ -376,7 +380,7 @@ Has the members of [ObservableObject](#observableobject).
 
 ## Surface
 
-A WinUI Component`1. The members here are the ones Winshell adds.
+A WinUI Component. The members here are the ones Winshell adds.
 
 | Member | Type |
 | --- | --- |
@@ -411,7 +415,7 @@ An exception.
 
 ## WidgetArea
 
-A WinUI Component`1. The members here are the ones Winshell adds.
+A WinUI Component. The members here are the ones Winshell adds.
 
 | Member | Type |
 | --- | --- |
