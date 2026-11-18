@@ -97,6 +97,16 @@ function Get-ShellInstance([string] $Folder) {
         Select-Object -First 1
 }
 
+function Wait-ShellInstance([string] $Folder, [double] $Seconds) {
+    $deadline = [DateTime]::UtcNow.AddSeconds($Seconds)
+    do {
+        if ($instance = Get-ShellInstance $Folder) { return $instance }
+        if (@(Get-ShellProcesses).Count -eq 0) { return $null }
+        Start-Sleep -Milliseconds 500
+    } while ([DateTime]::UtcNow -lt $deadline)
+    $null
+}
+
 function Start-Shell([string] $Folder) {
     $result = Invoke-Winshell @('run', '-d', '-p', $Folder)
     if ($result.Exit -ne 0) { throw "winshell run -d -p $Folder exited with $($result.Exit): $($result.Text)" }
@@ -104,7 +114,7 @@ function Start-Shell([string] $Folder) {
     while ([DateTime]::UtcNow -lt $deadline) {
         if ($instance = Get-ShellInstance $Folder) {
             $tree = Invoke-Winshell @('inspect', '--pid', [string] $instance.pid, 'tree') ([TimeSpan]::FromSeconds(30))
-            $windows = if ($tree.Exit -eq 0) { @($tree.Text | ConvertFrom-Json -Depth 1024) } else { @() }
+            $windows = @(if ($tree.Exit -eq 0) { $tree.Text | ConvertFrom-Json -Depth 1024 })
             $empty = @($windows | Where-Object { -not (Get-Field (Get-Field $_ 'content') 'children') })
             if ($windows.Count -gt 0 -and $empty.Count -eq 0) { return $instance }
         }
@@ -116,7 +126,8 @@ function Start-Shell([string] $Folder) {
 function Get-ShellProcesses {
     @(Get-Process | Where-Object {
             $path = try { $_.Path } catch { $null }
-            $path -and $path.StartsWith($script:Config, [StringComparison]::OrdinalIgnoreCase)
+            $path -and ($path.StartsWith($script:Config, [StringComparison]::OrdinalIgnoreCase) -or
+                ($path -eq $script:Exe -and $_.Id -ne $PID))
         })
 }
 
@@ -290,7 +301,7 @@ function Invoke-Feature($Feature, [string] $Folder, [string] $Scratch) {
         $isElement = $null -ne (Get-Field $step 'element')
         $usesPid = $isElement -or ($step | ConvertTo-Json -Depth 8 -Compress).Contains('{pid}')
         if ($usesPid -and $Folder) {
-            $instance = Get-ShellInstance $Folder
+            $instance = Wait-ShellInstance $Folder 30
             if (-not $instance) { $instance = Start-Shell $Folder }
             $values.pid = [string] $instance.pid
         }
