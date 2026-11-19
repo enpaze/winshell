@@ -308,7 +308,7 @@ public sealed class BarTests
                 var bars = BarsOn(shell, screen);
                 var followsBar = Assert.Single(bars, window => window is { Edge: Edge.Top, Align: PanelAlign.Stretch });
                 Assert.Equal(32, followsBar.Height);
-                var ownBar = Assert.Single(bars, window => window.Edge == Edge.Bottom);
+                var ownBar = Assert.Single(bars, window => window is { Edge: Edge.Bottom, Align: PanelAlign.Stretch });
                 Assert.Equal(40, ownBar.Height);
                 await ShellFixture.LaidOut(Assert.IsType<ReactorHostControl>(ownBar.Content)).WaitAsync(TestContext.Current.CancellationToken);
                 Assert.Equal(global::Windows.UI.Color.FromArgb(0xff, 0x1a, 0x1b, 0x26), BackgroundOf(ownBar.Content!));
