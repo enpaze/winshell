@@ -126,7 +126,7 @@ winshell run --path .
 
 ## Where a shell lives
 
-A shell is a .NET project. Winshell looks for a `.csproj` in this order. With none, `winshell run` starts nothing and says nothing.
+A shell is a .NET project. Winshell looks for a `.csproj` in this order. With none, `winshell run` starts nothing: in a console it says so and points to `winshell new`, and the Start tile and the sign-in entry say nothing.
 
 | What you run | The project it builds and runs |
 | --- | --- |

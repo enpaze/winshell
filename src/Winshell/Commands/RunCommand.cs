@@ -15,7 +15,8 @@ internal static class RunCommand
         Usage = """
                 winshell run [-s <name> | -p <path>] [-d] [-n] [--no-build] [-- <args>...]
                   Starts a shell project's program, built first when a source is newer than its
-                  program. With no project, nothing starts. A shell already running is asked to quit
+                  program. With no project, it says how to make one and exits 1; a start with no
+                  console window exits 0 and says nothing. A shell already running is asked to quit
                   first, and one that does not quit stays: the start says why and exits 1.
                   -d, --daemonize        run in the background
                   -n, --no-duplicate     exit quietly if this shell is already running
@@ -72,7 +73,7 @@ internal static class RunCommand
         }
 
         if (project is null)
-            return 0;
+            return NoProject();
         if (parsed.IsSet(CliFlags.NoDuplicate) &&
             project.InstancesOf(ShellProjectBuild.Run,
                 ShellLocations.Current.Instances.Running()).Any())
@@ -91,6 +92,15 @@ internal static class RunCommand
         foreach (var a in CommandLine.ProgramArguments(parsed.IsSet(CliFlags.NoDuplicate), parsed.Verbose, parsed.Rest))
             program.ArgumentList.Add(a);
         return Supervise(program, project);
+    }
+
+    private static int NoProject()
+    {
+        if (StartupError.Unread())
+            return 0;
+        Console.Error.WriteLine(
+            $"No shell project in {ShellLocations.Current.ShellsRoot}, so nothing started. Run winshell new to make one.");
+        return 1;
     }
 
     private static int Detach(IEnumerable<string> childArgs)

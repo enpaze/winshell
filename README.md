@@ -23,7 +23,7 @@ winshell run -s starter     # build it and run it
 winshell kill               # stop it
 ```
 
-`winshell new <name>` copies any of the examples the same way. The starter is a bar with a clock and a battery, and the [guide](docs/guide.md) begins by reading it file by file. Until there is a shell, `winshell run` starts nothing.
+`winshell new <name>` copies any of the examples the same way. The starter is a bar with a clock and a battery, and the [guide](docs/guide.md) begins by reading it file by file. Until there is a shell, `winshell run` says so and points to `winshell new`.
 
 If something goes wrong, run `winshell doctor` or read [troubleshooting](docs/troubleshooting.md).
 

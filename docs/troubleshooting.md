@@ -15,6 +15,7 @@ Logs are in `%LOCALAPPDATA%\winshell\run\<instance id>\log.txt`. A shell that ex
 
 | It says | What to do |
 | --- | --- |
+| `No shell project in <folder>, so nothing started. Run winshell new to make one.` | There is no shell, so there is nothing to run. Make one with `winshell new`, as the [guide](guide.md#create-one) shows. |
 | `No .csproj at <path>.` | `--path` names a folder without a `.csproj`, or a file that isn't there. |
 | `No shell named "<name>" in <folder>.` | `--shell` names a folder of the shells folder that has no project. |
 | `Several shells in <folder>; pick one with -s: …` | The shells folder has no project of its own and several subfolders with one. Run `winshell run -s <name>`. |
@@ -23,7 +24,7 @@ Logs are in `%LOCALAPPDATA%\winshell\run\<instance id>\log.txt`. A shell that ex
 | `<name> did not build.` and `NU1101: Unable to find package Winshell` | The `Winshell` package is not published yet. Pack it and add a package source for it, as [Create one](guide.md#create-one) shows. |
 | `<name> has not been built. Run winshell run once to build it.` | `--no-build` found no program in `bin\shell`. |
 | `Building a shell needs the .NET SDK…` | A build needs the SDK. `--no-build` of a program that is already built does not. |
-| Nothing, and it exits at once | There is no shell, so there is nothing to run: make one as the [guide](guide.md#create-one) shows. Or `--no-duplicate` found this shell name already running, or a second start overlapped the first. `winshell list` shows the one that is running. |
+| Nothing, and it exits at once | `--no-duplicate` found this shell name already running, or a second start overlapped the first. `winshell list` shows the one that is running. |
 | `This shell is Winshell … and this winshell is …` | The CLI and the shell are different releases. Use the `winshell` that matches, or build the shell with this one. `kill` still works. |
 | `Unknown command "<name>". Run winshell --help.` | The first word isn't a command. Options start with `-`. |
 
@@ -31,7 +32,7 @@ Logs are in `%LOCALAPPDATA%\winshell\run\<instance id>\log.txt`. A shell that ex
 
 Those starts have no console window, so a Winshell that cannot start shows a dialog with the same text. **Open shell folder** opens the folder the message is about. A console, including `winshell run -d` from a terminal, prints the text and shows no dialog.
 
-Nothing in the dialog and nothing on screen means the shell is already running (`--no-duplicate`), or it started and the failure is in the log.
+No dialog and nothing on screen means there is no shell project, the shell is already running (`--no-duplicate`), or it started and the failure is in the log. `winshell run` in a terminal says which.
 
 ## The build failed
 

@@ -15,11 +15,16 @@ internal static class StartupError
         {
         }
 
-        if (NeedsDialog(ProcessConsole.Window(), ProcessConsole.Target(StandardStream.Error)))
+        if (Unread())
             Dialog(message, folder);
     }
 
-    internal static bool NeedsDialog(nint consoleWindow, StreamTarget stderr)
+    internal static bool Unread()
+    {
+        return Unread(ProcessConsole.Window(), ProcessConsole.Target(StandardStream.Error));
+    }
+
+    internal static bool Unread(nint consoleWindow, StreamTarget stderr)
     {
         return consoleWindow == 0 && stderr is not (StreamTarget.File or StreamTarget.Pipe);
     }
