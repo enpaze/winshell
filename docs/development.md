@@ -245,6 +245,7 @@ It checks:
 - that every file a release uploads is there, and that the checksums match
 - the library in each zip and Store package: that version and no other
 - the architecture of each zip's binaries
+- that each zip's `Winshell*.dll` files are all on the SignPath artifact configuration, and that no zip carries `Winshell.Generators.dll`
 - the version the x64 `winshell.exe` reports
 - that every `winshell doctor` check runs from the x64 zip
 - the manifests, against the validator the pinned `wingetcreate` uses, downloaded from NuGet into `artifacts/tools/`

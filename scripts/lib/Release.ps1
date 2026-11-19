@@ -137,6 +137,17 @@ function Assert-WinshellPackage([string] $Dir, [string] $Version, [string] $What
     }
 }
 
+function Assert-WinshellSigned([string] $Dir, [string[]] $Signed, [string] $What) {
+    $carried = @(Get-ChildItem -LiteralPath $Dir -Recurse -File -Filter 'Winshell*.dll' | ForEach-Object { [IO.Path]::GetRelativePath($Dir, $_.FullName).Replace('\', '/') })
+    if ($carried -contains 'Winshell.Generators.dll') {
+        throw "$What carries Winshell.Generators.dll, an analyzer only the package ships. Reference it with OutputItemType=`"Analyzer`" ReferenceOutputAssembly=`"false`"."
+    }
+    $unsigned = @($carried | Where-Object { $Signed -cnotcontains $_ })
+    if ($unsigned) {
+        throw "$What carries $($unsigned -join ', ') unsigned. Add each to packaging/signpath/artifact-configuration.xml for every runtime."
+    }
+}
+
 function New-Zip([string] $dir, [string] $zip, [datetime] $day) {
     if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
     $paths = [Collections.Generic.Dictionary[string, string]]::new([StringComparer]::Ordinal)

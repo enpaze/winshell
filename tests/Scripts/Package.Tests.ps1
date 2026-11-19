@@ -1,58 +1,47 @@
 Describe 'The binaries Winshell signs' {
     BeforeAll {
-        function script:Get-RuntimeAssembly([string] $Project) {
-            $assemblies = @{}
-            $pending = [Collections.Generic.Queue[string]]::new()
-            $pending.Enqueue([IO.Path]::GetFullPath($Project))
-            while ($pending.Count -gt 0) {
-                $path = $pending.Dequeue()
-                if ($assemblies.ContainsKey($path)) { continue }
-                [xml] $xml = Get-Content -Raw -LiteralPath $path
-                $name = $xml.SelectSingleNode('/Project/PropertyGroup/AssemblyName')
-                $assemblies[$path] = ($name ? $name.InnerText : [IO.Path]::GetFileNameWithoutExtension($path)) + '.dll'
-                foreach ($reference in $xml.SelectNodes('/Project/ItemGroup/ProjectReference')) {
-                    if ($reference.GetAttribute('ReferenceOutputAssembly') -ne 'false') {
-                        $pending.Enqueue([IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $path) $reference.GetAttribute('Include'))))
-                    }
-                }
-            }
-            $assemblies.Values | Sort-Object
-        }
-
-        $script:RuntimeProject = Join-Path $PSScriptRoot '../../src/Winshell/Winshell.csproj'
-    }
-
-    It 'are the same for each runtime in SignPath''s artifact configuration, and include every assembly the runtime zip carries from src' {
+        . (Join-Path $PSScriptRoot '../../scripts/lib/Release.ps1')
         [xml] $config = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../packaging/signpath/artifact-configuration.xml')
-        $runtimes = $config.'artifact-configuration'.'zip-file'.'pe-file-set'.include.path | Group-Object { ($_ -split '/')[0] }
-        $assemblies = Get-RuntimeAssembly $script:RuntimeProject
+        $script:Runtimes = $config.'artifact-configuration'.'zip-file'.'pe-file-set'.include.path | Group-Object { ($_ -split '/')[0] }
 
-        $runtimes.Name | Sort-Object | Should -Be 'win-arm64', 'win-x64'
-        $binaries = $runtimes[0].Group | ForEach-Object { ($_ -split '/')[1] } | Sort-Object
-        $runtimes[1].Group | ForEach-Object { ($_ -split '/')[1] } | Sort-Object | Should -Be $binaries
-        $assemblies | Should -Be ('winshell.dll', 'Winshell.Native.dll', 'Winshell.Core.dll', 'Winshell.Services.dll', 'Winshell.Shell.dll' | Sort-Object)
-        foreach ($assembly in $assemblies) { $binaries | Should -Contain $assembly }
-    }
-
-    It 'leave out the preference generator, which the runtime zip does not carry' {
-        Test-Path -LiteralPath (Join-Path $PSScriptRoot '../../src/Winshell.Generators/Winshell.Generators.csproj') | Should -BeTrue
-
-        Get-RuntimeAssembly $script:RuntimeProject | Should -Not -Contain 'Winshell.Generators.dll'
-    }
-
-    It 'count a Roslyn component referenced for its assembly, and skip a project referenced only as an analyzer' {
-        $files = @{
-            'App/App.csproj' = '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../Component/Component.csproj" /><ProjectReference Include="../Analyzer/Analyzer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" /></ItemGroup></Project>'
-            'Component/Component.csproj' = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><IsRoslynComponent>true</IsRoslynComponent></PropertyGroup></Project>'
-            'Analyzer/Analyzer.csproj' = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><IsRoslynComponent>true</IsRoslynComponent></PropertyGroup></Project>'
-        }
-        foreach ($file in $files.GetEnumerator()) {
-            $path = Join-Path $TestDrive $file.Key
-            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $path) | Out-Null
-            Set-Content -LiteralPath $path -Value $file.Value
+        function script:New-Payload([string[]] $Files) {
+            $dir = Join-Path $TestDrive ([guid]::NewGuid())
+            foreach ($file in $Files) { New-Item -ItemType File -Force -Path (Join-Path $dir $file) | Out-Null }
+            $dir
         }
 
-        Get-RuntimeAssembly (Join-Path $TestDrive 'App/App.csproj') | Should -Be 'App.dll', 'Component.dll'
+        function script:Get-Signed([string] $Runtime) {
+            ($script:Runtimes | Where-Object Name -EQ $Runtime).Group | ForEach-Object { $_.Substring($Runtime.Length + 1) }
+        }
+    }
+
+    It 'are the same for each runtime in SignPath''s artifact configuration' {
+        $script:Runtimes.Name | Sort-Object | Should -Be 'win-arm64', 'win-x64'
+        Get-Signed 'win-arm64' | Sort-Object | Should -Be (Get-Signed 'win-x64' | Sort-Object)
+    }
+
+    It 'cover every Winshell assembly a <_> payload carries' -ForEach 'win-x64', 'win-arm64' {
+        $signed = Get-Signed $_
+        $payload = New-Payload ($signed + 'coreclr.dll', 'Microsoft.UI.Xaml.dll', 'Winshell.Shell.pdb', 'Winshell.Shell.pri')
+
+        { Assert-WinshellSigned $payload $signed 'the zip' } | Should -Not -Throw
+    }
+
+    It 'stop a payload that carries <File> unsigned' -ForEach @(
+        @{ File = 'Winshell.Extra.dll' }
+        @{ File = 'en-US/Winshell.Shell.resources.dll' }
+    ) {
+        $signed = Get-Signed 'win-x64'
+        $payload = New-Payload ($signed + $File)
+
+        { Assert-WinshellSigned $payload $signed 'the zip' } | Should -Throw "the zip carries $File unsigned.*"
+    }
+
+    It 'stop a payload that carries the preference generator, even when it is on the signing list' {
+        $signed = @(Get-Signed 'win-x64') + 'Winshell.Generators.dll'
+        $payload = New-Payload $signed
+
+        { Assert-WinshellSigned $payload $signed 'the zip' } | Should -Throw 'the zip carries Winshell.Generators.dll, an analyzer only the package ships.*'
     }
 }
 
