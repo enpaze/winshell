@@ -169,8 +169,19 @@ public abstract class ShellWindow : ObservableObject, IShellPart
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (_started)
             return;
+        try
+        {
+            ShowOrHide();
+        }
+        catch
+        {
+            var host = _host;
+            _host = null;
+            host?.Dispose();
+            throw;
+        }
+
         _started = true;
-        ShowOrHide();
     }
 
     private void ShowOrHide()

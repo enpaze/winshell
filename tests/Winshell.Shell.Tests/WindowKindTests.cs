@@ -40,6 +40,25 @@ public sealed class WindowKindTests
     }
 
     [Fact]
+    public async Task A_window_whose_add_failed_leaves_no_window_behind_and_shows_when_it_is_added_again()
+    {
+        var (hostAfterFailure, shownAfterRetry) = await ShellFixture.On(shell =>
+        {
+            var taken = new Grid();
+            new Grid().Children.Add(taken);
+            using var panel = new PanelWindow { Anchors = Edges.Top | Edges.Left, Width = 200, Height = 48, Content = taken };
+            Assert.ThrowsAny<Exception>(() => shell.Add(panel));
+            var host = panel.Host is not null;
+            panel.Content = new Grid();
+            shell.Add(panel);
+            return (host, panel.Host?.Place.IsVisible ?? false);
+        });
+
+        Assert.False(hostAfterFailure);
+        Assert.True(shownAfterRetry);
+    }
+
+    [Fact]
     public async Task A_popup_sits_where_it_was_asked()
     {
         var rect = await ShellFixture.On(async shell =>
