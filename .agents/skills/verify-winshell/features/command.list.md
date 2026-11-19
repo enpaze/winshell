@@ -20,10 +20,12 @@ Preconditions:
 
 - Shell: `features`.
 
+- **List as text.** List the running shells. Run `winshell list`. It exits with 0, and under the feature shell's process id it prints its shell name, `features`, the folder it was copied into, and its program, `FeatureShell.exe` in `bin\shell`.
 - **List as JSON.** List the running shells as JSON. Run `winshell list -j`. It exits with 0, and one object has the feature shell's process id as its `pid` (`"pid": {pid},`).
 
 ```json
 [
+  {"winshell": ["list"], "output": "^  Process ID: {pid}\\r?\\n  Shell name: features\\r?\\n  Program: .*\\\\features\\\\bin\\\\shell[^\\\\]*\\\\FeatureShell\\.exe\\r?$"},
   {"winshell": ["list", "-j"], "output": "\"pid\": {pid},"}
 ]
 ```

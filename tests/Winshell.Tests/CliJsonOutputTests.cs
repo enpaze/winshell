@@ -48,6 +48,24 @@ public sealed partial class CliJsonOutputTests : IDisposable, IClassFixture<Prob
         Assert.Equal("string", parameter.GetProperty("type").GetString());
     }
 
+    [Fact]
+    public void List_prints_the_shell_name_and_program_of_each_running_instance()
+    {
+        Directory.CreateDirectory(Local);
+        Directory.CreateDirectory(Path.Combine(_dir, "config"));
+        var process = _started = ProbeShell.Start(Path.Combine(_dir, "config"), Local);
+
+        var list = Run("list");
+
+        list.AssertExitCode(0);
+        var lines = list.Output.ReplaceLineEndings("\n").Split('\n');
+        var pid = Array.IndexOf(lines, $"  Process ID: {process.Id}");
+        Assert.True(pid > 0, list.Output);
+        Assert.StartsWith("Instance ", lines[pid - 1], StringComparison.Ordinal);
+        Assert.Equal("  Shell name: probe", lines[pid + 1]);
+        Assert.Equal($"  Program: {Path.GetFullPath(ProbeShell.Program)}", lines[pid + 2], ignoreCase: true);
+    }
+
     private ChildProcess Run(params string[] args)
     {
 #pragma warning disable CsWinRT1030
