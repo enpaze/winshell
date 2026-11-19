@@ -233,6 +233,23 @@ public class PanelPlacerDecisionTests
     }
 
     [Fact]
+    public void A_panel_that_covers_its_screen_keeps_its_margins()
+    {
+        var desktop = new Desktop();
+        var placer = Shown(desktop);
+
+        placer.Set(Panel(Edge.Bottom, PanelAlign.End, Scaled.Id, covers: true) with
+        {
+            MarginLeft = 8,
+            MarginTop = 16,
+            MarginRight = 24,
+            MarginBottom = 32
+        });
+
+        Assert.Equal(new RECT(16, 32, 1920 - 48, 1080 - 64), desktop.Moved);
+    }
+
+    [Fact]
     public void A_panel_that_does_not_reserve_uses_the_work_area_and_a_hidden_one_reserves_nothing()
     {
         var desktop = new Desktop();

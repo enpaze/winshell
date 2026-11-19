@@ -9,7 +9,7 @@ A `PanelWindow` is a frameless window that sits on one edge of a screen, such as
 - `reserve` reserves the panel's thickness along its edge with `Reserve = true`, so maximized windows stop short of it: its `Height` on the top or bottom edge, its `Width` on the left or right.
 - `above-windows` keeps the panel above other windows, or behind them with `AboveWindows = false`.
 - `screen` places the panel on the `Screen` it is given, or on the primary screen.
-- `covers-screen` fills the whole screen, not only the work area, with `CoversScreen`.
+- `covers-screen` covers the screen inside its `Margins`, not only the work area, with `CoversScreen`.
 - `margins` keeps `Margins` between the panel and the screen's sides.
 - `focusable` lets the panel take the keyboard with `Focusable`.
 - `per-screen` keeps one panel on each screen with `ScreenWindows`.
