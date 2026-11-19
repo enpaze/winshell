@@ -25,7 +25,7 @@ Logs are in `%LOCALAPPDATA%\winshell\run\<instance id>\log.txt`. A shell that ex
 | `<name> has not been built. Run winshell run once to build it.` | `--no-build` found no program in `bin\shell`. |
 | `Building a shell needs the .NET SDK…` | A build needs the SDK. `--no-build` of a program that is already built does not. |
 | Nothing, and it exits at once | `--no-duplicate` found this shell name already running, or a second start overlapped the first. `winshell list` shows the one that is running. |
-| `This shell is Winshell … and this winshell is …` | The CLI and the shell are different releases. Use the `winshell` that matches, or build the shell with this one. `kill` still works. |
+| `This shell is Winshell … and this winshell is …` | The CLI and the shell are different releases. Use the `winshell` that matches, or build the shell with this one. `stop` still works. |
 | `Unknown command "<name>". Run winshell --help.` | The first word isn't a command. Options start with `-`. |
 
 ### Started from Start or at sign-in
@@ -48,15 +48,15 @@ A notice says the shell did not build, with the compiler's lines:
 
 Winshell does not hide or replace Explorer's taskbar unless your shell does, and it never restarts Explorer. A panel that reserves the bottom of the screen stacks with Explorer's taskbar. To leave Explorer's taskbar where it is and only get it out of the way, turn on **Automatically hide the taskbar** in Windows Settings > Personalization > Taskbar.
 
-To make your shell the only bar, set `shell.ExplorerTaskbar.Hidden = true`. Winshell then hides Explorer's taskbar window and releases the screen edge it reserved. It puts both back when it exits: quitting, Ctrl+C, `winshell kill`, or a crash. A shell that is replaced leaves the taskbar hidden for the next shell, which puts it back when that one exits. A crash that skips Winshell's own exit is caught by `winshell run`, which [puts the taskbar back](reference/command-line.md#crashes) and starts the shell again.
+To make your shell the only bar, set `shell.ExplorerTaskbar.Hidden = true`. Winshell then hides Explorer's taskbar window and releases the screen edge it reserved. It puts both back when it exits: quitting, Ctrl+C, `winshell stop`, or a crash. A shell that is replaced leaves the taskbar hidden for the next shell, which puts it back when that one exits. A crash that skips Winshell's own exit is caught by `winshell run`, which [puts the taskbar back](reference/command-line.md#crashes) and starts the shell again.
 
 Windows keeps a few hotkeys for its own taskbar while Explorer runs, such as `Win+T`, `Win+S`, `Win+A`, `Win+N`, and `Win+1` through `Win+9`.
 
 ## Explorer's taskbar is missing
 
-A shell that set `ExplorerTaskbar.Hidden` hid it. While that shell is still running, quit it with `winshell kill`. It puts Explorer's taskbar window back and reserves its edge again.
+A shell that set `ExplorerTaskbar.Hidden` hid it. While that shell is still running, quit it with `winshell stop`. It puts Explorer's taskbar window back and reserves its edge again.
 
-When only the shell ends, `winshell run` puts the taskbar back, for example after a native crash such as a stack overflow or `winshell kill --force`.
+When only the shell ends, `winshell run` puts the taskbar back, for example after a native crash such as a stack overflow or `winshell stop --force`.
 
 The window stays hidden, and the edge stays released, when nothing is left to do that:
 

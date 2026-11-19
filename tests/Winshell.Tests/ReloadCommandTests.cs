@@ -310,7 +310,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         foreach (var row in rows)
             try
             {
-                Run("kill", "--force", "--pid",
+                Run("stop", "--force", "--pid",
                     row.GetProperty("pid").GetInt32().ToString(CultureInfo.InvariantCulture));
             }
             catch (XunitException)

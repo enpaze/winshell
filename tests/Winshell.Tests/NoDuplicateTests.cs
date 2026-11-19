@@ -172,7 +172,7 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
             {
                 if (!process.HasExited)
                 {
-                    Run("kill", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
+                    Run("stop", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
                     if (!process.WaitForExit(8_000))
                         process.Kill(true);
                 }

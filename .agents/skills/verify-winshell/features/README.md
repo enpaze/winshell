@@ -27,7 +27,7 @@ The driver copies each shell into the session's shells folder, points it at this
 - No step sends real input. `inspect focus`, `point`, `leave`, `press`, `scroll` and `key` move the real cursor or press real keys, so their features prove only a refusal that sends nothing.
 - Run a command under test as a user types it, through the session's `winshell`: `scripts/winshell.ps1 -Session <folder> <words>`.
 - Find an element by its automation id, `x:Name` or automation name. Never use a position or the order of the tree.
-- Start every recipe from a freshly started shell. A step that ends the shell, such as `kill` or `reload`, leaves the next step to start it again.
+- Start every recipe from a freshly started shell. A step that ends the shell, such as `stop` or `reload`, leaves the next step to start it again.
 
 ## Feature entry contract
 
@@ -91,12 +91,12 @@ A step is one of two objects. Each takes `within`, the seconds to retry it until
 - [winshell ipc listen](./command.ipc-listen.md) prints each signal a shell raises until Ctrl+C.
 - [winshell ipc show](./command.ipc-show.md) lists a shell's IPC targets with their functions, properties and signals.
 - [winshell ipc wait](./command.ipc-wait.md) waits for one signal and prints its first argument.
-- [winshell kill](./command.kill.md) stops a shell and waits until it has exited.
 - [winshell list](./command.list.md) lists the running shells, as JSON with `-j`.
 - [winshell log](./command.log.md) prints a shell's log, or the end of it with `-t`.
 - [winshell new](./command.new.md) lists the starter and the examples, or copies one into a folder.
 - [winshell reload](./command.reload.md) rebuilds a project and replaces its running shell with a new process.
 - [winshell run](./command.run.md) builds a project and starts and supervises its shell.
+- [winshell stop](./command.stop.md) stops a shell and waits until it has exited.
 - [winshell use](./command.use.md) chooses the shell `winshell run` starts, and switches to it.
 - [winshell update](./command.update.md) installs the newest build of the saved channel.
 - [App windows](./service.app-windows.md) lists the open app windows and the active one.

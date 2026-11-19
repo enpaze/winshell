@@ -35,5 +35,5 @@ Preconditions:
 
 - A PC or a CI runner with no playback device has an empty label and a collapsed button, and the step still passes. Read the label in `tree-<n>.json` to see which state the run proved.
 - Do not run `inspect click audio`: it opens Windows Settings on the user's desktop.
-- The omarchy-style shell hides Explorer's taskbar while it runs and puts it back when it exits. `winshell kill` ends it.
+- The omarchy-style shell hides Explorer's taskbar while it runs and puts it back when it exits. `winshell stop` ends it.
 - With headphones or a headset, the glyph is headphones even when muted. The label still says `muted`.

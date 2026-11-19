@@ -20,7 +20,7 @@ Releases are currently unsigned. Custom shells may break between releases until 
 winshell new                # list the starter and the examples
 winshell new starter        # copy the starter into your shells folder
 winshell run -s starter     # build it and run it
-winshell kill               # stop it
+winshell stop               # stop it
 ```
 
 `winshell new <name>` copies any of the examples the same way. The starter is a bar with a clock and a battery, and the [guide](docs/guide.md) begins by reading it file by file. Until there is a shell, `winshell run` says so and points to `winshell new`.

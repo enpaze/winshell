@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace Winshell.Tests;
 
-public sealed partial class KillWaitTests : IDisposable, IClassFixture<ProbeBuild>
+public sealed partial class StopWaitTests : IDisposable, IClassFixture<ProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<Process> _started = [];
@@ -21,7 +21,7 @@ public sealed partial class KillWaitTests : IDisposable, IClassFixture<ProbeBuil
         using var child = Process.GetProcessById(int.Parse(File.ReadAllText(pidFile), CultureInfo.InvariantCulture));
         try
         {
-            var result = Run("kill", "--force", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
+            var result = Run("stop", "--force", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
 
             result.AssertExitCode(0);
             Assert.True(process.HasExited);

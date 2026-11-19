@@ -1,6 +1,6 @@
 # winshell run
 
-`winshell run` builds a shell project to `bin\shell` when a source is newer than its program, then starts that program and supervises it until it exits. A shell that crashes starts again. With `-d` it builds, starts the shell in the background with no console window, and returns at once. Starting a shell asks any shell already running in this local folder to quit first. After the feature shell is killed and started again with `-d`, `winshell list -j` lists `FeatureShell.exe` again.
+`winshell run` builds a shell project to `bin\shell` when a source is newer than its program, then starts that program and supervises it until it exits. A shell that crashes starts again. With `-d` it builds, starts the shell in the background with no console window, and returns at once. Starting a shell asks any shell already running in this local folder to quit first. After the feature shell is stopped and started again with `-d`, `winshell list -j` lists `FeatureShell.exe` again.
 
 ## Sub-features
 
@@ -25,13 +25,13 @@ Preconditions:
 
 - Shell: `features`.
 
-- **Stop the running shell.** Stop the feature shell. Run `winshell kill --pid {pid}`. It exits with 0 and prints `Killed ` and the instance id.
+- **Stop the running shell.** Stop the feature shell. Run `winshell stop --pid {pid}`. It exits with 0 and prints `Stopped ` and the instance id.
 - **Start it in the background.** Start the feature shell's project again. Run `winshell run -d -p {shell}`. It exits with 0 once the build is up to date and the shell has been started in the background.
 - **See it run.** List the running shells as JSON. Run `winshell list -j`. It exits with 0, and a `program` names `FeatureShell.exe`. The driver retries for 30 seconds while the shell starts.
 
 ```json
 [
-  {"winshell": ["kill", "--pid", "{pid}"], "output": "^Killed "},
+  {"winshell": ["stop", "--pid", "{pid}"], "output": "^Stopped "},
   {"winshell": ["run", "-d", "-p", "{shell}"]},
   {"winshell": ["list", "-j"], "output": "FeatureShell\\.exe", "within": 30}
 ]

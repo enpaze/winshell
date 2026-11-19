@@ -33,9 +33,9 @@ public sealed class HiddenTaskbarWorkAreaTests : IDisposable, IClassFixture<Prob
         Wait.ForNothingToHappen(TimeSpan.FromSeconds(2));
         Assert.True(Reclaimed(), Describe(Areas()));
 
-        var killed = WinshellCli.Run(["kill", "--pid", shell.Id.ToString(CultureInfo.InvariantCulture)],
+        var stopped = WinshellCli.Run(["stop", "--pid", shell.Id.ToString(CultureInfo.InvariantCulture)],
             IsolatedFolders.Of(config, local));
-        killed.AssertExitCode(0);
+        stopped.AssertExitCode(0);
         Wait.Until(() => shell.HasExited && Restored(before), "quitting to put the taskbar and the work area back");
         Wait.ForNothingToHappen(TimeSpan.FromMilliseconds(500));
         Assert.True(Restored(before), Describe(Areas()));

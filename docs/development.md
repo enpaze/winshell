@@ -53,7 +53,7 @@ That builds the shell project and runs it in a child process that it supervises.
 ```powershell
 dotnet run --project src/Winshell -- list
 dotnet run --project src/Winshell -- log -t 20
-dotnet run --project src/Winshell -- kill -i <id>
+dotnet run --project src/Winshell -- stop -i <id>
 ```
 
 `winshell dev` is the edit loop. From source it is `dotnet run --project src/Winshell -- dev -p ..\MyShell`. It runs the shell under `dotnet watch`, and Reactor's hot reload applies an edit to a component's `Render` in the running shell, without a restart. An edit .NET cannot apply restarts the shell. [Develop a shell](guide.md#develop-a-shell) is the same path as an author sees it.

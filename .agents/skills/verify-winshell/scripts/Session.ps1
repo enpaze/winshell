@@ -246,8 +246,8 @@ function Stop-Shells {
     $deadline = [DateTime]::UtcNow.AddSeconds(20)
     do {
         foreach ($instance in Get-Instances) {
-            $result = Invoke-Winshell @('kill', '--pid', [string] $instance.pid) ([TimeSpan]::FromSeconds(30))
-            if ($result.Exit -ne 0) { $null = Invoke-Winshell @('kill', '--force', '--pid', [string] $instance.pid) ([TimeSpan]::FromSeconds(30)) }
+            $result = Invoke-Winshell @('stop', '--pid', [string] $instance.pid) ([TimeSpan]::FromSeconds(30))
+            if ($result.Exit -ne 0) { $null = Invoke-Winshell @('stop', '--force', '--pid', [string] $instance.pid) ([TimeSpan]::FromSeconds(30)) }
         }
         if (@(Get-ShellProcesses).Count -eq 0) { return }
         Start-Sleep -Milliseconds 500

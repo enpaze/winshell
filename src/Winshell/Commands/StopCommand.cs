@@ -1,16 +1,16 @@
 namespace Winshell.Commands;
 
-internal static class KillCommand
+internal static class StopCommand
 {
     internal static readonly CommandEntry Entry = new()
     {
-        Name = "kill",
+        Name = "stop",
         Overview = """
-                          winshell kill [--force] [instance options]
+                          winshell stop [--force] [instance options]
                                                               stop an instance and wait until it exits
                    """,
         Usage = """
-                winshell kill [--force] [-i <id> | --pid <pid> | -s <name> | -p <path>]
+                winshell stop [--force] [-i <id> | --pid <pid> | -s <name> | -p <path>]
                   Asks one running instance to exit, then waits until that process has exited.
                   --force ends the process when it does not exit.
                   With one running instance and no selector, that instance is used.
@@ -22,7 +22,7 @@ internal static class KillCommand
 
     private static async Task<int> Execute(Invocation parsed)
     {
-        if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Kill, out var code) is not { } info)
+        if (InstanceCall.Select(parsed.Instance, InstanceSelection.Question.Stop, out var code) is not { } info)
             return code;
 
         var force = parsed.IsSet(CliFlags.Force);
@@ -34,7 +34,7 @@ internal static class KillCommand
             return 1;
         }
 
-        Console.WriteLine($"Killed {info.Id}");
+        Console.WriteLine($"Stopped {info.Id}");
         return 0;
     }
 

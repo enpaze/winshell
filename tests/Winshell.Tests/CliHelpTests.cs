@@ -4,9 +4,9 @@ public class CliHelpTests
 {
     [Theory]
     [InlineData("list", "--help", "list")]
-    [InlineData("kill", "--help", "kill")]
-    [InlineData("kill", "-h", "kill")]
-    [InlineData("kill", "/?", "kill")]
+    [InlineData("stop", "--help", "stop")]
+    [InlineData("stop", "-h", "stop")]
+    [InlineData("stop", "/?", "stop")]
     [InlineData("log", "--help", "log")]
     [InlineData("ipc", "--help", "ipc")]
     [InlineData("doctor", "--help", "doctor")]

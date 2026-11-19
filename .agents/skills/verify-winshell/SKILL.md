@@ -112,7 +112,7 @@ Proof standards:
 pwsh .agents/skills/verify-winshell/scripts/cleanup.ps1 -Session <folder>
 ```
 
-- It kills each shell the session's `winshell list -j` lists with `winshell kill --pid`, and with `--force` when one does not exit. Then it ends any process still running from the session folder, or from the session's `winshell.exe` and started after the session began.
+- It stops each shell the session's `winshell list -j` lists with `winshell stop --pid`, and with `--force` when one does not exit. Then it ends any process still running from the session folder, or from the session's `winshell.exe` and started after the session began.
 - It copies the shells' logs into `evidence\logs`, then removes `shells` and `local`. It keeps `evidence` and `session.json`.
 - It prints a `FAIL` line for anything it had to end or could not remove, and exits with 1.
 - It never kills by process name. `drive.ps1` cleans up its own session, including after a failure or Ctrl+C.

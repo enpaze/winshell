@@ -42,7 +42,7 @@ public class IpcArgumentTests
     }
 
     [Theory]
-    [InlineData("kill --help", true)]
+    [InlineData("stop --help", true)]
     [InlineData("ipc --help", true)]
     [InlineData("--help", true)]
     [InlineData("ipc call target func --help", false)]
@@ -58,13 +58,13 @@ public class IpcArgumentTests
         Assert.False(CliParser.Parse(["--", "--help"]).ShowHelp);
         Assert.False(CliParser.Parse(["--", "--version"]).ShowVersion);
         Assert.True(CliParser.Parse(["--version"]).ShowVersion);
-        var passed = CliParser.Parse(["--", "kill"]);
+        var passed = CliParser.Parse(["--", "stop"]);
         Assert.Null(passed.Command);
-        Assert.Equal(["--", "kill"], passed.Rest);
+        Assert.Equal(["--", "stop"], passed.Rest);
         var error = Assert.Throws<ArgumentException>(() => CliParser.Parse(["ipc", "--", "call"]));
         Assert.Equal("winshell ipc call needs a target and a function.", error.Message);
-        var kill = CliParser.Parse(["-s", "work", "kill"]);
-        Assert.Equal("kill", kill.Command);
-        Assert.Equal("work", kill.Text(CliFlags.Shell));
+        var stop = CliParser.Parse(["-s", "work", "stop"]);
+        Assert.Equal("stop", stop.Command);
+        Assert.Equal("work", stop.Text(CliFlags.Shell));
     }
 }

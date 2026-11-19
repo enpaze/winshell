@@ -41,7 +41,7 @@ internal static class CliParser
                                           -p, --path <path>      a project file, or the folder it is in
                                           -s, --shell <name>     a named shell in {shells-root}
                                                                  ({shells-override} overrides that folder)
-                                        Instance selection (kill, reload, log, ipc, inspect):
+                                        Instance selection (stop, reload, log, ipc, inspect):
                                           -i, --id <id>          an instance id, or the start of one
                                               --pid <pid>        an instance's process id
                                         Other:
@@ -69,7 +69,7 @@ internal static class CliParser
     [
         Share(RunCommand.Entry),
         Share(ListCommand.Entry),
-        Share(KillCommand.Entry),
+        Share(StopCommand.Entry),
         Share(ReloadCommand.Entry),
         Share(DevCommand.Entry),
         Share(LogCommand.Entry),

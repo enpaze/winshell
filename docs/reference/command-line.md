@@ -7,7 +7,7 @@ winshell run [options]              start a shell
 winshell                            print this help
 winshell <command> --help           help for that command, which does not run
 winshell list [-j]                  list running instances
-winshell kill [--force] [instance options]
+winshell stop [--force] [instance options]
                                     stop an instance and wait until it exits
 winshell reload [instance options]
                                     reload an instance's shell
@@ -34,7 +34,7 @@ winshell help [command]             print this summary, or that command's help
 
 ## Run a shell
 
-`winshell run` with no project starts nothing. From a console it prints `No shell project in <folder>, so nothing started. Run winshell new to make one.` and exits with 1. A start with no console window, such as `winshellw`, the Start tile and the sign-in entry, prints nothing and exits with 0, unless another program is reading the error. A `--path` or `--shell` that names no project is still an error. With a project it builds to `bin\shell` when a source is newer than that program, then starts the program. A failed build does not start the last program that built. Options may come before `run`. [Where a shell lives](../guide.md#where-a-shell-lives) explains which project it picks. A command may also come after its options, so `winshell -s work kill` stops that shell instead of starting it.
+`winshell run` with no project starts nothing. From a console it prints `No shell project in <folder>, so nothing started. Run winshell new to make one.` and exits with 1. A start with no console window, such as `winshellw`, the Start tile and the sign-in entry, prints nothing and exits with 0, unless another program is reading the error. A `--path` or `--shell` that names no project is still an error. With a project it builds to `bin\shell` when a source is newer than that program, then starts the program. A failed build does not start the last program that built. Options may come before `run`. [Where a shell lives](../guide.md#where-a-shell-lives) explains which project it picks. A command may also come after its options, so `winshell -s work stop` stops that shell instead of starting it.
 
 | Option | What it does |
 | --- | --- |
@@ -57,9 +57,9 @@ The log goes to the console and to the instance's log file. The file is kept to 
 
 `winshell run` runs the shell in a child process and stays until supervision ends; `winshell list` shows that child. `winshell run` exits with the code the shell's last process exited with. When the shell exits:
 
-- **0** is a stop that was asked for: `winshell kill`, a reload or a restart that handed over to a new process, a shell that gave way to the one that replaces it, or a `--no-duplicate` start that found its shell running. A shell that exits 0 has put Explorer's taskbar back unless it left it for the replacement.
+- **0** is a stop that was asked for: `winshell stop`, a reload or a restart that handed over to a new process, a shell that gave way to the one that replaces it, or a `--no-duplicate` start that found its shell running. A shell that exits 0 has put Explorer's taskbar back unless it left it for the replacement.
 - **1** is a shell that could not start and said why, which a new start would repeat. Task Manager's **End task** also ends a process with 1. Nothing starts again.
-- **Any other code** is a crash. The shell starts again after 1, 2, 4, 8 and then 10 seconds; a shell's program starts from its last build. The sixth crash in a row ends supervision. A shell that ran for a minute before it crashed starts the count again. A shell that `winshell kill` had asked to stop, such as one `kill --force` ended, does not start again.
+- **Any other code** is a crash. The shell starts again after 1, 2, 4, 8 and then 10 seconds; a shell's program starts from its last build. The sixth crash in a row ends supervision. A shell that ran for a minute before it crashed starts the count again. A shell that `winshell stop` had asked to stop, such as one `stop --force` ended, does not start again.
 
 After every exit but 0, `winshell run` shows Explorer's taskbar again and reserves its edge, unless the shell left that taskbar for the one that replaces it, or a taskbar window was already hidden when that shell started and this start did not record that it hid the taskbar. A record this child still owned is the state put back, and recovery deletes it. A record the child left for the next shell stays until that shell exits. So a crash that skipped the shell's own exit does not leave the taskbar hidden. A reload is not a stop. `winshell reload` of a shell under `winshell run` asks it to quit and waits five seconds for the answer, the three-second connect limit plus two seconds, then five seconds for the process to exit. It ends the process when the quit was accepted, or when the ask timed out after the quit was delivered. A quit that was refused, or that never reached the shell, leaves the process running and the command exits with 1. Once the old process has exited, the command prints `Reloaded <id>`, and `winshell run` starts the last build at once, whatever the exit code, and counts that shell's crashes from none. A shell that restarts itself with `shell.Restart()` hands over to a new process of itself, which runs with no supervisor. Ctrl+C, closing the console and signing out end supervision too: they ask the shell to quit, end it two seconds later if it has not, and start nothing again.
 
@@ -71,7 +71,7 @@ Any other option is an error, and exits with code 2. An option winshell does not
 
 ## Pick an instance
 
-`kill`, `reload`, `log`, `ipc` and `inspect` act on one running instance:
+`stop`, `reload`, `log`, `ipc` and `inspect` act on one running instance:
 
 | Option | Picks |
 | --- | --- |
@@ -85,7 +85,7 @@ Any other option is an error, and exits with code 2. An option winshell does not
 | Command | What it does |
 | --- | --- |
 | `winshell list` | Lists the running instances with their id, process id, shell name, program, launch time and log file. `-j`, `--json` prints them as JSON. Stopped instances are not listed. The shape is under [JSON](#json). |
-| `winshell kill` | Asks an instance to exit, waits until that process has exited, and prints `Killed <id>`. `--force` ends the process when it does not exit. `kill` is the one command a CLI and a shell of different releases still accept. |
+| `winshell stop` | Asks an instance to exit, waits until that process has exited, and prints `Stopped <id>`. `--force` ends the process when it does not exit. `stop` is the one command a CLI and a shell of different releases still accept. |
 | `winshell reload` | Builds the shell. On failure the running instance stays, a notice shows, and the command prints why and exits with 1. Under `winshell run`, the command prints `Reloaded <id>` once the old process has exited, while `winshell run` starts the new one. Otherwise the instance starts the new process and the command prints `Reloaded <id>` once that start is accepted, before the old process quits and before the new one has taken the taskbar. A shell under `winshell run` whose project can't be found keeps running, and the command prints why and exits with 1. There is no file watcher. |
 | `winshell dev` | Runs a shell project under `dotnet watch`. Reactor's hot reload applies each edit to the running shell, until Ctrl+C. With no project it prints `winshell dev needs a shell project. Run winshell new to make one.` and exits with 1. See [Develop a shell](../guide.md#develop-a-shell). Takes `-s` and `-p`. |
 | `winshell log` | Prints an instance's log. `-i`, `--pid`, `-p` and `-s` can also name a stopped instance. With no selector and no instance running, it prints the log of the newest stopped one and says so on stderr. A selector that matches nothing is an error. `-t`, `--tail <n>` prints the last `n` lines; `-f`, `--follow` keeps printing new lines until you press Ctrl+C. `winshell log <file>` prints that file. |
@@ -124,7 +124,7 @@ The cursor goes back afterwards, unless the user has moved it: then it stays whe
 
 `winshell ipc call notice dismiss` closes Winshell's own notice for a build error or a failure. That notice is not a target the shell registered, so `ipc show` does not list it. It takes no arguments.
 
-A CLI and a shell whose releases differ, in major.minor.patch, refuse each other. The message is `This shell is Winshell <shell> and this winshell is <client>. Use the winshell that matches, or build the shell with this one.` `kill` is exempt.
+A CLI and a shell whose releases differ, in major.minor.patch, refuse each other. The message is `This shell is Winshell <shell> and this winshell is <client>. Use the winshell that matches, or build the shell with this one.` `stop` is exempt.
 
 An IPC request longer than 256 KiB is refused, which no command line can reach. `winshell ipc listen` keeps the latest signals when the client falls behind, and the shell releases that subscription when the client disconnects, even if the signal never fires.
 

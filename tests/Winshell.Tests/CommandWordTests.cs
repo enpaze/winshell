@@ -72,7 +72,7 @@ public class CommandWordTests
     }
 
     [Theory]
-    [InlineData("help kill", "kill")]
+    [InlineData("help stop", "stop")]
     [InlineData("help ipc", "ipc")]
     public void Help_with_a_command_is_that_command_s_help(string line, string command)
     {
@@ -85,7 +85,7 @@ public class CommandWordTests
     [Fact]
     public void Help_with_a_command_and_the_version_option_is_still_help()
     {
-        var options = CliParser.Parse(["help", "kill", "--version"]);
+        var options = CliParser.Parse(["help", "stop", "--version"]);
 
         Assert.True(options.ShowHelp);
         Assert.False(options.ShowVersion);
@@ -113,7 +113,7 @@ public class CommandWordTests
 
     [Theory]
     [InlineData("help foo", "Unknown command \"foo\". Run winshell --help.")]
-    [InlineData("help kill log", "Unexpected argument \"log\".")]
+    [InlineData("help stop log", "Unexpected argument \"log\".")]
     public void Help_takes_one_command_it_knows(string line, string message)
     {
         var e = Assert.Throws<ArgumentException>(() => CliParser.Parse(line.Split(' ')));

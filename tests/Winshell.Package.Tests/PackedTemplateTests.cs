@@ -19,7 +19,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
     private const int PatienceMs = 1_800_000;
 
     [Fact(Timeout = PatienceMs)]
-    public void The_starter_shows_its_clock_and_battery_and_is_listed_and_killed()
+    public void The_starter_shows_its_clock_and_battery_and_is_listed_and_stopped()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         Run(templates.SmallProject, (pid, environment) =>
@@ -282,7 +282,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         var process = Start(project.Program, folders, output);
         try
         {
-            ListAndKill(process, folders, output, inspect);
+            ListAndStop(process, folders, output, inspect);
         }
         finally
         {
@@ -303,7 +303,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         }
     }
 
-    private void ListAndKill(Process process, (string Name, string Value)[] folders, StringBuilder output,
+    private void ListAndStop(Process process, (string Name, string Value)[] folders, StringBuilder output,
         Action<string, (string Name, string Value)[]>? inspect)
     {
         var pid = process.Id.ToString(CultureInfo.InvariantCulture);
@@ -320,9 +320,9 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
 
         inspect?.Invoke(pid, folders);
 
-        var killed = WinshellCli.Run(["kill", "--pid", pid], folders);
-        killed.AssertExitCode(0);
-        Wait.Until(() => process.HasExited, "winshell kill to stop the shell");
+        var stopped = WinshellCli.Run(["stop", "--pid", pid], folders);
+        stopped.AssertExitCode(0);
+        Wait.Until(() => process.HasExited, "winshell stop to stop the shell");
         ChildProcess.Exited("The packed shell", process, output).AssertExitCode(0);
     }
 

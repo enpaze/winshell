@@ -71,7 +71,7 @@ A window's content is one `UIElement`. Shell UI is one component tree mounted wi
 
 ## Crash supervision
 
-The CLI supervises a shell in a child process. Exit code 0 is a stop that was asked for. Exit code 1 ends supervision, including a shell that could not start and Task Manager's End task. Any other exit respawns with backoff, unless `winshell kill` had asked the shell to stop. A reload is not one of those exits: the supervisor starts the last build at once, whatever the code. A requested stop ends supervision.
+The CLI supervises a shell in a child process. Exit code 0 is a stop that was asked for. Exit code 1 ends supervision, including a shell that could not start and Task Manager's End task. Any other exit respawns with backoff, unless `winshell stop` had asked the shell to stop. A reload is not one of those exits: the supervisor starts the last build at once, whatever the code. A requested stop ends supervision.
 
 - Keep restart policy, cancellation and child ownership in a focused supervisor rather than in the window host.
 - Drive policy time through `TimeProvider` so tests can advance it without sleeping.

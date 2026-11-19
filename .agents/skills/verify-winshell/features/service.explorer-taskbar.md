@@ -5,15 +5,15 @@
 ## Sub-features
 
 - `hide` setting `Hidden = true` hides Explorer's taskbar window and releases the screen edge it reserved.
-- `restore` setting `Hidden = false`, quitting, Ctrl+C, `winshell kill` or a crash puts the taskbar back and reserves its edge again.
+- `restore` setting `Hidden = false`, quitting, Ctrl+C, `winshell stop` or a crash puts the taskbar back and reserves its edge again.
 - `hand-off` a shell that is replaced leaves the taskbar hidden for the next shell, which puts it back when it exits.
-- `recovery` when only the shell ends, such as after a native crash or `winshell kill --force`, `winshell run` puts the taskbar back.
+- `recovery` when only the shell ends, such as after a native crash or `winshell stop --force`, `winshell run` puts the taskbar back.
 
 ## How to get to it (user POV)
 
 - A shell sets `shell.ExplorerTaskbar.Hidden = true` in the function it passes to `Shell.Run`.
 - The omarchy-style shell sets it, so its bar replaces Explorer's taskbar.
-- `winshell kill` ends a shell and puts the taskbar back.
+- `winshell stop` ends a shell and puts the taskbar back.
 
 ## Driving it with winshell inspect
 

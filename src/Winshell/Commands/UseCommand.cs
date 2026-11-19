@@ -82,10 +82,10 @@ internal static class UseCommand
         var others = running.Except(own).ToList();
         foreach (var info in others)
         {
-            if (!await KillCommand.StopAsync(info, false))
+            if (!await StopCommand.StopAsync(info, false))
             {
                 await Console.Error.WriteLineAsync(
-                    $"Instance {info.Id} is still running, so {name} was not started. winshell kill --force -i {info.Id} ends it.");
+                    $"Instance {info.Id} is still running, so {name} was not started. winshell stop --force -i {info.Id} ends it.");
                 return 1;
             }
 

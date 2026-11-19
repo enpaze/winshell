@@ -34,7 +34,7 @@ public sealed partial class DetachOutputTests : IDisposable, IClassFixture<Probe
     public void Dispose()
     {
         foreach (var pid in Running())
-            WinshellCli.Run(["kill", "--force", "--pid", pid.ToString(CultureInfo.InvariantCulture)], Folders);
+            WinshellCli.Run(["stop", "--force", "--pid", pid.ToString(CultureInfo.InvariantCulture)], Folders);
         Wait.Until(Removed, "the test folder to be free");
     }
 
