@@ -43,6 +43,61 @@ public class PreferenceGeneratorTests
         Assert.Empty(compiler);
     }
 
+    [Fact]
+    public void Preferences_of_classes_whose_names_differ_only_in_punctuation_arity_or_case_compile_in_one_project()
+    {
+        var (generator, compiler) = Compile("""
+            namespace Mine;
+
+            public sealed partial class C<T>() : Winshell.Preferences("generic")
+            {
+                [Winshell.Preference]
+                public partial string Name { get; set; } = "a";
+            }
+
+            public sealed partial class C_T_() : Winshell.Preferences("underscores")
+            {
+                [Winshell.Preference]
+                public partial string Name { get; set; } = "b";
+            }
+
+            public sealed partial class C() : Winshell.Preferences("upper")
+            {
+                [Winshell.Preference]
+                public partial string Name { get; set; } = "c";
+            }
+
+            public sealed partial class c() : Winshell.Preferences("lower")
+            {
+                [Winshell.Preference]
+                public partial string Name { get; set; } = "d";
+            }
+            """);
+
+        Assert.Empty(generator);
+        Assert.Empty(compiler);
+    }
+
+    [Fact]
+    public void A_preference_whose_names_are_keywords_compiles()
+    {
+        var (generator, compiler) = Compile("""
+            namespace @namespace.@event;
+
+            public partial class @class<@int>
+            {
+                public sealed partial class @struct() : Winshell.Preferences("keywords")
+                {
+                    [Winshell.Preference]
+                    public partial bool @event { get; set; }
+                }
+            }
+            """);
+
+        Assert.Empty(generator);
+        Assert.Empty(compiler);
+    }
+
     [Theory]
     [InlineData("public bool Clock24 { get; set; }")]
     [InlineData("public static partial bool Clock24 { get; set; }")]

@@ -28,24 +28,33 @@ public sealed class PreferenceGenerator : IIncrementalGenerator
     private static readonly SymbolDisplayFormat TypeFormat = SymbolDisplayFormat.FullyQualifiedFormat
         .AddMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
 
+    private static readonly SymbolDisplayFormat NamespaceFormat =
+        new(typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var preferences = context.SyntaxProvider.ForAttributeWithMetadataName(
             "Winshell.PreferenceAttribute",
             static (node, _) => node is PropertyDeclarationSyntax,
             static (target, _) => Describe(target));
-        context.RegisterSourceOutput(preferences, static (output, preference) =>
+        context.RegisterSourceOutput(preferences.Collect(), static (output, outcomes) =>
         {
-            switch (preference)
-            {
-                case Problem problem:
-                    output.ReportDiagnostic(Diagnostic.Create(problem.Rule,
-                        Location.Create(problem.Path, problem.Span, problem.Lines), problem.Property, problem.Detail));
-                    break;
-                case Source source:
-                    output.AddSource(source.HintName, source.Text);
-                    break;
-            }
+            var hintNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var outcome in outcomes)
+                switch (outcome)
+                {
+                    case Problem problem:
+                        output.ReportDiagnostic(Diagnostic.Create(problem.Rule,
+                            Location.Create(problem.Path, problem.Span, problem.Lines), problem.Property,
+                            problem.Detail));
+                        break;
+                    case Source source:
+                        var hintName = source.Name;
+                        for (var copy = 2; !hintNames.Add(hintName); copy++)
+                            hintName = source.Name + "." + copy;
+                        output.AddSource(hintName + ".g.cs", source.Text);
+                        break;
+                }
         });
     }
 
@@ -59,7 +68,8 @@ public sealed class PreferenceGenerator : IIncrementalGenerator
         if (!DerivesFromPreferences(property.ContainingType))
             return Problem.At(OutsidePreferences, syntax, property.Name, property.ContainingType.Name);
         var nullable = target.SemanticModel.GetNullableContext(syntax.SpanStart).AnnotationsEnabled();
-        return new Source(HintName(property), Write(syntax, property, type, nullable));
+        return new Source(MetadataName(property.ContainingType) + "." + property.Name,
+            Write(syntax, property, type, nullable));
     }
 
     private static bool IsDefinition(PropertyDeclarationSyntax syntax)
@@ -76,13 +86,17 @@ public sealed class PreferenceGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static string HintName(IPropertySymbol property)
+    private static string MetadataName(INamedTypeSymbol type)
     {
-        var name = new StringBuilder(property.ContainingType.ToDisplayString()).Append('.').Append(property.Name);
-        for (var i = 0; i < name.Length; i++)
-            if (!char.IsLetterOrDigit(name[i]) && name[i] != '.')
-                name[i] = '_';
-        return name.Append(".g.cs").ToString();
+        var container = type.ContainingType is { } outer ? MetadataName(outer) + "+"
+            : type.ContainingNamespace.IsGlobalNamespace ? ""
+            : type.ContainingNamespace.ToDisplayString(NamespaceFormat) + ".";
+        return container + type.MetadataName;
+    }
+
+    private static string Identifier(string name)
+    {
+        return SyntaxFacts.GetKeywordKind(name) == SyntaxKind.None ? name : "@" + name;
     }
 
     private static string Write(PropertyDeclarationSyntax syntax, IPropertySymbol property, string type, bool nullable)
@@ -96,15 +110,15 @@ public sealed class PreferenceGenerator : IIncrementalGenerator
         var indent = "";
         foreach (var container in containers)
         {
-            text.Append(indent).Append("partial ").Append(Keyword(container)).Append(' ').Append(container.Name);
+            text.Append(indent).Append("partial ").Append(Keyword(container)).Append(' ').Append(Identifier(container.Name));
             if (container.TypeParameters.Length > 0)
-                text.Append('<').Append(string.Join(", ", container.TypeParameters.Select(p => p.Name))).Append('>');
+                text.Append('<').Append(string.Join(", ", container.TypeParameters.Select(p => Identifier(p.Name)))).Append('>');
             text.Append('\n').Append(indent).Append("{\n");
             indent += "    ";
         }
 
         text.Append(indent).Append(string.Join(" ", syntax.Modifiers.Select(modifier => modifier.Text)))
-            .Append(' ').Append(type).Append(' ').Append(property.Name).Append('\n')
+            .Append(' ').Append(type).Append(' ').Append(Identifier(property.Name)).Append('\n')
             .Append(indent).Append("{\n");
         foreach (var accessor in syntax.AccessorList!.Accessors)
         {
@@ -141,7 +155,7 @@ public sealed class PreferenceGenerator : IIncrementalGenerator
 
     private abstract record Outcome;
 
-    private sealed record Source(string HintName, string Text) : Outcome;
+    private sealed record Source(string Name, string Text) : Outcome;
 
     private sealed record Problem(
         DiagnosticDescriptor Rule,
