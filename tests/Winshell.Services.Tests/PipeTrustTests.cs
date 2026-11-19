@@ -97,7 +97,7 @@ public class PipeTrustTests
         using var server = new IpcServer(IpcServer.OpenFirst(name), name, loop, Log.Default, control,
             _ => "refused for the test");
 
-        var line = await Ask(name, """{"op":"kill"}""");
+        var line = await Ask(name, """{"op":"stop"}""");
 
         var response = JsonSerializer.Deserialize(line!, IpcJson.Default.IpcResponse)!;
         Assert.False(response.Ok);

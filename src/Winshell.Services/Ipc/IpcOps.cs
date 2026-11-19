@@ -9,7 +9,7 @@ internal static class IpcOps
     public const string Prop = "prop";
     public const string Wait = "wait";
     public const string Listen = "listen";
-    public const string Kill = "kill";
+    public const string Stop = "stop";
     public const string Yield = "yield";
     public const string Reload = "reload";
     public const string Build = "build";
@@ -17,7 +17,7 @@ internal static class IpcOps
 
     public static bool ChecksRelease(string op)
     {
-        return op is not (Kill or Yield);
+        return op is not (Stop or Yield);
     }
 }
 
@@ -48,9 +48,9 @@ internal sealed partial record IpcRequest
         return new IpcRequest(IpcOps.Listen, target, name);
     }
 
-    public static IpcRequest ForKill()
+    public static IpcRequest ForStop()
     {
-        return new IpcRequest(IpcOps.Kill);
+        return new IpcRequest(IpcOps.Stop);
     }
 
     public static IpcRequest ForYield()

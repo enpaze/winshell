@@ -42,7 +42,7 @@ public class IpcBoundsTests
 
             await using var parked = await Connect(name);
             var held = new byte[IpcServer.MaxRequestBytes - 1];
-            var prefix = "{\"op\":\"kill\""u8;
+            var prefix = "{\"op\":\"stop\""u8;
             prefix.CopyTo(held);
             Array.Fill(held, (byte)' ', prefix.Length, held.Length - prefix.Length);
             await parked.WriteAsync(held, TestContext.Current.CancellationToken);

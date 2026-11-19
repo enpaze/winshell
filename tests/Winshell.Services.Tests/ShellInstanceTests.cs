@@ -167,16 +167,33 @@ public sealed class ShellInstanceTests
     }
 
     [Fact]
-    public async Task A_kill_reaches_a_shell_whatever_its_program_is_called()
+    public async Task A_stop_reaches_a_shell_whatever_its_program_is_called()
     {
         var control = new FakeInstanceControl();
         var (pipe, loop, server) = Serve(control);
         using var _ = server;
 
-        var response = await Pumping(loop, () => Ask(pipe, IpcRequest.ForKill()));
+        var response = await Pumping(loop, () => Ask(pipe, IpcRequest.ForStop()));
 
         Assert.True(response.Ok);
         await Wait.UntilAsync(() => control.Quits == 1, "the quit", () => loop.RunDue());
+    }
+
+    [Theory]
+    [InlineData("kill")]
+    [InlineData("frobnicate")]
+    public async Task An_unknown_request_is_refused_and_the_shell_keeps_running(string op)
+    {
+        var control = new FakeInstanceControl();
+        var (pipe, loop, server) = Serve(control);
+        using var _ = server;
+
+        var line = await Pumping(loop, () => AskRaw(pipe, $$"""{"op":"{{op}}"}"""));
+
+        var response = JsonSerializer.Deserialize(line!, IpcJson.Default.IpcResponse)!;
+        Assert.Equal((false, $"Unknown request {op}."), (response.Ok, response.Error));
+        loop.RunDue();
+        Assert.Equal(0, control.Quits);
     }
 
     [Fact]
@@ -276,7 +293,7 @@ public sealed class ShellInstanceTests
         var (pipe, loop, server) = Serve(control);
         using var _ = server;
 
-        var line = await AskRaw(pipe, """{"op":"kill","protocol":99}""");
+        var line = await AskRaw(pipe, """{"op":"stop","protocol":99}""");
 
         var response = JsonSerializer.Deserialize(line!, IpcJson.Default.IpcResponse)!;
         Assert.False(response.Ok);
@@ -327,7 +344,7 @@ public sealed class ShellInstanceTests
         using var _ = server;
         var other = ProductVersion.Current.Major == 9 ? "1.0.0" : "9.9.9";
 
-        var line = await Pumping(loop, () => AskRaw(pipe, $$"""{"op":"kill","winshell":"{{other}}"}"""));
+        var line = await Pumping(loop, () => AskRaw(pipe, $$"""{"op":"stop","winshell":"{{other}}"}"""));
 
         Assert.True(JsonSerializer.Deserialize(line!, IpcJson.Default.IpcResponse)!.Ok);
         loop.RunDue();
@@ -357,11 +374,11 @@ public sealed class ShellInstanceTests
         var other = ProductVersion.Current.Major == 9 ? "1.0.0" : "9.9.9";
         var answering = AnswerOnce(shell, $$"""{"ok":true,"winshell":"{{other}}"}""");
 
-        await Ask(pipe, IpcRequest.ForKill());
+        await Ask(pipe, IpcRequest.ForStop());
 
         var version = JsonSerializer.Serialize(ProductVersion.Current.Text);
         Assert.Equal(
-            $$"""{"op":"kill","target":null,"name":null,"args":null,"protocol":{{IpcProtocol.Current}},"winshell":{{version}}}""",
+            $$"""{"op":"stop","target":null,"name":null,"args":null,"protocol":{{IpcProtocol.Current}},"winshell":{{version}}}""",
             await answering);
     }
 

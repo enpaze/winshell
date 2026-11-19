@@ -287,7 +287,7 @@ internal sealed class IpcServer : IDisposable
             IpcOps.Call => new IpcResponse(true,
                 ipc.Call(request.Target ?? "", request.Name ?? "", request.Args ?? [])),
             IpcOps.Prop => new IpcResponse(true, ipc.GetProperty(request.Target ?? "", request.Name ?? "")),
-            IpcOps.Kill => Kill(),
+            IpcOps.Stop => Stop(),
             IpcOps.Yield => Yield(),
             IpcOps.Reload => Reload(request),
             IpcOps.Build => Build(request),
@@ -305,7 +305,7 @@ internal sealed class IpcServer : IDisposable
         return new IpcResponse(true);
     }
 
-    private IpcResponse Kill()
+    private IpcResponse Stop()
     {
         _loop.Post(_control.Quit);
         return new IpcResponse(true);
