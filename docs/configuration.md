@@ -164,7 +164,7 @@ A project that references the `Winshell` package and has `ImplicitUsings` on, as
 
 - **Leave them out.** `<WinshellImplicitUsings>false</WinshellImplicitUsings>` in the project file leaves out all of them. `<Using Remove="Microsoft.UI.Reactor.Core" />` in an `ItemGroup` leaves out one.
 - **The root namespace always exists.** The package declares the project's `RootNamespace`, so a shell whose only file is `Program.cs` builds.
-- **Two types share a name.** `ColorScheme` is Winshell's, for `shell.ColorScheme`, and Reactor's, for `UseColorScheme()`. Write `Winshell.ColorScheme` or `Microsoft.UI.Reactor.Core.ColorScheme`. A file with `using Microsoft.UI.Xaml.Controls` has two `IconElement` and two `MenuFlyoutItemBase` types the same way.
+- **Two types share a name.** A file with `using Microsoft.UI.Xaml.Controls` has two `IconElement` and two `MenuFlyoutItemBase` types, WinUI's and Reactor's. Write the namespace in front of the one you mean, such as `Microsoft.UI.Xaml.Controls.IconElement`.
 
 ## The program
 
@@ -195,12 +195,12 @@ Properties in the project file name the shell and where it keeps its files. The 
 A bar, a launcher, a `ScreenWindows` and a window are parts of the shell. `shell.Add(part)` starts a part, makes the shell its owner and returns it:
 
 - **Nothing shows before it is added.** Making a part only sets it up. Set its properties, then add it.
-- **The shell disposes what it owns.** When the shell quits or reloads, it disposes every part still added, the last added first.
+- **The shell disposes what it owns.** When the shell quits or restarts, it disposes every part still added, the last added first.
 - **`Dispose` removes it.** A bar, a launcher, a `ScreenWindows` or a window disposed before then stops, and the shell no longer holds it.
 - **Adding twice** does nothing more. Adding a part the shell already holds returns it as it is.
 - **After the shell quits**, `Add` throws `ObjectDisposedException`.
 
-`Add` takes any disposable object, so the shell can own one of yours too. The shell disposes it once, when it quits or reloads. If you dispose it before then, the shell's call is a second one, which the .NET `Dispose` contract allows, so make your `Dispose` safe to call twice.
+`Add` takes any disposable object, so the shell can own one of yours too. The shell disposes it once, when it quits or restarts. If you dispose it before then, the shell's call is a second one, which the .NET `Dispose` contract allows, so make your `Dispose` safe to call twice.
 
 ## A window
 
@@ -381,7 +381,7 @@ A [Launcher](reference/winshell.md#launcher) is a search box that a hotkey opens
             Commands =
             [
                 new("Lock", () => shell.Session.Lock()),
-                new("Reload shell", () => shell.Reload())
+                new("Restart shell", () => shell.Restart())
             ]
         });
 ```
@@ -449,7 +449,7 @@ A XAML resource dictionary of `Shell*` keys becomes a [ShellStyle](#style). A di
         shell.Style = new ShellStyle
         {
             Background = Color.FromArgb(255, 0x1a, 0x1b, 0x26),
-            FontFamily = new FontFamily("Segoe UI")
+            FontFamily = "Segoe UI"
         };
 ```
 
@@ -504,7 +504,7 @@ Saving applies changes live. A widget whose name stays is rendered again with th
 
 ## Style
 
-The style is how every widget area, surface and styled popup looks: its colors, font and slot size. It is a [ShellStyle](reference/winshell.md#shellstyle). `shell.Style` starts as `new ShellStyle()`, which follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` to give the whole shell another look. Set only the values you change: `Background`, `Foreground` and `Alert` are `Windows.UI.Color?` values, and each one left null follows Windows on its own, so `new ShellStyle { FontSize = 12 }` keeps Windows' colors:
+The style is how every widget area, surface and styled popup looks: its colors, font and slot size. It is a [ShellStyle](reference/winshell.md#shellstyle). `shell.Style` starts as `new ShellStyle()`, which follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` to give the whole shell another look. Set only the values you change: `Background`, `Foreground` and `Alert` are `Windows.UI.Color?` values, and each one left null follows Windows on its own, so `new ShellStyle { FontSize = 12 }` keeps Windows' colors. `FontFamily` is a font name as XAML takes it, such as `Segoe UI`, or a font file in the project followed by `#` and the family name:
 
 ```csharp
         shell.Style = new ShellStyle
@@ -512,7 +512,7 @@ The style is how every widget area, surface and styled popup looks: its colors, 
             Background = Color.FromArgb(255, 0x1a, 0x1b, 0x26),
             Foreground = Color.FromArgb(255, 0xa9, 0xb1, 0xd6),
             Alert = Color.FromArgb(255, 0xf7, 0x76, 0x8e),
-            FontFamily = new FontFamily("ms-appx:///Fonts/JetBrainsMonoNerdFont-Regular.ttf#JetBrainsMono NF"),
+            FontFamily = "ms-appx:///Fonts/JetBrainsMonoNerdFont-Regular.ttf#JetBrainsMono NF",
             FontSize = 12,
             SlotSize = 26,
             Padding = 8
@@ -550,6 +550,17 @@ public sealed class AlertLabel : Widget
 ```
 
 `.Alert(false)` shows the element in its usual color, so `.Alert(restricted)` shows it in the alert color only while `restricted` holds.
+
+### Light or dark, and the accent
+
+The shell follows Windows' light or dark mode and its accent color. Choose your own on top:
+
+```csharp
+        shell.Appearance = Appearance.Dark;
+        shell.AccentColor = Color.FromArgb(255, 0xd1, 0x34, 0x38);
+```
+
+`Appearance.System`, the default, follows Windows again, and `shell.IsDark` says which one the shell shows. `shell.AccentColor` is null until you set it, and null follows Windows' accent, which `shell.SystemAccent` reads. Controls that show the accent, such as a toggle switch that is on, take a new accent at once. A contrast theme still wins over both.
 
 ## Write a widget
 
@@ -727,7 +738,7 @@ A named section is made with its name:
 - **A key the file does not have holds its default**, so commenting one out goes back to it.
 - **Assigning a property writes that key** at the end of its section and leaves the rest of the file: comments, other sections and keys no class reads.
 - **When the file is missing**, Winshell writes it with each section's keys commented out at their defaults, under their comments. A component made after that, whose section the file does not have, adds its section at the end of the file the same way, under its own `[name]` header.
-- **A section you take out stays out** until the component is made again, as when the shell starts or reloads, or one of its properties is assigned.
+- **A section you take out stays out** until the component is made again, as when the shell starts, or one of its properties is assigned.
 
 ### What can't be used
 
@@ -752,7 +763,7 @@ What can't be used is logged under `preferences`, with its line, and the values 
 | `Program` | The folder the program runs from, such as `bin\shell` in the project folder |
 | `Shells` | The folder of shell projects and preferences files, `%APPDATA%\winshell` or `WINSHELL_CONFIG_DIR` |
 
-Reading `Data`, `State` or `Cache` creates that folder. The shell works out every path once, when it starts, so they stay put while it runs. Changing `WINSHELL_CONFIG_DIR` or `WINSHELL_LOCAL_DIR` later moves none of them, and the preferences file stays in the `Shells` folder the shell started with. [The program](#the-program) shows the properties that move them. State does not survive a reload unless the shell writes it itself. Every window is replaced.
+Reading `Data`, `State` or `Cache` creates that folder. The shell works out every path once, when it starts, so they stay put while it runs. Changing `WINSHELL_CONFIG_DIR` or `WINSHELL_LOCAL_DIR` later moves none of them, and the preferences file stays in the `Shells` folder the shell started with. [The program](#the-program) shows the properties that move them. State does not survive a restart unless the shell writes it itself. Every window is replaced.
 
 ## IPC
 
@@ -766,18 +777,18 @@ Reading `Data`, `State` or `Cache` creates that folder. The shell works out ever
 
 `winshell ipc call notice dismiss` closes Winshell's own notice. That call is not a target you register, so `ipc show` does not list it.
 
-## Reload
+## Restart
 
-A configuration can reload itself:
+A shell can restart itself:
 
 ```csharp
-        if (!shell.Reload())
-            shell.Log.Warn("shell", "Reload did not start.");
+        if (!shell.Restart())
+            shell.Log.Warn("shell", "Could not restart.");
 ```
 
-That starts this program again with `--after` and quits. It does not build, and the new process runs with no supervisor.
+That starts this program again with `--after` and quits. It does not build, and the new process runs with no supervisor. When the new process cannot start, `Restart` returns `false` and the shell keeps running.
 
-`winshell reload` builds first:
+`winshell reload` builds first, then restarts the shell:
 
 - On failure the running instance stays and a notice shows.
 - On success the new instance takes over, and under `winshell run` it stays supervised: `winshell run` starts it after this one quits.

@@ -223,6 +223,7 @@ internal static class ProbeShell
           {
               shell.Ipc.Handle("probe", "note", (string text) => { });
               shell.Ipc.Property("probe", "name", () => "probe");
+              shell.Ipc.Handle("self", "restart", () => shell.Loop.Post(() => shell.Restart()));
               shell.Ipc.Property("paths", "data", () => shell.Paths.Data);
               shell.Ipc.Property("paths", "state", () => shell.Paths.State);
               shell.Ipc.Property("paths", "cache", () => shell.Paths.Cache);
@@ -308,14 +309,14 @@ internal static class ProbeShell
                   shell.Loop.Post(() =>
                   {
                       ProbePart.Write(report, ending);
-                      if (ending != "reload")
+                      if (ending != "restart")
                       {
                           shell.Quit();
                           return;
                       }
 
                       Environment.SetEnvironmentVariable("{{PartsEndingVariable}}", "quit");
-                      ProbePart.Write(report, $"reloaded {shell.Reload()}");
+                      ProbePart.Write(report, $"restarted {shell.Restart()}");
                   });
                   return;
               }

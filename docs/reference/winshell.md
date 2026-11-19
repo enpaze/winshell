@@ -4,6 +4,14 @@ The configuration's program uses these types. `Shell.Run(shell => { ... })` star
 
 <!-- generated below: dotnet run scripts/generate-reference.cs -->
 
+## Appearance
+
+| Value | Number |
+| --- | --- |
+| `System` | 0 |
+| `Light` | 1 |
+| `Dark` | 2 |
+
 ## Bar
 
 | Member | Type |
@@ -29,14 +37,6 @@ A WinUI Panel. The members here are the ones Winshell adds.
 | `CaptureView()` | constructor |
 | `Session` | [CaptureSession](winshell-capture.md#capturesession)? |
 | `SessionProperty` | DependencyProperty, static |
-
-## ColorScheme
-
-| Value | Number |
-| --- | --- |
-| `System` | 0 |
-| `Light` | 1 |
-| `Dark` | 2 |
 
 ## Edge
 
@@ -334,12 +334,12 @@ Has the members of [ObservableObject](#observableobject).
 
 | Member | Type |
 | --- | --- |
-| `AccentColor` | string |
+| `AccentColor` | Color? |
+| `Appearance` | [Appearance](#appearance) |
 | `Apps` | [AppsService](winshell-apps.md#appsservice), read-only |
 | `Audio` | [AudioService](winshell-audio.md#audioservice), read-only |
 | `Bluetooth` | [BluetoothService](winshell-bluetooth.md#bluetoothservice), read-only |
 | `Brightness` | [BrightnessService](winshell-power.md#brightnessservice), read-only |
-| `ColorScheme` | [ColorScheme](#colorscheme) |
 | `Cpu` | [CpuService](winshell-cpu.md#cpuservice), read-only |
 | `Current` | [Shell](#shell), static, read-only |
 | `ExplorerTaskbar` | [ExplorerTaskbarService](winshell-explorertaskbar.md#explorertaskbarservice), read-only |
@@ -362,7 +362,7 @@ Has the members of [ObservableObject](#observableobject).
 | `ShellId` | string, read-only |
 | `Startup` | [StartupService](winshell-session.md#startupservice), read-only |
 | `Style` | [ShellStyle](#shellstyle) |
-| `SystemAccent` | string, read-only |
+| `SystemAccent` | Color, read-only |
 | `SystemTray` | [SystemTray](winshell-tray.md#systemtray), read-only |
 | `Version` | string, static, read-only |
 | `VirtualDesktops` | [VirtualDesktopsService](winshell-windows.md#virtualdesktopsservice), read-only |
@@ -376,7 +376,7 @@ Has the members of [ObservableObject](#observableobject).
 | `NewIdleMonitor()` | [IdleMonitor](winshell-power.md#idlemonitor) |
 | `Open(string target)` | void |
 | `Quit()` | void |
-| `Reload()` | bool |
+| `Restart()` | bool |
 | `Run(Action of [Shell](#shell) start)` | void, static |
 
 ## ShellImage
@@ -411,7 +411,7 @@ Has the members of [ObservableObject](#observableobject).
 | `ShellStyle()` | constructor |
 | `Alert` | Color?, init |
 | `Background` | Color?, init |
-| `FontFamily` | FontFamily, init |
+| `FontFamily` | string, init |
 | `FontSize` | double, init |
 | `Foreground` | Color?, init |
 | `Padding` | double?, init |

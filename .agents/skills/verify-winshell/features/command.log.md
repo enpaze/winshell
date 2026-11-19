@@ -17,7 +17,7 @@
 - Run `winshell log -t <n>` for the last lines, or `winshell log -f` to keep printing new ones.
 - Run `winshell log --pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>` to pick one shell.
 - Run `winshell log <file>` to print a log file, and `winshell log -- <file>` for a file whose name starts with `-`.
-- Run the shell with `winshell run -v` to add `DEBUG` lines. A configuration writes its own lines through `shell.Log`, such as `shell.Log.Warn("shell", "Reload did not start.")`.
+- Run the shell with `winshell run -v` to add `DEBUG` lines. A configuration writes its own lines through `shell.Log`, such as `shell.Log.Warn("shell", "Could not restart.")`.
 
 ## Driving it with winshell inspect
 

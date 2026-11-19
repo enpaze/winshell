@@ -16,6 +16,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `IsPressed` | bool, read-only |
 | `Sequence` | string |
 | `Taken` | bool, read-only |
-| `Pressed` | EventHandler |
-| `Released` | EventHandler |
+| `Pressed` | Action |
+| `Released` | Action |
 | `Dispose()` | void |

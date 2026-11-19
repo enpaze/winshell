@@ -9,13 +9,13 @@
 - `reload-unsupervised` for a shell with no supervisor, has the shell start the new process, and prints `Reloaded <id>` once that start is accepted, before the old process quits.
 - `reload-build-error` leaves the running shell up, shows a notice with the compiler's lines, prints why, and exits with 1.
 - `reload-refused` leaves the process running and exits with 1 when the quit was refused or never reached the shell, or when the project of a shell under `winshell run` can't be found.
-- `reload-self` lets a configuration reload itself with `shell.Reload()`, which starts its program again without a build and quits. That new process runs with no supervisor.
+- `restart-self` lets a shell restart itself with `shell.Restart()`, which starts its program again without a build and quits. That new process runs with no supervisor.
 
 ## How to get to it (user POV)
 
 - Run `winshell reload` in a terminal for the only running shell.
 - Run `winshell reload --pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>` to pick one of several.
-- A configuration calls `shell.Reload()`, which returns `false` when the reload did not start.
+- A shell calls `shell.Restart()`, which returns `false` when the new process did not start.
 - On a build error, choose **Dismiss** in the notice, or run `winshell ipc call notice dismiss`, to close it.
 
 ## Driving it with winshell inspect

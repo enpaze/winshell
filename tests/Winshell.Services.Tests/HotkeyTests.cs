@@ -140,8 +140,8 @@ public sealed class HotkeyTests : IDisposable
         var key = Key("Ctrl+K");
         try
         {
-            first.Pressed += (_, _) => presses.Add("first");
-            second.Pressed += (_, _) => presses.Add("second");
+            first.Pressed += () => presses.Add("first");
+            second.Pressed += () => presses.Add("second");
             first.Sequence = "Ctrl+K";
             second.Sequence = "Ctrl+K";
             Assert.Equal(key, Assert.Single(_backend.Registered));
@@ -193,7 +193,7 @@ public sealed class HotkeyTests : IDisposable
     {
         using var hotkey = Create();
         var presses = 0;
-        hotkey.Pressed += (_, _) => presses++;
+        hotkey.Pressed += () => presses++;
         hotkey.Sequence = "Ctrl+K, C";
         Assert.False(_backend.HookInstalled);
 
@@ -213,7 +213,7 @@ public sealed class HotkeyTests : IDisposable
     {
         using var hotkey = Create();
         var presses = 0;
-        hotkey.Pressed += (_, _) => presses++;
+        hotkey.Pressed += () => presses++;
         hotkey.Sequence = "Ctrl+K, Ctrl+Shift+C";
         _backend.Press(Key("Ctrl+K"));
         _backend.Held.UnionWith([0xA3, 0xA0]);
@@ -229,7 +229,7 @@ public sealed class HotkeyTests : IDisposable
     {
         using var hotkey = Create();
         var presses = 0;
-        hotkey.Pressed += (_, _) => presses++;
+        hotkey.Pressed += () => presses++;
         hotkey.Sequence = "Win";
 
         Assert.False(_backend.Key(0x5B, false));
@@ -271,7 +271,7 @@ public sealed class HotkeyTests : IDisposable
     {
         using var hotkey = Create();
         var presses = 0;
-        hotkey.Pressed += (_, _) => presses++;
+        hotkey.Pressed += () => presses++;
         hotkey.Sequence = "A, B";
         _backend.Press(Key("A"));
         Assert.True(_backend.HookInstalled);
@@ -309,8 +309,8 @@ public sealed class HotkeyTests : IDisposable
         using var hotkey = Create();
         hotkey.Sequence = "Ctrl+K";
         var events = new List<string>();
-        hotkey.Pressed += (_, _) => events.Add($"pressed {hotkey.IsPressed}");
-        hotkey.Released += (_, _) => events.Add($"released {hotkey.IsPressed}");
+        hotkey.Pressed += () => events.Add($"pressed {hotkey.IsPressed}");
+        hotkey.Released += () => events.Add($"released {hotkey.IsPressed}");
         IHotkeyListener listener = hotkey;
 
         listener.OnPressed();
@@ -327,7 +327,7 @@ public sealed class HotkeyTests : IDisposable
         using var hotkey = Create();
         hotkey.Sequence = "Ctrl+K";
         var released = 0;
-        hotkey.Released += (_, _) => released++;
+        hotkey.Released += () => released++;
         _backend.Held.UnionWith(['K', 0x11]);
 
         ((IHotkeyListener)hotkey).OnPressed();
@@ -348,7 +348,7 @@ public sealed class HotkeyTests : IDisposable
         using var hotkey = Create();
         hotkey.Sequence = "Ctrl+K";
         var released = 0;
-        hotkey.Released += (_, _) => released++;
+        hotkey.Released += () => released++;
         ((IHotkeyListener)hotkey).OnPressed();
 
         hotkey.Sequence = "Ctrl+L";
@@ -363,7 +363,7 @@ public sealed class HotkeyTests : IDisposable
         var hotkey = Create();
         hotkey.Sequence = "Ctrl+K";
         var released = 0;
-        hotkey.Released += (_, _) => released++;
+        hotkey.Released += () => released++;
         ((IHotkeyListener)hotkey).OnPressed();
 
         hotkey.Dispose();

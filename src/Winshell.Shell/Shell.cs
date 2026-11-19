@@ -5,6 +5,7 @@ using System.Runtime.ExceptionServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using WinRT;
+using Windows.UI;
 using Winshell.ExplorerTaskbar;
 
 namespace Winshell;
@@ -101,19 +102,19 @@ public sealed partial class Shell : IDisposable
 
     public bool IsDark => Platform.IsDark;
 
-    public ColorScheme ColorScheme
+    public Appearance Appearance
     {
-        get => Platform.ColorScheme;
-        set => Platform.ColorScheme = value;
+        get => Platform.Appearance;
+        set => Platform.Appearance = value;
     }
 
-    public string AccentColor
+    public Color? AccentColor
     {
         get => Platform.AccentColor;
         set => Platform.AccentColor = value;
     }
 
-    public string SystemAccent => Platform.SystemAccent;
+    public Color SystemAccent => Platform.SystemAccent;
 
     public void Open(string target)
     {
@@ -237,7 +238,7 @@ public sealed partial class Shell : IDisposable
             _parts.RemoveAt(at);
     }
 
-    public bool Reload()
+    public bool Restart()
     {
         if (StartNext() is not null)
             return false;
@@ -257,7 +258,7 @@ public sealed partial class Shell : IDisposable
         {
             using var next = Process.Start(info);
             _nextStarted = true;
-            Log.Info("shell", "Reloading: a new process takes over from this one.");
+            Log.Info("shell", "Restarting: a new process takes over from this one.");
             return null;
         }
         catch (Exception e) when (e is Win32Exception or InvalidOperationException)

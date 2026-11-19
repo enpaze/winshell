@@ -145,7 +145,7 @@ public sealed class WindowListServiceTests
         var window = list.Windows[0];
         Assert.Same(window, list.ActiveWindow);
         var stillListed = true;
-        window.Closed += (_, _) => stillListed = list.Windows.Contains(window);
+        window.Closed += () => stillListed = list.Windows.Contains(window);
 
         _windows.Foreground = 0;
         _windows.Destroy(1);

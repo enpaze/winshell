@@ -281,7 +281,7 @@ public sealed class AppWindow : ObservableObject
 
     public bool Fullscreen => Read(_info).Fullscreen;
 
-    public event EventHandler? Closed;
+    public event Action? Closed;
 
     public void Activate()
     {
@@ -316,7 +316,7 @@ public sealed class AppWindow : ObservableObject
 
     internal void NotifyClosed()
     {
-        Closed?.Invoke(this, EventArgs.Empty);
+        Closed?.Invoke();
     }
 
     internal void Update(WindowInfo info)

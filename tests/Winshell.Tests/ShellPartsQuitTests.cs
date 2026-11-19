@@ -31,14 +31,14 @@ public sealed class ShellPartsQuitTests : IDisposable, IClassFixture<ProbeBuild>
     }
 
     [Fact]
-    public void A_reload_disposes_the_added_parts_in_the_process_that_hands_over()
+    public void A_restart_disposes_the_added_parts_in_the_process_that_hands_over()
     {
-        var probe = Launch("reload");
+        var probe = Launch("restart");
 
-        Assert.True(probe.WaitForExit(TimeSpan.FromSeconds(60)), "The probe did not reload.");
+        Assert.True(probe.WaitForExit(TimeSpan.FromSeconds(60)), "The probe did not restart.");
         ChildProcess.Exited("The probe", probe, _printed).AssertExitCode(0);
-        Assert.Equal([.. Disposed(probe.Id, "reload"), $"{probe.Id} reloaded True"],
-            File.ReadAllLines(Path.Combine(_config, "parts-reload.txt")));
+        Assert.Equal([.. Disposed(probe.Id, "restart"), $"{probe.Id} restarted True"],
+            File.ReadAllLines(Path.Combine(_config, "parts-restart.txt")));
 
         var next = Path.Combine(_config, "parts-quit.txt");
         var started = Array.Empty<string>();
