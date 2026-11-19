@@ -54,20 +54,20 @@ internal static class InstanceStart
         var locations = ShellLocations.Current;
         var identity = ShellIdentity.Resolve(launch.Program, locations, launch.Properties);
         using var duplicate = arguments.NoDuplicate
-            ? HeldMutex.TryClaim(HeldMutex.NoDuplicateName(locations, identity.ShellId))
+            ? HeldMutex.TryClaim(HeldMutex.NoDuplicateName(locations, identity.ShellName))
             : default;
-        if (arguments.NoDuplicate && (!duplicate.Acquired || IsRunning(locations, identity.ShellId)))
+        if (arguments.NoDuplicate && (!duplicate.Acquired || IsRunning(locations, identity.ShellName)))
             return 0;
 
         using var oneShell = ShellReplacement.Claim(locations, arguments.After, out var blocked);
         if (blocked is not null)
             return Reported(blocked);
 
-        var instance = ShellInstance.Open(identity.ShellId, launch.Program, launch.Log, arguments.Verbose);
+        var instance = ShellInstance.Open(identity.ShellName, launch.Program, launch.Log, arguments.Verbose);
         launch.Prepare?.Invoke(instance);
         launch.Log.Info("shell",
             $"Winshell {ProductVersion.Current.Text} on Windows {Environment.OSVersion.Version}, program \"{launch.Program}\"");
-        launch.Log.Info("shell", $"Shell ID: \"{identity.ShellId}\"");
+        launch.Log.Info("shell", $"Shell name: \"{identity.ShellName}\"");
         identity.CarryOver(launch.Log);
         launch.Log.Info("shell", $"Saving logs to \"{instance.Logs}\"");
         if (instance.OpenPipe() is { } pipeError)
@@ -95,10 +95,10 @@ internal static class InstanceStart
         return session.Failure is { } failure ? Reported(failure.Message) : 0;
     }
 
-    private static bool IsRunning(ShellLocations locations, string shellId)
+    private static bool IsRunning(ShellLocations locations, string shellName)
     {
         return locations.Instances.Running()
-            .Any(info => string.Equals(info.ShellId, shellId, StringComparison.OrdinalIgnoreCase));
+            .Any(info => string.Equals(info.ShellName, shellName, StringComparison.OrdinalIgnoreCase));
     }
 
     private static int Reported(string reason)

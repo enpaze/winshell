@@ -43,9 +43,9 @@ public sealed class ShellServicesTests
             try
             {
                 PInvoke.ShowWindow((HWND)hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
-                await Wait.UntilAsync(() => shell.WindowList.Find(hwnd) is not null,
-                    "the window list to list the window");
-                return ReferenceEquals(shell.WindowList.Find(hwnd), winland.FindWindow(hwnd));
+                await Wait.UntilAsync(() => shell.AppWindows.Find(hwnd) is not null,
+                    "the app windows to list the window");
+                return ReferenceEquals(shell.AppWindows.Find(hwnd), winland.FindWindow(hwnd));
             }
             finally
             {

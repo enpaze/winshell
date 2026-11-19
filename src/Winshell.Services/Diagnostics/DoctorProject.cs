@@ -16,10 +16,10 @@ internal static class DoctorProject
     {
         if (problem is not null)
             return new DoctorCheck("project", "Project", CheckStatus.Fail, problem,
-                "Pick a config with winshell -c <name>, or give its folder with -p, and make sure your account can read it.");
+                "Pick a shell with winshell -s <name>, or give its folder with -p, and make sure your account can read it.");
         if (project is null)
             return new DoctorCheck("project", "Project", CheckStatus.Warn,
-                "No configuration project, so winshell run starts nothing.",
+                "No shell project, so winshell run starts nothing.",
                 "Run winshell new to make one.");
         return new DoctorCheck("project", "Project", CheckStatus.Pass, project.ProjectFile);
     }
@@ -27,7 +27,7 @@ internal static class DoctorProject
     private static DoctorCheck Built(ShellProject? project)
     {
         if (project is null)
-            return new DoctorCheck("built", "Built", CheckStatus.Pass, "No configuration project to build.");
+            return new DoctorCheck("built", "Built", CheckStatus.Pass, "No shell project to build.");
         if (!File.Exists(project.Program))
             return new DoctorCheck("built", "Built", CheckStatus.Fail, $"{project.Name} has not been built.",
                 "Run winshell run once to build it.");
@@ -37,7 +37,7 @@ internal static class DoctorProject
     private static DoctorCheck BuildNeeded(ShellProject? project)
     {
         if (project is null)
-            return new DoctorCheck("build", "Build", CheckStatus.Pass, "No configuration project to build.");
+            return new DoctorCheck("build", "Build", CheckStatus.Pass, "No shell project to build.");
         if (!File.Exists(project.Program))
             return new DoctorCheck("build", "Build", CheckStatus.Pass,
                 $"Nothing to compare until {project.Name} is built.");

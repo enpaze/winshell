@@ -27,7 +27,7 @@ public sealed class ShellInstanceTests
     {
         var info = await Own();
 
-        Assert.Equal("winshell-tests", info.ShellId);
+        Assert.Equal("winshell-tests", info.ShellName);
         Assert.Equal(Environment.ProcessPath, info.Program);
         Assert.StartsWith("winshell-", info.Pipe, StringComparison.Ordinal);
         Assert.Null(info.ExitedAt);
@@ -80,7 +80,7 @@ public sealed class ShellInstanceTests
     {
         var shell = await ShellFixture.Current();
         using var handler = await ShellFixture.On(s => s.Ipc.Handle("tests", "twice", (int number) => number * 2));
-        using var property = await ShellFixture.On(s => s.Ipc.Property("tests", "name", () => s.ShellId));
+        using var property = await ShellFixture.On(s => s.Ipc.Property("tests", "name", () => s.ShellName));
 
         var shown = Assert.Single(await Ask(IpcRequest.ForShow(false)));
         var called = Assert.Single(await Ask(IpcRequest.ForCall("tests", "twice", ["21"])));
@@ -88,7 +88,7 @@ public sealed class ShellInstanceTests
 
         Assert.Contains("function twice(number: int): int", shown.Value, StringComparison.Ordinal);
         Assert.Equal("42", called.Value);
-        Assert.Equal(shell.ShellId, read.Value);
+        Assert.Equal(shell.ShellName, read.Value);
     }
 
     [Fact]

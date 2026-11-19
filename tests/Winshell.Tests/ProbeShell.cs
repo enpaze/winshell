@@ -232,7 +232,7 @@ internal static class ProbeShell
               shell.Ipc.Property("paths", "logs", () => shell.Paths.Logs);
               shell.Ipc.Property("paths", "program", () => shell.Paths.Program);
               shell.Ipc.Property("paths", "shells", () => shell.Paths.Shells);
-              var config = Environment.GetEnvironmentVariable("WINSHELL_CONFIG_DIR");
+              var config = Environment.GetEnvironmentVariable("WINSHELL_SHELLS_DIR");
               // A test that puts {{CrashMarker}} there gets a shell that crashes as it starts, once.
               if (config is not null && File.Exists(Path.Combine(config, "{{CrashMarker}}")))
               {
@@ -248,7 +248,7 @@ internal static class ProbeShell
                   queue.TryEnqueue(() => new LateSection());
                   queue.TryEnqueue(() =>
                   {
-                      var path = Path.Combine(shell.Paths.Shells, "preferences", shell.ShellId + ".toml");
+                      var path = Path.Combine(shell.Paths.Shells, "preferences", shell.ShellName + ".toml");
                       var report = Path.Combine(config, "preferences-report.txt");
                       // The test reads the report from another process, so it appears once and whole: written
                       // beside it, then moved to a name that does not exist yet, which no reader can hold open.

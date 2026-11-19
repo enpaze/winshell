@@ -43,8 +43,8 @@ internal static class StartupError
         try
         {
             var pressed = TaskDialog.ShowError("Winshell", "Winshell could not start", message,
-                folder is null ? null : (OpenConfigFolder, "Open config folder"));
-            if (pressed == OpenConfigFolder && folder is not null)
+                folder is null ? null : (OpenShellFolder, "Open shell folder"));
+            if (pressed == OpenShellFolder && folder is not null)
                 Open(folder);
         }
         catch (Exception e) when (e is not OutOfMemoryException)
@@ -65,5 +65,5 @@ internal static class StartupError
         }
     }
 
-    private const int OpenConfigFolder = 100;
+    private const int OpenShellFolder = 100;
 }

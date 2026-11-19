@@ -63,8 +63,8 @@ public class IpcArgumentTests
         Assert.Equal(["--", "kill"], passed.Rest);
         var error = Assert.Throws<ArgumentException>(() => CliParser.Parse(["ipc", "--", "call"]));
         Assert.Equal("winshell ipc call needs a target and a function.", error.Message);
-        var kill = CliParser.Parse(["-c", "work", "kill"]);
+        var kill = CliParser.Parse(["-s", "work", "kill"]);
         Assert.Equal("kill", kill.Command);
-        Assert.Equal("work", kill.Text(CliFlags.Config));
+        Assert.Equal("work", kill.Text(CliFlags.Shell));
     }
 }

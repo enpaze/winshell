@@ -1,6 +1,6 @@
 using Winshell.Native;
 
-namespace Winshell.Windows;
+namespace Winshell.AppWindows;
 
 internal readonly record struct DesktopRecord(Guid Id, string Name);
 

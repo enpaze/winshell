@@ -1,6 +1,6 @@
 # Privacy
 
-`shell.Privacy` lists the apps that use the microphone, the camera or location right now. A configuration uses it for a privacy indicator. The feature shell's row `service.privacy` shows `microphone: N; camera: N; location: N`, the number of apps using each now.
+`shell.Privacy` lists the apps that use the microphone, the camera or location right now. A shell uses it for a privacy indicator. The feature shell's row `service.privacy` shows `microphone: N; camera: N; location: N`, the number of apps using each now.
 
 ## Sub-features
 
@@ -12,7 +12,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Privacy`, or `Shell.Privacy` in a widget, and follows it with `UseObservable` or `PropertyChanged`.
+- A shell reads `shell.Privacy`, or `Shell.Privacy` in a widget, and follows it with `UseObservable` or `PropertyChanged`.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

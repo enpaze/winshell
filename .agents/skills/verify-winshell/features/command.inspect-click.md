@@ -13,8 +13,8 @@
 ## How to get to it (user POV)
 
 - Run `winshell inspect click <name> [window]` in a terminal, where `<name>` is an `x:Name`, an automation id or an automation name.
-- Pick the shell with `--pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>`. With none, the command acts on the only running shell.
-- A configuration gives an element a name to click with `AutomationId(...)`, `x:Name` or `AutomationName`.
+- Pick the shell with `--pid <pid>`, `-i <id>`, `-s <name>` or `-p <path>`. With none, the command acts on the only running shell.
+- A shell gives an element a name to click with `AutomationId(...)`, `x:Name` or `AutomationName`.
 
 ## Driving it with winshell inspect
 

@@ -1,12 +1,13 @@
 # Reference
 
-Every public type a configuration uses, by namespace. A page lists each type and the members it declares. A test fails when a type or member is missing, or when a table names one the type does not have. Members inherited from another type on these pages are listed on that type.
+Every public type a shell uses, by namespace. A page lists each type and the members it declares. A test fails when a type or member is missing, or when a table names one the type does not have. Members inherited from another type on these pages are listed on that type.
 
 See also the [command line](command-line.md).
 
 | Namespace | What it has |
 | --- | --- |
 | [Winshell](winshell.md) | The shell, its windows and screens, IPC, preferences files and logging. |
+| [Winshell.AppWindows](winshell-appwindows.md) | App windows and virtual desktops. |
 | [Winshell.Apps](winshell-apps.md) | Installed apps, search, jump lists and recent documents. |
 | [Winshell.Audio](winshell-audio.md) | Playback and recording devices, sessions, volume, mute and levels. |
 | [Winshell.Bluetooth](winshell-bluetooth.md) | The Bluetooth adapter, paired and nearby devices, pairing and connecting. |
@@ -23,7 +24,6 @@ See also the [command line](command-line.md).
 | [Winshell.Session](winshell-session.md) | Locking the Windows session, and running at sign-in. |
 | [Winshell.Tray](winshell-tray.md) | The icons apps add to the notification area. |
 | [Winshell.Wallpaper](winshell-wallpaper.md) | The desktop wallpaper: each screen's image, the fit and the background color. |
-| [Winshell.Windows](winshell-windows.md) | App windows and virtual desktops. |
 | [Winshell.Winland](winshell-winland.md) | Monitors, workspaces and windows from Winland. |
 
 ## Conventions

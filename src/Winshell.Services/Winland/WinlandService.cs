@@ -1,6 +1,6 @@
 using System.Collections.Specialized;
 using System.Text.Json;
-using Winshell.Windows;
+using Winshell.AppWindows;
 using static Winshell.Winland.WinlandProtocol;
 
 namespace Winshell.Winland;
@@ -14,7 +14,7 @@ public sealed class WinlandService : ObservableObject, IShellService
     private readonly List<WinlandMonitor> _monitorList = [];
     private readonly List<WinlandWorkspace> _workspaceList = [];
     private readonly List<WinlandWindow> _windowList = [];
-    private WindowListService? _windows;
+    private AppWindowsService? _windows;
     private WinlandMonitor? _focusedMonitor;
     private WinlandWorkspace? _focusedWorkspace;
     private WinlandWindow? _activeWindow;
@@ -57,7 +57,7 @@ public sealed class WinlandService : ObservableObject, IShellService
 
     public string? LogPath => Read(_logPath);
 
-    internal void Attach(WindowListService? windows)
+    internal void Attach(AppWindowsService? windows)
     {
         if (ReferenceEquals(_windows, windows))
             return;

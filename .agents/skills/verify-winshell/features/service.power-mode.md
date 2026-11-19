@@ -1,6 +1,6 @@
 # Power mode
 
-`shell.PowerMode` reads and sets the Windows power mode, a slider with three positions from best efficiency to best performance. A configuration uses it for a power mode switch. The feature shell's row `service.power-mode` shows `ready: <True|False>; mode: <level>; available: <True|False>`, where the level is a `PowerModeLevel` value: `BestEfficiency`, `Balanced`, `BestPerformance` or `Unknown`.
+`shell.PowerMode` reads and sets the Windows power mode, a slider with three positions from best efficiency to best performance. A shell uses it for a power mode switch. The feature shell's row `service.power-mode` shows `ready: <True|False>; mode: <level>; available: <True|False>`, where the level is a `PowerModeLevel` value: `BestEfficiency`, `Balanced`, `BestPerformance` or `Unknown`.
 
 ## Sub-features
 
@@ -11,7 +11,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.PowerMode`, or `Shell.PowerMode` in a widget.
+- A shell reads `shell.PowerMode`, or `Shell.PowerMode` in a widget.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

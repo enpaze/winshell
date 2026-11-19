@@ -26,7 +26,7 @@ function Get-OtherRuns {
     $own = if ($script:Run) { $script:Run.path + '\' } else { $null }
     @(Get-Process | ForEach-Object {
             $path = Get-ProcessPath $_
-            if ($path -and $path -match '^(.*\\winshell-verify(\\[^\\]+)?)\\config\\' -and
+            if ($path -and $path -match '^(.*\\winshell-verify(\\[^\\]+)?)\\shells\\' -and
                 (-not $own -or -not $path.StartsWith($own, [StringComparison]::OrdinalIgnoreCase))) {
                 [pscustomobject]@{ Id = $_.Id; Name = $_.ProcessName; Session = $Matches[1] }
             }
@@ -63,7 +63,7 @@ function New-Session([string] $Path, [string] $Winshell) {
     $exe = if ($Winshell) { (Resolve-Path -LiteralPath $Winshell).ProviderPath } else { Build-Winshell }
     $script:Run = [pscustomobject]@{
         path = $Path
-        config = Join-Path $Path 'config'
+        shells = Join-Path $Path 'shells'
         local = Join-Path $Path 'local'
         evidence = Join-Path $Path 'evidence'
         exe = $exe
@@ -72,11 +72,11 @@ function New-Session([string] $Path, [string] $Winshell) {
         folder = $null
         pid = $null
     }
-    foreach ($folder in $script:Run.config, $script:Run.local, $script:Run.evidence) {
+    foreach ($folder in $script:Run.shells, $script:Run.local, $script:Run.evidence) {
         [IO.Directory]::CreateDirectory($folder) | Out-Null
     }
     foreach ($name in '.editorconfig', 'global.json', 'Directory.Build.props', 'Directory.Build.targets') {
-        Copy-Item -LiteralPath (Join-Path $script:Repo $name) -Destination (Join-Path $script:Run.config $name)
+        Copy-Item -LiteralPath (Join-Path $script:Repo $name) -Destination (Join-Path $script:Run.shells $name)
     }
     Save-Session
     $script:Run
@@ -94,7 +94,7 @@ function Read-Session([string] $Path) {
 function Start-Winshell([string[]] $Arguments) {
     $start = [Diagnostics.ProcessStartInfo]::new($script:Run.exe)
     foreach ($argument in $Arguments) { $start.ArgumentList.Add($argument) }
-    $start.Environment['WINSHELL_CONFIG_DIR'] = $script:Run.config
+    $start.Environment['WINSHELL_SHELLS_DIR'] = $script:Run.shells
     $start.Environment['WINSHELL_LOCAL_DIR'] = $script:Run.local
     $start.UseShellExecute = $false
     $start.CreateNoWindow = $true
@@ -144,16 +144,16 @@ function Get-Instances {
 
 function Get-ShellInstance([string] $Folder) {
     $prefix = (Join-Path $Folder 'bin\shell') + '\'
-    @(Get-Instances | Where-Object { $_.configPath.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) }) |
+    @(Get-Instances | Where-Object { $_.program.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) }) |
         Select-Object -First 1
 }
 
 function Get-ShellProcesses {
     $exe = $script:Run.exe
-    $config = $script:Run.config + '\'
+    $shells = $script:Run.shells + '\'
     @(Get-Process | Where-Object {
             $path = Get-ProcessPath $_
-            $path -and ($path.StartsWith($config, [StringComparison]::OrdinalIgnoreCase) -or ($path -eq $exe -and $_.Id -ne $PID))
+            $path -and ($path.StartsWith($shells, [StringComparison]::OrdinalIgnoreCase) -or ($path -eq $exe -and $_.Id -ne $PID))
         })
 }
 
@@ -193,7 +193,7 @@ function Start-ShellFolder([string] $Folder) {
 
 function Copy-Shell([string] $Name) {
     $source = $script:Shells[$Name]
-    $folder = Join-Path $script:Run.config $Name
+    $folder = Join-Path $script:Run.shells $Name
     $paths = @(git -C $script:Repo -c core.quotepath=false ls-files --cached --others --exclude-standard -- $source)
     if ($LASTEXITCODE -ne 0) { throw "Could not list the files of $source with Git." }
     foreach ($path in $paths) {
@@ -233,7 +233,7 @@ function Copy-Shell([string] $Name) {
 }
 
 function Start-Shell([string] $Name) {
-    $folder = if (Test-Path -LiteralPath (Join-Path $script:Run.config $Name)) { Join-Path $script:Run.config $Name } else { Copy-Shell $Name }
+    $folder = if (Test-Path -LiteralPath (Join-Path $script:Run.shells $Name)) { Join-Path $script:Run.shells $Name } else { Copy-Shell $Name }
     $instance = Start-ShellFolder $folder
     $script:Run.shell = $Name
     $script:Run.folder = $folder
@@ -282,7 +282,7 @@ function Stop-Session {
     if (Test-Path -LiteralPath $logs) {
         Copy-Item -LiteralPath $logs -Destination (Join-Path $session.evidence 'logs') -Recurse -Force
     }
-    foreach ($folder in $session.config, $session.local) {
+    foreach ($folder in $session.shells, $session.local) {
         for ($attempt = 1; (Test-Path -LiteralPath $folder) -and $attempt -le 10; $attempt++) {
             Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction SilentlyContinue
             if (Test-Path -LiteralPath $folder) { Start-Sleep -Milliseconds 500 }

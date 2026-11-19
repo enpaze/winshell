@@ -28,10 +28,10 @@ public sealed class NotificationTests
         return changes;
     }
 
-    private static async Task<NotificationListener> ListenerAsync(FakeBackend backend, ManualEventLoop? loop = null)
+    private static async Task<NotificationsService> ListenerAsync(FakeBackend backend, ManualEventLoop? loop = null)
     {
         loop ??= new ManualEventLoop();
-        var listener = new NotificationListener(loop, Log.Default, backend);
+        var listener = new NotificationsService(loop, Log.Default, backend);
         await listener.RefreshAsync();
         loop.Process();
         return listener;
@@ -100,13 +100,13 @@ public sealed class NotificationTests
         Assert.Equal(NotificationState.On, listener.FocusState);
         Assert.Equal(
         [
-            nameof(NotificationListener.FocusState), nameof(NotificationListener.NotificationMode),
-            nameof(NotificationListener.DoNotDisturbState)
+            nameof(NotificationsService.FocusState), nameof(NotificationsService.NotificationMode),
+            nameof(NotificationsService.DoNotDisturbState)
         ], changes);
         changes.Clear();
 
         listener.Apply(Snapshot() with { Mode = NotificationMode.PriorityOnly, Focus = NotificationState.On });
-        Assert.Equal([nameof(NotificationListener.NotificationMode)], changes);
+        Assert.Equal([nameof(NotificationsService.NotificationMode)], changes);
     }
 
     [Fact]
@@ -265,7 +265,7 @@ public sealed class NotificationTests
                 Environment.CurrentManagedThreadId))
         };
         var caller = Environment.CurrentManagedThreadId;
-        using (new NotificationListener(new ManualEventLoop(), Log.Default, backend).Stopping())
+        using (new NotificationsService(new ManualEventLoop(), Log.Default, backend).Stopping())
         {
             var (pool, id) = await seen.Task.WaitAsync(TestContext.Current.CancellationToken);
 

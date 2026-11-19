@@ -5,7 +5,7 @@ using Winshell.Network;
 
 namespace Winshell.Services.Tests;
 
-public sealed class NetworkingServiceTests
+public sealed class NetworkServiceTests
 {
     private const string Secret = "winshell-profile-key-9f3a";
 
@@ -131,7 +131,7 @@ public sealed class NetworkingServiceTests
     {
         var backend = new FakeBackend();
         var loop = new ManualEventLoop();
-        var service = new NetworkingService(loop, Log.Default, backend);
+        var service = new NetworkService(loop, Log.Default, backend);
 
         backend.Publish(Snapshot(Wifi()));
         Assert.Empty(service.Devices);
@@ -218,12 +218,12 @@ public sealed class NetworkingServiceTests
         Assert.Equal("Access revoked", session.Device.Error);
 
         session.Backend.Failure = null;
-        session.Backend.ScanResult = "Call NetworkingService.RequestAccess() before scanning Wi-Fi networks.";
+        session.Backend.ScanResult = "Call NetworkService.RequestAccess() before scanning Wi-Fi networks.";
         await session.Device.ScanAsync();
         session.Loop.Process();
         Assert.False(session.Device.Scanning);
         Assert.Equal(
-            "Call NetworkingService.RequestAccess() before scanning Wi-Fi networks.",
+            "Call NetworkService.RequestAccess() before scanning Wi-Fi networks.",
             session.Device.Error);
 
         session.Backend.Failure = null;
@@ -334,7 +334,7 @@ public sealed class NetworkingServiceTests
     {
         using var backend = new NetworkBackend(Log.Default);
 
-        Assert.Equal("Call NetworkingService.RequestAccess() before scanning Wi-Fi networks.",
+        Assert.Equal("Call NetworkService.RequestAccess() before scanning Wi-Fi networks.",
             await backend.ScanAsync(Guid.NewGuid()));
     }
 
@@ -665,7 +665,7 @@ public sealed class NetworkingServiceTests
 
         var networks = session.Service.Devices.SelectMany(device => device.Networks).ToArray();
         Assert.Equal(2, networks.Length);
-        Assert.DoesNotContain(typeof(NetworkingService).GetProperties(), IsNetworkList);
+        Assert.DoesNotContain(typeof(NetworkService).GetProperties(), IsNetworkList);
         Assert.Equal(nameof(NetworkDevice.Networks),
             Assert.Single(typeof(NetworkDevice).GetProperties(), IsNetworkList).Name);
 
@@ -704,7 +704,7 @@ public sealed class NetworkingServiceTests
     {
         public Session(NetworkSnapshot snapshot)
         {
-            Service = new NetworkingService(Loop, Log.Default, Backend);
+            Service = new NetworkService(Loop, Log.Default, Backend);
             Show(snapshot);
         }
 
@@ -712,7 +712,7 @@ public sealed class NetworkingServiceTests
 
         public ManualEventLoop Loop { get; } = new();
 
-        public NetworkingService Service { get; }
+        public NetworkService Service { get; }
 
         public WifiDevice Device => Assert.IsType<WifiDevice>(Assert.Single(Service.Devices));
 

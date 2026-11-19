@@ -80,7 +80,7 @@ public sealed class DoctorUserConfigTests : IDisposable
             .Single(c => c.Id == "project");
 
         Assert.Equal(CheckStatus.Warn, check.Status);
-        Assert.Equal("No configuration project, so winshell run starts nothing.", check.Message);
+        Assert.Equal("No shell project, so winshell run starts nothing.", check.Message);
         Assert.Equal("Run winshell new to make one.", check.Fix);
     }
 
@@ -93,13 +93,16 @@ public sealed class DoctorUserConfigTests : IDisposable
         var locations = new ShellLocations(config, Path.Combine(_dir, "local"));
         var project = Project(config);
 
-        Assert.Null(DoctorProbe.PreferencesProblem(locations, project));
+        var preferences = DoctorProbe.PreferencesFile(locations, project, ShellProject.Run, out var unread);
+
+        Assert.Null(unread);
+        Assert.Null(DoctorProbe.PreferencesProblem(preferences));
         Preferences(config, "root", "# keep\ncolorScheme = \"dark\"\n\n[bar]\nedge = \"left\"\n");
-        Assert.Null(DoctorProbe.PreferencesProblem(locations, project));
+        Assert.Null(DoctorProbe.PreferencesProblem(preferences));
     }
 
     [Fact]
-    public void A_configuration_in_a_folder_of_the_config_folder_is_checked_in_the_file_named_after_that_folder()
+    public void A_shell_in_a_folder_of_the_shells_folder_is_checked_in_the_file_named_after_that_folder()
     {
         var config = Path.Combine(_dir, "config");
         var shell = Path.Combine(config, "Work");
@@ -125,6 +128,107 @@ public sealed class DoctorUserConfigTests : IDisposable
     }
 
     [Fact]
+    public void A_shell_name_in_the_project_file_names_the_preferences_file_checked()
+    {
+        var config = Path.Combine(_dir, "config");
+        var shell = Path.Combine(config, "Work");
+        Directory.CreateDirectory(shell);
+        var projectFile = Path.Combine(shell, "Work.csproj");
+        File.WriteAllText(projectFile,
+            "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><ShellName>desk</ShellName></PropertyGroup></Project>");
+        var preferences = Preferences(config, "desk", "colorScheme =\n");
+        var folderNamed = Preferences(config, "work", "colorScheme =\n");
+
+        var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
+            .Single(c => c.Id == "project");
+
+        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.Contains(Printed(preferences) + "[", check.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(Printed(folderNamed), check.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_last_shell_name_the_project_assigns_names_the_preferences_file_checked()
+    {
+        var config = Path.Combine(_dir, "config");
+        var shell = Path.Combine(config, "Work");
+        Directory.CreateDirectory(shell);
+        var projectFile = Path.Combine(shell, "Work.csproj");
+        File.WriteAllText(projectFile,
+            "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><ShellName>first</ShellName></PropertyGroup><PropertyGroup><ShellName>desk</ShellName></PropertyGroup></Project>");
+        var preferences = Preferences(config, "desk", "colorScheme =\n");
+        var first = Preferences(config, "first", "colorScheme =\n");
+
+        var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
+            .Single(c => c.Id == "project");
+
+        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.Contains(Printed(preferences) + "[", check.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(Printed(first), check.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_shell_name_built_from_msbuild_properties_is_evaluated()
+    {
+        var config = Path.Combine(_dir, "config");
+        var shell = Path.Combine(config, "Work");
+        Directory.CreateDirectory(shell);
+        var projectFile = Path.Combine(shell, "Work.csproj");
+        File.WriteAllText(projectFile,
+            "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><Desk>desk</Desk><ShellName>$(MSBuildProjectName)-$(Desk)</ShellName></PropertyGroup></Project>");
+        var preferences = Preferences(config, "Work-desk", "colorScheme =\n");
+        var folderNamed = Preferences(config, "work", "colorScheme =\n");
+
+        var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
+            .Single(c => c.Id == "project");
+
+        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.Contains(Printed(preferences) + "[", check.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(Printed(folderNamed), check.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_shell_name_of_the_release_build_names_the_preferences_file_checked()
+    {
+        var config = Path.Combine(_dir, "config");
+        var shell = Path.Combine(config, "Work");
+        Directory.CreateDirectory(shell);
+        var projectFile = Path.Combine(shell, "Work.csproj");
+        File.WriteAllText(projectFile,
+            "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><ShellName Condition=\"'$(Configuration)' == 'Debug'\">debug-desk</ShellName><ShellName Condition=\"'$(Configuration)' == 'Release'\">release-desk</ShellName></PropertyGroup></Project>");
+        var preferences = Preferences(config, "release-desk", "colorScheme =\n");
+        var debug = Preferences(config, "debug-desk", "colorScheme =\n");
+
+        var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
+            .Single(c => c.Id == "project");
+
+        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.Contains(Printed(preferences) + "[", check.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(Printed(debug), check.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_project_msbuild_cannot_read_is_checked_under_the_folder_name_and_says_so()
+    {
+        var config = Path.Combine(_dir, "config");
+        var shell = Path.Combine(config, "Work");
+        Directory.CreateDirectory(shell);
+        var projectFile = Path.Combine(shell, "Work.csproj");
+        File.WriteAllText(projectFile, "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><ShellName>desk</ShellName>");
+        var preferences = Path.Combine(config, "preferences", "work.toml");
+
+        var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
+            .Single(c => c.Id == "project");
+
+        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.Contains(
+            $"The shell name could not be read from Work.csproj, so doctor assumed \"work\" and checked {Printed(preferences)}: ",
+            check.Message, StringComparison.Ordinal);
+        Assert.Contains("MSB4025", check.Message, StringComparison.Ordinal);
+        Assert.Contains("dotnet msbuild", check.Fix, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_preferences_file_that_cannot_be_read_is_named_with_why()
     {
         var config = Path.Combine(_dir, "config");
@@ -134,8 +238,8 @@ public sealed class DoctorUserConfigTests : IDisposable
         Directory.CreateDirectory(Path.GetDirectoryName(preferences)!);
         using var locked = new FileStream(preferences, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
 
-        var problem = DoctorProbe.PreferencesProblem(new ShellLocations(config, Path.Combine(_dir, "local")),
-            Project(config));
+        var problem = DoctorProbe.PreferencesProblem(DoctorProbe.PreferencesFile(
+            new ShellLocations(config, Path.Combine(_dir, "local")), Project(config), ShellProject.Run, out _));
 
         Assert.StartsWith(preferences + ": could not be read:", problem, StringComparison.Ordinal);
     }
@@ -158,7 +262,7 @@ public sealed class DoctorUserConfigTests : IDisposable
 
     private static DoctorContext Context(string config, string local, string? path = null)
     {
-        return new DoctorContext(new ShellLocations(config, local), path, null);
+        return new DoctorContext(new ShellLocations(config, local), path, null, ShellProject.Run);
     }
 
     private static string Printed(string path)

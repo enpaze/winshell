@@ -56,7 +56,7 @@ public sealed partial class DoctorCommandTests : IDisposable
             .ToDictionary(c => c.GetProperty("id").GetString() ?? "", c => c.GetProperty("message").GetString());
         Assert.StartsWith("No .csproj at ", messages["project"], StringComparison.Ordinal);
         Assert.EndsWith(@"\beside\missing.", messages["project"], StringComparison.Ordinal);
-        Assert.Equal("No configuration project to build.", messages["built"]);
+        Assert.Equal("No shell project to build.", messages["built"]);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed partial class DoctorCommandTests : IDisposable
             .ToDictionary(c => c.GetProperty("id").GetString() ?? "", c => c.GetProperty("message").GetString());
         Assert.StartsWith("No .csproj at ", messages["project"], StringComparison.Ordinal);
         Assert.EndsWith(@"\holder.", messages["project"], StringComparison.Ordinal);
-        Assert.Equal("No configuration project to build.", messages["built"]);
+        Assert.Equal("No shell project to build.", messages["built"]);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public sealed partial class DoctorCommandTests : IDisposable
         var local = Path.Combine(_root, "local");
         Directory.CreateDirectory(empty);
 
-        var (_, output, _) = WinshellCli.Run(["doctor", "--json"], (ShellLocations.ConfigVariable, empty),
+        var (_, output, _) = WinshellCli.Run(["doctor", "--json"], (ShellLocations.ShellsVariable, empty),
             (ShellLocations.LocalVariable, local));
 
         using var json = JsonDocument.Parse(output);
@@ -146,8 +146,69 @@ public sealed partial class DoctorCommandTests : IDisposable
         Assert.Equal(Ids.Length, checks.Count);
         var project = checks.Single(c => c.GetProperty("id").GetString() == "project");
         Assert.Equal("fail", project.GetProperty("status").GetString());
-        Assert.StartsWith("Winshell cannot read the config folder", project.GetProperty("message").GetString(),
+        Assert.StartsWith("Winshell cannot read the shells folder", project.GetProperty("message").GetString(),
             StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Json_without_a_temp_folder_still_checks_the_preferences_file_of_the_evaluated_shell_name()
+    {
+        var shell = Path.Combine(_root, "Work");
+        Directory.CreateDirectory(shell);
+        File.WriteAllText(Path.Combine(shell, "Work.csproj"),
+            "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><ShellName>desk</ShellName></PropertyGroup></Project>");
+        Preferences("desk");
+
+        var project = ProjectCheck(RunWithoutTemp("doctor", "--json", "-p", shell));
+
+        Assert.Equal("warn", project.GetProperty("status").GetString());
+        var message = project.GetProperty("message").GetString();
+        Assert.Contains(@"\preferences\desk.toml[", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("could not be read", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Json_without_a_temp_folder_reports_the_assumed_shell_name_when_msbuild_cannot_load_the_project()
+    {
+        var shell = Path.Combine(_root, "Work");
+        Directory.CreateDirectory(shell);
+        File.WriteAllText(Path.Combine(shell, "Work.csproj"),
+            "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><ShellName>desk</ShellName>");
+        Preferences("work");
+
+        var project = ProjectCheck(RunWithoutTemp("doctor", "--json", "-p", shell));
+
+        Assert.Equal("warn", project.GetProperty("status").GetString());
+        var message = project.GetProperty("message").GetString();
+        Assert.Contains("The shell name could not be read from Work.csproj, so doctor assumed \"work\" and checked ",
+            message, StringComparison.Ordinal);
+        Assert.Contains("MSB4025", message, StringComparison.Ordinal);
+        Assert.Contains(@"\preferences\work.toml[", message, StringComparison.Ordinal);
+        Assert.Contains("dotnet msbuild", project.GetProperty("fix").GetString(), StringComparison.Ordinal);
+    }
+
+    private void Preferences(string name)
+    {
+        var preferences = Path.Combine(_root, "preferences");
+        Directory.CreateDirectory(preferences);
+        File.WriteAllText(Path.Combine(preferences, name + ".toml"), "colorScheme =\n");
+    }
+
+    private static JsonElement ProjectCheck(ChildProcess result)
+    {
+        result.AssertExitCode(1);
+        Assert.Empty(result.Error);
+        using var json = JsonDocument.Parse(result.Output);
+        return json.RootElement.GetProperty("checks").EnumerateArray()
+            .Single(c => c.GetProperty("id").GetString() == "project").Clone();
+    }
+
+    private ChildProcess RunWithoutTemp(params string[] args)
+    {
+        var missing = Path.Combine(_root, "no-temp");
+#pragma warning disable CsWinRT1030
+        return WinshellCli.Run(args, (ShellLocations.ShellsVariable, _root), ("TMP", missing), ("TEMP", missing));
+#pragma warning restore CsWinRT1030
     }
 
     private ChildProcess Run(params string[] args)
@@ -158,7 +219,7 @@ public sealed partial class DoctorCommandTests : IDisposable
     private static ChildProcess RunIn(string shellsRoot, params string[] args)
     {
 #pragma warning disable CsWinRT1030
-        return WinshellCli.Run(args, (ShellLocations.ConfigVariable, shellsRoot));
+        return WinshellCli.Run(args, (ShellLocations.ShellsVariable, shellsRoot));
 #pragma warning restore CsWinRT1030
     }
 

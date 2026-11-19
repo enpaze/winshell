@@ -13,7 +13,7 @@ A `CaptureView` is a control that shows the frames of a `CaptureSession`: a live
 
 ## How to get to it (user POV)
 
-- In a configuration, make a session with `new CaptureSession(shell.Log)`, set its `Target`, and call `Start()`.
+- In a shell, make a session with `new CaptureSession(shell.Log)`, set its `Target`, and call `Start()`.
 - Put `new CaptureView { Session = session }` in a window's content. In a Reactor component, embed it with `XamlHost`.
 - In the `features` shell, the view is the first picture beside the rows, with the automation id `block.capture-view`.
 
@@ -22,7 +22,7 @@ A `CaptureView` is a control that shows the frames of a `CaptureSession`: a live
 Preconditions:
 
 - Shell: `features`.
-- The feature shell's floating window is open, so the window list finds it and the session can start.
+- The feature shell's floating window is open, so `shell.AppWindows` finds it and the session can start.
 
 - **Read the capture.** Wait for the session to capture the feature window. Run `winshell inspect --pid {pid} tree`. Exactly one element has the automation id `block.capture-view`, and its `label` says the session is running with a frame of a size above zero, matching `^capture view: running, frame [1-9][0-9]*x[1-9][0-9]*$`. The driver retries for 20 seconds.
 
@@ -35,6 +35,6 @@ Preconditions:
 ## Gotchas
 
 - The label comes from the session, not from the view. It proves that frames arrive, not that the view draws them. Take a screenshot of the window and look at the picture to prove that.
-- The session starts only after the window list lists the shell's own window, so the first tree reads can say `stopped, no frame`. That is why the step retries for 20 seconds.
+- The session starts only after `shell.AppWindows` lists the shell's own window, so the first tree reads can say `stopped, no frame`. That is why the step retries for 20 seconds.
 - A label that ends with an error names why the capture failed. Read it before you rerun.
 - Closing the feature window hides it, and `tree` lists only open windows, so the step finds nothing. Start the shell again.

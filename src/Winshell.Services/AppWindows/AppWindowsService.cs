@@ -1,7 +1,7 @@
 using Winshell.Apps;
 using Winshell.Native;
 
-namespace Winshell.Windows;
+namespace Winshell.AppWindows;
 
 internal sealed record WindowInfo(
     nint Hwnd,
@@ -22,7 +22,7 @@ internal readonly record struct WindowIdentity(
     string PackageAppId,
     bool PackageKnown);
 
-public sealed class WindowListService : ObservableObject, IShellService
+public sealed class AppWindowsService : ObservableObject, IShellService
 {
     private readonly IEventLoop _loop;
     private readonly Log _log;
@@ -40,7 +40,7 @@ public sealed class WindowListService : ObservableObject, IShellService
     private bool _foregroundDirty;
     private bool _disposed;
 
-    internal WindowListService(IEventLoop loop, Log log, VirtualDesktopsService? desktops = null,
+    internal AppWindowsService(IEventLoop loop, Log log, VirtualDesktopsService? desktops = null,
         IWindowBackend? backend = null)
     {
         _loop = loop;

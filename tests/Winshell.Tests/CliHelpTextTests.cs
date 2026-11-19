@@ -23,8 +23,8 @@ public class CliHelpTextTests
             .TrimEnd();
         var help = CliParser.Help(command.Length == 0 ? null : command);
         var actual = help
-            .Replace(ShellLocations.Current.ShellsRoot, "{config-root}", StringComparison.Ordinal)
-            .Replace(ShellLocations.ConfigVariable, "{config-override}", StringComparison.Ordinal)
+            .Replace(ShellLocations.Current.ShellsRoot, "{shells-root}", StringComparison.Ordinal)
+            .Replace(ShellLocations.ShellsVariable, "{shells-override}", StringComparison.Ordinal)
             .Replace(Shell.Version, "{version}", StringComparison.Ordinal)
             .TrimEnd();
 

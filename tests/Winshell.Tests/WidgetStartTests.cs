@@ -45,7 +45,7 @@ public sealed class WidgetStartTests(WidgetStartTests.ClashingProbe probe) : ICl
         private const string Source =
             """
             Shell.Run(shell => File.WriteAllText(
-                Path.Combine(Environment.GetEnvironmentVariable("WINSHELL_CONFIG_DIR")!, "started"), ""));
+                Path.Combine(Environment.GetEnvironmentVariable("WINSHELL_SHELLS_DIR")!, "started"), ""));
 
             namespace Clashing
             {

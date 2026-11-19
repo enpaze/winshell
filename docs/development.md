@@ -40,7 +40,7 @@ dotnet publish src\Winshell -c Release -o "$env:LOCALAPPDATA\winshell-dev"
 That puts `winshell.exe` in `%LOCALAPPDATA%\winshell-dev`, away from the folder the PowerShell installer uses. Add that folder to your `PATH` to run `winshell` from anywhere. Like a release, the build carries its own .NET runtime.
 
 - **To update a source build**, close Winshell, pull the newer source and publish it over the same folder.
-- **To uninstall one**, close Winshell, delete the `Winshell` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` if your shell set it, and delete its folder. Your configuration is in `%APPDATA%\winshell`, and logs, state and crash reports are in `%LOCALAPPDATA%\winshell`; delete them too if you don't want to keep them.
+- **To uninstall one**, close Winshell, delete the `Winshell` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` if your shell set it, and delete its folder. Your shell is in `%APPDATA%\winshell`, and logs, state and crash reports are in `%LOCALAPPDATA%\winshell`; delete them too if you don't want to keep them.
 
 ## Run the shell from source
 
@@ -48,7 +48,7 @@ That puts `winshell.exe` in `%LOCALAPPDATA%\winshell-dev`, away from the folder 
 dotnet run --project src/Winshell -- run -p ..\MyShell
 ```
 
-That builds the configuration project and runs it in a child process that it supervises. `-p` names the project: a folder with a `.csproj`, or the project file. `--no-build` starts the last build and does not compile. From another terminal:
+That builds the shell project and runs it in a child process that it supervises. `-p` names the project: a folder with a `.csproj`, or the project file. `--no-build` starts the last build and does not compile. From another terminal:
 
 ```powershell
 dotnet run --project src/Winshell -- list
@@ -56,7 +56,7 @@ dotnet run --project src/Winshell -- log -t 20
 dotnet run --project src/Winshell -- kill -i <id>
 ```
 
-`winshell dev` is the edit loop. From source it is `dotnet run --project src/Winshell -- dev -p ..\MyShell`. It runs the configuration under `dotnet watch`, and Reactor's hot reload applies an edit to a component's `Render` in the running shell, without a restart. An edit .NET cannot apply restarts the shell. [Develop a shell](configuration.md#develop-a-shell) is the same path as an author sees it.
+`winshell dev` is the edit loop. From source it is `dotnet run --project src/Winshell -- dev -p ..\MyShell`. It runs the shell under `dotnet watch`, and Reactor's hot reload applies an edit to a component's `Render` in the running shell, without a restart. An edit .NET cannot apply restarts the shell. [Develop a shell](guide.md#develop-a-shell) is the same path as an author sees it.
 
 ## Formatting and style
 
@@ -88,7 +88,7 @@ dotnet run --project src/Winshell -- kill -i <id>
 `pwsh -NoProfile scripts/build-template.ps1` compiles a temporary copy of the template against the current source libraries, with the repository's build and style policy and warnings as errors. It does not run a shell. It requires Git, .NET and PowerShell 7.
 
 - The original template project keeps its package reference and version placeholder.
-- The copy imports `Winshell.props` from the source, as the package does, so the template builds with [the package's usings](configuration.md#the-packages-usings).
+- The copy imports `Winshell.props` from the source, as the package does, so the template builds with [the package's usings](guide.md#the-packages-usings).
 - The full local check runs this command. CI runs it with the Shell suite's build, along with the solution's example and documentation sample projects and the reference generator's program entry point. All remain required through `ci`.
 - Validation against the packed library and live UI validation remain separate checks.
 
@@ -355,7 +355,7 @@ A running shell reads these. None is needed to build or test.
 
 | Variable | What it does |
 | --- | --- |
-| `WINSHELL_CONFIG_DIR` | Folder named configs are loaded from, instead of `%APPDATA%\winshell`. |
+| `WINSHELL_SHELLS_DIR` | Folder named shells are loaded from, instead of `%APPDATA%\winshell`. |
 | `WINSHELL_LOCAL_DIR` | Folder used instead of `%LOCALAPPDATA%\winshell` for cache, state, data, instance logs and crash reports. A child process inherits it. |
 
 ### Installer
@@ -373,10 +373,10 @@ A running shell reads these. None is needed to build or test.
 
 | What | Where |
 | --- | --- |
-| User configurations | `%APPDATA%\winshell`, or `WINSHELL_CONFIG_DIR` when it is set |
-| Cache | `%LOCALAPPDATA%\winshell\cache\by-shell\<shell id>` |
-| State | `%LOCALAPPDATA%\winshell\state\by-shell\<shell id>` |
-| Per-shell data | `%LOCALAPPDATA%\winshell\data\by-shell\<shell id>` |
+| User shells | `%APPDATA%\winshell`, or `WINSHELL_SHELLS_DIR` when it is set |
+| Cache | `%LOCALAPPDATA%\winshell\cache\by-shell\<shell name>` |
+| State | `%LOCALAPPDATA%\winshell\state\by-shell\<shell name>` |
+| Per-shell data | `%LOCALAPPDATA%\winshell\data\by-shell\<shell name>` |
 | Instance logs | `%LOCALAPPDATA%\winshell\run\<id>\log.txt` |
 | Crash reports | `%LOCALAPPDATA%\winshell\crashes`, one `crash-<UTC time>Z-<process>-<where>.txt` each. See [Crash reports](#crash-reports). |
 | Run at sign-in | The `Winshell` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, or the package's startup task. See [The sign-in entry](#the-sign-in-entry). |
@@ -399,16 +399,16 @@ What a report holds, and how long it stays:
 
 **An unpackaged Winshell** writes the `Winshell` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`:
 
-- when `install.ps1 -AutoStart` runs, which starts `winshell.exe` with no configuration, or
-- when a shell sets `StartupService.RunAtSignIn`, which starts this install's `winshell.exe run -p` of that configuration.
+- when `install.ps1 -AutoStart` runs, which starts `winshell.exe` with no shell, or
+- when a shell sets `StartupService.RunAtSignIn`, which starts this install's `winshell.exe run -p` of that shell.
 
 Either form runs under `conhost.exe --headless` with `--no-build` and `--no-duplicate`, so no console window opens and sign-in does not build. A failure before the shell starts shows a dialog.
 
-- The installer's command counts as this configuration only while a bare `winshell run` would start it, and that is read again each time the entry is read.
-- Environment variables are not copied: `WINSHELL_CONFIG_DIR` applies at sign-in only when it is set for the user.
+- The installer's command counts as this shell only while a bare `winshell run` would start it, and that is read again each time the entry is read.
+- Environment variables are not copied: `WINSHELL_SHELLS_DIR` applies at sign-in only when it is set for the user.
 - Windows' Startup apps page can turn the entry off; Winshell reads that and never changes it.
 - `winshell.exe` and `winshellw.exe` in the same folder are one install: an entry for either reads as this Winshell.
-- An entry that starts a Winshell in another folder, or another configuration, reads as `RegisteredElsewhere`, and setting `RunAtSignIn` rewrites it for this one.
+- An entry that starts a Winshell in another folder, or another shell, reads as `RegisteredElsewhere`, and setting `RunAtSignIn` rewrites it for this one.
 
 **A packaged Winshell** does not write that value. It enables the package's `windows.startupTask` (task id `Winshell`, declared off) which starts `winshellw.exe --no-build --no-duplicate`. Windows owns that launch, so a Store update does not leave a path, and `RegisteredElsewhere` stays false.
 
@@ -417,7 +417,7 @@ Either form runs under `conhost.exe --headless` with `--no-build` and `--no-dupl
 ### Network permissions
 
 - Reading connection profiles needs no setup.
-- Wi-Fi scanning/connecting requires Windows Wi-Fi/location access and an explicit `NetworkingService.RequestAccess()` call; packaged deployments also need `wiFiControl`.
+- Wi-Fi scanning/connecting requires Windows Wi-Fi/location access and an explicit `NetworkService.RequestAccess()` call; packaged deployments also need `wiFiControl`.
 - Setting `WifiEnabled` is a separate radio-control request, and a packaged app declares the `radios` device capability.
 - **In tests:** automated tests pass fake radios and fake radio access, and never call `Radio.SetStateAsync` or `Radio.RequestAccessAsync`. Native smoke tests only read state.
 
@@ -464,10 +464,10 @@ How a version is cut, tagged, stamped, and published is [Releasing](releasing.md
 │   ├── agents/                      # How agents work on this repo
 │   ├── reference/                   # A page per namespace
 │   ├── releasing.md                 # How a version is cut, tagged, stamped, and published
-│   ├── *.md                         # The configuration guide and troubleshooting
+│   ├── *.md                         # The shell guide and troubleshooting
 │   └── development.md               # Setup, environment, and every command
 ├── examples/
-│   └── omarchy-style/               # A configuration in the style of Omarchy's top bar; the solution builds it
+│   └── omarchy-style/               # A shell in the style of Omarchy's top bar; the solution builds it
 ├── packaging/
 │   ├── logo.svg                     # The app logo; scripts/render-logo.cs renders its PNGs and winshell.ico
 │   ├── msix/                        # The Microsoft Store package's manifest and assets
@@ -476,7 +476,7 @@ How a version is cut, tagged, stamped, and published is [Releasing](releasing.md
 ├── scripts/                         # Check, test, pack, package, install and release scripts; docs/development.md lists them
 ├── templates/                       # Starter sources copied by winshell new
 ├── src/
-│   ├── Winshell/                    # winshell.exe: the CLI, which builds and supervises a configuration
+│   ├── Winshell/                    # winshell.exe: the CLI, which builds and supervises a shell
 │   ├── Winshell.Native/             # Win32/COM declarations, unsafe interop and the safe operations over them
 │   ├── Winshell.Core/               # The event loop contract, the log, ObservableObject, TOML files, crash reports, and the file helpers they use
 │   ├── Winshell.Generators/         # The source generator the package ships as an analyzer: it writes a [Preference] property's accessors

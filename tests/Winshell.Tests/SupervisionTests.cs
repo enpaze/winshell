@@ -38,12 +38,12 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         var pid = process.Id.ToString(CultureInfo.InvariantCulture);
 
         var row = Assert.Single(Rows());
-        Assert.Equal("probe", row.GetProperty("shellId").GetString());
-        Assert.Equal(ProbeShell.Program, row.GetProperty("configPath").GetString(), true);
+        Assert.Equal("probe", row.GetProperty("shellName").GetString());
+        Assert.Equal(ProbeShell.Program, row.GetProperty("program").GetString(), true);
 
         var log = Cli("log", "--pid", pid);
         log.AssertExitCode(0);
-        Assert.Contains("Shell ID: \"probe\"", log.Output, StringComparison.Ordinal);
+        Assert.Contains("Shell name: \"probe\"", log.Output, StringComparison.Ordinal);
 
         var show = Cli("ipc", "--pid", pid, "show");
         show.AssertExitCode(0);
@@ -78,9 +78,9 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         var report = File.ReadAllText(Assert.Single(Directory.GetFiles(Path.Combine(_dir, "local", "crashes"))));
         Assert.Contains("Winshell closed: yes", report, StringComparison.Ordinal);
         Assert.Contains("Where: Winshell", report, StringComparison.Ordinal);
-        Assert.Contains("Shell id: probe", report, StringComparison.Ordinal);
+        Assert.Contains("Shell name: probe", report, StringComparison.Ordinal);
         Assert.Contains("The probe was asked to crash as it started.", report, StringComparison.Ordinal);
-        Assert.Contains("Shell ID: \"probe\"", result.Error + result.Output, StringComparison.Ordinal);
+        Assert.Contains("Shell name: \"probe\"", result.Error + result.Output, StringComparison.Ordinal);
         Assert.DoesNotContain("ObjectDisposedException", result.Error + result.Output, StringComparison.Ordinal);
         var logged = File.ReadAllText(LogLine().Match(report).Groups["path"].Value);
         Assert.Contains("FATAL: Winshell crashed: System.InvalidOperationException", logged, StringComparison.Ordinal);

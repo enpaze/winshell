@@ -7,7 +7,7 @@ public sealed class NetworkWidget : Widget
 {
     public override Element Render()
     {
-        var networking = UseObservableTree(Shell.Networking);
+        var networking = UseObservableTree(Shell.Network);
         var device = networking.Devices.Where(item => item.Connected)
             .OrderBy(item => item.Type == DeviceType.Wired ? 0 : 1)
             .FirstOrDefault();

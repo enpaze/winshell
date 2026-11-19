@@ -30,7 +30,7 @@ public class CliRunCommandTests
     [InlineData("run")]
     [InlineData("--no-build --no-duplicate")]
     [InlineData("--no-duplicate")]
-    public void Run_with_no_configuration_exits_0_says_nothing_and_starts_nothing(string args)
+    public void Run_with_no_shell_exits_0_says_nothing_and_starts_nothing(string args)
     {
         var root = TempFolder.NewPath();
         var config = Path.Combine(root, "config");
@@ -72,8 +72,8 @@ public class CliRunCommandTests
                 {
                     ["id"] = "runningabc",
                     ["pid"] = self.Id,
-                    ["shellId"] = "bar",
-                    ["configPath"] = Path.Combine(project, "bin", "shell.next", "Bar.exe"),
+                    ["shellName"] = "bar",
+                    ["program"] = Path.Combine(project, "bin", "shell.next", "Bar.exe"),
                     ["launchTime"] = DateTime.Now,
                     ["pipe"] = "winshell-runningabc",
                     ["log"] = Path.Combine(dir, "log.txt"),

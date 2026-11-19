@@ -9,7 +9,7 @@ using Windows.UI;
 using Windows.UI.ViewManagement;
 using Windows.Win32.UI.WindowsAndMessaging;
 using Winshell.Native;
-using Winshell.Windows;
+using Winshell.AppWindows;
 
 namespace Winshell;
 

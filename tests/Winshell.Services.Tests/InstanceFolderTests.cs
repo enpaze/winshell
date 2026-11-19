@@ -81,6 +81,39 @@ public sealed class InstanceFolderTests : IDisposable
         Assert.True(Directory.Exists(recentOrphan));
     }
 
+    [Fact]
+    public void A_record_without_shell_name_and_program_is_unreadable_like_a_corrupt_one()
+    {
+        using var self = System.Diagnostics.Process.GetCurrentProcess();
+        var old = Path.Combine(_root, "oldfieldsoldf");
+        Directory.CreateDirectory(old);
+        var oldRecord = $$"""
+            {
+              "id": "oldfieldsoldf",
+              "pid": {{Environment.ProcessId}},
+              "shellId": "work",
+              "configPath": "C:\\shells\\work\\bin\\shell\\Work.exe",
+              "launchTime": "{{DateTime.Now.AddDays(-3):O}}",
+              "pipe": "winshell-oldfieldsoldf",
+              "log": "{{Path.Combine(old, "log.txt").Replace("\\", "\\\\", StringComparison.Ordinal)}}",
+              "processStart": {{self.StartTime.ToUniversalTime().Ticks}},
+              "processName": "{{self.ProcessName}}"
+            }
+            """;
+        File.WriteAllText(Path.Combine(old, "instance.json"), oldRecord);
+        var corrupt = Path.Combine(_root, "corruptcorru");
+        Directory.CreateDirectory(corrupt);
+        File.WriteAllText(Path.Combine(corrupt, "instance.json"), "{ \"id\": ");
+
+        Assert.Empty(Instances.All());
+        Assert.Empty(Instances.Running());
+        Instances.Remove("oldfieldsoldf");
+        Instances.Clean();
+
+        Assert.Equal(oldRecord, File.ReadAllText(Path.Combine(old, "instance.json")));
+        Assert.True(Directory.Exists(corrupt));
+    }
+
     public void Dispose()
     {
         try

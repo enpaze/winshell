@@ -40,6 +40,6 @@ internal static class WinshellCli
 
     internal static ChildProcess RunWithEmptyConfig(params string[] args)
     {
-        return Run(args, ("WINSHELL_CONFIG_DIR", TempFolder.NewPath()));
+        return Run(args, ("WINSHELL_SHELLS_DIR", TempFolder.NewPath()));
     }
 }

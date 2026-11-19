@@ -21,7 +21,7 @@ internal sealed partial class ShellProject
 {
     internal const int MostErrors = 10;
 
-    internal const string NeedsSdk = "Building a configuration needs the .NET SDK, from https://dot.net/download.";
+    internal const string NeedsSdk = "Building a shell needs the .NET SDK, from https://dot.net/download.";
 
     private static readonly TimeSpan BuildLimit = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan StreamLimit = TimeSpan.FromSeconds(1);
@@ -176,7 +176,7 @@ internal sealed partial class ShellProject
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            var what = path ?? (name is not null ? $"config \"{name}\"" : "the config folder");
+            var what = path ?? (name is not null ? $"shell \"{name}\"" : "the shells folder");
             error = $"Winshell cannot read {what}: {e.Message}";
             return null;
         }
@@ -207,15 +207,15 @@ internal sealed partial class ShellProject
             var folder = Path.Combine(root, name);
             var found = In(folder, out error);
             if (found is null && error is null)
-                error = $"No config named \"{name}\" in {root}.";
+                error = $"No shell named \"{name}\" in {root}.";
             return found;
         }
 
         if (Chosen(root) is { } chosen)
         {
-            var found = CommandWords.IsConfigName(chosen) ? In(Path.Combine(root, chosen), out error) : null;
+            var found = CommandWords.IsShellFolder(chosen) ? In(Path.Combine(root, chosen), out error) : null;
             if (found is null && error is null)
-                error = $"The chosen config \"{chosen}\" is not in {root}. Choose one with winshell use <name>.";
+                error = $"The chosen shell \"{chosen}\" is not in {root}. Choose one with winshell use <name>.";
             return found;
         }
 
@@ -231,7 +231,7 @@ internal sealed partial class ShellProject
         if (names.Count > 1)
         {
             error =
-                $"Several configs in {root}; choose one with winshell use <name>, or pick one with -c: {string.Join(", ", names)}.";
+                $"Several shells in {root}; choose one with winshell use <name>, or pick one with -s: {string.Join(", ", names)}.";
             return null;
         }
 
@@ -323,8 +323,7 @@ internal sealed partial class ShellProject
                 return $"{Name} is running, and the build could not write a new program beside it.";
         }
 
-        var result = run("dotnet", ["build", ProjectFile, "-c", "Release", "-o", destination, "--nologo", "-v", "q"],
-            Folder);
+        var result = run("dotnet", [.. RunBuild(destination), "-v", "q"], Folder);
         if (result.ExitCode == 0)
         {
             QuietDelete(parked);
@@ -409,6 +408,25 @@ internal sealed partial class ShellProject
 
     [GeneratedRegex(@"\s+\[[^\]]*\.csproj(::[^\]]*)?\]$", RegexOptions.IgnoreCase)]
     private static partial Regex ProjectSuffix();
+
+    private string[] RunBuild(string destination)
+    {
+        return ["build", ProjectFile, "-c", "Release", "-o", destination, "--nologo"];
+    }
+
+    public string? ShellName(RunProcess run, out string? error)
+    {
+        var evaluated = run("dotnet", [.. RunBuild(OutputFolder), "--no-restore", "-getProperty:ShellName"], Folder);
+        if (evaluated.ExitCode != 0)
+        {
+            error = Errors(evaluated.Output, Folder);
+            return null;
+        }
+
+        error = null;
+        var name = evaluated.Output.Split('\n')[^1].Trim();
+        return name.Length > 0 ? name : null;
+    }
 
     private string AssemblyName()
     {

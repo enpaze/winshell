@@ -8,9 +8,9 @@ namespace Winshell;
 internal sealed record InstanceListItem(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("pid")] int Pid,
-    [property: JsonPropertyName("shellId")]
-    string ShellId,
-    [property: JsonPropertyName("configPath")]
+    [property: JsonPropertyName("shellName")]
+    string ShellName,
+    [property: JsonPropertyName("program")]
     string Program,
     [property: JsonPropertyName("launchTime")]
     DateTime LaunchTime,
@@ -19,7 +19,7 @@ internal sealed record InstanceListItem(
 {
     public static InstanceListItem From(InstanceInfo info)
     {
-        return new InstanceListItem(info.Id, info.Pid, info.ShellId, info.Program, info.LaunchTime, info.Pipe,
+        return new InstanceListItem(info.Id, info.Pid, info.ShellName, info.Program, info.LaunchTime, info.Pipe,
             info.Log);
     }
 }

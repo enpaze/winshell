@@ -94,7 +94,7 @@ internal sealed class CommandLine
                 break;
             if (CommandWords.Path.Is(_arguments[i]) && i + 1 < _arguments.Length)
                 path = _arguments[++i];
-            else if (CommandWords.Config.Is(_arguments[i]) && i + 1 < _arguments.Length)
+            else if (CommandWords.Shell.Is(_arguments[i]) && i + 1 < _arguments.Length)
                 name = _arguments[++i];
         }
 
@@ -113,7 +113,7 @@ internal sealed class CommandLine
             kept.Add(words[i]);
             if (i + 1 < words.Length && CommandWords.Path.Is(words[i]))
                 kept.Add(Path.GetFullPath(words[++i]));
-            else if (i + 1 < words.Length && CommandWords.Config.Is(words[i]))
+            else if (i + 1 < words.Length && CommandWords.Shell.Is(words[i]))
                 kept.Add(words[++i]);
         }
 

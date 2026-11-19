@@ -5,7 +5,7 @@ description: Drive a real Winshell shell on this Windows desktop with `winshell 
 
 # Verify Winshell
 
-Winshell has no shell of its own. A user writes a C# configuration, and `winshell.exe` builds it, starts it and talks to it. To see a change working, build `winshell` from this checkout, start a shell that shows the change in a private session, and drive it with `winshell inspect`. `inspect` reads the running shell from inside: `tree`, `screenshot`, `record`, `click`, `hover` and `type` need no mouse and no keyboard, and they do not move the user's pointer or focus.
+Winshell has no shell of its own. An author writes a shell in C#, and `winshell.exe` builds it, starts it and talks to it. To see a change working, build `winshell` from this checkout, start a shell that shows the change in a private session, and drive it with `winshell inspect`. `inspect` reads the running shell from inside: `tree`, `screenshot`, `record`, `click`, `hover` and `type` need no mouse and no keyboard, and they do not move the user's pointer or focus.
 
 [The feature map](features/README.md) lists every user-facing feature with the steps that prove it. Read its README before you drive anything. All the helpers below are in `scripts/`; run them from the repository root with PowerShell 7.
 
@@ -15,8 +15,8 @@ Winshell has no shell of its own. A user writes a C# configuration, and `winshel
 pwsh .agents/skills/verify-winshell/scripts/launch.ps1 [-Shell features|starter|omarchy-style] [-Winshell <exe>] [-Session <new folder>]
 ```
 
-- It builds `src/Winshell` in Release, unless `-Winshell` names an exe. It makes a session folder, `%TEMP%\winshell-verify\<time>-<id>` by default, with `config`, `local` and `evidence` folders and a `session.json`.
-- It copies the shell into `config`, points it at this checkout's libraries, and starts it with `winshell run -d` and private `WINSHELL_CONFIG_DIR` and `WINSHELL_LOCAL_DIR`.
+- It builds `src/Winshell` in Release, unless `-Winshell` names an exe. It makes a session folder, `%TEMP%\winshell-verify\<time>-<id>` by default, with `shells`, `local` and `evidence` folders and a `session.json`.
+- It copies the shell into `shells`, points it at this checkout's libraries, and starts it with `winshell run -d` and private `WINSHELL_SHELLS_DIR` and `WINSHELL_LOCAL_DIR`.
 - The shell is ready when `launch.ps1` prints `Ready: the <shell> shell is running, pid <pid>.`, then the session folder. Ready means `winshell list -j` lists the shell and `winshell inspect tree` shows at least one window, each with content. A first build takes a few minutes.
 - Choose the shell that shows your change. `features` shows every service and building block. `starter` is what `winshell new starter` copies. `omarchy-style` is the example in `examples/omarchy-style`.
 - Teardown is `cleanup.ps1`, below.
@@ -32,7 +32,7 @@ pwsh .agents/skills/verify-winshell/scripts/doctor.ps1 -Session <folder>
 It is read-only. Run it first, and again whenever anything looks off. It prints one `OK` or `FAIL` line for each check, and exits with 1 when one fails:
 
 - `winshell --version` runs, and no source under `src`, `templates`, `examples` or `shell` changed since the session began. If one did, clean up and launch again.
-- `winshell list -j` lists the session's shell, and its process runs from the session's `config` folder. A `NOTE` says when a `reload` or `run` replaced the pid that `launch.ps1` printed.
+- `winshell list -j` lists the session's shell, and its process runs from the session's `shells` folder. A `NOTE` says when a `reload` or `run` replaced the pid that `launch.ps1` printed.
 - `winshell inspect --pid <pid> tree` shows windows, each with content.
 - No other verification run is live on this desktop.
 
@@ -113,7 +113,7 @@ pwsh .agents/skills/verify-winshell/scripts/cleanup.ps1 -Session <folder>
 ```
 
 - It kills each shell the session's `winshell list -j` lists with `winshell kill --pid`, and with `--force` when one does not exit. Then it ends any process still running from the session folder, or from the session's `winshell.exe` and started after the session began.
-- It copies the shells' logs into `evidence\logs`, then removes `config` and `local`. It keeps `evidence` and `session.json`.
+- It copies the shells' logs into `evidence\logs`, then removes `shells` and `local`. It keeps `evidence` and `session.json`.
 - It prints a `FAIL` line for anything it had to end or could not remove, and exits with 1.
 - It never kills by process name. `drive.ps1` cleans up its own session, including after a failure or Ctrl+C.
 

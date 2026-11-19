@@ -27,7 +27,7 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>, 
         first.WaitForExit();
         Assert.Equal(0, first.ExitCode);
         var only = Assert.Single(Running(local));
-        Assert.Equal(("other", second.Id), (only.ShellId, only.Pid));
+        Assert.Equal(("other", second.Id), (only.ShellName, only.Pid));
     }
 
     [Fact]

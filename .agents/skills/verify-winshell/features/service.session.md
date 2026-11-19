@@ -1,6 +1,6 @@
 # Session
 
-`shell.Session` asks Windows to lock, sign out, restart, shut down, sleep or hibernate, and says whether sleep and hibernate are available. A configuration uses it for a power menu. The feature shell's row `service.session` shows `sleep: <True|False>; hibernate: <True|False>`, and the feature shell never calls an action.
+`shell.Session` asks Windows to lock, sign out, restart, shut down, sleep or hibernate, and says whether sleep and hibernate are available. A shell uses it for a power menu. The feature shell's row `service.session` shows `sleep: <True|False>; hibernate: <True|False>`, and the feature shell never calls an action.
 
 ## Sub-features
 
@@ -13,7 +13,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration calls `shell.Session.Lock()` and the other actions, or `Shell.Session` in a widget, such as from a button.
+- A shell calls `shell.Session.Lock()` and the other actions, or `Shell.Session` in a widget, such as from a button.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

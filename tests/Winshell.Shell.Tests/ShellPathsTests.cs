@@ -11,10 +11,10 @@ public sealed class ShellPathsTests
         await ShellFixture.On(async shell =>
         {
             var shells = shell.Paths.Shells;
-            var path = Path.Combine(shells, "preferences", shell.ShellId + ".toml");
+            var path = Path.Combine(shells, "preferences", shell.ShellName + ".toml");
             var moved = TempFolder.NewPath();
             var name = "paths" + Guid.NewGuid().ToString("N");
-            Environment.SetEnvironmentVariable(ShellLocations.ConfigVariable, moved);
+            Environment.SetEnvironmentVariable(ShellLocations.ShellsVariable, moved);
             try
             {
                 Assert.Equal(moved, ShellLocations.Current.ShellsRoot);
@@ -28,7 +28,7 @@ public sealed class ShellPathsTests
             }
             finally
             {
-                Environment.SetEnvironmentVariable(ShellLocations.ConfigVariable, shells);
+                Environment.SetEnvironmentVariable(ShellLocations.ShellsVariable, shells);
                 if (File.Exists(path))
                     File.Delete(path);
             }

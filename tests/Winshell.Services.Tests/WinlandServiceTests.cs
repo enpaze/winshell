@@ -1,5 +1,5 @@
 using System.ComponentModel;
-using Winshell.Windows;
+using Winshell.AppWindows;
 using Winshell.Winland;
 
 namespace Winshell.Services.Tests;
@@ -121,7 +121,7 @@ public sealed class WinlandServiceTests
     {
         var windows = new FakeWindowBackend();
         windows.Show(0x10);
-        var list = new WindowListService(_loop, Log.Default, backend: windows);
+        var list = new AppWindowsService(_loop, Log.Default, backend: windows);
         using var stopList = list.Stopping();
         var service = Connected();
         using var stopService = service.Stopping();
@@ -152,7 +152,7 @@ public sealed class WinlandServiceTests
         var windows = new FakeWindowBackend();
         windows.Show(0x10);
         windows.Show(0x20);
-        var list = new WindowListService(_loop, Log.Default, backend: windows);
+        var list = new AppWindowsService(_loop, Log.Default, backend: windows);
         using var stopList = list.Stopping();
         _backend.Replies["j/monitors"] = Monitors;
         _backend.Replies["j/workspaces"] = Workspaces;
@@ -178,7 +178,7 @@ public sealed class WinlandServiceTests
         windows.Show(0x30, Program("Browser", @"C:\browser.exe"));
         windows.Show(0x40, Program("Second editor", @"C:\editor.exe"));
         windows.Show(0x50, Program("Third editor", @"C:\EDITOR.EXE"));
-        var list = new WindowListService(_loop, Log.Default, backend: windows);
+        var list = new AppWindowsService(_loop, Log.Default, backend: windows);
         using var stopList = list.Stopping();
         var service = Connected();
         using var stopService = service.Stopping();
@@ -209,7 +209,7 @@ public sealed class WinlandServiceTests
     {
         var windows = new FakeWindowBackend();
         windows.Show(0x10, Program("Editor", @"C:\editor.exe"));
-        var list = new WindowListService(_loop, Log.Default, backend: windows);
+        var list = new AppWindowsService(_loop, Log.Default, backend: windows);
         using var stopList = list.Stopping();
         var service = Connected();
         using var stopService = service.Stopping();
@@ -230,7 +230,7 @@ public sealed class WinlandServiceTests
         var windows = new FakeWindowBackend();
         windows.Show(0x10, Program("Editor", @"C:\editor.exe"));
         windows.Show(0x30, Program("Browser", @"C:\browser.exe"));
-        var list = new WindowListService(_loop, Log.Default, backend: windows);
+        var list = new AppWindowsService(_loop, Log.Default, backend: windows);
         using var stopList = list.Stopping();
         var service = Connected();
         using var stopService = service.Stopping();

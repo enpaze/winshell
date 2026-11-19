@@ -51,7 +51,7 @@ internal static class SignInEntry
         string? Path,
         string? Name)
     {
-        public bool NamesConfiguration => Path is not null || Name is not null;
+        public bool NamesShell => Path is not null || Name is not null;
     }
 
     internal static string Resolve(string path)
@@ -103,7 +103,7 @@ internal static class SignInEntry
 
     internal static string? ProjectOf(SignInLaunch launch, string shellsRoot, Log? log = null)
     {
-        if (launch.Name is { } name && !CommandWords.IsConfigName(name))
+        if (launch.Name is { } name && !CommandWords.IsShellFolder(name))
             return null;
         try
         {

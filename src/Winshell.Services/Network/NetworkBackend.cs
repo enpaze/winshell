@@ -487,7 +487,7 @@ internal sealed class NetworkBackend(Log log) : INetworkBackend
 
     public async Task<string?> ScanAsync(Guid device)
     {
-        const string needsAccess = "Call NetworkingService.RequestAccess() before scanning Wi-Fi networks.";
+        const string needsAccess = "Call NetworkService.RequestAccess() before scanning Wi-Fi networks.";
         try
         {
             var adapter = Adapter(device);

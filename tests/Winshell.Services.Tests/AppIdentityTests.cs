@@ -1,6 +1,6 @@
 using Winshell.Apps;
 using Winshell.Tray;
-using Winshell.Windows;
+using Winshell.AppWindows;
 
 namespace Winshell.Services.Tests;
 
@@ -35,7 +35,7 @@ public sealed class AppIdentityTests
                 AppUserModelId = packagedId,
                 Executable = @"C:\Windows\System32\ApplicationFrameHost.exe"
             });
-            var list = new WindowListService(new ManualEventLoop(), Log.Default, backend: windows);
+            var list = new AppWindowsService(new ManualEventLoop(), Log.Default, backend: windows);
             using var stopList = list.Stopping();
             var window = Assert.Single(list.Windows, item => item.Executable == program);
             var packagedWindow = Assert.Single(list.Windows, item => item.AppId == packagedId);
@@ -45,7 +45,7 @@ public sealed class AppIdentityTests
             var trayBackend = new FakeTrayBackend();
             trayBackend.Windows[hwnd] = 42;
             trayBackend.Programs[hwnd] = program;
-            var tray = new SystemTray(loop, Log.Default, trayBackend);
+            var tray = new TrayService(loop, Log.Default, trayBackend);
             using var stopTray = tray.Stopping();
             loop.Process();
             trayBackend.Send(new NotifyIconCall

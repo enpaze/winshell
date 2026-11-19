@@ -2,7 +2,7 @@ using Windows.Devices.Radios;
 
 namespace Winshell.Network;
 
-public sealed class NetworkingService : ObservableObject, IShellService
+public sealed class NetworkService : ObservableObject, IShellService
 {
     private readonly IEventLoop _loop;
     private readonly INetworkBackend _backend;
@@ -14,7 +14,7 @@ public sealed class NetworkingService : ObservableObject, IShellService
     private string _radioError = "";
     private bool _disposed;
 
-    internal NetworkingService(IEventLoop loop, Log log, INetworkBackend? backend = null)
+    internal NetworkService(IEventLoop loop, Log log, INetworkBackend? backend = null)
     {
         _loop = loop;
         _backend = backend ?? new NetworkBackend(log);

@@ -53,13 +53,13 @@ public sealed class DoctorTests : IDisposable
     [Fact]
     public void Folders_fail_when_one_cannot_be_written_and_warn_about_an_elevated_instance()
     {
-        var ok = new[] { ("the config folder", @"C:\a", true), ("its local folder", @"C:\b", true) };
+        var ok = new[] { ("the shells folder", @"C:\a", true), ("its local folder", @"C:\b", true) };
         Assert.Equal(
             new DoctorCheck("folders", "Folders", CheckStatus.Pass,
-                "Winshell can write the config folder and its local folder"), Folders(ok, []));
-        var locked = Folders([("the config folder", @"C:\a", false), ("its local folder", @"C:\b", true)], []);
+                "Winshell can write the shells folder and its local folder"), Folders(ok, []));
+        var locked = Folders([("the shells folder", @"C:\a", false), ("its local folder", @"C:\b", true)], []);
         Assert.Equal(CheckStatus.Fail, locked.Status);
-        Assert.Equal(@"Winshell cannot write the config folder, C:\a.", locked.Message);
+        Assert.Equal(@"Winshell cannot write the shells folder, C:\a.", locked.Message);
         var elevated = Folders(ok, ["abc123"]);
         Assert.Equal(CheckStatus.Warn, elevated.Status);
         Assert.StartsWith("Instance abc123 runs as administrator.", elevated.Message, StringComparison.Ordinal);
@@ -68,10 +68,10 @@ public sealed class DoctorTests : IDisposable
     [Fact]
     public void A_doctor_run_as_administrator_says_so()
     {
-        var check = Folders([("the config folder", @"C:\a", true)], [], true);
+        var check = Folders([("the shells folder", @"C:\a", true)], [], true);
         Assert.Equal(CheckStatus.Pass, check.Status);
         Assert.Contains("This ran as administrator", check.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("administrator", Folders([("the config folder", @"C:\a", true)], []).Message,
+        Assert.DoesNotContain("administrator", Folders([("the shells folder", @"C:\a", true)], []).Message,
             StringComparison.Ordinal);
     }
 
@@ -123,7 +123,7 @@ public sealed class DoctorTests : IDisposable
         }
 
         Assert.Equal(CheckStatus.Fail, checks[0].Status);
-        Assert.StartsWith("Winshell cannot read the config folder: ", checks[0].Message, StringComparison.Ordinal);
+        Assert.StartsWith("Winshell cannot read the shells folder: ", checks[0].Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -283,7 +283,7 @@ public sealed class DoctorTests : IDisposable
             SignIn(command, false, here, _dir, Exists));
         Assert.Equal(CheckStatus.Warn, SignIn(command, true, here, _dir, Exists).Status);
         Assert.Equal(CheckStatus.Warn,
-            SignIn(@"C:\Windows\System32\conhost.exe --headless C:\Old\winshell.exe -c bar", false, here, _dir, Exists)
+            SignIn(@"C:\Windows\System32\conhost.exe --headless C:\Old\winshell.exe -s bar", false, here, _dir, Exists)
                 .Status);
         var gone = SignIn(@"C:\Windows\System32\conhost.exe --headless C:\Gone\winshell.exe", false, here, _dir,
             Exists);
@@ -368,7 +368,7 @@ public sealed class DoctorTests : IDisposable
     }
 
     [Fact]
-    public void A_configuration_program_judges_sign_in_by_the_winshell_that_started_it()
+    public void A_shell_program_judges_sign_in_by_the_winshell_that_started_it()
     {
         const string host = @"C:\Program Files\Winshell\winshell.exe";
         const string shell = @"C:\Users\a\work\bin\shell\work.exe";
@@ -506,7 +506,8 @@ public sealed class DoctorTests : IDisposable
         folder.SetAccessControl(acl);
         try
         {
-            var checks = Run(new DoctorContext(new ShellLocations(parent, Path.Combine(_dir, "local")), asked, null));
+            var checks = Run(new DoctorContext(new ShellLocations(parent, Path.Combine(_dir, "local")), asked, null,
+                ShellProject.Run));
             var folders = checks.Single(c => c.Id == "folders");
             Assert.Equal(CheckStatus.Fail, folders.Status);
             Assert.Contains(@"\asked", folders.Message, StringComparison.Ordinal);

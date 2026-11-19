@@ -35,7 +35,7 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
         Assert.True(first.HasExited);
         Assert.Equal(0, first.ExitCode);
         Assert.False(second.HasExited);
-        Assert.Equal("other", Assert.Single(Running()).ShellId);
+        Assert.Equal("other", Assert.Single(Running()).ShellName);
         AssertHeld("other");
     }
 
@@ -83,8 +83,8 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
     {
         ProbeShell.Detach(_config, _local, ["--no-duplicate", "-d"]).AssertExitCode(0);
 
-        Wait.Until(() => Running().Any(i => i.ShellId == "probe"), "the background shell");
-        var pid = Listed().Single(i => i.GetProperty("shellId").GetString() == "probe").GetProperty("pid").GetInt32();
+        Wait.Until(() => Running().Any(i => i.ShellName == "probe"), "the background shell");
+        var pid = Listed().Single(i => i.GetProperty("shellName").GetString() == "probe").GetProperty("pid").GetInt32();
         var child = Process.GetProcessById(pid);
         _started.Add(child);
         AssertHeld("probe");
@@ -118,9 +118,9 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
         Assert.Equal("", _printed[process.Id].ToString());
     }
 
-    private void AssertHeld(string shellId)
+    private void AssertHeld(string shellName)
     {
-        using var mutex = Mutex.OpenExisting(MutexName(shellId));
+        using var mutex = Mutex.OpenExisting(MutexName(shellName));
         var taken = false;
         try
         {
@@ -139,9 +139,9 @@ public sealed partial class NoDuplicateTests : IDisposable, IClassFixture<ProbeB
         Assert.False(taken);
     }
 
-    private string MutexName(string shellId)
+    private string MutexName(string shellName)
     {
-        return HeldMutex.NoDuplicateName(new ShellLocations(_config, _local), shellId);
+        return HeldMutex.NoDuplicateName(new ShellLocations(_config, _local), shellName);
     }
 
     private List<JsonElement> Listed()

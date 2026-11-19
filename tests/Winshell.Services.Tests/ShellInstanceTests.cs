@@ -62,7 +62,7 @@ public sealed class ShellInstanceTests
 
         var row = Assert.Single(Rows(instance));
         Assert.True(row.Alive);
-        Assert.Equal(("mine", Program, instance.Pipe), (row.Info.ShellId, row.Info.Program, row.Info.Pipe));
+        Assert.Equal(("mine", Program, instance.Pipe), (row.Info.ShellName, row.Info.Program, row.Info.Pipe));
         Assert.Equal(Environment.ProcessId, row.Info.Pid);
 
         instance.Close();
@@ -79,13 +79,13 @@ public sealed class ShellInstanceTests
         var log = new Log();
         var instance = ShellInstance.Open("mine", Program, log);
         Assert.Null(instance.OpenPipe());
-        log.Info("shell", "Shell ID: \"mine\"");
+        log.Info("shell", "Shell name: \"mine\"");
 
         instance.Publish();
 
         using var reader = new StreamReader(new FileStream(instance.Logs, FileMode.Open, FileAccess.Read,
             FileShare.ReadWrite | FileShare.Delete));
-        Assert.Contains("Shell ID: \"mine\"", reader.ReadToEnd(), StringComparison.Ordinal);
+        Assert.Contains("Shell name: \"mine\"", reader.ReadToEnd(), StringComparison.Ordinal);
         instance.Close();
     }
 
@@ -161,8 +161,8 @@ public sealed class ShellInstanceTests
             .Where(r => r.Contains("SENTINEL crash", StringComparison.Ordinal)).ToList();
         var report = Assert.Single(reports);
         Assert.Contains("Winshell closed: yes", report, StringComparison.Ordinal);
-        Assert.Contains("Shell id: mine" + Environment.NewLine, report, StringComparison.Ordinal);
-        Assert.Contains($"Config: {Program}" + Environment.NewLine, report, StringComparison.Ordinal);
+        Assert.Contains("Shell name: mine" + Environment.NewLine, report, StringComparison.Ordinal);
+        Assert.Contains($"Program: {Program}" + Environment.NewLine, report, StringComparison.Ordinal);
         Assert.Equal(before, File.Exists(ShellInstance.ExitState) ? File.ReadAllText(ShellInstance.ExitState) : null);
     }
 

@@ -1,7 +1,7 @@
 using Windows.Win32.UI.WindowsAndMessaging;
 using Winshell.Native;
 
-namespace Winshell.Windows;
+namespace Winshell.AppWindows;
 
 internal readonly record struct TaskbarWindowFacts(
     bool Exists,

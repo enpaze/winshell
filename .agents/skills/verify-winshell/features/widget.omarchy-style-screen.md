@@ -11,7 +11,7 @@ The `screen` widget is a button on the omarchy-style bar that names the screen i
 
 ## How to get to it (user POV)
 
-- Run `winshell new omarchy-style` and then `winshell run -c omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
+- Run `winshell new omarchy-style` and then `winshell run -s omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
 - The example finds `ScreenWidget` as the widget `screen` and places it in the bar's `End` list.
 - Place it elsewhere with `"screen"` in a list of the `[bar]` section of the preferences file.
 - Choose the screen glyph near the right end of the bar.

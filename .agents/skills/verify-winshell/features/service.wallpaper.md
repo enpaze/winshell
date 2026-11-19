@@ -1,6 +1,6 @@
 # Wallpaper
 
-`shell.Wallpaper` reads and sets the desktop wallpaper that Windows draws: the image of each screen, the fit and the background color. A configuration uses it for a wallpaper picker. The feature shell's row `service.wallpaper` shows `fit: <fit>; screens: N`, where the fit is a `WallpaperFit` value: `Center`, `Tile`, `Stretch`, `Fit`, `Fill` or `Span`. The feature shell only reads it.
+`shell.Wallpaper` reads and sets the desktop wallpaper that Windows draws: the image of each screen, the fit and the background color. A shell uses it for a wallpaper picker. The feature shell's row `service.wallpaper` shows `fit: <fit>; screens: N`, where the fit is a `WallpaperFit` value: `Center`, `Tile`, `Stretch`, `Fit`, `Fill` or `Span`. The feature shell only reads it.
 
 ## Sub-features
 
@@ -13,7 +13,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Wallpaper`, or `Shell.Wallpaper` in a widget.
+- A shell reads `shell.Wallpaper`, or `Shell.Wallpaper` in a widget.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

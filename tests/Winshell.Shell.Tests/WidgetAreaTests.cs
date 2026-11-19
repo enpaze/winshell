@@ -830,7 +830,7 @@ public sealed class WidgetAreaTests
 
     [Fact]
     [Trait("Category", "Window")]
-    public async Task A_tooltip_takes_the_shell_style_live_not_its_area_style_and_a_configuration_tooltip_style_wins()
+    public async Task A_tooltip_takes_the_shell_style_live_not_its_area_style_and_a_shell_tooltip_style_wins()
     {
         await ShellFixture.On(async shell =>
         {

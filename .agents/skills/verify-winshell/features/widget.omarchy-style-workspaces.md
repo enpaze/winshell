@@ -15,7 +15,7 @@ The `workspaces` widget shows Winland's workspaces for the screen its bar is on,
 
 ## How to get to it (user POV)
 
-- Run `winshell new omarchy-style` and then `winshell run -c omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
+- Run `winshell new omarchy-style` and then `winshell run -s omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
 - The example finds `WorkspacesWidget` as the widget `workspaces` and places it in the bar's `Start` list.
 - Place it elsewhere with `"workspaces"` in a list of the `[bar]` section of the preferences file, or `{ widget = "workspaces", icons = true }` for the app icons.
 - Choose a `Workspace <n>` button at the left of the bar.

@@ -11,8 +11,8 @@
 ## How to get to it (user POV)
 
 - Run `winshell ipc wait <target> <signal>` in a terminal, such as in a script that must wait for a shell to raise a signal.
-- Pick the shell with `--pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>` before `wait`. With none, the command acts on the only running shell.
-- A configuration registers a signal with `shell.Ipc.Signal("<target>", "<signal>")` and raises it with `Emit(value)` on the `IpcSignal` that returns.
+- Pick the shell with `--pid <pid>`, `-i <id>`, `-s <name>` or `-p <path>` before `wait`. With none, the command acts on the only running shell.
+- A shell registers a signal with `shell.Ipc.Signal("<target>", "<signal>")` and raises it with `Emit(value)` on the `IpcSignal` that returns.
 
 ## Driving it with winshell inspect
 

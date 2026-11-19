@@ -1,6 +1,6 @@
-# Winshell.Windows
+# Winshell.AppWindows
 
-App windows and virtual desktops. Reach them from `Shell.Current.WindowList` and `Shell.Current.VirtualDesktops`. A preview of one window is `WindowThumbnail` in [Winshell](winshell.md#windowthumbnail).
+App windows and virtual desktops. Reach them from `Shell.Current.AppWindows` and `Shell.Current.VirtualDesktops`. A preview of one window is `WindowThumbnail` in [Winshell](winshell.md#windowthumbnail).
 
 <!-- generated below: dotnet run scripts/generate-reference.cs -->
 
@@ -29,6 +29,15 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `MoveTo([ScreenInfo](winshell.md#screeninfo)? screen)` | void |
 | `MoveToDesktop([VirtualDesktop](#virtualdesktop)? desktop)` | void |
 
+## AppWindowsService
+
+Has the members of [ObservableObject](winshell.md#observableobject).
+
+| Member | Type |
+| --- | --- |
+| `ActiveWindow` | [AppWindow](#appwindow)?, read-only |
+| `Windows` | ObservableList of [AppWindow](#appwindow), read-only |
+
 ## VirtualDesktop
 
 Has the members of [ObservableObject](winshell.md#observableobject).
@@ -53,12 +62,3 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Create()` | [VirtualDesktop](#virtualdesktop)? |
 | `Remove([VirtualDesktop](#virtualdesktop)? desktop)` | void |
 | `SwitchTo([VirtualDesktop](#virtualdesktop)? desktop)` | void |
-
-## WindowListService
-
-Has the members of [ObservableObject](winshell.md#observableobject).
-
-| Member | Type |
-| --- | --- |
-| `ActiveWindow` | [AppWindow](#appwindow)?, read-only |
-| `Windows` | ObservableList of [AppWindow](#appwindow), read-only |

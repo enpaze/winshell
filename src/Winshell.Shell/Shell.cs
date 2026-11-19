@@ -71,7 +71,7 @@ public sealed partial class Shell
         {
             if (_preferencesFile is null)
             {
-                _preferencesFile = new PreferencesFile(Path.Combine(Paths.Shells, "preferences", ShellId + ".toml"), Loop, Log);
+                _preferencesFile = new PreferencesFile(Path.Combine(Paths.Shells, "preferences", ShellName + ".toml"), Loop, Log);
                 if (_startReturned)
                     _preferencesFile.StartReturned();
             }
@@ -94,7 +94,7 @@ public sealed partial class Shell
 
     public static string Version => ProductVersion.Current.Text;
 
-    public string ShellId => _identity.ShellId;
+    public string ShellName => _identity.ShellName;
 
     public ShellIpc Ipc { get; }
 

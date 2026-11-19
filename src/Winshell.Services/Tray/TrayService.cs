@@ -15,7 +15,7 @@ public enum BalloonIcon
     App = 4
 }
 
-public sealed class SystemTray : ObservableObject, IShellService
+public sealed class TrayService : ObservableObject, IShellService
 {
     private readonly IEventLoop _loop;
     private readonly Log _log;
@@ -30,7 +30,7 @@ public sealed class SystemTray : ObservableObject, IShellService
     private IDisposable? _answer;
     private bool _disposed;
 
-    internal SystemTray(IEventLoop loop, Log log, ITrayBackend? backend = null)
+    internal TrayService(IEventLoop loop, Log log, ITrayBackend? backend = null)
     {
         _loop = loop;
         _log = log;

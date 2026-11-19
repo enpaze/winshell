@@ -98,7 +98,7 @@ The supervisor owns Explorer taskbar recovery independently of the child. Recove
 
 ## Distribution and configuration
 
-- **One package.** Keep one `Winshell` library NuGet package. It carries Native, Core, Services and Shell; a configuration must not acquire references to separately published module packages. Keep package and starter contracts covered as assembly ownership changes.
+- **One package.** Keep one `Winshell` library NuGet package. It carries Native, Core, Services and Shell; a shell must not acquire references to separately published module packages. Keep package and starter contracts covered as assembly ownership changes.
 - **Starter.** `winshell new` copies the starter sources in `templates/winshell`. `scripts/build-template.ps1` compiles those sources against the in-repo `Winshell.Shell`, with the repository's build and style policy. The full local check and CI's required Shell suite build run it. Package tests create the starter through `winshell new` and build and run it against the packed library.
 - **Formatting.** Formatting verifies C# files without loading or building projects; builds own style and analyzer enforcement.
 - **User configuration stays TOML**, in one preferences file per shell. No code reads the files from before that format. Do not add a second configuration system or compatibility layer.

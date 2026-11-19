@@ -1,6 +1,6 @@
 # Omarchy-style panel
 
-A Winshell configuration that draws the bar of [Omarchy](https://github.com/omacom/omarchy) v4.5.0 as a panel, in Omarchy's Tokyo Night style. Copy from it: it shows a bar on every screen, on whichever edge you choose, Winland's workspaces, the tray, and the status of Bluetooth, the network, audio, the screen and the battery, each read from a Winshell service.
+A shell that draws the bar of [Omarchy](https://github.com/omacom/omarchy) v4.5.0 as a panel, in Omarchy's Tokyo Night style. Copy from it: it shows a bar on every screen, on whichever edge you choose, Winland's workspaces, the tray, and the status of Bluetooth, the network, audio, the screen and the battery, each read from a Winshell service.
 
 ![The panel: the Windows glyph and workspaces 1 to 5 on the left, the clock in the middle, the tray chevron, tray icons and status glyphs on the right](screenshot.png)
 
@@ -44,8 +44,8 @@ The project references Winshell's source, so the repo's own check builds it.
 
 | File | Job |
 | --- | --- |
-| [Program.cs](Program.cs) | Starts the shell, hides Explorer's taskbar, sets the style, and shows one [Bar](../../docs/configuration.md#a-bar-on-every-screen) with the default lists. |
-| [TokyoNight.cs](TokyoNight.cs) | The shell's [style](../../docs/configuration.md#style): Tokyo Night's colors, the font, the slot size and the padding. |
+| [Program.cs](Program.cs) | Starts the shell, hides Explorer's taskbar, sets the style, and shows one [Bar](../../docs/guide.md#a-bar-on-every-screen) with the default lists. |
+| [TokyoNight.cs](TokyoNight.cs) | The shell's [style](../../docs/guide.md#style): Tokyo Night's colors, the font, the slot size and the padding. |
 | [Widgets/](Widgets) | One component per widget. A widget follows the service it shows with `UseObservable` or `UseObservableTree`. |
 | [Glyphs.cs](Glyphs.cs) | Names each glyph with its Nerd Fonts name and chooses status glyphs. |
 | [OmarchyStyle.csproj](OmarchyStyle.csproj) | References Winshell and copies the font files beside the program. |
@@ -54,7 +54,7 @@ The project references Winshell's source, so the repo's own check builds it.
 ## Change it
 
 - **Colors, font and size:** edit [TokyoNight.cs](TokyoNight.cs). The widgets look nothing up: Winshell builds the `Button`, `TextBlock`, `FontIcon` and `ToolTip` styles from it. `SlotSize` is how thick the bar is, and how wide a button is, and `Padding` the space at its ends. The network widget paints its glyph in `Alert` when the connection can't reach the internet.
-- **Move the bar or change its widgets:** edit the preferences file, `%APPDATA%\winshell\preferences\<shell id>.toml`, or `<WINSHELL_CONFIG_DIR>\preferences\<shell id>.toml` when that variable is set. Its `[bar]` section holds `edge` and the `start`, `center` and `end` lists, which replace the ones in [Program.cs](Program.cs) while the file has them. Saving applies it live. This moves the bar to the bottom, puts a UTC clock beside the local one and reverses the end:
+- **Move the bar or change its widgets:** edit the preferences file, `%APPDATA%\winshell\preferences\<shell name>.toml`, or `<WINSHELL_SHELLS_DIR>\preferences\<shell name>.toml` when that variable is set. Its `[bar]` section holds `edge` and the `start`, `center` and `end` lists, which replace the ones in [Program.cs](Program.cs) while the file has them. Saving applies it live. This moves the bar to the bottom, puts a UTC clock beside the local one and reverses the end:
 
   ```toml
   [bar]
@@ -78,11 +78,11 @@ The project references Winshell's source, so the repo's own check builds it.
 
   A row matches when manufacturer, model and serial all equal the monitor's, including an empty serial, and the first match wins. A key the row leaves out is the `[bar]` section's.
 
-- **Live-edit a widget:** run `winshell dev --path examples/omarchy-style` and save a file in [Widgets/](Widgets). See [Develop a shell](../../docs/configuration.md#develop-a-shell) for what reaches the running shell and what restarts it.
+- **Live-edit a widget:** run `winshell dev --path examples/omarchy-style` and save a file in [Widgets/](Widgets). See [Develop a shell](../../docs/guide.md#develop-a-shell) for what reaches the running shell and what restarts it.
 - **Add a widget:** copy [Widgets/AudioWidget.cs](Widgets/AudioWidget.cs), follow another service with `UseObservable` or `UseObservableTree`, and open its Settings page with `Shell.Open`. The class `MicWidget` is the widget `mic`: put that name in a list in [Program.cs](Program.cs) or in the preferences file.
 - **Keep the taskbar:** delete `shell.ExplorerTaskbar.Hidden = true;` in [Program.cs](Program.cs).
 
-## Use it as your own configuration
+## Use it as your own shell
 
 <!-- winshell new leaves this section out -->
 
@@ -92,7 +92,7 @@ Copy the folder out of the repo, then reference the `Winshell` package instead o
 <PackageReference Include="Winshell" Version="<version>" />
 ```
 
-The package is not published yet, so pack it from the same clone and point NuGet at it, as [Create one](../../docs/configuration.md#create-one) in the configuration guide shows. `<version>` is the release in the package's name.
+The package is not published yet, so pack it from the same clone and point NuGet at it, as [Create one](../../docs/guide.md#create-one) in the guide shows. `<version>` is the release in the package's name.
 
 ## Credits
 

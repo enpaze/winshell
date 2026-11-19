@@ -67,5 +67,5 @@ internal sealed class Invocation
     }
 
     public InstanceChoice Instance =>
-        new(Number(CliFlags.Pid), Text(CliFlags.Id), Text(CliFlags.Path), Text(CliFlags.Config));
+        new(Number(CliFlags.Pid), Text(CliFlags.Id), Text(CliFlags.Path), Text(CliFlags.Shell));
 }

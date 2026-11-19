@@ -1,6 +1,6 @@
 # Bluetooth
 
-`shell.Bluetooth` reads the Bluetooth adapter and the paired and nearby devices, and turns the radio on or off, pairs, connects and disconnects. A configuration uses it for a Bluetooth control. The feature shell's row `service.bluetooth` shows `ready: <True|False>; adapter: <name>; devices: N`, where the adapter is the default adapter's name, or `none` when there is none.
+`shell.Bluetooth` reads the Bluetooth adapter and the paired and nearby devices, and turns the radio on or off, pairs, connects and disconnects. A shell uses it for a Bluetooth control. The feature shell's row `service.bluetooth` shows `ready: <True|False>; adapter: <name>; devices: N`, where the adapter is the default adapter's name, or `none` when there is none.
 
 ## Sub-features
 
@@ -13,7 +13,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Bluetooth`, or `Shell.Bluetooth` in a widget, and calls `StartMonitoring()` or `Refresh()`.
+- A shell reads `shell.Bluetooth`, or `Shell.Bluetooth` in a widget, and calls `StartMonitoring()` or `Refresh()`.
 - In the omarchy-style shell, the `bluetooth` widget shows whether the radio is on and which devices are connected, and choosing it opens `ms-settings:bluetooth`.
 
 ## Driving it with winshell inspect
@@ -33,7 +33,7 @@ Preconditions:
 
 ## Gotchas
 
-- The service reads nothing until the configuration calls `StartMonitoring()` or `Refresh()`. The feature shell calls neither, so its row shows `ready: False; adapter: none; devices: 0` on every PC. The step proves that the row renders, not that the adapter was read.
+- The service reads nothing until the shell calls `StartMonitoring()` or `Refresh()`. The feature shell calls neither, so its row shows `ready: False; adapter: none; devices: 0` on every PC. The step proves that the row renders, not that the adapter was read.
 - After a read, a PC or a CI runner with no Bluetooth adapter shows `adapter: none`, and the step accepts that.
 - Nearby devices show only during discovery, and only while the radio is on.
 - Setting `Enabled`, `Discoverable` or `Pairable`, pairing and connecting change the user's real Bluetooth state. No step does them.
