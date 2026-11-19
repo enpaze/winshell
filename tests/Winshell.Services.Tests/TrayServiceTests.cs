@@ -210,7 +210,7 @@ public sealed class TrayServiceTests
 
         _backend.Send(Call(TrayProtocol.Modify, TrayProtocol.NIF_ICON) with { Icon = 0x43 });
 
-        Assert.Contains(changes, nameof(SystemTrayItem.Icon));
+        Assert.Contains(nameof(SystemTrayItem.Icon), changes);
         Assert.AreSame(changed, item.IconAt(32));
     }
 

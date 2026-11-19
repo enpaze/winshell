@@ -220,7 +220,7 @@ public sealed class MediaServiceTests
         Controls(_native);
 
         Assert.IsFalse(session.CanControl);
-        Assert.Contains(changes, nameof(MediaSession.CanControl));
+        Assert.Contains(nameof(MediaSession.CanControl), changes);
     }
 
     [TestMethod]
@@ -498,8 +498,8 @@ public sealed class MediaServiceTests
 
         Assert.IsTrue(session.LengthSupported);
         Assert.AreEqual(10, session.Length);
-        Assert.Contains(changes, nameof(MediaSession.LengthSupported));
-        Assert.DoesNotContain(changes, nameof(MediaSession.Length));
+        Assert.Contains(nameof(MediaSession.LengthSupported), changes);
+        Assert.DoesNotContain(nameof(MediaSession.Length), changes);
     }
 
     [TestMethod]
@@ -522,7 +522,7 @@ public sealed class MediaServiceTests
 
         Assert.IsTrue(session.LengthSupported);
         Assert.AreEqual(10, session.Length);
-        Assert.Contains(changes, nameof(MediaSession.Length));
+        Assert.Contains(nameof(MediaSession.Length), changes);
     }
 
     [TestMethod]

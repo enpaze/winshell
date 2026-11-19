@@ -144,7 +144,7 @@ public sealed class WinlandServiceTests
         windows.Destroy(0x10);
         _loop.Process();
         Assert.IsNull(editor.Window);
-        Assert.Contains(changes, nameof(WinlandWindow.Window));
+        Assert.Contains(nameof(WinlandWindow.Window), changes);
     }
 
     [TestMethod]
@@ -353,7 +353,7 @@ public sealed class WinlandServiceTests
 
         Raise(@"openwindow>>30,1,\\.\DISPLAY1,App,Notes");
 
-        Assert.Contains(workspaceChanges, nameof(WinlandWorkspace.Windows));
+        Assert.Contains(nameof(WinlandWorkspace.Windows), workspaceChanges);
         Assert.Contains("Item[]", listChanges);
     }
 
@@ -633,14 +633,14 @@ public sealed class WinlandServiceTests
         _backend.RaiseConnection(true);
         _loop.Process();
         Assert.AreEqual(4321, service.ProcessId);
-        Assert.Contains(changes, nameof(WinlandService.ProcessId));
+        Assert.Contains(nameof(WinlandService.ProcessId), changes);
 
         changes.Clear();
         _backend.ProcessId = 0;
         _backend.RaiseConnection(false);
         _loop.Process();
         Assert.AreEqual(0, service.ProcessId);
-        Assert.Contains(changes, nameof(WinlandService.ProcessId));
+        Assert.Contains(nameof(WinlandService.ProcessId), changes);
     }
 
     [TestMethod]

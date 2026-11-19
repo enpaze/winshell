@@ -38,7 +38,7 @@ public sealed class PopupWindowTests
             return (popup.Origin, expected);
         });
 
-        Assert.IsInRange(origin.X, expected.X - 1, expected.X + 1);
-        Assert.IsInRange(origin.Y, expected.Y - 1, expected.Y + 1);
+        Assert.IsInRange(expected.X - 1, expected.X + 1, origin.X);
+        Assert.IsInRange(expected.Y - 1, expected.Y + 1, origin.Y);
     }
 }
