@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
 
@@ -27,14 +26,7 @@ internal sealed class StyleScope
 
 internal static class StyleHost
 {
-    private sealed class Mark
-    {
-        public ShellStyle? Style { get; set; }
-
-        public ResourceDictionary? Dictionary { get; set; }
-    }
-
-    private static readonly ConditionalWeakTable<FrameworkElement, Mark> Marks = new();
+    private const string ShownStyle = "Winshell.ShownStyle";
 
     public static readonly Context<StyleScope?> InEffect = new(null, "ShellStyle");
 
@@ -62,16 +54,18 @@ internal static class StyleHost
 
     private static bool Swap(FrameworkElement element, ShellStyle? style, bool alert)
     {
-        var mark = Marks.GetOrCreateValue(element);
-        if (Equals(mark.Style, style))
+        var merged = element.Resources.MergedDictionaries;
+        var shown = merged.FirstOrDefault(dictionary => dictionary.ContainsKey(ShownStyle));
+        if (Equals(shown?[ShownStyle], style))
             return false;
 
-        if (mark.Dictionary is not null)
-            element.Resources.MergedDictionaries.Remove(mark.Dictionary);
-        mark.Style = style;
-        mark.Dictionary = style is null ? null : Shell.LoadStyle(style, alert);
-        if (mark.Dictionary is not null)
-            element.Resources.MergedDictionaries.Insert(0, mark.Dictionary);
+        if (shown is not null)
+            merged.Remove(shown);
+        if (style is null)
+            return true;
+        var dictionary = Shell.LoadStyle(style, alert);
+        dictionary[ShownStyle] = style;
+        merged.Insert(0, dictionary);
         return true;
     }
 }
