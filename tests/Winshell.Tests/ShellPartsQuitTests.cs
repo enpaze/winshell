@@ -73,14 +73,10 @@ public sealed class ShellPartsQuitTests : IDisposable, IClassFixture<ProbeBuild>
 
     private static string[] Lines(string path)
     {
-        try
-        {
-            return File.Exists(path) ? File.ReadAllLines(path) : [];
-        }
-        catch (IOException)
-        {
+        if (!File.Exists(path))
             return [];
-        }
+        using var reader = new StreamReader(SharedFile.OpenToRead(path));
+        return reader.ReadToEnd().Split('\n', StringSplitOptions.RemoveEmptyEntries);
     }
 
     private string[] CrashReports()
