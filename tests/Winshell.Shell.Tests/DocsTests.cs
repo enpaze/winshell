@@ -29,7 +29,7 @@ public sealed class DocsTests
     [Fact]
     public void The_guide_shows_the_widget_library_project_the_package_tests_build()
     {
-        var guide = File.ReadAllText(Path.Combine(Repo, "docs", "configuration.md"))
+        var guide = File.ReadAllText(Path.Combine(Repo, "docs", "guide.md"))
             .Replace("\r\n", "\n", StringComparison.Ordinal);
         var project = File.ReadAllText(Path.Combine(WidgetLibrary, "MessageWidget.csproj"))
             .Replace("\r\n", "\n", StringComparison.Ordinal);
@@ -41,7 +41,7 @@ public sealed class DocsTests
     public void The_starter_and_the_guide_call_no_Watch()
     {
         var files = SourceFiles(Path.Combine(Repo, "templates", "winshell"))
-            .Append(Path.Combine(Repo, "docs", "configuration.md"))
+            .Append(Path.Combine(Repo, "docs", "guide.md"))
             .Append(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs"));
         var watched = files
             .Where(file => File.ReadAllText(file).Contains(".Watch(", StringComparison.Ordinal))

@@ -20,10 +20,10 @@ Logs are in `%LOCALAPPDATA%\winshell\run\<instance id>\log.txt`. A shell that ex
 | `Several shells in <folder>; pick one with -s: …` | The shells folder has no project of its own and several subfolders with one. Run `winshell run -s <name>`. |
 | `Several projects in <folder>; name one with -p: …` | The folder has more than one `.csproj`. Pass the file with `-p`. |
 | `<name> did not build.` | The build failed. The last good build is not started. The notice and the log have the compiler's lines. |
-| `<name> did not build.` and `NU1101: Unable to find package Winshell` | The `Winshell` package is not published yet. Pack it and add a package source for it, as [Create one](configuration.md#create-one) shows. |
+| `<name> did not build.` and `NU1101: Unable to find package Winshell` | The `Winshell` package is not published yet. Pack it and add a package source for it, as [Create one](guide.md#create-one) shows. |
 | `<name> has not been built. Run winshell run once to build it.` | `--no-build` found no program in `bin\shell`. |
 | `Building a shell needs the .NET SDK…` | A build needs the SDK. `--no-build` of a program that is already built does not. |
-| Nothing, and it exits at once | There is no shell, so there is nothing to run: make one as the [configuration guide](configuration.md#create-one) shows. Or `--no-duplicate` found this shell name already running, or a second start overlapped the first. `winshell list` shows the one that is running. |
+| Nothing, and it exits at once | There is no shell, so there is nothing to run: make one as the [guide](guide.md#create-one) shows. Or `--no-duplicate` found this shell name already running, or a second start overlapped the first. `winshell list` shows the one that is running. |
 | `This shell is Winshell … and this winshell is …` | The CLI and the shell are different releases. Use the `winshell` that matches, or build the shell with this one. `kill` still works. |
 | `Unknown command "<name>". Run winshell --help.` | The first word isn't a command. Options start with `-`. |
 
@@ -41,7 +41,7 @@ A notice says the shell did not build, with the compiler's lines:
 - **Dismiss** closes the notice, as does Escape once you have clicked it.
 - The notice does not take the keyboard when it appears. To close it from the keyboard without clicking it, run `winshell ipc call notice dismiss`.
 
-`winshell reload` leaves the running instance up when the build fails. Fix the project and reload again. [`winshell dev`](configuration.md#develop-a-shell) is the loop while you are editing. Check names against the [reference](reference/index.md).
+`winshell reload` leaves the running instance up when the build fails. Fix the project and reload again. [`winshell dev`](guide.md#develop-a-shell) is the loop while you are editing. Check names against the [reference](reference/index.md).
 
 ## There are two taskbars
 
@@ -71,7 +71,7 @@ Explorer builds its taskbar again. Signing out and back in also starts Explorer 
 
 ## A change to the preferences file does nothing
 
-The [preferences file](configuration.md#preferences) keeps the values in use when it can't use what the file says, and writes why to the log, which `winshell log` shows. Only under `winshell dev` does a file that doesn't parse also show in a notice.
+The [preferences file](guide.md#preferences) keeps the values in use when it can't use what the file says, and writes why to the log, which `winshell log` shows. Only under `winshell dev` does a file that doesn't parse also show in a notice.
 
 - **`failed to parse <file>[line:column]: …`**, under `preferences`. The file is not valid TOML, so none of it is read until you fix that line and save. `winshell doctor` names the same line of the preferences file, even while the shell is not running.
 - **`<file>[line:column]: <key> should be <what it takes>, not <value>, so it was left unchanged`**, or another reason in place of "should be …". The file is read, but that one value isn't used. A switch is `true` or `false`, and a word is in quotes.

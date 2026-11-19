@@ -37,7 +37,7 @@ Preconditions:
 
 ## Gotchas
 
-- A `winshell` built from a clone has no `packages` folder beside it. The copy then gets no `nuget.config`, the command says so, and the copy does not build until you add a source for the `Winshell` package, as [From a clone](../../../../docs/configuration.md#from-a-clone) shows. The steps check the files only, not a build.
+- A `winshell` built from a clone has no `packages` folder beside it. The copy then gets no `nuget.config`, the command says so, and the copy does not build until you add a source for the `Winshell` package, as [From a clone](../../../../docs/guide.md#from-a-clone) shows. The steps check the files only, not a build.
 - Without `-p`, the copy goes into the shells folder. The session sets `WINSHELL_CONFIG_DIR`, so a copy goes into the session's shells folder, not `%APPDATA%\winshell`.
 - A second copy into the same folder is refused with exit 2, so run the recipe with a fresh evidence folder.
 - The starter's project file is `MyShell.csproj` whatever the folder is called.

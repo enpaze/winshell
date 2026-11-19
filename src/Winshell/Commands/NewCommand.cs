@@ -5,7 +5,7 @@ namespace Winshell.Commands;
 
 internal static class NewCommand
 {
-    private const string Guide = "https://github.com/enpaze/winshell/blob/main/docs/configuration.md#from-a-clone";
+    private const string Guide = "https://github.com/enpaze/winshell/blob/main/docs/guide.md#from-a-clone";
 
     internal static readonly CommandEntry Entry = new()
     {

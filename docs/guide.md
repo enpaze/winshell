@@ -1,6 +1,6 @@
-# Configuration guide
+# Write a shell
 
-A configuration is a .NET project that references the Winshell package and builds into one program: your shell. This page begins with the starter, a bar with a clock and a battery, and reads it file by file. The sections after that explain each part in full.
+A shell is a .NET project that references the Winshell package and builds into one program. This page begins with the starter, a bar with a clock and a battery, and reads it file by file. The sections after that explain each part in full.
 
 - The [reference](reference/index.md) lists every type and member.
 - The [Omarchy-style example](https://github.com/enpaze/winshell/tree/main/examples/omarchy-style) is a whole panel to copy from.
@@ -92,13 +92,13 @@ Change `{time:t}` in `Clock.cs` to `{time:T}` and save it, and the clock shows t
 
 ## Create one
 
-`winshell new` lists what it can copy: the starter, and each example, such as the Omarchy-style panel. `winshell new <name>` copies one into your config folder.
+`winshell new` lists what it can copy: the starter, and each example, such as the Omarchy-style panel. `winshell new <name>` copies one into your shells folder.
 
 - **Where it goes.** The copy goes to `%APPDATA%\winshell\<name>`, or under `WINSHELL_CONFIG_DIR`. `--path <folder>` puts it somewhere else. A folder that exists and isn't empty is refused.
 - **The package.** The copy's project references the `Winshell` package of the same release as `winshell`. A release keeps that package in a `packages` folder beside `winshell.exe`, and the copy's `nuget.config` adds that folder as a source.
 - **Its shell name** comes from its folder, so two copies keep their data apart.
 
-When Winshell runs a configuration:
+When Winshell runs a shell:
 
 - **Building.** Winshell builds to `bin\shell` in the project folder when a source is newer, then starts that program. `--no-build` runs the program the last build left, and does not build. A failed build does not start the last good build.
 - **A `winshell` and a shell of different releases refuse each other**, except `kill`. The message names both releases.
@@ -124,31 +124,31 @@ dotnet nuget add source ..\winshell\artifacts\packages --name winshell --configf
 winshell run --path .
 ```
 
-## Where a configuration lives
+## Where a shell lives
 
-A configuration is a .NET project. Winshell looks for a `.csproj` in this order. With none, `winshell run` starts nothing and says nothing.
+A shell is a .NET project. Winshell looks for a `.csproj` in this order. With none, `winshell run` starts nothing and says nothing.
 
 | What you run | The project it builds and runs |
 | --- | --- |
 | `winshell run --path <folder or file>` | That `.csproj`, or the one `.csproj` in that folder |
 | `winshell run --shell <name>` | The project in `%APPDATA%\winshell\<name>` |
-| `winshell run` | The configuration `winshell use` chose; else the project in `%APPDATA%\winshell`; else `%APPDATA%\winshell\default`; else the one subfolder of `%APPDATA%\winshell` that has a project. With several, Winshell asks you to choose one with `winshell use`. With none, nothing runs. |
+| `winshell run` | The shell `winshell use` chose; else the project in `%APPDATA%\winshell`; else `%APPDATA%\winshell\default`; else the one subfolder of `%APPDATA%\winshell` that has a project. With several, Winshell asks you to choose one with `winshell use`. With none, nothing runs. |
 
 `WINSHELL_CONFIG_DIR` replaces `%APPDATA%\winshell` in this table.
 
-The sign-in entry and the Start tile start what `winshell run` would. With several configurations, such as two copies from `winshell new`, `winshell use <name>` chooses the one they start, and switches to it in one step:
+The sign-in entry and the Start tile start what `winshell run` would. With several shells, such as two copies from `winshell new`, `winshell use <name>` chooses the one they start, and switches to it in one step:
 
 ```powershell
 winshell new omarchy-style
 winshell new starter
 winshell use starter          # sign-in starts starter; a shell that is running gives way to it
 winshell use omarchy-style    # and back
-winshell use                  # lists the configurations, with * before the chosen one
+winshell use                  # lists the shells, with * before the chosen one
 ```
 
-- `winshell use` builds the configuration first when it needs a build, so the next sign-in can start it. A build that fails changes nothing.
-- The choice is the name in `chosen.txt` in the config folder.
-- Choosing a configuration never changes its shell name, so its data, its state, its widgets and where they are placed stay its own through every switch.
+- `winshell use` builds the shell first when it needs a build, so the next sign-in can start it. A build that fails changes nothing.
+- The choice is the name in `chosen.txt` in the shells folder.
+- Choosing a shell never changes its shell name, so its data, its state, its widgets and where they are placed stay its own through every switch.
 
 ## The package's usings
 
@@ -187,7 +187,7 @@ Properties in the project file name the shell and where it keeps its files. The 
 </PropertyGroup>
 ```
 
-- **`ShellName`** is the shell name, `Shell.ShellName`. It names the preferences file and the data, state and cache folders. Without it, as in the starter, a shell project in the config folder is named after its folder, and any other after its path.
+- **`ShellName`** is the shell name, `Shell.ShellName`. It names the preferences file and the data, state and cache folders. Without it, as in the starter, a shell project in the shells folder is named after its folder, and any other after its path.
 - **`ShellDataDir`, `ShellStateDir` and `ShellCacheDir`** replace those folders. A relative path is in the project folder, so `data` is `<project>\data`, and a rebuild of `bin\shell` leaves it there. A program a reload built in `bin\shell.next` uses that same folder. A program in neither keeps a relative path next to itself. `%NAME%` expands when the shell starts, and `$BASE` is the folder above `by-shell`, such as `%LOCALAPPDATA%\winshell\data`. MSBuild reads `%` and two hexadecimal digits as one escaped character, so write `%25DEVROOT%` for `%DEVROOT%`.
 
 ## Parts
@@ -296,7 +296,7 @@ edge = "top"
 - **When a row changes.** Only that screen's window is disposed and made again, once the whole save is read.
 - **A row for a screen that is not connected** stays in the file.
 
-It is a shortcut: a configuration can still make any window on any screen itself. `shell.Screens` lists the screens, the primary first, and changes as monitors are connected and removed.
+It is a shortcut: a shell can still make any window on any screen itself. `shell.Screens` lists the screens, the primary first, and changes as monitors are connected and removed.
 
 ## A bar on every screen
 
@@ -318,7 +318,7 @@ A [Bar](reference/winshell.md#bar) is a panel along one edge of every screen, wi
 - **Its padding.** The style's `ShellPadding` keeps space between the areas and each end of the bar: at its left and right, or at the top and bottom of a side bar. `Padding` sets another space.
 - **Its style.** A bar's own `Style` wins over the shell's, as an area's does.
 
-`Bar` uses the public API a configuration has, except that it starts when it is added and leaves the shell when it is disposed, as only Winshell's own parts do. A test holds it to that, so [its source](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/Compositions/Bar.cs) is a start for a dock, a sidebar or a bar of your own.
+`Bar` uses the public API a shell has, except that it starts when it is added and leaves the shell when it is disposed, as only Winshell's own parts do. A test holds it to that, so [its source](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/Compositions/Bar.cs) is a start for a dock, a sidebar or a bar of your own.
 
 ### Several bars
 
@@ -397,7 +397,7 @@ The launcher's section of the [preferences file](#preferences), `[launcher]` unl
 hotkey = "Ctrl+Shift+Space"
 ```
 
-`Launcher` uses the public API a configuration has, as `Bar` does, so [its source](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/Compositions/Launcher.cs) is a start for a launcher of your own.
+`Launcher` uses the public API a shell has, as `Bar` does, so [its source](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/Compositions/Launcher.cs) is a start for a launcher of your own.
 
 ## Widgets
 
@@ -430,7 +430,7 @@ public sealed class Greeting : Widget
 
 For a [widget library](#write-a-widget), add a project or package reference. Its widgets have names the same way, so the library's `Message` is `message`.
 
-### Move a configuration
+### Move a shell
 
 This release finds only widgets that derive from `Widget`. Three things move, and nothing reads the old shape.
 
@@ -564,7 +564,7 @@ The shell follows Windows' light or dark mode and its accent color. Choose your 
 
 ## Write a widget
 
-A widget other people use can be a class library: a WinUI library that references the Winshell package. The package imports the props the library needs and adds [its usings](#the-packages-usings). A configuration references the library and places its widget by name, as [Widgets](#widgets) describes. The example on this page is `Message`, a widget that shows one line of text, with one `text` setting.
+A widget other people use can be a class library: a WinUI library that references the Winshell package. The package imports the props the library needs and adds [its usings](#the-packages-usings). A shell references the library and places its widget by name, as [Widgets](#widgets) describes. The example on this page is `Message`, a widget that shows one line of text, with one `text` setting.
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -632,7 +632,7 @@ public sealed class Message : Widget
 
 Services hang off `Shell`, created when first read. `shell.Audio`, `shell.Power`, `shell.Apps`, `shell.AppWindows`, `shell.Network`, `shell.Bluetooth`, `shell.Notifications`, `shell.Tray`, `shell.Media` and the others are on the [Winshell](reference/winshell.md#shell) page, and each namespace has its own page.
 
-Reading does not ask for permission and does not change anything. Wi-Fi scanning, notification access and Bluetooth pairing ask Windows only when the configuration calls the method, from a user's action. `shell.Session` can ask Windows to lock. Windows' own lock screen takes over.
+Reading does not ask for permission and does not change anything. Wi-Fi scanning, notification access and Bluetooth pairing ask Windows only when the shell calls the method, from a user's action. `shell.Session` can ask Windows to lock. Windows' own lock screen takes over.
 
 `shell.Hotkey(sequence, pressed)` is a hotkey that works anywhere in Windows. The sequence uses `Win`, `Ctrl`, `Alt` and `Shift`, and `pressed` runs each time the user presses it. Dispose the hotkey to give the keys back.
 
@@ -671,7 +671,7 @@ A change raises `PropertyChanged` on the shell's thread, and the component rende
 
 ## Preferences
 
-A shell keeps the user's choices in one TOML file, `preferences\<shell name>.toml` in `%APPDATA%\winshell`, or in `WINSHELL_CONFIG_DIR` when that is set. It lives outside the shell project and survives shell updates. The configuration's own preferences are the keys before the first section, and each component, such as a [named widget area](#let-the-user-change-an-area), has a section named after it:
+A shell keeps the user's choices in one TOML file, `preferences\<shell name>.toml` in `%APPDATA%\winshell`, or in `WINSHELL_CONFIG_DIR` when that is set. It lives outside the shell project and survives shell updates. The shell's own preferences are the keys before the first section, and each component, such as a [named widget area](#let-the-user-change-an-area), has a section named after it:
 
 ```toml
 clock24 = true
@@ -683,7 +683,7 @@ edge = "left"
 widgets = [{ widget = "message", text = "Hello" }]
 ```
 
-A `partial` class that derives from `Preferences` declares a section. Each key is a `[Preference]` property declared `public partial` with `{ get; set; }`, and the key is the property name with a lowercase first letter. The Winshell package writes the property's accessors: they read the value, raise `PropertyChanged`, and save a change to the file. A setter may be `private`: the key is still read from the file and written to it, but only the class assigns it. A property without `[Preference]` is not a key. A key takes a string, a number, `true` or `false`, a list or a table. A `bool` key also takes a number, which is `false` when it is zero or `nan` and `true` otherwise. An `int` key takes a whole number that fits, and a `double` key any number. The property's initializer is its default, and `TomlComment` is the comment written above it. The build stops with an error when a `[Preference]` property is not partial, or its class does not derive from `Preferences`. Made with no name, the class holds the configuration's own keys:
+A `partial` class that derives from `Preferences` declares a section. Each key is a `[Preference]` property declared `public partial` with `{ get; set; }`, and the key is the property name with a lowercase first letter. The Winshell package writes the property's accessors: they read the value, raise `PropertyChanged`, and save a change to the file. A setter may be `private`: the key is still read from the file and written to it, but only the class assigns it. A property without `[Preference]` is not a key. A key takes a string, a number, `true` or `false`, a list or a table. A `bool` key also takes a number, which is `false` when it is zero or `nan` and `true` otherwise. An `int` key takes a whole number that fits, and a `double` key any number. The property's initializer is its default, and `TomlComment` is the comment written above it. The build stops with an error when a `[Preference]` property is not partial, or its class does not derive from `Preferences`. Made with no name, the class holds the shell's own keys:
 
 ```csharp
 public sealed partial class ShellPreferences : Preferences
@@ -803,7 +803,7 @@ There is no file watcher. [`winshell dev`](#develop-a-shell) applies each edit a
 winshell dev --path .
 ```
 
-`winshell dev` builds your project, starts it, and applies each save to the running shell through `dotnet watch` and Reactor's hot reload, until you press Ctrl+C, which closes that shell and stops `dotnet watch`, as closing the terminal does. It needs the .NET SDK, and it runs a Debug build. With no project it prints `winshell dev needs a configuration project. Run winshell new to make one.` and exits with 1.
+`winshell dev` builds your project, starts it, and applies each save to the running shell through `dotnet watch` and Reactor's hot reload, until you press Ctrl+C, which closes that shell and stops `dotnet watch`, as closing the terminal does. It needs the .NET SDK, and it runs a Debug build. With no project it prints `winshell dev needs a shell project. Run winshell new to make one.` and exits with 1.
 
 What each kind of edit does:
 

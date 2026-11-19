@@ -56,7 +56,7 @@ dotnet run --project src/Winshell -- log -t 20
 dotnet run --project src/Winshell -- kill -i <id>
 ```
 
-`winshell dev` is the edit loop. From source it is `dotnet run --project src/Winshell -- dev -p ..\MyShell`. It runs the shell under `dotnet watch`, and Reactor's hot reload applies an edit to a component's `Render` in the running shell, without a restart. An edit .NET cannot apply restarts the shell. [Develop a shell](configuration.md#develop-a-shell) is the same path as an author sees it.
+`winshell dev` is the edit loop. From source it is `dotnet run --project src/Winshell -- dev -p ..\MyShell`. It runs the shell under `dotnet watch`, and Reactor's hot reload applies an edit to a component's `Render` in the running shell, without a restart. An edit .NET cannot apply restarts the shell. [Develop a shell](guide.md#develop-a-shell) is the same path as an author sees it.
 
 ## Formatting and style
 
@@ -88,7 +88,7 @@ dotnet run --project src/Winshell -- kill -i <id>
 `pwsh -NoProfile scripts/build-template.ps1` compiles a temporary copy of the template against the current source libraries, with the repository's build and style policy and warnings as errors. It does not run a shell. It requires Git, .NET and PowerShell 7.
 
 - The original template project keeps its package reference and version placeholder.
-- The copy imports `Winshell.props` from the source, as the package does, so the template builds with [the package's usings](configuration.md#the-packages-usings).
+- The copy imports `Winshell.props` from the source, as the package does, so the template builds with [the package's usings](guide.md#the-packages-usings).
 - The full local check runs this command. CI runs it with the Shell suite's build, along with the solution's example and documentation sample projects and the reference generator's program entry point. All remain required through `ci`.
 - Validation against the packed library and live UI validation remain separate checks.
 

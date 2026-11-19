@@ -10,7 +10,7 @@ Describe 'Selecting CI checks from GitHub changed files' {
         @{ Name = 'keeps action documentation out of tooling checks'; Path = '.github/actions/README.md'; Text = '# Actions'; Patch = '+A sentence'; Code = $false; Docs = $false },
         @{ Name = 'keeps an issue form to lint'; Path = '.github/ISSUE_TEMPLATE/bug_report.yml'; Text = 'name: Bug report'; Patch = '+  - type: textarea'; Code = $false; Docs = $false },
         @{ Name = 'keeps a deleted prose page to link checks'; Path = 'docs/privacy.md'; Text = $null; Patch = '-# Privacy'; Code = $false; Docs = $false },
-        @{ Name = 'checks a page containing compiled examples'; Path = 'docs/configuration.md'; Text = "``````csharp`nShell.Run();`n``````"; Patch = '+A sentence'; Code = $false; Docs = $true },
+        @{ Name = 'checks a page containing compiled examples'; Path = 'docs/guide.md'; Text = "``````csharp`nShell.Run();`n``````"; Patch = '+A sentence'; Code = $false; Docs = $true },
         @{ Name = 'checks a new README example'; Path = 'README.md'; Text = "``````csharp`nShell.Run();`n``````"; Patch = '+```csharp'; Code = $false; Docs = $true },
         @{ Name = 'checks a removed last C# fence'; Path = 'README.md'; Text = '# README'; Patch = '-```csharp'; Code = $false; Docs = $true },
         @{ Name = 'checks a deleted example page'; Path = 'docs/example.md'; Text = $null; Patch = '-```csharp'; Code = $false; Docs = $true },

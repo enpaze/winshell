@@ -41,7 +41,7 @@ public sealed partial class NewCommandTests : IDisposable
         Assert.Equal(0, result.Code);
         Assert.Equal(
             $"Created {folder}{Environment.NewLine}" +
-            $"The Winshell {Version} package is not beside winshell.exe, so add a NuGet source for it: see https://github.com/enpaze/winshell/blob/main/docs/configuration.md#from-a-clone{Environment.NewLine}" +
+            $"The Winshell {Version} package is not beside winshell.exe, so add a NuGet source for it: see https://github.com/enpaze/winshell/blob/main/docs/guide.md#from-a-clone{Environment.NewLine}" +
             $"Run it: winshell run -s omarchy-style{Environment.NewLine}",
             result.Output);
         var project = XDocument.Load(Path.Combine(folder, "OmarchyStyle.csproj")).Root!;
