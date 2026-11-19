@@ -188,6 +188,26 @@ public sealed class DoctorUserConfigTests : IDisposable
     }
 
     [Fact]
+    public void The_shell_name_of_the_release_build_names_the_preferences_file_checked()
+    {
+        var config = Path.Combine(_dir, "config");
+        var shell = Path.Combine(config, "Work");
+        Directory.CreateDirectory(shell);
+        var projectFile = Path.Combine(shell, "Work.csproj");
+        File.WriteAllText(projectFile,
+            "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><ShellName Condition=\"'$(Configuration)' == 'Debug'\">debug-desk</ShellName><ShellName Condition=\"'$(Configuration)' == 'Release'\">release-desk</ShellName></PropertyGroup></Project>");
+        var preferences = Preferences(config, "release-desk", "colorScheme =\n");
+        var debug = Preferences(config, "debug-desk", "colorScheme =\n");
+
+        var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
+            .Single(c => c.Id == "project");
+
+        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.Contains(Printed(preferences) + "[", check.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(Printed(debug), check.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_project_msbuild_cannot_read_is_checked_under_the_folder_name_and_says_so()
     {
         var config = Path.Combine(_dir, "config");

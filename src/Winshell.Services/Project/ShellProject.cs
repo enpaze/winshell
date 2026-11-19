@@ -323,8 +323,7 @@ internal sealed partial class ShellProject
                 return $"{Name} is running, and the build could not write a new program beside it.";
         }
 
-        var result = run("dotnet", ["build", ProjectFile, "-c", "Release", "-o", destination, "--nologo", "-v", "q"],
-            Folder);
+        var result = run("dotnet", [.. RunBuild(destination), "-v", "q"], Folder);
         if (result.ExitCode == 0)
         {
             QuietDelete(parked);
@@ -410,9 +409,14 @@ internal sealed partial class ShellProject
     [GeneratedRegex(@"\s+\[[^\]]*\.csproj(::[^\]]*)?\]$", RegexOptions.IgnoreCase)]
     private static partial Regex ProjectSuffix();
 
+    private string[] RunBuild(string destination)
+    {
+        return ["build", ProjectFile, "-c", "Release", "-o", destination, "--nologo"];
+    }
+
     public string? ShellName(RunProcess run, out string? error)
     {
-        var evaluated = run("dotnet", ["msbuild", ProjectFile, "-getProperty:ShellName", "-nologo"], Folder);
+        var evaluated = run("dotnet", [.. RunBuild(OutputFolder), "--no-restore", "-getProperty:ShellName"], Folder);
         if (evaluated.ExitCode != 0)
         {
             error = Errors(evaluated.Output, Folder);
