@@ -41,25 +41,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Notifications` | ObservableList of [Notification](#notification), read-only |
 | `Dismiss()` | bool |
 
-## NotificationListener
-
-Has the members of [ObservableObject](winshell.md#observableobject).
-
-| Member | Type |
-| --- | --- |
-| `AccessStatus` | [NotificationAccessStatus](#notificationaccessstatus), read-only |
-| `DoNotDisturbState` | [NotificationState](#notificationstate), read-only |
-| `Error` | string, read-only |
-| `FocusState` | [NotificationState](#notificationstate), read-only |
-| `Groups` | ObservableList of [NotificationGroup](#notificationgroup), read-only |
-| `NotificationMode` | [NotificationMode](#notificationmode), read-only |
-| `Notifications` | ObservableList of [Notification](#notification), read-only |
-| `NotificationAdded` | Action of [Notification](#notification) |
-| `OperationFailed` | Action of string |
-| `ClearAll()` | bool |
-| `Dispose()` | void |
-| `RequestAccess()` | void |
-
 ## NotificationMode
 
 | Value | Number |
@@ -77,6 +58,24 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Off` | 1 |
 | `On` | 2 |
 
+## NotificationsService
+
+Has the members of [ObservableObject](winshell.md#observableobject).
+
+| Member | Type |
+| --- | --- |
+| `AccessStatus` | [NotificationAccessStatus](#notificationaccessstatus), read-only |
+| `DoNotDisturbState` | [NotificationState](#notificationstate), read-only |
+| `Error` | string, read-only |
+| `FocusState` | [NotificationState](#notificationstate), read-only |
+| `Groups` | ObservableList of [NotificationGroup](#notificationgroup), read-only |
+| `NotificationMode` | [NotificationMode](#notificationmode), read-only |
+| `Notifications` | ObservableList of [Notification](#notification), read-only |
+| `NotificationAdded` | Action of [Notification](#notification) |
+| `OperationFailed` | Action of string |
+| `ClearAll()` | bool |
+| `RequestAccess()` | void |
+
 ## ToastAction
 
 Has the members of [ObservableObject](winshell.md#observableobject).
@@ -93,7 +92,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 
 | Member | Type |
 | --- | --- |
-| `ToastMessage([IEventLoop](winshell.md#ieventloop) loop)` | constructor |
+| `ToastMessage()` | constructor |
 | `Actions` | ObservableList of [ToastAction](#toastaction), read-only |
 | `ActivationUri` | string |
 | `AppId` | string |

@@ -3,6 +3,9 @@
     <ProjectReference Include="..\..\src\Winshell.Services\Winshell.Services.csproj" />
     <ProjectReference Include="..\..\src\Winshell\Winshell.csproj" ReferenceOutputAssembly="false" OutputItemType="WinshellCliAssembly" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="MessageWidget\**" />
+  </ItemGroup>
   <Target Name="NameWinshellCli" AfterTargets="ResolveProjectReferences" BeforeTargets="GetAssemblyAttributes">
     <ItemGroup>
       <AssemblyMetadata Include="WinshellCli" Value="@(WinshellCliAssembly->'%(RootDir)%(Directory)%(Filename).exe')" />

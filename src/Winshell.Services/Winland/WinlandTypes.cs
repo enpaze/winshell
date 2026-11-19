@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
-using Winshell.Windows;
+using Winshell.AppWindows;
 
 namespace Winshell.Winland;
 
@@ -129,6 +129,10 @@ public sealed class WinlandWorkspace : ObservableObject
     public bool HasFullscreen => Read(_hasFullscreen);
 
     public ObservableList<WinlandWindow> Windows { get => Read(field); } = [];
+
+    public IReadOnlyList<string> AppIcons =>
+        Windows.Select(window => window.Window?.Icon ?? "").Where(icon => icon.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
     public JsonElement? LastIpcObject => Read(_lastIpcObject);
 

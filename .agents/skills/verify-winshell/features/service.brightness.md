@@ -1,6 +1,6 @@
 # Brightness
 
-`shell.Brightness` lists the monitors whose brightness Windows can read, the built-in panel of a laptop and each external monitor that answers, and sets their brightness. A configuration uses it for a brightness slider. The feature shell's row `service.brightness` shows `ready: <True|False>; monitors: N`.
+`shell.Brightness` lists the monitors whose brightness Windows can read, the built-in panel of a laptop and each external monitor that answers, and sets their brightness. A shell uses it for a brightness slider. The feature shell's row `service.brightness` shows `ready: <True|False>; monitors: N`.
 
 ## Sub-features
 
@@ -11,7 +11,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Brightness`, or `Props.Shell.Brightness` in a widget.
+- A shell reads `shell.Brightness`, or `Shell.Brightness` in a widget.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

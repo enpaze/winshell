@@ -18,7 +18,7 @@ public sealed class ReplaceShellTests : ProbeBuild, IDisposable
         var local = Folder("local");
         var first = Start(Folder("a"), local);
         var printed = new StringBuilder();
-        var second = Launch(Folder("b"), local, "other", printed);
+        var second = LaunchOther(Folder("b"), local, printed);
 
         Wait.Until(() => second.HasExited || Running(local).Any(info => info.Pid == second.Id),
             "the replacement to publish or to fail");
@@ -28,7 +28,7 @@ public sealed class ReplaceShellTests : ProbeBuild, IDisposable
         first.WaitForExit();
         Assert.AreEqual(0, first.ExitCode);
         var only = Assert.ContainsSingle(Running(local));
-        Assert.AreEqual(("other", second.Id), (only.ShellId, only.Pid));
+        Assert.AreEqual(("other", second.Id), (only.ShellName, only.Pid));
     }
 
     [TestMethod]
@@ -40,7 +40,7 @@ public sealed class ReplaceShellTests : ProbeBuild, IDisposable
         var first = Start(config, local);
         Wait.Until(() => File.Exists(Path.Combine(config, "child.pid")), "the shell's program to start");
         var printed = new StringBuilder();
-        var second = Launch(Folder("next"), local, "other", printed);
+        var second = LaunchOther(Folder("next"), local, printed);
 
         Wait.Until(() => second.HasExited, "the second start to give up");
         second.WaitForExit();
@@ -69,7 +69,7 @@ public sealed class ReplaceShellTests : ProbeBuild, IDisposable
             "the first shell to hide the taskbar");
 
         var printed = new StringBuilder();
-        var second = Launch(secondConfig, local, "other", printed);
+        var second = LaunchOther(secondConfig, local, printed);
         var flashed = false;
         var started = TimeProvider.System.GetTimestamp();
         var ready = false;
@@ -90,10 +90,10 @@ public sealed class ReplaceShellTests : ProbeBuild, IDisposable
         Assert.IsTrue(ExplorerTaskbarWindow.AnyHidden());
 
 #pragma warning disable CsWinRT1030
-        var killed = WinshellCli.Run(["kill", "--pid", second.Id.ToString(CultureInfo.InvariantCulture)],
+        var stopped = WinshellCli.Run(["stop", "--pid", second.Id.ToString(CultureInfo.InvariantCulture)],
             IsolatedFolders.Of(secondConfig, local));
 #pragma warning restore CsWinRT1030
-        killed.AssertExitCode(0);
+        stopped.AssertExitCode(0);
         Wait.Until(() => second.HasExited, "the replacement to exit");
         Assert.IsFalse(ExplorerTaskbarWindow.AnyHidden());
     }
@@ -112,9 +112,9 @@ public sealed class ReplaceShellTests : ProbeBuild, IDisposable
         return process;
     }
 
-    private Process Launch(string config, string local, string shellId, StringBuilder printed)
+    private Process LaunchOther(string config, string local, StringBuilder printed)
     {
-        var process = ProbeShell.Launch(config, local, [], shellId, printed);
+        var process = ProbeShell.Launch(config, local, [], printed, ProbeShell.Other);
         _started.Add(process);
         return process;
     }

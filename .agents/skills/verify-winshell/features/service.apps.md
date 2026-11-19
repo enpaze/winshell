@@ -1,6 +1,6 @@
 # Apps
 
-`shell.Apps` lists the apps that Start lists, from the Start menu's program folders and the installed packages, and keeps the list current when an app is installed or removed. A configuration uses it to show, search and launch apps, such as in a launcher. The feature shell's row `service.apps` shows `apps: N`, the number of apps in `Apps`.
+`shell.Apps` lists the apps that Start lists, from the Start menu's program folders and the installed packages, and keeps the list current when an app is installed or removed. A shell uses it to show, search and launch apps, such as in a launcher. The feature shell's row `service.apps` shows `apps: N`, the number of apps in `Apps`.
 
 ## Sub-features
 
@@ -13,8 +13,8 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Apps`, or `Props.Shell.Apps` in a widget.
-- A configuration calls the static `AppsService.DisplayName`, `AppsService.FallbackName` and `AppsService.ProgramDescription`.
+- A shell reads `shell.Apps`, or `Shell.Apps` in a widget.
+- A shell calls the static `AppsService.DisplayName`, `AppsService.FallbackName` and `AppsService.ProgramDescription`.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

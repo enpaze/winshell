@@ -13,18 +13,20 @@ internal static class RunCommand
         Name = CommandWords.Run,
         Overview = "Usage: winshell run [options]              start a shell",
         Usage = """
-                winshell run [-c <name> | -p <path>] [-d] [-n] [--no-build] [-- <args>...]
-                  Starts a configuration project's shell, built first when a source is newer than its
-                  program. With no project, nothing starts. A shell already running is asked to quit
-                  first, and one that does not quit stays: the start says why and exits 1.
+                winshell run [-s <name> | -p <path>] [-d] [-n] [--no-build] [-- <args>...]
+                  Starts a shell project's program, built first when a source is newer than its
+                  program. With no project, it says how to make one and exits 1. A start nobody
+                  can read, with no console window and no error redirected to a file or a pipe,
+                  exits 0 and says nothing. A shell already running is asked to quit first, and
+                  one that does not quit stays: the start says why and exits 1.
                   -d, --daemonize        run in the background
-                  -n, --no-duplicate     exit quietly if this config is already running
+                  -n, --no-duplicate     exit quietly if this shell is already running
                       --no-build         run the last build, and do not build again
-                  Words after -- go to the configuration's program.
+                  Words after -- go to the shell's program.
                 """,
         Options =
         [
-            CliFlags.Path, CliFlags.Config, CliFlags.Daemonize, CliFlags.NoDuplicate, CliFlags.NoBuild
+            CliFlags.Path, CliFlags.Shell, CliFlags.Daemonize, CliFlags.NoDuplicate, CliFlags.NoBuild
         ],
         Run = static parsed => Task.FromResult(Execute(parsed))
     };
@@ -63,16 +65,16 @@ internal static class RunCommand
     internal static int Execute(Invocation parsed)
     {
         var path = parsed.Text(CliFlags.Path);
-        var config = parsed.Text(CliFlags.Config);
-        var project = ShellProject.Find(path, config, ShellLocations.Current.ConfigRoot, out var error);
+        var shell = parsed.Text(CliFlags.Shell);
+        var project = ShellProject.Find(path, shell, ShellLocations.Current.ShellsRoot, out var error);
         if (error is not null)
         {
-            StartupError.Report(error, StartupError.FolderFor(path, ShellLocations.Current.ConfigRoot));
+            StartupError.Report(error, StartupError.FolderFor(path, ShellLocations.Current.ShellsRoot));
             return 1;
         }
 
         if (project is null)
-            return 0;
+            return NoProject(ShellLocations.Current.ShellsRoot, StartupError.Unread(), Console.Error);
         if (parsed.IsSet(CliFlags.NoDuplicate) &&
             project.InstancesOf(ShellProjectBuild.Run,
                 ShellLocations.Current.Instances.Running()).Any())
@@ -91,6 +93,14 @@ internal static class RunCommand
         foreach (var a in CommandLine.ProgramArguments(parsed.IsSet(CliFlags.NoDuplicate), parsed.Verbose, parsed.Rest))
             program.ArgumentList.Add(a);
         return Supervise(program, project);
+    }
+
+    internal static int NoProject(string shellsRoot, bool unread, TextWriter error)
+    {
+        if (unread)
+            return 0;
+        error.WriteLine($"No shell project in {shellsRoot}, so nothing started. Run winshell new to make one.");
+        return 1;
     }
 
     private static int Detach(IEnumerable<string> childArgs)

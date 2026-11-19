@@ -63,7 +63,7 @@ public sealed class ShellInstanceTests
 
         var row = Assert.ContainsSingle(Rows(instance));
         Assert.IsTrue(row.Alive);
-        Assert.AreEqual(("mine", Program, instance.Pipe), (row.Info.ShellId, row.Info.Program, row.Info.Pipe));
+        Assert.AreEqual(("mine", Program, instance.Pipe), (row.Info.ShellName, row.Info.Program, row.Info.Pipe));
         Assert.AreEqual(Environment.ProcessId, row.Info.Pid);
 
         instance.Close();
@@ -80,13 +80,13 @@ public sealed class ShellInstanceTests
         var log = new Log();
         var instance = ShellInstance.Open("mine", Program, log);
         Assert.IsNull(instance.OpenPipe());
-        log.Info("shell", "Shell ID: \"mine\"");
+        log.Info("shell", "Shell name: \"mine\"");
 
         instance.Publish();
 
-        using var reader = new StreamReader(new FileStream(instance.LogPath, FileMode.Open, FileAccess.Read,
+        using var reader = new StreamReader(new FileStream(instance.Logs, FileMode.Open, FileAccess.Read,
             FileShare.ReadWrite | FileShare.Delete));
-        Assert.Contains("Shell ID: \"mine\"", reader.ReadToEnd(), StringComparison.Ordinal);
+        Assert.Contains("Shell name: \"mine\"", reader.ReadToEnd(), StringComparison.Ordinal);
         instance.Close();
     }
 
@@ -126,7 +126,7 @@ public sealed class ShellInstanceTests
         log.Error("network",
             "fetch https://example.com/feed?apikey=SENTINEL-QUERY failed\n    continued: token=SENTINEL-NEXT-LINE");
         string text;
-        using (var stream = new FileStream(instance.LogPath, FileMode.Open, FileAccess.Read,
+        using (var stream = new FileStream(instance.Logs, FileMode.Open, FileAccess.Read,
                    FileShare.ReadWrite | FileShare.Delete))
         using (var reader = new StreamReader(stream))
         {
@@ -162,22 +162,39 @@ public sealed class ShellInstanceTests
             .Where(r => r.Contains("SENTINEL crash", StringComparison.Ordinal)).ToList();
         var report = Assert.ContainsSingle(reports);
         Assert.Contains("Winshell closed: yes", report, StringComparison.Ordinal);
-        Assert.Contains("Shell id: mine" + Environment.NewLine, report, StringComparison.Ordinal);
-        Assert.Contains($"Config: {Program}" + Environment.NewLine, report, StringComparison.Ordinal);
+        Assert.Contains("Shell name: mine" + Environment.NewLine, report, StringComparison.Ordinal);
+        Assert.Contains($"Program: {Program}" + Environment.NewLine, report, StringComparison.Ordinal);
         Assert.AreEqual(before, File.Exists(ShellInstance.ExitState) ? File.ReadAllText(ShellInstance.ExitState) : null);
     }
 
     [TestMethod]
-    public async Task A_kill_reaches_a_shell_whatever_its_program_is_called()
+    public async Task A_stop_reaches_a_shell_whatever_its_program_is_called()
     {
         var control = new FakeInstanceControl();
         var (pipe, loop, server) = Serve(control);
         using var _ = server;
 
-        var response = await Pumping(loop, () => Ask(pipe, IpcRequest.ForKill()));
+        var response = await Pumping(loop, () => Ask(pipe, IpcRequest.ForStop()));
 
         Assert.IsTrue(response.Ok);
         await Wait.UntilAsync(() => control.Quits == 1, "the quit", () => loop.RunDue());
+    }
+
+    [TestMethod]
+    [DataRow("kill")]
+    [DataRow("frobnicate")]
+    public async Task An_unknown_request_is_refused_and_the_shell_keeps_running(string op)
+    {
+        var control = new FakeInstanceControl();
+        var (pipe, loop, server) = Serve(control);
+        using var _ = server;
+
+        var line = await Pumping(loop, () => AskRaw(pipe, $$"""{"op":"{{op}}"}"""));
+
+        var response = JsonSerializer.Deserialize(line!, IpcJson.Default.IpcResponse)!;
+        Assert.AreEqual((false, $"Unknown request {op}."), (response.Ok, response.Error));
+        loop.RunDue();
+        Assert.AreEqual(0, control.Quits);
     }
 
     [TestMethod]
@@ -277,7 +294,7 @@ public sealed class ShellInstanceTests
         var (pipe, loop, server) = Serve(control);
         using var _ = server;
 
-        var line = await AskRaw(pipe, """{"op":"kill","protocol":99}""");
+        var line = await AskRaw(pipe, """{"op":"stop","protocol":99}""");
 
         var response = JsonSerializer.Deserialize(line!, IpcJson.Default.IpcResponse)!;
         Assert.IsFalse(response.Ok);
@@ -328,7 +345,7 @@ public sealed class ShellInstanceTests
         using var _ = server;
         var other = ProductVersion.Current.Major == 9 ? "1.0.0" : "9.9.9";
 
-        var line = await Pumping(loop, () => AskRaw(pipe, $$"""{"op":"kill","winshell":"{{other}}"}"""));
+        var line = await Pumping(loop, () => AskRaw(pipe, $$"""{"op":"stop","winshell":"{{other}}"}"""));
 
         Assert.IsTrue(JsonSerializer.Deserialize(line!, IpcJson.Default.IpcResponse)!.Ok);
         loop.RunDue();
@@ -358,11 +375,11 @@ public sealed class ShellInstanceTests
         var other = ProductVersion.Current.Major == 9 ? "1.0.0" : "9.9.9";
         var answering = AnswerOnce(shell, $$"""{"ok":true,"winshell":"{{other}}"}""");
 
-        await Ask(pipe, IpcRequest.ForKill());
+        await Ask(pipe, IpcRequest.ForStop());
 
         var version = JsonSerializer.Serialize(ProductVersion.Current.Text);
         Assert.AreEqual(
-            $$"""{"op":"kill","target":null,"name":null,"args":null,"protocol":{{IpcProtocol.Current}},"winshell":{{version}}}""",
+            $$"""{"op":"stop","target":null,"name":null,"args":null,"protocol":{{IpcProtocol.Current}},"winshell":{{version}}}""",
             await answering);
     }
 

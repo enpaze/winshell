@@ -9,13 +9,13 @@ using Windows.UI;
 using Windows.UI.ViewManagement;
 using Windows.Win32.UI.WindowsAndMessaging;
 using Winshell.Native;
-using Winshell.Windows;
+using Winshell.AppWindows;
 
 namespace Winshell;
 
 internal sealed partial class ShellPlatform : IDisposable
 {
-    private const string DefaultAccent = "#0078D4";
+    private static readonly Color DefaultAccent = Color.FromArgb(255, 0x00, 0x78, 0xD4);
 
     private readonly List<HostWindow> _windows = [];
     private readonly SystemChanges _systemChanges = new();
@@ -25,8 +25,8 @@ internal sealed partial class ShellPlatform : IDisposable
     private IDisposable? _screenRefresh;
     private UISettings? _uiSettings;
     private bool _windowsDark;
-    private ColorScheme _scheme;
-    private string _accent = "";
+    private Appearance _appearance;
+    private Color? _accent;
     private bool _accentPainted;
 
     public ShellPlatform(IEventLoop loop, Log log)
@@ -34,6 +34,7 @@ internal sealed partial class ShellPlatform : IDisposable
         Loop = loop;
         Log = log;
         Screens = new ObservableList<ScreenInfo>(Winshell.Screens.Enumerate().Select(m => m.Info));
+        WindowsAccent = WindowsShades;
         ReadTheme();
         _uiSettings = new UISettings();
         _uiSettings.ColorValuesChanged += OnColorValuesChanged;
@@ -58,64 +59,49 @@ internal sealed partial class ShellPlatform : IDisposable
 
     internal IReadOnlyList<HostWindow> Windows => _windows;
 
-    public bool IsDark => DarkFor(_scheme, _windowsDark);
+    public bool IsDark => DarkFor(_appearance, _windowsDark);
 
-    internal static bool DarkFor(ColorScheme scheme, bool windowsDark)
+    internal static bool DarkFor(Appearance appearance, bool windowsDark)
     {
-        return scheme switch
+        return appearance switch
         {
-            ColorScheme.Dark => true,
-            ColorScheme.Light => false,
+            Appearance.Dark => true,
+            Appearance.Light => false,
             _ => windowsDark
         };
     }
 
     public bool IsHighContrast { get; private set; }
 
-    internal ColorScheme ColorScheme
+    internal Appearance Appearance
     {
-        get => _scheme;
+        get => _appearance;
         set
         {
-            if (value == _scheme)
+            if (value == _appearance)
                 return;
             var wasDark = IsDark;
-            _scheme = value;
+            _appearance = value;
             if (wasDark != IsDark)
                 ThemeChanged?.Invoke();
         }
     }
 
-    internal string AccentColor
+    internal Color? AccentColor
     {
         get => _accent;
         set
         {
-            var next = AccentShades.Normalize(value);
-            if (next == _accent)
+            if (value == _accent)
                 return;
-            _accent = next;
+            _accent = value;
             ApplyAccent();
         }
     }
 
-    internal string SystemAccent
-    {
-        get
-        {
-            try
-            {
-                if (_uiSettings is null)
-                    return DefaultAccent;
-                var color = _uiSettings.GetColorValue(UIColorType.Accent);
-                return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
-            }
-            catch (COMException)
-            {
-                return DefaultAccent;
-            }
-        }
-    }
+    internal Func<AccentShades> WindowsAccent { get; set; }
+
+    internal Color SystemAccent => WindowsAccent().Accent;
 
     public ElementTheme RequestedTheme => IsDark ? ElementTheme.Dark : ElementTheme.Light;
 
@@ -168,8 +154,14 @@ internal sealed partial class ShellPlatform : IDisposable
     internal void ScreensMayHaveChanged()
     {
         _screenRefresh?.Dispose();
-        _screenRefresh = Loop.Schedule(TimeSpan.FromMilliseconds(200), RefreshScreens);
+        _screenRefresh = Loop.Schedule(TimeSpan.FromMilliseconds(200), () =>
+        {
+            _screenRefresh = null;
+            RefreshScreens();
+        });
     }
+
+    internal bool ScreenReadPending => _screenRefresh is not null || _relayout is not null;
 
     internal void WorkAreaMayHaveChanged()
     {
@@ -193,7 +185,7 @@ internal sealed partial class ShellPlatform : IDisposable
         Loop.Post(ReadTheme);
     }
 
-    private void ReadTheme()
+    internal void ReadTheme()
     {
         ApplyAccent();
         var dark = false;
@@ -239,12 +231,9 @@ internal sealed partial class ShellPlatform : IDisposable
         if (Application.Current?.Resources.MergedDictionaries.OfType<XamlControlsResources>().FirstOrDefault() is not
             { } controls)
             return;
-        if (!AccentShades.TryFrom(_accent, out var shades))
-        {
-            if (!_accentPainted)
-                return;
-            shades = WindowsShades();
-        }
+        if (_accent is null && !_accentPainted)
+            return;
+        var shades = _accent is { } accent ? AccentShades.From(accent) : WindowsAccent();
 
         _accentPainted = true;
         var dark = (ResourceDictionary)controls.ThemeDictionaries["Default"];
@@ -274,8 +263,7 @@ internal sealed partial class ShellPlatform : IDisposable
         {
         }
 
-        AccentShades.TryFrom(DefaultAccent, out var shades);
-        return shades;
+        return AccentShades.From(DefaultAccent);
     }
 
     private static bool WindowsModeDark(object? systemValue, object? appsValue)

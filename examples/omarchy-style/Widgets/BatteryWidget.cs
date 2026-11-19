@@ -1,16 +1,12 @@
-using Microsoft.UI.Reactor;
-using Microsoft.UI.Reactor.Core;
-using Winshell;
 using Winshell.Power;
-using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
-public sealed class BatteryWidget : Component<WidgetContext>
+public sealed class BatteryWidget : Widget
 {
     public override Element Render()
     {
-        var power = UseObservable(Props.Shell.Power);
+        var power = UseObservable(Shell.Power);
         var battery = UseObservable(power.DisplayDevice);
         var state = power.OnBattery ? "On battery" : battery.State switch
         {
@@ -19,7 +15,7 @@ public sealed class BatteryWidget : Component<WidgetContext>
             _ => "Charging"
         };
         var tip = $"{Math.Round(battery.Percentage * 100)}% · {state}";
-        return Button(Glyphs.Power(battery, power.OnBattery), () => Props.Shell.Open("ms-settings:powersleep"))
+        return Button(Glyphs.Power(battery, power.OnBattery), () => Shell.Open("ms-settings:powersleep"))
             .ToolTip(tip)
             .AutomationName(tip)
             .AutomationId("battery")

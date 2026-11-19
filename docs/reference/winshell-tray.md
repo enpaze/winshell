@@ -1,6 +1,6 @@
 # Winshell.Tray
 
-The icons apps add to the notification area. Reach them from `Shell.Current.SystemTray`.
+The icons apps add to the notification area. Reach them from `Shell.Current.Tray`.
 
 <!-- generated below: dotnet run scripts/generate-reference.cs -->
 
@@ -13,15 +13,6 @@ The icons apps add to the notification area. Reach them from `Shell.Current.Syst
 | `Warning` | 2 |
 | `Error` | 3 |
 | `App` | 4 |
-
-## SystemTray
-
-Has the members of [ObservableObject](winshell.md#observableobject).
-
-| Member | Type |
-| --- | --- |
-| `Items` | ObservableList of [SystemTrayItem](#systemtrayitem), read-only |
-| `Dispose()` | void |
 
 ## SystemTrayItem
 
@@ -44,3 +35,11 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `DoubleClick()` | void |
 | `IconAt(int size)` | [PixelImage](winshell.md#pixelimage)? |
 | `MiddleClick()` | void |
+
+## TrayService
+
+Has the members of [ObservableObject](winshell.md#observableobject).
+
+| Member | Type |
+| --- | --- |
+| `Items` | ObservableList of [SystemTrayItem](#systemtrayitem), read-only |

@@ -12,9 +12,9 @@ The `bluetooth` widget is a button on the omarchy-style bar that shows the state
 
 ## How to get to it (user POV)
 
-- Run `winshell new omarchy-style` and then `winshell run -c omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
-- The example registers it with `Widgets.Register<BluetoothWidget>("bluetooth")` and places it after the tray in the bar's `End` list.
-- Place it elsewhere with `{ widget = "bluetooth" }` in a list of the `[bar]` section of the preferences file.
+- Run `winshell new omarchy-style` and then `winshell run -s omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
+- The example finds `BluetoothWidget` as the widget `bluetooth` and places it after the tray in the bar's `End` list.
+- Place it elsewhere with `"bluetooth"` in a list of the `[bar]` section of the preferences file.
 - Choose the Bluetooth glyph near the right end of the bar.
 
 ## Driving it with winshell inspect

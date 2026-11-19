@@ -1,11 +1,11 @@
 namespace Winshell;
 
-public sealed class ScreenWindows : IDisposable
+public sealed partial class ScreenWindows : IShellPart
 {
     private readonly string _name;
     private readonly Func<ScreenInfo, IReadOnlyDictionary<string, object?>?, IDisposable> _make;
     private readonly Shell _shell;
-    private readonly ScreenRows _rows;
+    private ScreenRows? _rows;
 
     private readonly Dictionary<string, (ScreenInfo Screen, IReadOnlyDictionary<string, object?>? Row, IDisposable Window)>
         _windows = [];
@@ -20,7 +20,14 @@ public sealed class ScreenWindows : IDisposable
         _name = name;
         _make = make;
         _shell = Shell.Current;
-        _rows = new ScreenRows(name);
+    }
+
+    void IShellPart.Start()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_rows is not null)
+            return;
+        _rows = new ScreenRows(_name);
         _rows.PropertyChanged += (_, _) => PostSync();
         _shell.Screens.CollectionChanged += OnScreensChanged;
         Sync();
@@ -72,6 +79,16 @@ public sealed class ScreenWindows : IDisposable
         var table = $"[[{TomlDocument.Key(_name)}.screen]]";
         _shell.Log.Info(_name, row is null ? $"{identity} has no {table} row" : $"{identity} uses its {table} row");
         var window = _make(screen, row);
+        try
+        {
+            (window as IShellPart)?.Start();
+        }
+        catch
+        {
+            window.Dispose();
+            throw;
+        }
+
         if (_disposed)
             window.Dispose();
         else
@@ -105,7 +122,7 @@ public sealed class ScreenWindows : IDisposable
 
     private IReadOnlyDictionary<string, object?>? RowOf(ScreenInfo screen)
     {
-        return _rows.Screen?.FirstOrDefault(row =>
+        return _rows!.Screen?.FirstOrDefault(row =>
             row.GetValueOrDefault("manufacturer") as string == screen.Manufacturer &&
             row.GetValueOrDefault("model") as string == screen.Model &&
             row.GetValueOrDefault("serial") as string == screen.SerialNumber);
@@ -116,19 +133,17 @@ public sealed class ScreenWindows : IDisposable
         if (_disposed)
             return;
         _disposed = true;
+        _shell.Remove(this);
         _shell.Screens.CollectionChanged -= OnScreensChanged;
-        _rows.Dispose();
+        _rows?.Dispose();
         var windows = _windows.Values.Select(entry => entry.Window).ToArray();
         _windows.Clear();
         Shell.DisposeEach(windows);
     }
 
-    private sealed class ScreenRows(string name) : Preferences(name)
+    private sealed partial class ScreenRows(string name) : Preferences(name)
     {
-        public IReadOnlyList<IReadOnlyDictionary<string, object?>>? Screen
-        {
-            get;
-            set => Set(ref field, value);
-        }
+        [Preference]
+        public partial IReadOnlyList<IReadOnlyDictionary<string, object?>>? Screen { get; set; }
     }
 }

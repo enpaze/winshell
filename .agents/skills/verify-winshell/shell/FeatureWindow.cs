@@ -1,30 +1,27 @@
 using System.Collections.Immutable;
-using Microsoft.UI.Reactor;
-using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
-using Winshell;
-using static Microsoft.UI.Reactor.Factories;
 
 namespace FeatureMap;
 
-public sealed record FeatureWindowProps(RowProps[] Services, RowProps Floating, Action OpenPopup, Action OpenLauncher);
+public sealed record FeatureWindowProps(RowProps[] Services, WindowRowProps Floating, Action OpenPopup, Action OpenLauncher);
 
 public sealed class FeatureWindow : Component<FeatureWindowProps>
 {
     public override Element Render()
     {
+        var props = Props;
         var clicks = UseRef(0);
         var (shown, setShown) = UseState(0);
         var (typed, setTyped) = UseState("");
-        Element[] rows = [.. Props.Services.Select(row => Component<Row, RowProps>(row).WithKey(row.Id))];
+        Element[] rows = [.. props.Services.Select(row => Component<Row, RowProps>(row).WithKey(row.Id))];
         return ScrollViewer(VStack(2,
         [
-            Component<Row, RowProps>(Props.Floating).WithKey(Props.Floating.Id),
+            Component<WindowRow, WindowRowProps>(props.Floating).WithKey(props.Floating.Id),
             HStack(8,
                 Button("Click", () => setShown(++clicks.Current)).AutomationId("features.click"),
                 TextBlock($"clicks: {shown}").AutomationId("features.clicks").VAlign(VerticalAlignment.Center),
-                Button("Popup", Props.OpenPopup).AutomationId("features.popup"),
-                Button("Launcher", Props.OpenLauncher).AutomationId("features.launcher")),
+                Button("Popup", props.OpenPopup).AutomationId("features.popup"),
+                Button("Launcher", props.OpenLauncher).AutomationId("features.launcher")),
             HStack(8,
                 TextBox(typed, setTyped, "Type here").AutomationId("features.text").AutomationName("Type here")
                     .Width(160),
@@ -40,10 +37,10 @@ public sealed class FeatureWindow : Component<FeatureWindowProps>
     }
 }
 
-public sealed class FeatureWidget : Component<WidgetContext>
+public sealed class FeatureWidget : Widget
 {
     public override Element Render()
     {
-        return TextBlock($"widget area: {Props.Settings.GetValueOrDefault("text")}").AutomationId("block.widget-area");
+        return TextBlock($"widget area: {Setting("text", "")}").AutomationId("block.widget-area");
     }
 }

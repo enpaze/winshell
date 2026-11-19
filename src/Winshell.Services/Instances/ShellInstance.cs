@@ -8,30 +8,30 @@ internal sealed class ShellInstance
     private readonly InstanceLog _file;
     private readonly Instances _instances;
     private readonly string _dir;
-    private readonly string _shellId;
+    private readonly string _shellName;
     private readonly string _program;
     private NamedPipeServerStream? _listening;
     private IpcServer? _server;
     private Exception? _fatal;
 
-    private ShellInstance(ShellLocations locations, string id, string shellId, string program, Log log)
+    private ShellInstance(ShellLocations locations, string id, string shellName, string program, Log log)
     {
         Id = id;
         _instances = locations.Instances;
         _dir = _instances.DirOf(id);
         Directory.CreateDirectory(_dir);
-        _shellId = shellId;
+        _shellName = shellName;
         _program = program;
         Log = log;
-        LogPath = Path.Combine(_dir, InstanceLog.FileName);
+        Logs = Path.Combine(_dir, InstanceLog.FileName);
         Pipe = $"winshell-{id}";
-        _file = new InstanceLog(LogPath);
-        Crashes = new CrashReports(locations.CrashRoot, log, shellId, program, LogPath);
+        _file = new InstanceLog(Logs);
+        Crashes = new CrashReports(locations.CrashRoot, log, shellName, program, Logs);
     }
 
     public string Id { get; }
 
-    public string LogPath { get; }
+    public string Logs { get; }
 
     private Log Log { get; }
 
@@ -43,11 +43,11 @@ internal sealed class ShellInstance
 
     public Action? Crashing { get; set; }
 
-    public static ShellInstance Open(string shellId, string program, Log log, bool verbose = false)
+    public static ShellInstance Open(string shellName, string program, Log log, bool verbose = false)
     {
         var locations = ShellLocations.Current;
         locations.Instances.Clean();
-        var instance = new ShellInstance(locations, Instances.NewId(), shellId, program, log);
+        var instance = new ShellInstance(locations, Instances.NewId(), shellName, program, log);
         log.WriteTo(instance.WriteLine, verbose ? LogLevel.Debug : LogLevel.Info);
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
@@ -99,11 +99,11 @@ internal sealed class ShellInstance
         _instances.Write(new InstanceInfo(
             Id,
             Environment.ProcessId,
-            _shellId,
+            _shellName,
             _program,
             TimeProvider.System.GetLocalNow().LocalDateTime,
             Pipe,
-            LogPath,
+            Logs,
             process.StartTime.ToUniversalTime().Ticks,
             ProcessName: process.ProcessName));
     }

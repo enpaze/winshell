@@ -5,21 +5,21 @@ internal static class UseCommand
     internal static readonly CommandEntry Entry = new()
     {
         Name = "use",
-        Overview = "       winshell use [<name>]               choose the config sign-in starts, and switch to it",
+        Overview = "       winshell use [<name>]               choose the shell sign-in starts, and switch to it",
         Usage = """
                 winshell use [<name>]
-                  With a name, builds that config in {config-root} when it needs a build, and
-                  chooses it: sign-in, the Start tile and winshell run with no -c or -p start it.
+                  With a name, builds that shell in {shells-root} when it needs a build, and
+                  chooses it: sign-in, the Start tile and winshell run with no -s or -p start it.
                   A shell that is running stops, and the chosen one starts in its place.
                   A failed build changes nothing.
-                  With no name, lists the configs, with * before the one winshell run starts.
+                  With no name, lists the shells, with * before the one winshell run starts.
                 """,
         Words = WordRule.One,
         Check = static parsed =>
         {
-            if (parsed.Positional.Length == 1 && !CommandWords.IsConfigName(parsed.Positional[0]))
+            if (parsed.Positional.Length == 1 && !CommandWords.IsShellFolder(parsed.Positional[0]))
                 throw new ArgumentException(
-                    $"winshell use needs the name of a config folder, not \"{parsed.Positional[0]}\".");
+                    $"winshell use needs the name of a shell folder, not \"{parsed.Positional[0]}\".");
         },
         Run = Execute
     };
@@ -28,9 +28,9 @@ internal static class UseCommand
     {
         var locations = ShellLocations.Current;
         if (parsed.Positional.IsEmpty)
-            return List(locations.ConfigRoot);
+            return List(locations.ShellsRoot);
         var name = parsed.Positional[0];
-        if (Choose(name, locations.ConfigRoot, ShellProject.Run, out var error) is not { } project)
+        if (Choose(name, locations.ShellsRoot, ShellProject.Run, out var error) is not { } project)
         {
             await Console.Error.WriteLineAsync(error);
             return 1;
@@ -60,7 +60,7 @@ internal static class UseCommand
         var names = ShellProject.Names(root);
         if (names.Count == 0)
         {
-            Console.WriteLine($"No configs in {root}. Run winshell new to make one.");
+            Console.WriteLine($"No shells in {root}. Run winshell new to make one.");
             return 0;
         }
 
@@ -82,10 +82,10 @@ internal static class UseCommand
         var others = running.Except(own).ToList();
         foreach (var info in others)
         {
-            if (!await KillCommand.StopAsync(info, false))
+            if (!await StopCommand.StopAsync(info, false))
             {
                 await Console.Error.WriteLineAsync(
-                    $"Instance {info.Id} is still running, so {name} was not started. winshell kill --force -i {info.Id} ends it.");
+                    $"Instance {info.Id} is still running, so {name} was not started. winshell stop --force -i {info.Id} ends it.");
                 return 1;
             }
 
@@ -96,7 +96,7 @@ internal static class UseCommand
             return 0;
         string[] start =
         [
-            CommandWords.Run, CommandWords.NoBuild.Long, CommandWords.NoDuplicate.Long, CommandWords.Config.Long, name
+            CommandWords.Run, CommandWords.NoBuild.Long, CommandWords.NoDuplicate.Long, CommandWords.Shell.Long, name
         ];
         if (InstanceStart.Detach(Environment.ProcessPath!, start) is { } error)
         {

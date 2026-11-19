@@ -14,7 +14,7 @@ public sealed class DevOutputTests
     [DataRow("dotnet watch : Waiting for changes")]
     [DataRow("dotnet watch : No managed code changes to apply.")]
     [DataRow("dotnet watch : Restart is needed to apply the changes.")]
-    [DataRow(" INFO shell: Shell ID: \"Mine\"")]
+    [DataRow(" INFO shell: Shell name: \"Mine\"")]
     [DataRow("  Mine -> C:\\Shells\\Mine\\bin\\Debug\\Mine.dll")]
     [DataRow(" WARN notes: the word error: appears in this log line")]
     public void A_line_that_is_not_a_result_changes_nothing_on_screen(string line)

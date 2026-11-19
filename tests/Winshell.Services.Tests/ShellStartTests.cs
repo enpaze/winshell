@@ -65,25 +65,25 @@ public sealed class ShellStartTests
     [TestMethod]
     public void A_given_shell_id_names_the_folders()
     {
-        var identity = ShellIdentity.Resolve(@"C:\shells\mine\mine.exe", Locations, "mine-id", null, null, null);
+        var identity = ShellIdentity.Resolve(@"C:\shells\mine\mine.exe", Locations, new ShellProperties("mine-id"));
 
-        Assert.AreEqual("mine-id", identity.ShellId);
-        Assert.AreEqual(@"C:\local\data\by-shell\mine-id", identity.DataDir);
-        Assert.AreEqual(@"C:\local\state\by-shell\mine-id", identity.StateDir);
-        Assert.AreEqual(@"C:\local\cache\by-shell\mine-id", identity.CacheDir);
+        Assert.AreEqual("mine-id", identity.ShellName);
+        Assert.AreEqual(@"C:\local\data\by-shell\mine-id", identity.Data);
+        Assert.AreEqual(@"C:\local\state\by-shell\mine-id", identity.State);
+        Assert.AreEqual(@"C:\local\cache\by-shell\mine-id", identity.Cache);
     }
 
     [TestMethod]
     [DataRow(@"C:\config\bin\shell\Mine.exe", "root")]
     [DataRow(@"C:\config\Bar\bin\shell\Bar.exe", "bar")]
     [DataRow(@"C:\config\Bar\bin\shell.next\Bar.exe", "bar")]
-    public void A_configuration_in_the_config_folder_is_named_after_its_folder(string program, string id)
+    public void A_shell_in_the_shells_folder_is_named_after_its_folder(string program, string id)
     {
         Assert.AreEqual(id, IdOf(program));
     }
 
     [TestMethod]
-    public void A_configuration_anywhere_else_is_named_after_its_path_in_any_case_from_either_build_folder()
+    public void A_shell_anywhere_else_is_named_after_its_path_in_any_case_from_either_build_folder()
     {
         var one = IdOf(@"C:\shells\mine\bin\shell\Mine.exe");
 
@@ -94,35 +94,35 @@ public sealed class ShellStartTests
     }
 
     [TestMethod]
-    public void Folders_named_after_the_earlier_hash_move_to_the_configurations_name_once()
+    public void Folders_named_after_the_earlier_hash_move_to_the_shells_name_once()
     {
         using var temp = new TempFolder();
         var locations = new ShellLocations(Path.Combine(temp.Path, "config"), Path.Combine(temp.Path, "local"));
-        var program = Path.Combine(locations.ConfigRoot, "bar", "bin", "shell", "Bar.exe");
-        var earlier = ShellIdentity.Resolve(program, locations with { ConfigRoot = "" }, null, null, null, null);
-        Directory.CreateDirectory(earlier.DataDir);
-        File.WriteAllText(Path.Combine(earlier.DataDir, "kept.txt"), "data");
-        Directory.CreateDirectory(earlier.StateDir);
+        var program = Path.Combine(locations.ShellsRoot, "bar", "bin", "shell", "Bar.exe");
+        var earlier = ShellIdentity.Resolve(program, locations with { ShellsRoot = "" }, new ShellProperties());
+        Directory.CreateDirectory(earlier.Data);
+        File.WriteAllText(Path.Combine(earlier.Data, "kept.txt"), "data");
+        Directory.CreateDirectory(earlier.State);
         var messages = new List<string>();
         var log = new Log { Sink = (_, category, message) => messages.Add($"{category}: {message}") };
 
-        var identity = ShellIdentity.Resolve(program, locations, null, null, null, null);
+        var identity = ShellIdentity.Resolve(program, locations, new ShellProperties());
         identity.CarryOver(log);
 
-        Assert.AreEqual("data", File.ReadAllText(Path.Combine(identity.DataDir, "kept.txt")));
-        Assert.IsTrue(Directory.Exists(identity.StateDir));
-        Assert.IsFalse(Directory.Exists(identity.CacheDir));
-        Assert.IsFalse(Directory.Exists(earlier.DataDir));
+        Assert.AreEqual("data", File.ReadAllText(Path.Combine(identity.Data, "kept.txt")));
+        Assert.IsTrue(Directory.Exists(identity.State));
+        Assert.IsFalse(Directory.Exists(identity.Cache));
+        Assert.IsFalse(Directory.Exists(earlier.Data));
         Assert.AreSequenceEqual(
         [
-            $"shell: Moved \"{earlier.DataDir}\" to \"{identity.DataDir}\"",
-            $"shell: Moved \"{earlier.StateDir}\" to \"{identity.StateDir}\""
+            $"shell: Moved \"{earlier.Data}\" to \"{identity.Data}\"",
+            $"shell: Moved \"{earlier.State}\" to \"{identity.State}\""
         ], messages);
 
-        Directory.CreateDirectory(earlier.DataDir);
+        Directory.CreateDirectory(earlier.Data);
         identity.CarryOver(log);
 
-        Assert.IsTrue(Directory.Exists(earlier.DataDir));
+        Assert.IsTrue(Directory.Exists(earlier.Data));
         Assert.AreEqual(2, messages.Count);
     }
 
@@ -131,51 +131,62 @@ public sealed class ShellStartTests
     {
         using var temp = new TempFolder();
         var locations = new ShellLocations(Path.Combine(temp.Path, "config"), Path.Combine(temp.Path, "local"));
-        var program = Path.Combine(locations.ConfigRoot, "bar", "bin", "shell", "Bar.exe");
-        var earlier = ShellIdentity.Resolve(program, locations with { ConfigRoot = "" }, null, null, null, null);
-        Directory.CreateDirectory(earlier.DataDir);
-        Directory.CreateDirectory(earlier.StateDir);
+        var program = Path.Combine(locations.ShellsRoot, "bar", "bin", "shell", "Bar.exe");
+        var earlier = ShellIdentity.Resolve(program, locations with { ShellsRoot = "" }, new ShellProperties());
+        Directory.CreateDirectory(earlier.Data);
+        Directory.CreateDirectory(earlier.State);
         var given = Path.Combine(temp.Path, "state");
 
-        ShellIdentity.Resolve(program, locations, "bar", null, null, null).CarryOver(new Log());
-        Assert.IsTrue(Directory.Exists(earlier.DataDir));
+        ShellIdentity.Resolve(program, locations, new ShellProperties("bar")).CarryOver(new Log());
+        Assert.IsTrue(Directory.Exists(earlier.Data));
 
-        ShellIdentity.Resolve(program, locations, null, null, given, null).CarryOver(new Log());
-        Assert.IsTrue(Directory.Exists(earlier.StateDir));
+        ShellIdentity.Resolve(program, locations, new ShellProperties(ShellStateDir: given)).CarryOver(new Log());
+        Assert.IsTrue(Directory.Exists(earlier.State));
         Assert.IsFalse(Directory.Exists(given));
     }
 
     [TestMethod]
     public void A_given_folder_is_next_to_the_program_and_can_name_the_base()
     {
-        var identity = ShellIdentity.Resolve(@"C:\shells\mine.exe", Locations with { ConfigRoot = "" }, "id", "data",
-            @"$BASE\other", @"D:\cache");
+        var identity = ShellIdentity.Resolve(@"C:\shells\mine.exe", Locations with { ShellsRoot = "" },
+            new ShellProperties("id", "data", @"$BASE\other", @"D:\cache"));
 
-        Assert.AreEqual(@"C:\shells\data", identity.DataDir);
-        Assert.AreEqual(@"C:\local\state\other", identity.StateDir);
-        Assert.AreEqual(@"D:\cache", identity.CacheDir);
+        Assert.AreEqual(@"C:\shells\data", identity.Data);
+        Assert.AreEqual(@"C:\local\state\other", identity.State);
+        Assert.AreEqual(@"D:\cache", identity.Cache);
     }
 
     [TestMethod]
     public void A_relative_folder_is_in_the_project_or_next_to_a_program_outside_its_build()
     {
-        var built = ShellIdentity.Resolve(@"C:\shells\mine\bin\shell\Mine.exe", Locations, "id", "data", "state",
-            "cache");
+        var given = new ShellProperties("id", "data", "state", "cache");
+        var built = ShellIdentity.Resolve(@"C:\shells\mine\bin\shell\Mine.exe", Locations, given);
 
-        Assert.AreEqual(@"C:\shells\mine\data", built.DataDir);
-        Assert.AreEqual(@"C:\shells\mine\state", built.StateDir);
-        Assert.AreEqual(@"C:\shells\mine\cache", built.CacheDir);
+        Assert.AreEqual(@"C:\shells\mine\data", built.Data);
+        Assert.AreEqual(@"C:\shells\mine\state", built.State);
+        Assert.AreEqual(@"C:\shells\mine\cache", built.Cache);
 
-        var reloaded = ShellIdentity.Resolve(@"C:\shells\mine\bin\shell.next\Mine.exe", Locations, "id", "data",
-            "state", "cache");
+        var reloaded = ShellIdentity.Resolve(@"C:\shells\mine\bin\shell.next\Mine.exe", Locations, given);
 
-        Assert.AreEqual(@"C:\shells\mine\data", reloaded.DataDir);
-        Assert.AreEqual(@"C:\shells\mine\state", reloaded.StateDir);
-        Assert.AreEqual(@"C:\shells\mine\cache", reloaded.CacheDir);
+        Assert.AreEqual(@"C:\shells\mine\data", reloaded.Data);
+        Assert.AreEqual(@"C:\shells\mine\state", reloaded.State);
+        Assert.AreEqual(@"C:\shells\mine\cache", reloaded.Cache);
 
-        var loose = ShellIdentity.Resolve(@"C:\shells\mine\bin\Debug\Mine.exe", Locations, "id", "data", null, null);
+        var loose = ShellIdentity.Resolve(@"C:\shells\mine\bin\Debug\Mine.exe", Locations, given);
 
-        Assert.AreEqual(@"C:\shells\mine\bin\Debug\data", loose.DataDir);
+        Assert.AreEqual(@"C:\shells\mine\bin\Debug\data", loose.Data);
+    }
+
+    [TestMethod]
+    public void A_given_folder_expands_environment_variables()
+    {
+        var identity = ShellIdentity.Resolve(@"C:\shells\mine\bin\shell\Mine.exe", Locations,
+            new ShellProperties("id", @"%SystemRoot%\data", @"%SystemRoot%", "%WINSHELL_UNSET_VARIABLE%"));
+
+        var windows = Environment.GetEnvironmentVariable("SystemRoot")!;
+        Assert.AreEqual(Path.Combine(windows, "data"), identity.Data);
+        Assert.AreEqual(windows, identity.State);
+        Assert.AreEqual(@"C:\shells\mine\%WINSHELL_UNSET_VARIABLE%", identity.Cache);
     }
 
     [TestMethod]
@@ -186,6 +197,6 @@ public sealed class ShellStartTests
 
     private static string IdOf(string program)
     {
-        return ShellIdentity.Resolve(program, Locations, null, null, null, null).ShellId;
+        return ShellIdentity.Resolve(program, Locations, new ShellProperties()).ShellName;
     }
 }

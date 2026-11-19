@@ -24,7 +24,8 @@ public sealed class WinlandArrivalTests
     {
         var name = PipeName();
         var loop = new ManualEventLoop();
-        using var service = new WinlandService(loop, Log.Default, new WinlandBackend(TimeProvider.System, [name]));
+        var service = new WinlandService(loop, Log.Default, new WinlandBackend(TimeProvider.System, [name]));
+        using var stopService = service.Stopping();
         Wait.ForNothingToHappen(TimeSpan.FromMilliseconds(750));
         loop.Process();
         Assert.AreEqual(0, service.ProcessId);
@@ -68,7 +69,8 @@ public sealed class WinlandArrivalTests
         using var peer = Peer.Start(name);
         var loop = new ManualEventLoop();
         var opened = TimeProvider.System.GetTimestamp();
-        using var service = new WinlandService(loop, Log.Default, new WinlandBackend(TimeProvider.System, [name]));
+        var service = new WinlandService(loop, Log.Default, new WinlandBackend(TimeProvider.System, [name]));
+        using var stopService = service.Stopping();
         Wait.Until(() => service.Workspaces.Count > 0, "workspaces to show", Second, loop.Process);
         var shownAfter = TimeProvider.System.GetElapsedTime(opened);
         CurrentTest.Context?.WriteLine($"shown after {shownAfter.TotalMilliseconds:0} ms");

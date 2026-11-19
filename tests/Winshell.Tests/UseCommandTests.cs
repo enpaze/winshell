@@ -114,7 +114,7 @@ public sealed class UseCommandTests : ProbeBuild, IDisposable
     public void Dispose()
     {
         foreach (var info in Running())
-            Cli("kill", "--force", "--pid", info.Pid.ToString(CultureInfo.InvariantCulture));
+            Cli("stop", "--force", "--pid", info.Pid.ToString(CultureInfo.InvariantCulture));
         foreach (var process in _started)
         {
             if (!process.HasExited)

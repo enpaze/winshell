@@ -90,7 +90,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `PairedDevices` | ObservableList of [BluetoothDevice](#bluetoothdevice), read-only |
 | `Ready` | bool, read-only |
 | `OperationFailed` | Action of string |
-| `Dispose()` | void |
 | `Refresh()` | void |
 | `StartDiscovery()` | void |
 | `StartMonitoring()` | void |

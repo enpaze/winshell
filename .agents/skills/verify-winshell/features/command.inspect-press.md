@@ -15,7 +15,7 @@
 ## How to get to it (user POV)
 
 - Run `winshell inspect press <name> [window] [--right]` in a terminal, where `<name>` is an `x:Name`, an automation id or an automation name.
-- Pick the shell with `--pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>`. With none, the command acts on the only running shell.
+- Pick the shell with `--pid <pid>`, `-i <id>`, `-s <name>` or `-p <path>`. With none, the command acts on the only running shell.
 
 ## Driving it with winshell inspect
 

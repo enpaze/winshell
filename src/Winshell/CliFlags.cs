@@ -6,13 +6,13 @@ internal static class CliFlags
 {
     public static readonly CommandOption Help = CommandOption.Flag(new CommandWord("--help", "-h", "/?"));
 
-    public static readonly CommandOption Version = CommandOption.Flag(new CommandWord("--version", "-V"));
+    public static readonly CommandOption Version = CommandOption.Flag(new CommandWord("--version"));
 
     public static readonly CommandOption Verbose = CommandOption.Flag(CommandWords.Verbose);
 
     public static readonly CommandOption Path = CommandOption.Value(CommandWords.Path);
 
-    public static readonly CommandOption Config = CommandOption.Value(CommandWords.Config, ConfigName);
+    public static readonly CommandOption Shell = CommandOption.Value(CommandWords.Shell, ShellFolder);
 
     public static readonly CommandOption Daemonize = CommandOption.Flag(CommandWords.Daemonize);
 
@@ -46,13 +46,13 @@ internal static class CliFlags
 
     public static readonly CommandOption[] Shared = [Verbose, Help, Version];
 
-    public static readonly CommandOption[] Instance = [Id, Pid, Path, Config];
+    public static readonly CommandOption[] Instance = [Id, Pid, Path, Shell];
 
-    private static object ConfigName(string option, string name)
+    private static object ShellFolder(string option, string name)
     {
-        if (!CommandWords.IsConfigName(name))
+        if (!CommandWords.IsShellFolder(name))
             throw new ArgumentException(
-                $"{option} needs the name of a config folder, not \"{name}\". Use -p for a path.");
+                $"{option} needs the name of a shell folder, not \"{name}\". Use -p for a path.");
         return name;
     }
 

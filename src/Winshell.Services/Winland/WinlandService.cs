@@ -1,11 +1,11 @@
 using System.Collections.Specialized;
 using System.Text.Json;
-using Winshell.Windows;
+using Winshell.AppWindows;
 using static Winshell.Winland.WinlandProtocol;
 
 namespace Winshell.Winland;
 
-public sealed class WinlandService : ObservableObject, IDisposable
+public sealed class WinlandService : ObservableObject, IShellService
 {
     private readonly IEventLoop _loop;
     private readonly Log _log;
@@ -14,7 +14,7 @@ public sealed class WinlandService : ObservableObject, IDisposable
     private readonly List<WinlandMonitor> _monitorList = [];
     private readonly List<WinlandWorkspace> _workspaceList = [];
     private readonly List<WinlandWindow> _windowList = [];
-    private WindowListService? _windows;
+    private AppWindowsService? _windows;
     private WinlandMonitor? _focusedMonitor;
     private WinlandWorkspace? _focusedWorkspace;
     private WinlandWindow? _activeWindow;
@@ -57,7 +57,7 @@ public sealed class WinlandService : ObservableObject, IDisposable
 
     public string? LogPath => Read(_logPath);
 
-    internal void Attach(WindowListService? windows)
+    internal void Attach(AppWindowsService? windows)
     {
         if (ReferenceEquals(_windows, windows))
             return;
@@ -586,7 +586,7 @@ public sealed class WinlandService : ObservableObject, IDisposable
         Set(ref _activeWindow, window, nameof(ActiveWindow));
     }
 
-    public void Dispose()
+    void IShellService.Stop()
     {
         if (_disposed)
             return;

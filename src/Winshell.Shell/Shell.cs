@@ -1,50 +1,38 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.ExceptionServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using WinRT;
+using Windows.UI;
 using Winshell.ExplorerTaskbar;
 
 namespace Winshell;
 
-public sealed record ShellOptions
-{
-    public string? ShellId { get; init; }
-
-    public string? DataDir { get; init; }
-
-    public string? StateDir { get; init; }
-
-    public string? CacheDir { get; init; }
-}
-
-public abstract class ShellConfiguration
-{
-    public abstract void Start(Shell shell);
-}
-
-public sealed partial class Shell : IDisposable
+public sealed partial class Shell
 {
     private static Shell? _current;
 
     private readonly ShellIdentity _identity;
     private readonly ShellInstance _instance;
     private readonly ShellArguments _arguments;
+    private readonly List<IDisposable> _parts = [];
     private bool _nextStarted;
     private bool _disposed;
     private RealInput? _input;
 
-    private Shell(IEventLoop loop, ShellOptions options, InstanceSession session)
+    private Shell(IEventLoop loop, InstanceSession session, WidgetRegistry widgets)
     {
         var log = session.Log;
         Loop = loop;
+        WidgetRegistry = widgets;
         Log = log;
-        Options = options;
         _identity = session.Identity;
         _instance = session.Instance;
         _arguments = session.Arguments;
-        LogPath = session.Instance.LogPath;
+        Paths = new ShellPaths(session.Identity, session.Instance.Logs,
+            Path.GetDirectoryName(Environment.ProcessPath)!, ShellLocations.Current.ShellsRoot);
         Ipc = new ShellIpc(log);
         Platform = new ShellPlatform(loop, log);
         Notices = new ShellNotices(
@@ -64,13 +52,15 @@ public sealed partial class Shell : IDisposable
     public static Shell Current =>
         _current ?? throw new InvalidOperationException("The shell has not started. Call Shell.Run first.");
 
-    public IEventLoop Loop { get; }
+    internal IEventLoop Loop { get; }
+
+    internal void Post(Action action) => Loop.Post(action);
 
     public Log Log { get; }
 
-    public ShellOptions Options { get; }
-
     internal ShellPlatform Platform { get; }
+
+    internal WidgetRegistry WidgetRegistry { get; }
 
     private PreferencesFile? _preferencesFile;
     private bool _startReturned;
@@ -81,7 +71,7 @@ public sealed partial class Shell : IDisposable
         {
             if (_preferencesFile is null)
             {
-                _preferencesFile = new PreferencesFile(Path.Combine(ConfigRoot, "preferences", ShellId + ".toml"), Loop, Log);
+                _preferencesFile = new PreferencesFile(Path.Combine(Paths.Shells, "preferences", ShellName + ".toml"), Loop, Log);
                 if (_startReturned)
                     _preferencesFile.StartReturned();
             }
@@ -104,59 +94,29 @@ public sealed partial class Shell : IDisposable
 
     public static string Version => ProductVersion.Current.Text;
 
-    public string ShellId => _identity.ShellId;
+    public string ShellName => _identity.ShellName;
 
     public ShellIpc Ipc { get; }
 
-    public string ConfigDir => Path.GetDirectoryName(Environment.ProcessPath)!;
-
-    public string ConfigRoot => ShellLocations.Current.ConfigRoot;
-
-    public string LogPath { get; }
-
-    public string DataDir => Ensure(_identity.DataDir);
-
-    public string StateDir => Ensure(_identity.StateDir);
-
-    public string CacheDir => Ensure(_identity.CacheDir);
+    public ShellPaths Paths { get; }
 
     public ObservableList<ScreenInfo> Screens => Platform.Screens;
 
     public bool IsDark => Platform.IsDark;
 
-    public ColorScheme ColorScheme
+    public Appearance Appearance
     {
-        get => Platform.ColorScheme;
-        set => Platform.ColorScheme = value;
+        get => Platform.Appearance;
+        set => Platform.Appearance = value;
     }
 
-    public string AccentColor
+    public Color? AccentColor
     {
         get => Platform.AccentColor;
         set => Platform.AccentColor = value;
     }
 
-    public string SystemAccent => Platform.SystemAccent;
-
-    public string ConfigPath(string path)
-    {
-        return Path.Combine(ConfigDir, path);
-    }
-
-    public string DataPath(string path)
-    {
-        return Path.Combine(DataDir, path);
-    }
-
-    public string StatePath(string path)
-    {
-        return Path.Combine(StateDir, path);
-    }
-
-    public string CachePath(string path)
-    {
-        return Path.Combine(CacheDir, path);
-    }
+    public Color SystemAccent => Platform.SystemAccent;
 
     public void Open(string target)
     {
@@ -173,35 +133,26 @@ public sealed partial class Shell : IDisposable
         });
     }
 
-    private static string Ensure(string dir)
+    public static void Run(Action<Shell> start)
     {
-        Directory.CreateDirectory(dir);
-        return dir;
+        ArgumentNullException.ThrowIfNull(start);
+        StaThread.Run(() => Start(start));
     }
 
-    public static void Run<T>(ShellOptions? options = null)
-        where T : ShellConfiguration, new()
-    {
-        Run(new T(), options ?? new ShellOptions());
-    }
-
-    private static void Run(ShellConfiguration configuration, ShellOptions options)
+    private static void Start(Action<Shell> start)
     {
         var code = InstanceStart.Run(new InstanceLaunch(
                 Environment.ProcessPath!,
                 (string[])[.. Environment.GetCommandLineArgs().Skip(1)],
-                options.ShellId,
-                options.DataDir,
-                options.StateDir,
-                options.CacheDir,
+                ShellProperties.Of(Assembly.GetEntryAssembly()),
                 Log.Default,
                 instance => instance.Crashing = () => _current?.ReleaseForCrash()),
-            session => RunHost(configuration, options, session));
+            session => RunHost(start, session));
         if (code != 0)
             Environment.ExitCode = code;
     }
 
-    private static void RunHost(ShellConfiguration configuration, ShellOptions options, InstanceSession session)
+    private static void RunHost(Action<Shell> start, InstanceSession session)
     {
         var instance = session.Instance;
         Exception? failed = null;
@@ -215,10 +166,12 @@ public sealed partial class Shell : IDisposable
                 Shell? shell = null;
                 try
                 {
+                    var widgets = WidgetRegistry.Discover(session.Log);
                     var loop = new DispatcherLoop(queue, session.Log);
                     loop.Failed += e => instance.Reported(instance.Crashes.WriteOnce("event loop", e, "Winshell",
                         "Something in Winshell failed. It is still running."));
-                    shell = new Shell(loop, options, session);
+                    EventLoop.Current = loop;
+                    shell = new Shell(loop, session, widgets);
                     _current = shell;
                     if (Environment.GetEnvironmentVariable(DevProjectVariable) is { Length: > 0 })
                         shell.Notices.FollowFileErrors();
@@ -229,7 +182,7 @@ public sealed partial class Shell : IDisposable
                         e.Cancel = true;
                         loop.Post(shell.Quit);
                     };
-                    configuration.Start(shell);
+                    start(shell);
                     shell.StartReturned();
                     shell.ReleaseUnclaimedTaskbar();
                     ShellInstance.Quietly(() => shell.Notices.ShowPrevious(ShellInstance.ExitState));
@@ -260,7 +213,35 @@ public sealed partial class Shell : IDisposable
             session.Failure = failed;
     }
 
-    public bool Reload()
+    public T Add<T>(T part) where T : class, IDisposable
+    {
+        ArgumentNullException.ThrowIfNull(part);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_parts.Exists(added => ReferenceEquals(added, part)))
+            return part;
+        _parts.Add(part);
+        if (part is IShellPart started)
+            try
+            {
+                started.Start();
+            }
+            catch
+            {
+                Remove(part);
+                throw;
+            }
+
+        return part;
+    }
+
+    internal void Remove(IDisposable part)
+    {
+        var at = _parts.FindIndex(added => ReferenceEquals(added, part));
+        if (at >= 0)
+            _parts.RemoveAt(at);
+    }
+
+    public bool Restart()
     {
         if (StartNext() is not null)
             return false;
@@ -280,7 +261,7 @@ public sealed partial class Shell : IDisposable
         {
             using var next = Process.Start(info);
             _nextStarted = true;
-            Log.Info("shell", "Reloading: a new process takes over from this one.");
+            Log.Info("shell", "Restarting: a new process takes over from this one.");
             return null;
         }
         catch (Exception e) when (e is Win32Exception or InvalidOperationException)
@@ -322,12 +303,14 @@ public sealed partial class Shell : IDisposable
         PanelPlacer.ReleaseAll();
     }
 
-    public void Dispose()
+    internal void Dispose()
     {
         if (_disposed)
             return;
         _disposed = true;
-        DisposeEach((IDisposable?[])[_input, _preferencesFile, Notices, .. ServicesInStopOrder, Platform]);
+        IDisposable[] parts = [.. Enumerable.Reverse(_parts)];
+        _parts.Clear();
+        DisposeEach((IDisposable?[])[.. parts, _input, _preferencesFile, Notices, .. ServicesInStopOrder, Platform]);
     }
 
     internal static void DisposeEach(IEnumerable<IDisposable?> parts)

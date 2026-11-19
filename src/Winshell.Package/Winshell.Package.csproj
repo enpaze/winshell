@@ -3,7 +3,7 @@
     <IsPackable>true</IsPackable>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <PackageId>Winshell</PackageId>
-    <Description>The library a Winshell configuration references: native operations, services and WinUI windows.</Description>
+    <Description>The library a Winshell shell references: native operations, services and WinUI windows.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/enpaze/winshell</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -41,6 +41,7 @@
     <ProjectReference Include="..\Winshell.Core\Winshell.Core.csproj" PrivateAssets="all" />
     <ProjectReference Include="..\Winshell.Shell\Winshell.Shell.csproj" PrivateAssets="all" />
     <ProjectReference Include="..\Winshell.Services\Winshell.Services.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Winshell.Generators\Winshell.Generators.csproj" PrivateAssets="all" OutputItemType="WinshellGenerator" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <Target Name="IncludeWinshellAssemblies" BeforeTargets="_GetPackageFiles" DependsOnTargets="ResolveReferences">
@@ -49,6 +50,10 @@
             Condition="'%(Extension)' == '.dll'">
         <Pack>true</Pack>
         <PackagePath>lib/$(TargetFramework)/%(Filename)%(Extension)</PackagePath>
+      </None>
+      <None Include="@(WinshellGenerator)">
+        <Pack>true</Pack>
+        <PackagePath>analyzers/dotnet/cs/%(Filename)%(Extension)</PackagePath>
       </None>
     </ItemGroup>
   </Target>

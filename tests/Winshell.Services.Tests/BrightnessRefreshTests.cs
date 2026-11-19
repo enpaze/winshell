@@ -39,7 +39,8 @@ public class BrightnessRefreshTests
             new BrightnessSnapshot(
                 [new BrightnessInfo("d", "Monitor", BrightnessConnection.External, 0, 100, 10)]),
             (_, _) => null);
-        using var brightness = new BrightnessService(loop, Log.Default, screens, source);
+        var brightness = new BrightnessService(loop, Log.Default, screens, source);
+        using var stopBrightness = brightness.Stopping();
         loop.Process();
         Assert.AreEqual(1, source.Reads);
 

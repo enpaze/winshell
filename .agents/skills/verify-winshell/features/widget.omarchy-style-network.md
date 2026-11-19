@@ -12,9 +12,9 @@ The `network` widget is a button on the omarchy-style bar that shows the connect
 
 ## How to get to it (user POV)
 
-- Run `winshell new omarchy-style` and then `winshell run -c omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
-- The example registers it with `Widgets.Register<NetworkWidget>("network")` and places it in the bar's `End` list.
-- Place it elsewhere with `{ widget = "network" }` in a list of the `[bar]` section of the preferences file.
+- Run `winshell new omarchy-style` and then `winshell run -s omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
+- The example finds `NetworkWidget` as the widget `network` and places it in the bar's `End` list.
+- Place it elsewhere with `"network"` in a list of the `[bar]` section of the preferences file.
 - Choose the network glyph near the right end of the bar.
 
 ## Driving it with winshell inspect

@@ -1,4 +1,3 @@
-using System.Globalization;
 using Windows.UI;
 
 namespace Winshell;
@@ -15,46 +14,17 @@ internal readonly record struct AccentShades(
     private static readonly double[] Lighter = [0.123, 0.466, 0.654];
     private static readonly double[] Darker = [0.132, 0.397, 0.69];
 
-    internal static string Normalize(string? hex)
+    internal static AccentShades From(Color accent)
     {
-        return TryParse(hex, out _, out _, out _) ? hex!.ToUpperInvariant() : "";
-    }
-
-    internal static bool TryFrom(string? hex, out AccentShades shades)
-    {
-        if (!TryParse(hex, out var r, out var g, out var b))
-        {
-            shades = default;
-            return false;
-        }
-
-        var (h, s, l) = ToHsl(r, g, b);
-        shades = new AccentShades(
-            Rgb(r, g, b),
+        var (h, s, l) = ToHsl(accent.R / 255d, accent.G / 255d, accent.B / 255d);
+        return new AccentShades(
+            Color.FromArgb(255, accent.R, accent.G, accent.B),
             FromHsl(h, s, l + (1 - l) * Lighter[0]),
             FromHsl(h, s, l + (1 - l) * Lighter[1]),
             FromHsl(h, s, l + (1 - l) * Lighter[2]),
             FromHsl(h, s, l * (1 - Darker[0])),
             FromHsl(h, s, l * (1 - Darker[1])),
             FromHsl(h, s, l * (1 - Darker[2])));
-        return true;
-    }
-
-    private static bool TryParse(string? hex, out double r, out double g, out double b)
-    {
-        r = g = b = 0;
-        if (hex is not { Length: 7 } || hex[0] != '#'
-                                     || !byte.TryParse(hex.AsSpan(1, 2), NumberStyles.AllowHexSpecifier,
-                                         CultureInfo.InvariantCulture, out var rb)
-                                     || !byte.TryParse(hex.AsSpan(3, 2), NumberStyles.AllowHexSpecifier,
-                                         CultureInfo.InvariantCulture, out var gb)
-                                     || !byte.TryParse(hex.AsSpan(5, 2), NumberStyles.AllowHexSpecifier,
-                                         CultureInfo.InvariantCulture, out var bb))
-            return false;
-        r = rb / 255d;
-        g = gb / 255d;
-        b = bb / 255d;
-        return true;
     }
 
     private static (double H, double S, double L) ToHsl(double r, double g, double b)

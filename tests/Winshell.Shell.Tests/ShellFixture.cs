@@ -19,9 +19,9 @@ internal static class ShellFixture
     {
         Environment.SetEnvironmentVariable("WINSHELL_LOCAL_DIR",
             TempFolder.NewPath());
-        Environment.SetEnvironmentVariable("WINSHELL_CONFIG_DIR",
+        Environment.SetEnvironmentVariable("WINSHELL_SHELLS_DIR",
             TempFolder.NewPath());
-        var thread = new Thread(() => Shell.Run<Configuration>(new ShellOptions { ShellId = "winshell-tests" }))
+        var thread = new Thread(() => Shell.Run(Ready.SetResult))
         {
             IsBackground = true,
             Name = "WinUI"
@@ -69,6 +69,7 @@ internal static class ShellFixture
             finally
             {
                 await CloseLeft(shell, before);
+                await ScreensRead(shell);
             }
         }
         finally
@@ -97,6 +98,18 @@ internal static class ShellFixture
             });
             if (left.Count > 0 && CurrentTest.Context is { } test)
                 Left.AddOrUpdate(test, left, (_, earlier) => [.. earlier, .. left]);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private static async Task ScreensRead(Shell shell)
+    {
+        try
+        {
+            await Wait.UntilAsync(() => OnThread(shell, s => Task.FromResult(!s.Platform.ScreenReadPending)),
+                "the screen read the action asked for to finish before the next action starts");
         }
         catch (OperationCanceledException)
         {
@@ -142,7 +155,7 @@ internal static class ShellFixture
 
     public static string ReadLog(Shell shell)
     {
-        using var stream = SharedFile.OpenToRead(shell.LogPath);
+        using var stream = SharedFile.OpenToRead(shell.Paths.Logs);
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
     }
@@ -158,14 +171,6 @@ internal static class ShellFixture
         var name = window.Client is FloatingWindow floating ? floating.Title :
             content is null ? "" : AutomationProperties.GetName(content);
         return $"{window.Client.GetType().Name} \"{name}\" showing {content?.GetType().Name ?? "nothing"}";
-    }
-
-    private sealed class Configuration : ShellConfiguration
-    {
-        public override void Start(Shell shell)
-        {
-            Ready.SetResult(shell);
-        }
     }
 }
 

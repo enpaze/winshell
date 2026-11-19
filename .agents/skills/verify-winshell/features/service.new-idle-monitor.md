@@ -1,6 +1,6 @@
 # Idle monitor (NewIdleMonitor)
 
-`shell.NewIdleMonitor()` makes an `IdleMonitor` that says when the user has not touched the keyboard or the mouse for `Timeout` seconds. A configuration uses it to dim the screen, lock or hide a bar after a while. The feature shell makes one with a `Timeout` of 600 seconds and turns it on, and its row `service.new-idle-monitor` shows `enabled: True; idle: <True|False>; timeout: 600`.
+`shell.NewIdleMonitor()` makes an `IdleMonitor` that says when the user has not touched the keyboard or the mouse for `Timeout` seconds. A shell uses it to dim the screen, lock or hide a bar after a while. The feature shell makes one with a `Timeout` of 600 seconds and turns it on, and its row `service.new-idle-monitor` shows `enabled: True; idle: <True|False>; timeout: 600`.
 
 ## Sub-features
 
@@ -11,8 +11,8 @@
 
 ## How to get to it (user POV)
 
-- A configuration calls `shell.NewIdleMonitor()`, sets `Timeout`, and follows `IsIdle`.
-- A configuration creates `new KeepAwake(shell.Log)` and sets `Enabled` to keep the PC awake.
+- A shell calls `shell.NewIdleMonitor()`, sets `Timeout`, and follows `IsIdle`.
+- A shell creates `new KeepAwake(shell.Log)` and sets `Enabled` to keep the PC awake.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

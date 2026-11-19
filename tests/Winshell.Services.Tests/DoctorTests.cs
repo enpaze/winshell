@@ -29,18 +29,18 @@ public sealed class DoctorTests : IDisposable
     }
 
     [TestMethod]
-    [DataRow(26300, 9711, "26H2", false, CheckStatus.Pass, "Windows 11 26H2, build 26300.9711")]
-    [DataRow(22621, 0, "22H2", false, CheckStatus.Pass, "Windows 11 22H2, build 22621.0")]
-    [DataRow(22000, 2538, "21H2", false, CheckStatus.Warn, "Windows 11 21H2, build 22000.2538")]
-    [DataRow(19045, 5011, "22H2", false, CheckStatus.Fail, "Windows 10 22H2, build 19045.5011")]
-    [DataRow(26100, 1, null, true, CheckStatus.Pass, "Windows Server, build 26100.1")]
+    [DataRow(26300, 9711, "26H2", false, nameof(CheckStatus.Pass), "Windows 11 26H2, build 26300.9711")]
+    [DataRow(22621, 0, "22H2", false, nameof(CheckStatus.Pass), "Windows 11 22H2, build 22621.0")]
+    [DataRow(22000, 2538, "21H2", false, nameof(CheckStatus.Warn), "Windows 11 21H2, build 22000.2538")]
+    [DataRow(19045, 5011, "22H2", false, nameof(CheckStatus.Fail), "Windows 10 22H2, build 19045.5011")]
+    [DataRow(26100, 1, null, true, nameof(CheckStatus.Pass), "Windows Server, build 26100.1")]
     public void Windows_needs_11_and_22H2_for_its_materials(int build, int revision, string? version, bool server,
-        CheckStatus status, string message)
+        string status, string message)
     {
         var check = Doctor.Windows(build, revision, version, server);
-        Assert.AreEqual(status, check.Status);
+        Assert.AreEqual(Enum.Parse<CheckStatus>(status), check.Status);
         Assert.AreEqual(message, check.Message);
-        Assert.AreEqual(status == CheckStatus.Pass, check.Fix is null);
+        Assert.AreEqual(status == nameof(CheckStatus.Pass), check.Fix is null);
     }
 
     [TestMethod]
@@ -54,13 +54,13 @@ public sealed class DoctorTests : IDisposable
     [TestMethod]
     public void Folders_fail_when_one_cannot_be_written_and_warn_about_an_elevated_instance()
     {
-        var ok = new[] { ("the config folder", @"C:\a", true), ("its local folder", @"C:\b", true) };
+        var ok = new[] { ("the shells folder", @"C:\a", true), ("its local folder", @"C:\b", true) };
         Assert.AreEqual(
             new DoctorCheck("folders", "Folders", CheckStatus.Pass,
-                "Winshell can write the config folder and its local folder"), Folders(ok, []));
-        var locked = Folders([("the config folder", @"C:\a", false), ("its local folder", @"C:\b", true)], []);
+                "Winshell can write the shells folder and its local folder"), Folders(ok, []));
+        var locked = Folders([("the shells folder", @"C:\a", false), ("its local folder", @"C:\b", true)], []);
         Assert.AreEqual(CheckStatus.Fail, locked.Status);
-        Assert.AreEqual(@"Winshell cannot write the config folder, C:\a.", locked.Message);
+        Assert.AreEqual(@"Winshell cannot write the shells folder, C:\a.", locked.Message);
         var elevated = Folders(ok, ["abc123"]);
         Assert.AreEqual(CheckStatus.Warn, elevated.Status);
         Assert.StartsWith("Instance abc123 runs as administrator.", elevated.Message, StringComparison.Ordinal);
@@ -69,10 +69,10 @@ public sealed class DoctorTests : IDisposable
     [TestMethod]
     public void A_doctor_run_as_administrator_says_so()
     {
-        var check = Folders([("the config folder", @"C:\a", true)], [], true);
+        var check = Folders([("the shells folder", @"C:\a", true)], [], true);
         Assert.AreEqual(CheckStatus.Pass, check.Status);
         Assert.Contains("This ran as administrator", check.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("administrator", Folders([("the config folder", @"C:\a", true)], []).Message,
+        Assert.DoesNotContain("administrator", Folders([("the shells folder", @"C:\a", true)], []).Message,
             StringComparison.Ordinal);
     }
 
@@ -124,7 +124,7 @@ public sealed class DoctorTests : IDisposable
         }
 
         Assert.AreEqual(CheckStatus.Fail, checks[0].Status);
-        Assert.StartsWith("Winshell cannot read the config folder: ", checks[0].Message, StringComparison.Ordinal);
+        Assert.StartsWith("Winshell cannot read the shells folder: ", checks[0].Message, StringComparison.Ordinal);
     }
 
     [TestMethod]
@@ -284,7 +284,7 @@ public sealed class DoctorTests : IDisposable
             SignIn(command, false, here, _dir, Exists));
         Assert.AreEqual(CheckStatus.Warn, SignIn(command, true, here, _dir, Exists).Status);
         Assert.AreEqual(CheckStatus.Warn,
-            SignIn(@"C:\Windows\System32\conhost.exe --headless C:\Old\winshell.exe -c bar", false, here, _dir, Exists)
+            SignIn(@"C:\Windows\System32\conhost.exe --headless C:\Old\winshell.exe -s bar", false, here, _dir, Exists)
                 .Status);
         var gone = SignIn(@"C:\Windows\System32\conhost.exe --headless C:\Gone\winshell.exe", false, here, _dir,
             Exists);
@@ -369,7 +369,7 @@ public sealed class DoctorTests : IDisposable
     }
 
     [TestMethod]
-    public void A_configuration_program_judges_sign_in_by_the_winshell_that_started_it()
+    public void A_shell_program_judges_sign_in_by_the_winshell_that_started_it()
     {
         const string host = @"C:\Program Files\Winshell\winshell.exe";
         const string shell = @"C:\Users\a\work\bin\shell\work.exe";
@@ -381,13 +381,13 @@ public sealed class DoctorTests : IDisposable
     }
 
     [TestMethod]
-    [DataRow("Allowed", CheckStatus.Pass)]
-    [DataRow("Denied", CheckStatus.Warn)]
-    [DataRow("Unspecified", CheckStatus.Warn)]
-    [DataRow("Unavailable", CheckStatus.Warn)]
-    public void Notification_access_is_read_without_asking(string access, CheckStatus status)
+    [DataRow("Allowed", nameof(CheckStatus.Pass))]
+    [DataRow("Denied", nameof(CheckStatus.Warn))]
+    [DataRow("Unspecified", nameof(CheckStatus.Warn))]
+    [DataRow("Unavailable", nameof(CheckStatus.Warn))]
+    public void Notification_access_is_read_without_asking(string access, string status)
     {
-        Assert.AreEqual(status, Doctor.Notifications(access).Status);
+        Assert.AreEqual(Enum.Parse<CheckStatus>(status), Doctor.Notifications(access).Status);
     }
 
     [TestMethod]
@@ -507,7 +507,8 @@ public sealed class DoctorTests : IDisposable
         folder.SetAccessControl(acl);
         try
         {
-            var checks = Run(new DoctorContext(new ShellLocations(parent, Path.Combine(_dir, "local")), asked, null));
+            var checks = Run(new DoctorContext(new ShellLocations(parent, Path.Combine(_dir, "local")), asked, null,
+                ShellProject.Run));
             var folders = checks.Single(c => c.Id == "folders");
             Assert.AreEqual(CheckStatus.Fail, folders.Status);
             Assert.Contains(@"\asked", folders.Message, StringComparison.Ordinal);

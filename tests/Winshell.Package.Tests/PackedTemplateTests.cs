@@ -33,7 +33,7 @@ public sealed class PackedTemplateTests
     private const int PatienceMs = 1_800_000;
 
     [TestMethod, Timeout(PatienceMs)]
-    public void The_starter_shows_its_clock_and_battery_and_is_listed_and_killed()
+    public void The_starter_shows_its_clock_and_battery_and_is_listed_and_stopped()
     {
         CurrentTest.Cancellation.ThrowIfCancellationRequested();
         Run(_templates.SmallProject, (pid, environment) =>
@@ -84,7 +84,73 @@ public sealed class PackedTemplateTests
     }
 
     [TestMethod, Timeout(PatienceMs)]
-    public void A_library_widget_registered_in_code_shows_in_an_area()
+    [DataRow("MyShell")]
+    [DataRow("")]
+    public void A_shell_whose_only_file_is_a_top_level_Program_builds(string rootNamespace)
+    {
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
+        using var folder = new TempFolder();
+        var projectFile = CopyStarter(folder.Path);
+        var document = XDocument.Load(projectFile);
+        document.Descendants("RootNamespace").Single().Value = rootNamespace;
+        document.Save(projectFile);
+        foreach (var source in Directory.GetFiles(folder.Path, "*.cs"))
+            File.Delete(source);
+        File.WriteAllText(Path.Combine(folder.Path, "Program.cs"), """
+            Shell.Run(shell => shell.Log.Info("shell", "Started."));
+            """);
+
+        var built = ShellProject.Run(
+            "dotnet", ["build", projectFile, "-c", "Release", "-warnaserror", "--nologo"], folder.Path);
+
+        Assert.IsTrue(built.ExitCode == 0, built.Output);
+    }
+
+    [TestMethod, Timeout(PatienceMs)]
+    public void A_shell_declares_a_preference_as_a_partial_property_the_package_implements()
+    {
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
+        using var folder = new TempFolder();
+        var projectFile = CopyStarter(folder.Path);
+        File.WriteAllText(Path.Combine(folder.Path, "ShellPreferences.cs"), """
+            namespace MyShell;
+
+            public sealed partial class ShellPreferences : Preferences
+            {
+                [Preference]
+                [TomlComment("Show 13:00 rather than 1:00 PM.")]
+                public partial bool Clock24 { get; set; } = true;
+            }
+            """);
+
+        var built = ShellProject.Run(
+            "dotnet", ["build", projectFile, "-c", "Release", "-warnaserror", "--nologo"], folder.Path);
+
+        Assert.IsTrue(built.ExitCode == 0, built.Output);
+    }
+
+    [TestMethod, Timeout(PatienceMs)]
+    public void A_shell_names_its_appearance_with_only_the_package_usings()
+    {
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
+        using var folder = new TempFolder();
+        var projectFile = CopyStarter(folder.Path);
+        foreach (var source in Directory.GetFiles(folder.Path, "*.cs"))
+            File.Delete(source);
+        File.WriteAllText(Path.Combine(folder.Path, "Program.cs"), """
+            Shell.Run(shell => shell.Appearance = Appearance.Dark);
+            """);
+
+        var built = ShellProject.Run(
+            "dotnet", ["build", projectFile, "-c", "Release", "-warnaserror", "--nologo"], folder.Path);
+
+        Assert.IsTrue(built.ExitCode == 0, built.Output);
+    }
+
+    [TestMethod, Timeout(PatienceMs)]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void A_library_widget_the_program_never_names_is_found_and_shows_in_an_area(bool packed)
     {
         CurrentTest.Cancellation.ThrowIfCancellationRequested();
         using var root = new TempFolder();
@@ -98,7 +164,8 @@ public sealed class PackedTemplateTests
         var version = XDocument.Load(projectFile).Descendants("PackageReference")
             .Single(element => element.Attribute("Include")!.Value == "Winshell")
             .Attribute("Version")!.Value;
-        var libProject = Path.Combine(libDir, "WidgetLib.csproj");
+        var libName = "WidgetLib" + Guid.NewGuid().ToString("N");
+        var libProject = Path.Combine(libDir, libName + ".csproj");
         File.WriteAllText(libProject, $$"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
@@ -107,70 +174,100 @@ public sealed class PackedTemplateTests
                 <Nullable>enable</Nullable>
                 <ImplicitUsings>enable</ImplicitUsings>
                 <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+                <Version>{{version}}</Version>
               </PropertyGroup>
               <ItemGroup>
                 <PackageReference Include="Winshell" Version="{{version}}" />
               </ItemGroup>
             </Project>
             """);
-        File.WriteAllText(Path.Combine(libDir, "ClockWidget.cs"), """
-            using Microsoft.UI.Xaml.Controls;
-            using Winshell;
-
+        File.WriteAllText(Path.Combine(libDir, "LibraryClockWidget.cs"), """
             namespace WidgetLib;
 
-            public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
+            public sealed class LibraryClockWidget : Widget
             {
-                public override Microsoft.UI.Reactor.Core.Element Render() =>
-                    Microsoft.UI.Reactor.Factories.TextBlock("library:" + (string)Props.Settings["value"]);
+                public override Element Render() => TextBlock("library:" + Setting("value", ""));
             }
             """);
         var shell = XDocument.Load(projectFile);
-        shell.Root!.Add(new XElement("ItemGroup",
-            new XElement("ProjectReference", new XAttribute("Include", @"..\lib\WidgetLib.csproj"))));
-        shell.Save(projectFile);
-        File.WriteAllText(Path.Combine(shellDir, "AppShell.cs"), """
-            using Microsoft.UI.Reactor.Core;
-            using Microsoft.UI.Reactor.Hosting;
-            using Microsoft.UI.Xaml.Controls;
-            using Winshell;
-            using static Microsoft.UI.Reactor.Factories;
+        if (packed)
+        {
+            var feed = Path.Combine(root.Path, "feed");
+            var pack = ShellProject.Run("dotnet", ["pack", libProject, "-o", feed, "-warnaserror", "--nologo"], libDir);
+            Assert.IsTrue(pack.ExitCode == 0, pack.Output);
+            var config = Path.Combine(shellDir, "nuget.config");
+            var sources = XDocument.Load(config);
+            sources.Descendants("packageSources").Single()
+                .Add(new XElement("add", new XAttribute("key", "widgets"), new XAttribute("value", feed)));
+            sources.Save(config);
+            shell.Root!.Add(new XElement("ItemGroup",
+                new XElement("PackageReference", new XAttribute("Include", libName), new XAttribute("Version", version))));
+        }
+        else
+        {
+            var library = ShellProject.Run("dotnet", ["build", libProject, "-warnaserror", "--nologo"], libDir);
+            Assert.IsTrue(library.ExitCode == 0, library.Output);
+            shell.Root!.Add(new XElement("ItemGroup",
+                new XElement("ProjectReference", new XAttribute("Include", $@"..\lib\{libName}.csproj"))));
+        }
 
-            namespace MyShell;
+        shell.Save(projectFile);
+        File.WriteAllText(Path.Combine(shellDir, "Program.cs"), """
+            Shell.Run(shell =>
+            {
+                shell.Add(new PanelWindow<Placements> { Width = 250, Height = 80 });
+            });
 
             public sealed class Placements : Component
             {
                 public override Element Render() =>
-                    Component<WidgetArea, WidgetAreaProps>(new WidgetAreaProps(Defaults:
-                        [new("library-clock", new Dictionary<string, object> { ["value"] = "one" })]));
-            }
-
-            public sealed class AppShell : ShellConfiguration
-            {
-                public override void Start(Shell shell)
-                {
-                    Widgets.Register<WidgetLib.ClockWidget>("library-clock");
-                    var host = new ReactorHostControl { ComponentFactory = () => new Placements() };
-                    var window = new PanelWindow { Width = 250, Height = 80, Content = host, Visible = true };
-                    window.Closed += host.Dispose;
-                }
+                    WidgetArea(defaults: [new("library-clock", new Dictionary<string, object> { ["value"] = "one" })]);
             }
             """);
 
-        var library = ShellProject.Run(
-            "dotnet", ["build", libProject, "-warnaserror", "--nologo"], libDir);
-        Assert.IsTrue(library.ExitCode == 0, library.Output);
-
-        Run(projectFile, (pid, environment) =>
+        try
         {
-            ChildProcess? tree = null;
-            Wait.Until(() =>
+            Run(projectFile, (pid, environment) =>
             {
-                tree = WinshellCli.Run(["inspect", "--pid", pid, "tree"], environment);
-                return tree.Code == 0 && tree.Output.Contains("library:one", StringComparison.Ordinal);
-            }, "the library's widget to populate the window");
-            Assert.Contains("library:one", tree!.Output, StringComparison.Ordinal);
-        });
+                ChildProcess? tree = null;
+                Wait.Until(() =>
+                {
+                    tree = WinshellCli.Run(["inspect", "--pid", pid, "tree"], environment);
+                    return tree.Code == 0 && tree.Output.Contains("library:one", StringComparison.Ordinal);
+                }, "the library's widget to populate the window");
+                Assert.Contains("library:one", tree!.Output, StringComparison.Ordinal);
+            });
+        }
+        finally
+        {
+            PackedTemplates.Forget(libName, version);
+        }
+    }
+
+    [TestMethod, Timeout(PatienceMs)]
+    public void The_guides_widget_library_builds_against_the_package_and_exposes_its_component()
+    {
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
+        using var root = new TempFolder();
+        File.Copy(Path.Combine(Repo.Root, "global.json"), Path.Combine(root.Path, "global.json"));
+        var libDir = Path.Combine(root.Path, "MessageWidget");
+        Directory.CreateDirectory(libDir);
+        foreach (var file in Directory.GetFiles(Path.Combine(Repo.Root, "tests", "Winshell.Package.Tests", "MessageWidget")))
+            File.Copy(file, Path.Combine(libDir, Path.GetFileName(file)));
+        File.Copy(Path.Combine(Path.GetDirectoryName(_templates.SmallProject)!, "nuget.config"),
+            Path.Combine(libDir, "nuget.config"));
+        var project = Path.Combine(libDir, "MessageWidget.csproj");
+        var document = XDocument.Load(project);
+        document.Descendants("PackageReference").Single(reference =>
+            reference.Attribute("Include")!.Value == "Winshell").SetAttributeValue("Version", _templates.Version);
+        document.Save(project);
+
+        var built = ShellProject.Run("dotnet", ["build", project, "-warnaserror", "--nologo"], libDir);
+
+        Assert.IsTrue(built.ExitCode == 0, built.Output);
+        var library = Assert.ContainsSingle(Directory.GetFiles(Path.Combine(libDir, "bin"), "MessageWidget.dll",
+            SearchOption.AllDirectories));
+        Assert.IsTrue(PackedTemplates.IsPublic(library, "MessageWidget", "Message"));
     }
 
     private string CopyStarter(string folder)
@@ -199,7 +296,7 @@ public sealed class PackedTemplateTests
         var process = Start(project.Program, folders, output);
         try
         {
-            ListAndKill(process, folders, output, inspect);
+            ListAndStop(process, folders, output, inspect);
         }
         finally
         {
@@ -220,7 +317,7 @@ public sealed class PackedTemplateTests
         }
     }
 
-    private void ListAndKill(Process process, (string Name, string Value)[] folders, StringBuilder output,
+    private void ListAndStop(Process process, (string Name, string Value)[] folders, StringBuilder output,
         Action<string, (string Name, string Value)[]>? inspect)
     {
         var pid = process.Id.ToString(CultureInfo.InvariantCulture);
@@ -237,9 +334,9 @@ public sealed class PackedTemplateTests
 
         inspect?.Invoke(pid, folders);
 
-        var killed = WinshellCli.Run(["kill", "--pid", pid], folders);
-        killed.AssertExitCode(0);
-        Wait.Until(() => process.HasExited, "winshell kill to stop the shell");
+        var stopped = WinshellCli.Run(["stop", "--pid", pid], folders);
+        stopped.AssertExitCode(0);
+        Wait.Until(() => process.HasExited, "winshell stop to stop the shell");
         ChildProcess.Exited("The packed shell", process, output).AssertExitCode(0);
     }
 
@@ -302,10 +399,7 @@ internal sealed class PackedTemplates : IDisposable
 
     public void Dispose()
     {
-        var cached = Environment.GetEnvironmentVariable("NUGET_PACKAGES") is { Length: > 0 } packages
-            ? packages
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
-        foreach (var folder in new[] { _work, Path.Combine(cached, "winshell", Version) })
+        foreach (var folder in new[] { _work, Cached("Winshell", Version) })
             try
             {
                 Directory.Delete(folder, true);
@@ -313,6 +407,25 @@ internal sealed class PackedTemplates : IDisposable
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
             }
+    }
+
+    internal static void Forget(string id, string version)
+    {
+        try
+        {
+            Directory.Delete(Cached(id, version), true);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private static string Cached(string id, string version)
+    {
+        var cached = Environment.GetEnvironmentVariable("NUGET_PACKAGES") is { Length: > 0 } packages
+            ? packages
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
+        return Path.Combine(cached, id.ToLowerInvariant(), version);
     }
 
     private string Instantiate(string packages)
@@ -345,15 +458,20 @@ internal sealed class PackedTemplates : IDisposable
         var packageDir = Path.GetDirectoryName(packageFile)!;
         var build = XDocument.Load(Path.Combine(Repo.Root, "Directory.Build.props"));
         var lib = "lib/" + build.Descendants("TargetFramework").Single().Value + "/";
-        var libraries = packageProject.Descendants("ProjectReference")
-            .Select(reference => lib + Path.GetFileNameWithoutExtension(reference.Attribute("Include")!.Value) + ".dll")
-            .Order(StringComparer.Ordinal)
-            .ToList();
+        string[] runtime = ["Winshell.Core", "Winshell.Native", "Winshell.Services", "Winshell.Shell"];
+        const string generator = "Winshell.Generators";
+        Assert.AreSequenceEqual(runtime.Append(generator).Order(StringComparer.Ordinal),
+            packageProject.Descendants("ProjectReference")
+                .Select(reference => Path.GetFileNameWithoutExtension(reference.Attribute("Include")!.Value))
+                .Order(StringComparer.Ordinal));
+        var libraries = runtime.Select(name => lib + name + ".dll").ToList();
 
         using var zip = ZipFile.OpenRead(nupkg);
         var names = zip.Entries.Select(entry => entry.FullName.Replace('\\', '/')).ToList();
         Assert.AreSequenceEqual(libraries,
             names.Where(name => name.StartsWith("lib/", StringComparison.Ordinal)).Order(StringComparer.Ordinal));
+        Assert.AreSequenceEqual(["analyzers/dotnet/cs/" + generator + ".dll"],
+            names.Where(name => name.StartsWith("analyzers/", StringComparison.Ordinal)));
         AssertProps(zip, packageDir);
 
         var extracted = TempFolder.NewPath();
@@ -442,7 +560,7 @@ internal sealed class PackedTemplates : IDisposable
         throw new InvalidOperationException($"No informational version in {path}");
     }
 
-    private static bool IsPublic(string path, string ns, string name)
+    internal static bool IsPublic(string path, string ns, string name)
     {
         using var stream = File.OpenRead(path);
         using var pe = new PEReader(stream);

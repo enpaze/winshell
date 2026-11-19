@@ -7,7 +7,7 @@
 - `log-print` prints the whole log of the running shell.
 - `log-tail` prints only the last `<n>` lines with `-t <n>` or `--tail <n>`.
 - `log-follow` keeps printing new lines with `-f` or `--follow`, until Ctrl+C.
-- `log-stopped` prints the log of a stopped shell that `-i`, `--pid`, `-p` or `-c` names. With no selector and no shell running, it prints the log of the newest stopped one and writes `Showing the log of stopped instance <id>.` on stderr.
+- `log-stopped` prints the log of a stopped shell that `-i`, `--pid`, `-p` or `-s` names. With no selector and no shell running, it prints the log of the newest stopped one and writes `Showing the log of stopped instance <id>.` on stderr.
 - `log-file` prints the file `winshell log <file>` names.
 - `log-refuse` exits with 1 when a selector matches nothing, or with `No log at <path>.` when the file is not there.
 
@@ -15,9 +15,9 @@
 
 - Run `winshell log` in a terminal for the running shell, or for the last stopped one.
 - Run `winshell log -t <n>` for the last lines, or `winshell log -f` to keep printing new ones.
-- Run `winshell log --pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>` to pick one shell.
+- Run `winshell log --pid <pid>`, `-i <id>`, `-s <name>` or `-p <path>` to pick one shell.
 - Run `winshell log <file>` to print a log file, and `winshell log -- <file>` for a file whose name starts with `-`.
-- Run the shell with `winshell run -v` to add `DEBUG` lines. A configuration writes its own lines through `shell.Log`, such as `shell.Log.Warn("shell", "Reload did not start.")`.
+- Run the shell with `winshell run -v` to add `DEBUG` lines. A shell writes its own lines through `shell.Log`, such as `shell.Log.Warn("shell", "Could not restart.")`.
 
 ## Driving it with winshell inspect
 

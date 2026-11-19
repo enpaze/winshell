@@ -30,15 +30,15 @@ public sealed partial class InstanceIsolationTests : ProbeBuild, IDisposable
         var locals = new[] { Path.Combine(_dir, "local-a"), Path.Combine(_dir, "local-b"), Path.Combine(_dir, "local-c") };
         var a = Start(Config("a"), locals[0]);
         var b = Start(Config("b"), locals[1]);
-        var c = Start(Config("c"), locals[2], "other");
+        var c = Start(Config("c"), locals[2], ProbeShell.Other);
         var infos = new[] { Info(a, locals[0]), Info(b, locals[1]), Info(c, locals[2]) };
 
         Assert.AreEqual(3, infos.Select(i => i.GetProperty("id").GetString()).Distinct().Count());
         Assert.AreEqual(3, infos.Select(i => i.GetProperty("pipe").GetString()).Distinct().Count());
         Assert.AreEqual(3, infos.Select(i => i.GetProperty("log").GetString()).Distinct().Count());
-        Assert.AreEqual("probe", infos[0].GetProperty("shellId").GetString());
-        Assert.AreEqual("probe", infos[1].GetProperty("shellId").GetString());
-        Assert.AreEqual("other", infos[2].GetProperty("shellId").GetString());
+        Assert.AreEqual("probe", infos[0].GetProperty("shellName").GetString());
+        Assert.AreEqual("probe", infos[1].GetProperty("shellName").GetString());
+        Assert.AreEqual("other", infos[2].GetProperty("shellName").GetString());
         Assert.AreEqual(0, Show(a, locals[0]));
         Assert.AreEqual(0, Show(b, locals[1]));
         Assert.AreEqual(0, Show(c, locals[2]));
@@ -68,7 +68,7 @@ public sealed partial class InstanceIsolationTests : ProbeBuild, IDisposable
         instances.Write(live with
         {
             Id = reusedId,
-            ShellId = "reused",
+            ShellName = "reused",
             LaunchTime = live.LaunchTime.AddMinutes(1),
             Pipe = "winshell-" + reusedId,
             Log = Path.Combine(reusedDir, "log.txt"),
@@ -80,9 +80,9 @@ public sealed partial class InstanceIsolationTests : ProbeBuild, IDisposable
         Assert.AreEqual(liveId, rows[0].GetProperty("id").GetString());
     }
 
-    private Process Start(string configDir, string local, string? shellId = null)
+    private Process Start(string configDir, string local, string? program = null)
     {
-        var process = ProbeShell.Start(configDir, local, shellId);
+        var process = ProbeShell.Start(configDir, local, program);
         _started.Add((process, local));
         return process;
     }
@@ -123,7 +123,7 @@ public sealed partial class InstanceIsolationTests : ProbeBuild, IDisposable
             {
                 try
                 {
-                    Winshell(local, "kill", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
+                    Winshell(local, "stop", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
                 }
                 catch (UnitTestAssertException)
                 {

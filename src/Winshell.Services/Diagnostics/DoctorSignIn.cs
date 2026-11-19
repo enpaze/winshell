@@ -4,7 +4,7 @@ namespace Winshell.Diagnostics;
 
 internal static class DoctorSignIn
 {
-    internal static DoctorCheck Check(SignInVerdict verdict, string? configRoot = null, string? projectFile = null)
+    internal static DoctorCheck Check(SignInVerdict verdict, string? shellsRoot = null, string? projectFile = null)
     {
         return verdict.Kind switch
         {
@@ -20,12 +20,12 @@ internal static class DoctorSignIn
             SignInKind.AnotherInstall => new DoctorCheck("signIn", "Sign-in", CheckStatus.Warn,
                 $"The sign-in entry starts another winshell.exe: {verdict.Program}.",
                 "Install Winshell again with -AutoStart, so the entry starts the one you use."),
-            SignInKind.AnotherConfiguration => new DoctorCheck("signIn", "Sign-in", CheckStatus.Warn,
-                "The sign-in entry does not start this configuration.",
-                !verdict.NamesConfiguration && configRoot is not null && projectFile is not null &&
-                NameIn(configRoot, projectFile) is { } name
+            SignInKind.AnotherShell => new DoctorCheck("signIn", "Sign-in", CheckStatus.Warn,
+                "The sign-in entry does not start this shell.",
+                !verdict.NamesShell && shellsRoot is not null && projectFile is not null &&
+                NameIn(shellsRoot, projectFile) is { } name
                     ? $"Run winshell use {name}, so the entry starts it."
-                    : "Turn on Run at sign-in for this configuration, so the entry starts it."),
+                    : "Turn on Run at sign-in for this shell, so the entry starts it."),
             SignInKind.TurnedOffByPolicy => new DoctorCheck("signIn", "Sign-in", CheckStatus.Warn,
                 "Winshell is set to start when you sign in, but Windows policy turned it off.",
                 "A Windows policy controls this. Startup apps in Settings cannot turn it on."),
@@ -36,10 +36,10 @@ internal static class DoctorSignIn
         };
     }
 
-    private static string? NameIn(string configRoot, string projectFile)
+    private static string? NameIn(string shellsRoot, string projectFile)
     {
         var folder = Path.GetDirectoryName(Path.GetFullPath(projectFile));
-        return string.Equals(Path.GetDirectoryName(folder), Path.TrimEndingDirectorySeparator(Path.GetFullPath(configRoot)),
+        return string.Equals(Path.GetDirectoryName(folder), Path.TrimEndingDirectorySeparator(Path.GetFullPath(shellsRoot)),
             StringComparison.OrdinalIgnoreCase)
             ? Path.GetFileName(folder)
             : null;

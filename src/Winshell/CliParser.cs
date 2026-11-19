@@ -26,8 +26,8 @@ internal static class CliParser
             ? entry.Usage
             : Overview();
         return text.Replace("{version}", Shell.Version, StringComparison.Ordinal)
-            .Replace("{config-root}", ShellLocations.Current.ConfigRoot, StringComparison.Ordinal)
-            .Replace("{config-override}", ShellLocations.ConfigVariable, StringComparison.Ordinal)
+            .Replace("{shells-root}", ShellLocations.Current.ShellsRoot, StringComparison.Ordinal)
+            .Replace("{shells-override}", ShellLocations.ShellsVariable, StringComparison.Ordinal)
             .Replace("\r\n", "\n", StringComparison.Ordinal)
             .TrimEnd();
     }
@@ -37,22 +37,22 @@ internal static class CliParser
         "       winshell <command> --help           help for that command, which does not run";
 
     private const string FlagGlossary = """
-                                        Config selection:
+                                        Shell selection:
                                           -p, --path <path>      a project file, or the folder it is in
-                                          -c, --config <name>    a named config in {config-root}
-                                                                 ({config-override} overrides that folder)
-                                        Instance selection (kill, reload, log, ipc, inspect):
+                                          -s, --shell <name>     a named shell in {shells-root}
+                                                                 ({shells-override} overrides that folder)
+                                        Instance selection (stop, reload, log, ipc, inspect):
                                           -i, --id <id>          an instance id, or the start of one
                                               --pid <pid>        an instance's process id
                                         Other:
                                           -d, --daemonize        run in the background
-                                          -n, --no-duplicate     exit quietly if this config is already running
+                                          -n, --no-duplicate     exit quietly if this shell is already running
                                               --no-build         run the last build, and do not build again
                                           -v, --verbose          log debug messages
                                           -j, --json             print list, ipc show or doctor as JSON
                                               --no-color         print doctor without color
                                           -h, --help, /?         print help and exit
-                                          -V, --version          print the version
+                                              --version          print the version
                                           --                     end options; later words are the program's arguments
 
                                         Exit codes: 0 done, 1 the command failed, 2 the command line was wrong.
@@ -69,7 +69,7 @@ internal static class CliParser
     [
         Share(RunCommand.Entry),
         Share(ListCommand.Entry),
-        Share(KillCommand.Entry),
+        Share(StopCommand.Entry),
         Share(ReloadCommand.Entry),
         Share(DevCommand.Entry),
         Share(LogCommand.Entry),

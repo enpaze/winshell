@@ -8,29 +8,23 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
-public sealed class Bar : IDisposable
+public sealed partial class Bar : IShellPart
 {
-    private static readonly Dictionary<string, Edges> EdgeNames = new()
+    private static readonly Dictionary<string, Edge> EdgeNames = new()
     {
-        ["top"] = Edges.Top,
-        ["bottom"] = Edges.Bottom,
-        ["left"] = Edges.Left,
-        ["right"] = Edges.Right
+        ["top"] = Edge.Top,
+        ["bottom"] = Edge.Bottom,
+        ["left"] = Edge.Left,
+        ["right"] = Edge.Right
     };
 
     private readonly Shell _shell = Shell.Current;
     private readonly List<Shown> _open = [];
     private BarPreferences? _preferences;
     private ScreenWindows? _windows;
+    private bool _started;
     private bool _remakePosted;
     private bool _disposed;
-    private static ShellStyle? _metricDefaults;
-
-    public Bar()
-    {
-        _shell.StyleChanged += FollowShellStyle;
-        PostRemake();
-    }
 
     public string Name
     {
@@ -40,13 +34,7 @@ public sealed class Bar : IDisposable
             : value;
     } = "bar";
 
-    public Edges Edge
-    {
-        get;
-        init => field = EdgeNames.ContainsValue(value)
-            ? value
-            : throw new ArgumentOutOfRangeException(nameof(value), value, "A bar runs along one edge.");
-    } = Edges.Top;
+    public Edge Edge { get; init; } = Edge.Top;
 
     public ImmutableArray<Placement> Start { get; init; } = [];
 
@@ -62,11 +50,21 @@ public sealed class Bar : IDisposable
 
     public ShellStyle? Style { get; init; }
 
+    void IShellPart.Start()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_started)
+            return;
+        _started = true;
+        _shell.StyleChanged += FollowShellStyle;
+        PostRemake();
+    }
+
     private void FollowShellStyle()
     {
         if (Style is not null)
             return;
-        var thickness = SlotSize(Thickness, null, _shell.Style);
+        var thickness = Thickness ?? _shell.Style.SlotSize;
         foreach (var shown in _open)
             shown.Resize(thickness, Reserve);
     }
@@ -76,7 +74,7 @@ public sealed class Bar : IDisposable
         if (_remakePosted || _disposed)
             return;
         _remakePosted = true;
-        _shell.Loop.Post(() =>
+        _shell.Post(() =>
         {
             _remakePosted = false;
             if (_disposed)
@@ -94,7 +92,7 @@ public sealed class Bar : IDisposable
             }
 
             _windows?.Dispose();
-            var windows = new ScreenWindows(Name, Show);
+            var windows = _shell.Add(new ScreenWindows(Name, Show));
             if (_disposed)
                 windows.Dispose();
             else
@@ -106,11 +104,11 @@ public sealed class Bar : IDisposable
     {
         var section = _preferences!;
         var edge = EdgeNames[(string)Pick("edge", section.Edge)];
-        var vertical = edge is Edges.Left or Edges.Right;
+        var vertical = edge is Edge.Left or Edge.Right;
         ReactorHostControl? host = null;
         try
         {
-            var thickness = SlotSize(Thickness, Style, _shell.Style);
+            var thickness = Thickness ?? (Style ?? _shell.Style).SlotSize;
             var areas = Grid(
                 [GridSize.Star()],
                 [GridSize.Star()],
@@ -130,7 +128,7 @@ public sealed class Bar : IDisposable
                     shell.StyleChanged += Follow;
                     return () => shell.StyleChanged -= Follow;
                 }, follows);
-                var padding = EndPadding(Padding, Style, Shell.Current.Style);
+                var padding = Padding ?? (Style ?? Shell.Current.Style).Padding ?? 0;
                 var gap = vertical ? new Thickness(0, padding, 0, padding) : new Thickness(padding, 0, padding, 0);
                 return areas.Padding(gap);
             }, Style, Padding, vertical);
@@ -147,13 +145,13 @@ public sealed class Bar : IDisposable
             var window = new PanelWindow
             {
                 Screen = screen,
-                Anchors = edge | (vertical ? Edges.Top | Edges.Bottom : Edges.Left | Edges.Right),
-                ReservedSize = Reserve ? thickness : 0,
+                Edge = edge,
+                Align = PanelAlign.Stretch,
                 Content = host
             };
             var shown = new Shown(host, window, vertical, _open);
             shown.Resize(thickness, Reserve);
-            window.Visible = true;
+            _shell.Add(window);
             _open.Add(shown);
             return shown;
         }
@@ -190,7 +188,7 @@ public sealed class Bar : IDisposable
             return value is string edge && EdgeNames.ContainsKey(edge)
                 ? ""
                 : "must be \"top\", \"bottom\", \"left\" or \"right\"";
-        return Placement.Check(value).Length == 0 ? "" : "must be a list of tables that each name a widget";
+        return Placement.Check(value);
     }
 
     public void Dispose()
@@ -198,69 +196,36 @@ public sealed class Bar : IDisposable
         if (_disposed)
             return;
         _disposed = true;
+        _shell.Remove(this);
         _shell.StyleChanged -= FollowShellStyle;
         _windows?.Dispose();
         _preferences?.Dispose();
     }
 
-    private sealed class BarPreferences(Bar bar) : Preferences(bar.Name, Check)
+    private sealed partial class BarPreferences(Bar bar) : Preferences(bar.Name, Check)
     {
+        [Preference]
         [TomlComment("top, bottom, left or right.")]
-        public string Edge
-        {
-            get;
-            set => Set(ref field, value);
-        } = EdgeNames.Single(pair => pair.Value == bar.Edge).Key;
+        public partial string Edge { get; set; } = EdgeNames.Single(pair => pair.Value == bar.Edge).Key;
 
-        [TomlComment("The widgets at the start, in order: each table names one and holds its settings.")]
-        public IReadOnlyList<IReadOnlyDictionary<string, object?>> Start
-        {
-            get;
-            set => Set(ref field, value);
-        } = Placement.Format(bar.Start);
+        [Preference]
+        [TomlComment("The widgets at the start, in order: a widget's name, or a table that names one and holds its settings.")]
+        public partial object Start { get; set; } = Placement.Format(bar.Start);
 
+        [Preference]
         [TomlComment("The widgets in the middle.")]
-        public IReadOnlyList<IReadOnlyDictionary<string, object?>> Center
-        {
-            get;
-            set => Set(ref field, value);
-        } = Placement.Format(bar.Center);
+        public partial object Center { get; set; } = Placement.Format(bar.Center);
 
+        [Preference]
         [TomlComment("The widgets at the end.")]
-        public IReadOnlyList<IReadOnlyDictionary<string, object?>> End
-        {
-            get;
-            set => Set(ref field, value);
-        } = Placement.Format(bar.End);
+        public partial object End { get; set; } = Placement.Format(bar.End);
     }
-
-    private static double SlotSize(double? thickness, ShellStyle? own, ShellStyle? shell)
-    {
-        if (thickness is { } set)
-            return set;
-        return (own ?? shell ?? MetricDefaults()).SlotSize;
-    }
-
-    private static double EndPadding(double? padding, ShellStyle? own, ShellStyle? shell)
-    {
-        if (padding is { } set)
-            return set;
-        var look = own ?? shell;
-        return look is null ? MetricDefaults().Padding ?? 0 : look.Padding ?? 0;
-    }
-
-    private static ShellStyle MetricDefaults() => _metricDefaults ??= new()
-    {
-        Background = default,
-        Foreground = default,
-        Alert = default
-    };
 
     private sealed class Shown(ReactorHostControl host, PanelWindow window, bool vertical, List<Shown> open) : IDisposable
     {
         public void Resize(double thickness, bool reserve)
         {
-            window.ReservedSize = reserve ? thickness : 0;
+            window.Reserve = reserve;
             if (vertical)
                 window.Width = thickness;
             else

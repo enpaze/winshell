@@ -1,6 +1,6 @@
 using Windows.Win32.UI.WindowsAndMessaging;
 using Winshell.Native;
-using Winshell.Windows;
+using Winshell.AppWindows;
 
 namespace Winshell.Services.Tests;
 

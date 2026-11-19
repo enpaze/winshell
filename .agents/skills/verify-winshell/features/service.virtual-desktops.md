@@ -1,6 +1,6 @@
 # Virtual desktops
 
-`shell.VirtualDesktops` lists the Windows virtual desktops and the current one, and creates, removes and switches desktops. A configuration uses it for a desktop switcher. The feature shell's row `service.virtual-desktops` shows `supported: <True|False>; desktops: N`.
+`shell.VirtualDesktops` lists the Windows virtual desktops and the current one, and creates, removes and switches desktops. A shell uses it for a desktop switcher. The feature shell's row `service.virtual-desktops` shows `supported: <True|False>; desktops: N`.
 
 ## Sub-features
 
@@ -12,7 +12,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.VirtualDesktops`, or `Props.Shell.VirtualDesktops` in a widget.
+- A shell reads `shell.VirtualDesktops`, or `Shell.VirtualDesktops` in a widget.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

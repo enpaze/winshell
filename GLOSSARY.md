@@ -57,8 +57,12 @@ A public part of a shell set on primitives, such as the windows on each screen, 
 _Avoid_: layer, helper
 
 **Composition**:
-A public arrangement of building blocks for one common desktop, such as a bar. It uses only the public API a shell author has.
+A public arrangement of building blocks for one common desktop, such as a bar. It may use Shell's internals, but only the public API of Core, Native and Services.
 _Avoid_: layer, layout, theme
+
+**Part**:
+Something the shell owns once the author adds it with `shell.Add`, such as a bar, a launcher, the windows on each screen, or a window. Nothing shows before it is added, and the shell disposes it when it quits.
+_Avoid_: module, plugin, component (that is a piece of UI)
 
 ## What it shows
 
@@ -67,7 +71,7 @@ A native window the shell places on the desktop, such as a panel or a popup wind
 _Avoid_: form, view
 
 **Panel**:
-A window anchored to an edge of a screen. It can reserve that edge.
+A window on one edge of a screen. It can reserve its thickness along that edge.
 _Avoid_: taskbar, dock, layer surface
 
 **Bar**:
@@ -75,7 +79,7 @@ A panel along one edge of every screen, with start, center and end widget areas.
 _Avoid_: taskbar (that is Explorer's), panel bar
 
 **Popup window**:
-A frameless window placed next to another window.
+A frameless window over the other windows, centered on a screen or placed at a point, such as next to another window.
 _Avoid_: popup, flyout
 
 **Flyout**:
@@ -151,7 +155,7 @@ Light or dark, whether a contrast theme is on, the accent color and the system c
 _Avoid_: skin, palette
 
 **Style**:
-The look a shell gives its bars, widget areas, widgets and popups: colors, font and slot size. It is the shell's, whatever the theme is.
+The look a shell gives its bars, widget areas, widgets and popups: colors, font and slot size. A color it sets is the shell's, whatever the theme is; a color it leaves out follows the theme.
 _Avoid_: theme (that is Windows'), skin
 
 ## What it reads from Windows

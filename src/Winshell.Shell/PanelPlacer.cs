@@ -5,7 +5,8 @@ namespace Winshell;
 
 internal sealed record PanelPlace(
     ScreenInfo? Screen,
-    Edges Anchors,
+    Edge Edge,
+    PanelAlign Align,
     double MarginLeft,
     double MarginTop,
     double MarginRight,
@@ -13,7 +14,7 @@ internal sealed record PanelPlace(
     double Width,
     double Height,
     bool CoversScreen,
-    double ReservedSize,
+    bool Reserve,
     bool AboveWindows);
 
 internal sealed class PanelPlacer(IPanelDesktop desktop) : IWindowPlacer
@@ -73,25 +74,23 @@ internal sealed class PanelPlacer(IPanelDesktop desktop) : IWindowPlacer
         if (monitor is not { } found)
             return;
         var scale = found.Scale;
-        var edge = EdgeFor(p.Anchors);
-        var size = (int)Math.Round(p.ReservedSize * scale);
-        RECT area;
+        var thickness = (int)Math.Round((Horizontal(p.Edge) ? p.Height : p.Width) * scale);
+        RECT rect;
         if (p.CoversScreen)
         {
             Remove();
-            area = found.Bounds;
+            rect = Anchor(found.Bounds, p, scale, true, true, true, true);
         }
-        else if (edge is { } side && size > 0 && _visible)
+        else if (p.Reserve && thickness > 0 && _visible)
         {
-            area = Reserve(side, size, found.Bounds);
+            rect = Anchor(Reserve(p.Edge, thickness, found.Bounds), p, scale);
         }
         else
         {
             Remove();
-            area = found.Area;
+            rect = Anchor(found.Area, p, scale);
         }
 
-        var rect = Anchor(area, p, scale);
         desktop.Move(rect, p.AboveWindows && !desktop.FullscreenOn(found.Id), scale);
     }
 
@@ -143,40 +142,43 @@ internal sealed class PanelPlacer(IPanelDesktop desktop) : IWindowPlacer
         return 0;
     }
 
-    private static Edges? EdgeFor(Edges anchors)
+    private static bool Horizontal(Edge edge)
     {
-        var horizontal = anchors.HasFlag(Edges.Left) ^ anchors.HasFlag(Edges.Right);
-        var vertical = anchors.HasFlag(Edges.Top) ^ anchors.HasFlag(Edges.Bottom);
-        if (vertical && !horizontal)
-            return anchors.HasFlag(Edges.Top) ? Edges.Top : Edges.Bottom;
-        if (horizontal && !vertical)
-            return anchors.HasFlag(Edges.Left) ? Edges.Left : Edges.Right;
-        return null;
+        return edge is Edge.Top or Edge.Bottom;
     }
 
-    private static RECT Strip(Edges edge, int thickness, RECT offered)
+    private static RECT Strip(Edge edge, int thickness, RECT offered)
     {
         return edge switch
         {
-            Edges.Bottom => offered with { top = offered.bottom - thickness },
-            Edges.Left => offered with { right = offered.left + thickness },
-            Edges.Right => offered with { left = offered.right - thickness },
+            Edge.Bottom => offered with { top = offered.bottom - thickness },
+            Edge.Left => offered with { right = offered.left + thickness },
+            Edge.Right => offered with { left = offered.right - thickness },
             _ => offered with { bottom = offered.top + thickness }
         };
     }
 
-    private static RECT Area(Edges edge, RECT granted, RECT monitor)
+    private static RECT Area(Edge edge, RECT granted, RECT monitor)
     {
         return edge switch
         {
-            Edges.Bottom => monitor with { bottom = granted.bottom, left = granted.left, right = granted.right },
-            Edges.Left => monitor with { left = granted.left, top = granted.top, bottom = granted.bottom },
-            Edges.Right => monitor with { right = granted.right, top = granted.top, bottom = granted.bottom },
+            Edge.Bottom => monitor with { bottom = granted.bottom, left = granted.left, right = granted.right },
+            Edge.Left => monitor with { left = granted.left, top = granted.top, bottom = granted.bottom },
+            Edge.Right => monitor with { right = granted.right, top = granted.top, bottom = granted.bottom },
             _ => monitor with { top = granted.top, left = granted.left, right = granted.right }
         };
     }
 
     private static RECT Anchor(RECT area, PanelPlace p, double scale)
+    {
+        var start = p.Align is PanelAlign.Stretch or PanelAlign.Start;
+        var end = p.Align is PanelAlign.Stretch or PanelAlign.End;
+        return Horizontal(p.Edge)
+            ? Anchor(area, p, scale, start, p.Edge == Edge.Top, end, p.Edge == Edge.Bottom)
+            : Anchor(area, p, scale, p.Edge == Edge.Left, start, p.Edge == Edge.Right, end);
+    }
+
+    private static RECT Anchor(RECT area, PanelPlace p, double scale, bool left, bool top, bool right, bool bottom)
     {
         var ml = (int)Math.Round(p.MarginLeft * scale);
         var mr = (int)Math.Round(p.MarginRight * scale);
@@ -184,10 +186,8 @@ internal sealed class PanelPlacer(IPanelDesktop desktop) : IWindowPlacer
         var mb = (int)Math.Round(p.MarginBottom * scale);
         var w = (int)Math.Round(p.Width * scale);
         var h = (int)Math.Round(p.Height * scale);
-        var (x, width) = Span(area.left, area.Width, p.Anchors.HasFlag(Edges.Left), p.Anchors.HasFlag(Edges.Right), ml,
-            mr, w);
-        var (y, height) = Span(area.top, area.Height, p.Anchors.HasFlag(Edges.Top), p.Anchors.HasFlag(Edges.Bottom), mt,
-            mb, h);
+        var (x, width) = Span(area.left, area.Width, left, right, ml, mr, w);
+        var (y, height) = Span(area.top, area.Height, top, bottom, mt, mb, h);
         return new RECT(x, y, x + Math.Max(1, width), y + Math.Max(1, height));
     }
 
@@ -203,7 +203,7 @@ internal sealed class PanelPlacer(IPanelDesktop desktop) : IWindowPlacer
         return (start + (length - size) / 2, size);
     }
 
-    private RECT Reserve(Edges edge, int thickness, RECT monitor)
+    private RECT Reserve(Edge edge, int thickness, RECT monitor)
     {
         var side = Side(edge);
         if (!_registered)
@@ -222,13 +222,13 @@ internal sealed class PanelPlacer(IPanelDesktop desktop) : IWindowPlacer
         return Area(edge, _reservation.Granted, monitor);
     }
 
-    private static AppBarEdge Side(Edges edge)
+    private static AppBarEdge Side(Edge edge)
     {
         return edge switch
         {
-            Edges.Left => AppBarEdge.Left,
-            Edges.Right => AppBarEdge.Right,
-            Edges.Bottom => AppBarEdge.Bottom,
+            Edge.Left => AppBarEdge.Left,
+            Edge.Right => AppBarEdge.Right,
+            Edge.Bottom => AppBarEdge.Bottom,
             _ => AppBarEdge.Top
         };
     }

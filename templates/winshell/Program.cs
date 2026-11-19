@@ -1,12 +1,4 @@
-using Winshell;
-
-namespace MyShell;
-
-internal static class Program
+Shell.Run(shell =>
 {
-    [STAThread]
-    private static void Main()
-    {
-        Shell.Run<AppShell>();
-    }
-}
+    shell.Add(new Bar { Edge = Edge.Top, Center = ["clock"], End = ["battery"] });
+});

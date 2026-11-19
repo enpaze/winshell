@@ -1,6 +1,6 @@
 # Winshell.Network
 
-Adapters, Wi-Fi networks, connection profiles and connectivity. Reach them from `Shell.Current.Networking`.
+Adapters, Wi-Fi networks, connection profiles and connectivity. Reach them from `Shell.Current.Network`.
 
 <!-- generated below: dotnet run scripts/generate-reference.cs -->
 
@@ -112,7 +112,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `SignalAvailable` | bool, read-only |
 | `SignalStrength` | double, read-only |
 
-## NetworkingService
+## NetworkService
 
 Has the members of [ObservableObject](winshell.md#observableobject).
 
@@ -130,7 +130,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `WifiHardwareEnabled` | bool, read-only |
 | `WifiState` | [WifiRadioState](#wifiradiostate), read-only |
 | `OperationFailed` | Action of string |
-| `Dispose()` | void |
 | `Refresh()` | void |
 | `RequestAccess()` | void |
 

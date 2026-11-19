@@ -31,6 +31,14 @@ try {
     $reference = $project.CreateElement('ProjectReference')
     $reference.SetAttribute('Include', (Join-Path $root 'src/Winshell.Shell/Winshell.Shell.csproj'))
     $package.ParentNode.ReplaceChild($reference, $package) | Out-Null
+    $generator = $project.CreateElement('ProjectReference')
+    $generator.SetAttribute('Include', (Join-Path $root 'src/Winshell.Generators/Winshell.Generators.csproj'))
+    $generator.SetAttribute('OutputItemType', 'Analyzer')
+    $generator.SetAttribute('ReferenceOutputAssembly', 'false')
+    $reference.ParentNode.AppendChild($generator) | Out-Null
+    $import = $project.CreateElement('Import')
+    $import.SetAttribute('Project', (Join-Path $root 'src/Winshell.Package/buildTransitive/Winshell.props'))
+    $project.DocumentElement.PrependChild($import) | Out-Null
     $project.Save($projectPath)
 
     dotnet build $projectPath -warnaserror --nologo

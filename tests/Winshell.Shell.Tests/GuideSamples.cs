@@ -1,11 +1,5 @@
-using Microsoft.UI.Reactor;
-using Microsoft.UI.Reactor.Core;
-using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using static Microsoft.UI.Reactor.Factories;
-using static Winshell.Elements;
 using Color = global::Windows.UI.Color;
 
 namespace Winshell.ShellTests;
@@ -16,34 +10,32 @@ public static class GuideSamples
 
     public static void RunTheShell()
     {
-        Shell.Run<AppShell>(new ShellOptions { ShellId = "MyShell" });
+        Shell.Run(shell => shell.Add(new Bar { Center = ["clock"] }));
     }
 
-    public static void APanel()
+    public static void APanel(Shell shell)
     {
-        _ = new PanelWindow
+        shell.Add(new PanelWindow
         {
-            Anchors = Edges.Left | Edges.Right | Edges.Bottom,
+            Edge = Edge.Bottom,
+            Align = PanelAlign.Stretch,
             Height = 48,
-            ReservedSize = 48,
-            Content = new TextBlock { Text = "Winshell" },
-            Visible = true
-        };
+            Reserve = true,
+            Content = new TextBlock { Text = "Winshell" }
+        });
     }
 
-    public static ScreenWindows ADockOnEachScreen()
+    public static ScreenWindows ADockOnEachScreen(Shell shell)
     {
-        var dock = new ScreenWindows("dock", (screen, row) => new PanelWindow
+        var dock = shell.Add(new ScreenWindows("dock", (screen, row) => new PanelWindow
         {
             Screen = screen,
-            Anchors = row?.GetValueOrDefault("edge") is "top"
-                ? Edges.Left | Edges.Right | Edges.Top
-                : Edges.Left | Edges.Right | Edges.Bottom,
+            Edge = row?.GetValueOrDefault("edge") is "top" ? Edge.Top : Edge.Bottom,
+            Align = PanelAlign.Stretch,
             Height = 48,
-            ReservedSize = 48,
-            Content = new TextBlock { Text = screen.Name },
-            Visible = true
-        });
+            Reserve = true,
+            Content = new TextBlock { Text = screen.Name }
+        }));
         return dock;
     }
 
@@ -54,46 +46,56 @@ public static class GuideSamples
         _ = _registration;
     }
 
-    public static PanelWindow AWidgetArea()
+    public static PanelWindow AWidgetArea(Shell shell)
     {
-        var host = new ReactorHostControl { ComponentFactory = () => new EndArea() };
-        var panel = new PanelWindow { Height = 48, Content = host, Visible = true };
-        panel.Closed += host.Dispose;
+        var panel = shell.Add(new PanelWindow<EndArea> { Height = 48 });
         return panel;
     }
 
-    public static (Bar Top, Bar Side) Bars()
+    public static (PopupWindow Calendar, Input.Hotkey Hotkey) AComponentPopup(Shell shell)
     {
-        var bar = new Bar
+        var calendar = shell.Add(new PopupWindow<Calendar> { Position = PopupPosition.Top, Width = 320, Height = 240 });
+        var hotkey = shell.Hotkey("Win+Alt+C", calendar.Toggle);
+        return (calendar, hotkey);
+    }
+
+    public static (PopupWindow Today, PopupWindow Later) TwoNotes(Shell shell)
+    {
+        var today = shell.Add(new PopupWindow<Note, string>("Stand-up at 10") { Position = PopupPosition.Top });
+        var later = shell.Add(new PopupWindow<Note, string>("Pay the rent"));
+        return (today, later);
+    }
+
+    public static (Bar Top, Bar Side) Bars(Shell shell)
+    {
+        var bar = shell.Add(new Bar
         {
-            Edge = Edges.Top,
+            Edge = Edge.Top,
             Start = ["workspaces"],
             Center = ["clock"],
             End = ["tray", new("message", new Dictionary<string, object> { ["text"] = "Hello" })]
-        };
-        var side = new Bar { Name = "side", Edge = Edges.Left, Reserve = false, Start = ["clock"] };
+        });
+        var side = shell.Add(new Bar { Name = "side", Edge = Edge.Left, Reserve = false, Start = ["clock"] });
         return (bar, side);
     }
 
     public static Launcher ALauncher(Shell shell)
     {
-        var launcher = new Launcher
+        var launcher = shell.Add(new Launcher
         {
             Hotkey = "Alt+Space",
             Commands =
             [
                 new("Lock", () => shell.Session.Lock()),
-                new("Reload shell", () => shell.Reload())
+                new("Restart shell", () => shell.Restart())
             ]
-        };
+        });
         return launcher;
     }
 
-    public static PanelWindow ASurface()
+    public static PanelWindow ASurface(Shell shell)
     {
-        var host = new ReactorHostControl { ComponentFactory = () => new Dock() };
-        var dock = new PanelWindow { Anchors = Edges.Bottom, Height = 56, Content = host, Visible = true };
-        dock.Closed += host.Dispose;
+        var dock = shell.Add(new PanelWindow<Dock> { Edge = Edge.Bottom, Width = 400, Height = 56 });
         return dock;
     }
 
@@ -102,9 +104,7 @@ public static class GuideSamples
         shell.Style = new ShellStyle
         {
             Background = Color.FromArgb(255, 0x1a, 0x1b, 0x26),
-            Foreground = Color.FromArgb(255, 0xa9, 0xb1, 0xd6),
-            Alert = Color.FromArgb(255, 0xf7, 0x76, 0x8e),
-            FontFamily = new FontFamily("Segoe UI")
+            FontFamily = "Segoe UI"
         };
     }
 
@@ -115,24 +115,16 @@ public static class GuideSamples
             Background = Color.FromArgb(255, 0x1a, 0x1b, 0x26),
             Foreground = Color.FromArgb(255, 0xa9, 0xb1, 0xd6),
             Alert = Color.FromArgb(255, 0xf7, 0x76, 0x8e),
-            FontFamily = new FontFamily("ms-appx:///Fonts/JetBrainsMonoNerdFont-Regular.ttf#JetBrainsMono NF"),
+            FontFamily = "ms-appx:///Fonts/JetBrainsMonoNerdFont-Regular.ttf#JetBrainsMono NF",
             FontSize = 12,
             SlotSize = 26,
             Padding = 8
         };
     }
 
-    public static void AnAlert(WidgetContext context, TextBlock label)
-    {
-        if (context.Style is { } style)
-            label.Foreground = new SolidColorBrush(style.Alert);
-    }
-
     public static void AHotkey(Shell shell)
     {
-        var hotkey = shell.NewHotkey();
-        hotkey.Sequence = "Win+E";
-        hotkey.Pressed += (_, _) => { };
+        var hotkey = shell.Hotkey("Win+E", () => { });
     }
 
     public static Button ASettingsButton(Shell shell)
@@ -148,22 +140,33 @@ public static class GuideSamples
         return dock;
     }
 
-    public static void RegisterAComponentWidget()
+    public static void LightOrDark(Shell shell)
     {
-        Widgets.Register<ClockWidget>("clock");
+        shell.Appearance = Appearance.Dark;
+        shell.AccentColor = Color.FromArgb(255, 0xd1, 0x34, 0x38);
     }
 
-    public static void Reload(Shell shell)
+    public static void Restart(Shell shell)
     {
-        if (!shell.Reload())
-            shell.Log.Warn("shell", "Reload did not start.");
+        if (!shell.Restart())
+            shell.Log.Warn("shell", "Could not restart.");
     }
 }
 
 public sealed class Dock : Component
 {
     public override Element Render() =>
-        Surface(WidgetArea("dock", ["start", "tasks"]), new Thickness(4));
+        WidgetArea("dock", ["start", "tasks"]).Padding(4);
+}
+
+public sealed class Calendar : Component
+{
+    public override Element Render() => TextBlock("Today");
+}
+
+public sealed class Note : Component<string>
+{
+    public override Element Render() => TextBlock(Props);
 }
 
 public sealed class EndArea : Component
@@ -175,117 +178,55 @@ public sealed class EndArea : Component
     ]);
 }
 
-public sealed class ClockWidget : Microsoft.UI.Reactor.Core.Component<WidgetContext>
+[WidgetName("hello")]
+public sealed class Greeting : Widget
 {
-    public override Microsoft.UI.Reactor.Core.Element Render() =>
-        Microsoft.UI.Reactor.Factories.TextBlock((string)Props.Settings["text"]);
+    public override Element Render() =>
+        TextBlock(Setting("text", "Hello"));
 }
 
-public sealed class BatteryLabel : Microsoft.UI.Reactor.Core.Component<WidgetContext>
+public sealed class AlertLabel : Widget
 {
-    public override Microsoft.UI.Reactor.Core.Element Render()
+    public override Element Render() => TextBlock("!").Alert();
+}
+
+public sealed class BatteryLabel : Widget
+{
+    public override Element Render()
     {
-        var battery = UseObservable(Props.Shell.Power.DisplayDevice);
+        var battery = UseObservable(Shell.Power.DisplayDevice);
         var charge = battery.IsPresent ? $"{battery.Percentage:P0}" : "";
-        return Microsoft.UI.Reactor.Factories.TextBlock(charge);
+        return TextBlock(charge);
     }
 }
 
-public sealed class ClockLabel : Microsoft.UI.Reactor.Core.Component
+public sealed class ClockLabel : Component
 {
     private readonly ShellPreferences _preferences = new();
 
-    public override Microsoft.UI.Reactor.Core.Element Render()
+    public override Element Render()
     {
         var preferences = UseObservable(_preferences);
         UseEffect(() => () => _preferences.Dispose(), false);
-        return Microsoft.UI.Reactor.Factories.TextBlock(preferences.Clock24 ? "13:00" : "1:00 PM");
+        return TextBlock(preferences.Clock24 ? "13:00" : "1:00 PM");
     }
 }
 
-public sealed class AppShell : ShellConfiguration
+public sealed partial class ShellPreferences : Preferences
 {
-    public override void Start(Shell shell)
-    {
-        _ = shell;
-        GuideSamples.APanel();
-    }
-}
-
-#pragma warning disable CsWinRT1028
-public sealed class ShellPreferences : Preferences
-{
+    [Preference]
     [TomlComment("Show 13:00 rather than 1:00 PM.")]
-    public bool Clock24
-    {
-        get => Read(field);
-        set => Set(ref field, value);
-    }
+    public partial bool Clock24 { get; set; }
 }
 
-public sealed class DockPreferences(string name) : Preferences(name, Check)
+public sealed partial class DockPreferences(string name) : Preferences(name, Check)
 {
+    [Preference]
     [TomlComment("bottom, left or right.")]
-    public string Edge
-    {
-        get => Read(field);
-        set => Set(ref field, value);
-    } = "bottom";
+    public partial string Edge { get; set; } = "bottom";
 
     private static string Check(string key, object value)
     {
         return key == "edge" && value is not ("bottom" or "left" or "right") ? "must be bottom, left or right" : "";
-    }
-}
-#pragma warning restore CsWinRT1028
-
-public sealed class Message : Component<WidgetContext>
-{
-    public override Element Render()
-    {
-        var popup = UseRef<PopupWindow?>(null);
-        UseEffect(() => () =>
-        {
-            popup.Current?.Dispose();
-            popup.Current = null;
-        }, false);
-
-        var text = TextOf(Props);
-        if (Props.Orientation == Orientation.Vertical)
-            throw new UnsupportedWidgetException("The message widget runs in a horizontal area.");
-
-        var line = text + " ·";
-        return TextBlock(line)
-            .Padding(8, 0)
-            .OnPointerPressed((_, _) => ShowPopup(popup, line))
-            .OnMount(ShowScreen);
-    }
-
-    private static string TextOf(WidgetContext context)
-    {
-        if (context.Settings.TryGetValue("text", out var value) && value is string text)
-            return text;
-        throw new UnsupportedWidgetException("text must be a string.");
-    }
-
-    private void ShowPopup(Ref<PopupWindow?> popup, string line)
-    {
-        popup.Current?.Dispose();
-        var body = new TextBlock { Text = line, Margin = new Thickness(12) };
-        popup.Current = new PopupWindow { Content = Props.StylePopup(body), Visible = true };
-    }
-
-    private static void ShowScreen(FrameworkElement label)
-    {
-        void SetTooltip()
-        {
-            var screen = ShellWindow.Of(label)?.Screen;
-            ToolTipService.SetToolTip(label, screen is null ? "primary screen" : screen.Name);
-        }
-
-        if (label.IsLoaded)
-            SetTooltip();
-        else
-            label.Loaded += (_, _) => SetTooltip();
     }
 }

@@ -103,8 +103,8 @@ public sealed class StartupRegistryTests : IDisposable
         var relative = Path.Combine("configs", "work");
 
         Assert.AreEqual(
-            $"{conhost} --headless \"C:\\Program Files\\Winshell\\winshell.exe\" -c work --no-build --no-duplicate",
-            CommandLine.ForSignIn(@"C:\Program Files\Winshell\winshell.exe", ["-d", "-c", "work"]));
+            $"{conhost} --headless \"C:\\Program Files\\Winshell\\winshell.exe\" -s work --no-build --no-duplicate",
+            CommandLine.ForSignIn(@"C:\Program Files\Winshell\winshell.exe", ["-d", "-s", "work"]));
         Assert.AreEqual(
             $"{conhost} --headless C:\\winshell.exe --no-build -n -p {CommandLine.Quote(Path.GetFullPath(relative))}",
             CommandLine.ForSignIn(@"C:\winshell.exe", ["-n", "-p", relative]));
@@ -146,14 +146,14 @@ public sealed class StartupRegistryTests : IDisposable
         const string windowed = @"C:\Program Files\Winshell\winshellw.exe";
         var relative = Path.Combine("my configs", "-d");
 
-        var byPath = CommandLine.ReadSignIn(CommandLine.ForSignIn(windowed, ["-d", "run", "-p", relative, "--", "-c", "x"]));
-        var byName = CommandLine.ReadSignIn(CommandLine.ForSignIn(windowed, ["run", "--config", "-d"]));
+        var byPath = CommandLine.ReadSignIn(CommandLine.ForSignIn(windowed, ["-d", "run", "-p", relative, "--", "-s", "x"]));
+        var byName = CommandLine.ReadSignIn(CommandLine.ForSignIn(windowed, ["run", "--shell", "-d"]));
 
         Assert.AreEqual(new SignInEntry.SignInLaunch(@"C:\Program Files\Winshell\winshell.exe",
             Path.GetFullPath(relative), null), byPath);
         Assert.AreEqual(new SignInEntry.SignInLaunch(@"C:\Program Files\Winshell\winshell.exe", null, "-d"), byName);
-        Assert.EndsWith("--no-build --no-duplicate -- -c x",
-            CommandLine.ForSignIn(windowed, ["run", "-p", relative, "--", "-c", "x"]));
+        Assert.EndsWith("--no-build --no-duplicate -- -s x",
+            CommandLine.ForSignIn(windowed, ["run", "-p", relative, "--", "-s", "x"]));
     }
 
     [TestMethod]
@@ -210,7 +210,7 @@ public sealed class StartupRegistryTests : IDisposable
     }
 
     [TestMethod]
-    public void The_install_sign_in_entry_for_this_configuration_is_on_and_the_doctor_agrees()
+    public void The_install_sign_in_entry_for_this_shell_is_on_and_the_doctor_agrees()
     {
         const string winshell = @"C:\Program Files\Winshell\winshell.exe";
         const string windowed = @"C:\Program Files\Winshell\winshellw.exe";
@@ -282,7 +282,7 @@ public sealed class StartupRegistryTests : IDisposable
         var otherConfiguration =
             SignIn(playCommand, false, winshell, root, Exists, projectFile: workFile);
         Assert.AreEqual(CheckStatus.Warn, otherConfiguration.Status);
-        Assert.AreEqual("The sign-in entry does not start this configuration.", otherConfiguration.Message);
+        Assert.AreEqual("The sign-in entry does not start this shell.", otherConfiguration.Message);
 
         var playRegistry = new WindowsStartupRegistry(
             CommandLine.ForSignIn(winshell, ["run", "-p", play]), root, run, approved);
@@ -310,7 +310,7 @@ public sealed class StartupRegistryTests : IDisposable
         Assert.AreEqual(CheckStatus.Warn, other.Status);
         Assert.Contains("another winshell.exe", other.Message, StringComparison.Ordinal);
 
-        var byName = CommandLine.ForSignIn(winshell, ["run", "-c", "work"]);
+        var byName = CommandLine.ForSignIn(winshell, ["run", "-s", "work"]);
         var named = new WindowsStartupRegistry(
             CommandLine.ForSignIn(winshell, ["run", "-p", project]), root, run, approved);
         using (var key = Registry.CurrentUser.CreateSubKey(run))
@@ -325,19 +325,19 @@ public sealed class StartupRegistryTests : IDisposable
 
         using (var key = Registry.CurrentUser.CreateSubKey(run))
         {
-            key.SetValue(SignInEntry.Name, CommandLine.ForSignIn(winshell, ["run", "-c", "play"]),
+            key.SetValue(SignInEntry.Name, CommandLine.ForSignIn(winshell, ["run", "-s", "play"]),
                 RegistryValueKind.String);
         }
 
         namedStartup.Refresh();
         Assert.IsFalse(namedStartup.RunAtSignIn);
         Assert.AreEqual(CheckStatus.Warn,
-            SignIn(CommandLine.ForSignIn(winshell, ["run", "-c", "play"]), false, winshell, root, Exists,
+            SignIn(CommandLine.ForSignIn(winshell, ["run", "-s", "play"]), false, winshell, root, Exists,
                 projectFile: workFile).Status);
     }
 
     [TestMethod]
-    public void Adding_a_configuration_stops_the_install_entry_counting_as_this_one()
+    public void Adding_a_shell_stops_the_install_entry_counting_as_this_one()
     {
         const string winshell = @"C:\Program Files\Winshell\winshell.exe";
         var project = Configuration(_configRoot.Path, "work");

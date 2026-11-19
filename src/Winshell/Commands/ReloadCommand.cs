@@ -7,11 +7,11 @@ internal static class ReloadCommand
         Name = "reload",
         Overview = """
                           winshell reload [instance options]
-                                                              reload an instance's configuration
+                                                              reload an instance's shell
                    """,
         Usage = """
-                winshell reload [-i <id> | --pid <pid> | -c <name> | -p <path>]
-                  Builds a configuration project and asks its instance to start again.
+                winshell reload [-i <id> | --pid <pid> | -s <name> | -p <path>]
+                  Builds a shell project and asks its instance to start again.
                   A build that fails leaves the instance running and asks it to show the error.
                   With one running instance and no selector, that instance is used.
                   With several, this exits and lists them.

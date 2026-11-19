@@ -11,7 +11,7 @@ public sealed class CommandLineTests
         Assert.IsNull(CommandWords.NoBuild.Short);
         Assert.IsNull(CommandWords.After.Short);
         Assert.AreEqual("-p", CommandWords.Path.Short);
-        Assert.AreEqual("-c", CommandWords.Config.Short);
+        Assert.AreEqual("-s", CommandWords.Shell.Short);
         Assert.AreEqual("-d", CommandWords.Daemonize.Short);
         Assert.AreEqual("-n", CommandWords.NoDuplicate.Short);
         Assert.AreEqual("-v", CommandWords.Verbose.Short);

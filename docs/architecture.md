@@ -14,6 +14,7 @@ Winshell.Shell -> Winshell.Services -> Winshell.Core -> Winshell.Native
 - A project must never reference a higher layer or form a cycle.
 - Native references no other Winshell project.
 - The CLI composes these libraries and owns process supervision. The package project assembles their distribution.
+- `Winshell.Generators` is a source generator, not a layer. The package ships it as an analyzer, and each project in this repository that declares or may declare preferences references it as one.
 
 | Owner | Responsibility |
 | --- | --- |
@@ -22,6 +23,7 @@ Winshell.Shell -> Winshell.Services -> Winshell.Core -> Winshell.Native
 | `Winshell.Services` | One assembly of feature folders. Services apply policy and publish state on the event loop; feature backends perform platform work. Shell project builds live here (`ShellProject`), which the CLI commands, sign-in and doctor call. |
 | `Winshell.Shell` | WinUI hosting, the production event loop, window lifecycle, and a window whose content is one `UIElement`. |
 | CLI (`src/Winshell`) | The commands that invoke those builds, and shell process supervision. |
+| `Winshell.Generators` | The source generator that writes a `[Preference]` property's accessors, and its errors. |
 
 A removed public API gets no compatibility shim. Moving an implementation does not justify forwarding assemblies or duplicate implementations. Keep shared infrastructure in Core and feature policy in its owning Services folder.
 
@@ -65,11 +67,11 @@ Media keeps one type per job, the split from #1102. `ISmtcLink` (#1306) stays th
 
 Keep `HostWindow` split by responsibility, with explicit owners for window lifetime, where the window is placed, native message handling and presentation. Keep `Shell.cs` and `ShellServices.cs` thin: they compose focused types instead of collecting feature behavior. Preserve disposal order, event-loop affinity and cancellation.
 
-A window's content is one `UIElement`. Shell UI is one component tree mounted with a `ReactorHostControl`. A bar's host shows a surface, and that surface shows three widget areas, and each area shows its widgets: one tree, not a control per placement. `CaptureView` and `WindowThumbnail` are public controls, for a picture Reactor has no element for, embedded in that tree. A surface and a widget area take immutable props, written as elements in that tree. An area stays subscribed to its preferences section until it unmounts or its name changes, and disposing the Reactor host unmounts the tree. A shell author builds from primitives, building blocks and compositions such as `Bar`, and a composition uses only public API. Widgets, widget areas and surfaces are Reactor components.
+A window's content is one `UIElement`. Shell UI is one component tree mounted with a `ReactorHostControl`. A component window (`PanelWindow<T>`, `PopupWindow<T>`, `FloatingWindow<T>`, or their `<T, TProps>` forms, which pass the component its props) mounts its component on a surface, in a host it disposes with the window. A bar's host shows a surface, and that surface shows three widget areas, and each area shows its widgets: one tree, not a control per placement. Before the function passed to `Shell.Run` runs, the shell reads the metadata of each assembly the program lists, loads the ones that reference `Winshell.Shell`, and keeps each public widget class under its name. An area creates a placement by that name. `CaptureView` and `WindowThumbnail` are public controls, for a picture Reactor has no element for, embedded in that tree. A surface and a widget area take immutable props, written as elements in that tree. An area stays subscribed to its preferences section until it unmounts or its name changes, and disposing the Reactor host unmounts the tree. A shell author builds from primitives, building blocks and compositions such as `Bar`. A composition may use Shell's internals, but only the public API of Core, Native and Services. Widgets, widget areas and surfaces are Reactor components.
 
 ## Crash supervision
 
-The CLI supervises a shell in a child process. Exit code 0 is a stop that was asked for. Exit code 1 ends supervision, including a shell that could not start and Task Manager's End task. Any other exit respawns with backoff, unless `winshell kill` had asked the shell to stop. A reload is not one of those exits: the supervisor starts the last build at once, whatever the code. A requested stop ends supervision.
+The CLI supervises a shell in a child process. Exit code 0 is a stop that was asked for. Exit code 1 ends supervision, including a shell that could not start and Task Manager's End task. Any other exit respawns with backoff, unless `winshell stop` had asked the shell to stop. A reload is not one of those exits: the supervisor starts the last build at once, whatever the code. A requested stop ends supervision.
 
 - Keep restart policy, cancellation and child ownership in a focused supervisor rather than in the window host.
 - Drive policy time through `TimeProvider` so tests can advance it without sleeping.
@@ -81,9 +83,9 @@ A reload is not a stop. The two reload paths stay separate modules on purpose: e
 | Path | Joins | Modules |
 | --- | --- | --- |
 | Supervised | `winshell reload` and the supervisor in `winshell run` | `ShellExit`, `ShellSupervisor` |
-| Unsupervised | The shell that quits and the one that takes over | `Shell.Reload`, `--after`, `Instances.WaitForExit` |
+| Unsupervised | The shell that quits and the one that takes over | `Shell.Restart`, `--after`, `Instances.WaitForExit` |
 
-On the supervised path, the supervisor starts the last build at once, whatever the exit code, and counts that shell's crashes from none. The new child is supervised as the first was. A configuration that calls `shell.Reload()` itself still hands over to an unsupervised process: the supervisor cannot see that start.
+On the supervised path, the supervisor starts the last build at once, whatever the exit code, and counts that shell's crashes from none. The new child is supervised as the first was. A shell that calls `shell.Restart()` itself still hands over to an unsupervised process: the supervisor cannot see that start.
 
 ### Explorer taskbar recovery
 
@@ -96,7 +98,7 @@ The supervisor owns Explorer taskbar recovery independently of the child. Recove
 
 ## Distribution and configuration
 
-- **One package.** Keep one `Winshell` library NuGet package. It carries Native, Core, Services and Shell; a configuration must not acquire references to separately published module packages. Keep package and starter contracts covered as assembly ownership changes.
+- **One package.** Keep one `Winshell` library NuGet package. It carries Native, Core, Services and Shell; a shell must not acquire references to separately published module packages. Keep package and starter contracts covered as assembly ownership changes.
 - **Starter.** `winshell new` copies the starter sources in `templates/winshell`. `scripts/build-template.ps1` compiles those sources against the in-repo `Winshell.Shell`, with the repository's build and style policy. The full local check and CI's required Shell suite build run it. Package tests create the starter through `winshell new` and build and run it against the packed library.
 - **Formatting.** Formatting verifies C# files without loading or building projects; builds own style and analyzer enforcement.
 - **User configuration stays TOML**, in one preferences file per shell. No code reads the files from before that format. Do not add a second configuration system or compatibility layer.
@@ -107,9 +109,10 @@ The supervisor owns Explorer taskbar recovery independently of the child. Recove
 
 - **Unsafe code outside Native, in a project without WinUI:** the build. CS0227, since `Directory.Build.targets` turns `AllowUnsafeBlocks` off.
 - **Hand-written unsafe code in a WinUI project:** `WinUISourceTests`. It parses the C# files of each `UseWinUI` project in `winshell.slnx`, outside `bin` and `obj`, and the files it links, for `unsafe`, `fixed` and pointer types. A conditional `UseWinUI` of true still counts, and an import the test cannot read fails it.
-- **Layer order:** `LayerTests`. Each layer's project references and its compiled assembly's Winshell references name only layers below it. Restore already fails on an upward project reference that closes a cycle (MSB4006); the test catches the rest, such as a reference to a project outside the layers or to a built DLL.
+- **Layer order:** `LayerTests`. Each layer's project references and its compiled assembly's Winshell references name only layers below it. A reference with both `OutputItemType="Analyzer"` and `ReferenceOutputAssembly="false"`, such as Shell's reference to `Winshell.Generators`, adds no assembly and is not a layer reference. An analyzer reference without `ReferenceOutputAssembly="false"` fails the test, even to a layer below. Restore already fails on an upward project reference that closes a cycle (MSB4006); the test catches the rest, such as a reference to a project outside the layers or to a built DLL.
 - **Feature backends:** `FeatureBackendTests`. In the compiled Services and Shell, only types in an `I*Backend` interface's own namespace in Services, such as `Winshell.Session`, name the interface or a type that implements it, in a declaration, signature or method body. A call counts the types it accepts. A constructor's parameters do not: Shell builds a service and leaves the optional backend at its default.
-- **Compositions use only public API:** `CompositionTests`. It compiles the C# files in `src/Winshell.Shell/Compositions`, such as `Bar`, again as an assembly of their own against the built Winshell assemblies, which shows them only the public API, and fails on any compiler error. In Shell itself the compiler lets them see Shell's internals and those Core and Services show Shell.
+- **Compositions use no Core, Native or Services internals:** `CompositionTests`. It compiles the C# files in `src/Winshell.Shell/Compositions`, such as `Bar`, again as an assembly of their own against the built Winshell assemblies, with the preference generator, and fails on any compiler or generator error. Shell shows that assembly its internals, so a composition may use any of them. Core, Native and Services show it only their public API. In Shell itself the compiler would let them see the internals those three show Shell.
+- **The public API hides the shell's internals:** `PublicSurfaceTests`. It reads the compiled libraries and fails on a public type in `Winshell.Diagnostics`, a service the shell shares or a `Shell` that is `IDisposable` (the shell stops each service through the internal `IShellService`), a public `ScreenInfo` constructor or setter, or a public form of a type or member the shell keeps to itself, such as `Shell.Loop`, `Log.Default` or the `WidgetArea` component.
 - **CsWin32 is the only Win32 declaration set:** `NativeVisibilityTests`. It reads `Win32.cs`, which keeps only what CsWin32 does not generate, and fails on an interop attribute there, such as `DllImport`, `LibraryImport` or `ComImport`, however it is written.
 
 How the tests work:

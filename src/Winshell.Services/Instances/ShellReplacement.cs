@@ -97,7 +97,7 @@ internal static class ShellReplacement
             IpcResponse { Ok: false, Error: { } error } => error,
             _ => "it did not exit"
         };
-        return $"Shell {info.ShellId} did not quit ({why}), so this one was not started.";
+        return $"Shell {info.ShellName} did not quit ({why}), so this one was not started.";
     }
 
     private static bool Exited(Process process)

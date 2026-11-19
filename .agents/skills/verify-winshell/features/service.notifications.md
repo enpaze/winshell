@@ -1,6 +1,6 @@
 # Notifications
 
-`shell.Notifications` reads the notifications that Windows shows in Notification Center, with Focus and Do not disturb, dismisses them, and sends toasts. A configuration uses it for a notification list or a Do not disturb indicator. The feature shell's row `service.notifications` shows `access: <status>; notifications: N`, where the status is a `NotificationAccessStatus` value: `Unspecified`, `Allowed`, `Denied`, `Unavailable` or `Requesting`.
+`shell.Notifications` reads the notifications that Windows shows in Notification Center, with Focus and Do not disturb, dismisses them, and sends toasts. A shell uses it for a notification list or a Do not disturb indicator. The feature shell's row `service.notifications` shows `access: <status>; notifications: N`, where the status is a `NotificationAccessStatus` value: `Unspecified`, `Allowed`, `Denied`, `Unavailable` or `Requesting`.
 
 ## Sub-features
 
@@ -13,9 +13,9 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Notifications`, or `Props.Shell.Notifications` in a widget.
-- A configuration calls `shell.Notifications.RequestAccess()` from a button, and the user allows it when Windows asks.
-- A configuration creates `new ToastMessage(shell.Loop)`, sets `Title` and `Body`, and calls `Send()`.
+- A shell reads `shell.Notifications`, or `Shell.Notifications` in a widget.
+- A shell calls `shell.Notifications.RequestAccess()` from a button, and the user allows it when Windows asks.
+- A shell creates `new ToastMessage()`, sets `Title` and `Body`, and calls `Send()`.
 - The user allows or denies access in Windows Settings > Privacy & security > Notifications.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 

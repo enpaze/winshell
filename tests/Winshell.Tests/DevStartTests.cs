@@ -6,7 +6,7 @@ namespace Winshell.Tests;
 [TestClass]
 public class DevStartTests
 {
-    private const string NeedsSdk = "Building a configuration needs the .NET SDK, from https://dot.net/download.";
+    private const string NeedsSdk = "Building a shell needs the .NET SDK, from https://dot.net/download.";
 
     [TestMethod]
     public void A_dotnet_that_cannot_run_names_that_failure()

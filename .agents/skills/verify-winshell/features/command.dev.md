@@ -1,6 +1,6 @@
 # winshell dev
 
-`winshell dev` builds a configuration project as a Debug build, starts it, and keeps it running under `dotnet watch` until you press Ctrl+C. Each C# edit you save reaches the running shell through Reactor's hot reload in about a second, without a restart. Code that does not compile shows in a notice on screen, and the last version that compiled keeps running. While it runs, `winshell list` shows the shell's program in the project's Debug build folder.
+`winshell dev` builds a shell project as a Debug build, starts it, and keeps it running under `dotnet watch` until you press Ctrl+C. Each C# edit you save reaches the running shell through Reactor's hot reload in about a second, without a restart. Code that does not compile shows in a notice on screen, and the last version that compiled keeps running. While it runs, `winshell list` shows the shell's program in the project's Debug build folder.
 
 ## Sub-features
 
@@ -9,12 +9,12 @@
 - `dev-restart` restarts the shell for an edit .NET can't apply to running code, such as a new base class.
 - `dev-build-error` shows code that doesn't compile, and a TOML file with an error, in a notice, and keeps the last version that compiled running. The notice goes when the next save compiles.
 - `dev-stop` closes the shell and stops `dotnet watch` on Ctrl+C, or when the terminal closes.
-- `dev-no-project` prints `winshell dev needs a configuration project. Run winshell new to make one.` and exits with 1 when there is no project.
+- `dev-no-project` prints `winshell dev needs a shell project. Run winshell new to make one.` and exits with 1 when there is no project.
 
 ## How to get to it (user POV)
 
-- Run `winshell dev` in a terminal for the configuration `winshell run` would start.
-- Run `winshell dev -c <name>` for the project in `<name>` under the config folder, such as `winshell dev -c starter`.
+- Run `winshell dev` in a terminal for the shell `winshell run` would start.
+- Run `winshell dev -s <name>` for the project in `<name>` under the shells folder, such as `winshell dev -s starter`.
 - Run `winshell dev -p <path>` for a `.csproj`, or for the folder that has one, such as `winshell dev --path .`.
 - Press Ctrl+C in that terminal, or close it, to stop the shell and `dotnet watch`.
 
@@ -26,7 +26,7 @@ Preconditions:
 - The .NET SDK that `global.json` names is installed, because `dotnet watch` builds the project.
 
 - **Start dev.** Start the feature shell's project under `dotnet watch`. Run `winshell dev -p {shell}`. It keeps running in the background until the feature ends, and the driver does not check its output.
-- **See the Debug build run.** List the running shells. Run `winshell list -j`. It exits with 0, and a `configPath` names `FeatureShell.exe` in a folder whose path has `Debug` in it (`Debug[^"]*FeatureShell\.exe`). The driver retries for up to 600 seconds while the first Debug build runs.
+- **See the Debug build run.** List the running shells. Run `winshell list -j`. It exits with 0, and a `program` names `FeatureShell.exe` in a folder whose path has `Debug` in it (`Debug[^"]*FeatureShell\.exe`). The driver retries for up to 600 seconds while the first Debug build runs.
 
 ```json
 [

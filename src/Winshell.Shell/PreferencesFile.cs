@@ -280,7 +280,7 @@ internal sealed class PreferencesFile : IDisposable
     {
         var text = new StringBuilder("""
             # This shell's preferences. A key that is commented out or missing keeps its default: remove its # to change it.
-            # The keys before the first [section] are the configuration's own, and each section is one component's.
+            # The keys before the first [section] are the shell's own, and each section is one component's.
 
             """);
         foreach (var group in _sections.GroupBy(section => section.Section).OrderBy(group => group.Key.Length > 0))

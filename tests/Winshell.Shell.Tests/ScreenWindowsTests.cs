@@ -6,6 +6,37 @@ namespace Winshell.ShellTests;
 public sealed class ScreenWindowsTests
 {
     [TestMethod]
+    public Task A_screen_read_that_one_action_asks_for_is_done_before_the_next_action_starts()
+    {
+        return ReadBeforeTheNextAction(platform => platform.ScreensMayHaveChanged());
+    }
+
+    [TestMethod]
+    public Task A_work_area_relayout_that_one_action_asks_for_is_done_before_the_next_action_starts()
+    {
+        return ReadBeforeTheNextAction(platform => platform.WorkAreaMayHaveChanged());
+    }
+
+    private static async Task ReadBeforeTheNextAction(Action<ShellPlatform> ask)
+    {
+        var madeUp = Screen("TST", "Only", "1");
+        await ShellFixture.On(shell =>
+        {
+            shell.Platform.Screens.Add(madeUp);
+            ask(shell.Platform);
+            return true;
+        });
+
+        await ShellFixture.On(shell =>
+        {
+            var notRead = shell.Platform.Screens.Contains(madeUp);
+            shell.Platform.Screens.Remove(madeUp);
+            Assert.IsFalse(notRead, "The screen read the first action asked for had not run when the next action started.");
+            return true;
+        });
+    }
+
+    [TestMethod]
     public async Task A_screen_has_a_window_from_when_it_appears_until_it_goes_or_another_monitor_takes_its_id()
     {
         await ShellFixture.On(shell =>
@@ -17,7 +48,7 @@ public sealed class ScreenWindowsTests
             screens.Add(first);
             try
             {
-                using var windows = new ScreenWindows("windows" + Guid.NewGuid().ToString("N"), Record(made));
+                using var windows = shell.Add(new ScreenWindows("windows" + Guid.NewGuid().ToString("N"), Record(made)));
                 var firstWindow = Assert.ContainsSingle(window => window.Screen == first, made);
 
                 screens.Add(second);
@@ -50,6 +81,31 @@ public sealed class ScreenWindowsTests
     }
 
     [TestMethod]
+    public async Task Screen_windows_make_nothing_until_added_and_then_start_each_window_they_make()
+    {
+        var (before, starts) = await ShellFixture.On(shell =>
+        {
+            var screen = Screen("TST", "Added", "1");
+            var made = new List<Window>();
+            shell.Platform.Screens.Add(screen);
+            try
+            {
+                using var windows = new ScreenWindows("windows" + Guid.NewGuid().ToString("N"), Record(made));
+                var madeBefore = made.Count;
+                shell.Add(windows);
+                return (madeBefore, Assert.ContainsSingle(window => window.Screen == screen, made).Starts);
+            }
+            finally
+            {
+                shell.Platform.Screens.Remove(screen);
+            }
+        });
+
+        Assert.AreEqual(0, before);
+        Assert.AreEqual(1, starts);
+    }
+
+    [TestMethod]
     public async Task A_screen_gets_its_row_by_manufacturer_model_and_serial_and_a_changed_row_replaces_only_its_window()
     {
         await ShellFixture.On(async shell =>
@@ -66,7 +122,7 @@ public sealed class ScreenWindowsTests
                 shell.Platform.Screens.Add(screen);
             try
             {
-                using var windows = new ScreenWindows(name, Record(made));
+                using var windows = shell.Add(new ScreenWindows(name, Record(made)));
                 var wideWindow = Assert.ContainsSingle(window => window.Screen == wide, made);
                 var otherWideWindow = Assert.ContainsSingle(window => window.Screen == otherWide, made);
                 var tallWindow = Assert.ContainsSingle(window => window.Screen == tall, made);
@@ -113,7 +169,6 @@ public sealed class ScreenWindowsTests
     {
         return $"""
             [{name}]
-
             [[{name}.screen]]
             manufacturer = "TST"
             model = "Wide"
@@ -138,13 +193,20 @@ public sealed class ScreenWindowsTests
 
     private sealed partial class Section(string name) : Preferences(name);
 
-    private sealed class Window(ScreenInfo screen, IReadOnlyDictionary<string, object?>? row) : IDisposable
+    private sealed class Window(ScreenInfo screen, IReadOnlyDictionary<string, object?>? row) : IShellPart
     {
         public ScreenInfo Screen { get; } = screen;
 
         public IReadOnlyDictionary<string, object?>? Row { get; } = row;
 
         public bool Disposed { get; private set; }
+
+        public int Starts { get; private set; }
+
+        public void Start()
+        {
+            Starts++;
+        }
 
         public void Dispose()
         {

@@ -51,7 +51,7 @@ internal static class SignInEntry
         string? Path,
         string? Name)
     {
-        public bool NamesConfiguration => Path is not null || Name is not null;
+        public bool NamesShell => Path is not null || Name is not null;
     }
 
     internal static string Resolve(string path)
@@ -101,13 +101,13 @@ internal static class SignInEntry
             : processPath;
     }
 
-    internal static string? ProjectOf(SignInLaunch launch, string configRoot, Log? log = null)
+    internal static string? ProjectOf(SignInLaunch launch, string shellsRoot, Log? log = null)
     {
-        if (launch.Name is { } name && !CommandWords.IsConfigName(name))
+        if (launch.Name is { } name && !CommandWords.IsShellFolder(name))
             return null;
         try
         {
-            return ShellProject.Find(launch.Path, launch.Name, configRoot, out _)?.ProjectFile;
+            return ShellProject.Find(launch.Path, launch.Name, shellsRoot, out _)?.ProjectFile;
         }
         catch (Exception e) when (e is ArgumentException or NotSupportedException)
         {
@@ -116,9 +116,9 @@ internal static class SignInEntry
         }
     }
 
-    internal static bool Starts(SignInLaunch launch, string projectFile, string configRoot, Log? log = null)
+    internal static bool Starts(SignInLaunch launch, string projectFile, string shellsRoot, Log? log = null)
     {
-        return SamePath(ProjectOf(launch, configRoot, log), projectFile);
+        return SamePath(ProjectOf(launch, shellsRoot, log), projectFile);
     }
 
     private static bool SamePath(string? left, string? right)

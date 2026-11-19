@@ -327,27 +327,27 @@ public class UpdateCommandTests
     public void Update_help_and_a_bad_channel_do_not_write_or_download()
     {
         using var temp = new TempFolder();
-        var help = WinshellCli.Run(["update", "-h"], ("WINSHELL_CONFIG_DIR", temp.Path));
+        var help = WinshellCli.Run(["update", "-h"], ("WINSHELL_SHELLS_DIR", temp.Path));
         help.AssertExitCode(0);
         Assert.Contains("Installs the newest build of the saved channel.", help.Output, StringComparison.Ordinal);
         help.AssertNoError();
         Assert.IsFalse(File.Exists(Path.Combine(temp.Path, "update.toml")));
 
-        var version = WinshellCli.Run(["update", "-V"], ("WINSHELL_CONFIG_DIR", temp.Path));
+        var version = WinshellCli.Run(["update", "--version"], ("WINSHELL_SHELLS_DIR", temp.Path));
         version.AssertExitCode(0);
         Assert.StartsWith("winshell ", version.Output, StringComparison.Ordinal);
         version.AssertNoError();
 
-        var missing = WinshellCli.Run(["update", "--channel"], ("WINSHELL_CONFIG_DIR", temp.Path));
+        var missing = WinshellCli.Run(["update", "--channel"], ("WINSHELL_SHELLS_DIR", temp.Path));
         missing.AssertExitCode(2);
         Assert.AreEqual("winshell update --channel needs stable or dev.", missing.Error.Trim());
 
-        var other = WinshellCli.Run(["update", "--channel", "other"], ("WINSHELL_CONFIG_DIR", temp.Path));
+        var other = WinshellCli.Run(["update", "--channel", "other"], ("WINSHELL_SHELLS_DIR", temp.Path));
         other.AssertExitCode(2);
         Assert.AreEqual("winshell update --channel needs stable or dev.", other.Error.Trim());
         Assert.IsFalse(File.Exists(Path.Combine(temp.Path, "update.toml")));
 
-        var spare = WinshellCli.Run(["update", "extra"], ("WINSHELL_CONFIG_DIR", temp.Path));
+        var spare = WinshellCli.Run(["update", "extra"], ("WINSHELL_SHELLS_DIR", temp.Path));
         spare.AssertExitCode(2);
     }
 
@@ -355,7 +355,7 @@ public class UpdateCommandTests
     public void The_real_command_reports_not_installed_and_a_bad_saved_channel()
     {
         using var temp = new TempFolder();
-        var missing = WinshellCli.Run(["update"], ("WINSHELL_CONFIG_DIR", temp.Path));
+        var missing = WinshellCli.Run(["update"], ("WINSHELL_SHELLS_DIR", temp.Path));
         missing.AssertExitCode(1);
         Assert.AreEqual("Winshell is not installed. Run the install script.", missing.Error.Trim());
         Assert.AreEqual("", missing.Output.Trim());
@@ -363,7 +363,7 @@ public class UpdateCommandTests
 
         var path = Path.Combine(temp.Path, "update.toml");
         File.WriteAllText(path, "channel = \"nope\"\n");
-        var bad = WinshellCli.Run(["update"], ("WINSHELL_CONFIG_DIR", temp.Path));
+        var bad = WinshellCli.Run(["update"], ("WINSHELL_SHELLS_DIR", temp.Path));
         Assert.AreEqual(1, bad.Code);
         Assert.Contains("The saved update channel is not stable or dev.", bad.Error, StringComparison.Ordinal);
         Assert.AreEqual("channel = \"nope\"\n", File.ReadAllText(path));

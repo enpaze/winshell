@@ -13,8 +13,8 @@ public sealed partial class RedirectedOutputTests : IDisposable
         Directory.CreateDirectory(_dir);
         var missing = Path.Combine(_dir, "Björk 東京");
 
-        var run = WinshellCli.Run(["run", "-p", missing], ("WINSHELL_CONFIG_DIR", _dir));
-        var doctor = WinshellCli.Run(["doctor", "-p", missing], ("WINSHELL_CONFIG_DIR", _dir));
+        var run = WinshellCli.Run(["run", "-p", missing], ("WINSHELL_SHELLS_DIR", _dir));
+        var doctor = WinshellCli.Run(["doctor", "-p", missing], ("WINSHELL_SHELLS_DIR", _dir));
 
         run.AssertExitCode(1);
         Assert.Contains("Björk 東京", run.Error, StringComparison.Ordinal);

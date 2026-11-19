@@ -1,12 +1,12 @@
 # Winshell verification map
 
-This folder is the maintained source for verifying what a Winshell user can reach: each `winshell` command, each service on `Shell`, each widget the starter and the examples register, and each building block a user sees. Read this index before you drive a shell, then use the matching feature file as the recipe. `scripts/drive.ps1` runs every file's steps and prints `PASS` or `FAIL` for each feature.
+This folder is the maintained source for verifying what a Winshell user can reach: each `winshell` command, each service on `Shell`, each widget the starter and the examples have, and each building block a user sees. Read this index before you drive a shell, then use the matching feature file as the recipe. `scripts/drive.ps1` runs every file's steps and prints `PASS` or `FAIL` for each feature.
 
 ## Baseline preconditions
 
 - A Windows 11 desktop session with the .NET SDK that `global.json` names. Nobody else is using the desktop, because the shells open windows on it.
 - One verification run at a time on a desktop. `launch.ps1` and `drive.ps1` refuse while another run's shell is live, and name its session folder.
-- Each run has its own session folder with private `WINSHELL_CONFIG_DIR` and `WINSHELL_LOCAL_DIR`. The helpers set both on every `winshell` they start. Never drive a shell that a run of your own did not start.
+- Each run has its own session folder with private `WINSHELL_SHELLS_DIR` and `WINSHELL_LOCAL_DIR`. The helpers set both on every `winshell` they start. Never drive a shell that a run of your own did not start.
 - With Winland running, follow [Live UI with Winland running](../../../../docs/development.md#live-ui-with-winland-running). Never add the window rule or reload Winland.
 - While their features run, the `starter` shell's bar reserves the top edge of each screen, and the `omarchy-style` shell hides Explorer's taskbar.
 
@@ -15,11 +15,11 @@ This folder is the maintained source for verifying what a Winshell user can reac
 | Shell | Source | What it shows |
 | --- | --- | --- |
 | `none` | No shell | Commands that need no running shell. |
-| `features` | [`../shell`](../shell/FeatureShell.cs) | One window with a row for each service and an element for each building block, each with the feature's id as its automation id, plus `features.click`, `features.clicks`, `features.popup`, `features.launcher`, `features.text` and `features.typed`. It registers the IPC target `features` with the function `echo`, the property `name` and the signal `ticked`, which it raises once a second. |
+| `features` | [`../shell`](../shell/Program.cs) | One window with a row for each service and an element for each building block, each with the feature's id as its automation id, plus `features.click`, `features.clicks`, `features.popup`, `features.launcher`, `features.text` and `features.typed`. It registers the IPC target `features` with the function `echo`, the property `name` and the signal `ticked`, which it raises once a second. |
 | `starter` | [`templates/winshell`](../../../../templates/winshell/Program.cs) | The project `winshell new starter` copies: a bar with a clock and a battery. |
 | `omarchy-style` | [`examples/omarchy-style`](../../../../examples/omarchy-style/Program.cs) | A top bar in the style of Omarchy, with its own widgets. |
 
-The driver copies each shell into the session's config folder, points it at this checkout's libraries instead of the NuGet package, and starts it with `winshell run -d`.
+The driver copies each shell into the session's shells folder, points it at this checkout's libraries instead of the NuGet package, and starts it with `winshell run -d`.
 
 ## Driving conventions
 
@@ -27,16 +27,16 @@ The driver copies each shell into the session's config folder, points it at this
 - No step sends real input. `inspect focus`, `point`, `leave`, `press`, `scroll` and `key` move the real cursor or press real keys, so their features prove only a refusal that sends nothing.
 - Run a command under test as a user types it, through the session's `winshell`: `scripts/winshell.ps1 -Session <folder> <words>`.
 - Find an element by its automation id, `x:Name` or automation name. Never use a position or the order of the tree.
-- Start every recipe from a freshly started shell. A step that ends the shell, such as `kill` or `reload`, leaves the next step to start it again.
+- Start every recipe from a freshly started shell. A step that ends the shell, such as `stop` or `reload`, leaves the next step to start it again.
 
 ## Feature entry contract
 
-A feature file is named `<kind>.<slug>.md`. The kind is `command`, `service`, `widget` or `block`, and the slug is the inventory name in lowercase with hyphens, such as `command.inspect-click.md` for `winshell inspect click` or `service.new-hotkey.md` for `Shell.NewHotkey`.
+A feature file is named `<kind>.<slug>.md`. The kind is `command`, `service`, `widget` or `block`, and the slug is the inventory name in lowercase with hyphens, such as `command.inspect-click.md` for `winshell inspect click` or `service.hotkey.md` for `Shell.Hotkey`.
 
 Each file starts with an H1 title and one paragraph that says what the user sees. It then uses exactly four H2 sections in this order.
 
 1. `Sub-features` lists short IDs with one line for each behavior, as ``- `short-id` what it does``.
-2. `How to get to it (user POV)` lists every entry point a user has: a command they type, a member of `Shell` their configuration calls, or a control they choose.
+2. `How to get to it (user POV)` lists every entry point a user has: a command they type, a member of `Shell` their shell calls, or a control they choose.
 3. `Driving it with winshell inspect` starts with `Preconditions:` and a bullet that names the shell, ``- Shell: `features`.``, then pairs each step with a labeled bullet, ``- **Label.** <what the user does>. Run `<command>`. <what proves it>.``, and ends with one ` ```json ` block that holds the steps the driver runs, in the same order.
 4. `Gotchas` lists traps that can waste or invalidate a verification run.
 
@@ -66,13 +66,13 @@ A step is one of two objects. Each takes `within`, the seconds to retry it until
 - [CaptureView](./block.capture-view.md) shows the live frames of a capture session of a window or a screen.
 - [FloatingWindow](./block.floating-window.md) is a normal window with a title bar and a size.
 - [Launcher](./block.launcher.md) is a search box a hotkey opens, which finds apps and commands and runs the chosen one.
-- [PanelWindow](./block.panel-window.md) is a frameless window anchored to screen edges that can reserve its edge.
+- [PanelWindow](./block.panel-window.md) is a frameless window on one edge of a screen that can reserve its thickness along that edge.
 - [PopupWindow](./block.popup-window.md) is a frameless window placed next to another, opened here by the feature window's `Popup` button.
 - [Surface](./block.surface.md) paints the style's background behind its content and follows the theme.
 - [WidgetArea](./block.widget-area.md) makes a widget for each placement and passes it its settings.
 - [WindowThumbnail](./block.window-thumbnail.md) shows a live preview of another window, drawn by Windows' window manager.
 - [winshell dev](./command.dev.md) runs a project under `dotnet watch` and applies each saved edit to the running shell.
-- [winshell doctor](./command.doctor.md) checks this PC's setup for a configuration and prints the checks, as JSON with `-j`.
+- [winshell doctor](./command.doctor.md) checks this PC's setup for a shell and prints the checks, as JSON with `-j`.
 - [winshell help](./command.help.md) prints the command summary, or one command's usage, without running it.
 - [winshell inspect click](./command.inspect-click.md) activates an element through its automation peer, as Narrator does.
 - [winshell inspect focus](./command.inspect-focus.md) presses real Tab keys until keyboard focus reaches an element.
@@ -91,25 +91,26 @@ A step is one of two objects. Each takes `within`, the seconds to retry it until
 - [winshell ipc listen](./command.ipc-listen.md) prints each signal a shell raises until Ctrl+C.
 - [winshell ipc show](./command.ipc-show.md) lists a shell's IPC targets with their functions, properties and signals.
 - [winshell ipc wait](./command.ipc-wait.md) waits for one signal and prints its first argument.
-- [winshell kill](./command.kill.md) stops a shell and waits until it has exited.
 - [winshell list](./command.list.md) lists the running shells, as JSON with `-j`.
 - [winshell log](./command.log.md) prints a shell's log, or the end of it with `-t`.
 - [winshell new](./command.new.md) lists the starter and the examples, or copies one into a folder.
 - [winshell reload](./command.reload.md) rebuilds a project and replaces its running shell with a new process.
 - [winshell run](./command.run.md) builds a project and starts and supervises its shell.
-- [winshell use](./command.use.md) chooses the configuration `winshell run` starts, and switches to it.
+- [winshell stop](./command.stop.md) stops a shell and waits until it has exited.
+- [winshell use](./command.use.md) chooses the shell `winshell run` starts, and switches to it.
 - [winshell update](./command.update.md) installs the newest build of the saved channel.
+- [App windows](./service.app-windows.md) lists the open app windows and the active one.
 - [Apps](./service.apps.md) lists the apps Start lists, and searches and launches them.
 - [Audio](./service.audio.md) reads and sets the playback and recording devices, sessions and volume.
 - [Bluetooth](./service.bluetooth.md) reads the adapter and its devices, and pairs and connects them.
 - [Brightness](./service.brightness.md) reads and sets the brightness of the monitors that support it.
 - [CPU](./service.cpu.md) reads how busy the processor is.
 - [Explorer taskbar](./service.explorer-taskbar.md) hides and shows Explorer's taskbar.
+- [Hotkeys (Hotkey)](./service.hotkey.md) registers a global hotkey.
 - [Jump lists](./service.jump-lists.md) reads an app's recent and frequent destinations.
 - [Keyboard layouts](./service.keyboard-layouts.md) reads and switches the input languages.
 - [Media](./service.media.md) reads and controls the media sessions Windows shares.
-- [Networking](./service.networking.md) reads connectivity, adapters and Wi-Fi, and connects to networks.
-- [Hotkeys (NewHotkey)](./service.new-hotkey.md) registers a global hotkey.
+- [Network](./service.network.md) reads connectivity, adapters and Wi-Fi, and connects to networks.
 - [Idle monitor (NewIdleMonitor)](./service.new-idle-monitor.md) reports when the user is idle.
 - [Notifications](./service.notifications.md) reads and dismisses notifications, and sends toasts.
 - [Power](./service.power.md) reads the battery and the power source.
@@ -118,10 +119,9 @@ A step is one of two objects. Each takes `within`, the seconds to retry it until
 - [Recent documents](./service.recent-documents.md) searches recent documents.
 - [Session](./service.session.md) locks, sleeps, signs out and shuts down.
 - [Startup](./service.startup.md) reads and sets whether the shell runs at sign-in.
-- [System tray](./service.system-tray.md) lists the tray icons apps add and passes clicks to them.
+- [Tray](./service.tray.md) lists the tray icons apps add and passes clicks to them.
 - [Virtual desktops](./service.virtual-desktops.md) lists and switches the virtual desktops.
 - [Wallpaper](./service.wallpaper.md) reads and sets the wallpaper.
-- [Window list](./service.window-list.md) lists the open windows and the active one.
 - [Winland](./service.winland.md) reads Winland's monitors, workspaces and windows.
 - [omarchy-style audio widget](./widget.omarchy-style-audio.md) shows the playback device and its volume, and opens Sound settings.
 - [omarchy-style battery widget](./widget.omarchy-style-battery.md) shows the charge and its state, and opens Power & battery settings.

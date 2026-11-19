@@ -2,7 +2,7 @@ using Windows.Foundation;
 
 namespace Winshell;
 
-public sealed partial class FloatingWindow : ShellWindow
+public partial class FloatingWindow : ShellWindow
 {
     private string _title = "";
     private Size _minimumSize;
@@ -20,7 +20,7 @@ public sealed partial class FloatingWindow : ShellWindow
     }
 
     internal FloatingWindow(Shell shell)
-        : base(shell)
+        : base(shell, visible: true)
     {
     }
 

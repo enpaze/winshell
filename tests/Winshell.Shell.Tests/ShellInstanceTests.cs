@@ -28,7 +28,7 @@ public sealed class ShellInstanceTests
     {
         var info = await Own();
 
-        Assert.AreEqual("winshell-tests", info.ShellId);
+        Assert.AreEqual("winshell-tests", info.ShellName);
         Assert.AreEqual(Environment.ProcessPath, info.Program);
         Assert.StartsWith("winshell-", info.Pipe, StringComparison.Ordinal);
         Assert.IsNull(info.ExitedAt);
@@ -51,18 +51,29 @@ public sealed class ShellInstanceTests
     }
 
     [TestMethod]
-    public async Task The_folders_follow_the_shell_id_and_exist_once_read()
+    public async Task The_folders_follow_the_shell_name_and_exist_once_read()
     {
         var shell = await ShellFixture.Current();
+        var paths = shell.Paths;
 
-        Assert.AreEqual(Path.Combine(ShellLocations.Current.DataRoot, "by-shell", "winshell-tests", "a.txt"),
-            shell.DataPath("a.txt"));
-        Assert.AreEqual(Path.Combine(ShellLocations.Current.StateRoot, "by-shell", "winshell-tests", "a.txt"),
-            shell.StatePath("a.txt"));
-        Assert.AreEqual(Path.Combine(ShellLocations.Current.CacheRoot, "by-shell", "winshell-tests", "a.txt"),
-            shell.CachePath("a.txt"));
-        Assert.AreEqual(Path.Combine(Path.GetDirectoryName(Environment.ProcessPath)!, "a.txt"), shell.ConfigPath("a.txt"));
-        Assert.IsTrue(Directory.Exists(shell.DataDir));
+        Assert.AreEqual(Path.Combine(ShellLocations.Current.DataRoot, "by-shell", "winshell-tests"), paths.Data);
+        Assert.AreEqual(Path.Combine(ShellLocations.Current.StateRoot, "by-shell", "winshell-tests"), paths.State);
+        Assert.AreEqual(Path.Combine(ShellLocations.Current.CacheRoot, "by-shell", "winshell-tests"), paths.Cache);
+        Assert.IsTrue(Directory.Exists(paths.Data));
+        Assert.IsTrue(Directory.Exists(paths.State));
+        Assert.IsTrue(Directory.Exists(paths.Cache));
+    }
+
+    [TestMethod]
+    public async Task The_program_shells_and_logs_paths_are_where_winshell_looks()
+    {
+        var info = await Own();
+        var paths = (await ShellFixture.Current()).Paths;
+
+        Assert.AreEqual(Path.GetDirectoryName(Environment.ProcessPath), paths.Program);
+        Assert.AreEqual(ShellLocations.Current.ShellsRoot, paths.Shells);
+        Assert.AreEqual(info.Log, paths.Logs);
+        Assert.IsTrue(File.Exists(paths.Logs));
     }
 
     [TestMethod]
@@ -70,7 +81,7 @@ public sealed class ShellInstanceTests
     {
         var shell = await ShellFixture.Current();
         using var handler = await ShellFixture.On(s => s.Ipc.Handle("tests", "twice", (int number) => number * 2));
-        using var property = await ShellFixture.On(s => s.Ipc.Property("tests", "name", () => s.ShellId));
+        using var property = await ShellFixture.On(s => s.Ipc.Property("tests", "name", () => s.ShellName));
 
         var shown = Assert.ContainsSingle(await Ask(IpcRequest.ForShow(false)));
         var called = Assert.ContainsSingle(await Ask(IpcRequest.ForCall("tests", "twice", ["21"])));
@@ -78,7 +89,7 @@ public sealed class ShellInstanceTests
 
         Assert.Contains("function twice(number: int): int", shown.Value!, StringComparison.Ordinal);
         Assert.AreEqual("42", called.Value);
-        Assert.AreEqual(shell.ShellId, read.Value);
+        Assert.AreEqual(shell.ShellName, read.Value);
     }
 
     [TestMethod]

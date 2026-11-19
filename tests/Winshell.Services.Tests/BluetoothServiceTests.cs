@@ -557,7 +557,8 @@ public sealed class BluetoothServiceTests
     {
         var backend = new FakeBackend { Current = Snapshot(DeviceInfo()) };
 
-        using var service = new BluetoothService(new ManualEventLoop(), new Log(), backend);
+        var service = new BluetoothService(new ManualEventLoop(), new Log(), backend);
+        using var stopService = service.Stopping();
 
         Assert.AreEqual(0, backend.Reads);
         Assert.IsFalse(backend.Watching);
@@ -578,8 +579,8 @@ public sealed class BluetoothServiceTests
         loop.Process();
         Assert.AreEqual("Renamed", Assert.ContainsSingle(service.Devices).Name);
 
-        service.Dispose();
-        service.Dispose();
+        service.Stop();
+        service.Stop();
         Assert.IsFalse(backend.Watching);
         Assert.IsTrue(backend.Disposed);
         backend.RaiseChanged();
@@ -591,7 +592,8 @@ public sealed class BluetoothServiceTests
     {
         var backend = new FakeBackend { Current = Snapshot(DeviceInfo()) };
         var loop = new ManualEventLoop();
-        using var service = Monitored(backend, loop);
+        var service = Monitored(backend, loop);
+        using var stopService = service.Stopping();
         Assert.AreEqual(1, backend.Reads);
 
         loop.Advance(TimeSpan.FromSeconds(29));
@@ -618,7 +620,8 @@ public sealed class BluetoothServiceTests
         var loop = new ManualEventLoop();
         var messages = new ConcurrentQueue<string>();
         var log = new Log { Sink = (_, category, message) => messages.Enqueue($"{category}: {message}") };
-        using var service = Monitored(backend, loop, log);
+        var service = Monitored(backend, loop, log);
+        using var stopService = service.Stopping();
 
         Assert.Contains("bluetooth: InvalidCastException: radio broke", messages);
         Assert.IsFalse(service.Ready);
@@ -634,7 +637,8 @@ public sealed class BluetoothServiceTests
         var loop = new ManualEventLoop();
         var messages = new ConcurrentQueue<string>();
         var log = new Log { Sink = (_, category, message) => messages.Enqueue($"{category}: {message}") };
-        using var service = new BluetoothService(loop, log, backend);
+        var service = new BluetoothService(loop, log, backend);
+        using var stopService = service.Stopping();
 
         await service.RefreshAsync();
         loop.Process();
@@ -652,7 +656,8 @@ public sealed class BluetoothServiceTests
     public async Task A_refresh_still_reads_after_monitoring_stops()
     {
         var backend = new TokenBackend();
-        using var service = Monitored(backend, new ManualEventLoop());
+        var service = Monitored(backend, new ManualEventLoop());
+        using var stopService = service.Stopping();
         service.StopMonitoring();
         Assert.AreEqual(1, backend.Finished);
 
@@ -665,7 +670,8 @@ public sealed class BluetoothServiceTests
     public async Task A_refresh_during_a_read_reads_again_when_it_ends()
     {
         var backend = new GatedBackend();
-        using var service = new BluetoothService(new ManualEventLoop(), new Log(), backend);
+        var service = new BluetoothService(new ManualEventLoop(), new Log(), backend);
+        using var stopService = service.Stopping();
         var first = service.RefreshAsync();
         await backend.Started.Task.WaitAsync(CurrentTest.Cancellation);
 
@@ -689,7 +695,7 @@ public sealed class BluetoothServiceTests
         var read = service.RefreshAsync();
         await backend.Started.Task.WaitAsync(CurrentTest.Cancellation);
 
-        service.Dispose();
+        service.Stop();
         Assert.IsFalse(backend.Disposed);
         backend.Finish.TrySetResult(Snapshot());
         await read.WaitAsync(CurrentTest.Cancellation);
@@ -731,7 +737,7 @@ public sealed class BluetoothServiceTests
 
         public void Dispose()
         {
-            Service.Dispose();
+            Service.Stop();
         }
     }
 

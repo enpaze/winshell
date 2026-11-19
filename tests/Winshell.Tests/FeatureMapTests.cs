@@ -1,5 +1,8 @@
+using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Microsoft.UI.Xaml;
 using ReactorComponent = Microsoft.UI.Reactor.Core.Component;
 
@@ -11,6 +14,16 @@ public sealed partial class FeatureMapTests
     private const string RelativeMap = ".agents/skills/verify-winshell/features";
 
     private static readonly string MapFolder = Path.Combine(Repo.Root, RelativeMap);
+
+    private static readonly Dictionary<Type, Type> ComponentWindows = new()
+    {
+        [typeof(PanelWindow<>)] = typeof(PanelWindow),
+        [typeof(PanelWindow<,>)] = typeof(PanelWindow),
+        [typeof(PopupWindow<>)] = typeof(PopupWindow),
+        [typeof(PopupWindow<,>)] = typeof(PopupWindow),
+        [typeof(FloatingWindow<>)] = typeof(FloatingWindow),
+        [typeof(FloatingWindow<,>)] = typeof(FloatingWindow)
+    };
 
     [TestMethod]
     public void Every_command_has_a_feature_file()
@@ -47,11 +60,29 @@ public sealed partial class FeatureMapTests
     }
 
     [TestMethod]
-    public void A_block_is_a_public_window_control_component_or_composition_of_the_shell_library()
+    public void A_block_is_a_public_window_control_component_composition_or_element_of_the_shell_library()
     {
         Assert.AreSequenceEqual(
             ["Bar", "CaptureView", "FloatingWindow", "Launcher", "PanelWindow", "PopupWindow", "Surface", "WidgetArea", "WindowThumbnail"],
             Blocks());
+    }
+
+    [TestMethod]
+    public void Every_component_window_is_a_component_sub_feature_of_its_windows_feature_file()
+    {
+        var problems = new List<string>();
+        foreach (var (window, block) in ComponentWindows)
+        {
+            var file = $"{RelativeMap}/block.{Slug(block.Name)}.md";
+            var shown = $"`{block.Name}<{string.Join(", ", window.GetGenericArguments().Select(type => type.Name))}>`";
+            var line = File.ReadLines(Path.Combine(Repo.Root, file))
+                .FirstOrDefault(line => line.StartsWith("- `component` ", StringComparison.Ordinal));
+            if (line is null || !line.Contains(shown, StringComparison.Ordinal))
+                problems.Add(
+                    $"{file} does not name {shown} in its `component` sub-feature. Add it to the line that starts with - `component`.");
+        }
+
+        Assert.IsTrue(problems.Count == 0, string.Join('\n', problems));
     }
 
     private static void AssertMatches(string kind, IReadOnlyCollection<string> inventory)
@@ -96,8 +127,7 @@ public sealed partial class FeatureMapTests
         var properties = typeof(Shell).GetProperties(members).Where(property => InSubNamespace(property.PropertyType))
             .Select(property => property.Name);
         var factories = typeof(Shell).GetMethods(members)
-            .Where(method => method.Name.StartsWith("New", StringComparison.Ordinal) && !method.IsSpecialName &&
-                             InSubNamespace(method.ReturnType))
+            .Where(method => !method.IsSpecialName && InSubNamespace(method.ReturnType))
             .Select(method => method.Name);
         return [.. properties.Concat(factories).Order(StringComparer.Ordinal)];
     }
@@ -109,29 +139,40 @@ public sealed partial class FeatureMapTests
 
     private static List<string> WidgetNames()
     {
-        var names = Registered(Path.Combine(Repo.Root, "templates", "winshell")).Select(name => "starter/" + name);
+        using var starter = new TempFolder();
+        var names = WidgetsIn(ProbeShell.BuiltAssembly(Starter(starter.Path)), "starter");
         foreach (var example in Directory.EnumerateDirectories(Path.Combine(Repo.Root, "examples")))
-            names = names.Concat(Registered(example).Select(name => $"{Path.GetFileName(example)}/{name}"));
+            names.AddRange(WidgetsIn(ProbeShell.BuiltAssembly(Directory.GetFiles(example, "*.csproj").Single()),
+                Path.GetFileName(example)));
         return [.. names.Order(StringComparer.Ordinal)];
     }
 
-    private static IEnumerable<string> Registered(string folder)
+    private static List<string> WidgetsIn(string assembly, string owner)
     {
-        return Sources(folder).SelectMany(file => RegisterPattern().Matches(File.ReadAllText(file)))
-            .Select(match => match.Groups[1].Value);
+        var info = new ProcessStartInfo(Path.ChangeExtension(assembly, ".exe"));
+        info.Environment["DOTNET_STARTUP_HOOKS"] = typeof(StartupHook).Assembly.Location;
+        var found = ChildProcess.Run(info, TimeSpan.FromMinutes(1));
+        found.AssertExitCode(0);
+        found.AssertNoError();
+        return [.. found.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(name => $"{owner}/{name}")];
     }
 
-    private static IEnumerable<string> Sources(string folder)
+    private static string Starter(string folder)
     {
-        foreach (var file in Directory.EnumerateFiles(folder, "*.cs"))
-            yield return file;
-        foreach (var child in Directory.EnumerateDirectories(folder))
-        {
-            if (Path.GetFileName(child) is "bin" or "obj")
-                continue;
-            foreach (var file in Sources(child))
-                yield return file;
-        }
+        var template = Path.Combine(Repo.Root, "templates", "winshell");
+        foreach (var file in Directory.GetFiles(template, "*.cs"))
+            File.Copy(file, Path.Combine(folder, Path.GetFileName(file)));
+        File.Copy(Path.Combine(Repo.Root, "global.json"), Path.Combine(folder, "global.json"));
+        var project = Path.Combine(folder, "MyShell.csproj");
+        var document = XDocument.Load(Path.Combine(template, "MyShell.csproj"));
+        document.Root!.AddFirst(new XElement("Import",
+            new XAttribute("Project", Path.Combine(Repo.Root, "src", "Winshell.Package", "buildTransitive", "Winshell.props"))));
+        document.Descendants("PackageReference").Single(reference => reference.Attribute("Include")!.Value == "Winshell")
+            .ReplaceWith(new XElement("ProjectReference",
+                new XAttribute("Include", Path.Combine(Repo.Root, "src", "Winshell.Shell", "Winshell.Shell.csproj"))));
+        document.Save(project);
+        return project;
     }
 
     private static List<string> Blocks()
@@ -140,13 +181,18 @@ public sealed partial class FeatureMapTests
             .SelectMany(file => PublicTypePattern().Matches(File.ReadAllText(file)))
             .Select(match => match.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
+        var elements = typeof(Elements).GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Where(method => !method.IsDefined(typeof(ExtensionAttribute)))
+            .Select(method => method.Name);
         return
         [
             .. typeof(Shell).Assembly.GetExportedTypes()
                 .Where(type => type is { IsClass: true, IsAbstract: false } &&
                                (type.IsSubclassOf(typeof(ShellWindow)) || type.IsSubclassOf(typeof(UIElement)) ||
                                 type.IsSubclassOf(typeof(ReactorComponent)) || compositions.Contains(type.Name)))
-                .Select(type => type.Name)
+                .Select(type => ComponentWindows.GetValueOrDefault(type, type).Name)
+                .Concat(elements)
+                .Distinct()
                 .Order(StringComparer.Ordinal)
         ];
     }
@@ -155,9 +201,6 @@ public sealed partial class FeatureMapTests
     {
         return SlugPattern().Replace(name.Replace('/', '-').Replace(' ', '-'), "$1-$2").ToLowerInvariant();
     }
-
-    [GeneratedRegex("""Widgets\.Register<\w+>\("([^"]+)"\)""")]
-    private static partial Regex RegisterPattern();
 
     [GeneratedRegex(@"^public\s+(?:sealed\s+|static\s+|partial\s+)*(?:class|record)\s+(\w+)", RegexOptions.Multiline)]
     private static partial Regex PublicTypePattern();

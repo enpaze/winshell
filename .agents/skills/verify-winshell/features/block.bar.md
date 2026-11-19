@@ -4,21 +4,21 @@ A `Bar` is a panel along one edge of every screen, with three widget areas: star
 
 ## Sub-features
 
-- `areas` places the widgets named in `Start`, `Center` and `End`, in order, each from the name it is registered under.
+- `areas` places the widgets named in `Start`, `Center` and `End`, in order, each by its widget name.
 - `every-screen` shows one bar on each screen, and follows screens as they are connected and removed.
 - `edge` runs along the top, bottom, left or right edge; on a side edge the areas run from top to bottom.
 - `reserve` reserves the edge, or lays the bar over maximized windows with `Reserve = false`.
 - `thickness` is the style's slot size, or `Thickness`; the ends keep the style's padding, or `Padding`.
 - `style` takes the bar's own `Style` over the shell's.
-- `preferences` reads `edge` and the three lists from the bar's section of the preferences file, and applies a save live.
+- `preferences` reads `edge` and the three lists from the bar's section of the preferences file, where each item is a widget name or a table, and applies a save live.
 - `per-screen` lets a `[[bar.screen]]` row change the edge or the lists for one monitor.
 - `several` lets a shell have several bars, each with its own `Name` and preferences section.
 
 ## How to get to it (user POV)
 
-- Run `winshell new starter` and then `winshell run -c starter`. The starter makes one bar.
-- In a configuration's `Start`, write `_ = new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] };` after `Widgets.Register<...>("name")` for each widget it places.
-- Edit the `[bar]` section of `preferences\<shell id>.toml` in the config folder, or a `[[bar.screen]]` row, and save it.
+- Run `winshell new starter` and then `winshell run -s starter`. The starter makes one bar.
+- In the function a shell passes to `Shell.Run`, write `shell.Add(new Bar { Edge = Edge.Top, Center = ["clock"], End = ["battery"] });`. Each name is a widget of the shell project, such as the class `Clock` or `ClockWidget` for `clock`.
+- Edit the `[bar]` section of `preferences\<shell name>.toml` in the shells folder, or a `[[bar.screen]]` row, and save it.
 
 ## Driving it with winshell inspect
 
@@ -37,7 +37,7 @@ Preconditions:
 
 ## Gotchas
 
-- The bar reserves the top edge of every screen while the shell runs, so the user's maximized windows shrink. `winshell kill` gives the edge back.
+- The bar reserves the top edge of every screen while the shell runs, so the user's maximized windows shrink. `winshell stop` gives the edge back.
 - The step reads only the first bar window in the tree. A second screen's bar, the reserved edge and the clock's place in the center are not checked; take a screenshot with `winshell inspect --pid {pid} screenshot <file> Surface` to see them. In `inspect` commands, a `[window]` is the window's content type or number, not its kind.
 - A bar shows on the next turn of the shell's loop, not at once, so a tree read right after start can miss it. The element step retries for 10 seconds.
 - `{time:t}` follows the Windows regional format. A format that starts with an AM or PM designator, such as `오후 2:05`, does not match the pattern.

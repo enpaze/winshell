@@ -17,11 +17,11 @@ internal static class SignInProcess
                 : SignInEntry.Command(exe, WinshellHost.Supervising());
             return command is null
                 ? null
-                : new WindowsStartupRegistry(command, ShellLocations.Current.ConfigRoot, log: log);
+                : new WindowsStartupRegistry(command, ShellLocations.Current.ShellsRoot, log: log);
         }
     }
 
-    internal static SignInVerdict Read(string processPath, string configRoot, Func<string, bool> exists,
+    internal static SignInVerdict Read(string processPath, string shellsRoot, Func<string, bool> exists,
         Func<string, string> resolve, string? projectFile, Log? log = null)
     {
         return Choose(
@@ -32,7 +32,7 @@ internal static class SignInProcess
                     ? null
                     : WinshellHost.Supervising();
                 return SignInVerdict.FromRun(SignInEntry.RegisteredCommand(), SignInEntry.TurnedOffInWindows(),
-                    SignInEntry.InstallExe(processPath, supervisor), configRoot, exists, resolve, projectFile, log);
+                    SignInEntry.InstallExe(processPath, supervisor), shellsRoot, exists, resolve, projectFile, log);
             });
     }
 

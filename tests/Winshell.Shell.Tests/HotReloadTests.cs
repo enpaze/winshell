@@ -70,14 +70,14 @@ public sealed partial class HotReloadTests
 
     private static PanelWindow Panel(UIElement content)
     {
-        return new PanelWindow
+        return Shell.Current.Add(new PanelWindow
         {
-            Anchors = Edges.Top | Edges.Left,
+            Edge = Edge.Top,
+            Align = PanelAlign.Start,
             Width = 200,
             Height = 40,
-            Content = content,
-            Visible = true
-        };
+            Content = content
+        });
     }
 
     [TestMethod]
@@ -241,7 +241,7 @@ public sealed partial class HotReloadTests
         var (keptView, disposed, old, made) = await ShellFixture.On(async shell =>
         {
             var name = Guid.NewGuid().ToString();
-            Widgets.Register<EditedHost>(name);
+            Shell.Current.WidgetRegistry.Add<EditedHost>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [name] });
             var host = area.Host;
             var view = new NestedRoot(host);
@@ -268,20 +268,20 @@ public sealed partial class HotReloadTests
         var (before, after) = await ShellFixture.On(async shell =>
         {
             var edited = Guid.NewGuid().ToString();
-            Widgets.Register<EditedHost>(edited);
+            Shell.Current.WidgetRegistry.Add<EditedHost>(edited);
             var unchanged = Guid.NewGuid().ToString();
-            Widgets.Register<UnchangedHost>(unchanged);
+            Shell.Current.WidgetRegistry.Add<UnchangedHost>(unchanged);
             var screen = ScreenWindowsTests.Screen("TST", "Reload", "1");
             shell.Platform.Screens.Add(screen);
             try
             {
-                using var bar = new Bar
+                using var bar = shell.Add(new Bar
                 {
                     Name = "bar" + Guid.NewGuid().ToString("N"),
                     Reserve = false,
                     Start = [unchanged],
                     Center = [edited]
-                };
+                });
                 var shown = new TaskCompletionSource();
                 shell.Loop.Post(shown.SetResult);
                 await shown.Task.WaitAsync(CurrentTest.Cancellation);
@@ -343,7 +343,7 @@ public sealed partial class HotReloadTests
         return null;
     }
 
-    private sealed class EditedHost : Component<WidgetContext>
+    private sealed class EditedHost : Widget
     {
         public override Element Render()
         {
@@ -353,7 +353,7 @@ public sealed partial class HotReloadTests
         }
     }
 
-    private sealed class UnchangedHost : Component<WidgetContext>
+    private sealed class UnchangedHost : Widget
     {
         public override Element Render() => XamlHost(() => new TextBlock { Text = "unchanged" });
     }

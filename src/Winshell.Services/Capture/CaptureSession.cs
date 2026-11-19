@@ -1,5 +1,5 @@
 using Windows.Foundation;
-using Winshell.Windows;
+using Winshell.AppWindows;
 
 namespace Winshell.Capture;
 
@@ -11,6 +11,7 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     private IDisposable? _timer;
     private CaptureTarget? _target;
     private AppWindow? _watched;
+    private Action? _watchedClosed;
     private PixelImage? _frame;
     private bool _includeCursor;
     private int _frameInterval = 33;
@@ -18,8 +19,8 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     private string _error = "";
     private bool _disposed;
 
-    public CaptureSession(IEventLoop loop, Log log)
-        : this(loop, () => new CaptureBackend(log))
+    public CaptureSession(Log log)
+        : this(EventLoop.Current, () => new CaptureBackend(log))
     {
     }
 
@@ -230,16 +231,17 @@ public sealed class CaptureSession : ObservableObject, IDisposable
         if (ReferenceEquals(_watched, window))
             return;
         if (_watched is not null)
-            _watched.Closed -= OnWindowClosed;
+            _watched.Closed -= _watchedClosed;
         _watched = window;
-        if (window is not null)
-            window.Closed += OnWindowClosed;
-    }
-
-    private void OnWindowClosed(object? sender, EventArgs e)
-    {
-        if (ReferenceEquals(sender, _watched))
-            Target = null;
+        _watchedClosed = null;
+        if (window is null)
+            return;
+        _watchedClosed = () =>
+        {
+            if (ReferenceEquals(_watched, window))
+                Target = null;
+        };
+        window.Closed += _watchedClosed;
     }
 
     public void Dispose()

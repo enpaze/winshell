@@ -1,6 +1,6 @@
 # Power
 
-`shell.Power` reads the batteries and whether the PC runs on battery: the charge, the state, the time to empty or full, and the battery's health. A configuration uses it for a battery indicator. The feature shell's row `service.power` shows `on battery: <True|False>; battery: N%`, the charge of `DisplayDevice` rounded to a whole percent, or `battery: none` when the PC has no battery.
+`shell.Power` reads the batteries and whether the PC runs on battery: the charge, the state, the time to empty or full, and the battery's health. A shell uses it for a battery indicator. The feature shell's row `service.power` shows `on battery: <True|False>; battery: N%`, the charge of `DisplayDevice` rounded to a whole percent, or `battery: none` when the PC has no battery.
 
 ## Sub-features
 
@@ -11,7 +11,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Power`, or `Props.Shell.Power` in a widget.
+- A shell reads `shell.Power`, or `Shell.Power` in a widget.
 - In the starter, the `battery` widget shows the charge at the end of the bar.
 - In the omarchy-style shell, the `battery` widget shows the charge and its state, and choosing it opens `ms-settings:powersleep`.
 

@@ -224,7 +224,8 @@ public sealed class AppIndexTests
         var folder = Path.Combine(root, "programs");
         Directory.CreateDirectory(folder);
         var loop = new ManualEventLoop();
-        using var apps = new AppsService(loop, new Log(), Catalog(folder));
+        var apps = new AppsService(loop, new Log(), Catalog(folder));
+        using var stopApps = apps.Stopping();
         try
         {
             var link = Path.Combine(folder, "Probe.lnk");
@@ -247,7 +248,8 @@ public sealed class AppIndexTests
         Directory.CreateDirectory(folder);
         WriteLink(Path.Combine(folder, "First.lnk"), Cmd(), "", "", "first");
         var loop = new ManualEventLoop();
-        using var apps = new AppsService(loop, new Log(), Catalog(folder));
+        var apps = new AppsService(loop, new Log(), Catalog(folder));
+        using var stopApps = apps.Stopping();
         try
         {
             Until(loop, () => Listed(apps, "First"), "the first read");
@@ -286,7 +288,7 @@ public sealed class AppIndexTests
             Assert.Fail("The read did not start.");
         }
 
-        apps.Dispose();
+        apps.Stop();
 
         Assert.IsFalse(Volatile.Read(ref ended));
         release.Set();

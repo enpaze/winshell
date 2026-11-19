@@ -1,6 +1,6 @@
 # Jump lists
 
-`shell.JumpLists` reads an app's jump list: the recent and frequent destinations, such as files and folders, that Windows keeps for that app. A configuration uses it to show an app's recent items, such as in a taskbar menu. The feature shell's row `service.jump-lists` reads File Explorer's list with `ForApp("Microsoft.Windows.Explorer")` and shows `explorer: <available|unavailable>; destinations: N`.
+`shell.JumpLists` reads an app's jump list: the recent and frequent destinations, such as files and folders, that Windows keeps for that app. A shell uses it to show an app's recent items, such as in a taskbar menu. The feature shell's row `service.jump-lists` reads File Explorer's list with `ForApp("Microsoft.Windows.Explorer")` and shows `explorer: <available|unavailable>; destinations: N`.
 
 ## Sub-features
 
@@ -10,7 +10,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration calls `shell.JumpLists.ForApp(appId)`, or `Props.Shell.JumpLists.ForApp(appId)` in a widget, with an app's AppUserModelID, such as `AppWindow.AppId` or `AppEntry.AppId`.
+- A shell calls `shell.JumpLists.ForApp(appId)`, or `Shell.JumpLists.ForApp(appId)` in a widget, with an app's AppUserModelID, such as `AppWindow.AppId` or `AppEntry.AppId`.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

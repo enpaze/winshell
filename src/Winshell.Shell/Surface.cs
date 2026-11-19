@@ -7,9 +7,9 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
-public sealed record SurfaceProps(Element? Content = null, Thickness Padding = default, ShellStyle? Style = null);
+internal sealed record SurfaceProps(Element? Content = null, Thickness Padding = default, ShellStyle? Style = null);
 
-public sealed class Surface : Component<SurfaceProps>
+internal sealed class Surface : Component<SurfaceProps>
 {
     public override Element Render()
     {
@@ -18,6 +18,8 @@ public sealed class Surface : Component<SurfaceProps>
         var layer = UseRef<Border?>(null);
         var shown = UseRef(props.Style);
         shown.Current = props.Style;
+        var scopeRef = UseRef<StyleScope?>(null);
+        var scope = scopeRef.Current ??= new StyleScope { Style = () => shown.Current ?? Shell.Current.Style };
         var (_, bump) = UseReducer(0);
         UseEffect(StyleHost.FollowShellStyle(props.Style, () => bump(_ => _ + 1)), props.Style);
 
@@ -40,6 +42,7 @@ public sealed class Surface : Component<SurfaceProps>
                     return border;
                 }).Grid(0, 0),
                 content.Grid(0, 0))
+            .Provide(StyleHost.InEffect, scope)
             .OnMount(element =>
             {
                 root.Current = element;
@@ -49,7 +52,8 @@ public sealed class Surface : Component<SurfaceProps>
 
         void Paint(FrameworkElement element)
         {
-            StyleHost.Show(element, shown.Current);
+            if (StyleHost.Show(element, shown.Current))
+                scope.RaiseStyleChanged();
             if (layer.Current is { } border && element.Resources["ShellBackgroundBrush"] is Brush brush)
                 border.Background = brush;
         }

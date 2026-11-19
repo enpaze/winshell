@@ -9,18 +9,17 @@ public sealed class PreferencesStartTests : ProbeBuild, IDisposable
     private Process? _started;
 
     [TestMethod]
-    public void The_file_written_when_Start_returns_includes_a_section_posted_during_Start()
+    public void The_file_written_when_start_returns_includes_a_section_posted_during_start()
     {
         var config = Path.Combine(_dir, "config");
         Directory.CreateDirectory(config);
         File.WriteAllText(Path.Combine(config, ProbeShell.PreferencesMarker), "");
-        var shellId = Guid.NewGuid().ToString("N");
-        _started = ProbeShell.Start(config, Path.Combine(_dir, "local"), shellId);
+        _started = ProbeShell.Start(config, Path.Combine(_dir, "local"));
 
         var report = Path.Combine(config, "preferences-report.txt");
         string? said = null;
         Wait.Until(() => (said = Read(report)) is not null,
-            "the probe to report the preferences file written when Start returns");
+            "the probe to report the preferences file written when start returns");
         Assert.AreEqual("both", said);
     }
 

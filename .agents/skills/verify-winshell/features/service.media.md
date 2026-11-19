@@ -1,6 +1,6 @@
 # Media
 
-`shell.Media` lists the media sessions that apps share with Windows: what is playing, in which app, with play, pause, skip and seek. A configuration uses it for media controls. The feature shell's row `service.media` shows `sessions: N`, the number of sessions in `Sessions`.
+`shell.Media` lists the media sessions that apps share with Windows: what is playing, in which app, with play, pause, skip and seek. A shell uses it for media controls. The feature shell's row `service.media` shows `sessions: N`, the number of sessions in `Sessions`.
 
 ## Sub-features
 
@@ -13,7 +13,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Media`, or `Props.Shell.Media` in a widget.
+- A shell reads `shell.Media`, or `Shell.Media` in a widget.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

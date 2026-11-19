@@ -40,7 +40,8 @@ public sealed class ProgramDescriptionTests
         var backend = new FakeTrayBackend();
         backend.Windows[hwnd] = 1;
         backend.Programs[hwnd] = path;
-        using var tray = new SystemTray(loop, Log.Default, backend);
+        var tray = new TrayService(loop, Log.Default, backend);
+        using var stopTray = tray.Stopping();
         loop.Process();
         backend.Send(new NotifyIconCall
         {

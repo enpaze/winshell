@@ -7,9 +7,9 @@ public class CommandOptionTests
 {
     [TestMethod]
     [DataRow("list --force", "winshell list does not take \"--force\".")]
-    [DataRow("list -c work", "winshell list does not take \"-c\".")]
-    [DataRow("kill -j", "winshell kill does not take \"-j\".")]
-    [DataRow("-d kill", "winshell kill does not take \"-d\".")]
+    [DataRow("list -s work", "winshell list does not take \"-s\".")]
+    [DataRow("stop -j", "winshell stop does not take \"-j\".")]
+    [DataRow("-d stop", "winshell stop does not take \"-d\".")]
     [DataRow("reload --no-build", "winshell reload does not take \"--no-build\".")]
     [DataRow("inspect --force tree", "winshell inspect does not take \"--force\".")]
     [DataRow("inspect screenshot out.png --fps 30", "winshell inspect screenshot does not take \"--fps\".")]
@@ -37,21 +37,23 @@ public class CommandOptionTests
     [DataRow("run -p missing --debug 1", "Unknown option \"--debug\".")]
     [DataRow("list -a", "Unknown option \"-a\".")]
     [DataRow("list --all", "Unknown option \"--all\".")]
+    [DataRow("-V", "Unknown option \"-V\".")]
+    [DataRow("list -V", "Unknown option \"-V\".")]
     [DataRow("reload --pid 0 --hard", "Unknown option \"--hard\".")]
     [DataRow("list extra", "Unexpected argument \"extra\".")]
-    [DataRow("kill --pid 0 extra", "Unexpected argument \"extra\".")]
+    [DataRow("stop --pid 0 extra", "Unexpected argument \"extra\".")]
     [DataRow("run -p missing extra", "Unexpected argument \"extra\".")]
     [DataRow("doctor extra", "Unexpected argument \"extra\".")]
     [DataRow("log one two", "Unexpected argument \"two\".")]
-    [DataRow("kill --pid abc", "--pid needs a whole number.")]
-    [DataRow("kill --pid 1.5", "--pid needs a whole number.")]
-    [DataRow("kill --pid 999999999999", "--pid needs a whole number.")]
-    [DataRow("kill --pid -1", "--pid needs a whole number.")]
-    [DataRow("kill --pid ''", "--pid needs a whole number.")]
+    [DataRow("stop --pid abc", "--pid needs a whole number.")]
+    [DataRow("stop --pid 1.5", "--pid needs a whole number.")]
+    [DataRow("stop --pid 999999999999", "--pid needs a whole number.")]
+    [DataRow("stop --pid -1", "--pid needs a whole number.")]
+    [DataRow("stop --pid ''", "--pid needs a whole number.")]
     [DataRow("log --tail ten", "--tail needs a whole number.")]
     [DataRow("log --tail -5", "--tail needs a whole number.")]
     [DataRow("log -t ten", "-t needs a whole number.")]
-    [DataRow("kill --pid", "--pid needs a value.")]
+    [DataRow("stop --pid", "--pid needs a value.")]
     [DataRow("log --tail", "--tail needs a value.")]
     [DataRow("inspect record out.mp4 --for", "--for needs a value.")]
     [DataRow("inspect record out.mp4 --for 0", "--for needs a time, such as 5s or 500ms.")]
@@ -70,15 +72,15 @@ public class CommandOptionTests
 
     [TestMethod]
     [DataRow("run -p dir", "path", "dir")]
-    [DataRow("run -c work", "config", "work")]
+    [DataRow("run -s work", "shell", "work")]
     [DataRow("run -d", "daemonize", "")]
     [DataRow("run -n", "no-duplicate", "")]
     [DataRow("run --no-build", "no-build", "")]
     [DataRow("list -j", "json", "")]
-    [DataRow("kill --force", "force", "")]
-    [DataRow("kill -i ab", "id", "ab")]
-    [DataRow("kill --pid 4", "pid", "4")]
-    [DataRow("reload -c work", "config", "work")]
+    [DataRow("stop --force", "force", "")]
+    [DataRow("stop -i ab", "id", "ab")]
+    [DataRow("stop --pid 4", "pid", "4")]
+    [DataRow("reload -s work", "shell", "work")]
     [DataRow("log -t 2", "tail", "2")]
     [DataRow("log -f", "follow", "")]
     [DataRow("ipc show -j", "json", "")]
@@ -97,9 +99,9 @@ public class CommandOptionTests
     [TestMethod]
     public void An_option_before_the_command_is_that_command_s()
     {
-        var parsed = CliParser.Parse(["--pid", "4", "kill"]);
+        var parsed = CliParser.Parse(["--pid", "4", "stop"]);
 
-        Assert.AreEqual("kill", parsed.Command);
+        Assert.AreEqual("stop", parsed.Command);
         Assert.AreEqual("4", Field(parsed, "pid"));
     }
 
@@ -116,7 +118,7 @@ public class CommandOptionTests
         return field switch
         {
             "path" => parsed.Text(CliFlags.Path) ?? "",
-            "config" => parsed.Text(CliFlags.Config) ?? "",
+            "shell" => parsed.Text(CliFlags.Shell) ?? "",
             "id" => parsed.Text(CliFlags.Id) ?? "",
             "pid" => parsed.Number(CliFlags.Pid)?.ToString(CultureInfo.InvariantCulture) ?? "",
             "tail" => parsed.Number(CliFlags.Tail)?.ToString(CultureInfo.InvariantCulture) ?? "",

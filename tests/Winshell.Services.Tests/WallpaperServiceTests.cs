@@ -12,7 +12,8 @@ public sealed class WallpaperServiceTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeWallpaperBackend(Snapshot());
-        using var wallpaper = new WallpaperService(loop, new Log(), backend);
+        var wallpaper = new WallpaperService(loop, new Log(), backend);
+        using var stopWallpaper = wallpaper.Stopping();
 
         Assert.AreEqual(2, wallpaper.Screens.Count);
         Assert.AreEqual(@"\\.\DISPLAY1", wallpaper.Screens[0].Id);
@@ -32,7 +33,8 @@ public sealed class WallpaperServiceTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeWallpaperBackend(Snapshot());
-        using var wallpaper = new WallpaperService(loop, new Log(), backend);
+        var wallpaper = new WallpaperService(loop, new Log(), backend);
+        using var stopWallpaper = wallpaper.Stopping();
         List<string?> heard = [];
         wallpaper.PropertyChanged += (_, e) => heard.Add(e.PropertyName);
         var left = wallpaper.Screens[0];
@@ -76,7 +78,8 @@ public sealed class WallpaperServiceTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeWallpaperBackend(Snapshot());
-        using var wallpaper = new WallpaperService(loop, new Log(), backend);
+        var wallpaper = new WallpaperService(loop, new Log(), backend);
+        using var stopWallpaper = wallpaper.Stopping();
         List<string?> heard = [];
         wallpaper.PropertyChanged += (_, e) => heard.Add(e.PropertyName);
         var reads = backend.Reads;
@@ -146,7 +149,7 @@ public sealed class WallpaperServiceTests
         var images = backend.Images.Count;
         var fits = backend.Fits.Count;
         var colors = backend.Colors.Count;
-        wallpaper.Dispose();
+        wallpaper.Stop();
         backend.Accepts = true;
         Assert.IsFalse(wallpaper.SetImage(@"C:\wall\c.jpg"));
         Assert.IsFalse(wallpaper.SetFit(WallpaperFit.Center));
@@ -166,7 +169,8 @@ public sealed class WallpaperServiceTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeWallpaperBackend(WallpaperSnapshot.Unavailable);
-        using var wallpaper = new WallpaperService(loop, new Log(), backend);
+        var wallpaper = new WallpaperService(loop, new Log(), backend);
+        using var stopWallpaper = wallpaper.Stopping();
 
         Assert.IsEmpty(wallpaper.Screens);
         Assert.AreEqual(WallpaperFit.Fill, wallpaper.Fit);

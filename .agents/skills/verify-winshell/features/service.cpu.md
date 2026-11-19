@@ -1,6 +1,6 @@
 # CPU
 
-`shell.Cpu` reports how busy the processor is: `Usage` is the share of time that all cores were busy, sampled every two seconds while something follows it. A configuration uses it for a CPU meter. The feature shell's row `service.cpu` shows `cpu: N%`, rounded to a whole percent.
+`shell.Cpu` reports how busy the processor is: `Usage` is the share of time that all cores were busy, sampled every two seconds while something follows it. A shell uses it for a CPU meter. The feature shell's row `service.cpu` shows `cpu: N%`, rounded to a whole percent.
 
 ## Sub-features
 
@@ -9,7 +9,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Cpu`, or `Props.Shell.Cpu` in a widget, and follows it with `UseObservable` or `PropertyChanged`.
+- A shell reads `shell.Cpu`, or `Shell.Cpu` in a widget, and follows it with `UseObservable` or `PropertyChanged`.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

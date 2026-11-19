@@ -8,9 +8,9 @@ The `windows` widget is the Windows glyph at the start of the omarchy-style bar,
 
 ## How to get to it (user POV)
 
-- Run `winshell new omarchy-style` and then `winshell run -c omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
-- The example registers it with `Widgets.Register<WindowsWidget>("windows")` and places it first in the bar's `Start` list.
-- Place it elsewhere with `{ widget = "windows" }` in a list of the `[bar]` section of the preferences file.
+- Run `winshell new omarchy-style` and then `winshell run -s omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
+- The example finds `WindowsWidget` as the widget `windows` and places it first in the bar's `Start` list.
+- Place it elsewhere with `"windows"` in a list of the `[bar]` section of the preferences file.
 
 ## Driving it with winshell inspect
 

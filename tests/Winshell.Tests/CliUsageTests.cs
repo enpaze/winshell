@@ -6,7 +6,7 @@ public class CliUsageTests
     [TestMethod]
     public void A_whole_number_pid_that_is_not_an_instance_exits_1()
     {
-        var result = WinshellCli.RunWithEmptyConfig(["kill", "--pid", "0"]);
+        var result = WinshellCli.RunWithEmptyConfig(["stop", "--pid", "0"]);
 
         result.AssertExitCode(1);
         Assert.AreEqual("", result.Output);

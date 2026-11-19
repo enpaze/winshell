@@ -32,7 +32,7 @@ internal static class SignInAccess
 
 internal sealed class WindowsStartupRegistry(
     string command,
-    string configRoot,
+    string shellsRoot,
     string runKey = SignInEntry.RunKey,
     string approvedKey = SignInEntry.ApprovedKey,
     Log? log = null) : IStartupBackend
@@ -88,8 +88,8 @@ internal sealed class WindowsStartupRegistry(
     private SignInVerdict Classified(string registered, bool off)
     {
         var wanted = CommandLine.ReadSignIn(command);
-        var project = wanted.NamesConfiguration ? SignInEntry.ProjectOf(wanted, configRoot, _log) : null;
-        var verdict = SignInVerdict.FromRun(registered, off, wanted.Program ?? "", configRoot, File.Exists,
+        var project = wanted.NamesShell ? SignInEntry.ProjectOf(wanted, shellsRoot, _log) : null;
+        var verdict = SignInVerdict.FromRun(registered, off, wanted.Program ?? "", shellsRoot, File.Exists,
             SignInEntry.Resolve, project, _log);
         return verdict with { HasEntry = true, OffInWindows = off, PointsElsewhere = !Starts(registered) };
     }
@@ -98,13 +98,13 @@ internal sealed class WindowsStartupRegistry(
     {
         var wantedLine = CommandLine.Parse(command);
         var wanted = CommandLine.ReadSignIn(command);
-        if (!wanted.NamesConfiguration)
+        if (!wanted.NamesShell)
             return wantedLine.SameArguments(CommandLine.Parse(actual));
         var seen = CommandLine.ReadSignIn(actual);
         return wanted.Program is { } here && seen.Program is { } started &&
                SignInEntry.SameInstall(started, here, SignInEntry.Resolve, _log) &&
-               SignInEntry.ProjectOf(wanted, configRoot, _log) is { } project &&
-               SignInEntry.Starts(seen, project, configRoot, _log);
+               SignInEntry.ProjectOf(wanted, shellsRoot, _log) is { } project &&
+               SignInEntry.Starts(seen, project, shellsRoot, _log);
     }
 }
 

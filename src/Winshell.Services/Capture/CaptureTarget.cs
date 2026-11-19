@@ -1,4 +1,4 @@
-using Winshell.Windows;
+using Winshell.AppWindows;
 
 namespace Winshell.Capture;
 

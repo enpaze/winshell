@@ -32,14 +32,14 @@ public sealed partial class InspectorTests : IDisposable
 
     private static PanelWindow Panel(FrameworkElement content)
     {
-        return new PanelWindow
+        return Shell.Current.Add(new PanelWindow
         {
-            Anchors = Edges.Top | Edges.Left,
+            Edge = Edge.Top,
+            Align = PanelAlign.Start,
             Width = 220,
             Height = 90,
-            Content = content,
-            Visible = true
-        };
+            Content = content
+        });
     }
 
     private static JsonElement Node(JsonElement node, string name)
@@ -105,6 +105,35 @@ public sealed partial class InspectorTests : IDisposable
         Assert.AreEqual(4, Node(content, "Level").GetProperty("value").GetDouble());
         Assert.IsTrue(Node(content, "Wifi").GetProperty("on").GetBoolean());
         Assert.DoesNotContain("hunter2", tree, StringComparison.Ordinal);
+    }
+
+    [TestMethod]
+    [TestCategory("Window")]
+    [DataRow("PanelWindow")]
+    [DataRow("PopupWindow")]
+    [DataRow("FloatingWindow")]
+    public async Task A_component_window_is_named_after_its_component_and_its_kind(string kind)
+    {
+        var (tree, found) = await ShellFixture.On(async shell =>
+        {
+            using ShellWindow window = kind switch
+            {
+                "PanelWindow" => shell.Add(new PanelWindow<Named> { Width = 220, Height = 40 }),
+                "PopupWindow" => shell.Add(new PopupWindow<Named> { Width = 220, Height = 40, Visible = true }),
+                _ => shell.Add(new FloatingWindow<Named> { Title = "Winshell test", Width = 220, Height = 120 })
+            };
+            await ShellFixture.LaidOut((FrameworkElement)window.Content!);
+            return (await Inspector.Run(shell, "tree", []), await Inspector.Run(shell, "click", ["Named", "Named"]));
+        });
+
+        Assert.AreEqual(kind, OpenWindow(tree, nameof(Named)).GetProperty("kind").GetString());
+        Assert.AreEqual("Clicked Named", found);
+    }
+
+    private sealed class Named : Microsoft.UI.Reactor.Core.Component
+    {
+        public override Microsoft.UI.Reactor.Core.Element Render() =>
+            Microsoft.UI.Reactor.Factories.Button("Named", () => { }).AutomationName("Named");
     }
 
     [TestMethod]

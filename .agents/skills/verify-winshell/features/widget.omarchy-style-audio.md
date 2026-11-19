@@ -12,9 +12,9 @@ The `audio` widget is a button at the end of the omarchy-style bar that shows th
 
 ## How to get to it (user POV)
 
-- Run `winshell new omarchy-style` and then `winshell run -c omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
-- The example registers it with `Widgets.Register<AudioWidget>("audio")` and places it in the bar's `End` list.
-- Place it elsewhere with `{ widget = "audio" }` in a list of the `[bar]` section of the preferences file.
+- Run `winshell new omarchy-style` and then `winshell run -s omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
+- The example finds `AudioWidget` as the widget `audio` and places it in the bar's `End` list.
+- Place it elsewhere with `"audio"` in a list of the `[bar]` section of the preferences file.
 - Choose the speaker glyph near the right end of the bar.
 
 ## Driving it with winshell inspect
@@ -35,5 +35,5 @@ Preconditions:
 
 - A PC or a CI runner with no playback device has an empty label and a collapsed button, and the step still passes. Read the label in `tree-<n>.json` to see which state the run proved.
 - Do not run `inspect click audio`: it opens Windows Settings on the user's desktop.
-- The omarchy-style shell hides Explorer's taskbar while it runs and puts it back when it exits. `winshell kill` ends it.
+- The omarchy-style shell hides Explorer's taskbar while it runs and puts it back when it exits. `winshell stop` ends it.
 - With headphones or a headset, the glyph is headphones even when muted. The label still says `muted`.

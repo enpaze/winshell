@@ -15,52 +15,53 @@ Logs are in `%LOCALAPPDATA%\winshell\run\<instance id>\log.txt`. A shell that ex
 
 | It says | What to do |
 | --- | --- |
+| `No shell project in <folder>, so nothing started. Run winshell new to make one.` | There is no shell, so there is nothing to run. Make one with `winshell new`, as the [guide](guide.md#create-one) shows. |
 | `No .csproj at <path>.` | `--path` names a folder without a `.csproj`, or a file that isn't there. |
-| `No config named "<name>" in <folder>.` | `--config` names a folder of the config folder that has no project. |
-| `Several configs in <folder>; pick one with -c: …` | The config folder has no project of its own and several subfolders with one. Run `winshell run -c <name>`. |
+| `No shell named "<name>" in <folder>.` | `--shell` names a folder of the shells folder that has no project. |
+| `Several shells in <folder>; pick one with -s: …` | The shells folder has no project of its own and several subfolders with one. Run `winshell run -s <name>`. |
 | `Several projects in <folder>; name one with -p: …` | The folder has more than one `.csproj`. Pass the file with `-p`. |
 | `<name> did not build.` | The build failed. The last good build is not started. The notice and the log have the compiler's lines. |
-| `<name> did not build.` and `NU1101: Unable to find package Winshell` | The `Winshell` package is not published yet. Pack it and add a package source for it, as [Create one](configuration.md#create-one) shows. |
+| `<name> did not build.` and `NU1101: Unable to find package Winshell` | The `Winshell` package is not published yet. Pack it and add a package source for it, as [Create one](guide.md#create-one) shows. |
 | `<name> has not been built. Run winshell run once to build it.` | `--no-build` found no program in `bin\shell`. |
-| `Building a configuration needs the .NET SDK…` | A build needs the SDK. `--no-build` of a program that is already built does not. |
-| Nothing, and it exits at once | There is no configuration, so there is nothing to run: make one as the [configuration guide](configuration.md#create-one) shows. Or `--no-duplicate` found this shell id already running, or a second start overlapped the first. `winshell list` shows the one that is running. |
-| `This shell is Winshell … and this winshell is …` | The CLI and the shell are different releases. Use the `winshell` that matches, or build the shell with this one. `kill` still works. |
+| `Building a shell needs the .NET SDK…` | A build needs the SDK. `--no-build` of a program that is already built does not. |
+| Nothing, and it exits at once | `--no-duplicate` found this shell name already running, or a second start overlapped the first. `winshell list` shows the one that is running. |
+| `This shell is Winshell … and this winshell is …` | The CLI and the shell are different releases. Use the `winshell` that matches, or build the shell with this one. `stop` still works. |
 | `Unknown command "<name>". Run winshell --help.` | The first word isn't a command. Options start with `-`. |
 
 ### Started from Start or at sign-in
 
-Those starts have no console window, so a Winshell that cannot start shows a dialog with the same text. **Open config folder** opens the folder the message is about. A console, including `winshell run -d` from a terminal, prints the text and shows no dialog.
+Those starts have no console window, so a Winshell that cannot start shows a dialog with the same text. **Open shell folder** opens the folder the message is about. A console, including `winshell run -d` from a terminal, prints the text and shows no dialog.
 
-Nothing in the dialog and nothing on screen means the shell is already running (`--no-duplicate`), or it started and the failure is in the log.
+No dialog and nothing on screen means there is no shell project, the shell is already running (`--no-duplicate`), or it started and the failure is in the log. `winshell run` in a terminal says which.
 
 ## The build failed
 
-A notice says the configuration did not build, with the compiler's lines:
+A notice says the shell did not build, with the compiler's lines:
 
 - **Open file** opens the project.
 - **Dismiss** closes the notice, as does Escape once you have clicked it.
 - The notice does not take the keyboard when it appears. To close it from the keyboard without clicking it, run `winshell ipc call notice dismiss`.
 
-`winshell reload` leaves the running instance up when the build fails. Fix the project and reload again. [`winshell dev`](configuration.md#develop-a-shell) is the loop while you are editing. Check names against the [reference](reference/index.md).
+`winshell reload` leaves the running instance up when the build fails. Fix the project and reload again. [`winshell dev`](guide.md#develop-a-shell) is the loop while you are editing. Check names against the [reference](reference/index.md).
 
 ## There are two taskbars
 
 Winshell does not hide or replace Explorer's taskbar unless your shell does, and it never restarts Explorer. A panel that reserves the bottom of the screen stacks with Explorer's taskbar. To leave Explorer's taskbar where it is and only get it out of the way, turn on **Automatically hide the taskbar** in Windows Settings > Personalization > Taskbar.
 
-To make your shell the only bar, set `shell.ExplorerTaskbar.Hidden = true`. Winshell then hides Explorer's taskbar window and releases the screen edge it reserved. It puts both back when it exits: quitting, Ctrl+C, `winshell kill`, or a crash. A shell that is replaced leaves the taskbar hidden for the next shell, which puts it back when that one exits. A crash that skips Winshell's own exit is caught by `winshell run`, which [puts the taskbar back](reference/command-line.md#crashes) and starts the shell again.
+To make your shell the only bar, set `shell.ExplorerTaskbar.Hidden = true`. Winshell then hides Explorer's taskbar window and releases the screen edge it reserved. It puts both back when it exits: quitting, Ctrl+C, `winshell stop`, or a crash. A shell that is replaced leaves the taskbar hidden for the next shell, which puts it back when that one exits. A crash that skips Winshell's own exit is caught by `winshell run`, which [puts the taskbar back](reference/command-line.md#crashes) and starts the shell again.
 
 Windows keeps a few hotkeys for its own taskbar while Explorer runs, such as `Win+T`, `Win+S`, `Win+A`, `Win+N`, and `Win+1` through `Win+9`.
 
 ## Explorer's taskbar is missing
 
-A shell that set `ExplorerTaskbar.Hidden` hid it. While that shell is still running, quit it with `winshell kill`. It puts Explorer's taskbar window back and reserves its edge again.
+A shell that set `ExplorerTaskbar.Hidden` hid it. While that shell is still running, quit it with `winshell stop`. It puts Explorer's taskbar window back and reserves its edge again.
 
-When only the shell ends, `winshell run` puts the taskbar back, for example after a native crash such as a stack overflow or `winshell kill --force`.
+When only the shell ends, `winshell run` puts the taskbar back, for example after a native crash such as a stack overflow or `winshell stop --force`.
 
 The window stays hidden, and the edge stays released, when nothing is left to do that:
 
 - `winshell run` was ended together with the shell, as `taskkill /F /T` on `winshell run` does.
-- The shell ran without `winshell run`, as a configuration's program started directly does.
+- The shell ran without `winshell run`, as a shell's program started directly does.
 
 Then bring the taskbar back yourself:
 
@@ -71,7 +72,7 @@ Explorer builds its taskbar again. Signing out and back in also starts Explorer 
 
 ## A change to the preferences file does nothing
 
-The [preferences file](configuration.md#preferences) keeps the values in use when it can't use what the file says, and writes why to the log, which `winshell log` shows. Only under `winshell dev` does a file that doesn't parse also show in a notice.
+The [preferences file](guide.md#preferences) keeps the values in use when it can't use what the file says, and writes why to the log, which `winshell log` shows. Only under `winshell dev` does a file that doesn't parse also show in a notice.
 
 - **`failed to parse <file>[line:column]: …`**, under `preferences`. The file is not valid TOML, so none of it is read until you fix that line and save. `winshell doctor` names the same line of the preferences file, even while the shell is not running.
 - **`<file>[line:column]: <key> should be <what it takes>, not <value>, so it was left unchanged`**, or another reason in place of "should be …". The file is read, but that one value isn't used. A switch is `true` or `false`, and a word is in quotes.
@@ -95,8 +96,8 @@ A shell sees no notifications until you allow access: it asks with `shell.Notifi
 
 ## Wi-Fi networks or Bluetooth devices are missing
 
-- **Wi-Fi:** scanning needs Windows' Wi-Fi access, which also needs location services on (Windows Settings > Privacy & security > Location). A shell asks for it with `Networking.RequestAccess()`. Without access, the adapters and connection still show, and the networks in range don't. See [networking](reference/winshell-network.md).
-- **Bluetooth:** nearby devices show only while the shell is discovering, and the radio has to be on. A configuration can set `BluetoothAdapter.Enabled`. See [Bluetooth](reference/winshell-bluetooth.md).
+- **Wi-Fi:** scanning needs Windows' Wi-Fi access, which also needs location services on (Windows Settings > Privacy & security > Location). A shell asks for it with `Network.RequestAccess()`. Without access, the adapters and connection still show, and the networks in range don't. See [Winshell.Network](reference/winshell-network.md).
+- **Bluetooth:** nearby devices show only while the shell is discovering, and the radio has to be on. A shell can set `BluetoothAdapter.Enabled`. See [Bluetooth](reference/winshell-bluetooth.md).
 
 ## Media controls show nothing
 
@@ -106,20 +107,20 @@ If something is playing and the media controls stay empty, look for `media: Wind
 
 - Only one instance in the Windows session hosts the tray icons. A second instance logs that it is waiting, and takes over within half a second when the first one exits.
 - Some apps add their icon only when they start, and never again when a new taskbar asks. NVIDIA Settings is one. Its icon stays on Explorer's taskbar and shows in Winshell once the app starts again while Winshell runs.
-- The volume, network and battery icons are Explorer's own, not tray icons. Winshell shows its own from `shell.Audio`, `shell.Networking` and `shell.Power`.
+- The volume, network and battery icons are Explorer's own, not tray icons. Winshell shows its own from `shell.Audio`, `shell.Network` and `shell.Power`.
 - An icon Windows Settings hides is in the overflow behind the chevron. Choose which icons show in Windows Settings > Personalization > Taskbar > Other system tray icons.
 
 See [the notification area](reference/winshell-tray.md).
 
 ## Winshell doesn't start when I sign in
 
-The sign-in entry starts your configuration. With none, it starts nothing. `install.ps1 -AutoStart` adds the entry, and the Sign-in check of `winshell doctor` says what is wrong with it:
+The sign-in entry starts your shell. With none, it starts nothing. `install.ps1 -AutoStart` adds the entry, and the Sign-in check of `winshell doctor` says what is wrong with it:
 
 - **Windows' Startup apps page turned it off.** Only that page (Windows Settings > Apps > Startup) can turn it back on. A Windows policy that keeps a packaged Winshell off is the same.
-- **The entry starts another configuration, or none.** An entry with no `--config` starts what `winshell run` would. With several configurations and none chosen, that is none, and signing in shows an error that lists them. `winshell use <name>` chooses one. `winshell doctor` names that command: in its Configuration check when it can't tell which one to start, and in the fix of its Sign-in check when the entry starts another.
+- **The entry starts another shell, or none.** An entry with no `--shell` starts what `winshell run` would. With several shells and none chosen, that is none, and signing in shows an error that lists them. `winshell use <name>` chooses one. `winshell doctor` names that command: in its Project check when it can't tell which one to start, and in the fix of its Sign-in check when the entry starts another.
 - **The unpackaged entry starts another `winshell.exe`**, as after unzipping an update into a new folder, or other options. Install Winshell again with `-AutoStart` to point the entry at the one you use. A packaged Winshell has no path to rewrite: Windows starts the package.
 
-The sign-in entry runs the last build. It does not build, so a broken edit and a missing SDK do not block signing in. `WINSHELL_CONFIG_DIR` applies at sign-in only when it is set for your user account.
+The sign-in entry runs the last build. It does not build, so a broken edit and a missing SDK do not block signing in. `WINSHELL_SHELLS_DIR` applies at sign-in only when it is set for your user account.
 
 ## Winshell crashed
 
@@ -136,6 +137,6 @@ A crash is a bug in Winshell. Please report it.
 - What you did, what you expected, and what happened.
 - `winshell --version`, and the Windows version from `winver`.
 - The log (`winshell log > log.txt`) and the crash report, if there is one. Look through them first: they have file paths and the names of the apps you run.
-- The smallest configuration that shows the problem.
+- The smallest shell that shows the problem.
 
 For a security problem, don't open an issue; follow the [security policy](https://github.com/enpaze/winshell/blob/main/.github/SECURITY.md).

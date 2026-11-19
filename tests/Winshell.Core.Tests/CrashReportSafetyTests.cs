@@ -127,7 +127,7 @@ public sealed class CrashReportSafetyTests : IDisposable
     public void Ordinary_text_is_left_alone()
     {
         const string text = "at Winshell.Runtime.Core.SignalSlot.Emit(Object[] args) in C:\\src\\Signals.cs:line 78\n" +
-                            "Passed: 5, Author: Dante, shell id 5f4dcc3b5aa765d61d8327deb882cf99, crash-20261029-140312-1234567Z-4321-panelwindow-in-taskbar-xaml.txt";
+                            "Passed: 5, Author: Dante, shell name 5f4dcc3b5aa765d61d8327deb882cf99, crash-20261029-140312-1234567Z-4321-panelwindow-in-taskbar-xaml.txt";
 
         Assert.AreEqual(text, CrashRedaction.Redact(text));
     }

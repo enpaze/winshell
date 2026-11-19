@@ -12,7 +12,7 @@ public class StartupErrorTests
     [DataRow(1, (int)StreamTarget.Other, false)]
     public void A_dialog_is_only_for_an_error_nobody_else_can_read(int window, int stderr, bool dialog)
     {
-        Assert.AreEqual(dialog, StartupError.NeedsDialog(window, (StreamTarget)stderr));
+        Assert.AreEqual(dialog, StartupError.Unread(window, (StreamTarget)stderr));
     }
 
     [TestMethod]

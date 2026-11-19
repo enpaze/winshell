@@ -8,13 +8,13 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
-public sealed record WidgetAreaProps(
+internal sealed record WidgetAreaProps(
     string Name = "",
     ImmutableArray<Placement>? Defaults = null,
     Orientation Orientation = Orientation.Horizontal,
     ShellStyle? Style = null);
 
-public sealed class WidgetArea : Component<WidgetAreaProps>
+internal sealed partial class WidgetArea : Component<WidgetAreaProps>
 {
     private static readonly IReadOnlyDictionary<string, object> EmptySettings = new Dictionary<string, object>();
 
@@ -29,20 +29,16 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         var window = UseRef<ShellWindow?>(null);
         var defaultsRef = UseRef<ImmutableArray<Placement>>(defaults);
         var styleRef = UseRef<ShellStyle?>(props.Style);
-        var popupStyle = UseRef<AreaPopupStyle?>(null);
+        var scopeRef = UseRef<StyleScope?>(null);
         var slot = UseRef<SectionStore?>(null);
         defaultsRef.Current = defaults;
         styleRef.Current = props.Style;
-        if (popupStyle.Current is null)
-        {
-            var created = new AreaPopupStyle { Style = () => styleRef.Current ?? Shell.Current.Style };
-            popupStyle.Current = created;
-        }
+        var scope = scopeRef.Current ??= new StyleScope { Style = () => styleRef.Current ?? Shell.Current.Style };
 
         var (_, bumpWindow) = UseReducer(0);
         var (_, bumpRemake) = UseReducer(0);
         var (_, bumpFile) = UseReducer(0);
-        UseEffect(() => () => popupStyle.Current?.Stop(), false);
+        UseEffect(() => () => scope.Stop(), false);
         UseEffect(StyleHost.FollowShellStyle(props.Style, () => bumpFile(pulse => pulse + 1)), props.Style);
 
         if (slot.Current is null || slot.Current.Name != props.Name)
@@ -86,7 +82,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             else
             {
                 context = new WidgetContext(Shell.Current, settings, props.Orientation, window.Current,
-                    popupStyle.Current!, placement.Widget);
+                    scope, placement.Widget);
                 if (i < shown.Count)
                     shown[i] = context;
                 else
@@ -101,7 +97,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             shown.RemoveRange(placements.Length, shown.Count - placements.Length);
 
         var stack = props.Orientation == Orientation.Vertical ? VStack(0, slots) : HStack(0, slots);
-        return stack.OnMount(element =>
+        return stack.Provide(StyleHost.InEffect, scope).OnMount(element =>
         {
             root.Current = element;
             if (element is FrameworkElement panel)
@@ -129,8 +125,8 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
 
         void Restyle(FrameworkElement element)
         {
-            if (StyleHost.Show(element, props.Style) && popupStyle.Current is { } live)
-                live.RaiseStyleChanged();
+            if (StyleHost.Show(element, props.Style))
+                scope.RaiseStyleChanged();
         }
     }
 
@@ -147,7 +143,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             try
             {
                 return ErrorBoundary(
-                    Widgets.Create(widget, context),
+                    context.Shell.WidgetRegistry.Create(widget, context),
                     error => Component<FailedPlacement, Failure>(new Failure("render", widget, area, error))
                         .WithKey("render"));
             }
@@ -249,17 +245,15 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         }
     }
 
-    private sealed class AreaPreferences(string name, Func<ImmutableArray<Placement>> defaults)
+    private sealed partial class AreaPreferences(string name, Func<ImmutableArray<Placement>> defaults)
         : Preferences(name, (_, value) => Placement.Check(value))
     {
+        [Preference]
         [TomlComment(
-            "The widgets, in order: each table names one and holds its settings. The list replaces the shell's whole\n" +
-            "default list, and widgets = [] leaves the area empty. Comment it out to use the shell's defaults again.")]
-        public IReadOnlyList<IReadOnlyDictionary<string, object?>>? Widgets
-        {
-            get;
-            set => Set(ref field, value);
-        }
+            "The widgets, in order: a widget's name, or a table that names one and holds its settings. The list\n" +
+            "replaces the shell's whole default list, and widgets = [] leaves the area empty. Comment it out to use the\n" +
+            "shell's defaults again.")]
+        public partial object? Widgets { get; set; }
 
         public ImmutableArray<Placement>? Placements => Widgets is { } rows ? Placement.Parse(rows) : null;
 

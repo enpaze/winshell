@@ -12,9 +12,7 @@
     <InternalsVisibleTo Include="Winshell.Services" />
     <InternalsVisibleTo Include="Winshell.Shell" />
     <InternalsVisibleTo Include="Winshell" />
-    <InternalsVisibleTo Include="Winshell.Core.Tests" />
-    <InternalsVisibleTo Include="Winshell.Services.Tests" />
-    <InternalsVisibleTo Include="Winshell.Shell.Tests" />
-    <InternalsVisibleTo Include="Winshell.Tests" />
+    <WinshellTestProject Include="$(MSBuildThisFileDirectory)..\..\tests\*\*.csproj" />
+    <InternalsVisibleTo Include="@(WinshellTestProject->'%(Filename)')" />
   </ItemGroup>
 </Project>

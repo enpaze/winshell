@@ -3,15 +3,14 @@ using System.Text;
 
 namespace Winshell;
 
-internal sealed record ShellIdentity(string ShellId, string DataDir, string StateDir, string CacheDir)
+internal sealed record ShellIdentity(string ShellName, string Data, string State, string Cache)
 {
     private IReadOnlyList<(string From, string To)> Earlier { get; init; } = [];
 
-    public static ShellIdentity Resolve(string program, ShellLocations locations, string? shellId, string? dataDir,
-        string? stateDir, string? cacheDir)
+    public static ShellIdentity Resolve(string program, ShellLocations locations, ShellProperties properties)
     {
-        var id = shellId ?? DefaultId(program, locations.ConfigRoot);
-        var earlier = shellId is null ? Hashed(program) : id;
+        var id = properties.ShellName ?? DefaultId(program, locations.ShellsRoot);
+        var earlier = properties.ShellName is null ? Hashed(program) : id;
         var relativeTo = ShellProject.FolderOf(program) ?? Path.GetDirectoryName(program)!;
         var moves = new List<(string, string)>();
 
@@ -24,16 +23,16 @@ internal sealed record ShellIdentity(string ShellId, string DataDir, string Stat
             return Path.Combine(root, "by-shell", id);
         }
 
-        return new ShellIdentity(id, Folder(dataDir, locations.DataRoot), Folder(stateDir, locations.StateRoot),
-            Folder(cacheDir, locations.CacheRoot))
+        return new ShellIdentity(id, Folder(properties.ShellDataDir, locations.DataRoot),
+            Folder(properties.ShellStateDir, locations.StateRoot), Folder(properties.ShellCacheDir, locations.CacheRoot))
         { Earlier = moves };
     }
 
-    private static string DefaultId(string program, string configRoot)
+    private static string DefaultId(string program, string shellsRoot)
     {
-        if (configRoot.Length > 0 && ShellProject.FolderOf(program) is { } folder)
+        if (shellsRoot.Length > 0 && ShellProject.FolderOf(program) is { } folder)
         {
-            var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(configRoot));
+            var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(shellsRoot));
             if (string.Equals(folder, root, StringComparison.OrdinalIgnoreCase))
                 return "root";
             if (string.Equals(Path.GetDirectoryName(folder), root, StringComparison.OrdinalIgnoreCase))

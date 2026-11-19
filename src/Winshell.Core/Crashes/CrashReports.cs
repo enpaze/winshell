@@ -30,8 +30,8 @@ internal readonly record struct CrashList(
 internal sealed partial class CrashReports(
     string folder,
     Log? log = null,
-    string shellId = "",
-    string configPath = "",
+    string shellName = "",
+    string program = "",
     string logPath = "")
 {
     private const int Keep = 50;
@@ -224,7 +224,7 @@ internal sealed partial class CrashReports(
         var text = new StringBuilder();
         text.AppendLine(Heading);
         text.AppendLine("This file stays on this PC. Passwords, tokens and keys Winshell recognizes are taken out,");
-        text.AppendLine("but read it before you attach it to a bug report: it has the paths of your config.");
+        text.AppendLine("but read it before you attach it to a bug report: it has the paths of your shell.");
         text.AppendLine();
         text.AppendLine(CultureInfo.InvariantCulture, $"Time: {time:yyyy-MM-dd HH:mm:ss.fff zzz}");
         text.AppendLine(CultureInfo.InvariantCulture, $"Winshell: {ProductVersion.Current.Text}");
@@ -232,10 +232,10 @@ internal sealed partial class CrashReports(
             $"Windows: {RuntimeInformation.OSDescription} ({RuntimeInformation.OSArchitecture})");
         text.AppendLine(CultureInfo.InvariantCulture, $".NET: {RuntimeInformation.FrameworkDescription}");
         text.AppendLine(CultureInfo.InvariantCulture, $"Process: {Environment.ProcessId}");
-        if (shellId.Length > 0)
-            text.AppendLine(CultureInfo.InvariantCulture, $"Shell id: {shellId}");
-        if (configPath.Length > 0)
-            text.AppendLine(CultureInfo.InvariantCulture, $"Config: {configPath}");
+        if (shellName.Length > 0)
+            text.AppendLine(CultureInfo.InvariantCulture, $"Shell name: {shellName}");
+        if (program.Length > 0)
+            text.AppendLine(CultureInfo.InvariantCulture, $"Program: {program}");
         text.AppendLine(CultureInfo.InvariantCulture, $"Where: {CrashRedaction.Redact(where)}");
         text.AppendLine(fatal ? ClosedLine : OpenLine);
         if (recovery.Length > 0)

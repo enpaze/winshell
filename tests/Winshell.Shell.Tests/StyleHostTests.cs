@@ -1,0 +1,86 @@
+using System.Runtime.CompilerServices;
+using Microsoft.UI.Xaml.Controls;
+
+namespace Winshell.ShellTests;
+
+[TestClass]
+public sealed class StyleHostTests
+{
+    [TestMethod]
+    public async Task A_style_made_off_the_UI_thread_shows_its_font_on_it()
+    {
+        var style = await Task.Run(() => new ShellStyle { FontFamily = "Consolas" });
+
+        var font = await ShellFixture.On(_ =>
+        {
+            var border = new Border();
+            StyleHost.Show(border, style);
+            return ((Microsoft.UI.Xaml.Media.FontFamily)border.Resources.MergedDictionaries[0]["ShellFontFamily"]).Source;
+        });
+
+        Assert.AreEqual("Consolas", font);
+    }
+
+    [TestMethod]
+    public async Task A_new_style_replaces_the_one_an_element_shows_after_its_wrapper_is_collected()
+    {
+        var sizes = await ShellFixture.On(_ =>
+        {
+            var panel = new StackPanel();
+            var first = Styled(panel, new ShellStyle { FontSize = 12 });
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            Assert.IsFalse(first.IsAlive, "The element's first wrapper outlived a collection, so this test proves nothing.");
+
+            var again = (Border)panel.Children[0];
+            StyleHost.ShowAlert(again, new ShellStyle { FontSize = 20 });
+            return again.Resources.MergedDictionaries.Select(dictionary => (double)dictionary["ShellFontSize"]).ToArray();
+        });
+
+        Assert.AreSequenceEqual([20d], sizes);
+    }
+
+    [TestMethod]
+    public async Task Showing_the_style_an_element_already_shows_changes_nothing_even_after_a_collection()
+    {
+        var changes = await ShellFixture.On(_ =>
+        {
+            var panel = new StackPanel { Children = { new Border() } };
+            var style = TestStyles.Other();
+            var first = StyleHost.Show((Border)panel.Children[0], style);
+            var again = StyleHost.Show((Border)panel.Children[0], style);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            var collected = StyleHost.Show((Border)panel.Children[0], style);
+            return (first, again, collected, ((Border)panel.Children[0]).Resources.MergedDictionaries.Count);
+        });
+
+        Assert.AreEqual((true, false, false, 1), changes);
+    }
+
+    [TestMethod]
+    public async Task Showing_an_equal_style_made_separately_keeps_the_resources_in_place()
+    {
+        var (changed, kept) = await ShellFixture.On(_ =>
+        {
+            var border = new Border();
+            StyleHost.Show(border, TestStyles.Other());
+            var shown = border.Resources.MergedDictionaries.Single();
+            var changed = StyleHost.Show(border, TestStyles.Other());
+            return (changed, ReferenceEquals(shown, border.Resources.MergedDictionaries.Single()));
+        });
+
+        Assert.AreEqual((false, true), (changed, kept));
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference Styled(StackPanel panel, ShellStyle style)
+    {
+        var border = new Border();
+        panel.Children.Add(border);
+        StyleHost.ShowAlert(border, style);
+        return new WeakReference(border);
+    }
+}

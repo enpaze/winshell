@@ -40,7 +40,7 @@ dotnet publish src\Winshell -c Release -o "$env:LOCALAPPDATA\winshell-dev"
 That puts `winshell.exe` in `%LOCALAPPDATA%\winshell-dev`, away from the folder the PowerShell installer uses. Add that folder to your `PATH` to run `winshell` from anywhere. Like a release, the build carries its own .NET runtime.
 
 - **To update a source build**, close Winshell, pull the newer source and publish it over the same folder.
-- **To uninstall one**, close Winshell, delete the `Winshell` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` if your shell set it, and delete its folder. Your configuration is in `%APPDATA%\winshell`, and logs, state and crash reports are in `%LOCALAPPDATA%\winshell`; delete them too if you don't want to keep them.
+- **To uninstall one**, close Winshell, delete the `Winshell` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` if your shell set it, and delete its folder. Your shell is in `%APPDATA%\winshell`, and logs, state and crash reports are in `%LOCALAPPDATA%\winshell`; delete them too if you don't want to keep them.
 
 ## Run the shell from source
 
@@ -48,15 +48,15 @@ That puts `winshell.exe` in `%LOCALAPPDATA%\winshell-dev`, away from the folder 
 dotnet run --project src/Winshell -- run -p ..\MyShell
 ```
 
-That builds the configuration project and runs it in a child process that it supervises. `-p` names the project: a folder with a `.csproj`, or the project file. `--no-build` starts the last build and does not compile. From another terminal:
+That builds the shell project and runs it in a child process that it supervises. `-p` names the project: a folder with a `.csproj`, or the project file. `--no-build` starts the last build and does not compile. From another terminal:
 
 ```powershell
 dotnet run --project src/Winshell -- list
 dotnet run --project src/Winshell -- log -t 20
-dotnet run --project src/Winshell -- kill -i <id>
+dotnet run --project src/Winshell -- stop -i <id>
 ```
 
-`winshell dev` is the edit loop. From source it is `dotnet run --project src/Winshell -- dev -p ..\MyShell`. It runs the configuration under `dotnet watch`, and Reactor's hot reload applies an edit to a component's `Render` in the running shell, without a restart. An edit .NET cannot apply restarts the shell. [Develop a shell](configuration.md#develop-a-shell) is the same path as an author sees it.
+`winshell dev` is the edit loop. From source it is `dotnet run --project src/Winshell -- dev -p ..\MyShell`. It runs the shell under `dotnet watch`, and Reactor's hot reload applies an edit to a component's `Render` in the running shell, without a restart. An edit .NET cannot apply restarts the shell. [Develop a shell](guide.md#develop-a-shell) is the same path as an author sees it.
 
 ## Formatting and style
 
@@ -92,6 +92,7 @@ The tests run on MSTest 4 and Microsoft.Testing.Platform. `scripts/test-framewor
 `pwsh -NoProfile scripts/build-template.ps1` compiles a temporary copy of the template against the current source libraries, with the repository's build and style policy and warnings as errors. It does not run a shell. It requires Git, .NET and PowerShell 7.
 
 - The original template project keeps its package reference and version placeholder.
+- The copy imports `Winshell.props` from the source, as the package does, so the template builds with [the package's usings](guide.md#the-packages-usings).
 - The full local check runs this command. CI runs it with the Shell suite's build, along with the solution's example and documentation sample projects and the reference generator's program entry point. All remain required through `ci`.
 - Validation against the packed library and live UI validation remain separate checks.
 
@@ -130,7 +131,7 @@ windowrule = ignore, exe:(winshell|winshellw|Winshell\..*Tests|Probe|Dev)\.exe
 
 ## See what you changed
 
-The [verify-winshell skill](../.agents/skills/verify-winshell/SKILL.md) is how to see a change working in a real shell, and how to verify a visual change. It builds `winshell` from this checkout, starts a shell in a private session under [Live UI with Winland running](#live-ui-with-winland-running), and drives it with `winshell inspect`, which reads the shell from inside without moving the user's pointer or focus. Its [feature map](../.agents/skills/verify-winshell/features/README.md) lists every feature a user can reach: each `winshell` command, each service on `Shell`, each widget the starter and the examples register, and each building block a user sees, with the steps that prove it.
+The [verify-winshell skill](../.agents/skills/verify-winshell/SKILL.md) is how to see a change working in a real shell, and how to verify a visual change. It builds `winshell` from this checkout, starts a shell in a private session under [Live UI with Winland running](#live-ui-with-winland-running), and drives it with `winshell inspect`, which reads the shell from inside without moving the user's pointer or focus. Its [feature map](../.agents/skills/verify-winshell/features/README.md) lists every feature a user can reach: each `winshell` command, each service on `Shell`, each widget the starter and the examples have, and each building block a user sees, with the steps that prove it.
 
 ```powershell
 pwsh .agents/skills/verify-winshell/scripts/launch.ps1                 # build winshell and start the feature shell
@@ -225,7 +226,7 @@ Install the lychee, actionlint and zizmor versions named in [`scripts/tool-pins.
 
 `pwsh scripts/pack.ps1` packs the `Winshell` library a shell project references into `artifacts/packages/`.
 
-- **The library** carries `Winshell.Native`, `Winshell.Core`, `Winshell.Services` and `Winshell.Shell`, and depends on `Microsoft.WindowsAppSDK.WinUI`, `Microsoft.WindowsAppSDK.Foundation`, `Microsoft.WindowsAppSDK.Runtime` and `Microsoft.UI.Reactor` at the versions in `Directory.Packages.props`. Runtime is pinned to the same Windows App SDK version as WinUI: Reactor's minimum is older, and that older package rejects a newer WinUI. CsWin32 generates Native's declarations at build time and is not a package consumer dependency.
+- **The library** carries `Winshell.Native`, `Winshell.Core`, `Winshell.Services` and `Winshell.Shell`, with `Winshell.Generators` under `analyzers/dotnet/cs`, and depends on `Microsoft.WindowsAppSDK.WinUI`, `Microsoft.WindowsAppSDK.Foundation`, `Microsoft.WindowsAppSDK.Runtime` and `Microsoft.UI.Reactor` at the versions in `Directory.Packages.props`. Runtime is pinned to the same Windows App SDK version as WinUI: Reactor's minimum is older, and that older package rejects a newer WinUI. CsWin32 generates Native's declarations at build time and is not a package consumer dependency.
 - **The library is not published to a feed.** `scripts/package.ps1` puts the library in each release.
 - The Package workflow runs the `TestCategory=Package` tests, which call `scripts/pack.ps1`, create the starter with `winshell new` and build and run it against that library.
 - `-Out` chooses the folder, and `-Version` overrides the release from `.release-please-manifest.json`.
@@ -248,6 +249,7 @@ It checks:
 - that every file a release uploads is there, and that the checksums match
 - the library in each zip and Store package: that version and no other
 - the architecture of each zip's binaries
+- that each zip's `Winshell*.dll` files are all on the SignPath artifact configuration, and that no zip carries `Winshell.Generators.dll`
 - the version the x64 `winshell.exe` reports
 - that every `winshell doctor` check runs from the x64 zip
 - the manifests, against the validator the pinned `wingetcreate` uses, downloaded from NuGet into `artifacts/tools/`
@@ -347,7 +349,7 @@ The docs are plain Markdown, read on GitHub or in an editor. `docs/agents/` is f
 
 - **A new reference page** goes into the list in `docs/reference/index.md`.
 - **Links between pages** are relative `.md` links, also to files outside `docs/`, such as `../GLOSSARY.md`. The `ci` job runs lychee offline over every Markdown file, with `--include-fragments`, and fails on a link to a file or a heading that isn't there.
-- **C# examples** in a `csharp` code block are checked by `DocsTests`: each one is text from a file the build compiles. Those files are `tests/Winshell.Shell.Tests/GuideSamples.cs`, which the test project builds, the template's `.cs` files in `templates/winshell`, which `scripts/build-template.ps1` builds.
+- **C# examples** in a `csharp` code block are checked by `DocsTests`: each one is text from a file the build compiles. Those files are `tests/Winshell.Shell.Tests/GuideSamples.cs`, which the test project builds, the template's `.cs` files in `templates/winshell`, which `scripts/build-template.ps1` builds, and the guide's widget library in `tests/Winshell.Package.Tests/MessageWidget`, which the `Package` tier builds against the packed package. The guide's project file for that library is the library's `.csproj`, and `DocsTests` checks that too.
 - **The reference** in `docs/reference/` has a page per namespace of the `Winshell` package (the public types of `Winshell.Shell`, `Winshell.Services` and `Winshell.Core`), `winshell.md` for `Winshell` and `winshell-<namespace>.md` for the others, starting with `# <namespace>` and an intro written by hand. `dotnet run scripts/generate-reference.cs` writes the rest, a `## Type` section for each public type with its members, and `DocsTests` fails when a page is not what it writes.
 - **Links to other sites** are checked by `links.yml`, on `main` and every Monday. That job isn't part of `check.ps1`.
 
@@ -357,7 +359,7 @@ A running shell reads these. None is needed to build or test.
 
 | Variable | What it does |
 | --- | --- |
-| `WINSHELL_CONFIG_DIR` | Folder named configs are loaded from, instead of `%APPDATA%\winshell`. |
+| `WINSHELL_SHELLS_DIR` | Folder named shells are loaded from, instead of `%APPDATA%\winshell`. |
 | `WINSHELL_LOCAL_DIR` | Folder used instead of `%LOCALAPPDATA%\winshell` for cache, state, data, instance logs and crash reports. A child process inherits it. |
 
 ### Installer
@@ -375,10 +377,10 @@ A running shell reads these. None is needed to build or test.
 
 | What | Where |
 | --- | --- |
-| User configurations | `%APPDATA%\winshell`, or `WINSHELL_CONFIG_DIR` when it is set |
-| Cache | `%LOCALAPPDATA%\winshell\cache\by-shell\<shell id>` |
-| State | `%LOCALAPPDATA%\winshell\state\by-shell\<shell id>` |
-| Per-shell data | `%LOCALAPPDATA%\winshell\data\by-shell\<shell id>` |
+| User shells | `%APPDATA%\winshell`, or `WINSHELL_SHELLS_DIR` when it is set |
+| Cache | `%LOCALAPPDATA%\winshell\cache\by-shell\<shell name>` |
+| State | `%LOCALAPPDATA%\winshell\state\by-shell\<shell name>` |
+| Per-shell data | `%LOCALAPPDATA%\winshell\data\by-shell\<shell name>` |
 | Instance logs | `%LOCALAPPDATA%\winshell\run\<id>\log.txt` |
 | Crash reports | `%LOCALAPPDATA%\winshell\crashes`, one `crash-<UTC time>Z-<process>-<where>.txt` each. See [Crash reports](#crash-reports). |
 | Run at sign-in | The `Winshell` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, or the package's startup task. See [The sign-in entry](#the-sign-in-entry). |
@@ -387,7 +389,7 @@ A running shell reads these. None is needed to build or test.
 
 Nothing is sent anywhere. What writes a report:
 
-- **A window** whose native window cannot be made or placed, or throws while drawing or handling input, writes one, closes, and opens again after 1, 2, 4, 8 and 16 seconds. A sixth failure within five minutes leaves it closed until the next reload.
+- **A window** whose native window cannot be made or placed, or throws while drawing or handling input, writes one, closes, and opens again after 1, 2, 4, 8 and 16 seconds. A sixth failure within five minutes leaves it closed until the shell starts again.
 - **A frame** the graphics device cannot draw is skipped and reported once per window.
 - **Work on the event loop** that throws, or a background task that fails, writes one per exception and stack.
 - **A crash that ends the process** writes one before the log closes.
@@ -401,16 +403,16 @@ What a report holds, and how long it stays:
 
 **An unpackaged Winshell** writes the `Winshell` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`:
 
-- when `install.ps1 -AutoStart` runs, which starts `winshell.exe` with no configuration, or
-- when a shell sets `StartupService.RunAtSignIn`, which starts this install's `winshell.exe run -p` of that configuration.
+- when `install.ps1 -AutoStart` runs, which starts `winshell.exe` with no shell, or
+- when a shell sets `StartupService.RunAtSignIn`, which starts this install's `winshell.exe run -p` of that shell.
 
 Either form runs under `conhost.exe --headless` with `--no-build` and `--no-duplicate`, so no console window opens and sign-in does not build. A failure before the shell starts shows a dialog.
 
-- The installer's command counts as this configuration only while a bare `winshell run` would start it, and that is read again each time the entry is read.
-- Environment variables are not copied: `WINSHELL_CONFIG_DIR` applies at sign-in only when it is set for the user.
+- The installer's command counts as this shell only while a bare `winshell run` would start it, and that is read again each time the entry is read.
+- Environment variables are not copied: `WINSHELL_SHELLS_DIR` applies at sign-in only when it is set for the user.
 - Windows' Startup apps page can turn the entry off; Winshell reads that and never changes it.
 - `winshell.exe` and `winshellw.exe` in the same folder are one install: an entry for either reads as this Winshell.
-- An entry that starts a Winshell in another folder, or another configuration, reads as `RegisteredElsewhere`, and setting `RunAtSignIn` rewrites it for this one.
+- An entry that starts a Winshell in another folder, or another shell, reads as `RegisteredElsewhere`, and setting `RunAtSignIn` rewrites it for this one.
 
 **A packaged Winshell** does not write that value. It enables the package's `windows.startupTask` (task id `Winshell`, declared off) which starts `winshellw.exe --no-build --no-duplicate`. Windows owns that launch, so a Store update does not leave a path, and `RegisteredElsewhere` stays false.
 
@@ -419,7 +421,7 @@ Either form runs under `conhost.exe --headless` with `--no-build` and `--no-dupl
 ### Network permissions
 
 - Reading connection profiles needs no setup.
-- Wi-Fi scanning/connecting requires Windows Wi-Fi/location access and an explicit `NetworkingService.RequestAccess()` call; packaged deployments also need `wiFiControl`.
+- Wi-Fi scanning/connecting requires Windows Wi-Fi/location access and an explicit `NetworkService.RequestAccess()` call; packaged deployments also need `wiFiControl`.
 - Setting `WifiEnabled` is a separate radio-control request, and a packaged app declares the `radios` device capability.
 - **In tests:** automated tests pass fake radios and fake radio access, and never call `Radio.SetStateAsync` or `Radio.RequestAccessAsync`. Native smoke tests only read state.
 
@@ -466,10 +468,10 @@ How a version is cut, tagged, stamped, and published is [Releasing](releasing.md
 │   ├── agents/                      # How agents work on this repo
 │   ├── reference/                   # A page per namespace
 │   ├── releasing.md                 # How a version is cut, tagged, stamped, and published
-│   ├── *.md                         # The configuration guide and troubleshooting
+│   ├── *.md                         # The shell guide and troubleshooting
 │   └── development.md               # Setup, environment, and every command
 ├── examples/
-│   └── omarchy-style/               # A configuration in the style of Omarchy's top bar; the solution builds it
+│   └── omarchy-style/               # A shell in the style of Omarchy's top bar; the solution builds it
 ├── packaging/
 │   ├── logo.svg                     # The app logo; scripts/render-logo.cs renders its PNGs and winshell.ico
 │   ├── msix/                        # The Microsoft Store package's manifest and assets
@@ -478,14 +480,15 @@ How a version is cut, tagged, stamped, and published is [Releasing](releasing.md
 ├── scripts/                         # Check, test, pack, package, install and release scripts; docs/development.md lists them
 ├── templates/                       # Starter sources copied by winshell new
 ├── src/
-│   ├── Winshell/                    # winshell.exe: the CLI, which builds and supervises a configuration
+│   ├── Winshell/                    # winshell.exe: the CLI, which builds and supervises a shell
 │   ├── Winshell.Native/             # Win32/COM declarations, unsafe interop and the safe operations over them
 │   ├── Winshell.Core/               # The event loop contract, the log, ObservableObject, TOML files, crash reports, and the file helpers they use
+│   ├── Winshell.Generators/         # The source generator the package ships as an analyzer: it writes a [Preference] property's accessors
 │   ├── Winshell.Services/           # Windows services, instances, and the control pipe
 │   ├── Winshell.Shell/              # Shell.Run and WinUI windows
-│   └── Winshell.Package/            # Packs Native, Core, Services and Shell as the single Winshell package
+│   └── Winshell.Package/            # Packs Native, Core, Services, Shell and the generator as the single Winshell package
 ├── tests/
-│   ├── Winshell.Architecture.Tests/ # The layer and feature backend boundaries, and no hand-written unsafe code in WinUI projects
+│   ├── Winshell.Architecture.Tests/ # The layer and feature backend boundaries, no hand-written unsafe code in WinUI projects, and the generator's errors
 │   ├── Winshell.Core.Tests/         # The log, TOML files, crash reports and file helpers
 │   ├── Winshell.Services.Tests/     # The services; only the category Window opens a window
 │   ├── Winshell.Shell.Tests/        # A real shell and the event-loop contract; only the category Window opens a window

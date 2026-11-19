@@ -28,11 +28,11 @@ public sealed class DoctorProjectTests : IDisposable
 
         Assert.AreSequenceEqual(["project", "built", "build"], checks.Select(c => c.Id));
         Assert.AreEqual(CheckStatus.Warn, checks[0].Status);
-        Assert.AreEqual("No configuration project, so winshell run starts nothing.", checks[0].Message);
+        Assert.AreEqual("No shell project, so winshell run starts nothing.", checks[0].Message);
         Assert.AreEqual("Run winshell new to make one.", checks[0].Fix);
         foreach (var c in checks.Skip(1))
             Assert.AreEqual(CheckStatus.Pass, c.Status);
-        Assert.Contains("No configuration project", checks[1].Message, StringComparison.Ordinal);
+        Assert.Contains("No shell project", checks[1].Message, StringComparison.Ordinal);
     }
 
     [TestMethod]
@@ -44,8 +44,8 @@ public sealed class DoctorProjectTests : IDisposable
         var project = Assert.ContainsSingle(c => c.Id == "project", Checks(_root));
 
         Assert.AreEqual(CheckStatus.Fail, project.Status);
-        Assert.Contains("pick one with -c: a, b", project.Message, StringComparison.Ordinal);
-        Assert.Contains("winshell -c", project.Fix!, StringComparison.Ordinal);
+        Assert.Contains("pick one with -s: a, b", project.Message, StringComparison.Ordinal);
+        Assert.Contains("winshell -s", project.Fix!, StringComparison.Ordinal);
     }
 
     [TestMethod]
@@ -92,9 +92,9 @@ public sealed class DoctorProjectTests : IDisposable
         Assert.AreEqual("A file in Mine is newer than the program.", stale[2].Message);
     }
 
-    private static IReadOnlyList<DoctorCheck> Checks(string configRoot)
+    private static IReadOnlyList<DoctorCheck> Checks(string shellsRoot)
     {
-        var project = ShellProject.Find(null, null, configRoot, out var problem);
+        var project = ShellProject.Find(null, null, shellsRoot, out var problem);
         return DoctorProject.Checks(project, problem);
     }
 

@@ -1,11 +1,12 @@
-using OmarchyStyle;
-using Winshell;
-
-internal static class Program
+Shell.Run(shell =>
 {
-    [STAThread]
-    private static void Main()
+    shell.ExplorerTaskbar.Hidden = true;
+    shell.Style = TokyoNight.Style;
+    shell.Add(new Bar
     {
-        Shell.Run<AppShell>();
-    }
-}
+        Edge = Edge.Top,
+        Start = ["windows", new Placement("workspaces", new Dictionary<string, object> { ["icons"] = true })],
+        Center = ["clock"],
+        End = ["tray", "bluetooth", "network", "audio", "screen", "battery"]
+    });
+});

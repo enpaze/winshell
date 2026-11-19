@@ -1,16 +1,12 @@
-using Microsoft.UI.Reactor;
-using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
-using Winshell;
-using static Microsoft.UI.Reactor.Factories;
 
 namespace OmarchyStyle;
 
-public sealed class BluetoothWidget : Component<WidgetContext>
+public sealed class BluetoothWidget : Widget
 {
     public override Element Render()
     {
-        var bluetooth = UseObservableTree(Props.Shell.Bluetooth);
+        var bluetooth = UseObservableTree(Shell.Bluetooth);
         var devices = bluetooth.Devices;
         var adapter = bluetooth.DefaultAdapter;
         var connected = devices.Where(device => device.Connected).Select(device => device.Name).ToList();
@@ -18,7 +14,7 @@ public sealed class BluetoothWidget : Component<WidgetContext>
             : !adapter.Enabled ? (Glyphs.BluetoothOff, "Bluetooth off")
             : connected.Count > 0 ? (Glyphs.BluetoothConnected, string.Join('\n', connected))
             : (Glyphs.BluetoothOn, "Bluetooth on");
-        return Button(glyph, () => Props.Shell.Open("ms-settings:bluetooth"))
+        return Button(glyph, () => Shell.Open("ms-settings:bluetooth"))
             .ToolTip(tip)
             .AutomationName(tip)
             .AutomationId("bluetooth")

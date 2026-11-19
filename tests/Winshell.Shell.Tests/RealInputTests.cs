@@ -34,15 +34,15 @@ public sealed class RealInputTests
 
     private static PanelWindow Panel(FrameworkElement content)
     {
-        return new PanelWindow
+        return Shell.Current.Add(new PanelWindow
         {
-            Anchors = Edges.Bottom | Edges.Right,
+            Edge = Edge.Bottom,
+            Align = PanelAlign.End,
             Margins = new Thickness(0, 0, 200, 200),
             Width = 260,
             Height = 100,
-            Content = content,
-            Visible = true
-        };
+            Content = content
+        });
     }
 
     private static Border Spot()

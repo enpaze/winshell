@@ -1,0 +1,126 @@
+using System.Diagnostics;
+using System.Globalization;
+using System.Text;
+
+namespace Winshell.Tests;
+
+[TestClass]
+public sealed class ShellPartsQuitTests : ProbeBuild, IDisposable
+{
+    private readonly string _dir = TempFolder.NewPath();
+    private readonly string _config;
+    private readonly string _local;
+    private readonly StringBuilder _printed = new();
+    private readonly List<Process> _started = [];
+
+    public ShellPartsQuitTests()
+    {
+        _config = Path.Combine(_dir, "config");
+        _local = Path.Combine(_dir, "local");
+        Directory.CreateDirectory(_config);
+    }
+
+    [TestMethod]
+    public void Quitting_disposes_each_added_part_once_last_first_and_after_the_authors_own_dispose()
+    {
+        var probe = Launch("quit");
+
+        Assert.IsTrue(probe.WaitForExit(TimeSpan.FromSeconds(60)), "The probe did not quit.");
+        ChildProcess.Exited("The probe", probe, _printed).AssertExitCode(0);
+        Assert.AreSequenceEqual(Disposed(probe.Id, "quit"), File.ReadAllLines(Path.Combine(_config, "parts-quit.txt")));
+        Assert.IsEmpty(CrashReports());
+    }
+
+    [TestMethod]
+    public void A_restart_disposes_the_added_parts_in_the_process_that_hands_over()
+    {
+        var probe = Launch("restart");
+
+        Assert.IsTrue(probe.WaitForExit(TimeSpan.FromSeconds(60)), "The probe did not restart.");
+        ChildProcess.Exited("The probe", probe, _printed).AssertExitCode(0);
+        Assert.AreSequenceEqual([.. Disposed(probe.Id, "restart"), $"{probe.Id} restarted True"],
+            File.ReadAllLines(Path.Combine(_config, "parts-restart.txt")));
+
+        var next = Path.Combine(_config, "parts-quit.txt");
+        var started = Array.Empty<string>();
+        Wait.Until(() => (started = Lines(next)) is [var line, ..] && line.EndsWith(" added", StringComparison.Ordinal),
+            "the next probe to start", TimeSpan.FromSeconds(60));
+        var nextId = int.Parse(started[0].Split(' ')[0], CultureInfo.InvariantCulture);
+        Assert.AreNotEqual(probe.Id, nextId);
+        WaitForExit(nextId);
+        Assert.AreSequenceEqual(Disposed(nextId, "quit"), File.ReadAllLines(next));
+        Assert.IsEmpty(CrashReports());
+    }
+
+    private Process Launch(string ending)
+    {
+        File.WriteAllText(Path.Combine(_config, ProbeShell.PartsMarker), ending);
+        var probe = ProbeShell.Launch(_config, _local, [], _printed);
+        _started.Add(probe);
+        return probe;
+    }
+
+    private static string[] Disposed(int pid, string ending)
+    {
+        return
+        [
+            $"{pid} dispose disposed added",
+            $"{pid} {ending}",
+            $"{pid} dispose disposed refused",
+            $"{pid} dispose second refused",
+            $"{pid} dispose first refused"
+        ];
+    }
+
+    private static string[] Lines(string path)
+    {
+        if (!File.Exists(path))
+            return [];
+        using var reader = new StreamReader(SharedFile.OpenToRead(path));
+        return reader.ReadToEnd().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    }
+
+    private string[] CrashReports()
+    {
+        var crashes = Path.Combine(_local, "crashes");
+        return Directory.Exists(crashes) ? Directory.GetFiles(crashes) : [];
+    }
+
+    private void WaitForExit(int pid)
+    {
+        Process next;
+        try
+        {
+            next = Process.GetProcessById(pid);
+        }
+        catch (ArgumentException)
+        {
+            return;
+        }
+
+        _started.Add(next);
+        Assert.IsTrue(next.WaitForExit(TimeSpan.FromSeconds(60)), "The next probe did not quit.");
+    }
+
+    public void Dispose()
+    {
+        foreach (var process in _started)
+        {
+            if (!process.HasExited)
+            {
+                process.Kill();
+                process.WaitForExit();
+            }
+
+            process.Dispose();
+        }
+
+        try
+        {
+            Directory.Delete(_dir, true);
+        }
+        catch (IOException)
+        {
+        }
+    }
+}

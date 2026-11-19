@@ -15,16 +15,21 @@ internal static class StartupError
         {
         }
 
-        if (NeedsDialog(ProcessConsole.Window(), ProcessConsole.Target(StandardStream.Error)))
+        if (Unread())
             Dialog(message, folder);
     }
 
-    internal static bool NeedsDialog(nint consoleWindow, StreamTarget stderr)
+    internal static bool Unread()
+    {
+        return Unread(ProcessConsole.Window(), ProcessConsole.Target(StandardStream.Error));
+    }
+
+    internal static bool Unread(nint consoleWindow, StreamTarget stderr)
     {
         return consoleWindow == 0 && stderr is not (StreamTarget.File or StreamTarget.Pipe);
     }
 
-    internal static string? FolderFor(string? path, string configRoot)
+    internal static string? FolderFor(string? path, string shellsRoot)
     {
         if (path is not null)
         {
@@ -35,7 +40,7 @@ internal static class StartupError
             return parent is not null && Directory.Exists(parent) ? parent : null;
         }
 
-        return Directory.Exists(configRoot) ? configRoot : null;
+        return Directory.Exists(shellsRoot) ? shellsRoot : null;
     }
 
     private static void Dialog(string message, string? folder)
@@ -43,8 +48,8 @@ internal static class StartupError
         try
         {
             var pressed = TaskDialog.ShowError("Winshell", "Winshell could not start", message,
-                folder is null ? null : (OpenConfigFolder, "Open config folder"));
-            if (pressed == OpenConfigFolder && folder is not null)
+                folder is null ? null : (OpenShellFolder, "Open shell folder"));
+            if (pressed == OpenShellFolder && folder is not null)
                 Open(folder);
         }
         catch (Exception e) when (e is not OutOfMemoryException)
@@ -65,5 +70,5 @@ internal static class StartupError
         }
     }
 
-    private const int OpenConfigFolder = 100;
+    private const int OpenShellFolder = 100;
 }

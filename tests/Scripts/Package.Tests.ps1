@@ -1,19 +1,50 @@
 Describe 'The binaries Winshell signs' {
-    It 'are the same for each runtime in SignPath''s artifact configuration, and include every assembly built from src' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot '../../scripts/lib/Release.ps1')
         [xml] $config = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../../packaging/signpath/artifact-configuration.xml')
-        $runtimes = $config.'artifact-configuration'.'zip-file'.'pe-file-set'.include.path | Group-Object { ($_ -split '/')[0] }
-        $assemblies = Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '../../src') -Recurse -Filter '*.csproj' | ForEach-Object {
-            $text = Get-Content -Raw -LiteralPath $_.FullName
-            if ($text -notmatch '<IsPackable>true</IsPackable>') {
-                ($text -match '<AssemblyName>([^<]+)</AssemblyName>' ? $Matches[1] : $_.BaseName) + '.dll'
-            }
+        $script:Runtimes = $config.'artifact-configuration'.'zip-file'.'pe-file-set'.include.path | Group-Object { ($_ -split '/')[0] }
+
+        function script:New-Payload([string[]] $Files) {
+            $dir = Join-Path $TestDrive ([guid]::NewGuid())
+            foreach ($file in $Files) { New-Item -ItemType File -Force -Path (Join-Path $dir $file) | Out-Null }
+            $dir
         }
 
-        $runtimes.Name | Sort-Object | Should -Be 'win-arm64', 'win-x64'
-        $binaries = $runtimes[0].Group | ForEach-Object { ($_ -split '/')[1] } | Sort-Object
-        $runtimes[1].Group | ForEach-Object { ($_ -split '/')[1] } | Sort-Object | Should -Be $binaries
-        $assemblies | Should -Not -BeNullOrEmpty
-        foreach ($assembly in $assemblies) { $binaries | Should -Contain $assembly }
+        function script:Get-Signed([string] $Runtime) {
+            ($script:Runtimes | Where-Object Name -EQ $Runtime).Group | ForEach-Object { $_.Substring($Runtime.Length + 1) }
+        }
+    }
+
+    It 'are the same for each runtime in SignPath''s artifact configuration' {
+        $script:Runtimes.Name | Sort-Object | Should -Be 'win-arm64', 'win-x64'
+        Get-Signed 'win-arm64' | Sort-Object | Should -Be (Get-Signed 'win-x64' | Sort-Object)
+    }
+
+    It 'cover every Winshell assembly a <_> payload carries' -ForEach 'win-x64', 'win-arm64' {
+        $signed = Get-Signed $_
+        $payload = New-Payload ($signed + 'coreclr.dll', 'Microsoft.UI.Xaml.dll', 'Winshell.Shell.pdb', 'Winshell.Shell.pri')
+
+        { Assert-WinshellSigned $payload $signed 'the zip' } | Should -Not -Throw
+    }
+
+    It 'stop a payload that carries <File> unsigned' -ForEach @(
+        @{ File = 'Winshell.Extra.dll' }
+        @{ File = 'en-US/Winshell.Shell.resources.dll' }
+    ) {
+        $signed = Get-Signed 'win-x64'
+        $payload = New-Payload ($signed + $File)
+
+        { Assert-WinshellSigned $payload $signed 'the zip' } | Should -Throw "the zip carries $File unsigned.*"
+    }
+
+    It 'stop a payload that carries the preference generator as <File>, even when it is on the signing list' -ForEach @(
+        @{ File = 'Winshell.Generators.dll' }
+        @{ File = 'analyzers/Winshell.Generators.dll' }
+    ) {
+        $signed = @(Get-Signed 'win-x64') + $File
+        $payload = New-Payload $signed
+
+        { Assert-WinshellSigned $payload $signed 'the zip' } | Should -Throw "the zip carries $File, an analyzer only the package ships.*"
     }
 }
 

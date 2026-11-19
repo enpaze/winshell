@@ -29,18 +29,7 @@ internal sealed class EndpointNode : AudioGraphNode
         try
         {
             Description = PropertyStore.ReadString(store, CoreAudio.DeviceFriendlyName) ?? deviceId;
-            InterfaceName = PropertyStore.ReadString(store, CoreAudio.DeviceDescription) ?? "";
-            var formFactor = PropertyStore.ReadUInt(store, CoreAudio.EndpointFormFactor);
-            Properties = new Dictionary<string, string>
-            {
-                [AudioProperty.EndpointId] = Name,
-                [AudioProperty.FriendlyName] = Description,
-                [AudioProperty.InterfaceName] = InterfaceName,
-                [AudioProperty.Flow] = render ? "playback" : "recording",
-                [AudioProperty.Adapter] = PropertyStore.ReadString(store, CoreAudio.InterfaceFriendlyName) ?? Description,
-                [AudioProperty.Icon] = IconName(formFactor, render),
-                [AudioProperty.FormFactor] = FormFactorName(formFactor)
-            };
+            FormFactor = FormFactorOf(PropertyStore.ReadUInt(store, CoreAudio.EndpointFormFactor));
             format = PropertyStore.ReadBlob(store, CoreAudio.EngineDeviceFormat);
         }
         finally
@@ -109,7 +98,7 @@ internal sealed class EndpointNode : AudioGraphNode
 
     public override IDisposable? KeepRunning()
     {
-        if (IsPlayback || Released)
+        if (Type == AudioNodeType.PlaybackDevice || Released)
             return null;
         if (_keepAliveCount++ == 0)
             try
@@ -224,7 +213,7 @@ internal sealed class EndpointNode : AudioGraphNode
         control.GetState(out var state);
         control.GetProcessId(out var processId);
         if (state == AudioSessionState.AudioSessionStateExpired
-            || (!IsPlayback && (control.IsSystemSoundsSession() == 0 || processId == Environment.ProcessId)))
+            || (Type == AudioNodeType.RecordingDevice && (control.IsSystemSoundsSession() == 0 || processId == Environment.ProcessId)))
             return null;
         try
         {
@@ -258,32 +247,20 @@ internal sealed class EndpointNode : AudioGraphNode
         Winshell.Native.Com.Release(_device);
     }
 
-    private static string IconName(uint? formFactor, bool render)
+    internal static AudioFormFactor FormFactorOf(uint? formFactor)
     {
-        return formFactor switch
+        return (EndpointFormFactor?)formFactor switch
         {
-            1 => "audio-speakers",
-            3 => "audio-headphones",
-            5 or 6 => "audio-headset",
-            4 => "audio-input-microphone",
-            _ => render ? "audio-card" : "audio-input-microphone"
-        };
-    }
-
-    private static string FormFactorName(uint? formFactor)
-    {
-        return formFactor switch
-        {
-            0 => "network",
-            1 => "speaker",
-            2 => "line",
-            3 => "headphone",
-            4 => "microphone",
-            5 => "headset",
-            6 => "handset",
-            8 => "spdif",
-            9 => "hdmi",
-            _ => "unknown"
+            EndpointFormFactor.RemoteNetworkDevice => AudioFormFactor.Network,
+            EndpointFormFactor.Speakers => AudioFormFactor.Speakers,
+            EndpointFormFactor.LineLevel => AudioFormFactor.Line,
+            EndpointFormFactor.Headphones => AudioFormFactor.Headphones,
+            EndpointFormFactor.Microphone => AudioFormFactor.Microphone,
+            EndpointFormFactor.Headset => AudioFormFactor.Headset,
+            EndpointFormFactor.Handset => AudioFormFactor.Handset,
+            EndpointFormFactor.SPDIF => AudioFormFactor.Spdif,
+            EndpointFormFactor.DigitalAudioDisplayDevice => AudioFormFactor.Hdmi,
+            _ => AudioFormFactor.Unknown
         };
     }
 

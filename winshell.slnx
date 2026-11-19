@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Winshell.Native/Winshell.Native.csproj" />
     <Project Path="src/Winshell.Core/Winshell.Core.csproj" />
+    <Project Path="src/Winshell.Generators/Winshell.Generators.csproj" />
     <Project Path="src/Winshell.Services/Winshell.Services.csproj" />
     <Project Path="src/Winshell.Shell/Winshell.Shell.csproj" />
     <Project Path="src/Winshell.Package/Winshell.Package.csproj" />

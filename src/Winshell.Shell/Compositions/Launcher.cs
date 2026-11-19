@@ -5,7 +5,6 @@ using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Reactor.Hosting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Windows.Foundation;
 using Windows.System;
 using Winshell.Apps;
 using Winshell.Input;
@@ -13,26 +12,19 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
-public sealed class Launcher : ObservableObject, IDisposable
+public sealed partial class Launcher : ObservableObject, IShellPart
 {
     private const double Width = 640;
     private const double Height = 420;
 
     private readonly Shell _shell = Shell.Current;
-    private readonly Hotkey _hotkey;
+    private Hotkey? _hotkey;
     private LauncherPreferences? _preferences;
     private PopupWindow? _window;
     private ReactorHostControl? _host;
     private bool _visible;
     private int _opened;
     private bool _disposed;
-
-    public Launcher()
-    {
-        _hotkey = _shell.NewHotkey();
-        _hotkey.Pressed += (_, _) => Toggle();
-        _shell.Loop.Post(Start);
-    }
 
     public string Name
     {
@@ -50,19 +42,11 @@ public sealed class Launcher : ObservableObject, IDisposable
 
     public void Show()
     {
-        if (_disposed || _visible)
+        if (_disposed || _visible || _preferences is null)
             return;
         var window = _window ??= MakeWindow();
         _opened++;
         _host!.Props = new LauncherViewProps(_opened, Commands, Run, Hide);
-        var screen = Where();
-        window.Screen = screen;
-        if (screen is not null)
-        {
-            var area = screen.WorkArea;
-            window.Rect = new Rect(area.X + (area.Width - Width) / 2, area.Y + area.Height / 5, Width, Height);
-        }
-
         window.Visible = true;
         window.Focus();
         Set(ref _visible, true, nameof(Visible));
@@ -84,28 +68,14 @@ public sealed class Launcher : ObservableObject, IDisposable
             Show();
     }
 
-    private void Start()
+    void IShellPart.Start()
     {
-        if (_disposed)
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_preferences is not null)
             return;
         _preferences = new LauncherPreferences(this);
+        _hotkey = _shell.Hotkey(_preferences.Hotkey, Toggle);
         _preferences.PropertyChanged += (_, _) => _hotkey.Sequence = _preferences.Hotkey;
-        _hotkey.Sequence = _preferences.Hotkey;
-    }
-
-    private ScreenInfo? Where()
-    {
-        if (_shell.WindowList.ActiveWindow?.Screens is [var active, ..])
-            return active;
-        ScreenInfo? first = null;
-        foreach (var screen in _shell.Screens)
-        {
-            if (screen.IsPrimary)
-                return screen;
-            first ??= screen;
-        }
-
-        return first;
     }
 
     private PopupWindow MakeWindow()
@@ -119,12 +89,15 @@ public sealed class Launcher : ObservableObject, IDisposable
             VerticalContentAlignment = VerticalAlignment.Stretch,
             IsTabStop = false
         };
-        var window = new PopupWindow
+        var window = _shell.Add(new PopupWindow
         {
+            Position = PopupPosition.Top,
+            Width = Width,
+            Height = Height,
             GrabFocus = true,
             Corners = WindowCorners.Round,
             Content = _host
-        };
+        });
         window.Dismissed += Hide;
         return window;
     }
@@ -147,20 +120,18 @@ public sealed class Launcher : ObservableObject, IDisposable
         if (_disposed)
             return;
         _disposed = true;
-        _hotkey.Dispose();
+        _shell.Remove(this);
+        _hotkey?.Dispose();
         _preferences?.Dispose();
         _host?.Dispose();
         _window?.Dispose();
     }
 
-    private sealed class LauncherPreferences(Launcher launcher) : Preferences(launcher.Name)
+    private sealed partial class LauncherPreferences(Launcher launcher) : Preferences(launcher.Name)
     {
+        [Preference]
         [TomlComment("The hotkey that opens and closes the launcher, such as Alt+Space or Ctrl+Shift+K.")]
-        public string Hotkey
-        {
-            get;
-            set => Set(ref field, value);
-        } = launcher.Hotkey;
+        public partial string Hotkey { get; set; } = launcher.Hotkey;
     }
 }
 

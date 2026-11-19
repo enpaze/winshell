@@ -32,14 +32,14 @@ internal sealed class FakeAudioBackend : IAudioBackend
     {
     }
 
-    public FakeAudioNode Add(FakeAudioNode node)
+    public FakeGraphNode Add(FakeGraphNode node)
     {
         _nodes.Add(node);
         NodeAdded?.Invoke(node);
         return node;
     }
 
-    public void Remove(FakeAudioNode node)
+    public void Remove(FakeGraphNode node)
     {
         _nodes.Remove(node);
         NodeRemoved?.Invoke(node);
@@ -53,15 +53,16 @@ internal sealed class FakeAudioBackend : IAudioBackend
     }
 }
 
-internal sealed class FakeAudioNode : AudioGraphNode
+internal sealed class FakeGraphNode : AudioGraphNode
 {
     private static int _nextId;
 
-    public FakeAudioNode(AudioNodeType type, string description = "Node", AudioChannel[]? channels = null,
-        FakeAudioNode? device = null)
+    public FakeGraphNode(AudioNodeType type, string description = "Node", AudioChannel[]? channels = null,
+        FakeGraphNode? device = null, AudioFormFactor formFactor = AudioFormFactor.Unknown)
         : base(Interlocked.Increment(ref _nextId))
     {
         Type = type;
+        FormFactor = formFactor;
         Device = device;
         Description = description;
         Name = description;
@@ -69,7 +70,7 @@ internal sealed class FakeAudioNode : AudioGraphNode
         ApplyAudio(new float[Channels.Length], false);
     }
 
-    public override FakeAudioNode? Device { get; }
+    public override FakeGraphNode? Device { get; }
 
     public FakeMeter? FakeMeter { get; init; }
 
@@ -92,7 +93,7 @@ internal sealed class FakeAudioNode : AudioGraphNode
     public void Rename(string description)
     {
         Description = description;
-        ApplyProperties();
+        ApplyDescription();
     }
 
     public override void SetVolumes(IReadOnlyList<float> volumes)

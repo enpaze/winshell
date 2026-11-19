@@ -13,7 +13,7 @@ internal static class IpcCommand
                           winshell ipc listen <target> <signal>
                    """,
         Usage = """
-                winshell ipc [-i <id> | --pid <pid> | -c <name> | -p <path>] <command>
+                winshell ipc [-i <id> | --pid <pid> | -s <name> | -p <path>] <command>
                   show [-j]                             list IPC targets. -j prints JSON
                   call <target> <function> [args...]    call a function and print the result
                   call notice dismiss                   close Winshell's own notice

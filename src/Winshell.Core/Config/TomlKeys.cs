@@ -18,7 +18,10 @@ internal sealed class TomlKeys
         All =
         [
             .. owner.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => p.SetMethod is { IsPublic: true } && p.GetIndexParameters().Length == 0)
+                .Where(p => p.IsDefined(typeof(PreferenceAttribute)) && p.GetIndexParameters().Length == 0)
+                .Select(p => p.DeclaringType!.GetProperty(p.Name,
+                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)!)
+                .Where(p => p.SetMethod is not null)
                 .OrderBy(p => p.MetadataToken)
                 .Select(p => new TomlKey(p))
         ];
@@ -105,7 +108,7 @@ internal sealed class TomlKeys
         _warn($"{where}: {key.Name} {reason}, so it was left unchanged");
     }
 
-    private static string Expected(Type type)
+    internal static string Expected(Type type)
     {
         var target = Nullable.GetUnderlyingType(type) ?? type;
         if (target.IsGenericType && target.GetGenericTypeDefinition() == typeof(IReadOnlyList<>))
@@ -147,7 +150,7 @@ internal sealed class TomlKeys
         return text[..(char.IsHighSurrogate(text[99]) ? 99 : 100)] + "…";
     }
 
-    private static bool TryConvert(object value, Type type, [NotNullWhen(true)] out object? converted)
+    internal static bool TryConvert(object value, Type type, [NotNullWhen(true)] out object? converted)
     {
         var target = Nullable.GetUnderlyingType(type) ?? type;
         converted = null;

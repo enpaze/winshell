@@ -7,18 +7,18 @@ using Winshell.Session;
 
 namespace Winshell.Diagnostics;
 
-public sealed record DoctorCheck(
+internal sealed record DoctorCheck(
     string Id,
     string Title,
     CheckStatus Status,
     string Message,
     string? Fix = null);
 
-internal sealed record DoctorInstance(string Id, int Pid, string Program, string LogPath);
+internal sealed record DoctorInstance(string Id, int Pid, string Program, string Logs);
 
-internal sealed record DoctorContext(ShellLocations Locations, string? Path, string? Config);
+internal sealed record DoctorContext(ShellLocations Locations, string? Path, string? Shell, RunProcess Run);
 
-public static class Doctor
+internal static class Doctor
 {
     internal const string BugReports = "https://github.com/enpaze/winshell/issues/new/choose";
 
@@ -26,7 +26,7 @@ public static class Doctor
 
     internal static IReadOnlyList<DoctorCheck> Run(DoctorContext context)
     {
-        return Report(context, ChooseUser(context.Locations.ConfigRoot, context.Path, context.Config));
+        return Report(context, ChooseUser(context.Locations.ShellsRoot, context.Path, context.Shell));
     }
 
     private readonly record struct Chosen(
@@ -35,14 +35,14 @@ public static class Doctor
         string Folder,
         string? SignInProject);
 
-    private static Chosen ChooseUser(string configRoot, string? path, string? config)
+    private static Chosen ChooseUser(string shellsRoot, string? path, string? shell)
     {
-        var project = ShellProject.Find(path, config, configRoot, out var problem);
-        var folder = project?.Folder ?? AskedFolder(configRoot, path, config);
+        var project = ShellProject.Find(path, shell, shellsRoot, out var problem);
+        var folder = project?.Folder ?? AskedFolder(shellsRoot, path, shell);
         return new Chosen(project, problem, folder, project?.ProjectFile);
     }
 
-    private static Chosen ChooseProcess(string configRoot, string program)
+    private static Chosen ChooseProcess(string shellsRoot, string program)
     {
         try
         {
@@ -53,28 +53,28 @@ public static class Doctor
         {
         }
 
-        var project = ShellProject.Find(null, null, configRoot, out var problem);
-        return new Chosen(project, problem, configRoot, null);
+        var project = ShellProject.Find(null, null, shellsRoot, out var problem);
+        return new Chosen(project, problem, shellsRoot, null);
     }
 
-    private static string AskedFolder(string configRoot, string? path, string? config)
+    private static string AskedFolder(string shellsRoot, string? path, string? shell)
     {
         if (path is not null)
             return Path.GetFullPath(path);
-        if (config is not null)
-            return Path.Combine(configRoot, config);
-        return configRoot;
+        if (shell is not null)
+            return Path.Combine(shellsRoot, shell);
+        return shellsRoot;
     }
 
     private static IReadOnlyList<DoctorCheck> Report(DoctorContext context, Chosen chosen)
     {
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         var process = Environment.ProcessPath ?? "";
-        var configFolder = chosen.Folder;
+        var shellsFolder = chosen.Folder;
         var projectChecks = DoctorProject.Checks(chosen.Project, chosen.Problem).ToList();
         if (projectChecks[0].Status == CheckStatus.Pass && chosen.Project is { } project &&
-            DoctorProbe.PreferencesProblem(context.Locations, project) is { } preferences)
-            projectChecks[0] = WithPreferences(projectChecks[0], preferences);
+            context.Locations.ShellsRoot.Length > 0)
+            projectChecks[0] = WithPreferences(projectChecks[0], context.Locations, project, context.Run);
         var instances = ListedInstances(context.Locations.Instances);
         var monitors = new Lazy<IReadOnlyList<DoctorScreens.MonitorFacts>>(DoctorProbe.Monitors);
         DoctorCheck[] checks =
@@ -89,7 +89,7 @@ public static class Doctor
             .. projectChecks,
             Guard("folders", "Folders", () => Folders(
                 [
-                    ("the config folder", configFolder, DoctorProbe.CanWrite(configFolder)),
+                    ("the shells folder", shellsFolder, DoctorProbe.CanWrite(shellsFolder)),
                     ("its local folder", context.Locations.LocalRoot, DoctorProbe.CanWrite(context.Locations.LocalRoot))
                 ],
                 instances.Where(i => DoctorProbe.IsElevated(i.Pid)).Select(i => i.Id).ToList(),
@@ -102,8 +102,8 @@ public static class Doctor
             Guard("signIn", "Sign-in", () =>
             {
                 var project = chosen.SignInProject;
-                return DoctorSignIn.Check(SignInProcess.Read(process, context.Locations.ConfigRoot, File.Exists,
-                    SignInEntry.Resolve, project), context.Locations.ConfigRoot, project);
+                return DoctorSignIn.Check(SignInProcess.Read(process, context.Locations.ShellsRoot, File.Exists,
+                    SignInEntry.Resolve, project), context.Locations.ShellsRoot, project);
             }),
             Guard("notifications", "Notifications", () => Notifications(NotificationListenerAccess.Read().ToString())),
             Guard("instances", "Running", () => Instances(instances)),
@@ -179,21 +179,34 @@ public static class Doctor
         return new DoctorCheck("dotnet", ".NET", CheckStatus.Pass, $"{description}, {how}");
     }
 
-    private static DoctorCheck WithPreferences(DoctorCheck check, string problem)
+    private static DoctorCheck WithPreferences(DoctorCheck check, ShellLocations locations, ShellProject project,
+        RunProcess run)
     {
+        var preferences = DoctorProbe.PreferencesFile(locations, project, run, out var unread);
+        List<(string Problem, string Fix)> notes = [];
+        if (unread is not null)
+            notes.Add((
+                $"The shell name could not be read from {Path.GetFileName(project.ProjectFile)}, so doctor assumed \"{Path.GetFileNameWithoutExtension(preferences)}\" and checked {preferences}: {unread}",
+                "Make the project load with dotnet msbuild, then run winshell doctor again."));
+        if (DoctorProbe.PreferencesProblem(preferences) is { } problem)
+            notes.Add((problem,
+                "Correct that file and save. Winshell keeps the last values it could read until the file parses."));
+        if (notes.Count == 0)
+            return check;
+        var message = check.Message.EndsWith('.') ? check.Message : check.Message + ".";
         return check with
         {
             Status = CheckStatus.Warn,
-            Message = check.Message.EndsWith('.') ? $"{check.Message} {problem}" : $"{check.Message}. {problem}",
-            Fix = "Correct that file and save. Winshell keeps the last values it could read until the file parses."
+            Message = string.Join(' ', [message, .. notes.Select(note => note.Problem)]),
+            Fix = string.Join(' ', notes.Select(note => note.Fix))
         };
     }
 
-    public static IReadOnlyList<DoctorCheck> ForThisProcess(string configRoot)
+    public static IReadOnlyList<DoctorCheck> ForThisProcess(string shellsRoot)
     {
         return Report(
-            new DoctorContext(ShellLocations.Current with { ConfigRoot = configRoot }, null, null),
-            ChooseProcess(configRoot, Environment.ProcessPath ?? ""));
+            new DoctorContext(ShellLocations.Current with { ShellsRoot = shellsRoot }, null, null, ShellProject.Run),
+            ChooseProcess(shellsRoot, Environment.ProcessPath ?? ""));
     }
 
     private static List<DoctorInstance> ListedInstances(Instances instances)
@@ -220,7 +233,7 @@ public static class Doctor
         {
             var list = string.Join("; ", locked.Select(f => $"{f.Name}, {f.Path}"));
             return new DoctorCheck("folders", "Folders", CheckStatus.Fail, $"Winshell cannot write {list}.{who}",
-                "Give your account write access to it in the folder's Properties > Security, or move it with WINSHELL_CONFIG_DIR.");
+                "Give your account write access to it in the folder's Properties > Security, or move it with WINSHELL_SHELLS_DIR.");
         }
 
         if (elevatedInstances.Count > 0)
@@ -255,7 +268,7 @@ public static class Doctor
             return new DoctorCheck("instances", "Running", CheckStatus.Pass, "No Winshell is running");
         var list = string.Join("; ",
             instances.Select(i => string.Create(CultureInfo.InvariantCulture,
-                $"{i.Id} (process {i.Pid}) runs {i.Program}, log {i.LogPath}")));
+                $"{i.Id} (process {i.Pid}) runs {i.Program}, log {i.Logs}")));
         return new DoctorCheck("instances", "Running", CheckStatus.Pass, list);
     }
 

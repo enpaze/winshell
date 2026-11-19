@@ -50,7 +50,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Workspaces` | ObservableList of [WinlandWorkspace](#winlandworkspace), read-only |
 | `RawEvent` | Action of [WinlandEvent](#winlandevent) |
 | `Dispatch(string request)` | void |
-| `Dispose()` | void |
 | `MonitorFor([ScreenInfo](winshell.md#screeninfo)? screen)` | [WinlandMonitor](#winlandmonitor)? |
 | `RefreshMonitors()` | void |
 | `RefreshWindows()` | void |
@@ -70,7 +69,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Monitor` | [WinlandMonitor](#winlandmonitor)?, read-only |
 | `Title` | string, read-only |
 | `Urgent` | bool, read-only |
-| `Window` | [AppWindow](winshell-windows.md#appwindow)?, read-only |
+| `Window` | [AppWindow](winshell-appwindows.md#appwindow)?, read-only |
 | `Workspace` | [WinlandWorkspace](#winlandworkspace)?, read-only |
 
 ## WinlandWorkspace
@@ -80,6 +79,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | Member | Type |
 | --- | --- |
 | `Active` | bool, read-only |
+| `AppIcons` | IReadOnlyList of string, read-only |
 | `Focused` | bool, read-only |
 | `HasFullscreen` | bool, read-only |
 | `Id` | int, read-only |

@@ -32,11 +32,11 @@ public sealed partial class NoDuplicateTests : ProbeBuild, IDisposable
         await AssertExitedQuietly(same);
         Assert.IsFalse(first.HasExited);
 
-        var second = Start(true, "other");
+        var second = Start(true, ProbeShell.Other);
         Assert.IsTrue(first.HasExited);
         Assert.AreEqual(0, first.ExitCode);
         Assert.IsFalse(second.HasExited);
-        Assert.AreEqual("other", Assert.ContainsSingle(Running()).ShellId);
+        Assert.AreEqual("other", Assert.ContainsSingle(Running()).ShellName);
         AssertHeld("other");
     }
 
@@ -48,6 +48,17 @@ public sealed partial class NoDuplicateTests : ProbeBuild, IDisposable
 
         await AssertExitedQuietly(Launch(true));
         Assert.IsFalse(first.HasExited);
+    }
+
+    [TestMethod]
+    public async Task A_copy_of_the_shell_at_another_path_is_still_a_duplicate()
+    {
+        var first = Start(false);
+        Assert.AreNotEqual(Path.GetFullPath(ProbeShell.Program), Path.GetFullPath(ProbeShell.Copy));
+
+        await AssertExitedQuietly(Launch(true, ProbeShell.Copy));
+        Assert.IsFalse(first.HasExited);
+        Assert.AreEqual(first.Id, Assert.ContainsSingle(Running()).Pid);
     }
 
     [TestMethod]
@@ -73,8 +84,8 @@ public sealed partial class NoDuplicateTests : ProbeBuild, IDisposable
     {
         ProbeShell.Detach(_config, _local, ["--no-duplicate", "-d"]).AssertExitCode(0);
 
-        Wait.Until(() => Running().Any(i => i.ShellId == "probe"), "the background shell");
-        var pid = Listed().Single(i => i.GetProperty("shellId").GetString() == "probe").GetProperty("pid").GetInt32();
+        Wait.Until(() => Running().Any(i => i.ShellName == "probe"), "the background shell");
+        var pid = Listed().Single(i => i.GetProperty("shellName").GetString() == "probe").GetProperty("pid").GetInt32();
         var child = Process.GetProcessById(pid);
         _started.Add(child);
         AssertHeld("probe");
@@ -83,18 +94,18 @@ public sealed partial class NoDuplicateTests : ProbeBuild, IDisposable
         Assert.IsFalse(child.HasExited);
     }
 
-    private Process Start(bool duplicate, string? shellId = null)
+    private Process Start(bool duplicate, string? program = null)
     {
-        var process = Launch(duplicate, shellId);
+        var process = Launch(duplicate, program);
         Wait.Until(() => Running().Any(i => i.Pid == process.Id),
             $"instance {process.Id} in winshell list");
         return process;
     }
 
-    private Process Launch(bool duplicate, string? shellId = null)
+    private Process Launch(bool duplicate, string? program = null)
     {
         var printed = new StringBuilder();
-        var process = ProbeShell.Launch(_config, _local, duplicate ? ["--no-duplicate"] : [], shellId, printed);
+        var process = ProbeShell.Launch(_config, _local, duplicate ? ["--no-duplicate"] : [], printed, program);
         _started.Add(process);
         _printed[process.Id] = printed;
         return process;
@@ -108,9 +119,9 @@ public sealed partial class NoDuplicateTests : ProbeBuild, IDisposable
         Assert.AreEqual("", _printed[process.Id].ToString());
     }
 
-    private void AssertHeld(string shellId)
+    private void AssertHeld(string shellName)
     {
-        using var mutex = Mutex.OpenExisting(MutexName(shellId));
+        using var mutex = Mutex.OpenExisting(MutexName(shellName));
         var taken = false;
         try
         {
@@ -129,9 +140,9 @@ public sealed partial class NoDuplicateTests : ProbeBuild, IDisposable
         Assert.IsFalse(taken);
     }
 
-    private string MutexName(string shellId)
+    private string MutexName(string shellName)
     {
-        return HeldMutex.NoDuplicateName(new ShellLocations(_config, _local), shellId);
+        return HeldMutex.NoDuplicateName(new ShellLocations(_config, _local), shellName);
     }
 
     private List<JsonElement> Listed()
@@ -162,7 +173,7 @@ public sealed partial class NoDuplicateTests : ProbeBuild, IDisposable
             {
                 if (!process.HasExited)
                 {
-                    Run("kill", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
+                    Run("stop", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
                     if (!process.WaitForExit(8_000))
                         process.Kill(true);
                 }

@@ -1,5 +1,5 @@
 using Winshell.Native;
-using Winshell.Windows;
+using Winshell.AppWindows;
 
 namespace Winshell.Services.Tests;
 
@@ -36,7 +36,8 @@ public sealed class VirtualDesktopBackendTests
         if (foreground.Length > 0)
             Assert.IsTrue(Guid.TryParse(foreground, out _));
 
-        using var service = new VirtualDesktopsService(new ManualEventLoop(), new Log(), VirtualDesktopBackend.Shared);
+        var service = new VirtualDesktopsService(new ManualEventLoop(), new Log(), VirtualDesktopBackend.Shared);
+        using var stopService = service.Stopping();
         Assert.IsTrue(service.Supported);
         Assert.AreEqual(desktops.Count, service.Desktops.Count);
         foreach (var row in service.Desktops)

@@ -15,7 +15,7 @@
 ## How to get to it (user POV)
 
 - Run `winshell inspect tree` in a terminal.
-- Pick the shell with `--pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>`. With none, the command acts on the only running shell.
+- Pick the shell with `--pid <pid>`, `-i <id>`, `-s <name>` or `-p <path>`. With none, the command acts on the only running shell.
 - `winshell list` shows the process id to pass to `--pid`.
 
 ## Driving it with winshell inspect

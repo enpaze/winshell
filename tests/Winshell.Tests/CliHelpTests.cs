@@ -5,9 +5,9 @@ public class CliHelpTests
 {
     [TestMethod]
     [DataRow("list", "--help", "list")]
-    [DataRow("kill", "--help", "kill")]
-    [DataRow("kill", "-h", "kill")]
-    [DataRow("kill", "/?", "kill")]
+    [DataRow("stop", "--help", "stop")]
+    [DataRow("stop", "-h", "stop")]
+    [DataRow("stop", "/?", "stop")]
     [DataRow("log", "--help", "log")]
     [DataRow("ipc", "--help", "ipc")]
     [DataRow("doctor", "--help", "doctor")]

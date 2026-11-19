@@ -29,10 +29,10 @@ public sealed class NotificationTests
         return changes;
     }
 
-    private static async Task<NotificationListener> ListenerAsync(FakeBackend backend, ManualEventLoop? loop = null)
+    private static async Task<NotificationsService> ListenerAsync(FakeBackend backend, ManualEventLoop? loop = null)
     {
         loop ??= new ManualEventLoop();
-        var listener = new NotificationListener(loop, Log.Default, backend);
+        var listener = new NotificationsService(loop, Log.Default, backend);
         await listener.RefreshAsync();
         loop.Process();
         return listener;
@@ -41,7 +41,8 @@ public sealed class NotificationTests
     [TestMethod]
     public async Task Notifications_are_newest_first_and_grouped_by_app()
     {
-        using var listener = await ListenerAsync(new FakeBackend());
+        var listener = await ListenerAsync(new FakeBackend());
+        using var stopListener = listener.Stopping();
 
         listener.Apply(Snapshot(Toast(1, minutes: 1), Toast(2, minutes: 3), Toast(3, "Chat", minutes: 2),
             Toast(4, "")));
@@ -54,7 +55,8 @@ public sealed class NotificationTests
     [TestMethod]
     public async Task A_notification_that_stays_is_the_same_object_and_only_what_differs_changes()
     {
-        using var listener = await ListenerAsync(new FakeBackend());
+        var listener = await ListenerAsync(new FakeBackend());
+        using var stopListener = listener.Stopping();
         listener.Apply(Snapshot(Toast(1), Toast(2, minutes: 1)));
         var kept = listener.Notifications.Single(n => n.Id == 1);
         var group = listener.Groups[0];
@@ -72,7 +74,8 @@ public sealed class NotificationTests
     [TestMethod]
     public async Task Added_fires_after_the_collections_hold_a_new_notification_and_once_for_each()
     {
-        using var listener = await ListenerAsync(new FakeBackend());
+        var listener = await ListenerAsync(new FakeBackend());
+        using var stopListener = listener.Stopping();
         var seen = new List<(uint Id, int Count, int Groups)>();
         listener.NotificationAdded += n => seen.Add((n.Id, listener.Notifications.Count, listener.Groups.Count));
 
@@ -86,7 +89,8 @@ public sealed class NotificationTests
     public async Task Do_not_disturb_follows_the_notification_mode()
     {
         var backend = new FakeBackend { Current = Snapshot() with { Mode = NotificationMode.Unknown } };
-        using var listener = await ListenerAsync(backend);
+        var listener = await ListenerAsync(backend);
+        using var stopListener = listener.Stopping();
         Assert.AreEqual(NotificationState.Unknown, listener.DoNotDisturbState);
         listener.Apply(Snapshot());
         Assert.AreEqual(NotificationState.Off, listener.DoNotDisturbState);
@@ -97,19 +101,20 @@ public sealed class NotificationTests
         Assert.AreEqual(NotificationState.On, listener.FocusState);
         Assert.AreSequenceEqual(
         [
-            nameof(NotificationListener.FocusState), nameof(NotificationListener.NotificationMode),
-            nameof(NotificationListener.DoNotDisturbState)
+            nameof(NotificationsService.FocusState), nameof(NotificationsService.NotificationMode),
+            nameof(NotificationsService.DoNotDisturbState)
         ], changes);
         changes.Clear();
 
         listener.Apply(Snapshot() with { Mode = NotificationMode.PriorityOnly, Focus = NotificationState.On });
-        Assert.AreSequenceEqual([nameof(NotificationListener.NotificationMode)], changes);
+        Assert.AreSequenceEqual([nameof(NotificationsService.NotificationMode)], changes);
     }
 
     [TestMethod]
     public async Task Losing_access_empties_the_lists_and_says_why()
     {
-        using var listener = await ListenerAsync(new FakeBackend());
+        var listener = await ListenerAsync(new FakeBackend());
+        using var stopListener = listener.Stopping();
         listener.Apply(Snapshot(Toast(1)));
 
         listener.Apply(Snapshot() with { AccessStatus = NotificationAccessStatus.Denied });
@@ -123,7 +128,8 @@ public sealed class NotificationTests
     public async Task Dismissing_removes_the_notification_and_a_gone_one_cannot_be_dismissed()
     {
         var backend = new FakeBackend();
-        using var listener = await ListenerAsync(backend);
+        var listener = await ListenerAsync(backend);
+        using var stopListener = listener.Stopping();
         listener.Apply(Snapshot(Toast(1)));
         var notification = listener.Notifications[0];
 
@@ -141,7 +147,8 @@ public sealed class NotificationTests
     public async Task A_failed_dismissal_stays_reports_why_and_clear_all_goes_on()
     {
         var backend = new FakeBackend { Refuse = 1 };
-        using var listener = await ListenerAsync(backend);
+        var listener = await ListenerAsync(backend);
+        using var stopListener = listener.Stopping();
         listener.Apply(Snapshot(Toast(1), Toast(2, minutes: 1), Toast(3, minutes: 2)));
         var failures = new List<string>();
         listener.OperationFailed += failures.Add;
@@ -157,7 +164,8 @@ public sealed class NotificationTests
     public async Task A_group_dismisses_only_its_own_app()
     {
         var backend = new FakeBackend();
-        using var listener = await ListenerAsync(backend);
+        var listener = await ListenerAsync(backend);
+        using var stopListener = listener.Stopping();
         listener.Apply(Snapshot(Toast(1), Toast(2), Toast(3, "Chat")));
         var group = listener.Groups.Single(g => g.AppId == "Mail");
 
@@ -172,7 +180,8 @@ public sealed class NotificationTests
     {
         var backend = new FakeBackend();
         var loop = new ManualEventLoop();
-        using var listener = await ListenerAsync(backend, loop);
+        var listener = await ListenerAsync(backend, loop);
+        using var stopListener = listener.Stopping();
         listener.Apply(Snapshot(Toast(1)));
         backend.Next =
             new TaskCompletionSource<NotificationSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -191,7 +200,8 @@ public sealed class NotificationTests
     {
         var backend = new FakeBackend { AccessError = new UnauthorizedAccessException("No") };
         var loop = new ManualEventLoop();
-        using var listener = await ListenerAsync(backend, loop);
+        var listener = await ListenerAsync(backend, loop);
+        using var stopListener = listener.Stopping();
         var failures = new List<string>();
         listener.OperationFailed += failures.Add;
 
@@ -209,7 +219,8 @@ public sealed class NotificationTests
     {
         var backend = new FakeBackend { AccessError = new FormatException("Odd") };
         var loop = new ManualEventLoop();
-        using var listener = await ListenerAsync(backend, loop);
+        var listener = await ListenerAsync(backend, loop);
+        using var stopListener = listener.Stopping();
 
         await listener.RequestAccessAsync();
         loop.Process();
@@ -229,7 +240,7 @@ public sealed class NotificationTests
 
         backend.Current = Snapshot(Toast(1));
         await listener.RefreshAsync();
-        listener.Dispose();
+        listener.Stop();
         loop.Process();
 
         Assert.IsEmpty(listener.Notifications);
@@ -255,7 +266,7 @@ public sealed class NotificationTests
                 Environment.CurrentManagedThreadId))
         };
         var caller = Environment.CurrentManagedThreadId;
-        using (new NotificationListener(new ManualEventLoop(), Log.Default, backend))
+        using (new NotificationsService(new ManualEventLoop(), Log.Default, backend).Stopping())
         {
             var (pool, id) = await seen.Task.WaitAsync(CurrentTest.Cancellation);
 
@@ -269,7 +280,8 @@ public sealed class NotificationTests
     {
         var backend = new FakeBackend();
         var loop = new ManualEventLoop();
-        using var listener = await ListenerAsync(backend, loop);
+        var listener = await ListenerAsync(backend, loop);
+        using var stopListener = listener.Stopping();
 
         backend.Current = Snapshot() with { Mode = NotificationMode.AlarmsOnly };
         loop.Advance(TimeSpan.FromSeconds(10));
@@ -282,7 +294,8 @@ public sealed class NotificationTests
     {
         var logo = new FakeLogo([.. Png(2, 2), .. Guid.NewGuid().ToByteArray()]);
         var loop = new ManualEventLoop();
-        using var listener = await ListenerAsync(new FakeBackend(), loop);
+        var listener = await ListenerAsync(new FakeBackend(), loop);
+        using var stopListener = listener.Stopping();
         var appId = "Mail." + Guid.NewGuid().ToString("N");
 
         listener.Apply(Snapshot(Toast(1, appId, logo: logo)));
@@ -306,7 +319,8 @@ public sealed class NotificationTests
         byte[] png = [.. Png(2, 2), .. Guid.NewGuid().ToByteArray()];
         var logo = new FakeLogo(png, gate);
         var loop = new ManualEventLoop();
-        using var listener = await ListenerAsync(new FakeBackend(), loop);
+        var listener = await ListenerAsync(new FakeBackend(), loop);
+        using var stopListener = listener.Stopping();
         var appId = "Mail." + Guid.NewGuid().ToString("N");
         var posted = 0;
         loop.Woken += () => Interlocked.Increment(ref posted);

@@ -7,7 +7,7 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
     private static readonly TimeSpan Interval = TimeSpan.FromMilliseconds(33);
 
     private readonly IEventLoop _loop;
-    private AudioNode? _node;
+    private AudioVolume? _audio;
     private bool _enabled = true;
     private double _peak;
     private double[] _peaks = [];
@@ -17,21 +17,26 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
     private IDisposable? _keepRunning;
     private IAudioMeter? _meter;
 
-    public AudioPeakMonitor(IEventLoop loop)
+    public AudioPeakMonitor()
+        : this(EventLoop.Current)
+    {
+    }
+
+    internal AudioPeakMonitor(IEventLoop loop)
     {
         _loop = loop;
     }
 
-    public AudioNode? Node
+    public AudioVolume? Audio
     {
-        get => Read(_node);
+        get => Read(_audio);
         set
         {
-            if (_node == value)
+            if (_audio == value)
                 return;
-            _node?.Removed -= Restart;
+            _audio?.Removed -= Restart;
             value?.Removed += Restart;
-            Set(ref _node, value);
+            Set(ref _audio, value);
             Restart();
         }
     }
@@ -55,14 +60,14 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
     private void Restart()
     {
         Stop();
-        _meter = !_disposed && _enabled && _node is { IsRemoved: false } ? _node.Node.Meter : null;
+        _meter = !_disposed && _enabled && _audio is { IsRemoved: false } ? _audio.Node.Meter : null;
         if (_meter is null)
         {
             Clear();
             return;
         }
 
-        _keepRunning = _node!.Node.KeepRunning();
+        _keepRunning = _audio!.Node.KeepRunning();
         Tick();
     }
 
@@ -95,7 +100,7 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
         }
 
         Set(ref _peak, values.Length == 0 ? 0 : values.Max(), nameof(Peak));
-        var node = _node!.Node;
+        var node = _audio!.Node;
         var channels = node.Channels.Length == values.Length
             ? node.Channels
             : ChannelLayout.FromFormat(null, values.Length);
@@ -135,6 +140,6 @@ public sealed class AudioPeakMonitor : ObservableObject, IDisposable
     public void Dispose()
     {
         _disposed = true;
-        Node = null;
+        Audio = null;
     }
 }

@@ -6,6 +6,14 @@ public abstract class ProbeBuild
     [ClassInitialize(InheritanceBehavior.BeforeEachDerivedClass)]
     public static void Build(TestContext context)
     {
-        ProbeShell.Ensure();
+        _ = ProbeShell.Program;
+    }
+}
+
+public sealed class OtherProbeBuild
+{
+    public OtherProbeBuild()
+    {
+        _ = ProbeShell.Other;
     }
 }

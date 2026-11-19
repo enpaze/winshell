@@ -186,7 +186,8 @@ public sealed class HotkeyBookTests
     public void Ctrl_Alt_Delete_is_not_registered()
     {
         var loop = new ManualEventLoop();
-        using var registrar = new HotkeyRegistrar(loop, Log.Default);
+        var registrar = new HotkeyRegistrar(loop, Log.Default);
+        using var stopRegistrar = registrar.Stopping();
         using var hotkey = new Hotkey(loop, Log.Default, registrar);
         hotkey.Sequence = "Ctrl+Alt+Delete";
 
@@ -203,8 +204,10 @@ public sealed class HotkeyBookTests
     {
         var firstLoop = new ManualEventLoop();
         var secondLoop = new ManualEventLoop();
-        using var firstRegistrar = new HotkeyRegistrar(firstLoop, Log.Default);
-        using var secondRegistrar = new HotkeyRegistrar(secondLoop, Log.Default);
+        var firstRegistrar = new HotkeyRegistrar(firstLoop, Log.Default);
+        using var stopFirstRegistrar = firstRegistrar.Stopping();
+        var secondRegistrar = new HotkeyRegistrar(secondLoop, Log.Default);
+        using var stopSecondRegistrar = secondRegistrar.Stopping();
         var first = new Hotkey(firstLoop, Log.Default, firstRegistrar);
         using var second = new Hotkey(secondLoop, Log.Default, secondRegistrar);
         try

@@ -1,11 +1,7 @@
-using Microsoft.UI.Reactor;
-using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
-using Winshell;
 using Winshell.Capture;
-using Winshell.Windows;
-using static Microsoft.UI.Reactor.Factories;
+using Winshell.AppWindows;
 
 namespace FeatureMap;
 
@@ -14,9 +10,9 @@ public sealed class Capture : Component
     public override Element Render()
     {
         var shell = Shell.Current;
-        var windows = UseObservableTree(shell.WindowList);
+        var windows = UseObservableTree(shell.AppWindows);
         var own = windows.Windows.FirstOrDefault(Own);
-        var session = UseMemo(() => new CaptureSession(shell.Loop, shell.Log));
+        var session = UseMemo(() => new CaptureSession(shell.Log));
         UseObservable(session);
         UseEffect(() => session.Dispose, session);
         UseEffect(() =>

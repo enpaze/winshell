@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Globalization;
 using System.Runtime.InteropServices;
 using Windows.Win32.Media.Audio;
 using Winshell.Apps;
@@ -28,7 +27,7 @@ internal sealed class SessionNode : AudioGraphNode
         Endpoint = endpoint;
         InstanceId = instanceId;
         ApplyActive(state == AudioSessionState.AudioSessionStateActive);
-        Type = endpoint.IsPlayback ? AudioNodeType.PlaybackSession : AudioNodeType.RecordingSession;
+        Type = endpoint.Type == AudioNodeType.PlaybackDevice ? AudioNodeType.PlaybackSession : AudioNodeType.RecordingSession;
         Channels = endpoint.Channels;
         control.GetProcessId(out _processId);
         IsSystem = control.IsSystemSoundsSession() == 0;
@@ -131,7 +130,6 @@ internal sealed class SessionNode : AudioGraphNode
         _control.GetDisplayName(out var displayName);
         displayName = IndirectString.Load(displayName ?? "");
         var path = _processId == 0 ? null : ProcessImage.TryRead(_processId);
-        var binary = path is null ? "" : Path.GetFileName(path);
         var programName = path is null ? "" : Path.GetFileNameWithoutExtension(path);
         var appName = system ? "System Sounds"
             : displayName.Length > 0 ? displayName
@@ -139,18 +137,6 @@ internal sealed class SessionNode : AudioGraphNode
             : programName;
         Name = system ? "system-sounds" : programName.Length > 0 ? programName : $"session-{Id}";
         Description = appName;
-        Properties = new Dictionary<string, string>
-        {
-            [AudioProperty.SessionId] = InstanceId,
-            [AudioProperty.FriendlyName] = Description,
-            [AudioProperty.Flow] = Endpoint.IsPlayback ? "playback" : "recording",
-            [AudioProperty.AppName] = appName,
-            [AudioProperty.Icon] = system ? "audio-volume-high" : path ?? "",
-            [AudioProperty.ProcessId] = _processId.ToString(CultureInfo.InvariantCulture),
-            [AudioProperty.ProcessName] = binary
-        };
-        if (path is null && !system)
-            Properties.Remove(AudioProperty.Icon);
     }
 
     private void OnState(AudioSessionState state)
@@ -175,7 +161,7 @@ internal sealed class SessionNode : AudioGraphNode
                 if (node._released)
                     return;
                 node.ReadProperties();
-                node.ApplyProperties();
+                node.ApplyDescription();
             });
             return 0;
         }

@@ -67,7 +67,7 @@ The Package workflow also builds `winshell-<version>.msixbundle` (x64 and arm64)
 
 About the Store build:
 
-- **Files.** It reads and writes the same `%APPDATA%\winshell` config folder as every other build. The manifest turns off file and registry write virtualization (`unvirtualizedResources`), so those writes are the real ones.
+- **Files.** It reads and writes the same `%APPDATA%\winshell` shells folder as every other build. The manifest turns off file and registry write virtualization (`unvirtualizedResources`), so those writes are the real ones.
 - **Sign-in** is the package's startup task, declared off, not the user's `Run` key: Windows starts `winshellw.exe --no-build --no-duplicate`, which keeps working after a Store update.
 - **Capabilities.** The package declares `userNotificationListener`, `wiFiControl`, `bluetooth`, `location` and `radios`.
 - **Start** runs `winshellw.exe --no-duplicate`, so a second click starts no second shell. `winshellw.exe` is a copy of `winshell.exe` that opens no console, made when the build is published, and the portable zips have it too. `winshell` in a terminal is the command line.

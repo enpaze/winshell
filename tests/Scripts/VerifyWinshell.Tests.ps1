@@ -36,7 +36,7 @@ Describe 'The verify-winshell feature map' {
         [IO.File]::WriteAllText($file, [IO.File]::ReadAllText($file).Replace('Run `winshell list -j`', 'Run `winshell list`'))
         $output = & $script:Drive -Check -Map $map
         $LASTEXITCODE | Should -Be 1
-        $output -join "`n" | Should -Match 'MAP command\.list\.md: step bullet 1 names its command exactly: `winshell list -j`'
+        $output -join "`n" | Should -Match 'MAP command\.list\.md: step bullet 2 names its command exactly: `winshell list -j`'
     }
 
     It 'names the fix when the index misses a feature' {

@@ -26,7 +26,8 @@ internal sealed partial class NoticeWindow : IDisposable
         _dismiss = dismiss;
         _window = new PanelWindow(shell)
         {
-            Anchors = Edges.Bottom | Edges.Right,
+            Edge = Edge.Bottom,
+            Align = PanelAlign.End,
             Margins = new Thickness(0, 0, 12, 12),
             Width = NoticeComponent.Width,
             Height = 1,
@@ -49,7 +50,7 @@ internal sealed partial class NoticeWindow : IDisposable
         _host.PointerPressed += OnPointerPressed;
         _host.Loaded += OnHostLoaded;
         _window.Content = _host;
-        _window.Visible = true;
+        _window.Start();
         Hold();
     }
 

@@ -64,8 +64,8 @@ public class CommandWordTests
     }
 
     [TestMethod]
-    [DataRow("ipc -V")]
-    [DataRow("ipc call -V")]
+    [DataRow("ipc --version")]
+    [DataRow("ipc call --version")]
     [DataRow("inspect screenshot --version")]
     public void The_version_wins_over_a_command_that_lacks_words(string line)
     {
@@ -73,7 +73,7 @@ public class CommandWordTests
     }
 
     [TestMethod]
-    [DataRow("help kill", "kill")]
+    [DataRow("help stop", "stop")]
     [DataRow("help ipc", "ipc")]
     public void Help_with_a_command_is_that_command_s_help(string line, string command)
     {
@@ -86,7 +86,7 @@ public class CommandWordTests
     [TestMethod]
     public void Help_with_a_command_and_the_version_option_is_still_help()
     {
-        var options = CliParser.Parse(["help", "kill", "-V"]);
+        var options = CliParser.Parse(["help", "stop", "--version"]);
 
         Assert.IsTrue(options.ShowHelp);
         Assert.IsFalse(options.ShowVersion);
@@ -105,16 +105,16 @@ public class CommandWordTests
         var doctor = CliParser.Help("doctor");
 
         Assert.Contains(Shell.Version, summary, StringComparison.Ordinal);
-        Assert.Contains(ShellLocations.Current.ConfigRoot, summary, StringComparison.Ordinal);
-        Assert.Contains(ShellLocations.ConfigVariable, summary, StringComparison.Ordinal);
-        Assert.Contains(ShellLocations.Current.ConfigRoot, doctor, StringComparison.Ordinal);
+        Assert.Contains(ShellLocations.Current.ShellsRoot, summary, StringComparison.Ordinal);
+        Assert.Contains(ShellLocations.ShellsVariable, summary, StringComparison.Ordinal);
+        Assert.Contains(ShellLocations.Current.ShellsRoot, doctor, StringComparison.Ordinal);
         Assert.DoesNotContain("{version}", summary, StringComparison.Ordinal);
-        Assert.DoesNotContain("{config-root}", doctor, StringComparison.Ordinal);
+        Assert.DoesNotContain("{shells-root}", doctor, StringComparison.Ordinal);
     }
 
     [TestMethod]
     [DataRow("help foo", "Unknown command \"foo\". Run winshell --help.")]
-    [DataRow("help kill log", "Unexpected argument \"log\".")]
+    [DataRow("help stop log", "Unexpected argument \"log\".")]
     public void Help_takes_one_command_it_knows(string line, string message)
     {
         var e = Assert.ThrowsExactly<ArgumentException>(() => CliParser.Parse(line.Split(' ')));

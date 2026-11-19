@@ -1,6 +1,6 @@
 # winshell update
 
-`winshell update` installs the newest build of the saved channel. `stable` and `dev` are the channels. With no `--channel`, it uses `update.toml` in the config folder, and stable when that file is missing.
+`winshell update` installs the newest build of the saved channel. `stable` and `dev` are the channels. With no `--channel`, it uses `update.toml` in the shells folder, and stable when that file is missing.
 
 ## Sub-features
 

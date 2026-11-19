@@ -7,11 +7,14 @@ public sealed class DocsTests
 {
     private static readonly string Repo = TestSupport.Repo.Root;
 
+    private static readonly string WidgetLibrary = Path.Combine(Repo, "tests", "Winshell.Package.Tests", "MessageWidget");
+
     [TestMethod]
     public void Every_csharp_example_is_compiled()
     {
         var files = Directory.GetFiles(Path.Combine(Repo, "templates", "winshell"), "*.cs")
-            .Append(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs"));
+            .Append(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs"))
+            .Append(Path.Combine(WidgetLibrary, "Message.cs"));
         var source = string.Join('\n', files.Select(File.ReadAllText)).Replace("\r\n", "\n", StringComparison.Ordinal);
         var examples = Examples().ToList();
         Assert.IsNotEmpty(examples);
@@ -25,10 +28,21 @@ public sealed class DocsTests
     }
 
     [TestMethod]
+    public void The_guide_shows_the_widget_library_project_the_package_tests_build()
+    {
+        var guide = File.ReadAllText(Path.Combine(Repo, "docs", "guide.md"))
+            .Replace("\r\n", "\n", StringComparison.Ordinal);
+        var project = File.ReadAllText(Path.Combine(WidgetLibrary, "MessageWidget.csproj"))
+            .Replace("\r\n", "\n", StringComparison.Ordinal);
+
+        Assert.Contains("```xml\n" + project + "```\n", guide, StringComparison.Ordinal);
+    }
+
+    [TestMethod]
     public void The_starter_and_the_guide_call_no_Watch()
     {
         var files = SourceFiles(Path.Combine(Repo, "templates", "winshell"))
-            .Append(Path.Combine(Repo, "docs", "configuration.md"))
+            .Append(Path.Combine(Repo, "docs", "guide.md"))
             .Append(Path.Combine(Repo, "tests", "Winshell.Shell.Tests", "GuideSamples.cs"));
         var watched = files
             .Where(file => File.ReadAllText(file).Contains(".Watch(", StringComparison.Ordinal))
@@ -53,6 +67,16 @@ public sealed class DocsTests
         var stale = ReferencePages.Stale(folder, ReferencePages.Generate(folder));
         Assert.IsTrue(stale.Count == 0,
             $"Out of date in docs/reference: {string.Join(", ", stale)}. Run: dotnet run scripts/generate-reference.cs");
+    }
+
+    [TestMethod]
+    public void The_reference_keeps_a_ref_parameter_s_modifier()
+    {
+        var folder = Path.Combine(Repo, "docs", "reference");
+        var page = ReferencePages.Generate(folder)["winshell.md"];
+
+        Assert.Contains("| `Set<T>(ref T? field, T? value, string property = \"\")` | bool, protected |", page,
+            StringComparison.Ordinal);
     }
 
     private static IEnumerable<(string File, int Line, string Code)> Examples()

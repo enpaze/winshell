@@ -13,15 +13,15 @@ public sealed class InstanceStartTests
 {
     private const string Program = @"C:\shells\mine.exe";
 
-    private static string ShellId()
+    private static string ShellName()
     {
         return "start-" + Guid.NewGuid().ToString("N");
     }
 
-    private static InstanceLaunch Launch(string shellId, string program, IReadOnlyList<string> args,
+    private static InstanceLaunch Launch(string shellName, string program, IReadOnlyList<string> args,
         Action<ShellInstance>? prepare = null)
     {
-        return new InstanceLaunch(program, args, shellId, null, null, null, new Log(), prepare);
+        return new InstanceLaunch(program, args, new ShellProperties(shellName), new Log(), prepare);
     }
 
     private static (int Code, string[] Error) Start(InstanceLaunch launch, Action<InstanceSession> host)
@@ -51,12 +51,12 @@ public sealed class InstanceStartTests
     [TestMethod]
     public async Task A_duplicate_exits_before_the_shell_exists()
     {
-        var shellId = ShellId();
+        var shellName = ShellName();
         using var taken = new ManualResetEventSlim();
         using var release = new ManualResetEventSlim();
         var holder = new Thread(() =>
             {
-                using var mutex = new Mutex(false, HeldMutex.NoDuplicateName(ShellLocations.Current, shellId));
+                using var mutex = new Mutex(false, HeldMutex.NoDuplicateName(ShellLocations.Current, shellName));
                 mutex.WaitOne();
                 taken.Set();
                 release.Wait(CurrentTest.Cancellation);
@@ -69,7 +69,7 @@ public sealed class InstanceStartTests
 
         try
         {
-            var result = Start(Launch(shellId, Program, ["--no-duplicate"]), _ => hosted = true);
+            var result = Start(Launch(shellName, Program, ["--no-duplicate"]), _ => hosted = true);
 
             Assert.IsFalse(hosted);
             Assert.AreEqual(0, result.Code);
@@ -87,7 +87,7 @@ public sealed class InstanceStartTests
         var program = Path.Combine(ShellLocations.Current.LocalRoot, "missing-shell.exe");
         var hosted = false;
 
-        var result = Start(Launch(ShellId(), program, ["-d"]), _ => hosted = true);
+        var result = Start(Launch(ShellName(), program, ["-d"]), _ => hosted = true);
 
         Assert.IsFalse(hosted);
         Assert.AreEqual(InstanceStart.CouldNotStart, result.Code);
@@ -106,7 +106,7 @@ public sealed class InstanceStartTests
         Wait.Until(() => gone.HasExited, "the previous process to exit");
         var hosted = false;
 
-        var result = Start(Launch(ShellId(), Program,
+        var result = Start(Launch(ShellName(), Program,
             ["--after", gone.Id.ToString(CultureInfo.InvariantCulture)]), session =>
         {
             hosted = true;
@@ -135,7 +135,7 @@ public sealed class InstanceStartTests
             {
                 try
                 {
-                    code = Start(Launch(ShellId(), Program,
+                    code = Start(Launch(ShellName(), Program,
                         ["--after", replaced.Id.ToString(CultureInfo.InvariantCulture)]), session =>
                     {
                         started.Set();
@@ -194,7 +194,7 @@ public sealed class InstanceStartTests
         var hosted = false;
         try
         {
-            var result = Start(Launch(ShellId(), Program, [], instance =>
+            var result = Start(Launch(ShellName(), Program, [], instance =>
             {
                 id = instance.Id;
                 foreach (var name in IpcServer.Candidates(instance.Pipe))
@@ -216,11 +216,11 @@ public sealed class InstanceStartTests
     [TestMethod]
     public void A_clean_start_publishes_the_instance_and_then_closes_it()
     {
-        var shellId = ShellId();
+        var shellName = ShellName();
         string? id = null;
 
         InstanceInfo? published = null;
-        var result = Start(Launch(shellId, Program, []), session =>
+        var result = Start(Launch(shellName, Program, []), session =>
         {
             session.Serve(new EventQueue(), new FakeInstanceControl());
             id = session.Instance.Id;
@@ -229,7 +229,7 @@ public sealed class InstanceStartTests
 
         Assert.AreEqual(0, result.Code);
         Assert.IsNotNull(published);
-        Assert.AreEqual(shellId, published.ShellId);
+        Assert.AreEqual(shellName, published.ShellName);
         Assert.AreEqual(Environment.ProcessId, published.Pid);
         Assert.IsNull(published.ExitedAt);
         var closed = Read(id!);
@@ -245,14 +245,14 @@ public sealed class InstanceStartTests
         var error = new InvalidOperationException("SENTINEL host");
 
         var thrown = Assert.ThrowsExactly<InvalidOperationException>(() =>
-            Start(new InstanceLaunch(Program, [], ShellId(), null, null, null, log), session =>
+            Start(new InstanceLaunch(Program, [], new ShellProperties(ShellName()), log), session =>
             {
                 instance = session.Instance;
                 throw error;
             }));
 
         Assert.AreSame(error, thrown);
-        var text = File.ReadAllText(instance!.LogPath);
+        var text = File.ReadAllText(instance!.Logs);
         Assert.Contains("Winshell crashed", text, StringComparison.Ordinal);
         Assert.Contains("SENTINEL host", text, StringComparison.Ordinal);
 
@@ -268,7 +268,7 @@ public sealed class InstanceStartTests
             Console.SetError(previous);
         }
 
-        Assert.DoesNotContain("AFTER-CLOSE", File.ReadAllText(instance.LogPath), StringComparison.Ordinal);
+        Assert.DoesNotContain("AFTER-CLOSE", File.ReadAllText(instance.Logs), StringComparison.Ordinal);
     }
 
     [TestMethod]
@@ -294,7 +294,7 @@ public sealed class InstanceStartTests
                 }
             };
 
-            var result = Start(Launch(ShellId(), Program, ["--no-duplicate"]), _ => hosted = other.HasExited);
+            var result = Start(Launch(ShellName(), Program, ["--no-duplicate"]), _ => hosted = other.HasExited);
 
             Assert.IsTrue(hosted);
             Assert.AreEqual(0, result.Code);
@@ -322,7 +322,7 @@ public sealed class InstanceStartTests
         var hosted = false;
         try
         {
-            var result = Start(Launch(ShellId(), Program, []), _ => hosted = true);
+            var result = Start(Launch(ShellName(), Program, []), _ => hosted = true);
 
             Assert.IsFalse(hosted);
             Assert.IsFalse(other.HasExited);
@@ -342,7 +342,7 @@ public sealed class InstanceStartTests
         }
     }
 
-    private static Process Hold(string shellId, out FakeInstanceControl control, out EventQueue loop, out IpcServer server,
+    private static Process Hold(string shellName, out FakeInstanceControl control, out EventQueue loop, out IpcServer server,
         out string id)
     {
         var process = Process.Start(new ProcessStartInfo(ComSpec(), "/d /c ping -n 30 127.0.0.1")
@@ -358,7 +358,7 @@ public sealed class InstanceStartTests
         server = new IpcServer(IpcServer.OpenFirst(pipe), pipe, loop, Log.Default, control);
         id = Instances.NewId();
         var locations = ShellLocations.Current;
-        locations.Instances.Write(new InstanceInfo(id, process.Id, shellId, process.StartInfo.FileName!,
+        locations.Instances.Write(new InstanceInfo(id, process.Id, shellName, process.StartInfo.FileName!,
             DateTime.Now, pipe, Path.Combine(locations.Instances.DirOf(id), "log.txt"),
             process.StartTime.ToUniversalTime().Ticks, ProcessName: process.ProcessName));
         return process;

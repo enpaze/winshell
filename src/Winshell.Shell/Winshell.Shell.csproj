@@ -15,8 +15,11 @@
     <PackageReference Include="Microsoft.UI.Reactor" />
     <InternalsVisibleTo Include="Winshell" />
     <InternalsVisibleTo Include="Winshell.Shell.Tests" />
+    <InternalsVisibleTo Include="Winshell.Tests" />
+    <InternalsVisibleTo Include="Winshell.Compositions" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Winshell.Services\Winshell.Services.csproj" />
+    <ProjectReference Include="..\Winshell.Generators\Winshell.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>

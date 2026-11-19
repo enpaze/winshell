@@ -9,4 +9,34 @@
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
   </PropertyGroup>
 
+  <ItemGroup Condition="('$(ImplicitUsings)' == 'true' or '$(ImplicitUsings)' == 'enable') and '$(WinshellImplicitUsings)' != 'false'">
+    <Using Include="Winshell" />
+    <Using Include="Microsoft.UI.Reactor" />
+    <Using Include="Microsoft.UI.Reactor.Core" />
+    <Using Include="Microsoft.UI.Reactor.Factories" Static="true" />
+    <Using Include="Winshell.Elements" Static="true" />
+    <Using Include="$(RootNamespace)" Condition="'$(RootNamespace)' != ''" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="ShellName" Value="$(ShellName)" Condition="'$(ShellName)' != ''" />
+    <AssemblyMetadata Include="ShellDataDir" Value="$(ShellDataDir)" Condition="'$(ShellDataDir)' != ''" />
+    <AssemblyMetadata Include="ShellStateDir" Value="$(ShellStateDir)" Condition="'$(ShellStateDir)' != ''" />
+    <AssemblyMetadata Include="ShellCacheDir" Value="$(ShellCacheDir)" Condition="'$(ShellCacheDir)' != ''" />
+  </ItemGroup>
+
+  <Target Name="WinshellDeclareRootNamespace"
+          BeforeTargets="BeforeCompile;CoreCompile"
+          DependsOnTargets="PrepareForBuild"
+          Condition="('$(ImplicitUsings)' == 'true' or '$(ImplicitUsings)' == 'enable') and '$(WinshellImplicitUsings)' != 'false' and '$(RootNamespace)' != ''">
+    <PropertyGroup>
+      <WinshellRootNamespaceFile>$(IntermediateOutputPath)$(MSBuildProjectName).RootNamespace.g.cs</WinshellRootNamespaceFile>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(WinshellRootNamespaceFile)" Lines="namespace $(RootNamespace)%3B" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(WinshellRootNamespaceFile)" />
+      <FileWrites Include="$(WinshellRootNamespaceFile)" />
+    </ItemGroup>
+  </Target>
+
 </Project>

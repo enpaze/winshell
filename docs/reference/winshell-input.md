@@ -1,6 +1,6 @@
 # Winshell.Input
 
-A hotkey that works anywhere in Windows. Make one with `Shell.NewHotkey()`.
+A hotkey that works anywhere in Windows. Make one with `Shell.Hotkey(sequence, pressed)`.
 
 <!-- generated below: dotnet run scripts/generate-reference.cs -->
 
@@ -16,6 +16,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `IsPressed` | bool, read-only |
 | `Sequence` | string |
 | `Taken` | bool, read-only |
-| `Pressed` | EventHandler |
-| `Released` | EventHandler |
+| `Pressed` | Action |
+| `Released` | Action |
 | `Dispose()` | void |

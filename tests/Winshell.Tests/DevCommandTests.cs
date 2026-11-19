@@ -43,6 +43,7 @@ public sealed partial class DevCommandTests : IDisposable
                                                                     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
                                                                     <SelfContained>true</SelfContained>
                                                                     <AssemblyName>Dev</AssemblyName>
+                                                                    <ShellName>dev-probe</ShellName>
                                                                   </PropertyGroup>
                                                                   <ItemGroup>
                                                                     <ProjectReference Include="{Path.Combine(Repo.Root, "src", "Winshell.Shell", "Winshell.Shell.csproj")}" />
@@ -50,31 +51,20 @@ public sealed partial class DevCommandTests : IDisposable
                                                                 </Project>
                                                                 """);
         File.WriteAllText(Path.Combine(Project, "Program.cs"), """
-                                                               using Winshell;
-
-                                                               internal sealed class Bare : ShellConfiguration
+                                                               Shell.Run(shell =>
                                                                {
-                                                                   public override void Start(Shell shell)
+                                                                   shell.Add(new PanelWindow { Edge = Edge.Top, Align = PanelAlign.Start, Width = 200, Height = 32, Content = new Dev.PanelView() });
+                                                                   shell.Ipc.Handle("probe", "value", Marker.Value);
+                                                                   shell.Ipc.Handle("probe", "reuse", () => Environment.GetEnvironmentVariable("MSBUILDDISABLENODEREUSE") ?? "");
+                                                                   shell.Ipc.Handle("probe", "launch", (string name) =>
                                                                    {
-                                                                       _ = new PanelWindow { Anchors = Edges.Top | Edges.Left, Width = 200, Height = 32, Content = new Dev.PanelView(), Visible = true };
-                                                                       shell.Ipc.Handle("probe", "value", Marker.Value);
-                                                                       shell.Ipc.Handle("probe", "reuse", () => Environment.GetEnvironmentVariable("MSBUILDDISABLENODEREUSE") ?? "");
-                                                                       shell.Ipc.Handle("probe", "launch", (string name) =>
-                                                                       {
-                                                                           var app = shell.Apps.Find(name);
-                                                                           if (app is null)
-                                                                               return "missing";
-                                                                           app.Launch();
-                                                                           return "launched";
-                                                                       });
-                                                                   }
-                                                               }
-
-                                                               internal static class Program
-                                                               {
-                                                                   [STAThread]
-                                                                   private static void Main() => Shell.Run<Bare>(new ShellOptions { ShellId = "dev-probe" });
-                                                               }
+                                                                       var app = shell.Apps.Find(name);
+                                                                       if (app is null)
+                                                                           return "missing";
+                                                                       app.Launch();
+                                                                       return "launched";
+                                                                   });
+                                                               });
                                                                """);
         File.WriteAllText(Path.Combine(Project, "PanelView.cs"), """
                                                                  using Microsoft.UI.Xaml.Controls;
@@ -352,7 +342,7 @@ public sealed partial class DevCommandTests : IDisposable
         Assert.AreEqual("two", value.Output.Trim());
         await Wait.UntilAsync(
             () => WinshellCli.Run(["log", "-t", "20"], Folders).Output
-                .Contains("Your configuration did not build", StringComparison.Ordinal), "the notice");
+                .Contains("Your shell did not build", StringComparison.Ordinal), "the notice");
 
         Mark("""=> "three";""");
         await Wait.UntilAsync(async () => (await Value()).Text == "three", "the fix", BuildPatience);

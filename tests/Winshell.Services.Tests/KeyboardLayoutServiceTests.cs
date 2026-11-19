@@ -24,7 +24,8 @@ public sealed class KeyboardLayoutServiceTests
         var loop = new ManualEventLoop();
         var backend = new FakeKeyboardBackend(English, International, Burmese, Uncoded)
         { CurrentId = International.Id };
-        using var keyboard = new KeyboardLayoutService(loop, backend);
+        var keyboard = new KeyboardLayoutService(loop, backend);
+        using var stopKeyboard = keyboard.Stopping();
         keyboard.PropertyChanged += Ignore;
 
         Assert.AreEqual(4, keyboard.Layouts.Count);
@@ -42,7 +43,8 @@ public sealed class KeyboardLayoutServiceTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeKeyboardBackend(English, German) { CurrentId = English.Id };
-        using var keyboard = new KeyboardLayoutService(loop, backend);
+        var keyboard = new KeyboardLayoutService(loop, backend);
+        using var stopKeyboard = keyboard.Stopping();
         List<string?> heard = [];
         keyboard.PropertyChanged += (_, e) => heard.Add(e.PropertyName);
         Assert.AreSequenceEqual([nameof(KeyboardLayoutService.Layouts), nameof(KeyboardLayoutService.Current)], heard);
@@ -71,7 +73,8 @@ public sealed class KeyboardLayoutServiceTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeKeyboardBackend(English) { CurrentId = English.Id };
-        using var keyboard = new KeyboardLayoutService(loop, backend);
+        var keyboard = new KeyboardLayoutService(loop, backend);
+        using var stopKeyboard = keyboard.Stopping();
         PropertyChangedEventHandler second = Ignore;
 
         Assert.IsEmpty(keyboard.Layouts);
@@ -112,7 +115,7 @@ public sealed class KeyboardLayoutServiceTests
         keyboard.PropertyChanged += Ignore;
         Assert.AreEqual(1, backend.Reads);
 
-        keyboard.Dispose();
+        keyboard.Stop();
         keyboard.PropertyChanged += Ignore;
         loop.Advance(Interval * 3);
         Assert.AreEqual(1, backend.Reads);
@@ -126,7 +129,8 @@ public sealed class KeyboardLayoutServiceTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeKeyboardBackend(English, International, German) { CurrentId = English.Id };
-        using var keyboard = new KeyboardLayoutService(loop, backend);
+        var keyboard = new KeyboardLayoutService(loop, backend);
+        using var stopKeyboard = keyboard.Stopping();
 
         Assert.IsTrue(keyboard.Next());
         Assert.AreSequenceEqual([International.Id], backend.Used);
