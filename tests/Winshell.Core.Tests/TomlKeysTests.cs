@@ -40,14 +40,26 @@ public sealed class TomlKeysTests
         public IReadOnlyList<string>? Pins { get; set; }
     }
 
+    private class Chosen
+    {
+        [Preference]
+        public string Mode { get; private set; } = "auto";
+    }
+
+    private sealed class Picked : Chosen;
+
     private Settings Load(string text, Func<string, object, string>? check = null)
     {
+        return Load(new Settings(), text, check);
+    }
+
+    private T Load<T>(T owner, string text, Func<string, object, string>? check = null) where T : notnull
+    {
         Assert.True(TomlDocument.TryParse("settings.toml", text, out var document, out var error), error);
-        var settings = new Settings();
-        var keys = new TomlKeys(settings, check, _warnings.Add);
+        var keys = new TomlKeys(owner, check, _warnings.Add);
         keys.Apply(document.Values, document.LocationOf, null,
-            keys.All.ToDictionary(key => key, key => key.Value(settings)));
-        return settings;
+            keys.All.ToDictionary(key => key, key => key.Value(owner)));
+        return owner;
     }
 
     private static string BackdropCheck(string key, object value)
@@ -148,6 +160,15 @@ public sealed class TomlKeysTests
         Assert.Equal(4, settings.Size);
         Assert.Equal(refused ? ["settings.toml[1:1]: name is not \"acrylic\" or \"mica\", so it was left unchanged"] : [],
             _warnings);
+    }
+
+    [Fact]
+    public void A_key_with_a_private_setter_is_read_even_when_a_subclass_holds_it()
+    {
+        var picked = Load(new Picked(), "mode = \"dark\"\n");
+
+        Assert.Equal("dark", picked.Mode);
+        Assert.Empty(_warnings);
     }
 
     [Fact]

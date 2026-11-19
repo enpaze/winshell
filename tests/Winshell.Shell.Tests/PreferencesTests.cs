@@ -57,6 +57,14 @@ public sealed partial class PreferencesTests
 
         [Preference]
         public partial bool @event { get; set; }
+
+        [Preference]
+        public partial string Mode { get; private set; } = "auto";
+
+        public void Choose(string mode)
+        {
+            Mode = mode;
+        }
     }
 
     internal static string PathOf(Shell shell)
@@ -233,6 +241,26 @@ public sealed partial class PreferencesTests
                 event = false
 
                 """, File.ReadAllText(path));
+        });
+    }
+
+    [Fact]
+    public async Task A_key_with_a_private_setter_is_read_notifies_and_is_written_when_its_class_assigns_it()
+    {
+        await WithFile(bar => $"[{bar}]\nmode = \"dark\"\n", async (shell, path, bar) =>
+        {
+            using var kinds = new Kinds(bar);
+            Assert.Equal("dark", kinds.Mode);
+            var changes = Changes(kinds);
+
+            File.WriteAllText(path, $"[{bar}]\nmode = \"light\"\n");
+            await Wait.UntilAsync(() => kinds.Mode == "light", "the saved mode to be read");
+            Assert.Equal([nameof(Kinds.Mode)], changes);
+
+            kinds.Choose("manual");
+            await NextTurn(shell);
+            Assert.Equal($"[{bar}]\nmode = \"manual\"\n", File.ReadAllText(path));
+            Assert.Equal([nameof(Kinds.Mode), nameof(Kinds.Mode)], changes);
         });
     }
 
