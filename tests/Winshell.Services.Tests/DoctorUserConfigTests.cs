@@ -19,18 +19,18 @@ public sealed class DoctorUserConfigTests : IDisposable
     }
 
     [Theory]
-    [InlineData(26300, 1, "26H2", false, CheckStatus.Pass)]
-    [InlineData(22000, 1, "21H2", false, CheckStatus.Warn)]
-    [InlineData(19045, 1, "22H2", false, CheckStatus.Fail)]
+    [InlineData(26300, 1, "26H2", false, nameof(CheckStatus.Pass))]
+    [InlineData(22000, 1, "21H2", false, nameof(CheckStatus.Warn))]
+    [InlineData(19045, 1, "22H2", false, nameof(CheckStatus.Fail))]
     public void Windows_mentions_transparency_and_a_contrast_theme_without_changing_the_result(int build, int revision,
-        string? version, bool server, CheckStatus status)
+        string? version, bool server, string status)
     {
         var plain = Doctor.Windows(build, revision, version, server);
         var both = Doctor.Windows(build, revision, version, server, true, true);
         var transparency = Doctor.Windows(build, revision, version, server, true);
         var contrast = Doctor.Windows(build, revision, version, server, contrastTheme: true);
 
-        Assert.Equal(status, plain.Status);
+        Assert.Equal(Enum.Parse<CheckStatus>(status), plain.Status);
         Assert.Equal(plain.Status, both.Status);
         Assert.Equal(plain.Fix, both.Fix);
         Assert.Equal(plain.Message, Doctor.Windows(build, revision, version, server, false, false).Message);

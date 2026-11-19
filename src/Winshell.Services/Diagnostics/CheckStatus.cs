@@ -1,6 +1,6 @@
 namespace Winshell.Diagnostics;
 
-public enum CheckStatus
+internal enum CheckStatus
 {
     Pass,
 
