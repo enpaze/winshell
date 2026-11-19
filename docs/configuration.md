@@ -354,7 +354,7 @@ Saving applies it live:
 
 ### A surface of your own
 
-A bar's areas sit in one [Surface](reference/winshell.md#surface) component, which paints the [style's](#style) `ShellBackgroundBrush` behind them in the window's light or dark theme, and follows a switch while the shell runs. A brush your code reads from the style comes back in the theme the app started in, so a [component window](#show-a-component) puts its component on a surface too:
+A bar's areas sit in one surface, a component that [`Surface`](reference/winshell.md#elements) writes, which paints the [style's](#style) `ShellBackgroundBrush` behind them in the window's light or dark theme, and follows a switch while the shell runs. A brush your code reads from the style comes back in the theme the app started in, so a [component window](#show-a-component) puts its component on a surface too:
 
 ```csharp
 public sealed class Dock : Component
@@ -401,7 +401,7 @@ hotkey = "Ctrl+Shift+Space"
 
 ## Widgets
 
-A [widget area](reference/winshell.md#widgetarea) is a component. A window mounts the component that renders it, and the same element can sit inside a surface. It places widgets by name.
+A widget area is a component that [`WidgetArea`](reference/winshell.md#elements) writes. A window mounts the component that renders it, and the same element can sit inside a surface. It places widgets by name.
 
 The shell finds the widgets when it starts, before the function passed to `Shell.Run` runs. A widget is a public class that derives from `Widget` and has a public parameterless constructor, in your project or in a project or package it references that references Winshell. An abstract or generic class is not a widget, and neither is a class that is not public.
 

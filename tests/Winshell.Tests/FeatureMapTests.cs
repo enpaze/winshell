@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.UI.Xaml;
@@ -58,7 +59,7 @@ public sealed partial class FeatureMapTests
     }
 
     [Fact]
-    public void A_block_is_a_public_window_control_component_or_composition_of_the_shell_library()
+    public void A_block_is_a_public_window_control_component_composition_or_element_of_the_shell_library()
     {
         Assert.Equal(
             ["Bar", "CaptureView", "FloatingWindow", "Launcher", "PanelWindow", "PopupWindow", "Surface", "WidgetArea", "WindowThumbnail"],
@@ -179,6 +180,9 @@ public sealed partial class FeatureMapTests
             .SelectMany(file => PublicTypePattern().Matches(File.ReadAllText(file)))
             .Select(match => match.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
+        var elements = typeof(Elements).GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Where(method => !method.IsDefined(typeof(ExtensionAttribute)))
+            .Select(method => method.Name);
         return
         [
             .. typeof(Shell).Assembly.GetExportedTypes()
@@ -186,6 +190,7 @@ public sealed partial class FeatureMapTests
                                (type.IsSubclassOf(typeof(ShellWindow)) || type.IsSubclassOf(typeof(UIElement)) ||
                                 type.IsSubclassOf(typeof(ReactorComponent)) || compositions.Contains(type.Name)))
                 .Select(type => ComponentWindows.GetValueOrDefault(type, type).Name)
+                .Concat(elements)
                 .Distinct()
                 .Order(StringComparer.Ordinal)
         ];

@@ -444,24 +444,6 @@ Has the members of [ObservableObject](#observableobject).
 | `StartSystemResize([Edges](#edges) edges)` | void |
 | `Toggle()` | void |
 
-## Surface
-
-A WinUI Component. The members here are the ones Winshell adds.
-
-| Member | Type |
-| --- | --- |
-| `Surface()` | constructor |
-| `Render()` | Element |
-
-## SurfaceProps
-
-| Member | Type |
-| --- | --- |
-| `SurfaceProps(Element? Content = null, Thickness Padding = default, [ShellStyle](#shellstyle)? Style = null)` | constructor |
-| `Content` | Element?, init |
-| `Padding` | Thickness, init |
-| `Style` | [ShellStyle](#shellstyle)?, init |
-
 ## TomlCommentAttribute
 
 An attribute.
@@ -494,25 +476,6 @@ A WinUI Component. The members here are the ones Winshell adds.
 | `StylePopup(UIElement content)` | FrameworkElement, protected |
 | `UseNow(TimeSpan every)` | DateTime, protected |
 | `UseScreen()` | [ScreenInfo](#screeninfo)?, protected |
-
-## WidgetArea
-
-A WinUI Component. The members here are the ones Winshell adds.
-
-| Member | Type |
-| --- | --- |
-| `WidgetArea()` | constructor |
-| `Render()` | Element |
-
-## WidgetAreaProps
-
-| Member | Type |
-| --- | --- |
-| `WidgetAreaProps(string Name = "", ImmutableArray of [Placement](#placement)? Defaults = null, Orientation Orientation = Orientation.Horizontal, [ShellStyle](#shellstyle)? Style = null)` | constructor |
-| `Defaults` | ImmutableArray of [Placement](#placement)?, init |
-| `Name` | string, init |
-| `Orientation` | Orientation, init |
-| `Style` | [ShellStyle](#shellstyle)?, init |
 
 ## WidgetContext
 

@@ -7,9 +7,9 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
-public sealed record SurfaceProps(Element? Content = null, Thickness Padding = default, ShellStyle? Style = null);
+internal sealed record SurfaceProps(Element? Content = null, Thickness Padding = default, ShellStyle? Style = null);
 
-public sealed class Surface : Component<SurfaceProps>
+internal sealed class Surface : Component<SurfaceProps>
 {
     public override Element Render()
     {
