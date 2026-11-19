@@ -52,7 +52,7 @@ internal static class CliParser
                                           -j, --json             print list, ipc show or doctor as JSON
                                               --no-color         print doctor without color
                                           -h, --help, /?         print help and exit
-                                          -V, --version          print the version
+                                              --version          print the version
                                           --                     end options; later words are the program's arguments
 
                                         Exit codes: 0 done, 1 the command failed, 2 the command line was wrong.

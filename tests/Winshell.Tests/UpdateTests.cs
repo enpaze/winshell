@@ -332,7 +332,7 @@ public class UpdateCommandTests
         help.AssertNoError();
         Assert.False(File.Exists(Path.Combine(temp.Path, "update.toml")));
 
-        var version = WinshellCli.Run(["update", "-V"], ("WINSHELL_SHELLS_DIR", temp.Path));
+        var version = WinshellCli.Run(["update", "--version"], ("WINSHELL_SHELLS_DIR", temp.Path));
         version.AssertExitCode(0);
         Assert.StartsWith("winshell ", version.Output, StringComparison.Ordinal);
         version.AssertNoError();

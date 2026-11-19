@@ -63,8 +63,8 @@ public class CommandWordTests
     }
 
     [Theory]
-    [InlineData("ipc -V")]
-    [InlineData("ipc call -V")]
+    [InlineData("ipc --version")]
+    [InlineData("ipc call --version")]
     [InlineData("inspect screenshot --version")]
     public void The_version_wins_over_a_command_that_lacks_words(string line)
     {
@@ -85,7 +85,7 @@ public class CommandWordTests
     [Fact]
     public void Help_with_a_command_and_the_version_option_is_still_help()
     {
-        var options = CliParser.Parse(["help", "kill", "-V"]);
+        var options = CliParser.Parse(["help", "kill", "--version"]);
 
         Assert.True(options.ShowHelp);
         Assert.False(options.ShowVersion);
