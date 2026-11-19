@@ -14,6 +14,7 @@ Winshell.Shell -> Winshell.Services -> Winshell.Core -> Winshell.Native
 - A project must never reference a higher layer or form a cycle.
 - Native references no other Winshell project.
 - The CLI composes these libraries and owns process supervision. The package project assembles their distribution.
+- `Winshell.Generators` is a source generator, not a layer. The package ships it as an analyzer, and each project in this repository that declares or may declare preferences references it as one.
 
 | Owner | Responsibility |
 | --- | --- |
@@ -22,6 +23,7 @@ Winshell.Shell -> Winshell.Services -> Winshell.Core -> Winshell.Native
 | `Winshell.Services` | One assembly of feature folders. Services apply policy and publish state on the event loop; feature backends perform platform work. Shell project builds live here (`ShellProject`), which the CLI commands, sign-in and doctor call. |
 | `Winshell.Shell` | WinUI hosting, the production event loop, window lifecycle, and a window whose content is one `UIElement`. |
 | CLI (`src/Winshell`) | The commands that invoke those builds, and shell process supervision. |
+| `Winshell.Generators` | The source generator that writes a `[Preference]` property's accessors, and its errors. |
 
 A removed public API gets no compatibility shim. Moving an implementation does not justify forwarding assemblies or duplicate implementations. Keep shared infrastructure in Core and feature policy in its owning Services folder.
 
@@ -107,9 +109,9 @@ The supervisor owns Explorer taskbar recovery independently of the child. Recove
 
 - **Unsafe code outside Native, in a project without WinUI:** the build. CS0227, since `Directory.Build.targets` turns `AllowUnsafeBlocks` off.
 - **Hand-written unsafe code in a WinUI project:** `WinUISourceTests`. It parses the C# files of each `UseWinUI` project in `winshell.slnx`, outside `bin` and `obj`, and the files it links, for `unsafe`, `fixed` and pointer types. A conditional `UseWinUI` of true still counts, and an import the test cannot read fails it.
-- **Layer order:** `LayerTests`. Each layer's project references and its compiled assembly's Winshell references name only layers below it. Restore already fails on an upward project reference that closes a cycle (MSB4006); the test catches the rest, such as a reference to a project outside the layers or to a built DLL.
+- **Layer order:** `LayerTests`. Each layer's project references and its compiled assembly's Winshell references name only layers below it. A reference with both `OutputItemType="Analyzer"` and `ReferenceOutputAssembly="false"`, such as Shell's reference to `Winshell.Generators`, adds no assembly and is not a layer reference. An analyzer reference without `ReferenceOutputAssembly="false"` fails the test, even to a layer below. Restore already fails on an upward project reference that closes a cycle (MSB4006); the test catches the rest, such as a reference to a project outside the layers or to a built DLL.
 - **Feature backends:** `FeatureBackendTests`. In the compiled Services and Shell, only types in an `I*Backend` interface's own namespace in Services, such as `Winshell.Session`, name the interface or a type that implements it, in a declaration, signature or method body. A call counts the types it accepts. A constructor's parameters do not: Shell builds a service and leaves the optional backend at its default.
-- **Compositions use only public API:** `CompositionTests`. It compiles the C# files in `src/Winshell.Shell/Compositions`, such as `Bar`, again as an assembly of their own against the built Winshell assemblies, which shows them only the public API, and fails on any compiler error. In Shell itself the compiler lets them see Shell's internals and those Core and Services show Shell.
+- **Compositions use only public API:** `CompositionTests`. It compiles the C# files in `src/Winshell.Shell/Compositions`, such as `Bar`, again as an assembly of their own against the built Winshell assemblies, with the preference generator, which shows them only the public API, and fails on any compiler or generator error. In Shell itself the compiler lets them see Shell's internals and those Core and Services show Shell.
 - **CsWin32 is the only Win32 declaration set:** `NativeVisibilityTests`. It reads `Win32.cs`, which keeps only what CsWin32 does not generate, and fails on an interop attribute there, such as `DllImport`, `LibraryImport` or `ComImport`, however it is written.
 
 How the tests work:

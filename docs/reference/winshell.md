@@ -270,6 +270,14 @@ Has the members of [PopupWindow](#popupwindow).
 | --- | --- |
 | `PopupWindow<T, TProps>(TProps? props)` | constructor |
 
+## PreferenceAttribute
+
+An attribute.
+
+| Member | Type |
+| --- | --- |
+| `PreferenceAttribute()` | constructor |
+
 ## Preferences
 
 Has the members of [ObservableObject](#observableobject).

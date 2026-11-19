@@ -5,38 +5,66 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
-public sealed class PreferencesTests
+public sealed partial class PreferencesTests
 {
     private sealed partial class Own : Preferences
     {
+        [Preference]
         [TomlComment("Show 13:00 rather than 1:00 PM.")]
-        public bool Clock24
-        {
-            get;
-            set => Set(ref field, value);
-        }
+        public partial bool Clock24 { get; set; }
 
-        public string? Note
-        {
-            get;
-            set => Set(ref field, value);
-        }
+        [Preference]
+        public partial string? Note { get; set; }
+
+        public string Plain { get; set; } = "code";
     }
 
     private sealed partial class BarPreferences(string name) : Preferences(name)
     {
+        [Preference]
         [TomlComment("top, bottom, left or right.")]
-        public string Edge
-        {
-            get;
-            set => Set(ref field, value);
-        } = "top";
+        public partial string Edge { get; set; } = "top";
 
-        public int Size
+        [Preference]
+        public partial int Size { get; set; } = 32;
+    }
+
+    private sealed partial class Kinds(string name) : Preferences(name)
+    {
+        [Preference]
+        public partial double Scale { get; set; } = 1.5;
+
+        [Preference]
+        public partial long Number { get; set; }
+
+        [Preference]
+        public partial int? Maybe { get; set; }
+
+        [Preference]
+        public partial object? Anything { get; set; }
+
+        [Preference]
+        public partial IReadOnlyDictionary<string, object?>? Taskbar { get; set; }
+
+        [Preference]
+        public partial IReadOnlyList<string> Tiles { get; set; } = ["wifi"];
+
+        [Preference]
+        public partial IReadOnlyList<string>? Pins { get; set; }
+
+        [Preference]
+        public partial IReadOnlyList<IReadOnlyDictionary<string, object?>> Hidden { get; set; } = [];
+
+        [Preference]
+        public partial bool @event { get; set; }
+
+        [Preference]
+        public partial string Mode { get; private set; } = "auto";
+
+        public void Choose(string mode)
         {
-            get;
-            set => Set(ref field, value);
-        } = 32;
+            Mode = mode;
+        }
     }
 
     internal static string PathOf(Shell shell)
@@ -132,6 +160,107 @@ public sealed class PreferencesTests
             }
 
             return true;
+        });
+    }
+
+    [Fact]
+    public async Task A_property_without_Preference_is_neither_read_nor_written()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var path = PathOf(shell);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, "plain = \"file\"\n");
+            try
+            {
+                using var own = new Own();
+                Assert.Equal("code", own.Plain);
+
+                own.Plain = "assigned";
+                own.Clock24 = true;
+                await NextTurn(shell);
+
+                Assert.Equal("plain = \"file\"\n\n# Show 13:00 rather than 1:00 PM.\nclock24 = true\n",
+                    File.ReadAllText(path));
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task Every_kind_of_value_a_key_holds_is_read_from_the_file_and_written_when_assigned()
+    {
+        await WithFile(bar => $$"""
+            [{{bar}}]
+            scale = 2.5
+            number = 9223372036854775807
+            maybe = 2
+            anything = "text"
+            taskbar = { centered = true }
+            tiles = ["clock"]
+            pins = []
+            hidden = [{ id = "Contoso.Chat" }]
+            event = true
+
+            """, async (shell, path, bar) =>
+        {
+            using var kinds = new Kinds(bar);
+            Assert.Equal((2.5, long.MaxValue, (int?)2, (object?)"text"),
+                (kinds.Scale, kinds.Number, kinds.Maybe, kinds.Anything));
+            Assert.Equal(true, kinds.Taskbar!["centered"]);
+            Assert.Equal(["clock"], kinds.Tiles);
+            Assert.Empty(kinds.Pins!);
+            Assert.Equal("Contoso.Chat", Assert.Single(kinds.Hidden)["id"]);
+            Assert.True(kinds.@event);
+
+            kinds.Scale = 0.5;
+            kinds.Number = 7;
+            kinds.Maybe = null;
+            kinds.Anything = 3L;
+            kinds.Taskbar = new Dictionary<string, object?> { ["centered"] = false };
+            kinds.Tiles = ["wifi", "clock"];
+            kinds.Pins = ["Contoso.Mail"];
+            kinds.Hidden = [new Dictionary<string, object?> { ["id"] = "Contoso.Mail" }];
+            kinds.@event = false;
+            await NextTurn(shell);
+
+            Assert.Equal($$"""
+                [{{bar}}]
+                scale = 0.5
+                number = 7
+                anything = 3
+                taskbar = { centered = false }
+                tiles = ["wifi", "clock"]
+                pins = ["Contoso.Mail"]
+                hidden = [{ id = "Contoso.Mail" }]
+                event = false
+
+                """, File.ReadAllText(path));
+        });
+    }
+
+    [Fact]
+    public async Task A_key_with_a_private_setter_is_read_notifies_and_is_written_when_its_class_assigns_it()
+    {
+        await WithFile(bar => $"[{bar}]\nmode = \"dark\"\n", async (shell, path, bar) =>
+        {
+            using var kinds = new Kinds(bar);
+            Assert.Equal("dark", kinds.Mode);
+            var changes = Changes(kinds);
+
+            File.WriteAllText(path, $"[{bar}]\nmode = \"light\"\n");
+            await Wait.UntilAsync(() => kinds.Mode == "light", "the saved mode to be read");
+            Assert.Equal([nameof(Kinds.Mode)], changes);
+
+            kinds.Choose("manual");
+            await NextTurn(shell);
+            Assert.Equal($"[{bar}]\nmode = \"manual\"\n", File.ReadAllText(path));
+            Assert.Equal([nameof(Kinds.Mode), nameof(Kinds.Mode)], changes);
         });
     }
 

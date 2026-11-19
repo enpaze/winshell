@@ -660,31 +660,25 @@ edge = "left"
 widgets = [{ widget = "message", text = "Hello" }]
 ```
 
-A class that derives from `Preferences` declares a section. It has one public read-write property per key, and the key is the property name with a lowercase first letter. A key takes a string, a number, `true` or `false`, a list or a table. A `bool` key also takes a number, which is `false` when it is zero or `nan` and `true` otherwise. An `int` key takes a whole number that fits, and a `double` key any number. The property's initializer is its default, and `TomlComment` is the comment written above it. Made with no name, the class holds the configuration's own keys:
+A `partial` class that derives from `Preferences` declares a section. Each key is a `[Preference]` property declared `public partial` with `{ get; set; }`, and the key is the property name with a lowercase first letter. The Winshell package writes the property's accessors: they read the value, raise `PropertyChanged`, and save a change to the file. A setter may be `private`: the key is still read from the file and written to it, but only the class assigns it. A property without `[Preference]` is not a key. A key takes a string, a number, `true` or `false`, a list or a table. A `bool` key also takes a number, which is `false` when it is zero or `nan` and `true` otherwise. An `int` key takes a whole number that fits, and a `double` key any number. The property's initializer is its default, and `TomlComment` is the comment written above it. The build stops with an error when a `[Preference]` property is not partial, or its class does not derive from `Preferences`. Made with no name, the class holds the configuration's own keys:
 
 ```csharp
-public sealed class ShellPreferences : Preferences
+public sealed partial class ShellPreferences : Preferences
 {
+    [Preference]
     [TomlComment("Show 13:00 rather than 1:00 PM.")]
-    public bool Clock24
-    {
-        get => Read(field);
-        set => Set(ref field, value);
-    }
+    public partial bool Clock24 { get; set; }
 }
 ```
 
 A component's class passes its name. The check returns why a value is refused, or `""`:
 
 ```csharp
-public sealed class DockPreferences(string name) : Preferences(name, Check)
+public sealed partial class DockPreferences(string name) : Preferences(name, Check)
 {
+    [Preference]
     [TomlComment("bottom, left or right.")]
-    public string Edge
-    {
-        get => Read(field);
-        set => Set(ref field, value);
-    } = "bottom";
+    public partial string Edge { get; set; } = "bottom";
 
     private static string Check(string key, object value)
     {

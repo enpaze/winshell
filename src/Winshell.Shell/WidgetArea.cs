@@ -14,7 +14,7 @@ public sealed record WidgetAreaProps(
     Orientation Orientation = Orientation.Horizontal,
     ShellStyle? Style = null);
 
-public sealed class WidgetArea : Component<WidgetAreaProps>
+public sealed partial class WidgetArea : Component<WidgetAreaProps>
 {
     private static readonly IReadOnlyDictionary<string, object> EmptySettings = new Dictionary<string, object>();
 
@@ -245,18 +245,15 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
         }
     }
 
-    private sealed class AreaPreferences(string name, Func<ImmutableArray<Placement>> defaults)
+    private sealed partial class AreaPreferences(string name, Func<ImmutableArray<Placement>> defaults)
         : Preferences(name, (_, value) => Placement.Check(value))
     {
+        [Preference]
         [TomlComment(
             "The widgets, in order: a widget's name, or a table that names one and holds its settings. The list\n" +
             "replaces the shell's whole default list, and widgets = [] leaves the area empty. Comment it out to use the\n" +
             "shell's defaults again.")]
-        public object? Widgets
-        {
-            get;
-            set => Set(ref field, value);
-        }
+        public partial object? Widgets { get; set; }
 
         public ImmutableArray<Placement>? Placements => Widgets is { } rows ? Placement.Parse(rows) : null;
 

@@ -5,13 +5,14 @@ BeforeAll {
 Describe 'Compiling template sources against the current libraries' {
     BeforeEach {
         $script:Fixture = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
-        foreach ($folder in @('scripts', 'src/Winshell.Shell', 'src/Winshell.Package/buildTransitive', 'templates/winshell')) {
+        foreach ($folder in @('scripts', 'src/Winshell.Shell', 'src/Winshell.Generators', 'src/Winshell.Package/buildTransitive', 'templates/winshell')) {
             New-Item -ItemType Directory -Path (Join-Path $script:Fixture $folder) -Force | Out-Null
         }
         foreach ($path in @('scripts/build-template.ps1', '.editorconfig', 'global.json', 'Directory.Build.props', 'Directory.Build.targets')) {
             Copy-Item -LiteralPath (Join-Path $script:Repository $path) -Destination (Join-Path $script:Fixture $path)
         }
         [IO.File]::WriteAllText((Join-Path $script:Fixture 'src/Winshell.Shell/Winshell.Shell.csproj'), '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
+        [IO.File]::WriteAllText((Join-Path $script:Fixture 'src/Winshell.Generators/Winshell.Generators.csproj'), '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>netstandard2.0</TargetFramework><LangVersion>latest</LangVersion></PropertyGroup></Project>')
         [IO.File]::WriteAllText((Join-Path $script:Fixture 'src/Winshell.Shell/Api.cs'), "namespace Winshell;`n`npublic static class Api`n{`n    public static string Message => `"current`";`n}`n")
         [IO.File]::WriteAllText((Join-Path $script:Fixture 'src/Winshell.Package/buildTransitive/Winshell.props'), '<Project><ItemGroup><Using Include="Winshell" /></ItemGroup></Project>')
         $script:Project = Join-Path $script:Fixture 'templates/winshell/MyShell.csproj'

@@ -92,6 +92,29 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         Assert.True(built.ExitCode == 0, built.Output);
     }
 
+    [Fact(Timeout = PatienceMs)]
+    public void A_shell_declares_a_preference_as_a_partial_property_the_package_implements()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        using var folder = new TempFolder();
+        var projectFile = CopyStarter(folder.Path);
+        File.WriteAllText(Path.Combine(folder.Path, "ShellPreferences.cs"), """
+            namespace MyShell;
+
+            public sealed partial class ShellPreferences : Preferences
+            {
+                [Preference]
+                [TomlComment("Show 13:00 rather than 1:00 PM.")]
+                public partial bool Clock24 { get; set; } = true;
+            }
+            """);
+
+        var built = ShellProject.Run(
+            "dotnet", ["build", projectFile, "-c", "Release", "-warnaserror", "--nologo"], folder.Path);
+
+        Assert.True(built.ExitCode == 0, built.Output);
+    }
+
     [Theory(Timeout = PatienceMs)]
     [InlineData(false)]
     [InlineData(true)]
@@ -404,15 +427,20 @@ public sealed class PackedTemplates : IDisposable
         var packageDir = Path.GetDirectoryName(packageFile)!;
         var build = XDocument.Load(Path.Combine(Repo.Root, "Directory.Build.props"));
         var lib = "lib/" + build.Descendants("TargetFramework").Single().Value + "/";
-        var libraries = packageProject.Descendants("ProjectReference")
-            .Select(reference => lib + Path.GetFileNameWithoutExtension(reference.Attribute("Include")!.Value) + ".dll")
-            .Order(StringComparer.Ordinal)
-            .ToList();
+        string[] runtime = ["Winshell.Core", "Winshell.Native", "Winshell.Services", "Winshell.Shell"];
+        const string generator = "Winshell.Generators";
+        Assert.Equal(runtime.Append(generator).Order(StringComparer.Ordinal),
+            packageProject.Descendants("ProjectReference")
+                .Select(reference => Path.GetFileNameWithoutExtension(reference.Attribute("Include")!.Value))
+                .Order(StringComparer.Ordinal));
+        var libraries = runtime.Select(name => lib + name + ".dll").ToList();
 
         using var zip = ZipFile.OpenRead(nupkg);
         var names = zip.Entries.Select(entry => entry.FullName.Replace('\\', '/')).ToList();
         Assert.Equal(libraries,
             names.Where(name => name.StartsWith("lib/", StringComparison.Ordinal)).Order(StringComparer.Ordinal));
+        Assert.Equal(["analyzers/dotnet/cs/" + generator + ".dll"],
+            names.Where(name => name.StartsWith("analyzers/", StringComparison.Ordinal)));
         AssertProps(zip, packageDir);
 
         var extracted = TempFolder.NewPath();

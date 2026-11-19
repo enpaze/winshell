@@ -270,6 +270,7 @@ if ($Verify) {
         }
         $ownBinaries = $signedPaths | Where-Object { $_.StartsWith("$rid/", [StringComparison]::Ordinal) } | ForEach-Object { $_.Substring($rid.Length + 1) }
         if (-not $ownBinaries) { throw "packaging/signpath/artifact-configuration.xml signs nothing in $rid" }
+        Assert-WinshellSigned $dir $ownBinaries $name
         foreach ($binary in $ownBinaries) {
             $info = (Get-Item -LiteralPath (Join-Path $dir $binary)).VersionInfo
             if ($info.ProductName -cne $product -or $info.ProductVersion -notmatch "^$([regex]::Escape($Version))(\+|$)") {

@@ -18,7 +18,10 @@ internal sealed class TomlKeys
         All =
         [
             .. owner.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => p.SetMethod is { IsPublic: true } && p.GetIndexParameters().Length == 0)
+                .Where(p => p.IsDefined(typeof(PreferenceAttribute)) && p.GetIndexParameters().Length == 0)
+                .Select(p => p.DeclaringType!.GetProperty(p.Name,
+                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)!)
+                .Where(p => p.SetMethod is not null)
                 .OrderBy(p => p.MetadataToken)
                 .Select(p => new TomlKey(p))
         ];

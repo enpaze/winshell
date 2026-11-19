@@ -8,7 +8,7 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
-public sealed class Bar : IDisposable
+public sealed partial class Bar : IDisposable
 {
     private static readonly Dictionary<string, Edges> EdgeNames = new()
     {
@@ -202,35 +202,23 @@ public sealed class Bar : IDisposable
         _preferences?.Dispose();
     }
 
-    private sealed class BarPreferences(Bar bar) : Preferences(bar.Name, Check)
+    private sealed partial class BarPreferences(Bar bar) : Preferences(bar.Name, Check)
     {
+        [Preference]
         [TomlComment("top, bottom, left or right.")]
-        public string Edge
-        {
-            get;
-            set => Set(ref field, value);
-        } = EdgeNames.Single(pair => pair.Value == bar.Edge).Key;
+        public partial string Edge { get; set; } = EdgeNames.Single(pair => pair.Value == bar.Edge).Key;
 
+        [Preference]
         [TomlComment("The widgets at the start, in order: a widget's name, or a table that names one and holds its settings.")]
-        public object Start
-        {
-            get;
-            set => Set(ref field, value);
-        } = Placement.Format(bar.Start);
+        public partial object Start { get; set; } = Placement.Format(bar.Start);
 
+        [Preference]
         [TomlComment("The widgets in the middle.")]
-        public object Center
-        {
-            get;
-            set => Set(ref field, value);
-        } = Placement.Format(bar.Center);
+        public partial object Center { get; set; } = Placement.Format(bar.Center);
 
+        [Preference]
         [TomlComment("The widgets at the end.")]
-        public object End
-        {
-            get;
-            set => Set(ref field, value);
-        } = Placement.Format(bar.End);
+        public partial object End { get; set; } = Placement.Format(bar.End);
     }
 
     private sealed class Shown(ReactorHostControl host, PanelWindow window, bool vertical, List<Shown> open) : IDisposable
