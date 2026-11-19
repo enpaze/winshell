@@ -1,6 +1,6 @@
 # Hotkeys (Hotkey)
 
-`shell.Hotkey(sequence, pressed)` makes a `Hotkey`, a key chord that works anywhere in Windows while the shell runs. When the user presses it, it runs `pressed` and raises `Pressed`. It raises `Released` when it leaves the pressed state: the user lets go of the keys, or its `Sequence` or `Enabled` changes. A configuration uses it to open a launcher or switch a workspace from the keyboard. The feature shell registers `Ctrl+Alt+Shift+F13`, and its row `service.hotkey` shows `sequence: Ctrl+Alt+Shift+F13; active: <True|False>; taken: <True|False>`.
+`shell.Hotkey(sequence, pressed)` makes a `Hotkey`, a key chord that works anywhere in Windows while the shell runs. When the user presses it, it runs `pressed` and raises `Pressed`. It raises `Released` when it leaves the pressed state: the user lets go of the keys, or its `Sequence` or `Enabled` changes. A shell uses it to open a launcher or switch a workspace from the keyboard. The feature shell registers `Ctrl+Alt+Shift+F13`, and its row `service.hotkey` shows `sequence: Ctrl+Alt+Shift+F13; active: <True|False>; taken: <True|False>`.
 
 ## Sub-features
 
@@ -14,7 +14,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration calls `shell.Hotkey(sequence, pressed)`.
+- A shell calls `shell.Hotkey(sequence, pressed)`.
 - The user presses the chord anywhere in Windows.
 - The starter and the omarchy-style example do not register one.
 

@@ -8,24 +8,24 @@ internal static class DoctorCommand
     {
         Name = "doctor",
         Overview = """
-                          winshell doctor [config options] [-j] [--no-color]
+                          winshell doctor [shell options] [-j] [--no-color]
                                                               check this PC's setup for Winshell
                    """,
         Usage = """
-                winshell doctor [-c <name> | -p <path>] [-j] [--no-color]
+                winshell doctor [-s <name> | -p <path>] [-j] [--no-color]
                   Checks this PC's setup for Winshell and changes nothing.
-                  -c, --config <name>    a named config in {config-root}
+                  -s, --shell <name>     a named shell in {shells-root}
                   -j, --json             print the checks as JSON
                       --no-color         print without color
                 """,
-        Options = [CliFlags.Path, CliFlags.Config, CliFlags.Json, CliFlags.NoColor],
+        Options = [CliFlags.Path, CliFlags.Shell, CliFlags.Json, CliFlags.NoColor],
         Run = static parsed => Task.FromResult(Execute(parsed))
     };
 
     private static int Execute(Invocation parsed)
     {
         var checks = Doctor.Run(new DoctorContext(ShellLocations.Current, parsed.Text(CliFlags.Path),
-            parsed.Text(CliFlags.Config)));
+            parsed.Text(CliFlags.Shell)));
         if (parsed.IsSet(CliFlags.Json))
         {
             Console.WriteLine(DoctorReport.ToJson(checks, Shell.Version));

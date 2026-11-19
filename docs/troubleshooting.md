@@ -16,26 +16,26 @@ Logs are in `%LOCALAPPDATA%\winshell\run\<instance id>\log.txt`. A shell that ex
 | It says | What to do |
 | --- | --- |
 | `No .csproj at <path>.` | `--path` names a folder without a `.csproj`, or a file that isn't there. |
-| `No config named "<name>" in <folder>.` | `--config` names a folder of the config folder that has no project. |
-| `Several configs in <folder>; pick one with -c: …` | The config folder has no project of its own and several subfolders with one. Run `winshell run -c <name>`. |
+| `No shell named "<name>" in <folder>.` | `--shell` names a folder of the shells folder that has no project. |
+| `Several shells in <folder>; pick one with -s: …` | The shells folder has no project of its own and several subfolders with one. Run `winshell run -s <name>`. |
 | `Several projects in <folder>; name one with -p: …` | The folder has more than one `.csproj`. Pass the file with `-p`. |
 | `<name> did not build.` | The build failed. The last good build is not started. The notice and the log have the compiler's lines. |
 | `<name> did not build.` and `NU1101: Unable to find package Winshell` | The `Winshell` package is not published yet. Pack it and add a package source for it, as [Create one](configuration.md#create-one) shows. |
 | `<name> has not been built. Run winshell run once to build it.` | `--no-build` found no program in `bin\shell`. |
-| `Building a configuration needs the .NET SDK…` | A build needs the SDK. `--no-build` of a program that is already built does not. |
-| Nothing, and it exits at once | There is no configuration, so there is nothing to run: make one as the [configuration guide](configuration.md#create-one) shows. Or `--no-duplicate` found this shell id already running, or a second start overlapped the first. `winshell list` shows the one that is running. |
+| `Building a shell needs the .NET SDK…` | A build needs the SDK. `--no-build` of a program that is already built does not. |
+| Nothing, and it exits at once | There is no shell, so there is nothing to run: make one as the [configuration guide](configuration.md#create-one) shows. Or `--no-duplicate` found this shell id already running, or a second start overlapped the first. `winshell list` shows the one that is running. |
 | `This shell is Winshell … and this winshell is …` | The CLI and the shell are different releases. Use the `winshell` that matches, or build the shell with this one. `kill` still works. |
 | `Unknown command "<name>". Run winshell --help.` | The first word isn't a command. Options start with `-`. |
 
 ### Started from Start or at sign-in
 
-Those starts have no console window, so a Winshell that cannot start shows a dialog with the same text. **Open config folder** opens the folder the message is about. A console, including `winshell run -d` from a terminal, prints the text and shows no dialog.
+Those starts have no console window, so a Winshell that cannot start shows a dialog with the same text. **Open shell folder** opens the folder the message is about. A console, including `winshell run -d` from a terminal, prints the text and shows no dialog.
 
 Nothing in the dialog and nothing on screen means the shell is already running (`--no-duplicate`), or it started and the failure is in the log.
 
 ## The build failed
 
-A notice says the configuration did not build, with the compiler's lines:
+A notice says the shell did not build, with the compiler's lines:
 
 - **Open file** opens the project.
 - **Dismiss** closes the notice, as does Escape once you have clicked it.
@@ -60,7 +60,7 @@ When only the shell ends, `winshell run` puts the taskbar back, for example afte
 The window stays hidden, and the edge stays released, when nothing is left to do that:
 
 - `winshell run` was ended together with the shell, as `taskkill /F /T` on `winshell run` does.
-- The shell ran without `winshell run`, as a configuration's program started directly does.
+- The shell ran without `winshell run`, as a shell's program started directly does.
 
 Then bring the taskbar back yourself:
 
@@ -96,7 +96,7 @@ A shell sees no notifications until you allow access: it asks with `shell.Notifi
 ## Wi-Fi networks or Bluetooth devices are missing
 
 - **Wi-Fi:** scanning needs Windows' Wi-Fi access, which also needs location services on (Windows Settings > Privacy & security > Location). A shell asks for it with `Networking.RequestAccess()`. Without access, the adapters and connection still show, and the networks in range don't. See [networking](reference/winshell-network.md).
-- **Bluetooth:** nearby devices show only while the shell is discovering, and the radio has to be on. A configuration can set `BluetoothAdapter.Enabled`. See [Bluetooth](reference/winshell-bluetooth.md).
+- **Bluetooth:** nearby devices show only while the shell is discovering, and the radio has to be on. A shell can set `BluetoothAdapter.Enabled`. See [Bluetooth](reference/winshell-bluetooth.md).
 
 ## Media controls show nothing
 
@@ -113,10 +113,10 @@ See [the notification area](reference/winshell-tray.md).
 
 ## Winshell doesn't start when I sign in
 
-The sign-in entry starts your configuration. With none, it starts nothing. `install.ps1 -AutoStart` adds the entry, and the Sign-in check of `winshell doctor` says what is wrong with it:
+The sign-in entry starts your shell. With none, it starts nothing. `install.ps1 -AutoStart` adds the entry, and the Sign-in check of `winshell doctor` says what is wrong with it:
 
 - **Windows' Startup apps page turned it off.** Only that page (Windows Settings > Apps > Startup) can turn it back on. A Windows policy that keeps a packaged Winshell off is the same.
-- **The entry starts another configuration, or none.** An entry with no `--config` starts what `winshell run` would. With several configurations and none chosen, that is none, and signing in shows an error that lists them. `winshell use <name>` chooses one. `winshell doctor` names that command: in its Configuration check when it can't tell which one to start, and in the fix of its Sign-in check when the entry starts another.
+- **The entry starts another shell, or none.** An entry with no `--shell` starts what `winshell run` would. With several shells and none chosen, that is none, and signing in shows an error that lists them. `winshell use <name>` chooses one. `winshell doctor` names that command: in its Configuration check when it can't tell which one to start, and in the fix of its Sign-in check when the entry starts another.
 - **The unpackaged entry starts another `winshell.exe`**, as after unzipping an update into a new folder, or other options. Install Winshell again with `-AutoStart` to point the entry at the one you use. A packaged Winshell has no path to rewrite: Windows starts the package.
 
 The sign-in entry runs the last build. It does not build, so a broken edit and a missing SDK do not block signing in. `WINSHELL_CONFIG_DIR` applies at sign-in only when it is set for your user account.
@@ -136,6 +136,6 @@ A crash is a bug in Winshell. Please report it.
 - What you did, what you expected, and what happened.
 - `winshell --version`, and the Windows version from `winver`.
 - The log (`winshell log > log.txt`) and the crash report, if there is one. Look through them first: they have file paths and the names of the apps you run.
-- The smallest configuration that shows the problem.
+- The smallest shell that shows the problem.
 
 For a security problem, don't open an issue; follow the [security policy](https://github.com/enpaze/winshell/blob/main/.github/SECURITY.md).

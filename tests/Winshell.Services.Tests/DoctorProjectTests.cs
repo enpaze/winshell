@@ -27,10 +27,10 @@ public sealed class DoctorProjectTests : IDisposable
 
         Assert.Equal(["project", "built", "build"], checks.Select(c => c.Id));
         Assert.Equal(CheckStatus.Warn, checks[0].Status);
-        Assert.Equal("No configuration project, so winshell run starts nothing.", checks[0].Message);
+        Assert.Equal("No shell project, so winshell run starts nothing.", checks[0].Message);
         Assert.Equal("Run winshell new to make one.", checks[0].Fix);
         Assert.All(checks.Skip(1), c => Assert.Equal(CheckStatus.Pass, c.Status));
-        Assert.Contains("No configuration project", checks[1].Message, StringComparison.Ordinal);
+        Assert.Contains("No shell project", checks[1].Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -42,8 +42,8 @@ public sealed class DoctorProjectTests : IDisposable
         var project = Assert.Single(Checks(_root), c => c.Id == "project");
 
         Assert.Equal(CheckStatus.Fail, project.Status);
-        Assert.Contains("pick one with -c: a, b", project.Message, StringComparison.Ordinal);
-        Assert.Contains("winshell -c", project.Fix, StringComparison.Ordinal);
+        Assert.Contains("pick one with -s: a, b", project.Message, StringComparison.Ordinal);
+        Assert.Contains("winshell -s", project.Fix, StringComparison.Ordinal);
     }
 
     [Fact]

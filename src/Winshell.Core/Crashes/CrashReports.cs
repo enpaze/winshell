@@ -224,7 +224,7 @@ internal sealed partial class CrashReports(
         var text = new StringBuilder();
         text.AppendLine(Heading);
         text.AppendLine("This file stays on this PC. Passwords, tokens and keys Winshell recognizes are taken out,");
-        text.AppendLine("but read it before you attach it to a bug report: it has the paths of your config.");
+        text.AppendLine("but read it before you attach it to a bug report: it has the paths of your shell.");
         text.AppendLine();
         text.AppendLine(CultureInfo.InvariantCulture, $"Time: {time:yyyy-MM-dd HH:mm:ss.fff zzz}");
         text.AppendLine(CultureInfo.InvariantCulture, $"Winshell: {ProductVersion.Current.Text}");

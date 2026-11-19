@@ -15,7 +15,7 @@
 ## How to get to it (user POV)
 
 - Run `winshell inspect key <keys> [window]` in a terminal, such as `winshell inspect key "Ctrl+K, C"`.
-- Pick the shell with `--pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>`. With none, the command acts on the only running shell.
+- Pick the shell with `--pid <pid>`, `-i <id>`, `-s <name>` or `-p <path>`. With none, the command acts on the only running shell.
 - Run `winshell inspect focus <name>` first to put keyboard focus on the element that should get the keys.
 
 ## Driving it with winshell inspect

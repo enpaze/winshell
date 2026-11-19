@@ -1,6 +1,6 @@
 # Winland
 
-`shell.Winland` reads the monitors, workspaces and windows of Winland, the tiling window manager, over Winland's named pipe, and sends it requests. A configuration uses it for a workspace switcher. The feature shell's row `service.winland` shows `running: <True|False>; workspaces: N`, where `running` is `True` while `ProcessId` names a running Winland.
+`shell.Winland` reads the monitors, workspaces and windows of Winland, the tiling window manager, over Winland's named pipe, and sends it requests. A shell uses it for a workspace switcher. The feature shell's row `service.winland` shows `running: <True|False>; workspaces: N`, where `running` is `True` while `ProcessId` names a running Winland.
 
 ## Sub-features
 
@@ -14,7 +14,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Winland`, or `Shell.Winland` in a widget.
+- A shell reads `shell.Winland`, or `Shell.Winland` in a widget.
 - In the omarchy-style shell, the `workspaces` widget shows the workspaces of the bar's monitor and the icons of the apps on each, and the user chooses one to switch to it.
 - The user sets `WINLAND_PIPE` to connect to another pipe.
 

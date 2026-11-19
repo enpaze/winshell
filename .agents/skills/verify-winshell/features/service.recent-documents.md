@@ -1,6 +1,6 @@
 # Recent documents
 
-`shell.RecentDocuments` searches the documents that the user opened recently, the shortcuts in the user's Windows Recent folder. A configuration uses it to show recent files in a launcher. The feature shell's row `service.recent-documents` shows `recent: N`, the number of documents that `Search("")` returns, which is always 0.
+`shell.RecentDocuments` searches the documents that the user opened recently, the shortcuts in the user's Windows Recent folder. A shell uses it to show recent files in a launcher. The feature shell's row `service.recent-documents` shows `recent: N`, the number of documents that `Search("")` returns, which is always 0.
 
 ## Sub-features
 
@@ -11,7 +11,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration calls `shell.RecentDocuments.Search(query)`, or `Shell.RecentDocuments.Search(query)` in a widget.
+- A shell calls `shell.RecentDocuments.Search(query)`, or `Shell.RecentDocuments.Search(query)` in a widget.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

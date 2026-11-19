@@ -12,7 +12,7 @@ You need the [.NET SDK](https://dotnet.microsoft.com/download). Make the starter
 
 ```powershell
 winshell new starter
-winshell run -c starter
+winshell run -s starter
 ```
 
 A bar shows along the top of every screen, with the time in the middle and the battery's charge at the end. It reserves that edge, so maximized windows stop short of it. `winshell kill` closes it. The project is in `%APPDATA%\winshell\starter`, and the C# below is its own text.
@@ -83,7 +83,7 @@ Close the bar with `winshell kill`, and run the starter under `winshell dev` ins
 
 ```powershell
 winshell kill
-winshell dev -c starter
+winshell dev -s starter
 ```
 
 Change `{time:t}` in `Clock.cs` to `{time:T}` and save it, and the clock shows the seconds. The bar stays where it is, and so does the battery.
@@ -131,7 +131,7 @@ A configuration is a .NET project. Winshell looks for a `.csproj` in this order.
 | What you run | The project it builds and runs |
 | --- | --- |
 | `winshell run --path <folder or file>` | That `.csproj`, or the one `.csproj` in that folder |
-| `winshell run --config <name>` | The project in `%APPDATA%\winshell\<name>` |
+| `winshell run --shell <name>` | The project in `%APPDATA%\winshell\<name>` |
 | `winshell run` | The configuration `winshell use` chose; else the project in `%APPDATA%\winshell`; else `%APPDATA%\winshell\default`; else the one subfolder of `%APPDATA%\winshell` that has a project. With several, Winshell asks you to choose one with `winshell use`. With none, nothing runs. |
 
 `WINSHELL_CONFIG_DIR` replaces `%APPDATA%\winshell` in this table.

@@ -12,7 +12,7 @@
 ## How to get to it (user POV)
 
 - Run `winshell inspect leave` in a terminal after `winshell inspect point <name>`.
-- Pick the shell with `--pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>`. With none, the command acts on the only running shell.
+- Pick the shell with `--pid <pid>`, `-i <id>`, `-s <name>` or `-p <path>`. With none, the command acts on the only running shell.
 - `focus`, `point`, `press`, `scroll` and `key` also end a `point` first, and so do 30 seconds and a move of the mouse.
 
 ## Driving it with winshell inspect

@@ -1,21 +1,21 @@
 # winshell run
 
-`winshell run` builds a configuration project to `bin\shell` when a source is newer than its program, then starts that program and supervises it until it exits. A shell that crashes starts again. With `-d` it builds, starts the shell in the background with no console window, and returns at once. Starting a shell asks any shell already running in this local folder to quit first. After the feature shell is killed and started again with `-d`, `winshell list -j` lists `FeatureShell.exe` again.
+`winshell run` builds a shell project to `bin\shell` when a source is newer than its program, then starts that program and supervises it until it exits. A shell that crashes starts again. With `-d` it builds, starts the shell in the background with no console window, and returns at once. Starting a shell asks any shell already running in this local folder to quit first. After the feature shell is killed and started again with `-d`, `winshell list -j` lists `FeatureShell.exe` again.
 
 ## Sub-features
 
 - `run-build` builds to `bin\shell` when a source is newer, then starts the program. A failed build prints why and does not start the last program that built.
-- `run-pick` runs the project that `-p <path>` or `-c <name>` names, or else the one `winshell use` chose, the project in the config folder, its `default` folder, or its one subfolder with a project. With none, it starts nothing, prints nothing and exits with 0.
+- `run-pick` runs the project that `-p <path>` or `-s <name>` names, or else the one `winshell use` chose, the project in the shells folder, its `default` folder, or its one subfolder with a project. With none, it starts nothing, prints nothing and exits with 0.
 - `run-daemonize` with `-d` or `--daemonize`, starts the shell in the background with no console window and returns at once.
 - `run-no-build` with `--no-build`, runs the program the last build left in `bin\shell`.
 - `run-no-duplicate` with `-n` or `--no-duplicate`, exits 0 without a message when this shell id is already running, and does not replace it.
 - `run-replace` asks a shell already running in this local folder to quit, waits until it has exited, then starts. One that does not quit stays, and the start exits with 1.
 - `run-supervise` starts a crashed shell again after 1, 2, 4, 8 and then 10 seconds, and ends supervision after the sixth crash in a row. It shows Explorer's taskbar again after every exit but 0.
-- `run-errors` prints a failure before the log exists to the console, and shows it in a dialog when there is no console, with **Open config folder**.
+- `run-errors` prints a failure before the log exists to the console, and shows it in a dialog when there is no console, with **Open shell folder**.
 
 ## How to get to it (user POV)
 
-- Run `winshell run` in a terminal, with `-p <path>` or `-c <name>` to name the project, and `-d`, `--no-build`, `-n` or `-v` as needed. Press Ctrl+C to stop the shell.
+- Run `winshell run` in a terminal, with `-p <path>` or `-s <name>` to name the project, and `-d`, `--no-build`, `-n` or `-v` as needed. Press Ctrl+C to stop the shell.
 - `winshell` with only the options of `run`, and `winshellw`, start a shell too.
 - Choose Winshell's Start tile, or sign in with the sign-in entry that `install.ps1 -AutoStart` adds. Both start what `winshell run` would, and the sign-in entry passes `--no-build`.
 

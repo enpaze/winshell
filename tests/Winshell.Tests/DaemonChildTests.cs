@@ -5,8 +5,8 @@ namespace Winshell.Tests;
 public class DaemonChildTests
 {
     [Theory]
-    [InlineData("-c")]
-    [InlineData("--config")]
+    [InlineData("-s")]
+    [InlineData("--shell")]
     [InlineData("-p")]
     [InlineData("--path")]
     public void A_daemon_child_keeps_a_value_spelled_like_the_flag(string option)
@@ -14,7 +14,7 @@ public class DaemonChildTests
         var parsed = CliParser.Parse(["run", "-d", option, "-d"]);
 
         Assert.True(parsed.IsSet(CliFlags.Daemonize));
-        Assert.Equal("-d", option is "-p" or "--path" ? parsed.Text(CliFlags.Path) : parsed.Text(CliFlags.Config));
+        Assert.Equal("-d", option is "-p" or "--path" ? parsed.Text(CliFlags.Path) : parsed.Text(CliFlags.Shell));
         Assert.Equal(["--no-build", "run", option, "-d"], RunCommand.ChildArguments(parsed));
     }
 
@@ -30,9 +30,9 @@ public class DaemonChildTests
     [Fact]
     public void A_child_that_was_told_not_to_build_is_not_told_again()
     {
-        var parsed = CliParser.Parse(["run", "--daemonize", "--no-build", "-c", "-d"]);
+        var parsed = CliParser.Parse(["run", "--daemonize", "--no-build", "-s", "-d"]);
 
-        Assert.Equal(["run", "--no-build", "-c", "-d"], RunCommand.ChildArguments(parsed));
+        Assert.Equal(["run", "--no-build", "-s", "-d"], RunCommand.ChildArguments(parsed));
     }
 
     [Fact]

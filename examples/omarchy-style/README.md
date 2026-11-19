@@ -1,6 +1,6 @@
 # Omarchy-style panel
 
-A Winshell configuration that draws the bar of [Omarchy](https://github.com/omacom/omarchy) v4.5.0 as a panel, in Omarchy's Tokyo Night style. Copy from it: it shows a bar on every screen, on whichever edge you choose, Winland's workspaces, the tray, and the status of Bluetooth, the network, audio, the screen and the battery, each read from a Winshell service.
+A shell that draws the bar of [Omarchy](https://github.com/omacom/omarchy) v4.5.0 as a panel, in Omarchy's Tokyo Night style. Copy from it: it shows a bar on every screen, on whichever edge you choose, Winland's workspaces, the tray, and the status of Bluetooth, the network, audio, the screen and the battery, each read from a Winshell service.
 
 ![The panel: the Windows glyph and workspaces 1 to 5 on the left, the clock in the middle, the tray chevron, tray icons and status glyphs on the right](screenshot.png)
 
@@ -82,7 +82,7 @@ The project references Winshell's source, so the repo's own check builds it.
 - **Add a widget:** copy [Widgets/AudioWidget.cs](Widgets/AudioWidget.cs), follow another service with `UseObservable` or `UseObservableTree`, and open its Settings page with `Shell.Open`. The class `MicWidget` is the widget `mic`: put that name in a list in [Program.cs](Program.cs) or in the preferences file.
 - **Keep the taskbar:** delete `shell.ExplorerTaskbar.Hidden = true;` in [Program.cs](Program.cs).
 
-## Use it as your own configuration
+## Use it as your own shell
 
 <!-- winshell new leaves this section out -->
 
@@ -92,7 +92,7 @@ Copy the folder out of the repo, then reference the `Winshell` package instead o
 <PackageReference Include="Winshell" Version="<version>" />
 ```
 
-The package is not published yet, so pack it from the same clone and point NuGet at it, as [Create one](../../docs/configuration.md#create-one) in the configuration guide shows. `<version>` is the release in the package's name.
+The package is not published yet, so pack it from the same clone and point NuGet at it, as [Create one](../../docs/configuration.md#create-one) in the shell guide shows. `<version>` is the release in the package's name.
 
 ## Credits
 

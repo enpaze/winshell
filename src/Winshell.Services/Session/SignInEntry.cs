@@ -103,7 +103,7 @@ internal static class SignInEntry
 
     internal static string? ProjectOf(SignInLaunch launch, string shellsRoot, Log? log = null)
     {
-        if (launch.Name is { } name && !CommandWords.IsConfigName(name))
+        if (launch.Name is { } name && !CommandWords.IsShellFolder(name))
             return null;
         try
         {

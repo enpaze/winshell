@@ -1,6 +1,6 @@
 # winshell reload
 
-`winshell reload` builds a running shell's configuration project and replaces the shell with a new process from that build. Under `winshell run`, it prints `Reloaded <id>` once the old process has exited, and `winshell run` starts the new one at once. When the build fails, the running shell stays, a notice shows the compiler's lines, and the command exits with 1. Every window is replaced, so on the `features` shell the new process's `features.clicks` reads `clicks: 0`.
+`winshell reload` builds a running shell's shell project and replaces the shell with a new process from that build. Under `winshell run`, it prints `Reloaded <id>` once the old process has exited, and `winshell run` starts the new one at once. When the build fails, the running shell stays, a notice shows the compiler's lines, and the command exits with 1. Every window is replaced, so on the `features` shell the new process's `features.clicks` reads `clicks: 0`.
 
 ## Sub-features
 
@@ -14,7 +14,7 @@
 ## How to get to it (user POV)
 
 - Run `winshell reload` in a terminal for the only running shell.
-- Run `winshell reload --pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>` to pick one of several.
+- Run `winshell reload --pid <pid>`, `-i <id>`, `-s <name>` or `-p <path>` to pick one of several.
 - A shell calls `shell.Restart()`, which returns `false` when the new process did not start.
 - On a build error, choose **Dismiss** in the notice, or run `winshell ipc call notice dismiss`, to close it.
 
@@ -39,6 +39,6 @@ Preconditions:
 
 - The recipe does not click before the reload, so `clicks: 0` also holds on a shell that was never replaced. To see the count reset, run `winshell inspect --pid {pid} click features.click` before the reload and check that the count is 1 or more.
 - The process id changes. A `--pid` from before the reload names a shell that has exited.
-- State does not survive a reload unless the configuration writes it itself.
+- State does not survive a reload unless the shell writes it itself.
 - There is no file watcher. A saved edit reaches the shell only through `winshell reload` or `winshell dev`.
 - Under `winshell run`, the command waits up to five seconds for the shell to answer and five more for it to exit.

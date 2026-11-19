@@ -13,18 +13,18 @@ internal static class RunCommand
         Name = CommandWords.Run,
         Overview = "Usage: winshell run [options]              start a shell",
         Usage = """
-                winshell run [-c <name> | -p <path>] [-d] [-n] [--no-build] [-- <args>...]
-                  Starts a configuration project's shell, built first when a source is newer than its
+                winshell run [-s <name> | -p <path>] [-d] [-n] [--no-build] [-- <args>...]
+                  Starts a shell project's program, built first when a source is newer than its
                   program. With no project, nothing starts. A shell already running is asked to quit
                   first, and one that does not quit stays: the start says why and exits 1.
                   -d, --daemonize        run in the background
-                  -n, --no-duplicate     exit quietly if this config is already running
+                  -n, --no-duplicate     exit quietly if this shell is already running
                       --no-build         run the last build, and do not build again
-                  Words after -- go to the configuration's program.
+                  Words after -- go to the shell's program.
                 """,
         Options =
         [
-            CliFlags.Path, CliFlags.Config, CliFlags.Daemonize, CliFlags.NoDuplicate, CliFlags.NoBuild
+            CliFlags.Path, CliFlags.Shell, CliFlags.Daemonize, CliFlags.NoDuplicate, CliFlags.NoBuild
         ],
         Run = static parsed => Task.FromResult(Execute(parsed))
     };
@@ -63,8 +63,8 @@ internal static class RunCommand
     internal static int Execute(Invocation parsed)
     {
         var path = parsed.Text(CliFlags.Path);
-        var config = parsed.Text(CliFlags.Config);
-        var project = ShellProject.Find(path, config, ShellLocations.Current.ShellsRoot, out var error);
+        var shell = parsed.Text(CliFlags.Shell);
+        var project = ShellProject.Find(path, shell, ShellLocations.Current.ShellsRoot, out var error);
         if (error is not null)
         {
             StartupError.Report(error, StartupError.FolderFor(path, ShellLocations.Current.ShellsRoot));

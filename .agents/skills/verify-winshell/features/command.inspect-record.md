@@ -16,7 +16,7 @@
 
 - Run `winshell inspect record <file.mp4> --for <time> [window]` in a terminal. A time is in seconds, such as `5` or `2.5s`, or in milliseconds, such as `500ms`.
 - Add `--screen [n]`, `--fps <n>` or `--frames <folder>` as needed.
-- Pick the shell with `--pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>`. With none, the command acts on the only running shell.
+- Pick the shell with `--pid <pid>`, `-i <id>`, `-s <name>` or `-p <path>`. With none, the command acts on the only running shell.
 - Start it in the background to run other `inspect` commands, such as `point`, while it records.
 
 ## Driving it with winshell inspect

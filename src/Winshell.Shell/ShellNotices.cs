@@ -69,7 +69,7 @@ internal sealed partial class ShellNotices : IDisposable
     {
         return new Notice(
             NoticeKind.BuildError,
-            "Your configuration did not build",
+            "Your shell did not build",
             Path.GetFileName(projectFile),
             error,
             "Winshell keeps running the last version that built.",

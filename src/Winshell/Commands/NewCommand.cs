@@ -14,8 +14,8 @@ internal static class NewCommand
         Usage = """
                 winshell new [<name>] [-p <folder>]
                   With no name, lists the starter and the examples this release can copy.
-                  With a name, copies that one into {config-root}\<name>, ready for
-                  winshell run -c <name>. Its project references this release's Winshell package.
+                  With a name, copies that one into {shells-root}\<name>, ready for
+                  winshell run -s <name>. Its project references this release's Winshell package.
                   -p, --path <folder>    copy into this folder instead
                   A folder that exists and isn't empty is refused, and nothing changes.
                 """,
@@ -61,7 +61,7 @@ internal static class NewCommand
             output.AppendLine(CultureInfo.InvariantCulture,
                 $"The Winshell {version} package is not beside winshell.exe, so add a NuGet source for it: see {Guide}");
         var run = path is null
-            ? "-c " + chosen.Name
+            ? $"{CommandWords.Shell.Short} {chosen.Name}"
             : "-p " + (folder.Contains(' ', StringComparison.Ordinal) ? $"\"{folder}\"" : folder);
         output.AppendLine(CultureInfo.InvariantCulture, $"Run it: winshell run {run}");
         return new Result(0, output.ToString(), null);

@@ -1,6 +1,6 @@
 # Window list
 
-`shell.WindowList` lists the open app windows that a taskbar would show, and the active one, and acts on them. A configuration uses it for a taskbar or a window switcher. The feature shell's row `service.window-list` shows `windows: N; active: <yes|none>`, where `active` says whether `ActiveWindow` is set.
+`shell.WindowList` lists the open app windows that a taskbar would show, and the active one, and acts on them. A shell uses it for a taskbar or a window switcher. The feature shell's row `service.window-list` shows `windows: N; active: <yes|none>`, where `active` says whether `ActiveWindow` is set.
 
 ## Sub-features
 
@@ -13,8 +13,8 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.WindowList`, or `Shell.WindowList` in a widget.
-- A configuration sets `WindowThumbnail.Window` to an `AppWindow` to preview it.
+- A shell reads `shell.WindowList`, or `Shell.WindowList` in a widget.
+- A shell sets `WindowThumbnail.Window` to an `AppWindow` to preview it.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

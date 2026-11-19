@@ -1,6 +1,6 @@
 # System tray
 
-`shell.SystemTray` lists the icons that apps add to the notification area, and passes the user's clicks to them. A configuration uses it to show tray icons in its own bar. The feature shell's row `service.system-tray` shows `icons: N`, the number of icons in `Items`.
+`shell.SystemTray` lists the icons that apps add to the notification area, and passes the user's clicks to them. A shell uses it to show tray icons in its own bar. The feature shell's row `service.system-tray` shows `icons: N`, the number of icons in `Items`.
 
 ## Sub-features
 
@@ -12,7 +12,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.SystemTray.Items`, or `Shell.SystemTray.Items` in a widget.
+- A shell reads `shell.SystemTray.Items`, or `Shell.SystemTray.Items` in a widget.
 - In the omarchy-style shell, the `tray` widget shows the icons on the primary screen's bar, and the user chooses an icon to click it.
 - The user chooses which icons show in Windows Settings > Personalization > Taskbar > Other system tray icons.
 

@@ -5,7 +5,7 @@ description: Drive a real Winshell shell on this Windows desktop with `winshell 
 
 # Verify Winshell
 
-Winshell has no shell of its own. A user writes a C# configuration, and `winshell.exe` builds it, starts it and talks to it. To see a change working, build `winshell` from this checkout, start a shell that shows the change in a private session, and drive it with `winshell inspect`. `inspect` reads the running shell from inside: `tree`, `screenshot`, `record`, `click`, `hover` and `type` need no mouse and no keyboard, and they do not move the user's pointer or focus.
+Winshell has no shell of its own. An author writes a shell in C#, and `winshell.exe` builds it, starts it and talks to it. To see a change working, build `winshell` from this checkout, start a shell that shows the change in a private session, and drive it with `winshell inspect`. `inspect` reads the running shell from inside: `tree`, `screenshot`, `record`, `click`, `hover` and `type` need no mouse and no keyboard, and they do not move the user's pointer or focus.
 
 [The feature map](features/README.md) lists every user-facing feature with the steps that prove it. Read its README before you drive anything. All the helpers below are in `scripts/`; run them from the repository root with PowerShell 7.
 

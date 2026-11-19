@@ -13,8 +13,8 @@
 ## How to get to it (user POV)
 
 - Run `winshell ipc call <target> <function> [args...]` in a terminal, such as `winshell ipc call notes hello Ada`.
-- Pick the shell with `--pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>` before `call`. With none, the command acts on the only running shell.
-- A configuration registers a function with `shell.Ipc.Handle("<target>", "<function>", handler)`, and disposes the registration to take it away.
+- Pick the shell with `--pid <pid>`, `-i <id>`, `-s <name>` or `-p <path>` before `call`. With none, the command acts on the only running shell.
+- A shell registers a function with `shell.Ipc.Handle("<target>", "<function>", handler)`, and disposes the registration to take it away.
 - `winshell ipc show` lists the functions that `ipc call` can reach.
 
 ## Driving it with winshell inspect
@@ -35,6 +35,6 @@ Preconditions:
 
 - Options after the function name go to the function, not to `winshell`: `winshell ipc call notes add -v` passes `-v` to `add`. Put `--pid` and the other instance options before `call`.
 - Target and function names are case-sensitive. `Features` is not the target `features`.
-- `notice dismiss` is not a target the configuration registered, so `winshell ipc show` does not list it.
+- `notice dismiss` is not a target the shell registered, so `winshell ipc show` does not list it.
 - The CLI and the shell must come from the same release. Otherwise each refuses the other with `This shell is Winshell <shell> and this winshell is <client>.`, so build the shell with the `winshell` you drive it with.
 - With several shells running and no instance option, the command exits with 2 and lists them.

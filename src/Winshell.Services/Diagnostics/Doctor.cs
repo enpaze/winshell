@@ -16,7 +16,7 @@ internal sealed record DoctorCheck(
 
 internal sealed record DoctorInstance(string Id, int Pid, string Program, string Logs);
 
-internal sealed record DoctorContext(ShellLocations Locations, string? Path, string? Config);
+internal sealed record DoctorContext(ShellLocations Locations, string? Path, string? Shell);
 
 internal static class Doctor
 {
@@ -26,7 +26,7 @@ internal static class Doctor
 
     internal static IReadOnlyList<DoctorCheck> Run(DoctorContext context)
     {
-        return Report(context, ChooseUser(context.Locations.ShellsRoot, context.Path, context.Config));
+        return Report(context, ChooseUser(context.Locations.ShellsRoot, context.Path, context.Shell));
     }
 
     private readonly record struct Chosen(
@@ -89,7 +89,7 @@ internal static class Doctor
             .. projectChecks,
             Guard("folders", "Folders", () => Folders(
                 [
-                    ("the config folder", configFolder, DoctorProbe.CanWrite(configFolder)),
+                    ("the shells folder", configFolder, DoctorProbe.CanWrite(configFolder)),
                     ("its local folder", context.Locations.LocalRoot, DoctorProbe.CanWrite(context.Locations.LocalRoot))
                 ],
                 instances.Where(i => DoctorProbe.IsElevated(i.Pid)).Select(i => i.Id).ToList(),

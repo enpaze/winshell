@@ -20,7 +20,7 @@ public sealed partial class ConfigPathTests : IDisposable
         help.AssertExitCode(0);
         Assert.Contains(config, help.Output, StringComparison.OrdinalIgnoreCase);
 
-        var missing = Run(config, "-c", "missing");
+        var missing = Run(config, "-s", "missing");
         missing.AssertExitCode(1);
         Assert.Contains(config, missing.Error, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("missing", missing.Error, StringComparison.Ordinal);

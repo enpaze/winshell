@@ -107,7 +107,7 @@ function Uninstall-Winshell {
     }
 
     if ($removed) {
-        Write-WinshellLine 'Winshell is uninstalled. Your configuration in %APPDATA%\winshell was left in place. Logs and state stay in %LOCALAPPDATA%\winshell.'
+        Write-WinshellLine 'Winshell is uninstalled. Your shells in %APPDATA%\winshell were left in place. Logs and state stay in %LOCALAPPDATA%\winshell.'
     } else {
         Write-WinshellLine 'Winshell is not installed.'
     }

@@ -19,7 +19,7 @@ This folder is the maintained source for verifying what a Winshell user can reac
 | `starter` | [`templates/winshell`](../../../../templates/winshell/Program.cs) | The project `winshell new starter` copies: a bar with a clock and a battery. |
 | `omarchy-style` | [`examples/omarchy-style`](../../../../examples/omarchy-style/Program.cs) | A top bar in the style of Omarchy, with its own widgets. |
 
-The driver copies each shell into the session's config folder, points it at this checkout's libraries instead of the NuGet package, and starts it with `winshell run -d`.
+The driver copies each shell into the session's shells folder, points it at this checkout's libraries instead of the NuGet package, and starts it with `winshell run -d`.
 
 ## Driving conventions
 
@@ -36,7 +36,7 @@ A feature file is named `<kind>.<slug>.md`. The kind is `command`, `service`, `w
 Each file starts with an H1 title and one paragraph that says what the user sees. It then uses exactly four H2 sections in this order.
 
 1. `Sub-features` lists short IDs with one line for each behavior, as ``- `short-id` what it does``.
-2. `How to get to it (user POV)` lists every entry point a user has: a command they type, a member of `Shell` their configuration calls, or a control they choose.
+2. `How to get to it (user POV)` lists every entry point a user has: a command they type, a member of `Shell` their shell calls, or a control they choose.
 3. `Driving it with winshell inspect` starts with `Preconditions:` and a bullet that names the shell, ``- Shell: `features`.``, then pairs each step with a labeled bullet, ``- **Label.** <what the user does>. Run `<command>`. <what proves it>.``, and ends with one ` ```json ` block that holds the steps the driver runs, in the same order.
 4. `Gotchas` lists traps that can waste or invalidate a verification run.
 
@@ -72,7 +72,7 @@ A step is one of two objects. Each takes `within`, the seconds to retry it until
 - [WidgetArea](./block.widget-area.md) makes a widget for each placement and passes it its settings.
 - [WindowThumbnail](./block.window-thumbnail.md) shows a live preview of another window, drawn by Windows' window manager.
 - [winshell dev](./command.dev.md) runs a project under `dotnet watch` and applies each saved edit to the running shell.
-- [winshell doctor](./command.doctor.md) checks this PC's setup for a configuration and prints the checks, as JSON with `-j`.
+- [winshell doctor](./command.doctor.md) checks this PC's setup for a shell and prints the checks, as JSON with `-j`.
 - [winshell help](./command.help.md) prints the command summary, or one command's usage, without running it.
 - [winshell inspect click](./command.inspect-click.md) activates an element through its automation peer, as Narrator does.
 - [winshell inspect focus](./command.inspect-focus.md) presses real Tab keys until keyboard focus reaches an element.
@@ -97,7 +97,7 @@ A step is one of two objects. Each takes `within`, the seconds to retry it until
 - [winshell new](./command.new.md) lists the starter and the examples, or copies one into a folder.
 - [winshell reload](./command.reload.md) rebuilds a project and replaces its running shell with a new process.
 - [winshell run](./command.run.md) builds a project and starts and supervises its shell.
-- [winshell use](./command.use.md) chooses the configuration `winshell run` starts, and switches to it.
+- [winshell use](./command.use.md) chooses the shell `winshell run` starts, and switches to it.
 - [winshell update](./command.update.md) installs the newest build of the saved channel.
 - [Apps](./service.apps.md) lists the apps Start lists, and searches and launches them.
 - [Audio](./service.audio.md) reads and sets the playback and recording devices, sessions and volume.

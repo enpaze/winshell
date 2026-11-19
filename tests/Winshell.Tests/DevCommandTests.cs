@@ -341,7 +341,7 @@ public sealed partial class DevCommandTests : IDisposable
         Assert.Equal("two", value.Output.Trim());
         await Wait.UntilAsync(
             () => WinshellCli.Run(["log", "-t", "20"], Folders).Output
-                .Contains("Your configuration did not build", StringComparison.Ordinal), "the notice");
+                .Contains("Your shell did not build", StringComparison.Ordinal), "the notice");
 
         Mark("""=> "three";""");
         await Wait.UntilAsync(async () => (await Value()).Text == "three", "the fix", BuildPatience);

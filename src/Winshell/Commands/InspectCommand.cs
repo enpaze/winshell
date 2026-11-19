@@ -46,7 +46,7 @@ internal static class InspectCommand
                                                               look at a running shell, or act on it
                    """,
         Usage = """
-                winshell inspect [-i <id> | --pid <pid> | -c <name> | -p <path>] <command>
+                winshell inspect [-i <id> | --pid <pid> | -s <name> | -p <path>] <command>
                   tree                            print each open window's live layout as JSON
                   screenshot <file> [window]      save a window as a PNG
                   record <file.mp4> --for <time> [window]

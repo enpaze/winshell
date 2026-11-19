@@ -1,6 +1,6 @@
 # Audio
 
-`shell.Audio` reads the playback and recording devices and each app's audio session, with their volume and mute, and changes them. A configuration uses it for a volume control or a device picker. The feature shell's row `service.audio` shows `ready: <True|False>; playback: <device>; recording: <device>`, where each device is the name of the default device of that kind, or `none` when Windows has none.
+`shell.Audio` reads the playback and recording devices and each app's audio session, with their volume and mute, and changes them. A shell uses it for a volume control or a device picker. The feature shell's row `service.audio` shows `ready: <True|False>; playback: <device>; recording: <device>`, where each device is the name of the default device of that kind, or `none` when Windows has none.
 
 ## Sub-features
 
@@ -12,8 +12,8 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.Audio`, or `Shell.Audio` in a widget.
-- A configuration creates `new AudioPeakMonitor()` and sets its `Audio` and `Enabled`.
+- A shell reads `shell.Audio`, or `Shell.Audio` in a widget.
+- A shell creates `new AudioPeakMonitor()` and sets its `Audio` and `Enabled`.
 - In the omarchy-style shell, the `audio` widget shows the playback device and its volume, and choosing it opens `ms-settings:sound`.
 
 ## Driving it with winshell inspect

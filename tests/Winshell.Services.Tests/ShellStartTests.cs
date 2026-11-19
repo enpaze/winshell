@@ -76,13 +76,13 @@ public sealed class ShellStartTests
     [InlineData(@"C:\config\bin\shell\Mine.exe", "root")]
     [InlineData(@"C:\config\Bar\bin\shell\Bar.exe", "bar")]
     [InlineData(@"C:\config\Bar\bin\shell.next\Bar.exe", "bar")]
-    public void A_configuration_in_the_config_folder_is_named_after_its_folder(string program, string id)
+    public void A_shell_in_the_shells_folder_is_named_after_its_folder(string program, string id)
     {
         Assert.Equal(id, IdOf(program));
     }
 
     [Fact]
-    public void A_configuration_anywhere_else_is_named_after_its_path_in_any_case_from_either_build_folder()
+    public void A_shell_anywhere_else_is_named_after_its_path_in_any_case_from_either_build_folder()
     {
         var one = IdOf(@"C:\shells\mine\bin\shell\Mine.exe");
 
@@ -93,7 +93,7 @@ public sealed class ShellStartTests
     }
 
     [Fact]
-    public void Folders_named_after_the_earlier_hash_move_to_the_configurations_name_once()
+    public void Folders_named_after_the_earlier_hash_move_to_the_shells_name_once()
     {
         using var temp = new TempFolder();
         var locations = new ShellLocations(Path.Combine(temp.Path, "config"), Path.Combine(temp.Path, "local"));

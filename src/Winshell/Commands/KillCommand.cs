@@ -10,7 +10,7 @@ internal static class KillCommand
                                                               stop an instance and wait until it exits
                    """,
         Usage = """
-                winshell kill [--force] [-i <id> | --pid <pid> | -c <name> | -p <path>]
+                winshell kill [--force] [-i <id> | --pid <pid> | -s <name> | -p <path>]
                   Asks one running instance to exit, then waits until that process has exited.
                   --force ends the process when it does not exit.
                   With one running instance and no selector, that instance is used.

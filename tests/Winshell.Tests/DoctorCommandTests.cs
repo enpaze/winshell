@@ -56,7 +56,7 @@ public sealed partial class DoctorCommandTests : IDisposable
             .ToDictionary(c => c.GetProperty("id").GetString() ?? "", c => c.GetProperty("message").GetString());
         Assert.StartsWith("No .csproj at ", messages["project"], StringComparison.Ordinal);
         Assert.EndsWith(@"\beside\missing.", messages["project"], StringComparison.Ordinal);
-        Assert.Equal("No configuration project to build.", messages["built"]);
+        Assert.Equal("No shell project to build.", messages["built"]);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed partial class DoctorCommandTests : IDisposable
             .ToDictionary(c => c.GetProperty("id").GetString() ?? "", c => c.GetProperty("message").GetString());
         Assert.StartsWith("No .csproj at ", messages["project"], StringComparison.Ordinal);
         Assert.EndsWith(@"\holder.", messages["project"], StringComparison.Ordinal);
-        Assert.Equal("No configuration project to build.", messages["built"]);
+        Assert.Equal("No shell project to build.", messages["built"]);
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public sealed partial class DoctorCommandTests : IDisposable
         Assert.Equal(Ids.Length, checks.Count);
         var project = checks.Single(c => c.GetProperty("id").GetString() == "project");
         Assert.Equal("fail", project.GetProperty("status").GetString());
-        Assert.StartsWith("Winshell cannot read the config folder", project.GetProperty("message").GetString(),
+        Assert.StartsWith("Winshell cannot read the shells folder", project.GetProperty("message").GetString(),
             StringComparison.Ordinal);
     }
 

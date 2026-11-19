@@ -6,7 +6,7 @@ public class CommandOptionTests
 {
     [Theory]
     [InlineData("list --force", "winshell list does not take \"--force\".")]
-    [InlineData("list -c work", "winshell list does not take \"-c\".")]
+    [InlineData("list -s work", "winshell list does not take \"-s\".")]
     [InlineData("kill -j", "winshell kill does not take \"-j\".")]
     [InlineData("-d kill", "winshell kill does not take \"-d\".")]
     [InlineData("reload --no-build", "winshell reload does not take \"--no-build\".")]
@@ -69,7 +69,7 @@ public class CommandOptionTests
 
     [Theory]
     [InlineData("run -p dir", "path", "dir")]
-    [InlineData("run -c work", "config", "work")]
+    [InlineData("run -s work", "shell", "work")]
     [InlineData("run -d", "daemonize", "")]
     [InlineData("run -n", "no-duplicate", "")]
     [InlineData("run --no-build", "no-build", "")]
@@ -77,7 +77,7 @@ public class CommandOptionTests
     [InlineData("kill --force", "force", "")]
     [InlineData("kill -i ab", "id", "ab")]
     [InlineData("kill --pid 4", "pid", "4")]
-    [InlineData("reload -c work", "config", "work")]
+    [InlineData("reload -s work", "shell", "work")]
     [InlineData("log -t 2", "tail", "2")]
     [InlineData("log -f", "follow", "")]
     [InlineData("ipc show -j", "json", "")]
@@ -114,7 +114,7 @@ public class CommandOptionTests
         return field switch
         {
             "path" => parsed.Text(CliFlags.Path) ?? "",
-            "config" => parsed.Text(CliFlags.Config) ?? "",
+            "shell" => parsed.Text(CliFlags.Shell) ?? "",
             "id" => parsed.Text(CliFlags.Id) ?? "",
             "pid" => parsed.Number(CliFlags.Pid)?.ToString(CultureInfo.InvariantCulture) ?? "",
             "tail" => parsed.Number(CliFlags.Tail)?.ToString(CultureInfo.InvariantCulture) ?? "",

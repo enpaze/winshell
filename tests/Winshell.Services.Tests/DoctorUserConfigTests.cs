@@ -80,7 +80,7 @@ public sealed class DoctorUserConfigTests : IDisposable
             .Single(c => c.Id == "project");
 
         Assert.Equal(CheckStatus.Warn, check.Status);
-        Assert.Equal("No configuration project, so winshell run starts nothing.", check.Message);
+        Assert.Equal("No shell project, so winshell run starts nothing.", check.Message);
         Assert.Equal("Run winshell new to make one.", check.Fix);
     }
 
@@ -99,7 +99,7 @@ public sealed class DoctorUserConfigTests : IDisposable
     }
 
     [Fact]
-    public void A_configuration_in_a_folder_of_the_config_folder_is_checked_in_the_file_named_after_that_folder()
+    public void A_shell_in_a_folder_of_the_shells_folder_is_checked_in_the_file_named_after_that_folder()
     {
         var config = Path.Combine(_dir, "config");
         var shell = Path.Combine(config, "Work");

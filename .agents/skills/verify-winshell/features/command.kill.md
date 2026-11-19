@@ -7,16 +7,16 @@
 - `kill-stop` asks the shell to quit, waits until the process has exited, and prints `Killed <id>`.
 - `kill-force` with `--force`, ends the process when it does not exit.
 - `kill-refuse` without `--force`, leaves a shell that does not exit running, prints `Instance <id> is still running. Use --force to end it.` and exits with 1.
-- `kill-pick` stops the shell that `-i`, `--pid`, `-c` or `-p` names, or the only running shell. With several and no selector, it exits with 2 and lists them. With none, it prints `No running instances.` and exits with 1.
+- `kill-pick` stops the shell that `-i`, `--pid`, `-s` or `-p` names, or the only running shell. With several and no selector, it exits with 2 and lists them. With none, it prints `No running instances.` and exits with 1.
 - `kill-no-restart` stops supervision: `winshell run` does not start a shell again that `winshell kill` asked to stop, even one that `--force` ended.
 - `kill-any-release` works when the CLI and the shell come from different releases, which every other command refuses.
 
 ## How to get to it (user POV)
 
 - Run `winshell kill` in a terminal to stop the only running shell.
-- Run `winshell kill --pid <pid>`, `winshell kill -i <id>`, `winshell kill -c <name>` or `winshell kill -p <path>` to stop one of several.
+- Run `winshell kill --pid <pid>`, `winshell kill -i <id>`, `winshell kill -s <name>` or `winshell kill -p <path>` to stop one of several.
 - Run `winshell kill --force` to end a shell that does not exit when asked.
-- A command can also come after the options, so `winshell -c work kill` stops that config.
+- A command can also come after the options, so `winshell -s work kill` stops that shell.
 
 ## Driving it with winshell inspect
 

@@ -13,23 +13,23 @@ internal static class DevCommand
     {
         Name = "dev",
         Overview = """
-                          winshell dev [-c <name> | -p <path>]
+                          winshell dev [-s <name> | -p <path>]
                                                               run a project and apply each edit to it
                    """,
         Usage = """
-                winshell dev [-c <name> | -p <path>]
-                  Runs a configuration project and applies each edit to the running shell, until Ctrl+C.
+                winshell dev [-s <name> | -p <path>]
+                  Runs a shell project and applies each edit to the running shell, until Ctrl+C.
                   Reactor's hot reload applies a saved C# file in place, and the other windows are left alone.
                   What does not compile shows on screen, and the last version that did keeps running.
                   Needs the .NET SDK. See the guide for what an edit can change.
                 """,
-        Options = [CliFlags.Path, CliFlags.Config],
+        Options = [CliFlags.Path, CliFlags.Shell],
         Run = Execute
     };
 
     private static async Task<int> Execute(Invocation parsed)
     {
-        var project = ShellProject.Find(parsed.Text(CliFlags.Path), parsed.Text(CliFlags.Config),
+        var project = ShellProject.Find(parsed.Text(CliFlags.Path), parsed.Text(CliFlags.Shell),
             ShellLocations.Current.ShellsRoot, out var error);
         if (error is not null)
         {
@@ -40,7 +40,7 @@ internal static class DevCommand
         if (project is null)
         {
             await Console.Error.WriteLineAsync(
-                "winshell dev needs a configuration project. Run winshell new to make one.");
+                "winshell dev needs a shell project. Run winshell new to make one.");
             return 1;
         }
 

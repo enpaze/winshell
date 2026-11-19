@@ -1,6 +1,6 @@
 # Keyboard layouts
 
-`shell.KeyboardLayouts` reads the input languages that Windows has installed and the one that the active window uses, and switches between them. A configuration uses it for a language indicator, such as `ENG`. The feature shell's row `service.keyboard-layouts` shows `current: <label>; layouts: N`, where the label is the current layout's short label, or `none` when Windows reports no current layout.
+`shell.KeyboardLayouts` reads the input languages that Windows has installed and the one that the active window uses, and switches between them. A shell uses it for a language indicator, such as `ENG`. The feature shell's row `service.keyboard-layouts` shows `current: <label>; layouts: N`, where the label is the current layout's short label, or `none` when Windows reports no current layout.
 
 ## Sub-features
 
@@ -12,7 +12,7 @@
 
 ## How to get to it (user POV)
 
-- A configuration reads `shell.KeyboardLayouts`, or `Shell.KeyboardLayouts` in a widget, and follows it with `UseObservable` or `PropertyChanged`.
+- A shell reads `shell.KeyboardLayouts`, or `Shell.KeyboardLayouts` in a widget, and follows it with `UseObservable` or `PropertyChanged`.
 - The starter and the omarchy-style example do not use it, so no control shows it.
 
 ## Driving it with winshell inspect

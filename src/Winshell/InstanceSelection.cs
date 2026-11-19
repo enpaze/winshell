@@ -1,8 +1,8 @@
 namespace Winshell;
 
-internal readonly record struct InstanceChoice(int? Pid, string? Id, string? Path, string? Config)
+internal readonly record struct InstanceChoice(int? Pid, string? Id, string? Path, string? Shell)
 {
-    public bool Asked => Pid is not null || Id is not null || Path is not null || Config is not null;
+    public bool Asked => Pid is not null || Id is not null || Path is not null || Shell is not null;
 }
 
 internal static class InstanceSelection
@@ -77,9 +77,9 @@ internal static class InstanceSelection
             };
         }
 
-        if (choice.Path is not null || choice.Config is not null)
+        if (choice.Path is not null || choice.Shell is not null)
         {
-            var project = ShellProject.Find(choice.Path, choice.Config, ShellLocations.Current.ShellsRoot,
+            var project = ShellProject.Find(choice.Path, choice.Shell, ShellLocations.Current.ShellsRoot,
                 out var error);
             if (error is not null)
                 return Result.Miss(error);

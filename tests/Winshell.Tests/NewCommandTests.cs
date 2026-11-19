@@ -42,7 +42,7 @@ public sealed partial class NewCommandTests : IDisposable
         Assert.Equal(
             $"Created {folder}{Environment.NewLine}" +
             $"The Winshell {Version} package is not beside winshell.exe, so add a NuGet source for it: see https://github.com/enpaze/winshell/blob/main/docs/configuration.md#from-a-clone{Environment.NewLine}" +
-            $"Run it: winshell run -c omarchy-style{Environment.NewLine}",
+            $"Run it: winshell run -s omarchy-style{Environment.NewLine}",
             result.Output);
         var project = XDocument.Load(Path.Combine(folder, "OmarchyStyle.csproj")).Root!;
         Assert.Empty(project.Elements("Import"));
@@ -81,7 +81,7 @@ public sealed partial class NewCommandTests : IDisposable
 
         var readme = File.ReadAllText(Path.Combine(ShellsRoot, "omarchy-style", "README.md"));
         Assert.DoesNotContain("## Run it", readme, StringComparison.Ordinal);
-        Assert.DoesNotContain("## Use it as your own configuration", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("## Use it as your own shell", readme, StringComparison.Ordinal);
         Assert.DoesNotContain("winshell run --path examples/omarchy-style", readme, StringComparison.Ordinal);
         Assert.DoesNotContain(Example.RepoOnly, readme, StringComparison.Ordinal);
         Assert.Contains("## What it shows", readme, StringComparison.Ordinal);

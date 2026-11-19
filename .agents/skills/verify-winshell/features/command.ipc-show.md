@@ -1,6 +1,6 @@
 # winshell ipc show
 
-`winshell ipc show` lists a running shell's IPC targets with their functions, properties and signals. With `-j` it prints a JSON array, one object per target in ordinal order of the target name, each with `target`, `functions`, `properties` and `signals`. Members stay in the order the configuration registered them. On the `features` shell, the one target is `features`, with the function `echo`, the property `name` and the signal `ticked`.
+`winshell ipc show` lists a running shell's IPC targets with their functions, properties and signals. With `-j` it prints a JSON array, one object per target in ordinal order of the target name, each with `target`, `functions`, `properties` and `signals`. Members stay in the order the shell registered them. On the `features` shell, the one target is `features`, with the function `echo`, the property `name` and the signal `ticked`.
 
 ## Sub-features
 
@@ -11,8 +11,8 @@
 ## How to get to it (user POV)
 
 - Run `winshell ipc show` or `winshell ipc show -j` in a terminal.
-- Pick the shell with `--pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>` before `show`. With none, the command acts on the only running shell.
-- A configuration adds targets with `shell.Ipc.Handle`, `shell.Ipc.Property` and `shell.Ipc.Signal`.
+- Pick the shell with `--pid <pid>`, `-i <id>`, `-s <name>` or `-p <path>` before `show`. With none, the command acts on the only running shell.
+- A shell adds targets with `shell.Ipc.Handle`, `shell.Ipc.Property` and `shell.Ipc.Signal`.
 
 ## Driving it with winshell inspect
 
@@ -31,6 +31,6 @@ Preconditions:
 ## Gotchas
 
 - The step checks only the target's name, not its members. Read the JSON in `steps.txt` to see `echo`, `name` and `ticked`.
-- `winshell ipc call notice dismiss` works, but `notice` is Winshell's own and not a target the configuration registered, so `ipc show` does not list it.
+- `winshell ipc call notice dismiss` works, but `notice` is Winshell's own and not a target the shell registered, so `ipc show` does not list it.
 - A target exists only while it has a member. Disposing a target's last registration takes the target off the list.
 - The CLI and the shell must come from the same release, or each refuses the other.

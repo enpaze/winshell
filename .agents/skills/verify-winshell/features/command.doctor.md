@@ -1,21 +1,21 @@
 # winshell doctor
 
-`winshell doctor` checks this PC's setup for a configuration and prints one line per check, with a fix under each warning and failure. It reads the project as data, never builds it, and changes nothing. With `-j` it prints one JSON object: the `version`, a `checks` array in which each check has `id`, `title`, `status`, `message` and `fix`, and a `summary` that counts `pass`, `warn` and `fail`. It exits with 1 when a check fails, and with 0 otherwise.
+`winshell doctor` checks this PC's setup for a shell and prints one line per check, with a fix under each warning and failure. It reads the project as data, never builds it, and changes nothing. With `-j` it prints one JSON object: the `version`, a `checks` array in which each check has `id`, `title`, `status`, `message` and `fix`, and a `summary` that counts `pass`, `warn` and `fail`. It exits with 1 when a check fails, and with 0 otherwise.
 
 ## Sub-features
 
-- `doctor-checks` checks Windows, .NET, the folders Winshell writes, app bars, DPI, the sign-in entry, notification access, the running shells, recent crash reports, and the configuration project.
-- `doctor-project` checks that the project is there, that it has been built (`Built`), and that the build is up to date (`Build`), for the configuration `-c` or `-p` names, or the one Winshell would run.
-- `doctor-preferences` names the line of the configuration's preferences file that is not valid TOML, even while the shell is not running.
-- `doctor-sign-in` says what is wrong with the sign-in entry, and names `winshell use <name>` in its fix when the entry starts another configuration.
+- `doctor-checks` checks Windows, .NET, the folders Winshell writes, app bars, DPI, the sign-in entry, notification access, the running shells, recent crash reports, and the shell project.
+- `doctor-project` checks that the project is there, that it has been built (`Built`), and that the build is up to date (`Build`), for the shell `-s` or `-p` names, or the one Winshell would run.
+- `doctor-preferences` names the line of the shell's preferences file that is not valid TOML, even while the shell is not running.
+- `doctor-sign-in` says what is wrong with the sign-in entry, and names `winshell use <name>` in its fix when the entry starts another shell.
 - `doctor-json` prints the checks as JSON with `-j` or `--json`.
 - `doctor-color` prints without color with `--no-color`, with `NO_COLOR` set, or when the output is redirected.
 - `doctor-exit` exits with 1 when any check fails. A warning alone exits with 0.
 
 ## How to get to it (user POV)
 
-- Run `winshell doctor` in a terminal to check the configuration `winshell run` would start.
-- Run `winshell doctor -c <name>` or `winshell doctor -p <path>` to check another configuration.
+- Run `winshell doctor` in a terminal to check the shell `winshell run` would start.
+- Run `winshell doctor -s <name>` or `winshell doctor -p <path>` to check another shell.
 - Add `-j` or `--json` for JSON, or `--no-color` for plain text.
 
 ## Driving it with winshell inspect

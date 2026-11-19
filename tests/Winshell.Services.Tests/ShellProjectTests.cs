@@ -82,7 +82,7 @@ public sealed class ShellProjectTests : IDisposable
         var file = Project("work\\Work.csproj");
 
         Assert.Equal(file, Found(name: "work").ProjectFile);
-        Assert.Equal($"No config named \"home\" in {_root}.", Refusal(name: "home"));
+        Assert.Equal($"No shell named \"home\" in {_root}.", Refusal(name: "home"));
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public sealed class ShellProjectTests : IDisposable
         Project("a\\A.csproj");
         Project("b\\B.csproj");
 
-        Assert.Contains("pick one with -c: a, b", Refusal(), StringComparison.Ordinal);
+        Assert.Contains("pick one with -s: a, b", Refusal(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public sealed class ShellProjectTests : IDisposable
         Project("default\\Default.csproj");
         ShellProject.Record(_root, "gone");
 
-        Assert.Equal($"The chosen config \"gone\" is not in {_root}. Choose one with winshell use <name>.", Refusal());
+        Assert.Equal($"The chosen shell \"gone\" is not in {_root}. Choose one with winshell use <name>.", Refusal());
     }
 
     [Fact]

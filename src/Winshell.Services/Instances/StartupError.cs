@@ -43,7 +43,7 @@ internal static class StartupError
         try
         {
             var pressed = TaskDialog.ShowError("Winshell", "Winshell could not start", message,
-                folder is null ? null : (OpenConfigFolder, "Open config folder"));
+                folder is null ? null : (OpenConfigFolder, "Open shell folder"));
             if (pressed == OpenConfigFolder && folder is not null)
                 Open(folder);
         }

@@ -28,7 +28,7 @@ public sealed class StartupService : ObservableObject
             if (_backend is null)
             {
                 _log.Warn("startup",
-                    "Run at sign-in needs the winshell.exe that is supervising this configuration.");
+                    "Run at sign-in needs the winshell.exe that is supervising this shell.");
                 return;
             }
 

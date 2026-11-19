@@ -10,7 +10,7 @@ public sealed class CommandLineTests
         Assert.Null(CommandWords.NoBuild.Short);
         Assert.Null(CommandWords.After.Short);
         Assert.Equal("-p", CommandWords.Path.Short);
-        Assert.Equal("-c", CommandWords.Config.Short);
+        Assert.Equal("-s", CommandWords.Shell.Short);
         Assert.Equal("-d", CommandWords.Daemonize.Short);
         Assert.Equal("-n", CommandWords.NoDuplicate.Short);
         Assert.Equal("-v", CommandWords.Verbose.Short);

@@ -11,7 +11,7 @@ internal static class UpdateCommand
         Usage = """
                 winshell update [--channel <name>]
                   Installs the newest build of the saved channel.
-                  stable and dev are the channels. With no --channel, update.toml in the config
+                  stable and dev are the channels. With no --channel, update.toml in the shells
                   folder names the channel, and a missing file means stable.
                   --channel stable or --channel dev selects that channel and remembers it when
                   this copy is already current or the update finishes.

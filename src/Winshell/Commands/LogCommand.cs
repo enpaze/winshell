@@ -7,7 +7,7 @@ internal static class LogCommand
         Name = "log",
         Overview = "       winshell log [-f] [-t N] [file]     print an instance's log",
         Usage = """
-                winshell log [-i <id> | --pid <pid> | -c <name> | -p <path>] [-t <n>] [-f] [file]
+                winshell log [-i <id> | --pid <pid> | -s <name> | -p <path>] [-t <n>] [-f] [file]
                   Prints an instance's log. -t, --tail <n> prints the last n lines.
                   -f, --follow keeps printing new lines. winshell log <file> prints that file.
                   With one running instance and no selector, that instance is used.

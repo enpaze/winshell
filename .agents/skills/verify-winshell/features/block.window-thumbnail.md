@@ -10,7 +10,7 @@ A `WindowThumbnail` is a control that shows a live preview of another app's wind
 
 ## How to get to it (user POV)
 
-- In a configuration, find the window in `shell.WindowList.Windows` and set `new WindowThumbnail { Window = window, Width = 64, Height = 48 }` in a window's content. In a Reactor component, embed it with `XamlHost`.
+- In a shell, find the window in `shell.WindowList.Windows` and set `new WindowThumbnail { Window = window, Width = 64, Height = 48 }` in a window's content. In a Reactor component, embed it with `XamlHost`.
 - In the `features` shell, the thumbnail is the second picture beside the rows, with the automation id `block.window-thumbnail`.
 
 ## Driving it with winshell inspect

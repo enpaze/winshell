@@ -11,7 +11,7 @@
 ## How to get to it (user POV)
 
 - Run `winshell inspect hover <name> [window]` in a terminal, where `<name>` is an `x:Name`, an automation id or an automation name.
-- Pick the shell with `--pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>`. With none, the command acts on the only running shell.
+- Pick the shell with `--pid <pid>`, `-i <id>`, `-s <name>` or `-p <path>`. With none, the command acts on the only running shell.
 - Take `winshell inspect screenshot` afterwards to see the hover look.
 
 ## Driving it with winshell inspect

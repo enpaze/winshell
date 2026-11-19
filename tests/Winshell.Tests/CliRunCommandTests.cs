@@ -30,7 +30,7 @@ public class CliRunCommandTests
     [InlineData("run")]
     [InlineData("--no-build --no-duplicate")]
     [InlineData("--no-duplicate")]
-    public void Run_with_no_configuration_exits_0_says_nothing_and_starts_nothing(string args)
+    public void Run_with_no_shell_exits_0_says_nothing_and_starts_nothing(string args)
     {
         var root = TempFolder.NewPath();
         var config = Path.Combine(root, "config");

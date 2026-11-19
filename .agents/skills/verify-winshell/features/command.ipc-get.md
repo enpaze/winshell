@@ -11,8 +11,8 @@
 ## How to get to it (user POV)
 
 - Run `winshell ipc get <target> <property>` in a terminal.
-- Pick the shell with `--pid <pid>`, `-i <id>`, `-c <name>` or `-p <path>` before `get`. With none, the command acts on the only running shell.
-- A configuration registers a property with `shell.Ipc.Property("<target>", "<property>", () => value)`, and disposes the registration to take it away.
+- Pick the shell with `--pid <pid>`, `-i <id>`, `-s <name>` or `-p <path>` before `get`. With none, the command acts on the only running shell.
+- A shell registers a property with `shell.Ipc.Property("<target>", "<property>", () => value)`, and disposes the registration to take it away.
 - `winshell ipc show` lists the properties that `ipc get` can read, with their types.
 
 ## Driving it with winshell inspect
@@ -31,7 +31,7 @@ Preconditions:
 
 ## Gotchas
 
-- `features` is the name of the shell, of its config folder, of the IPC target and of the property's value. The printed `features` is the value of `name`, not the name of the target.
+- `features` is the name of the shell, of its shells folder, of the IPC target and of the property's value. The printed `features` is the value of `name`, not the name of the target.
 - Target and property names are case-sensitive.
-- `ipc show` leaves out a property of a type other than `string`, `int`, `bool`, `real`, `double` or `color`, and a configuration can't register a property of a type IPC can't pass.
+- `ipc show` leaves out a property of a type other than `string`, `int`, `bool`, `real`, `double` or `color`, and a shell can't register a property of a type IPC can't pass.
 - The CLI and the shell must come from the same release, or each refuses the other.

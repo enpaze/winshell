@@ -8,7 +8,7 @@ internal static class CommandWords
 
     public static readonly CommandWord Path = new("--path", "-p");
 
-    public static readonly CommandWord Config = new("--config", "-c");
+    public static readonly CommandWord Shell = new("--shell", "-s");
 
     public static readonly CommandWord Daemonize = new("--daemonize", "-d");
 
@@ -22,7 +22,7 @@ internal static class CommandWords
 
     public static readonly CommandWord Channel = new("--channel");
 
-    public static bool IsConfigName(string name)
+    public static bool IsShellFolder(string name)
     {
         return name.Length > 0 && name is not ("." or "..") && name.IndexOfAny(['/', '\\', ':']) < 0;
     }
