@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Winshell.Commands;
 
 namespace Winshell.Tests;
 
@@ -97,6 +98,64 @@ public class CliRunCommandTests
         {
             Directory.Delete(root, true);
         }
+    }
+
+    [Fact]
+    public void The_sign_in_entry_with_no_shell_exits_0_and_starts_nothing()
+    {
+        var root = TempFolder.NewPath();
+        var config = Path.Combine(root, "config");
+        var local = Path.Combine(root, "local");
+        var signIn = Path.Combine(root, "sign-in.cmd");
+        var exit = Path.Combine(root, "exit.txt");
+        Directory.CreateDirectory(config);
+        Directory.CreateDirectory(local);
+        File.WriteAllLines(signIn,
+        [
+            .. IsolatedFolders.Of(config, local).Select(static v => $"@set \"{v.Name}={v.Value}\""),
+            $"@\"{WinshellCli.Exe}\" --no-build --no-duplicate",
+            $"@>\"{exit}\" echo %errorlevel%"
+        ]);
+        try
+        {
+            var info = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "conhost.exe"))
+            {
+                UseShellExecute = true
+            };
+            foreach (var arg in new[] { "--headless", "cmd.exe", "/d", "/c", signIn })
+                info.ArgumentList.Add(arg);
+            using (var process = Process.Start(info)!)
+                Assert.True(process.WaitForExit(TimeSpan.FromSeconds(60)), "conhost did not exit.");
+
+            Assert.Equal("0", File.ReadAllText(exit).Trim());
+            AssertNothingRuns(config, local);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void Run_with_no_shell_that_nobody_reads_exits_0_and_writes_nothing()
+    {
+        using var error = new StringWriter();
+
+        var exit = RunCommand.NoProject(@"C:\shells", true, error);
+
+        Assert.Equal((0, ""), (exit, error.ToString()));
+    }
+
+    [Fact]
+    public void Run_with_no_shell_that_someone_reads_says_how_to_make_one_and_exits_1()
+    {
+        using var error = new StringWriter();
+
+        var exit = RunCommand.NoProject(@"C:\shells", false, error);
+
+        Assert.Equal(
+            (1, @"No shell project in C:\shells, so nothing started. Run winshell new to make one." + Environment.NewLine),
+            (exit, error.ToString()));
     }
 
     private static void AssertNothingRuns(string config, string local)

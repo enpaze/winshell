@@ -73,7 +73,7 @@ internal static class RunCommand
         }
 
         if (project is null)
-            return NoProject();
+            return NoProject(ShellLocations.Current.ShellsRoot, StartupError.Unread(), Console.Error);
         if (parsed.IsSet(CliFlags.NoDuplicate) &&
             project.InstancesOf(ShellProjectBuild.Run,
                 ShellLocations.Current.Instances.Running()).Any())
@@ -94,12 +94,11 @@ internal static class RunCommand
         return Supervise(program, project);
     }
 
-    private static int NoProject()
+    internal static int NoProject(string shellsRoot, bool unread, TextWriter error)
     {
-        if (StartupError.Unread())
+        if (unread)
             return 0;
-        Console.Error.WriteLine(
-            $"No shell project in {ShellLocations.Current.ShellsRoot}, so nothing started. Run winshell new to make one.");
+        error.WriteLine($"No shell project in {shellsRoot}, so nothing started. Run winshell new to make one.");
         return 1;
     }
 

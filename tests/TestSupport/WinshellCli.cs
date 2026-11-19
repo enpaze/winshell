@@ -8,7 +8,7 @@ internal static class WinshellCli
 {
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(60);
 
-    private static string Exe { get; } =
+    internal static string Exe { get; } =
         typeof(WinshellCli).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
             .SingleOrDefault(attribute => attribute.Key == "WinshellCli")?.Value ??
         Path.Combine(AppContext.BaseDirectory, "winshell.exe");
