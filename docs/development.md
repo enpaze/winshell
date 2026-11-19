@@ -374,9 +374,9 @@ A running shell reads these. None is needed to build or test.
 | What | Where |
 | --- | --- |
 | User shells | `%APPDATA%\winshell`, or `WINSHELL_CONFIG_DIR` when it is set |
-| Cache | `%LOCALAPPDATA%\winshell\cache\by-shell\<shell id>` |
-| State | `%LOCALAPPDATA%\winshell\state\by-shell\<shell id>` |
-| Per-shell data | `%LOCALAPPDATA%\winshell\data\by-shell\<shell id>` |
+| Cache | `%LOCALAPPDATA%\winshell\cache\by-shell\<shell name>` |
+| State | `%LOCALAPPDATA%\winshell\state\by-shell\<shell name>` |
+| Per-shell data | `%LOCALAPPDATA%\winshell\data\by-shell\<shell name>` |
 | Instance logs | `%LOCALAPPDATA%\winshell\run\<id>\log.txt` |
 | Crash reports | `%LOCALAPPDATA%\winshell\crashes`, one `crash-<UTC time>Z-<process>-<where>.txt` each. See [Crash reports](#crash-reports). |
 | Run at sign-in | The `Winshell` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, or the package's startup task. See [The sign-in entry](#the-sign-in-entry). |

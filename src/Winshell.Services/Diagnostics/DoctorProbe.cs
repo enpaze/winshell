@@ -64,8 +64,8 @@ internal static class DoctorProbe
     {
         if (string.IsNullOrEmpty(locations.ShellsRoot))
             return null;
-        var id = ShellIdentity.Resolve(project.Program, locations, new ShellProperties()).ShellId;
-        return UserFileProblem(Path.Combine(locations.ShellsRoot, "preferences", id + ".toml"));
+        var name = ShellIdentity.Resolve(project.Program, locations, new ShellProperties(project.ShellName)).ShellName;
+        return UserFileProblem(Path.Combine(locations.ShellsRoot, "preferences", name + ".toml"));
     }
 
     private static string? UserFileProblem(string path)

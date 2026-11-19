@@ -410,19 +410,26 @@ internal sealed partial class ShellProject
     [GeneratedRegex(@"\s+\[[^\]]*\.csproj(::[^\]]*)?\]$", RegexOptions.IgnoreCase)]
     private static partial Regex ProjectSuffix();
 
+    public string? ShellName => Written(nameof(ShellName));
+
     private string AssemblyName()
+    {
+        return Written(nameof(AssemblyName)) ?? Name;
+    }
+
+    private string? Written(string property)
     {
         try
         {
             using var reader = XmlReader.Create(ProjectFile,
                 new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
             var written = XDocument.Load(reader).Descendants()
-                .FirstOrDefault(element => element.Name.LocalName == "AssemblyName")?.Value.Trim();
-            return string.IsNullOrEmpty(written) || written.Contains('$', StringComparison.Ordinal) ? Name : written;
+                .FirstOrDefault(element => element.Name.LocalName == property)?.Value.Trim();
+            return string.IsNullOrEmpty(written) || written.Contains('$', StringComparison.Ordinal) ? null : written;
         }
         catch (Exception e) when (e is XmlException or IOException or UnauthorizedAccessException)
         {
-            return Name;
+            return null;
         }
     }
 

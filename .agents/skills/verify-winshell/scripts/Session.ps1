@@ -144,7 +144,7 @@ function Get-Instances {
 
 function Get-ShellInstance([string] $Folder) {
     $prefix = (Join-Path $Folder 'bin\shell') + '\'
-    @(Get-Instances | Where-Object { $_.configPath.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) }) |
+    @(Get-Instances | Where-Object { $_.program.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) }) |
         Select-Object -First 1
 }
 

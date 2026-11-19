@@ -54,7 +54,7 @@ The project references Winshell's source, so the repo's own check builds it.
 ## Change it
 
 - **Colors, font and size:** edit [TokyoNight.cs](TokyoNight.cs). The widgets look nothing up: Winshell builds the `Button`, `TextBlock`, `FontIcon` and `ToolTip` styles from it. `SlotSize` is how thick the bar is, and how wide a button is, and `Padding` the space at its ends. The network widget paints its glyph in `Alert` when the connection can't reach the internet.
-- **Move the bar or change its widgets:** edit the preferences file, `%APPDATA%\winshell\preferences\<shell id>.toml`, or `<WINSHELL_CONFIG_DIR>\preferences\<shell id>.toml` when that variable is set. Its `[bar]` section holds `edge` and the `start`, `center` and `end` lists, which replace the ones in [Program.cs](Program.cs) while the file has them. Saving applies it live. This moves the bar to the bottom, puts a UTC clock beside the local one and reverses the end:
+- **Move the bar or change its widgets:** edit the preferences file, `%APPDATA%\winshell\preferences\<shell name>.toml`, or `<WINSHELL_CONFIG_DIR>\preferences\<shell name>.toml` when that variable is set. Its `[bar]` section holds `edge` and the `start`, `center` and `end` lists, which replace the ones in [Program.cs](Program.cs) while the file has them. Saving applies it live. This moves the bar to the bottom, puts a UTC clock beside the local one and reverses the end:
 
   ```toml
   [bar]

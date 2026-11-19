@@ -18,7 +18,7 @@ A `Bar` is a panel along one edge of every screen, with three widget areas: star
 
 - Run `winshell new starter` and then `winshell run -s starter`. The starter makes one bar.
 - In the function a shell passes to `Shell.Run`, write `shell.Add(new Bar { Edge = Edge.Top, Center = ["clock"], End = ["battery"] });`. Each name is a widget of the shell project, such as the class `Clock` or `ClockWidget` for `clock`.
-- Edit the `[bar]` section of `preferences\<shell id>.toml` in the shells folder, or a `[[bar.screen]]` row, and save it.
+- Edit the `[bar]` section of `preferences\<shell name>.toml` in the shells folder, or a `[[bar.screen]]` row, and save it.
 
 ## Driving it with winshell inspect
 

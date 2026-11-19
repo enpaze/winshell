@@ -106,7 +106,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         var output = Path.GetDirectoryName(_probe.Program)!;
         var built = Directory.GetFiles(output, "*", SearchOption.AllDirectories).ToDictionary(file => file, File.GetLastWriteTimeUtc);
         var process = StartProbe();
-        var runningName = new Instances(Path.Combine(_local, "run")).Running().Single(info => info.Pid == process.Id).ShellId;
+        var runningName = new Instances(Path.Combine(_local, "run")).Running().Single(info => info.Pid == process.Id).ShellName;
         try
         {
             File.WriteAllText(project, Named(original, "rebuilt"));
@@ -119,7 +119,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
             Wait.Until(() => process.HasExited, "the old process to exit");
             var instance = new Instances(Path.Combine(_local, "run")).Running().Single(info => info.Pid == next);
             Assert.Equal(_probe.Program, instance.Program, StringComparer.OrdinalIgnoreCase);
-            Assert.Equal(runningName, instance.ShellId);
+            Assert.Equal(runningName, instance.ShellName);
             Assert.Equal(built, Directory.GetFiles(output, "*", SearchOption.AllDirectories).ToDictionary(file => file, File.GetLastWriteTimeUtc));
             Assert.False(ExitIntentEvents.IsSupervised(next));
         }
@@ -222,14 +222,14 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         return run;
     }
 
-    private int NextPid(int previous, string? shellId)
+    private int NextPid(int previous, string? shellName)
     {
         var pid = 0;
         Wait.Until(
             () =>
             {
                 pid = new Instances(Path.Combine(_local, "run")).Running()
-                    .Where(info => info.Pid != previous && (shellId is null || info.ShellId == shellId))
+                    .Where(info => info.Pid != previous && (shellName is null || info.ShellName == shellName))
                     .Select(info => info.Pid)
                     .FirstOrDefault();
                 return pid != 0;
@@ -246,9 +246,9 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         return named;
     }
 
-    private Process ReloadTo(Process running, string original, string shellId)
+    private Process ReloadTo(Process running, string original, string shellName)
     {
-        File.WriteAllText(Path.Combine(_probe.Folder, "Probe.csproj"), Named(original, shellId));
+        File.WriteAllText(Path.Combine(_probe.Folder, "Probe.csproj"), Named(original, shellName));
         var result = Reload(running.Id);
         result.AssertNoError();
         Assert.StartsWith("Reloaded ", result.Output, StringComparison.Ordinal);
@@ -257,11 +257,11 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         Wait.Until(
             () =>
             {
-                pid = new Instances(Path.Combine(_local, "run")).Running().Where(info => info.ShellId == shellId)
+                pid = new Instances(Path.Combine(_local, "run")).Running().Where(info => info.ShellName == shellName)
                     .Select(info => info.Pid).FirstOrDefault();
                 return pid != 0;
             },
-            $"the process that runs the {shellId} edit");
+            $"the process that runs the {shellName} edit");
         var next = Process.GetProcessById(pid);
         _started.Add(next);
         return next;

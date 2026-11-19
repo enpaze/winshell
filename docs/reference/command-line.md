@@ -42,14 +42,14 @@ winshell help [command]             print this summary, or that command's help
 | `-s`, `--shell <name>` | Builds and runs the project in `<name>` under the shells folder, `%APPDATA%\winshell` or `WINSHELL_CONFIG_DIR`. The name is one folder: use `-p` for a path. |
 | `--no-build` | Runs the program the last build left in `bin\shell`. Does not build, so a newer source is left unbuilt. The sign-in entry uses this. |
 | `-d`, `--daemonize` | Builds the project, if there is one, then starts the shell in the background, with no console window, and returns at once. |
-| `-n`, `--no-duplicate` | Exits 0 without starting, and without a message, when this shell id is already running. It does not replace that shell. Two starts of this shell id that overlap do the same: only one of them keeps running. |
+| `-n`, `--no-duplicate` | Exits 0 without starting, and without a message, when this shell name is already running. It does not replace that shell. Two starts of this shell name that overlap do the same: only one of them keeps running. |
 | `-v`, `--verbose` | Also logs debug messages. |
 | `-V`, `--version` | Prints the version, such as `winshell 0.6.0+e8d05d1…` for a build from source, and exits. |
 | `-h`, `--help` | Prints `run`'s usage, or with no command the summary, and exits. |
 
-Starting a shell asks any shell already running in this local folder to quit, waits until it has exited, and then starts. One that does not quit stays. The start says why and exits with 1. `--no-duplicate` still exits 0 and says nothing when this shell id is already running, and it does not replace that shell. When both shells hide Explorer's taskbar, it stays hidden while the first shell quits and the next one starts, and the new shell puts it back when it exits.
+Starting a shell asks any shell already running in this local folder to quit, waits until it has exited, and then starts. One that does not quit stays. The start says why and exits with 1. `--no-duplicate` still exits 0 and says nothing when this shell name is already running, and it does not replace that shell. When both shells hide Explorer's taskbar, it stays hidden while the first shell quits and the next one starts, and the new shell puts it back when it exits.
 
-The program a project builds also takes `--no-duplicate` and `-d` on its own command line, and then runs with no supervisor. `--no-duplicate` exits at once when its shell id is already running. `-d` starts that program again and returns. A start that carries `--after` keeps it.
+The program a project builds also takes `--no-duplicate` and `-d` on its own command line, and then runs with no supervisor. `--no-duplicate` exits at once when its shell name is already running. `-d` starts that program again and returns. A start that carries `--after` keeps it.
 
 The log goes to the console and to the instance's log file. The file is kept to about 4 MB, and the previous part is `log.1.txt` beside it. Ctrl+C in the console stops the shell.
 
@@ -84,7 +84,7 @@ Any other option is an error, and exits with code 2. An option winshell does not
 
 | Command | What it does |
 | --- | --- |
-| `winshell list` | Lists the running instances with their id, process id, shell id, configuration, launch time and log file. `-j`, `--json` prints them as JSON. Stopped instances are not listed. The shape is under [JSON](#json). |
+| `winshell list` | Lists the running instances with their id, process id, shell name, program, launch time and log file. `-j`, `--json` prints them as JSON. Stopped instances are not listed. The shape is under [JSON](#json). |
 | `winshell kill` | Asks an instance to exit, waits until that process has exited, and prints `Killed <id>`. `--force` ends the process when it does not exit. `kill` is the one command a CLI and a shell of different releases still accept. |
 | `winshell reload` | Builds the shell. On failure the running instance stays, a notice shows, and the command prints why and exits with 1. Under `winshell run`, the command prints `Reloaded <id>` once the old process has exited, while `winshell run` starts the new one. Otherwise the instance starts the new process and the command prints `Reloaded <id>` once that start is accepted, before the old process quits and before the new one has taken the taskbar. A shell under `winshell run` whose project can't be found keeps running, and the command prints why and exits with 1. There is no file watcher. |
 | `winshell dev` | Runs a shell project under `dotnet watch`. Reactor's hot reload applies each edit to the running shell, until Ctrl+C. With no project it prints `winshell dev needs a shell project. Run winshell new to make one.` and exits with 1. See [Develop a shell](../configuration.md#develop-a-shell). Takes `-s` and `-p`. |
@@ -142,8 +142,8 @@ Output sent to a pipe or a file is UTF-8 without a byte order mark. In a console
 | --- | --- |
 | `id` | The instance id. |
 | `pid` | The process id. |
-| `shellId` | The shell id. |
-| `configPath` | The program that is running. |
+| `shellName` | The shell name. |
+| `program` | The program that is running. |
 | `launchTime` | When it started, as a local time with its offset. |
 | `pipe` | The name of its control pipe. |
 | `log` | Its log file. |
@@ -214,7 +214,7 @@ An unexpected failure of any command but `run` prints `winshell <command>: <mess
 | The chosen shell | `chosen.txt` in the shells folder: the name `winshell use` recorded |
 | The update channel | `update.toml` in the shells folder. The file is `channel = "stable"` or `channel = "dev"`. A missing file means stable. `winshell update --channel` writes it, `install.ps1 -Channel dev` writes it through that command, and a stable install deletes it. |
 | A project's program | `bin\shell` under the project folder |
-| Per-shell data, state and cache | `%LOCALAPPDATA%\winshell\data\by-shell\<shell id>`, and the same under `state` and `cache`. They are `Shell.Paths.Data`, `Shell.Paths.State` and `Shell.Paths.Cache`. A shell works out its paths, `Shell.Paths.Shells` among them, once when it starts, so changing `WINSHELL_CONFIG_DIR` or `WINSHELL_LOCAL_DIR` later does not move them. |
+| Per-shell data, state and cache | `%LOCALAPPDATA%\winshell\data\by-shell\<shell name>`, and the same under `state` and `cache`. They are `Shell.Paths.Data`, `Shell.Paths.State` and `Shell.Paths.Cache`. A shell works out its paths, `Shell.Paths.Shells` among them, once when it starts, so changing `WINSHELL_CONFIG_DIR` or `WINSHELL_LOCAL_DIR` later does not move them. |
 | Instance logs | `%LOCALAPPDATA%\winshell\run\<instance id>\log.txt`. A shell that exits cleanly keeps that folder, with `exitedAt` set in `instance.json`, so `winshell log` can still print it. A later start deletes a stopped folder once it is a day old, including a folder that has no `instance.json`. |
 | Crash reports | `%LOCALAPPDATA%\winshell\crashes`, one text file per crash. Nothing is sent anywhere. See [troubleshooting](../troubleshooting.md#winshell-crashed). |
 | Run at sign-in | Unpackaged: the `Winshell` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, written only by `install.ps1 -AutoStart` or when a shell sets [`StartupService.RunAtSignIn`](winshell-session.md#startupservice). That entry passes `--no-build`. Packaged: the package's startup task, not that value. |

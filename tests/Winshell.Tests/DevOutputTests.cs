@@ -13,7 +13,7 @@ public sealed class DevOutputTests
     [InlineData("dotnet watch : Waiting for changes")]
     [InlineData("dotnet watch : No managed code changes to apply.")]
     [InlineData("dotnet watch : Restart is needed to apply the changes.")]
-    [InlineData(" INFO shell: Shell ID: \"Mine\"")]
+    [InlineData(" INFO shell: Shell name: \"Mine\"")]
     [InlineData("  Mine -> C:\\Shells\\Mine\\bin\\Debug\\Mine.dll")]
     [InlineData(" WARN notes: the word error: appears in this log line")]
     public void A_line_that_is_not_a_result_changes_nothing_on_screen(string line)

@@ -345,7 +345,7 @@ Has the members of [ObservableObject](#observableobject).
 | `RecentDocuments` | [RecentDocuments](winshell-apps.md#recentdocuments), read-only |
 | `Screens` | ObservableList of [ScreenInfo](#screeninfo), read-only |
 | `Session` | [SessionService](winshell-session.md#sessionservice), read-only |
-| `ShellId` | string, read-only |
+| `ShellName` | string, read-only |
 | `Startup` | [StartupService](winshell-session.md#startupservice), read-only |
 | `Style` | [ShellStyle](#shellstyle) |
 | `SystemAccent` | Color, read-only |

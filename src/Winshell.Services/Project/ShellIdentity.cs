@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Winshell;
 
-internal sealed record ShellIdentity(string ShellId, string Data, string State, string Cache)
+internal sealed record ShellIdentity(string ShellName, string Data, string State, string Cache)
 {
     private IReadOnlyList<(string From, string To)> Earlier { get; init; } = [];
 

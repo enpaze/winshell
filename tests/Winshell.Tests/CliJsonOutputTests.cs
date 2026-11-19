@@ -28,7 +28,7 @@ public sealed partial class CliJsonOutputTests : IDisposable, IClassFixture<Prob
         Assert.False(row.TryGetProperty("processStart", out _));
         Assert.False(row.TryGetProperty("exitedAt", out _));
         Assert.False(string.IsNullOrEmpty(row.GetProperty("id").GetString()));
-        Assert.False(string.IsNullOrEmpty(row.GetProperty("shellId").GetString()));
+        Assert.False(string.IsNullOrEmpty(row.GetProperty("shellName").GetString()));
         Assert.Contains("café", row.GetProperty("log").GetString(), StringComparison.Ordinal);
         _ = row.GetProperty("launchTime").GetDateTime();
         Assert.False(string.IsNullOrEmpty(row.GetProperty("pipe").GetString()));

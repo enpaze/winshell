@@ -248,7 +248,7 @@ internal static class ProbeShell
                   queue.TryEnqueue(() => new LateSection());
                   queue.TryEnqueue(() =>
                   {
-                      var path = Path.Combine(shell.Paths.Shells, "preferences", shell.ShellId + ".toml");
+                      var path = Path.Combine(shell.Paths.Shells, "preferences", shell.ShellName + ".toml");
                       var report = Path.Combine(config, "preferences-report.txt");
                       // The test reads the report from another process, so it appears once and whole: written
                       // beside it, then moved to a name that does not exist yet, which no reader can hold open.

@@ -26,7 +26,7 @@ Preconditions:
 - The .NET SDK that `global.json` names is installed, because `dotnet watch` builds the project.
 
 - **Start dev.** Start the feature shell's project under `dotnet watch`. Run `winshell dev -p {shell}`. It keeps running in the background until the feature ends, and the driver does not check its output.
-- **See the Debug build run.** List the running shells. Run `winshell list -j`. It exits with 0, and a `configPath` names `FeatureShell.exe` in a folder whose path has `Debug` in it (`Debug[^"]*FeatureShell\.exe`). The driver retries for up to 600 seconds while the first Debug build runs.
+- **See the Debug build run.** List the running shells. Run `winshell list -j`. It exits with 0, and a `program` names `FeatureShell.exe` in a folder whose path has `Debug` in it (`Debug[^"]*FeatureShell\.exe`). The driver retries for up to 600 seconds while the first Debug build runs.
 
 ```json
 [

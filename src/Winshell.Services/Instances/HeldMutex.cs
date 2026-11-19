@@ -19,9 +19,9 @@ internal readonly struct HeldMutex : IDisposable
         return @"Local\winshell-one-shell-" + Hash(locations.LocalRoot);
     }
 
-    public static string NoDuplicateName(ShellLocations locations, string shellId)
+    public static string NoDuplicateName(ShellLocations locations, string shellName)
     {
-        return @"Local\winshell-shell-" + Hash(locations.LocalRoot + "\n" + shellId);
+        return @"Local\winshell-shell-" + Hash(locations.LocalRoot + "\n" + shellName);
     }
 
     private static string Hash(string text)

@@ -72,8 +72,8 @@ public class CliRunCommandTests
                 {
                     ["id"] = "runningabc",
                     ["pid"] = self.Id,
-                    ["shellId"] = "bar",
-                    ["configPath"] = Path.Combine(project, "bin", "shell.next", "Bar.exe"),
+                    ["shellName"] = "bar",
+                    ["program"] = Path.Combine(project, "bin", "shell.next", "Bar.exe"),
                     ["launchTime"] = DateTime.Now,
                     ["pipe"] = "winshell-runningabc",
                     ["log"] = Path.Combine(dir, "log.txt"),

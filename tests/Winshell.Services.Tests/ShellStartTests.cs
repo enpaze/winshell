@@ -66,7 +66,7 @@ public sealed class ShellStartTests
     {
         var identity = ShellIdentity.Resolve(@"C:\shells\mine\mine.exe", Locations, new ShellProperties("mine-id"));
 
-        Assert.Equal("mine-id", identity.ShellId);
+        Assert.Equal("mine-id", identity.ShellName);
         Assert.Equal(@"C:\local\data\by-shell\mine-id", identity.Data);
         Assert.Equal(@"C:\local\state\by-shell\mine-id", identity.State);
         Assert.Equal(@"C:\local\cache\by-shell\mine-id", identity.Cache);
@@ -196,6 +196,6 @@ public sealed class ShellStartTests
 
     private static string IdOf(string program)
     {
-        return ShellIdentity.Resolve(program, Locations, new ShellProperties()).ShellId;
+        return ShellIdentity.Resolve(program, Locations, new ShellProperties()).ShellName;
     }
 }

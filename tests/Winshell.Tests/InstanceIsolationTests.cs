@@ -36,9 +36,9 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
         Assert.Equal(3, infos.Select(i => i.GetProperty("id").GetString()).Distinct().Count());
         Assert.Equal(3, infos.Select(i => i.GetProperty("pipe").GetString()).Distinct().Count());
         Assert.Equal(3, infos.Select(i => i.GetProperty("log").GetString()).Distinct().Count());
-        Assert.Equal("probe", infos[0].GetProperty("shellId").GetString());
-        Assert.Equal("probe", infos[1].GetProperty("shellId").GetString());
-        Assert.Equal("other", infos[2].GetProperty("shellId").GetString());
+        Assert.Equal("probe", infos[0].GetProperty("shellName").GetString());
+        Assert.Equal("probe", infos[1].GetProperty("shellName").GetString());
+        Assert.Equal("other", infos[2].GetProperty("shellName").GetString());
         Assert.Equal(0, Show(a, locals[0]));
         Assert.Equal(0, Show(b, locals[1]));
         Assert.Equal(0, Show(c, locals[2]));
@@ -68,7 +68,7 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
         instances.Write(live with
         {
             Id = reusedId,
-            ShellId = "reused",
+            ShellName = "reused",
             LaunchTime = live.LaunchTime.AddMinutes(1),
             Pipe = "winshell-" + reusedId,
             Log = Path.Combine(reusedDir, "log.txt"),

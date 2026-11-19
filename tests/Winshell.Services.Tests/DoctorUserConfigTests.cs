@@ -125,6 +125,43 @@ public sealed class DoctorUserConfigTests : IDisposable
     }
 
     [Fact]
+    public void A_shell_name_in_the_project_file_names_the_preferences_file_checked()
+    {
+        var config = Path.Combine(_dir, "config");
+        var shell = Path.Combine(config, "Work");
+        Directory.CreateDirectory(shell);
+        var projectFile = Path.Combine(shell, "Work.csproj");
+        File.WriteAllText(projectFile,
+            "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><ShellName>desk</ShellName></PropertyGroup></Project>");
+        var preferences = Preferences(config, "desk", "colorScheme =\n");
+        var folderNamed = Preferences(config, "work", "colorScheme =\n");
+
+        var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
+            .Single(c => c.Id == "project");
+
+        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.Contains(Printed(preferences) + "[", check.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(Printed(folderNamed), check.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_shell_name_built_from_msbuild_properties_falls_back_to_the_folder_name()
+    {
+        var config = Path.Combine(_dir, "config");
+        var shell = Path.Combine(config, "Work");
+        Directory.CreateDirectory(shell);
+        var projectFile = Path.Combine(shell, "Work.csproj");
+        File.WriteAllText(projectFile,
+            "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><ShellName>$(MSBuildProjectName)</ShellName></PropertyGroup></Project>");
+        var preferences = Preferences(config, "work", "colorScheme =\n");
+
+        var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
+            .Single(c => c.Id == "project");
+
+        Assert.Contains(Printed(preferences) + "[", check.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_preferences_file_that_cannot_be_read_is_named_with_why()
     {
         var config = Path.Combine(_dir, "config");

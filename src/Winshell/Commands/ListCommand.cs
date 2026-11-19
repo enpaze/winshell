@@ -34,8 +34,8 @@ internal static class ListCommand
         {
             Console.WriteLine($"Instance {info.Id}:");
             Console.WriteLine($"  Process ID: {info.Pid}");
-            Console.WriteLine($"  Shell ID: {info.ShellId}");
-            Console.WriteLine($"  Config path: {info.Program}");
+            Console.WriteLine($"  Shell name: {info.ShellName}");
+            Console.WriteLine($"  Program: {info.Program}");
             Console.WriteLine($"  Launch time: {info.LaunchTime:yyyy-MM-dd HH:mm:ss}");
             Console.WriteLine($"  Log file: {info.Log}");
         }

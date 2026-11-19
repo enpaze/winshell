@@ -31,8 +31,8 @@ public sealed class CrashTests : IDisposable
         Directory.CreateDirectory(_folder);
         var log = Path.Combine(_folder, "log.txt");
         File.WriteAllLines(log, Enumerable.Range(1, 100).Select(i => $"12:00:00.000  INFO window: line {i}"));
-        var crashes = new CrashReports(Path.Combine(_folder, "crashes"), shellId: "my-shell",
-            configPath: @"C:\config\MyShell.exe", logPath: log);
+        var crashes = new CrashReports(Path.Combine(_folder, "crashes"), shellName: "my-shell",
+            program: @"C:\config\MyShell.exe", logPath: log);
         CrashReport? raised = null;
         crashes.Written += r => raised = r;
 
@@ -48,8 +48,8 @@ public sealed class CrashTests : IDisposable
         Assert.Contains("This file stays on this PC.", text, StringComparison.Ordinal);
         Assert.Contains("Winshell: " + ProductVersion.Current.Text, text, StringComparison.Ordinal);
         Assert.Contains("Windows: ", text, StringComparison.Ordinal);
-        Assert.Contains("Shell id: my-shell", text, StringComparison.Ordinal);
-        Assert.Contains(@"Config: C:\config\MyShell.exe", text, StringComparison.Ordinal);
+        Assert.Contains("Shell name: my-shell", text, StringComparison.Ordinal);
+        Assert.Contains(@"Program: C:\config\MyShell.exe", text, StringComparison.Ordinal);
         Assert.Contains("Where: PanelWindow in Taskbar.xaml", text, StringComparison.Ordinal);
         Assert.Contains("Winshell closed: no", text, StringComparison.Ordinal);
         Assert.Contains("System.InvalidOperationException: the paint failed", text, StringComparison.Ordinal);

@@ -96,7 +96,7 @@ Change `{time:t}` in `Clock.cs` to `{time:T}` and save it, and the clock shows t
 
 - **Where it goes.** The copy goes to `%APPDATA%\winshell\<name>`, or under `WINSHELL_CONFIG_DIR`. `--path <folder>` puts it somewhere else. A folder that exists and isn't empty is refused.
 - **The package.** The copy's project references the `Winshell` package of the same release as `winshell`. A release keeps that package in a `packages` folder beside `winshell.exe`, and the copy's `nuget.config` adds that folder as a source.
-- **Its shell id** comes from its folder, so two copies keep their data apart.
+- **Its shell name** comes from its folder, so two copies keep their data apart.
 
 When Winshell runs a configuration:
 
@@ -148,7 +148,7 @@ winshell use                  # lists the configurations, with * before the chos
 
 - `winshell use` builds the configuration first when it needs a build, so the next sign-in can start it. A build that fails changes nothing.
 - The choice is the name in `chosen.txt` in the config folder.
-- Choosing a configuration never changes its shell id, so its data, its state, its widgets and where they are placed stay its own through every switch.
+- Choosing a configuration never changes its shell name, so its data, its state, its widgets and where they are placed stay its own through every switch.
 
 ## The package's usings
 
@@ -187,7 +187,7 @@ Properties in the project file name the shell and where it keeps its files. The 
 </PropertyGroup>
 ```
 
-- **`ShellName`** names the data, state and cache folders. Without it, as in the starter, a shell project in the config folder is named after its folder, and any other after its path.
+- **`ShellName`** is the shell name, `Shell.ShellName`. It names the preferences file and the data, state and cache folders. Without it, as in the starter, a shell project in the config folder is named after its folder, and any other after its path.
 - **`ShellDataDir`, `ShellStateDir` and `ShellCacheDir`** replace those folders. A relative path is in the project folder, so `data` is `<project>\data`, and a rebuild of `bin\shell` leaves it there. A program a reload built in `bin\shell.next` uses that same folder. A program in neither keeps a relative path next to itself. `%NAME%` expands when the shell starts, and `$BASE` is the folder above `by-shell`, such as `%LOCALAPPDATA%\winshell\data`. MSBuild reads `%` and two hexadecimal digits as one escaped character, so write `%25DEVROOT%` for `%DEVROOT%`.
 
 ## Parts
@@ -500,7 +500,7 @@ widgets = [
 - `widgets = []` leaves the area empty.
 - Comment the list out or remove it to return to the author's defaults. An area absent from the file keeps its defaults.
 
-Saving applies changes live. A widget whose name stays is rendered again with the new settings. A different list of names replaces those widgets. Other areas keep theirs. A syntax error, or a list with an item that is neither a widget name nor a table with a string `widget`, keeps the last valid list and logs the file location under `preferences`. Winshell does not migrate or merge user lists into new defaults. The old placement file, `widgets\<shell id>.toml`, is not read.
+Saving applies changes live. A widget whose name stays is rendered again with the new settings. A different list of names replaces those widgets. Other areas keep theirs. A syntax error, or a list with an item that is neither a widget name nor a table with a string `widget`, keeps the last valid list and logs the file location under `preferences`. Winshell does not migrate or merge user lists into new defaults. The old placement file, `widgets\<shell name>.toml`, is not read.
 
 ## Style
 
@@ -671,7 +671,7 @@ A change raises `PropertyChanged` on the shell's thread, and the component rende
 
 ## Preferences
 
-A shell keeps the user's choices in one TOML file, `preferences\<shell id>.toml` in `%APPDATA%\winshell`, or in `WINSHELL_CONFIG_DIR` when that is set. It lives outside the shell project and survives shell updates. The configuration's own preferences are the keys before the first section, and each component, such as a [named widget area](#let-the-user-change-an-area), has a section named after it:
+A shell keeps the user's choices in one TOML file, `preferences\<shell name>.toml` in `%APPDATA%\winshell`, or in `WINSHELL_CONFIG_DIR` when that is set. It lives outside the shell project and survives shell updates. The configuration's own preferences are the keys before the first section, and each component, such as a [named widget area](#let-the-user-change-an-area), has a section named after it:
 
 ```toml
 clock24 = true
@@ -748,7 +748,7 @@ What can't be used is logged under `preferences`, with its line, and the values 
 - An unknown key that differs from a key the class reads only in case, by a letter, or by two in a longer key is logged with that key.
 - A file past 1 MiB, or nested past 64 levels, is not read.
 
-`winshell doctor` checks the file of the configuration it checks for TOML errors, and names the line. It finds the file by the shell name the project has without a `ShellName` property, as [The program](#the-program) describes. For a project that sets one, it checks that default file, not the one the shell reads.
+`winshell doctor` checks the file of the shell it checks for TOML errors, and names the line. It reads the `ShellName` property from the project file, as [The program](#the-program) describes, so it checks the file the shell reads. A `ShellName` built from other MSBuild properties, such as `$(MSBuildProjectName)`, is not read, and the doctor checks the file of the default name.
 
 ### Paths
 

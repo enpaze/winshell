@@ -9,7 +9,7 @@
 - `new-path` copies into the folder that `-p <folder>` or `--path <folder>` names instead.
 - `new-package` adds a `nuget.config` with the `packages` folder beside `winshell.exe` as a source, when `Winshell.<version>.nupkg` is in it. Otherwise it prints that the package is not beside `winshell.exe` and where to read how to add a source.
 - `new-refuse` prints `No starter or example is named "<name>". Run winshell new to list them.` for an unknown name, and `<folder> already exists and isn't empty. Pick another folder with -p.` for a folder in use. Both exit with 2 and change nothing.
-- `new-shell-id` gives each copy a shell id from its folder, so two copies keep their data apart.
+- `new-shell-name` gives each copy a shell name from its folder, so two copies keep their data apart.
 
 ## How to get to it (user POV)
 

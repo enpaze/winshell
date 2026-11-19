@@ -8,7 +8,7 @@
 - `run-pick` runs the project that `-p <path>` or `-s <name>` names, or else the one `winshell use` chose, the project in the shells folder, its `default` folder, or its one subfolder with a project. With none, it starts nothing, prints nothing and exits with 0.
 - `run-daemonize` with `-d` or `--daemonize`, starts the shell in the background with no console window and returns at once.
 - `run-no-build` with `--no-build`, runs the program the last build left in `bin\shell`.
-- `run-no-duplicate` with `-n` or `--no-duplicate`, exits 0 without a message when this shell id is already running, and does not replace it.
+- `run-no-duplicate` with `-n` or `--no-duplicate`, exits 0 without a message when this shell name is already running, and does not replace it.
 - `run-replace` asks a shell already running in this local folder to quit, waits until it has exited, then starts. One that does not quit stays, and the start exits with 1.
 - `run-supervise` starts a crashed shell again after 1, 2, 4, 8 and then 10 seconds, and ends supervision after the sixth crash in a row. It shows Explorer's taskbar again after every exit but 0.
 - `run-errors` prints a failure before the log exists to the console, and shows it in a dialog when there is no console, with **Open shell folder**.
@@ -27,7 +27,7 @@ Preconditions:
 
 - **Stop the running shell.** Stop the feature shell. Run `winshell kill --pid {pid}`. It exits with 0 and prints `Killed ` and the instance id.
 - **Start it in the background.** Start the feature shell's project again. Run `winshell run -d -p {shell}`. It exits with 0 once the build is up to date and the shell has been started in the background.
-- **See it run.** List the running shells as JSON. Run `winshell list -j`. It exits with 0, and a `configPath` names `FeatureShell.exe`. The driver retries for 30 seconds while the shell starts.
+- **See it run.** List the running shells as JSON. Run `winshell list -j`. It exits with 0, and a `program` names `FeatureShell.exe`. The driver retries for 30 seconds while the shell starts.
 
 ```json
 [

@@ -17,7 +17,7 @@ A `WidgetArea` is a component that makes a widget for each placement in its list
 - In a Reactor component, return `WidgetArea("end", [new("message", new Dictionary<string, object> { ["text"] = "Hello" })])`.
 - Each name it places is a widget the shell finds at start: a public class that derives from `Widget`, named after its class in kebab case without a trailing `Widget`, or by its `[WidgetName("name")]`.
 - Every `Bar` has a start, a center and an end area, from its `Start`, `Center` and `End` lists.
-- Edit the area's section of `preferences\<shell id>.toml`, such as `[end]` with `widgets = ["clock", { widget = "message", text = "Hi" }]`, and save it.
+- Edit the area's section of `preferences\<shell name>.toml`, such as `[end]` with `widgets = ["clock", { widget = "message", text = "Hi" }]`, and save it.
 
 ## Driving it with winshell inspect
 
