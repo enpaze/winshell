@@ -139,8 +139,9 @@ function Assert-WinshellPackage([string] $Dir, [string] $Version, [string] $What
 
 function Assert-WinshellSigned([string] $Dir, [string[]] $Signed, [string] $What) {
     $carried = @(Get-ChildItem -LiteralPath $Dir -Recurse -File -Filter 'Winshell*.dll' | ForEach-Object { [IO.Path]::GetRelativePath($Dir, $_.FullName).Replace('\', '/') })
-    if ($carried -contains 'Winshell.Generators.dll') {
-        throw "$What carries Winshell.Generators.dll, an analyzer only the package ships. Reference it with OutputItemType=`"Analyzer`" ReferenceOutputAssembly=`"false`"."
+    $generators = @($carried | Where-Object { [IO.Path]::GetFileName($_) -eq 'Winshell.Generators.dll' })
+    if ($generators) {
+        throw "$What carries $($generators -join ', '), an analyzer only the package ships. Reference it with OutputItemType=`"Analyzer`" ReferenceOutputAssembly=`"false`"."
     }
     $unsigned = @($carried | Where-Object { $Signed -cnotcontains $_ })
     if ($unsigned) {

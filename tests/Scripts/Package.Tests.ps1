@@ -37,11 +37,14 @@ Describe 'The binaries Winshell signs' {
         { Assert-WinshellSigned $payload $signed 'the zip' } | Should -Throw "the zip carries $File unsigned.*"
     }
 
-    It 'stop a payload that carries the preference generator, even when it is on the signing list' {
-        $signed = @(Get-Signed 'win-x64') + 'Winshell.Generators.dll'
+    It 'stop a payload that carries the preference generator as <File>, even when it is on the signing list' -ForEach @(
+        @{ File = 'Winshell.Generators.dll' }
+        @{ File = 'analyzers/Winshell.Generators.dll' }
+    ) {
+        $signed = @(Get-Signed 'win-x64') + $File
         $payload = New-Payload $signed
 
-        { Assert-WinshellSigned $payload $signed 'the zip' } | Should -Throw 'the zip carries Winshell.Generators.dll, an analyzer only the package ships.*'
+        { Assert-WinshellSigned $payload $signed 'the zip' } | Should -Throw "the zip carries $File, an analyzer only the package ships.*"
     }
 }
 
