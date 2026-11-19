@@ -112,6 +112,7 @@ public class CliRunCommandTests
         Directory.CreateDirectory(local);
         File.WriteAllLines(signIn,
         [
+            "@set \"ERRORLEVEL=\"",
             .. IsolatedFolders.Of(config, local).Select(static v => $"@set \"{v.Name}={v.Value}\""),
             $"@\"{WinshellCli.Exe}\" --no-build --no-duplicate",
             $"@>\"{exit}\" echo %errorlevel%"
