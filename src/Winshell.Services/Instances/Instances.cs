@@ -8,9 +8,9 @@ namespace Winshell;
 internal sealed record InstanceInfo(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("pid")] int Pid,
-    [property: JsonPropertyName("shellName")]
+    [property: JsonPropertyName("shellName")] [property: JsonRequired]
     string ShellName,
-    [property: JsonPropertyName("program")]
+    [property: JsonPropertyName("program")] [property: JsonRequired]
     string Program,
     [property: JsonPropertyName("launchTime")]
     DateTime LaunchTime,
