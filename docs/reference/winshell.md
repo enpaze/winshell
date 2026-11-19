@@ -502,11 +502,14 @@ A WinUI Component. The members here are the ones Winshell adds.
 | `Window` | [ShellWindow](#shellwindow)?, read-only |
 | `StylePopup(UIElement content)` | FrameworkElement |
 
-## Widgets
+## WidgetNameAttribute
+
+An attribute.
 
 | Member | Type |
 | --- | --- |
-| `Register<TWidget>(string name)` | void, static |
+| `WidgetNameAttribute(string name)` | constructor |
+| `Name` | string, read-only |
 
 ## WindowBackdrop
 

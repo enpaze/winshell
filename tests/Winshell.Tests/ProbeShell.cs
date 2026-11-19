@@ -91,20 +91,20 @@ internal static class ProbeShell
         lock (Gate)
         {
             if (program is null || !File.Exists(program))
-                Volatile.Write(ref program, BuildLocked(folder, shellProperties));
+                Volatile.Write(ref program, BuildLocked(folder, shellProperties, Source));
             return program;
         }
     }
 
-    internal static string Build(string folder)
+    internal static string Build(string folder, string source = Source)
     {
         lock (Gate)
         {
-            return BuildLocked(folder, ProbeProperties);
+            return BuildLocked(folder, ProbeProperties, source);
         }
     }
 
-    private static string BuildLocked(string folder, string shellProperties)
+    private static string BuildLocked(string folder, string shellProperties, string source)
     {
         var root = Repo.Root;
         Directory.CreateDirectory(folder);
@@ -113,7 +113,7 @@ internal static class ProbeShell
         var project = Path.Combine(folder, "Probe.csproj");
         WriteIfDifferent(project,
             Project(Path.Combine(root, "src", "Winshell.Shell", "Winshell.Shell.csproj"), shellProperties));
-        WriteIfDifferent(Path.Combine(folder, "Program.cs"), Source);
+        WriteIfDifferent(Path.Combine(folder, "Program.cs"), source);
         var program = Path.Combine(folder, "bin", "shell", "Probe.exe");
         var info = new ProcessStartInfo("dotnet") { WorkingDirectory = folder };
         info.ArgumentList.Add("build");
@@ -142,6 +142,23 @@ internal static class ProbeShell
         return Path.Combine(folder, Path.GetFileName(program));
     }
 
+    internal static string BuiltAssembly(string project)
+    {
+        lock (Gate)
+        {
+            var info = new ProcessStartInfo("dotnet") { WorkingDirectory = Path.GetDirectoryName(project)! };
+            foreach (var argument in (string[])
+                     ["build", project, "-c", Configuration, "--nologo", "--disable-build-servers", "-t:Build", "-getProperty:TargetPath"])
+                info.ArgumentList.Add(argument);
+            var built = ChildProcess.Run(info, TimeSpan.FromMinutes(10));
+            built.AssertExitCode(0);
+            return built.Output.Trim();
+        }
+    }
+
+    private static string Configuration =>
+        typeof(ProbeShell).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
+
     private static void WriteIfDifferent(string path, string text)
     {
         if (File.Exists(path) && File.ReadAllText(path) == text)
@@ -153,7 +170,6 @@ internal static class ProbeShell
     private static string Project(string shellProject, string shellProperties)
     {
         var props = Path.Combine(Repo.Root, "src", "Winshell.Package", "buildTransitive", "Winshell.props");
-        var configuration = typeof(ProbeShell).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
         return $"""
                 <Project Sdk="Microsoft.NET.Sdk">
                   <Import Project="{props}" />
@@ -172,7 +188,7 @@ internal static class ProbeShell
                        this probe's -o path out of their builds, including when reload builds the probe in Release. -->
                   <ItemDefinitionGroup>
                     <ProjectReference>
-                      <SetConfiguration>Configuration={configuration}</SetConfiguration>
+                      <SetConfiguration>Configuration={Configuration}</SetConfiguration>
                       <GlobalPropertiesToRemove>OutputPath</GlobalPropertiesToRemove>
                     </ProjectReference>
                   </ItemDefinitionGroup>

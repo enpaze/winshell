@@ -4,7 +4,7 @@ A `Bar` is a panel along one edge of every screen, with three widget areas: star
 
 ## Sub-features
 
-- `areas` places the widgets named in `Start`, `Center` and `End`, in order, each from the name it is registered under.
+- `areas` places the widgets named in `Start`, `Center` and `End`, in order, each by its widget name.
 - `every-screen` shows one bar on each screen, and follows screens as they are connected and removed.
 - `edge` runs along the top, bottom, left or right edge; on a side edge the areas run from top to bottom.
 - `reserve` reserves the edge, or lays the bar over maximized windows with `Reserve = false`.
@@ -17,7 +17,7 @@ A `Bar` is a panel along one edge of every screen, with three widget areas: star
 ## How to get to it (user POV)
 
 - Run `winshell new starter` and then `winshell run -c starter`. The starter makes one bar.
-- In the function a shell passes to `Shell.Run`, write `_ = new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] };` after `Widgets.Register<...>("name")` for each widget it places.
+- In the function a shell passes to `Shell.Run`, write `_ = new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] };`. Each name is a widget of the shell project, such as the class `Clock` or `ClockWidget` for `clock`.
 - Edit the `[bar]` section of `preferences\<shell id>.toml` in the config folder, or a `[[bar.screen]]` row, and save it.
 
 ## Driving it with winshell inspect

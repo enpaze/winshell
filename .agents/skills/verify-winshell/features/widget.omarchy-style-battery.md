@@ -13,7 +13,7 @@ The `battery` widget is the last button on the omarchy-style bar. Its glyph show
 ## How to get to it (user POV)
 
 - Run `winshell new omarchy-style` and then `winshell run -c omarchy-style`, or `winshell run --path examples/omarchy-style` from a clone.
-- The example registers it with `Widgets.Register<BatteryWidget>("battery")` and places it last in the bar's `End` list.
+- The example finds `BatteryWidget` as the widget `battery` and places it last in the bar's `End` list.
 - Place it elsewhere with `"battery"` in a list of the `[bar]` section of the preferences file.
 - Choose the battery glyph at the right end of the bar.
 

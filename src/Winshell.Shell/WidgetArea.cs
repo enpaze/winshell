@@ -143,7 +143,7 @@ public sealed class WidgetArea : Component<WidgetAreaProps>
             try
             {
                 return ErrorBoundary(
-                    Widgets.Create(widget, context),
+                    context.Shell.WidgetRegistry.Create(widget, context),
                     error => Component<FailedPlacement, Failure>(new Failure("render", widget, area, error))
                         .WithKey("render"));
             }

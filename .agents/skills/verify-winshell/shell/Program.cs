@@ -14,7 +14,6 @@ Shell.Run(shell =>
     }
 
     shell.Loop.Schedule(TimeSpan.FromSeconds(1), Tick);
-    Widgets.Register<FeatureWidget>("feature");
 
     var hotkey = shell.Hotkey("Ctrl+Alt+Shift+F13");
     var idle = shell.NewIdleMonitor();

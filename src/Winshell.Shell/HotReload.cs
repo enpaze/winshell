@@ -22,15 +22,16 @@ internal static class HotReload
 
     internal static void UpdateApplication(Type[]? updated)
     {
-        if (updated is null || Shell.Running is not { } shell)
+        if (Shell.Running is not { } shell)
             return;
-        shell.Loop.Post(() => Apply(shell, updated));
+        shell.Loop.Post(() => Apply(shell, updated ?? []));
     }
 
     internal static void Apply(Shell shell, IReadOnlyCollection<Type> updated)
     {
         var edited = updated.Select(Written).ToHashSet();
         var own = edited.Select(type => type.Assembly).ToHashSet();
+        shell.WidgetRegistry.AddNew(own, shell.Log);
         foreach (var window in shell.Platform.Windows.Select(host => host.Client).ToList())
         {
             if (window.Content is not { } content)

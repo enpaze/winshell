@@ -18,7 +18,7 @@ public sealed class ComponentWidgetTests
         await ShellFixture.On(async shell =>
         {
             var name = Guid.NewGuid().ToString();
-            Widgets.Register<LabelWidget>(name);
+            Shell.Current.WidgetRegistry.Add<LabelWidget>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
             {
                 Defaults = [new(name, new Dictionary<string, object> { ["text"] = "area" })]
@@ -64,7 +64,7 @@ public sealed class ComponentWidgetTests
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             var areaName = "area" + Guid.NewGuid().ToString("N");
             var widget = Guid.NewGuid().ToString();
-            Widgets.Register<RememberingWidget>(widget);
+            Shell.Current.WidgetRegistry.Add<RememberingWidget>(widget);
             File.WriteAllText(path, $"[{areaName}]\nwidgets = [{{ widget = '{widget}', text = 'first' }}]\n");
             try
             {
@@ -94,7 +94,7 @@ public sealed class ComponentWidgetTests
         await ShellFixture.On(async _ =>
         {
             var name = Guid.NewGuid().ToString();
-            Widgets.Register<RememberingWidget>(name);
+            Shell.Current.WidgetRegistry.Add<RememberingWidget>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
             {
                 Defaults = [new(name, new Dictionary<string, object> { ["text"] = "born" })]
@@ -124,8 +124,8 @@ public sealed class ComponentWidgetTests
         {
             var name = Guid.NewGuid().ToString();
             var survivor = "survivor" + name;
-            Widgets.Register<SurvivorWidget>(survivor);
-            Widgets.Register<ThrowingWidget>(name);
+            Shell.Current.WidgetRegistry.Add<SurvivorWidget>(survivor);
+            Shell.Current.WidgetRegistry.Add<ThrowingWidget>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = "end", Defaults = [new(survivor), new(name)] });
             using var window = new PanelWindow { Width = 280, Height = 90, Content = area.Host, Visible = true };
             await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
@@ -151,7 +151,7 @@ public sealed class ComponentWidgetTests
         {
             shell.Style = TestStyles.Other();
             var name = Guid.NewGuid().ToString();
-            Widgets.Register<PopupWidget>(name);
+            Shell.Current.WidgetRegistry.Add<PopupWidget>(name);
             try
             {
                 using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [new(name)] });
@@ -185,7 +185,7 @@ public sealed class ComponentWidgetTests
         {
             shell.Style = TestStyles.Other();
             var name = Guid.NewGuid().ToString();
-            Widgets.Register<FlyoutWidget>(name);
+            Shell.Current.WidgetRegistry.Add<FlyoutWidget>(name);
             try
             {
                 using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [new(name)] });
@@ -292,7 +292,7 @@ public sealed class ComponentWidgetTests
         {
             var name = Guid.NewGuid().ToString();
             WindowWidget.Seen = null;
-            Widgets.Register<WindowWidget>(name);
+            Shell.Current.WidgetRegistry.Add<WindowWidget>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [name] });
             using var window = new PanelWindow { Width = 160, Height = 48, Content = area.Host, Visible = true };
             await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);

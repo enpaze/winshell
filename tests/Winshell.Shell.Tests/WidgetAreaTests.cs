@@ -21,7 +21,7 @@ public sealed class WidgetAreaTests
         {
             var name = Guid.NewGuid().ToString();
             PopupCapture.Context = null;
-            Widgets.Register<PopupCapture>(name);
+            Shell.Current.WidgetRegistry.Add<PopupCapture>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
             {
                 Style = TestStyles.Marked(),
@@ -94,7 +94,7 @@ public sealed class WidgetAreaTests
         {
             var name = Guid.NewGuid().ToString();
             PopupCapture.Context = null;
-            Widgets.Register<PopupCapture>(name);
+            Shell.Current.WidgetRegistry.Add<PopupCapture>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
             {
                 Style = TestStyles.Marked(),
@@ -133,7 +133,7 @@ public sealed class WidgetAreaTests
             var name = Guid.NewGuid().ToString();
             OrderedWidget.Inputs = [];
             OrderedWidget.Views = [];
-            Widgets.Register<OrderedWidget>(name);
+            Shell.Current.WidgetRegistry.Add<OrderedWidget>(name);
             var first = new Dictionary<string, object> { ["text"] = "first" };
             var second = new Dictionary<string, object> { ["text"] = "second" };
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps());
@@ -174,10 +174,10 @@ public sealed class WidgetAreaTests
         {
             var good = Guid.NewGuid().ToString();
             var bad = Guid.NewGuid().ToString();
-            Widgets.Register<SurvivorWidget>(good);
+            Shell.Current.WidgetRegistry.Add<SurvivorWidget>(good);
             BadWidget.Failure = failure;
             if (failure != "unknown")
-                Widgets.Register<BadWidget>(bad);
+                Shell.Current.WidgetRegistry.Add<BadWidget>(bad);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [new(good), new(bad), new(good)] });
             using var window = new PanelWindow { Width = 280, Height = 60, Content = area.Host, Visible = true };
             string[] text = [];
@@ -214,7 +214,7 @@ public sealed class WidgetAreaTests
             var unknown = "missing" + Guid.NewGuid().ToString("N");
             var widget = Guid.NewGuid().ToString();
             TrackedWidget.Mounts = [];
-            Widgets.Register<TrackedWidget>(widget);
+            Shell.Current.WidgetRegistry.Add<TrackedWidget>(widget);
             File.WriteAllText(path, $"[{name}]\nwidgets = [\n  {{ widget = '{widget}', text = 'first', count = 3, options = {{ enabled = true }} }},\n" +
                                     $"  {{ widget = '{widget}', text = 'second' }},\n]\n\n" +
                                     $"[{unknown}]\nwidgets = ['not-installed']\n");
@@ -290,7 +290,7 @@ public sealed class WidgetAreaTests
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             var name = "area" + Guid.NewGuid().ToString("N");
             var widget = Guid.NewGuid().ToString();
-            Widgets.Register<TextWidget>(widget);
+            Shell.Current.WidgetRegistry.Add<TextWidget>(widget);
             File.WriteAllText(path, $"[{name}side]\nwidgets = [{{ widget = '{widget}', text = 'side' }}]\n");
             try
             {
@@ -322,7 +322,7 @@ public sealed class WidgetAreaTests
             var name = "area" + Guid.NewGuid().ToString("N");
             var widget = Guid.NewGuid().ToString();
             TrackedWidget.Mounts = [];
-            Widgets.Register<TrackedWidget>(widget);
+            Shell.Current.WidgetRegistry.Add<TrackedWidget>(widget);
             File.WriteAllText(path, $"[{name}]\nwidgets = [\"{widget}\", {{ widget = \"{widget}\", text = \"Hi\" }}, \"{widget}\"]\n");
             try
             {
@@ -354,7 +354,7 @@ public sealed class WidgetAreaTests
             var name = "area" + Guid.NewGuid().ToString("N");
             var widget = Guid.NewGuid().ToString();
             TrackedWidget.Mounts = [];
-            Widgets.Register<TrackedWidget>(widget);
+            Shell.Current.WidgetRegistry.Add<TrackedWidget>(widget);
             var logLength = ShellFixture.ReadLog(shell).Length;
             File.WriteAllText(path, $"[{name}]\nwidgets = [\"{widget}\", {item}]\n");
             try
@@ -401,7 +401,7 @@ public sealed class WidgetAreaTests
             broken = string.Format(CultureInfo.InvariantCulture, broken, name, widget);
             diagnostic = string.Format(CultureInfo.InvariantCulture, diagnostic, name);
             TrackedWidget.Mounts = [];
-            Widgets.Register<TrackedWidget>(widget);
+            Shell.Current.WidgetRegistry.Add<TrackedWidget>(widget);
             File.WriteAllText(path, $"[{name}]\nwidgets = [\"{widget}\"]\n");
             try
             {
@@ -438,7 +438,7 @@ public sealed class WidgetAreaTests
         {
             var name = Guid.NewGuid().ToString();
             MountedWidget.Mounted = 0;
-            Widgets.Register<MountedWidget>(name);
+            Shell.Current.WidgetRegistry.Add<MountedWidget>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [new(name), new(name)] });
             var host = area.Host;
             using var window = new PanelWindow { Width = 180, Height = 90, Content = host, Visible = true };
@@ -766,7 +766,7 @@ public sealed class WidgetAreaTests
             var controls = new PlainControls();
             var popupWidget = Guid.NewGuid().ToString();
             PopupCapture.Context = null;
-            Widgets.Register<PopupCapture>(popupWidget);
+            Shell.Current.WidgetRegistry.Add<PopupCapture>(popupWidget);
             using var follows = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
             {
                 Defaults = [new(controls.Button), new(controls.Text), new(popupWidget)]
@@ -839,7 +839,7 @@ public sealed class WidgetAreaTests
             var widget = Guid.NewGuid().ToString();
             var tip = new ToolTip { Content = "tip" };
             TipWidget.Tip = tip;
-            Widgets.Register<TipWidget>(widget);
+            Shell.Current.WidgetRegistry.Add<TipWidget>(widget);
             var other = TestStyles.Other();
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Style = other, Defaults = [new(widget)] });
             using var window = new PanelWindow { Width = 100, Height = 40, Content = area.Host, Visible = true };
@@ -900,7 +900,7 @@ public sealed class WidgetAreaTests
         {
             var name = Guid.NewGuid().ToString();
             AlertWidget.Alert = null;
-            Widgets.Register<AlertWidget>(name);
+            Shell.Current.WidgetRegistry.Add<AlertWidget>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Style = TestStyles.Other(), Defaults = [new(name)] });
             using var window = new PanelWindow { Width = 120, Height = 40, Content = area.Host, Visible = true };
             await Wait.UntilAsync(() => AlertWidget.Alert is not null, "the alert text to render");
@@ -963,8 +963,8 @@ public sealed class WidgetAreaTests
         public PlainControls()
         {
             Current = this;
-            Widgets.Register<GlyphWidget>(Button);
-            Widgets.Register<LineWidget>(Text);
+            Shell.Current.WidgetRegistry.Add<GlyphWidget>(Button);
+            Shell.Current.WidgetRegistry.Add<LineWidget>(Text);
         }
 
         public static PlainControls Current { get; private set; } = null!;
@@ -1119,7 +1119,7 @@ public sealed class WidgetAreaTests
         public AlertControls()
         {
             Current = this;
-            Widgets.Register<AlertControlsWidget>(Name);
+            Shell.Current.WidgetRegistry.Add<AlertControlsWidget>(Name);
         }
 
         public static AlertControls Current { get; private set; } = null!;
