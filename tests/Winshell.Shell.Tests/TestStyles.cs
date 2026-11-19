@@ -1,4 +1,3 @@
-using Microsoft.UI.Xaml.Media;
 
 namespace Winshell.ShellTests;
 
@@ -9,7 +8,7 @@ internal static class TestStyles
         Background = Color(0x1a, 0x1b, 0x26),
         Foreground = Microsoft.UI.Colors.Crimson,
         Alert = Microsoft.UI.Colors.Orange,
-        FontFamily = new FontFamily("Consolas"),
+        FontFamily = "Consolas",
         FontSize = 18,
         SlotSize = 40,
         Padding = null
@@ -20,7 +19,7 @@ internal static class TestStyles
         Background = Microsoft.UI.Colors.Navy,
         Foreground = Microsoft.UI.Colors.White,
         Alert = Microsoft.UI.Colors.Gold,
-        FontFamily = new FontFamily("Georgia"),
+        FontFamily = "Georgia",
         FontSize = 15,
         SlotSize = 36,
         Padding = 2

@@ -6,6 +6,21 @@ namespace Winshell.ShellTests;
 public sealed class StyleHostTests
 {
     [Fact]
+    public async Task A_style_made_off_the_UI_thread_shows_its_font_on_it()
+    {
+        var style = await Task.Run(() => new ShellStyle { FontFamily = "Consolas" });
+
+        var font = await ShellFixture.On(_ =>
+        {
+            var border = new Border();
+            StyleHost.Show(border, style);
+            return ((Microsoft.UI.Xaml.Media.FontFamily)border.Resources.MergedDictionaries[0]["ShellFontFamily"]).Source;
+        });
+
+        Assert.Equal("Consolas", font);
+    }
+
+    [Fact]
     public async Task A_new_style_replaces_the_one_an_element_shows_after_its_wrapper_is_collected()
     {
         var sizes = await ShellFixture.On(_ =>
@@ -42,6 +57,21 @@ public sealed class StyleHostTests
         });
 
         Assert.Equal((true, false, false, 1), changes);
+    }
+
+    [Fact]
+    public async Task Showing_an_equal_style_made_separately_keeps_the_resources_in_place()
+    {
+        var (changed, kept) = await ShellFixture.On(_ =>
+        {
+            var border = new Border();
+            StyleHost.Show(border, TestStyles.Other());
+            var shown = border.Resources.MergedDictionaries.Single();
+            var changed = StyleHost.Show(border, TestStyles.Other());
+            return (changed, ReferenceEquals(shown, border.Resources.MergedDictionaries.Single()));
+        });
+
+        Assert.Equal((false, true), (changed, kept));
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

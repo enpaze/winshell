@@ -411,7 +411,7 @@ Has the members of [ObservableObject](#observableobject).
 | `ShellStyle()` | constructor |
 | `Alert` | Color?, init |
 | `Background` | Color?, init |
-| `FontFamily` | FontFamily, init |
+| `FontFamily` | string, init |
 | `FontSize` | double, init |
 | `Foreground` | Color?, init |
 | `Padding` | double?, init |

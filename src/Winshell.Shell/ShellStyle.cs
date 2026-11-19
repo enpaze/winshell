@@ -3,7 +3,6 @@ using System.Security;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Markup;
-using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 
 namespace Winshell;
@@ -16,7 +15,7 @@ public sealed record ShellStyle
 
     public Color? Alert { get; init; }
 
-    public FontFamily FontFamily { get; init; } = new("Segoe UI Variable Text,Segoe UI");
+    public string FontFamily { get; init; } = "Segoe UI Variable Text,Segoe UI";
 
     public double FontSize { get; init; } = 14;
 
@@ -37,7 +36,7 @@ public sealed record ShellStyle
             : "";
         var metrics = string.Create(CultureInfo.InvariantCulture,
             $"""
-                   <FontFamily x:Key="ShellFontFamily">{SecurityElement.Escape(FontFamily.Source)}</FontFamily>
+                   <FontFamily x:Key="ShellFontFamily">{SecurityElement.Escape(FontFamily)}</FontFamily>
                    <x:Double x:Key="ShellFontSize">{Number(FontSize)}</x:Double>
                    <x:Double x:Key="ShellSlotSize">{Number(SlotSize)}</x:Double>
                    {padding}

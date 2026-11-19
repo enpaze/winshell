@@ -449,7 +449,7 @@ A XAML resource dictionary of `Shell*` keys becomes a [ShellStyle](#style). A di
         shell.Style = new ShellStyle
         {
             Background = Color.FromArgb(255, 0x1a, 0x1b, 0x26),
-            FontFamily = new FontFamily("Segoe UI")
+            FontFamily = "Segoe UI"
         };
 ```
 
@@ -504,7 +504,7 @@ Saving applies changes live. A widget whose name stays is rendered again with th
 
 ## Style
 
-The style is how every widget area, surface and styled popup looks: its colors, font and slot size. It is a [ShellStyle](reference/winshell.md#shellstyle). `shell.Style` starts as `new ShellStyle()`, which follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` to give the whole shell another look. Set only the values you change: `Background`, `Foreground` and `Alert` are `Windows.UI.Color?` values, and each one left null follows Windows on its own, so `new ShellStyle { FontSize = 12 }` keeps Windows' colors:
+The style is how every widget area, surface and styled popup looks: its colors, font and slot size. It is a [ShellStyle](reference/winshell.md#shellstyle). `shell.Style` starts as `new ShellStyle()`, which follows Windows: its text and background colors in light, in dark and in a contrast theme, Segoe UI and Segoe Fluent Icons. Set `shell.Style` to give the whole shell another look. Set only the values you change: `Background`, `Foreground` and `Alert` are `Windows.UI.Color?` values, and each one left null follows Windows on its own, so `new ShellStyle { FontSize = 12 }` keeps Windows' colors. `FontFamily` is a font name as XAML takes it, such as `Segoe UI`, or a font file in the project followed by `#` and the family name:
 
 ```csharp
         shell.Style = new ShellStyle
@@ -512,7 +512,7 @@ The style is how every widget area, surface and styled popup looks: its colors, 
             Background = Color.FromArgb(255, 0x1a, 0x1b, 0x26),
             Foreground = Color.FromArgb(255, 0xa9, 0xb1, 0xd6),
             Alert = Color.FromArgb(255, 0xf7, 0x76, 0x8e),
-            FontFamily = new FontFamily("ms-appx:///Fonts/JetBrainsMonoNerdFont-Regular.ttf#JetBrainsMono NF"),
+            FontFamily = "ms-appx:///Fonts/JetBrainsMonoNerdFont-Regular.ttf#JetBrainsMono NF",
             FontSize = 12,
             SlotSize = 26,
             Padding = 8
