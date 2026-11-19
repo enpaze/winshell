@@ -426,12 +426,12 @@ public sealed class BarTests
     {
         await ShellFixture.On(async shell =>
         {
-            var scheme = shell.ColorScheme;
+            var appearance = shell.Appearance;
             var screen = ScreenWindowsTests.Screen("TST", "Only", "1");
             shell.Platform.Screens.Add(screen);
             try
             {
-                shell.ColorScheme = ColorScheme.Light;
+                shell.Appearance = Appearance.Light;
                 using var bar = shell.Add(new Bar { Name = "bar" + Guid.NewGuid().ToString("N"), Reserve = false });
                 await NextTurn(shell);
                 var window = Assert.Single(BarsOn(shell, screen));
@@ -439,14 +439,14 @@ public sealed class BarTests
                 await ShellFixture.LaidOut(root).WaitAsync(TestContext.Current.CancellationToken);
                 Assert.Equal(WidgetAreaTests.WindowsColor("Light", "SolidBackgroundFillColorBase"), BackgroundOf(root));
 
-                shell.ColorScheme = ColorScheme.Dark;
+                shell.Appearance = Appearance.Dark;
                 var dark = WidgetAreaTests.WindowsColor("Default", "SolidBackgroundFillColorBase");
                 await UntilShown(() => BackgroundOf(root) == dark, "the bar to turn dark", window);
                 Assert.Same(window, Assert.Single(BarsOn(shell, screen)));
             }
             finally
             {
-                shell.ColorScheme = scheme;
+                shell.Appearance = appearance;
                 shell.Platform.Screens.Remove(screen);
             }
 

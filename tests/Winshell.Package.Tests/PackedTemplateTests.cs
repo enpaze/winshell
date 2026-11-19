@@ -115,6 +115,24 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         Assert.True(built.ExitCode == 0, built.Output);
     }
 
+    [Fact(Timeout = PatienceMs)]
+    public void A_shell_names_its_appearance_with_only_the_package_usings()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        using var folder = new TempFolder();
+        var projectFile = CopyStarter(folder.Path);
+        foreach (var source in Directory.GetFiles(folder.Path, "*.cs"))
+            File.Delete(source);
+        File.WriteAllText(Path.Combine(folder.Path, "Program.cs"), """
+            Shell.Run(shell => shell.Appearance = Appearance.Dark);
+            """);
+
+        var built = ShellProject.Run(
+            "dotnet", ["build", projectFile, "-c", "Release", "-warnaserror", "--nologo"], folder.Path);
+
+        Assert.True(built.ExitCode == 0, built.Output);
+    }
+
     [Theory(Timeout = PatienceMs)]
     [InlineData(false)]
     [InlineData(true)]

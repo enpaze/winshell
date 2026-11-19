@@ -164,7 +164,7 @@ A project that references the `Winshell` package and has `ImplicitUsings` on, as
 
 - **Leave them out.** `<WinshellImplicitUsings>false</WinshellImplicitUsings>` in the project file leaves out all of them. `<Using Remove="Microsoft.UI.Reactor.Core" />` in an `ItemGroup` leaves out one.
 - **The root namespace always exists.** The package declares the project's `RootNamespace`, so a shell whose only file is `Program.cs` builds.
-- **Two types share a name.** `ColorScheme` is Winshell's, for `shell.ColorScheme`, and Reactor's, for `UseColorScheme()`. Write `Winshell.ColorScheme` or `Microsoft.UI.Reactor.Core.ColorScheme`. A file with `using Microsoft.UI.Xaml.Controls` has two `IconElement` and two `MenuFlyoutItemBase` types the same way.
+- **Two types share a name.** A file with `using Microsoft.UI.Xaml.Controls` has two `IconElement` and two `MenuFlyoutItemBase` types, WinUI's and Reactor's. Write the namespace in front of the one you mean, such as `Microsoft.UI.Xaml.Controls.IconElement`.
 
 ## The program
 
@@ -550,6 +550,17 @@ public sealed class AlertLabel : Widget
 ```
 
 `.Alert(false)` shows the element in its usual color, so `.Alert(restricted)` shows it in the alert color only while `restricted` holds.
+
+### Light or dark, and the accent
+
+The shell follows Windows' light or dark mode and its accent color. Choose your own on top:
+
+```csharp
+        shell.Appearance = Appearance.Dark;
+        shell.AccentColor = Color.FromArgb(255, 0xd1, 0x34, 0x38);
+```
+
+`Appearance.System`, the default, follows Windows again, and `shell.IsDark` says which one the shell shows. `shell.AccentColor` is null until you set it, and null follows Windows' accent, which `shell.SystemAccent` reads. Controls that show the accent, such as a toggle switch that is on, take a new accent at once. A contrast theme still wins over both.
 
 ## Write a widget
 

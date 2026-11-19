@@ -9,7 +9,7 @@ internal enum WindowKind
     Popup
 }
 
-public enum ColorScheme
+public enum Appearance
 {
     System,
 

@@ -141,6 +141,12 @@ public static class GuideSamples
         return dock;
     }
 
+    public static void LightOrDark(Shell shell)
+    {
+        shell.Appearance = Appearance.Dark;
+        shell.AccentColor = Color.FromArgb(255, 0xd1, 0x34, 0x38);
+    }
+
     public static void Reload(Shell shell)
     {
         if (!shell.Reload())
