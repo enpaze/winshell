@@ -376,7 +376,7 @@ Has the members of [ObservableObject](#observableobject).
 | `NewIdleMonitor()` | [IdleMonitor](winshell-power.md#idlemonitor) |
 | `Open(string target)` | void |
 | `Quit()` | void |
-| `Reload()` | bool |
+| `Restart()` | bool |
 | `Run(Action of [Shell](#shell) start)` | void, static |
 
 ## ShellImage

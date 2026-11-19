@@ -88,7 +88,7 @@ public static class GuideSamples
             Commands =
             [
                 new("Lock", () => shell.Session.Lock()),
-                new("Reload shell", () => shell.Reload())
+                new("Restart shell", () => shell.Restart())
             ]
         });
         return launcher;
@@ -147,10 +147,10 @@ public static class GuideSamples
         shell.AccentColor = Color.FromArgb(255, 0xd1, 0x34, 0x38);
     }
 
-    public static void Reload(Shell shell)
+    public static void Restart(Shell shell)
     {
-        if (!shell.Reload())
-            shell.Log.Warn("shell", "Reload did not start.");
+        if (!shell.Restart())
+            shell.Log.Warn("shell", "Could not restart.");
     }
 }
 

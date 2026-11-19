@@ -83,9 +83,9 @@ A reload is not a stop. The two reload paths stay separate modules on purpose: e
 | Path | Joins | Modules |
 | --- | --- | --- |
 | Supervised | `winshell reload` and the supervisor in `winshell run` | `ShellExit`, `ShellSupervisor` |
-| Unsupervised | The shell that quits and the one that takes over | `Shell.Reload`, `--after`, `Instances.WaitForExit` |
+| Unsupervised | The shell that quits and the one that takes over | `Shell.Restart`, `--after`, `Instances.WaitForExit` |
 
-On the supervised path, the supervisor starts the last build at once, whatever the exit code, and counts that shell's crashes from none. The new child is supervised as the first was. A configuration that calls `shell.Reload()` itself still hands over to an unsupervised process: the supervisor cannot see that start.
+On the supervised path, the supervisor starts the last build at once, whatever the exit code, and counts that shell's crashes from none. The new child is supervised as the first was. A shell that calls `shell.Restart()` itself still hands over to an unsupervised process: the supervisor cannot see that start.
 
 ### Explorer taskbar recovery
 

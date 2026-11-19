@@ -238,7 +238,7 @@ public sealed partial class Shell : IDisposable
             _parts.RemoveAt(at);
     }
 
-    public bool Reload()
+    public bool Restart()
     {
         if (StartNext() is not null)
             return false;
@@ -258,7 +258,7 @@ public sealed partial class Shell : IDisposable
         {
             using var next = Process.Start(info);
             _nextStarted = true;
-            Log.Info("shell", "Reloading: a new process takes over from this one.");
+            Log.Info("shell", "Restarting: a new process takes over from this one.");
             return null;
         }
         catch (Exception e) when (e is Win32Exception or InvalidOperationException)

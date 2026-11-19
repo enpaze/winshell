@@ -195,12 +195,12 @@ Properties in the project file name the shell and where it keeps its files. The 
 A bar, a launcher, a `ScreenWindows` and a window are parts of the shell. `shell.Add(part)` starts a part, makes the shell its owner and returns it:
 
 - **Nothing shows before it is added.** Making a part only sets it up. Set its properties, then add it.
-- **The shell disposes what it owns.** When the shell quits or reloads, it disposes every part still added, the last added first.
+- **The shell disposes what it owns.** When the shell quits or restarts, it disposes every part still added, the last added first.
 - **`Dispose` removes it.** A bar, a launcher, a `ScreenWindows` or a window disposed before then stops, and the shell no longer holds it.
 - **Adding twice** does nothing more. Adding a part the shell already holds returns it as it is.
 - **After the shell quits**, `Add` throws `ObjectDisposedException`.
 
-`Add` takes any disposable object, so the shell can own one of yours too. The shell disposes it once, when it quits or reloads. If you dispose it before then, the shell's call is a second one, which the .NET `Dispose` contract allows, so make your `Dispose` safe to call twice.
+`Add` takes any disposable object, so the shell can own one of yours too. The shell disposes it once, when it quits or restarts. If you dispose it before then, the shell's call is a second one, which the .NET `Dispose` contract allows, so make your `Dispose` safe to call twice.
 
 ## A window
 
@@ -381,7 +381,7 @@ A [Launcher](reference/winshell.md#launcher) is a search box that a hotkey opens
             Commands =
             [
                 new("Lock", () => shell.Session.Lock()),
-                new("Reload shell", () => shell.Reload())
+                new("Restart shell", () => shell.Restart())
             ]
         });
 ```
@@ -738,7 +738,7 @@ A named section is made with its name:
 - **A key the file does not have holds its default**, so commenting one out goes back to it.
 - **Assigning a property writes that key** at the end of its section and leaves the rest of the file: comments, other sections and keys no class reads.
 - **When the file is missing**, Winshell writes it with each section's keys commented out at their defaults, under their comments. A component made after that, whose section the file does not have, adds its section at the end of the file the same way, under its own `[name]` header.
-- **A section you take out stays out** until the component is made again, as when the shell starts or reloads, or one of its properties is assigned.
+- **A section you take out stays out** until the component is made again, as when the shell starts, or one of its properties is assigned.
 
 ### What can't be used
 
@@ -763,7 +763,7 @@ What can't be used is logged under `preferences`, with its line, and the values 
 | `Program` | The folder the program runs from, such as `bin\shell` in the project folder |
 | `Shells` | The folder of shell projects and preferences files, `%APPDATA%\winshell` or `WINSHELL_CONFIG_DIR` |
 
-Reading `Data`, `State` or `Cache` creates that folder. The shell works out every path once, when it starts, so they stay put while it runs. Changing `WINSHELL_CONFIG_DIR` or `WINSHELL_LOCAL_DIR` later moves none of them, and the preferences file stays in the `Shells` folder the shell started with. [The program](#the-program) shows the properties that move them. State does not survive a reload unless the shell writes it itself. Every window is replaced.
+Reading `Data`, `State` or `Cache` creates that folder. The shell works out every path once, when it starts, so they stay put while it runs. Changing `WINSHELL_CONFIG_DIR` or `WINSHELL_LOCAL_DIR` later moves none of them, and the preferences file stays in the `Shells` folder the shell started with. [The program](#the-program) shows the properties that move them. State does not survive a restart unless the shell writes it itself. Every window is replaced.
 
 ## IPC
 
@@ -777,18 +777,18 @@ Reading `Data`, `State` or `Cache` creates that folder. The shell works out ever
 
 `winshell ipc call notice dismiss` closes Winshell's own notice. That call is not a target you register, so `ipc show` does not list it.
 
-## Reload
+## Restart
 
-A configuration can reload itself:
+A shell can restart itself:
 
 ```csharp
-        if (!shell.Reload())
-            shell.Log.Warn("shell", "Reload did not start.");
+        if (!shell.Restart())
+            shell.Log.Warn("shell", "Could not restart.");
 ```
 
-That starts this program again with `--after` and quits. It does not build, and the new process runs with no supervisor.
+That starts this program again with `--after` and quits. It does not build, and the new process runs with no supervisor. When the new process cannot start, `Restart` returns `false` and the shell keeps running.
 
-`winshell reload` builds first:
+`winshell reload` builds first, then restarts the shell:
 
 - On failure the running instance stays and a notice shows.
 - On success the new instance takes over, and under `winshell run` it stays supervised: `winshell run` starts it after this one quits.

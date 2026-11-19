@@ -98,6 +98,38 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
     }
 
     [Fact(Timeout = BuildTimeout)]
+    public void A_shell_that_restarts_itself_hands_over_to_its_own_program_without_a_build()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        var project = Path.Combine(_probe.Folder, "Probe.csproj");
+        var original = File.ReadAllText(project);
+        var output = Path.GetDirectoryName(_probe.Program)!;
+        var built = Directory.GetFiles(output, "*", SearchOption.AllDirectories).ToDictionary(file => file, File.GetLastWriteTimeUtc);
+        var process = StartProbe();
+        var runningName = new Instances(Path.Combine(_local, "run")).Running().Single(info => info.Pid == process.Id).ShellId;
+        try
+        {
+            File.WriteAllText(project, Named(original, "rebuilt"));
+
+            Run("ipc", "--pid", process.Id.ToString(CultureInfo.InvariantCulture), "call", "self", "restart")
+                .AssertExitCode(0);
+
+            var next = NextPid(process.Id, null);
+            _started.Add(Process.GetProcessById(next));
+            Wait.Until(() => process.HasExited, "the old process to exit");
+            var instance = new Instances(Path.Combine(_local, "run")).Running().Single(info => info.Pid == next);
+            Assert.Equal(_probe.Program, instance.Program, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal(runningName, instance.ShellId);
+            Assert.Equal(built, Directory.GetFiles(output, "*", SearchOption.AllDirectories).ToDictionary(file => file, File.GetLastWriteTimeUtc));
+            Assert.False(ExitIntentEvents.IsSupervised(next));
+        }
+        finally
+        {
+            File.WriteAllText(project, original);
+        }
+    }
+
+    [Fact(Timeout = BuildTimeout)]
     public void A_reload_under_winshell_run_stays_supervised()
     {
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();

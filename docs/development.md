@@ -385,7 +385,7 @@ A running shell reads these. None is needed to build or test.
 
 Nothing is sent anywhere. What writes a report:
 
-- **A window** whose native window cannot be made or placed, or throws while drawing or handling input, writes one, closes, and opens again after 1, 2, 4, 8 and 16 seconds. A sixth failure within five minutes leaves it closed until the next reload.
+- **A window** whose native window cannot be made or placed, or throws while drawing or handling input, writes one, closes, and opens again after 1, 2, 4, 8 and 16 seconds. A sixth failure within five minutes leaves it closed until the shell starts again.
 - **A frame** the graphics device cannot draw is skipped and reported once per window.
 - **Work on the event loop** that throws, or a background task that fails, writes one per exception and stack.
 - **A crash that ends the process** writes one before the log closes.
