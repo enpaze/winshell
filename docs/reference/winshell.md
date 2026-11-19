@@ -366,7 +366,6 @@ Has the members of [ObservableObject](#observableobject).
 | `Winland` | [WinlandService](winshell-winland.md#winlandservice), read-only |
 | `StyleChanged` | Action |
 | `Add<T>(T part)` | T |
-| `Dispose()` | void |
 | `Hotkey(string sequence, Action? pressed = null)` | [Hotkey](winshell-input.md#hotkey) |
 | `NewIdleMonitor()` | [IdleMonitor](winshell-power.md#idlemonitor) |
 | `Open(string target)` | void |

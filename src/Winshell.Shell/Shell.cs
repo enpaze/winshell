@@ -10,7 +10,7 @@ using Winshell.ExplorerTaskbar;
 
 namespace Winshell;
 
-public sealed partial class Shell : IDisposable
+public sealed partial class Shell
 {
     private static Shell? _current;
 
@@ -300,7 +300,7 @@ public sealed partial class Shell : IDisposable
         PanelPlacer.ReleaseAll();
     }
 
-    public void Dispose()
+    internal void Dispose()
     {
         if (_disposed)
             return;
