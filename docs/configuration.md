@@ -24,11 +24,11 @@ A bar shows along the top of every screen, with the time in the middle and the b
 ```csharp
 Shell.Run(shell =>
 {
-    shell.Add(new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] });
+    shell.Add(new Bar { Edge = Edge.Top, Center = ["clock"], End = ["battery"] });
 });
 ```
 
-`shell.Add` starts the bar and makes the shell its owner, so nothing needs to hold it, as [Parts](#parts) describes. `Edges.Bottom` puts it at the bottom, and the bar's `Start` is a third list, at the left. With no [style](#style) set, it takes Windows' colors and font, in light or dark.
+`shell.Add` starts the bar and makes the shell its owner, so nothing needs to hold it, as [Parts](#parts) describes. `Edge.Bottom` puts it at the bottom, and the bar's `Start` is a third list, at the left. With no [style](#style) set, it takes Windows' colors and font, in light or dark.
 
 ### A clock
 
@@ -209,16 +209,17 @@ Windows stay Winshell's. The content is any `UIElement`. Sizes are logical pixel
 ```csharp
         shell.Add(new PanelWindow
         {
-            Anchors = Edges.Left | Edges.Right | Edges.Bottom,
+            Edge = Edge.Bottom,
+            Align = PanelAlign.Stretch,
             Height = 48,
-            ReservedSize = 48,
+            Reserve = true,
             Content = new TextBlock { Text = "Winshell" }
         });
 ```
 
 A panel and a floating window show when they are added. A popup window stays hidden until `Visible` is true. `Visible = false` adds a panel or a floating window hidden. `Visible` says whether an added window shows, and setting it before the window is added only chooses how it starts.
 
-- **[PanelWindow](reference/winshell.md#panelwindow)** sits on the edges of a screen. `Anchors` chooses the edges. `ReservedSize` reserves that edge, so maximized windows stop short of it. A `ReservedSize` of 0 reserves nothing. `AboveWindows` set false puts it behind other windows.
+- **[PanelWindow](reference/winshell.md#panelwindow)** sits on one edge of a screen: `Edge.Top` unless `Edge` says another. `Align` centers it along that edge, the default, or puts it at the edge's `Start` or `End`, or stretches it across the whole edge with `Stretch`. Its thickness is its `Height` on the top or bottom edge and its `Width` on the left or right. `Reserve = true` reserves that thickness along the edge, so maximized windows stop short of it. `CoversScreen` fills the whole screen instead. `AboveWindows` set false puts it behind other windows.
 - **[PopupWindow](reference/winshell.md#popupwindow)** is a frameless window over the others, placed as [Place a popup window](#place-a-popup-window) describes. `GrabFocus` gives it the keyboard. `Dismissed` fires when it closes.
 - **[FloatingWindow](reference/winshell.md#floatingwindow)** is a normal window with a title bar.
 
@@ -265,11 +266,10 @@ A [ScreenWindows](reference/winshell.md#screenwindows) keeps one window on each 
         var dock = shell.Add(new ScreenWindows("dock", (screen, row) => new PanelWindow
         {
             Screen = screen,
-            Anchors = row?.GetValueOrDefault("edge") is "top"
-                ? Edges.Left | Edges.Right | Edges.Top
-                : Edges.Left | Edges.Right | Edges.Bottom,
+            Edge = row?.GetValueOrDefault("edge") is "top" ? Edge.Top : Edge.Bottom,
+            Align = PanelAlign.Stretch,
             Height = 48,
-            ReservedSize = 48,
+            Reserve = true,
             Content = new TextBlock { Text = screen.Name }
         }));
 ```
@@ -305,7 +305,7 @@ A [Bar](reference/winshell.md#bar) is a panel along one edge of every screen, wi
 ```csharp
         var bar = shell.Add(new Bar
         {
-            Edge = Edges.Top,
+            Edge = Edge.Top,
             Start = ["workspaces"],
             Center = ["clock"],
             End = ["tray", new("message", new Dictionary<string, object> { ["text"] = "Hello" })]
@@ -325,7 +325,7 @@ A [Bar](reference/winshell.md#bar) is a panel along one edge of every screen, wi
 A shell can have several bars. Each has a `Name`, `"bar"` unless given, which names its section of the [preferences file](#preferences):
 
 ```csharp
-        var side = shell.Add(new Bar { Name = "side", Edge = Edges.Left, Reserve = false, Start = ["clock"] });
+        var side = shell.Add(new Bar { Name = "side", Edge = Edge.Left, Reserve = false, Start = ["clock"] });
 ```
 
 ### Let the user change a bar
@@ -365,7 +365,7 @@ public sealed class Dock : Component
 ```
 
 ```csharp
-        var dock = shell.Add(new PanelWindow<Dock> { Anchors = Edges.Bottom, Height = 56 });
+        var dock = shell.Add(new PanelWindow<Dock> { Edge = Edge.Bottom, Width = 400, Height = 56 });
 ```
 
 `Surface(content, padding, style)` paints part of a component in a style of its own. `Surface` and `WidgetArea` come from `Winshell.Elements`, one of [the package's usings](#the-packages-usings). The props are immutable: rendering the component again with a new record is how the tree changes, and disposing the window unmounts it. What a surface holds stays loaded when the style changes. Its own style wins over the shell's, as an area's does. The area inside the tree is an element, not a second host.

@@ -16,7 +16,8 @@ public sealed class PanelWindowTests
     {
         return new PanelWindow
         {
-            Anchors = Edges.Top | Edges.Left,
+            Edge = Edge.Top,
+            Align = PanelAlign.Start,
             Margins = new Thickness(40, 40, 0, 0),
             Width = 320,
             Height = 60,

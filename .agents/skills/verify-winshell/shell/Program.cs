@@ -33,10 +33,10 @@ Shell.Run(shell =>
     });
     panel = shell.Add(new PanelWindow<PanelRow, WindowRowProps>(new WindowRowProps("block.panel-window", () => panel))
     {
-        Anchors = Edges.Top | Edges.Left,
+        Edge = Edge.Top,
+        Align = PanelAlign.Start,
         Width = 240,
         Height = 32,
-        ReservedSize = 0,
         AboveWindows = false
     });
     floating = shell.Add(new FloatingWindow<FeatureWindow, FeatureWindowProps>(new FeatureWindowProps(

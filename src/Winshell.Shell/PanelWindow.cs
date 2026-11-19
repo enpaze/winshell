@@ -4,9 +4,10 @@ namespace Winshell;
 
 public partial class PanelWindow : ShellWindow
 {
-    private Edges _anchors;
+    private Edge _edge = Edge.Top;
+    private PanelAlign _align = PanelAlign.Center;
     private Thickness _margins;
-    private double _reservedSize;
+    private bool _reserve;
     private bool _coversScreen;
     private bool _aboveWindows = true;
     private bool _focusable;
@@ -24,12 +25,22 @@ public partial class PanelWindow : ShellWindow
 
     private protected override WindowKind Kind => WindowKind.Panel;
 
-    public Edges Anchors
+    public Edge Edge
     {
-        get => _anchors;
+        get => _edge;
         set
         {
-            if (Set(ref _anchors, value))
+            if (Set(ref _edge, value))
+                OnPlaceChanged();
+        }
+    }
+
+    public PanelAlign Align
+    {
+        get => _align;
+        set
+        {
+            if (Set(ref _align, value))
                 OnPlaceChanged();
         }
     }
@@ -44,12 +55,12 @@ public partial class PanelWindow : ShellWindow
         }
     }
 
-    public double ReservedSize
+    public bool Reserve
     {
-        get => _reservedSize;
+        get => _reserve;
         set
         {
-            if (Set(ref _reservedSize, value))
+            if (Set(ref _reserve, value))
                 OnPlaceChanged();
         }
     }
@@ -93,7 +104,8 @@ public partial class PanelWindow : ShellWindow
     {
         _placer!.Set(new PanelPlace(
             Screen,
-            _anchors,
+            _edge,
+            _align,
             _margins.Left,
             _margins.Top,
             _margins.Right,
@@ -101,7 +113,7 @@ public partial class PanelWindow : ShellWindow
             double.IsNaN(Width) ? 100 : Width,
             double.IsNaN(Height) ? 100 : Height,
             _coversScreen,
-            _reservedSize,
+            _reserve,
             _aboveWindows));
     }
 

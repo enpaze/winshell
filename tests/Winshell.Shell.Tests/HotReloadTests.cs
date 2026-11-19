@@ -71,7 +71,8 @@ public sealed partial class HotReloadTests
     {
         return Shell.Current.Add(new PanelWindow
         {
-            Anchors = Edges.Top | Edges.Left,
+            Edge = Edge.Top,
+            Align = PanelAlign.Start,
             Width = 200,
             Height = 40,
             Content = content

@@ -23,7 +23,7 @@ public sealed class WindowKindTests
         {
             using ShellWindow window = kind switch
             {
-                "panel" => new PanelWindow { Anchors = Edges.Top | Edges.Left, Width = 200, Height = 48, Content = new Grid() },
+                "panel" => new PanelWindow { Edge = Edge.Top, Align = PanelAlign.Start, Width = 200, Height = 48, Content = new Grid() },
                 "popup" => new PopupWindow { Width = 200, Height = 120, Content = new Grid() },
                 _ => new FloatingWindow { Title = "Winshell test", Width = 300, Height = 200, Content = new Grid() }
             };
@@ -46,7 +46,7 @@ public sealed class WindowKindTests
         {
             var taken = new Grid();
             new Grid().Children.Add(taken);
-            using var panel = new PanelWindow { Anchors = Edges.Top | Edges.Left, Width = 200, Height = 48, Content = taken };
+            using var panel = new PanelWindow { Edge = Edge.Top, Align = PanelAlign.Start, Width = 200, Height = 48, Content = taken };
             Assert.ThrowsAny<Exception>(() => shell.Add(panel));
             var host = panel.Host is not null;
             panel.Content = new Grid();
@@ -194,7 +194,8 @@ public sealed class WindowKindTests
     {
         var (app, _, foreground) = await FocusInFrontOfApp(_ => new PanelWindow
         {
-            Anchors = Edges.Top | Edges.Left,
+            Edge = Edge.Top,
+            Align = PanelAlign.Start,
             Margins = new Thickness(40, 40, 0, 0),
             Width = 200,
             Height = 48,
@@ -274,7 +275,8 @@ public sealed class WindowKindTests
             var opened = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             flyout.Opened += (_, _) => opened.TrySetResult();
             using var panel = new PanelWindow();
-            panel.Anchors = Edges.Top | Edges.Left;
+            panel.Edge = Edge.Top;
+            panel.Align = PanelAlign.Start;
             panel.Margins = new Thickness(40, 40, 0, 0);
             panel.Width = 200;
             panel.Height = 48;

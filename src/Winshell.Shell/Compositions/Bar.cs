@@ -10,12 +10,12 @@ namespace Winshell;
 
 public sealed partial class Bar : IShellPart
 {
-    private static readonly Dictionary<string, Edges> EdgeNames = new()
+    private static readonly Dictionary<string, Edge> EdgeNames = new()
     {
-        ["top"] = Edges.Top,
-        ["bottom"] = Edges.Bottom,
-        ["left"] = Edges.Left,
-        ["right"] = Edges.Right
+        ["top"] = Edge.Top,
+        ["bottom"] = Edge.Bottom,
+        ["left"] = Edge.Left,
+        ["right"] = Edge.Right
     };
 
     private readonly Shell _shell = Shell.Current;
@@ -34,13 +34,7 @@ public sealed partial class Bar : IShellPart
             : value;
     } = "bar";
 
-    public Edges Edge
-    {
-        get;
-        init => field = EdgeNames.ContainsValue(value)
-            ? value
-            : throw new ArgumentOutOfRangeException(nameof(value), value, "A bar runs along one edge.");
-    } = Edges.Top;
+    public Edge Edge { get; init; } = Edge.Top;
 
     public ImmutableArray<Placement> Start { get; init; } = [];
 
@@ -110,7 +104,7 @@ public sealed partial class Bar : IShellPart
     {
         var section = _preferences!;
         var edge = EdgeNames[(string)Pick("edge", section.Edge)];
-        var vertical = edge is Edges.Left or Edges.Right;
+        var vertical = edge is Edge.Left or Edge.Right;
         ReactorHostControl? host = null;
         try
         {
@@ -151,8 +145,8 @@ public sealed partial class Bar : IShellPart
             var window = new PanelWindow
             {
                 Screen = screen,
-                Anchors = edge | (vertical ? Edges.Top | Edges.Bottom : Edges.Left | Edges.Right),
-                ReservedSize = Reserve ? thickness : 0,
+                Edge = edge,
+                Align = PanelAlign.Stretch,
                 Content = host
             };
             var shown = new Shown(host, window, vertical, _open);
@@ -231,7 +225,7 @@ public sealed partial class Bar : IShellPart
     {
         public void Resize(double thickness, bool reserve)
         {
-            window.ReservedSize = reserve ? thickness : 0;
+            window.Reserve = reserve;
             if (vertical)
                 window.Width = thickness;
             else

@@ -10,7 +10,7 @@ The configuration's program uses these types. `Shell.Run(shell => { ... })` star
 | --- | --- |
 | `Bar()` | constructor |
 | `Center` | ImmutableArray of [Placement](#placement), init |
-| `Edge` | [Edges](#edges), init |
+| `Edge` | [Edge](#edge), init |
 | `End` | ImmutableArray of [Placement](#placement), init |
 | `Name` | string, init |
 | `Padding` | double?, init |
@@ -37,6 +37,15 @@ A WinUI Panel. The members here are the ones Winshell adds.
 | `System` | 0 |
 | `Light` | 1 |
 | `Dark` | 2 |
+
+## Edge
+
+| Value | Number |
+| --- | --- |
+| `Top` | 0 |
+| `Left` | 1 |
+| `Right` | 2 |
+| `Bottom` | 3 |
 
 ## Edges
 
@@ -177,6 +186,15 @@ Has the members of [ObservableObject](#observableobject).
 | `Read<T>(T? value, string property = "")` | T?, protected |
 | `Set<T>(ref T? field, T? value, string property = "")` | bool, protected |
 
+## PanelAlign
+
+| Value | Number |
+| --- | --- |
+| `Stretch` | 0 |
+| `Start` | 1 |
+| `Center` | 2 |
+| `End` | 3 |
+
 ## PanelWindow
 
 Has the members of [ShellWindow](#shellwindow).
@@ -185,11 +203,12 @@ Has the members of [ShellWindow](#shellwindow).
 | --- | --- |
 | `PanelWindow()` | constructor |
 | `AboveWindows` | bool |
-| `Anchors` | [Edges](#edges) |
+| `Align` | [PanelAlign](#panelalign) |
 | `CoversScreen` | bool |
+| `Edge` | [Edge](#edge) |
 | `Focusable` | bool |
 | `Margins` | Thickness |
-| `ReservedSize` | double |
+| `Reserve` | bool |
 
 ## PanelWindow of T
 

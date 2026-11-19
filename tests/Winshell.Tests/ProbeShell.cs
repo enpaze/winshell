@@ -281,7 +281,8 @@ internal static class ProbeShell
                   var open = new Button { Name = "Open", Content = "Open" };
                   var panel = shell.Add(new PanelWindow
                   {
-                      Anchors = Edges.Top | Edges.Left,
+                      Edge = Edge.Top,
+                      Align = PanelAlign.Start,
                       Width = 160,
                       Height = 60,
                       Content = new ProbePage { Children = { open } }
