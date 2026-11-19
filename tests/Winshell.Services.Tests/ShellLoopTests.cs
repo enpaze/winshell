@@ -15,4 +15,48 @@ public sealed class ShellLoopTests
             Assert.Equal("The shell has not started. Call Shell.Run first.",
                 Assert.Throws<InvalidOperationException>(make).Message);
     }
+
+    [Fact]
+    public void A_toast_made_while_the_shell_runs_reports_its_failure_on_the_shell_loop()
+    {
+        var loop = new ManualEventLoop();
+        using var running = Running(loop);
+        var toast = new ToastMessage();
+        var failures = new List<string>();
+        toast.Failed += failures.Add;
+
+        Assert.False(toast.Send());
+        Assert.Empty(failures);
+
+        loop.Process();
+
+        Assert.Equal(["toast.appId must be an installed Windows AppUserModelID."], failures);
+        Assert.Equal(failures[0], toast.Error);
+    }
+
+    [Fact]
+    public void A_peak_monitor_made_while_the_shell_runs_reads_on_the_shell_loop()
+    {
+        var loop = new ManualEventLoop();
+        var graph = new FakeAudioBackend();
+        var meter = new FakeMeter(0.25f);
+        graph.Add(new FakeGraphNode(AudioNodeType.RecordingDevice) { FakeMeter = meter });
+        var audio = new AudioService(loop, new Log(), graph);
+        using var stopAudio = audio.Stopping();
+        using var running = Running(loop);
+        using var monitor = new AudioPeakMonitor();
+        monitor.Audio = audio.RecordingDevices[0];
+        Assert.Equal(0.25, monitor.Peak);
+
+        meter.Peaks = [0.75f];
+        loop.Advance(TimeSpan.FromSeconds(1));
+
+        Assert.Equal(0.75, monitor.Peak);
+    }
+
+    private static DisposeAction Running(IEventLoop loop)
+    {
+        EventLoop.Current = loop;
+        return new DisposeAction(() => EventLoop.Current = null!);
+    }
 }
