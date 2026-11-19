@@ -66,7 +66,7 @@ A step is one of two objects. Each takes `within`, the seconds to retry it until
 - [CaptureView](./block.capture-view.md) shows the live frames of a capture session of a window or a screen.
 - [FloatingWindow](./block.floating-window.md) is a normal window with a title bar and a size.
 - [Launcher](./block.launcher.md) is a search box a hotkey opens, which finds apps and commands and runs the chosen one.
-- [PanelWindow](./block.panel-window.md) is a frameless window anchored to screen edges that can reserve its edge.
+- [PanelWindow](./block.panel-window.md) is a frameless window on one edge of a screen that can reserve its thickness along that edge.
 - [PopupWindow](./block.popup-window.md) is a frameless window placed next to another, opened here by the feature window's `Popup` button.
 - [Surface](./block.surface.md) paints the style's background behind its content and follows the theme.
 - [WidgetArea](./block.widget-area.md) makes a widget for each placement and passes it its settings.
