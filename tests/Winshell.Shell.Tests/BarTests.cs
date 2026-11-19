@@ -332,6 +332,43 @@ public sealed class BarTests
     }
 
     [Fact]
+    public async Task A_reserving_bar_takes_its_thickness_from_the_work_area_on_its_edge()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var before = shell.Screens.ToDictionary(screen => screen.Id, screen => screen.WorkArea);
+            var bar = shell.Add(new Bar
+            {
+                Name = "reserving" + Guid.NewGuid().ToString("N"),
+                Edge = Edge.Left,
+                Reserve = true,
+                Thickness = 40
+            });
+            try
+            {
+                await Wait.UntilAsync(() => shell.Screens.All(screen => screen.WorkArea.Left > before[screen.Id].Left),
+                    "every screen's work area to give the bar its strip");
+                Assert.All(shell.Screens, screen =>
+                {
+                    var was = before[screen.Id];
+                    Assert.Equal(was.Left + 40, screen.WorkArea.Left, 1.0);
+                    Assert.Equal(was.Right, screen.WorkArea.Right, 1.0);
+                    Assert.Equal(was.Top, screen.WorkArea.Top, 1.0);
+                    Assert.Equal(was.Bottom, screen.WorkArea.Bottom, 1.0);
+                });
+            }
+            finally
+            {
+                bar.Dispose();
+            }
+
+            await Wait.UntilAsync(() => shell.Screens.All(screen => screen.WorkArea == before[screen.Id]),
+                "the work area to come back when the bar goes");
+            return true;
+        });
+    }
+
+    [Fact]
     public async Task A_color_change_keeps_the_bar_window_and_the_widget_state()
     {
         await ShellFixture.On(async shell =>
