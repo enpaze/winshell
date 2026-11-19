@@ -29,6 +29,36 @@ public sealed partial class PreferencesTests
         public partial int Size { get; set; } = 32;
     }
 
+    private sealed partial class Kinds(string name) : Preferences(name)
+    {
+        [Preference]
+        public partial double Scale { get; set; } = 1.5;
+
+        [Preference]
+        public partial long Number { get; set; }
+
+        [Preference]
+        public partial int? Maybe { get; set; }
+
+        [Preference]
+        public partial object? Anything { get; set; }
+
+        [Preference]
+        public partial IReadOnlyDictionary<string, object?>? Taskbar { get; set; }
+
+        [Preference]
+        public partial IReadOnlyList<string> Tiles { get; set; } = ["wifi"];
+
+        [Preference]
+        public partial IReadOnlyList<string>? Pins { get; set; }
+
+        [Preference]
+        public partial IReadOnlyList<IReadOnlyDictionary<string, object?>> Hidden { get; set; } = [];
+
+        [Preference]
+        public partial bool @event { get; set; }
+    }
+
     internal static string PathOf(Shell shell)
     {
         return Path.Combine(shell.Paths.Shells, "preferences", shell.ShellId + ".toml");
@@ -151,6 +181,58 @@ public sealed partial class PreferencesTests
             }
 
             return true;
+        });
+    }
+
+    [Fact]
+    public async Task Every_kind_of_value_a_key_holds_is_read_from_the_file_and_written_when_assigned()
+    {
+        await WithFile(bar => $$"""
+            [{{bar}}]
+            scale = 2.5
+            number = 9223372036854775807
+            maybe = 2
+            anything = "text"
+            taskbar = { centered = true }
+            tiles = ["clock"]
+            pins = []
+            hidden = [{ id = "Contoso.Chat" }]
+            event = true
+
+            """, async (shell, path, bar) =>
+        {
+            using var kinds = new Kinds(bar);
+            Assert.Equal((2.5, long.MaxValue, (int?)2, (object?)"text"),
+                (kinds.Scale, kinds.Number, kinds.Maybe, kinds.Anything));
+            Assert.Equal(true, kinds.Taskbar!["centered"]);
+            Assert.Equal(["clock"], kinds.Tiles);
+            Assert.Empty(kinds.Pins!);
+            Assert.Equal("Contoso.Chat", Assert.Single(kinds.Hidden)["id"]);
+            Assert.True(kinds.@event);
+
+            kinds.Scale = 0.5;
+            kinds.Number = 7;
+            kinds.Maybe = null;
+            kinds.Anything = 3L;
+            kinds.Taskbar = new Dictionary<string, object?> { ["centered"] = false };
+            kinds.Tiles = ["wifi", "clock"];
+            kinds.Pins = ["Contoso.Mail"];
+            kinds.Hidden = [new Dictionary<string, object?> { ["id"] = "Contoso.Mail" }];
+            kinds.@event = false;
+            await NextTurn(shell);
+
+            Assert.Equal($$"""
+                [{{bar}}]
+                scale = 0.5
+                number = 7
+                anything = 3
+                taskbar = { centered = false }
+                tiles = ["wifi", "clock"]
+                pins = ["Contoso.Mail"]
+                hidden = [{ id = "Contoso.Mail" }]
+                event = false
+
+                """, File.ReadAllText(path));
         });
     }
 
