@@ -748,7 +748,7 @@ What can't be used is logged under `preferences`, with its line, and the values 
 - An unknown key that differs from a key the class reads only in case, by a letter, or by two in a longer key is logged with that key.
 - A file past 1 MiB, or nested past 64 levels, is not read.
 
-`winshell doctor` checks the file of the shell it checks for TOML errors, and names the line. It asks MSBuild for the project's `ShellName` with the settings `winshell run` builds with, so it gets the value the build gives the program as [The program](#the-program) describes and checks the file the shell reads. When MSBuild cannot load the project, the doctor checks the file of the default name and says which name it assumed.
+`winshell doctor` checks the file of the shell it checks for TOML errors, and names the line. It asks MSBuild for the project's `ShellName` with the settings `winshell run` builds with, so it gets the value the build gives the program as [The program](#the-program) describes and checks the file the shell reads. When MSBuild cannot load the project, the doctor checks the file of the default name and says which name it assumed. Keep `ShellName` the same wherever the program is built: the doctor asks for it with `bin\shell` as the output folder, so a name that depends on the output folder can differ from the name a reload gives a program it builds in `bin\shell.next`.
 
 ### Paths
 
