@@ -96,7 +96,10 @@ public sealed class PreferenceGenerator : IIncrementalGenerator
 
     private static string Identifier(string name)
     {
-        return SyntaxFacts.GetKeywordKind(name) == SyntaxKind.None ? name : "@" + name;
+        return SyntaxFacts.GetKeywordKind(name) == SyntaxKind.None &&
+               SyntaxFacts.GetContextualKeywordKind(name) == SyntaxKind.None
+            ? name
+            : "@" + name;
     }
 
     private static string Write(PropertyDeclarationSyntax syntax, IPropertySymbol property, string type, bool nullable)

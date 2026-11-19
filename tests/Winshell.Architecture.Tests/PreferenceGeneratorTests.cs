@@ -98,6 +98,26 @@ public class PreferenceGeneratorTests
         Assert.Empty(compiler);
     }
 
+    [Fact]
+    public void A_preference_whose_names_are_contextual_keywords_compiles()
+    {
+        var (generator, compiler) = Compile("""
+            namespace Mine;
+
+            public partial class @record
+            {
+                public sealed partial class @var() : Winshell.Preferences("contextual")
+                {
+                    [Winshell.Preference]
+                    public partial bool @value { get; set; }
+                }
+            }
+            """);
+
+        Assert.Empty(generator);
+        Assert.Empty(compiler);
+    }
+
     [Theory]
     [InlineData("public bool Clock24 { get; set; }")]
     [InlineData("public static partial bool Clock24 { get; set; }")]
