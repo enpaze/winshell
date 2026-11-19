@@ -79,4 +79,12 @@ public class PublicSurfaceTests
         Assert.True(disposable.Count == 0,
             $"The shell owns its services. Implement the internal IShellService instead of IDisposable on {string.Join(", ", disposable)}.");
     }
+
+    [Fact]
+    public void A_shell_cannot_be_disposed()
+    {
+        var shell = Assembly.Load("Winshell.Shell").GetType("Winshell.Shell", true)!;
+
+        Assert.False(typeof(IDisposable).IsAssignableFrom(shell), "Shell is IDisposable. shell.Quit() stops the shell.");
+    }
 }
