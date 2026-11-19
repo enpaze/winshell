@@ -38,4 +38,4 @@ Preconditions:
 - Most checks read this PC, not the session: notification access, the sign-in entry, app bars and DPI. One of them can fail on a given machine, so the step accepts exit 1 and checks only `Built`.
 - `doctor` never builds. `Built` passes only because `winshell run -d` built `bin\shell` before the feature ran. A project that was never built fails `Built` with `<name> has not been built.`
 - `Built` and `Build` are two checks: `Built` says a program is in `bin\shell`, and `Build` says whether a source is newer than it. Match the `id`, not only the title.
-- The guide calls the check that names `winshell use <name>` the Configuration check. In the output it is the check with `"id": "project"` and the title `Project`.
+- The check that names `winshell use <name>` is the Project check. In the output it is the check with `"id": "project"` and the title `Project`.

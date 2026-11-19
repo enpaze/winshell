@@ -36,7 +36,7 @@ Preconditions:
 
 ## Gotchas
 
-- `use` writes `chosen.txt` in the shells folder and stops every other running shell. The session sets `WINSHELL_CONFIG_DIR` and `WINSHELL_LOCAL_DIR`, so it changes the session's choice and shells only. Run without them, it changes what the user's sign-in starts and stops the user's shell.
+- `use` writes `chosen.txt` in the shells folder and stops every other running shell. The session sets `WINSHELL_SHELLS_DIR` and `WINSHELL_LOCAL_DIR`, so it changes the session's choice and shells only. Run without them, it changes what the user's sign-in starts and stops the user's shell.
 - `features` here is a shells folder name. It is also the name of the feature shell's IPC target, which `use` does not read.
 - The `features` shell is the chosen shell's own shell, so it keeps running, and the command prints neither `Stopped` nor `Started`.
-- `WINSHELL_CONFIG_DIR` applies at sign-in only when it is set for the user account.
+- `WINSHELL_SHELLS_DIR` applies at sign-in only when it is set for the user account.

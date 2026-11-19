@@ -97,7 +97,7 @@ public sealed partial class DoctorCommandTests : IDisposable
         var local = Path.Combine(_root, "local");
         Directory.CreateDirectory(empty);
 
-        var (_, output, _) = WinshellCli.Run(["doctor", "--json"], (ShellLocations.ConfigVariable, empty),
+        var (_, output, _) = WinshellCli.Run(["doctor", "--json"], (ShellLocations.ShellsVariable, empty),
             (ShellLocations.LocalVariable, local));
 
         using var json = JsonDocument.Parse(output);
@@ -158,7 +158,7 @@ public sealed partial class DoctorCommandTests : IDisposable
     private static ChildProcess RunIn(string shellsRoot, params string[] args)
     {
 #pragma warning disable CsWinRT1030
-        return WinshellCli.Run(args, (ShellLocations.ConfigVariable, shellsRoot));
+        return WinshellCli.Run(args, (ShellLocations.ShellsVariable, shellsRoot));
 #pragma warning restore CsWinRT1030
     }
 

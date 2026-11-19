@@ -88,7 +88,7 @@ internal sealed class WindowsStartupRegistry(
     private SignInVerdict Classified(string registered, bool off)
     {
         var wanted = CommandLine.ReadSignIn(command);
-        var project = wanted.NamesConfiguration ? SignInEntry.ProjectOf(wanted, shellsRoot, _log) : null;
+        var project = wanted.NamesShell ? SignInEntry.ProjectOf(wanted, shellsRoot, _log) : null;
         var verdict = SignInVerdict.FromRun(registered, off, wanted.Program ?? "", shellsRoot, File.Exists,
             SignInEntry.Resolve, project, _log);
         return verdict with { HasEntry = true, OffInWindows = off, PointsElsewhere = !Starts(registered) };
@@ -98,7 +98,7 @@ internal sealed class WindowsStartupRegistry(
     {
         var wantedLine = CommandLine.Parse(command);
         var wanted = CommandLine.ReadSignIn(command);
-        if (!wanted.NamesConfiguration)
+        if (!wanted.NamesShell)
             return wantedLine.SameArguments(CommandLine.Parse(actual));
         var seen = CommandLine.ReadSignIn(actual);
         return wanted.Program is { } here && seen.Program is { } started &&

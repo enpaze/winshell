@@ -105,7 +105,7 @@ public class CommandWordTests
 
         Assert.Contains(Shell.Version, summary, StringComparison.Ordinal);
         Assert.Contains(ShellLocations.Current.ShellsRoot, summary, StringComparison.Ordinal);
-        Assert.Contains(ShellLocations.ConfigVariable, summary, StringComparison.Ordinal);
+        Assert.Contains(ShellLocations.ShellsVariable, summary, StringComparison.Ordinal);
         Assert.Contains(ShellLocations.Current.ShellsRoot, doctor, StringComparison.Ordinal);
         Assert.DoesNotContain("{version}", summary, StringComparison.Ordinal);
         Assert.DoesNotContain("{shells-root}", doctor, StringComparison.Ordinal);

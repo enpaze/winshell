@@ -94,7 +94,7 @@ Change `{time:t}` in `Clock.cs` to `{time:T}` and save it, and the clock shows t
 
 `winshell new` lists what it can copy: the starter, and each example, such as the Omarchy-style panel. `winshell new <name>` copies one into your shells folder.
 
-- **Where it goes.** The copy goes to `%APPDATA%\winshell\<name>`, or under `WINSHELL_CONFIG_DIR`. `--path <folder>` puts it somewhere else. A folder that exists and isn't empty is refused.
+- **Where it goes.** The copy goes to `%APPDATA%\winshell\<name>`, or under `WINSHELL_SHELLS_DIR`. `--path <folder>` puts it somewhere else. A folder that exists and isn't empty is refused.
 - **The package.** The copy's project references the `Winshell` package of the same release as `winshell`. A release keeps that package in a `packages` folder beside `winshell.exe`, and the copy's `nuget.config` adds that folder as a source.
 - **Its shell name** comes from its folder, so two copies keep their data apart.
 
@@ -134,7 +134,7 @@ A shell is a .NET project. Winshell looks for a `.csproj` in this order. With no
 | `winshell run --shell <name>` | The project in `%APPDATA%\winshell\<name>` |
 | `winshell run` | The shell `winshell use` chose; else the project in `%APPDATA%\winshell`; else `%APPDATA%\winshell\default`; else the one subfolder of `%APPDATA%\winshell` that has a project. With several, Winshell asks you to choose one with `winshell use`. With none, nothing runs. |
 
-`WINSHELL_CONFIG_DIR` replaces `%APPDATA%\winshell` in this table.
+`WINSHELL_SHELLS_DIR` replaces `%APPDATA%\winshell` in this table.
 
 The sign-in entry and the Start tile start what `winshell run` would. With several shells, such as two copies from `winshell new`, `winshell use <name>` chooses the one they start, and switches to it in one step:
 
@@ -671,7 +671,7 @@ A change raises `PropertyChanged` on the shell's thread, and the component rende
 
 ## Preferences
 
-A shell keeps the user's choices in one TOML file, `preferences\<shell name>.toml` in `%APPDATA%\winshell`, or in `WINSHELL_CONFIG_DIR` when that is set. It lives outside the shell project and survives shell updates. The shell's own preferences are the keys before the first section, and each component, such as a [named widget area](#let-the-user-change-an-area), has a section named after it:
+A shell keeps the user's choices in one TOML file, `preferences\<shell name>.toml` in `%APPDATA%\winshell`, or in `WINSHELL_SHELLS_DIR` when that is set. It lives outside the shell project and survives shell updates. The shell's own preferences are the keys before the first section, and each component, such as a [named widget area](#let-the-user-change-an-area), has a section named after it:
 
 ```toml
 clock24 = true
@@ -761,9 +761,9 @@ What can't be used is logged under `preferences`, with its line, and the values 
 | `Cache` | `%LOCALAPPDATA%\winshell\cache\by-shell\<shell name>`, or the `ShellCacheDir` folder |
 | `Logs` | This instance's log file, `%LOCALAPPDATA%\winshell\run\<instance id>\log.txt`, which `winshell log` prints |
 | `Program` | The folder the program runs from, such as `bin\shell` in the project folder |
-| `Shells` | The folder of shell projects and preferences files, `%APPDATA%\winshell` or `WINSHELL_CONFIG_DIR` |
+| `Shells` | The folder of shell projects and preferences files, `%APPDATA%\winshell` or `WINSHELL_SHELLS_DIR` |
 
-Reading `Data`, `State` or `Cache` creates that folder. The shell works out every path once, when it starts, so they stay put while it runs. Changing `WINSHELL_CONFIG_DIR` or `WINSHELL_LOCAL_DIR` later moves none of them, and the preferences file stays in the `Shells` folder the shell started with. [The program](#the-program) shows the properties that move them. State does not survive a restart unless the shell writes it itself. Every window is replaced.
+Reading `Data`, `State` or `Cache` creates that folder. The shell works out every path once, when it starts, so they stay put while it runs. Changing `WINSHELL_SHELLS_DIR` or `WINSHELL_LOCAL_DIR` later moves none of them, and the preferences file stays in the `Shells` folder the shell started with. [The program](#the-program) shows the properties that move them. State does not survive a restart unless the shell writes it itself. Every window is replaced.
 
 ## IPC
 

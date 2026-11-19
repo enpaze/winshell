@@ -97,12 +97,12 @@ function Remove-ReleaseFile([string] $Dir) {
 function Assert-WinshellRuns([string] $Exe, [string] $Version, [string] $DoctorDirectory) {
     $reported = Assert-WinshellVersion $Exe $Version
     if (-not $DoctorDirectory) { return $reported }
-    $config = Join-Path $DoctorDirectory 'config'
+    $shells = Join-Path $DoctorDirectory 'shells'
     $local = Join-Path $DoctorDirectory 'local'
-    New-Item -ItemType Directory -Force -Path $config, $local | Out-Null
-    $savedConfig = $env:WINSHELL_CONFIG_DIR
+    New-Item -ItemType Directory -Force -Path $shells, $local | Out-Null
+    $savedShells = $env:WINSHELL_SHELLS_DIR
     $savedLocal = $env:WINSHELL_LOCAL_DIR
-    $env:WINSHELL_CONFIG_DIR = $config
+    $env:WINSHELL_SHELLS_DIR = $shells
     $env:WINSHELL_LOCAL_DIR = $local
     try {
         $report = & $Exe doctor --json
@@ -112,8 +112,8 @@ function Assert-WinshellRuns([string] $Exe, [string] $Version, [string] $DoctorD
         $broken = @($checks | Where-Object { Test-DoctorCouldNotCheck $_.message })
         if ($broken.Count -gt 0) { throw "winshell doctor could not run its $($broken[0].id) check: $($broken[0].message)" }
     } finally {
-        if ($null -eq $savedConfig) { Remove-Item Env:WINSHELL_CONFIG_DIR -ErrorAction SilentlyContinue }
-        else { $env:WINSHELL_CONFIG_DIR = $savedConfig }
+        if ($null -eq $savedShells) { Remove-Item Env:WINSHELL_SHELLS_DIR -ErrorAction SilentlyContinue }
+        else { $env:WINSHELL_SHELLS_DIR = $savedShells }
         if ($null -eq $savedLocal) { Remove-Item Env:WINSHELL_LOCAL_DIR -ErrorAction SilentlyContinue }
         else { $env:WINSHELL_LOCAL_DIR = $savedLocal }
     }

@@ -35,10 +35,10 @@ internal static class Doctor
         string Folder,
         string? SignInProject);
 
-    private static Chosen ChooseUser(string shellsRoot, string? path, string? config)
+    private static Chosen ChooseUser(string shellsRoot, string? path, string? shell)
     {
-        var project = ShellProject.Find(path, config, shellsRoot, out var problem);
-        var folder = project?.Folder ?? AskedFolder(shellsRoot, path, config);
+        var project = ShellProject.Find(path, shell, shellsRoot, out var problem);
+        var folder = project?.Folder ?? AskedFolder(shellsRoot, path, shell);
         return new Chosen(project, problem, folder, project?.ProjectFile);
     }
 
@@ -57,12 +57,12 @@ internal static class Doctor
         return new Chosen(project, problem, shellsRoot, null);
     }
 
-    private static string AskedFolder(string shellsRoot, string? path, string? config)
+    private static string AskedFolder(string shellsRoot, string? path, string? shell)
     {
         if (path is not null)
             return Path.GetFullPath(path);
-        if (config is not null)
-            return Path.Combine(shellsRoot, config);
+        if (shell is not null)
+            return Path.Combine(shellsRoot, shell);
         return shellsRoot;
     }
 
@@ -233,7 +233,7 @@ internal static class Doctor
         {
             var list = string.Join("; ", locked.Select(f => $"{f.Name}, {f.Path}"));
             return new DoctorCheck("folders", "Folders", CheckStatus.Fail, $"Winshell cannot write {list}.{who}",
-                "Give your account write access to it in the folder's Properties > Security, or move it with WINSHELL_CONFIG_DIR.");
+                "Give your account write access to it in the folder's Properties > Security, or move it with WINSHELL_SHELLS_DIR.");
         }
 
         if (elevatedInstances.Count > 0)

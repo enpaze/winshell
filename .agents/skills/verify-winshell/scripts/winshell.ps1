@@ -4,9 +4,9 @@ param([string] $Session)
 . (Join-Path $PSScriptRoot 'Session.ps1')
 
 $null = Read-Session $Session
-$saved = @{ WINSHELL_CONFIG_DIR = $env:WINSHELL_CONFIG_DIR; WINSHELL_LOCAL_DIR = $env:WINSHELL_LOCAL_DIR }
+$saved = @{ WINSHELL_SHELLS_DIR = $env:WINSHELL_SHELLS_DIR; WINSHELL_LOCAL_DIR = $env:WINSHELL_LOCAL_DIR }
 try {
-    $env:WINSHELL_CONFIG_DIR = $script:Run.config
+    $env:WINSHELL_SHELLS_DIR = $script:Run.shells
     $env:WINSHELL_LOCAL_DIR = $script:Run.local
     & $script:Run.exe @args
     $code = $LASTEXITCODE

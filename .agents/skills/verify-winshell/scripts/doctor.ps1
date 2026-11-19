@@ -36,7 +36,7 @@ if (Test-Path -LiteralPath $exe -PathType Leaf) {
             }
             $process = Get-Process -Id $instance.pid -ErrorAction SilentlyContinue
             $path = if ($process) { Get-ProcessPath $process } else { $null }
-            Write-Check ($null -ne $path -and $path.StartsWith($script:Run.config + '\', [StringComparison]::OrdinalIgnoreCase)) "pid $($instance.pid) runs from this session: $path"
+            Write-Check ($null -ne $path -and $path.StartsWith($script:Run.shells + '\', [StringComparison]::OrdinalIgnoreCase)) "pid $($instance.pid) runs from this session: $path"
             $tree = Get-Tree $instance.pid
             $kinds = @($tree.Windows | ForEach-Object { "$($_.window) $($_.kind) $(Get-Field (Get-Field $_ 'content') 'type')" })
             Write-Check (Test-Ready $tree) "winshell inspect --pid $($instance.pid) tree shows $($tree.Windows.Count) windows, each with content: $($kinds -join '; ')"

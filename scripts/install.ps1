@@ -201,8 +201,8 @@ function Install-Winshell([string] $Version, [string] $Channel, [switch] $AutoSt
             throw "Winshell $installed is installed, and winshell update --channel dev failed with exit $($saved.ExitCode)."
         }
     } else {
-        $config = if ("$env:WINSHELL_CONFIG_DIR".Trim()) { [IO.Path]::GetFullPath("$env:WINSHELL_CONFIG_DIR".Trim()) } else { Join-Path $env:APPDATA 'winshell' }
-        Remove-Item -LiteralPath (Join-Path $config 'update.toml') -Force -ErrorAction SilentlyContinue
+        $shells = if ("$env:WINSHELL_SHELLS_DIR".Trim()) { [IO.Path]::GetFullPath("$env:WINSHELL_SHELLS_DIR".Trim()) } else { Join-Path $env:APPDATA 'winshell' }
+        Remove-Item -LiteralPath (Join-Path $shells 'update.toml') -Force -ErrorAction SilentlyContinue
     }
     Start-Process -FilePath (Join-Path $bin 'winshellw.exe') -ArgumentList '--no-duplicate' -WindowStyle Hidden | Out-Null
 

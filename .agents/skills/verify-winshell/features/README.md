@@ -6,7 +6,7 @@ This folder is the maintained source for verifying what a Winshell user can reac
 
 - A Windows 11 desktop session with the .NET SDK that `global.json` names. Nobody else is using the desktop, because the shells open windows on it.
 - One verification run at a time on a desktop. `launch.ps1` and `drive.ps1` refuse while another run's shell is live, and name its session folder.
-- Each run has its own session folder with private `WINSHELL_CONFIG_DIR` and `WINSHELL_LOCAL_DIR`. The helpers set both on every `winshell` they start. Never drive a shell that a run of your own did not start.
+- Each run has its own session folder with private `WINSHELL_SHELLS_DIR` and `WINSHELL_LOCAL_DIR`. The helpers set both on every `winshell` they start. Never drive a shell that a run of your own did not start.
 - With Winland running, follow [Live UI with Winland running](../../../../docs/development.md#live-ui-with-winland-running). Never add the window rule or reload Winland.
 - While their features run, the `starter` shell's bar reserves the top edge of each screen, and the `omarchy-style` shell hides Explorer's taskbar.
 

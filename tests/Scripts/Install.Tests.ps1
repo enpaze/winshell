@@ -300,13 +300,13 @@ function Get-AppxPackage {
         Get-Text (Join-Path $p.Bin 'packages\Winshell.0.5.0.nupkg') | Should -Be '0.5.0'
     }
 
-    It 'uninstalls what it installed, keeps configuration and logs, and does nothing the second time' {
+    It 'uninstalls what it installed, keeps shells and logs, and does nothing the second time' {
         $p = New-TestProfile
         (Invoke-Script $p -File $Install, '-AutoStart').ExitCode | Should -Be 0
-        $config = Join-Path $p.Roaming 'winshell\config.toml'
+        $preferences = Join-Path $p.Roaming 'winshell\preferences\default.toml'
         $log = Join-Path $p.Local 'winshell\logs\winshell.log'
-        New-Item -ItemType Directory -Force -Path (Split-Path $config), (Split-Path $log) | Out-Null
-        [IO.File]::WriteAllText($config, 'config')
+        New-Item -ItemType Directory -Force -Path (Split-Path $preferences), (Split-Path $log) | Out-Null
+        [IO.File]::WriteAllText($preferences, 'preferences')
         [IO.File]::WriteAllText($log, 'log')
         $result = Invoke-Script $p -File $Uninstall
         $result.ExitCode | Should -Be 0
@@ -315,7 +315,7 @@ function Get-AppxPackage {
         Get-Text $p.PathFile | Should -Be 'C:\Windows;C:\Tools'
         Test-Path -LiteralPath $p.Shortcut | Should -BeFalse
         Test-Path -LiteralPath $p.SignIn | Should -BeFalse
-        Get-Text $config | Should -Be 'config'
+        Get-Text $preferences | Should -Be 'preferences'
         Get-Text $log | Should -Be 'log'
         $again = Invoke-Script $p -File $Uninstall
         $again.ExitCode | Should -Be 0

@@ -51,7 +51,7 @@ internal static class SignInEntry
         string? Path,
         string? Name)
     {
-        public bool NamesConfiguration => Path is not null || Name is not null;
+        public bool NamesShell => Path is not null || Name is not null;
     }
 
     internal static string Resolve(string path)

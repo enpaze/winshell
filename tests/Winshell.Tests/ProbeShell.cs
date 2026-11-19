@@ -232,7 +232,7 @@ internal static class ProbeShell
               shell.Ipc.Property("paths", "logs", () => shell.Paths.Logs);
               shell.Ipc.Property("paths", "program", () => shell.Paths.Program);
               shell.Ipc.Property("paths", "shells", () => shell.Paths.Shells);
-              var config = Environment.GetEnvironmentVariable("WINSHELL_CONFIG_DIR");
+              var config = Environment.GetEnvironmentVariable("WINSHELL_SHELLS_DIR");
               // A test that puts {{CrashMarker}} there gets a shell that crashes as it starts, once.
               if (config is not null && File.Exists(Path.Combine(config, "{{CrashMarker}}")))
               {

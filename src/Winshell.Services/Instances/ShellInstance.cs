@@ -8,7 +8,7 @@ internal sealed class ShellInstance
     private readonly InstanceLog _file;
     private readonly Instances _instances;
     private readonly string _dir;
-    private readonly string _shellId;
+    private readonly string _shellName;
     private readonly string _program;
     private NamedPipeServerStream? _listening;
     private IpcServer? _server;
@@ -20,7 +20,7 @@ internal sealed class ShellInstance
         _instances = locations.Instances;
         _dir = _instances.DirOf(id);
         Directory.CreateDirectory(_dir);
-        _shellId = shellName;
+        _shellName = shellName;
         _program = program;
         Log = log;
         Logs = Path.Combine(_dir, InstanceLog.FileName);
@@ -99,7 +99,7 @@ internal sealed class ShellInstance
         _instances.Write(new InstanceInfo(
             Id,
             Environment.ProcessId,
-            _shellId,
+            _shellName,
             _program,
             TimeProvider.System.GetLocalNow().LocalDateTime,
             Pipe,

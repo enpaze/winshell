@@ -29,7 +29,7 @@ public sealed partial class ConfigPathTests : IDisposable
     private static ChildProcess Run(string configDir, params string[] args)
     {
 #pragma warning disable CsWinRT1030
-        return WinshellCli.Run(args, (ShellLocations.ConfigVariable, configDir));
+        return WinshellCli.Run(args, (ShellLocations.ShellsVariable, configDir));
 #pragma warning restore CsWinRT1030
     }
 

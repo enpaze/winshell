@@ -24,7 +24,7 @@ internal static class ShellFixture
     {
         Environment.SetEnvironmentVariable("WINSHELL_LOCAL_DIR",
             TempFolder.NewPath());
-        Environment.SetEnvironmentVariable("WINSHELL_CONFIG_DIR",
+        Environment.SetEnvironmentVariable("WINSHELL_SHELLS_DIR",
             TempFolder.NewPath());
         var thread = new Thread(() => Shell.Run(Ready.SetResult))
         {

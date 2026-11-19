@@ -355,7 +355,7 @@ A running shell reads these. None is needed to build or test.
 
 | Variable | What it does |
 | --- | --- |
-| `WINSHELL_CONFIG_DIR` | Folder named shells are loaded from, instead of `%APPDATA%\winshell`. |
+| `WINSHELL_SHELLS_DIR` | Folder named shells are loaded from, instead of `%APPDATA%\winshell`. |
 | `WINSHELL_LOCAL_DIR` | Folder used instead of `%LOCALAPPDATA%\winshell` for cache, state, data, instance logs and crash reports. A child process inherits it. |
 
 ### Installer
@@ -373,7 +373,7 @@ A running shell reads these. None is needed to build or test.
 
 | What | Where |
 | --- | --- |
-| User shells | `%APPDATA%\winshell`, or `WINSHELL_CONFIG_DIR` when it is set |
+| User shells | `%APPDATA%\winshell`, or `WINSHELL_SHELLS_DIR` when it is set |
 | Cache | `%LOCALAPPDATA%\winshell\cache\by-shell\<shell name>` |
 | State | `%LOCALAPPDATA%\winshell\state\by-shell\<shell name>` |
 | Per-shell data | `%LOCALAPPDATA%\winshell\data\by-shell\<shell name>` |
@@ -405,7 +405,7 @@ What a report holds, and how long it stays:
 Either form runs under `conhost.exe --headless` with `--no-build` and `--no-duplicate`, so no console window opens and sign-in does not build. A failure before the shell starts shows a dialog.
 
 - The installer's command counts as this shell only while a bare `winshell run` would start it, and that is read again each time the entry is read.
-- Environment variables are not copied: `WINSHELL_CONFIG_DIR` applies at sign-in only when it is set for the user.
+- Environment variables are not copied: `WINSHELL_SHELLS_DIR` applies at sign-in only when it is set for the user.
 - Windows' Startup apps page can turn the entry off; Winshell reads that and never changes it.
 - `winshell.exe` and `winshellw.exe` in the same folder are one install: an entry for either reads as this Winshell.
 - An entry that starts a Winshell in another folder, or another shell, reads as `RegisteredElsewhere`, and setting `RunAtSignIn` rewrites it for this one.

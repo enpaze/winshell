@@ -5,7 +5,7 @@
 ## Sub-features
 
 - `new-list` lists the starter and each example with a short description.
-- `new-copy` copies the starter or an example into `<name>` under the shells folder, `%APPDATA%\winshell` or `WINSHELL_CONFIG_DIR`.
+- `new-copy` copies the starter or an example into `<name>` under the shells folder, `%APPDATA%\winshell` or `WINSHELL_SHELLS_DIR`.
 - `new-path` copies into the folder that `-p <folder>` or `--path <folder>` names instead.
 - `new-package` adds a `nuget.config` with the `packages` folder beside `winshell.exe` as a source, when `Winshell.<version>.nupkg` is in it. Otherwise it prints that the package is not beside `winshell.exe` and where to read how to add a source.
 - `new-refuse` prints `No starter or example is named "<name>". Run winshell new to list them.` for an unknown name, and `<folder> already exists and isn't empty. Pick another folder with -p.` for a folder in use. Both exit with 2 and change nothing.
@@ -38,7 +38,7 @@ Preconditions:
 ## Gotchas
 
 - A `winshell` built from a clone has no `packages` folder beside it. The copy then gets no `nuget.config`, the command says so, and the copy does not build until you add a source for the `Winshell` package, as [From a clone](../../../../docs/guide.md#from-a-clone) shows. The steps check the files only, not a build.
-- Without `-p`, the copy goes into the shells folder. The session sets `WINSHELL_CONFIG_DIR`, so a copy goes into the session's shells folder, not `%APPDATA%\winshell`.
+- Without `-p`, the copy goes into the shells folder. The session sets `WINSHELL_SHELLS_DIR`, so a copy goes into the session's shells folder, not `%APPDATA%\winshell`.
 - A second copy into the same folder is refused with exit 2, so run the recipe with a fresh evidence folder.
 - The starter's project file is `MyShell.csproj` whatever the folder is called.
 - With `-p`, the last line names the folder, as `Run it: winshell run -p <folder>`, not `-s <name>`.

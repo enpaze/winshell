@@ -20,9 +20,9 @@ internal static class DoctorSignIn
             SignInKind.AnotherInstall => new DoctorCheck("signIn", "Sign-in", CheckStatus.Warn,
                 $"The sign-in entry starts another winshell.exe: {verdict.Program}.",
                 "Install Winshell again with -AutoStart, so the entry starts the one you use."),
-            SignInKind.AnotherConfiguration => new DoctorCheck("signIn", "Sign-in", CheckStatus.Warn,
+            SignInKind.AnotherShell => new DoctorCheck("signIn", "Sign-in", CheckStatus.Warn,
                 "The sign-in entry does not start this shell.",
-                !verdict.NamesConfiguration && shellsRoot is not null && projectFile is not null &&
+                !verdict.NamesShell && shellsRoot is not null && projectFile is not null &&
                 NameIn(shellsRoot, projectFile) is { } name
                     ? $"Run winshell use {name}, so the entry starts it."
                     : "Turn on Run at sign-in for this shell, so the entry starts it."),
