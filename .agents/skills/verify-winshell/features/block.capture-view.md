@@ -13,7 +13,7 @@ A `CaptureView` is a control that shows the frames of a `CaptureSession`: a live
 
 ## How to get to it (user POV)
 
-- In a configuration, make a session with `new CaptureSession(shell.Loop, shell.Log)`, set its `Target`, and call `Start()`.
+- In a configuration, make a session with `new CaptureSession(shell.Log)`, set its `Target`, and call `Start()`.
 - Put `new CaptureView { Session = session }` in a window's content. In a Reactor component, embed it with `XamlHost`.
 - In the `features` shell, the view is the first picture beside the rows, with the automation id `block.capture-view`.
 

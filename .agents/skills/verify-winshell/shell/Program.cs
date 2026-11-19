@@ -5,15 +5,13 @@ Shell.Run(shell =>
     shell.Ipc.Handle("features", "echo", (string text) => text);
     shell.Ipc.Property("features", "name", () => "features");
     var ticked = shell.Ipc.Signal("features", "ticked");
-    var ticks = 0;
-    void Tick()
+    _ = Tick();
+    async Task Tick()
     {
-        ticks++;
-        ticked.Emit(ticks.ToString(CultureInfo.InvariantCulture));
-        shell.Loop.Schedule(TimeSpan.FromSeconds(1), Tick);
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        for (var ticks = 1; await timer.WaitForNextTickAsync(); ticks++)
+            ticked.Emit(ticks.ToString(CultureInfo.InvariantCulture));
     }
-
-    shell.Loop.Schedule(TimeSpan.FromSeconds(1), Tick);
 
     var hotkey = shell.Hotkey("Ctrl+Alt+Shift+F13");
     var idle = shell.NewIdleMonitor();

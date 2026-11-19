@@ -96,14 +96,6 @@ Has the members of [FloatingWindow](#floatingwindow).
 | --- | --- |
 | `FloatingWindow<T, TProps>(TProps? props)` | constructor |
 
-## IEventLoop
-
-| Member | Type |
-| --- | --- |
-| `Time` | TimeProvider, read-only |
-| `Post(Action action)` | void |
-| `Schedule(TimeSpan delay, Action action)` | IDisposable |
-
 ## IpcException
 
 An exception.
@@ -343,7 +335,6 @@ Has the members of [ObservableObject](#observableobject).
 | `JumpLists` | [JumpListService](winshell-apps.md#jumplistservice), read-only |
 | `KeyboardLayouts` | [KeyboardLayoutService](winshell-keyboard.md#keyboardlayoutservice), read-only |
 | `Log` | [Log](#log), read-only |
-| `Loop` | [IEventLoop](#ieventloop), read-only |
 | `Media` | [MediaService](winshell-media.md#mediaservice), read-only |
 | `Networking` | [NetworkingService](winshell-network.md#networkingservice), read-only |
 | `Notifications` | [NotificationListener](winshell-notifications.md#notificationlistener), read-only |

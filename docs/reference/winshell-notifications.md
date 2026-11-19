@@ -92,7 +92,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 
 | Member | Type |
 | --- | --- |
-| `ToastMessage([IEventLoop](winshell.md#ieventloop) loop)` | constructor |
+| `ToastMessage()` | constructor |
 | `Actions` | ObservableList of [ToastAction](#toastaction), read-only |
 | `ActivationUri` | string |
 | `AppId` | string |

@@ -59,7 +59,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 
 | Member | Type |
 | --- | --- |
-| `AudioPeakMonitor([IEventLoop](winshell.md#ieventloop) loop)` | constructor |
+| `AudioPeakMonitor()` | constructor |
 | `Audio` | [AudioVolume](#audiovolume)? |
 | `Channels` | IReadOnlyList of [AudioChannel](#audiochannel), read-only |
 | `Enabled` | bool |

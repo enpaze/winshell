@@ -8,8 +8,8 @@ public sealed class ToastMessage : ObservableObject
     private readonly INotificationBackend _backend;
     private string _error = "";
 
-    public ToastMessage(IEventLoop loop)
-        : this(loop, new NotificationBackend())
+    public ToastMessage()
+        : this(EventLoop.Current, new NotificationBackend())
     {
     }
 
