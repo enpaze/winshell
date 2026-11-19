@@ -410,26 +410,42 @@ internal sealed partial class ShellProject
     [GeneratedRegex(@"\s+\[[^\]]*\.csproj(::[^\]]*)?\]$", RegexOptions.IgnoreCase)]
     private static partial Regex ProjectSuffix();
 
-    public string? ShellName => Written(nameof(ShellName));
-
-    private string AssemblyName()
+    public string? ShellName(RunProcess run, out string? error)
     {
-        return Written(nameof(AssemblyName)) ?? Name;
+        var result = Path.Combine(Path.GetTempPath(), $"winshell-shell-name-{Guid.NewGuid():N}.txt");
+        try
+        {
+            var evaluated = run("dotnet",
+                ["msbuild", ProjectFile, "-getProperty:ShellName", $"-getResultOutputFile:{result}", "-nologo"], Folder);
+            if (evaluated.ExitCode != 0 || !File.Exists(result))
+            {
+                error = Errors(evaluated.Output, Folder);
+                return null;
+            }
+
+            error = null;
+            var name = File.ReadAllText(result).Trim();
+            return name.Length > 0 ? name : null;
+        }
+        finally
+        {
+            File.Delete(result);
+        }
     }
 
-    private string? Written(string property)
+    private string AssemblyName()
     {
         try
         {
             using var reader = XmlReader.Create(ProjectFile,
                 new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
             var written = XDocument.Load(reader).Descendants()
-                .FirstOrDefault(element => element.Name.LocalName == property)?.Value.Trim();
-            return string.IsNullOrEmpty(written) || written.Contains('$', StringComparison.Ordinal) ? null : written;
+                .FirstOrDefault(element => element.Name.LocalName == "AssemblyName")?.Value.Trim();
+            return string.IsNullOrEmpty(written) || written.Contains('$', StringComparison.Ordinal) ? Name : written;
         }
         catch (Exception e) when (e is XmlException or IOException or UnauthorizedAccessException)
         {
-            return null;
+            return Name;
         }
     }
 

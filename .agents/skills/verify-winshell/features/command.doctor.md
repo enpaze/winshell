@@ -6,7 +6,7 @@
 
 - `doctor-checks` checks Windows, .NET, the folders Winshell writes, app bars, DPI, the sign-in entry, notification access, the running shells, recent crash reports, and the shell project.
 - `doctor-project` checks that the project is there, that it has been built (`Built`), and that the build is up to date (`Build`), for the shell `-s` or `-p` names, or the one Winshell would run.
-- `doctor-preferences` names the line of the shell's preferences file that is not valid TOML, even while the shell is not running. It finds the file by the `ShellName` in the project file, or the folder name without one.
+- `doctor-preferences` names the line of the shell's preferences file that is not valid TOML, even while the shell is not running. It finds the file by the `ShellName` MSBuild reads from the project, or the folder name without one.
 - `doctor-sign-in` says what is wrong with the sign-in entry, and names `winshell use <name>` in its fix when the entry starts another shell.
 - `doctor-json` prints the checks as JSON with `-j` or `--json`.
 - `doctor-color` prints without color with `--no-color`, with `NO_COLOR` set, or when the output is redirected.

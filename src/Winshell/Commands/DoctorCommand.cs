@@ -25,7 +25,7 @@ internal static class DoctorCommand
     private static int Execute(Invocation parsed)
     {
         var checks = Doctor.Run(new DoctorContext(ShellLocations.Current, parsed.Text(CliFlags.Path),
-            parsed.Text(CliFlags.Shell)));
+            parsed.Text(CliFlags.Shell), ShellProject.Run));
         if (parsed.IsSet(CliFlags.Json))
         {
             Console.WriteLine(DoctorReport.ToJson(checks, Shell.Version));

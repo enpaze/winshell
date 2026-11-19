@@ -16,7 +16,7 @@ internal sealed record DoctorCheck(
 
 internal sealed record DoctorInstance(string Id, int Pid, string Program, string Logs);
 
-internal sealed record DoctorContext(ShellLocations Locations, string? Path, string? Shell);
+internal sealed record DoctorContext(ShellLocations Locations, string? Path, string? Shell, RunProcess Run);
 
 internal static class Doctor
 {
@@ -70,11 +70,11 @@ internal static class Doctor
     {
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         var process = Environment.ProcessPath ?? "";
-        var configFolder = chosen.Folder;
+        var shellsFolder = chosen.Folder;
         var projectChecks = DoctorProject.Checks(chosen.Project, chosen.Problem).ToList();
         if (projectChecks[0].Status == CheckStatus.Pass && chosen.Project is { } project &&
-            DoctorProbe.PreferencesProblem(context.Locations, project) is { } preferences)
-            projectChecks[0] = WithPreferences(projectChecks[0], preferences);
+            context.Locations.ShellsRoot.Length > 0)
+            projectChecks[0] = WithPreferences(projectChecks[0], context.Locations, project, context.Run);
         var instances = ListedInstances(context.Locations.Instances);
         var monitors = new Lazy<IReadOnlyList<DoctorScreens.MonitorFacts>>(DoctorProbe.Monitors);
         DoctorCheck[] checks =
@@ -89,7 +89,7 @@ internal static class Doctor
             .. projectChecks,
             Guard("folders", "Folders", () => Folders(
                 [
-                    ("the shells folder", configFolder, DoctorProbe.CanWrite(configFolder)),
+                    ("the shells folder", shellsFolder, DoctorProbe.CanWrite(shellsFolder)),
                     ("its local folder", context.Locations.LocalRoot, DoctorProbe.CanWrite(context.Locations.LocalRoot))
                 ],
                 instances.Where(i => DoctorProbe.IsElevated(i.Pid)).Select(i => i.Id).ToList(),
@@ -179,21 +179,34 @@ internal static class Doctor
         return new DoctorCheck("dotnet", ".NET", CheckStatus.Pass, $"{description}, {how}");
     }
 
-    private static DoctorCheck WithPreferences(DoctorCheck check, string problem)
+    private static DoctorCheck WithPreferences(DoctorCheck check, ShellLocations locations, ShellProject project,
+        RunProcess run)
     {
+        var preferences = DoctorProbe.PreferencesFile(locations, project, run, out var unread);
+        List<(string Problem, string Fix)> notes = [];
+        if (unread is not null)
+            notes.Add((
+                $"The shell name could not be read from {Path.GetFileName(project.ProjectFile)}, so doctor assumed \"{Path.GetFileNameWithoutExtension(preferences)}\" and checked {preferences}: {unread}",
+                "Make the project load with dotnet msbuild, then run winshell doctor again."));
+        if (DoctorProbe.PreferencesProblem(preferences) is { } problem)
+            notes.Add((problem,
+                "Correct that file and save. Winshell keeps the last values it could read until the file parses."));
+        if (notes.Count == 0)
+            return check;
+        var message = check.Message.EndsWith('.') ? check.Message : check.Message + ".";
         return check with
         {
             Status = CheckStatus.Warn,
-            Message = check.Message.EndsWith('.') ? $"{check.Message} {problem}" : $"{check.Message}. {problem}",
-            Fix = "Correct that file and save. Winshell keeps the last values it could read until the file parses."
+            Message = string.Join(' ', [message, .. notes.Select(note => note.Problem)]),
+            Fix = string.Join(' ', notes.Select(note => note.Fix))
         };
     }
 
-    public static IReadOnlyList<DoctorCheck> ForThisProcess(string configRoot)
+    public static IReadOnlyList<DoctorCheck> ForThisProcess(string shellsRoot)
     {
         return Report(
-            new DoctorContext(ShellLocations.Current with { ShellsRoot = configRoot }, null, null),
-            ChooseProcess(configRoot, Environment.ProcessPath ?? ""));
+            new DoctorContext(ShellLocations.Current with { ShellsRoot = shellsRoot }, null, null, ShellProject.Run),
+            ChooseProcess(shellsRoot, Environment.ProcessPath ?? ""));
     }
 
     private static List<DoctorInstance> ListedInstances(Instances instances)

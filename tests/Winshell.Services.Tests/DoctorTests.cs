@@ -506,7 +506,8 @@ public sealed class DoctorTests : IDisposable
         folder.SetAccessControl(acl);
         try
         {
-            var checks = Run(new DoctorContext(new ShellLocations(parent, Path.Combine(_dir, "local")), asked, null));
+            var checks = Run(new DoctorContext(new ShellLocations(parent, Path.Combine(_dir, "local")), asked, null,
+                ShellProject.Run));
             var folders = checks.Single(c => c.Id == "folders");
             Assert.Equal(CheckStatus.Fail, folders.Status);
             Assert.Contains(@"\asked", folders.Message, StringComparison.Ordinal);

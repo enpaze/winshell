@@ -60,15 +60,15 @@ internal static class DoctorProbe
                    StringComparison.OrdinalIgnoreCase);
     }
 
-    public static string? PreferencesProblem(ShellLocations locations, ShellProject project)
+    public static string PreferencesFile(ShellLocations locations, ShellProject project, RunProcess run,
+        out string? unread)
     {
-        if (string.IsNullOrEmpty(locations.ShellsRoot))
-            return null;
-        var name = ShellIdentity.Resolve(project.Program, locations, new ShellProperties(project.ShellName)).ShellName;
-        return UserFileProblem(Path.Combine(locations.ShellsRoot, "preferences", name + ".toml"));
+        var properties = new ShellProperties(project.ShellName(run, out unread));
+        var name = ShellIdentity.Resolve(project.Program, locations, properties).ShellName;
+        return Path.Combine(locations.ShellsRoot, "preferences", name + ".toml");
     }
 
-    private static string? UserFileProblem(string path)
+    public static string? PreferencesProblem(string path)
     {
         var load = TomlDocument.Load(path);
         return load.Kind switch
