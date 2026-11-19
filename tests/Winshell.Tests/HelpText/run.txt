@@ -1,8 +1,9 @@
 winshell run [-s <name> | -p <path>] [-d] [-n] [--no-build] [-- <args>...]
   Starts a shell project's program, built first when a source is newer than its
-  program. With no project, it says how to make one and exits 1; a start with no
-  console window exits 0 and says nothing. A shell already running is asked to quit
-  first, and one that does not quit stays: the start says why and exits 1.
+  program. With no project, it says how to make one and exits 1. A start nobody
+  can read, with no console window and no error redirected to a file or a pipe,
+  exits 0 and says nothing. A shell already running is asked to quit first, and
+  one that does not quit stays: the start says why and exits 1.
   -d, --daemonize        run in the background
   -n, --no-duplicate     exit quietly if this shell is already running
       --no-build         run the last build, and do not build again
