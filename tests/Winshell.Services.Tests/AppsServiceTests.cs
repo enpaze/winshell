@@ -63,7 +63,8 @@ public sealed class AppsServiceTests : IDisposable
     [Fact]
     public void Hidden_apps_stay_out_of_the_lists_and_can_still_be_found()
     {
-        using var apps = Start([App("Alpha"), App("Uninstall", true), App("Zeta")]);
+        var apps = Start([App("Alpha"), App("Uninstall", true), App("Zeta")]);
+        using var stopApps = apps.Stopping();
 
         Assert.Equal(["Alpha", "Zeta"], Names(apps.Apps));
         Assert.Equal("Uninstall", apps.ById("Uninstall!App")?.Name);
@@ -78,7 +79,8 @@ public sealed class AppsServiceTests : IDisposable
     [Fact]
     public void Changing_the_apps_raises_entries_even_when_a_hidden_app_stays_out_of_the_lists()
     {
-        using var apps = Start([App("Alpha")]);
+        var apps = Start([App("Alpha")]);
+        using var stopApps = apps.Stopping();
         var names = new List<string?>();
         apps.PropertyChanged += (_, e) => names.Add(e.PropertyName);
 
@@ -96,7 +98,8 @@ public sealed class AppsServiceTests : IDisposable
     public void An_app_that_stays_is_the_same_object_and_an_app_that_goes_leaves_every_list()
     {
         var usage = Usage(("Beta!App", new AppUsage(3, 1000)));
-        using var apps = Start([App("Alpha"), App("Beta")], usage);
+        var apps = Start([App("Alpha"), App("Beta")], usage);
+        using var stopApps = apps.Stopping();
         var alpha = apps.ById("Alpha!App")!;
         var beta = apps.ById("Beta!App")!;
         Assert.Equal(["Beta"], Names(apps.Recent));
@@ -118,9 +121,10 @@ public sealed class AppsServiceTests : IDisposable
     [Fact]
     public void The_use_of_an_app_orders_recent_and_frequent()
     {
-        using var apps = Start(
+        var apps = Start(
             [App("Alpha"), App("Beta")],
             Usage(("Alpha!App", new AppUsage(1, 2000)), ("Beta!App", new AppUsage(5, 1000))));
+        using var stopApps = apps.Stopping();
 
         Assert.Equal(["Alpha", "Beta"], Names(apps.Recent));
         Assert.Equal(["Beta", "Alpha"], Names(apps.Frequent));
@@ -132,7 +136,8 @@ public sealed class AppsServiceTests : IDisposable
     public void A_shortcut_opens_with_its_start_in_folder_and_counts_as_a_use_at_once()
     {
         var notepad = Shortcut("Notepad");
-        using var apps = Start([notepad]);
+        var apps = Start([notepad]);
+        using var stopApps = apps.Stopping();
         var entry = apps.ById(notepad.Id)!;
         var changes = new List<string>();
         ((INotifyPropertyChanged)entry).PropertyChanged += (_, e) => changes.Add(e.PropertyName!);
@@ -150,7 +155,8 @@ public sealed class AppsServiceTests : IDisposable
     [Fact(Timeout = 30_000)]
     public async Task A_packaged_launch_returns_before_activation_and_falls_back_on_the_loop()
     {
-        using var apps = Start([App("Alpha")]);
+        var apps = Start([App("Alpha")]);
+        using var stopApps = apps.Stopping();
         var entry = apps.ById("Alpha!App")!;
         var activation = new TaskCompletionSource<string?>();
         _backend.Activation = activation.Task;
@@ -182,7 +188,8 @@ public sealed class AppsServiceTests : IDisposable
     public void A_launch_that_opens_nothing_is_logged_and_not_counted(bool packaged, string[] warnings)
     {
         var alpha = packaged ? App("Alpha") : Shortcut("Alpha");
-        using var apps = Start([alpha]);
+        var apps = Start([alpha]);
+        using var stopApps = apps.Stopping();
         _backend.Activation = Task.FromResult<string?>("not registered");
         _backend.ShortcutError = "no such file";
         _backend.AppsFolderError = "no such file";
@@ -198,7 +205,8 @@ public sealed class AppsServiceTests : IDisposable
     [Fact]
     public void Changes_are_read_once_they_have_been_quiet_for_a_second()
     {
-        using var apps = Start([App("Alpha")]);
+        var apps = Start([App("Alpha")]);
+        using var stopApps = apps.Stopping();
 
         _backend.Show(new AppSnapshot([App("Alpha"), App("Beta")], Usage()));
         _loop.Advance(TimeSpan.FromMilliseconds(900));
@@ -214,7 +222,8 @@ public sealed class AppsServiceTests : IDisposable
     public void A_failed_read_is_warned_and_the_next_change_reads_again()
     {
         _backend.Failure = new InvalidCastException("read broke");
-        using var apps = Start([App("Alpha")]);
+        var apps = Start([App("Alpha")]);
+        using var stopApps = apps.Stopping();
         Assert.Equal(["apps: InvalidCastException: read broke"], _warnings);
         Assert.Empty(apps.Apps);
 
@@ -229,7 +238,7 @@ public sealed class AppsServiceTests : IDisposable
     {
         var apps = Start([App("Alpha")]);
 
-        ((IDisposable)apps).Dispose();
+        apps.Stop();
         Change([]);
 
         Assert.Single(apps.Apps);

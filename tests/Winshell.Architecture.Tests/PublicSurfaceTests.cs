@@ -65,20 +65,18 @@ public class PublicSurfaceTests
     }
 
     [Fact]
-    public void A_service_the_shell_shares_has_no_public_Dispose()
+    public void A_service_the_shell_shares_cannot_be_disposed()
     {
         var shell = Assembly.Load("Winshell.Shell").GetType("Winshell.Shell", true)!;
         var services = shell.GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Select(property => property.PropertyType)
-            .Where(type => Library.Contains(type.Assembly) && typeof(IDisposable).IsAssignableFrom(type))
+            .Where(type => Library.Contains(type.Assembly))
             .ToList();
-        Assert.NotEmpty(services);
+        Assert.Contains(services, type => type.FullName == "Winshell.Audio.AudioService");
 
-        var disposable = services.Where(type => type.GetMethod("Dispose", Public, Type.EmptyTypes) is not null)
-            .Select(type => type.Name)
-            .ToList();
+        var disposable = services.Where(typeof(IDisposable).IsAssignableFrom).Select(type => type.Name).ToList();
 
         Assert.True(disposable.Count == 0,
-            $"The shell disposes its services. Implement IDisposable.Dispose explicitly on {string.Join(", ", disposable)}.");
+            $"The shell owns its services. Implement the internal IShellService instead of IDisposable on {string.Join(", ", disposable)}.");
     }
 }

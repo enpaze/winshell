@@ -2,7 +2,7 @@ using Windows.Devices.Radios;
 
 namespace Winshell.Network;
 
-public sealed class NetworkingService : ObservableObject, IDisposable
+public sealed class NetworkingService : ObservableObject, IShellService
 {
     private readonly IEventLoop _loop;
     private readonly INetworkBackend _backend;
@@ -148,7 +148,7 @@ public sealed class NetworkingService : ObservableObject, IDisposable
             : new WiredDevice(info, _loop, _backend);
     }
 
-    void IDisposable.Dispose()
+    void IShellService.Stop()
     {
         _disposed = true;
         _backend.Changed -= _reader.Request;

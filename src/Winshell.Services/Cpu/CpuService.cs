@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Winshell.Cpu;
 
-public sealed class CpuService : INotifyPropertyChanged, IDisposable
+public sealed class CpuService : INotifyPropertyChanged, IShellService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(2);
 
@@ -54,7 +54,7 @@ public sealed class CpuService : INotifyPropertyChanged, IDisposable
         _listeners.Raise(nameof(Usage));
     }
 
-    void IDisposable.Dispose()
+    void IShellService.Stop()
     {
         _listeners.Dispose();
     }

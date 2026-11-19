@@ -19,7 +19,8 @@ public sealed class CpuServiceTests
             new CpuTimes(9000, 12000, 3000),
             new CpuTimes(9300, 12500, 3500),
             new CpuTimes(10050, 13400, 3600));
-        using var cpu = new CpuService(loop, backend);
+        var cpu = new CpuService(loop, backend);
+        using var stopCpu = cpu.Stopping();
         List<(string? Name, double Usage)> heard = [];
         cpu.PropertyChanged += (_, e) => heard.Add((e.PropertyName, cpu.Usage));
         Assert.Equal(0, cpu.Usage);
@@ -39,7 +40,8 @@ public sealed class CpuServiceTests
             null,
             new CpuTimes(5000, 10000, 0),
             new CpuTimes(5500, 11000, 0));
-        using var cpu = new CpuService(loop, backend);
+        var cpu = new CpuService(loop, backend);
+        using var stopCpu = cpu.Stopping();
         cpu.PropertyChanged += Ignore;
 
         loop.Advance(Interval * 2);
@@ -54,7 +56,8 @@ public sealed class CpuServiceTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakeCpuBackend();
-        using var cpu = new CpuService(loop, backend);
+        var cpu = new CpuService(loop, backend);
+        using var stopCpu = cpu.Stopping();
         PropertyChangedEventHandler second = Ignore;
 
         loop.Advance(Interval * 5);

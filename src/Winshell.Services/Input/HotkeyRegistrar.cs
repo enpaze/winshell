@@ -1,6 +1,6 @@
 namespace Winshell.Input;
 
-internal sealed class HotkeyRegistrar : IDisposable
+internal sealed class HotkeyRegistrar : IShellService
 {
     private readonly Lock _bookLock = new();
     private readonly IEventLoop _loop;
@@ -89,7 +89,7 @@ internal sealed class HotkeyRegistrar : IDisposable
         SyncHook();
     }
 
-    public void Dispose()
+    public void Stop()
     {
         if (_disposed)
             return;

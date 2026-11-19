@@ -57,7 +57,7 @@ public sealed class BrightnessMonitor : ObservableObject
     }
 }
 
-public sealed class BrightnessService : ObservableObject, IDisposable
+public sealed class BrightnessService : ObservableObject, IShellService
 {
     private readonly IBrightnessBackend _backend;
     private readonly INotifyCollectionChanged _screens;
@@ -108,7 +108,7 @@ public sealed class BrightnessService : ObservableObject, IDisposable
         return old with { WorkArea = now.WorkArea } == now;
     }
 
-    void IDisposable.Dispose()
+    void IShellService.Stop()
     {
         _screens.CollectionChanged -= OnScreensChanged;
         _backend.Changed -= _reader.Request;

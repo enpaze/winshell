@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Winshell.Notifications;
 
-public sealed class NotificationListener : ObservableObject, IDisposable
+public sealed class NotificationListener : ObservableObject, IShellService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(10);
 
@@ -297,7 +297,7 @@ public sealed class NotificationListener : ObservableObject, IDisposable
         });
     }
 
-    void IDisposable.Dispose()
+    void IShellService.Stop()
     {
         if (_disposed)
             return;

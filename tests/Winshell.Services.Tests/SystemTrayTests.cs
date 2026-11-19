@@ -52,7 +52,8 @@ public sealed class SystemTrayTests
     [Fact]
     public void An_icon_keeps_its_item_and_only_what_differs_changes()
     {
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         _backend.Send(Add());
         var item = tray.Items[0];
         var changes = Watch(item);
@@ -76,7 +77,8 @@ public sealed class SystemTrayTests
     [Fact]
     public void An_icon_the_app_hides_leaves_the_list_until_it_shows_it_again()
     {
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         _backend.Send(Add());
 
         _backend.Send(Hide(true));
@@ -92,7 +94,8 @@ public sealed class SystemTrayTests
     [Fact]
     public void An_item_is_ready_once_it_is_listed()
     {
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         var ready = 0;
         _backend.Send(Add());
         tray.Items[0].Ready += () => ready++;
@@ -110,7 +113,8 @@ public sealed class SystemTrayTests
     [InlineData(9u, BalloonIcon.None)]
     public void A_balloon_reaches_its_item(uint flags, BalloonIcon expected)
     {
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         _backend.Send(Add());
         var balloons = new List<(string, string, BalloonIcon)>();
         tray.Items[0].Balloon += (title, message, kind) => balloons.Add((title, message, kind));
@@ -128,7 +132,8 @@ public sealed class SystemTrayTests
     [Fact]
     public void Clicks_reach_the_app_with_the_point_they_name()
     {
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         _backend.Send(Call(TrayProtocol.Add, TrayProtocol.NIF_MESSAGE) with { CallbackMessage = 0x8001 });
         _backend.Send(Call(TrayProtocol.SetVersion) with { TimeoutOrVersion = TrayProtocol.Version4 });
         var item = tray.Items[0];
@@ -164,7 +169,8 @@ public sealed class SystemTrayTests
     [Fact]
     public void A_system_message_is_never_an_icons_callback()
     {
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         _backend.Send(Call(TrayProtocol.Add, TrayProtocol.NIF_MESSAGE) with { CallbackMessage = 0x8001 });
         tray.Items[0].Click();
         Assert.All(_backend.Notified, sent => Assert.Equal(0x8001u, sent.Message));
@@ -179,7 +185,8 @@ public sealed class SystemTrayTests
     [Fact]
     public void An_icon_with_no_resource_is_the_apps_own_bitmap_at_any_size()
     {
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         var image = new PixelImage(1, 1, new byte[4]);
         _backend.Images[0x42] = image;
         _backend.Send(Call(TrayProtocol.Add, TrayProtocol.NIF_ICON) with { Icon = 0x42 });
@@ -190,7 +197,8 @@ public sealed class SystemTrayTests
     [Fact]
     public void Changing_an_icons_bitmap_raises_the_icon()
     {
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         var changed = new PixelImage(1, 1, new byte[4]);
         _backend.Images[0x42] = new PixelImage(1, 1, new byte[4]);
         _backend.Images[0x43] = changed;
@@ -207,7 +215,8 @@ public sealed class SystemTrayTests
     [Fact]
     public void An_icon_from_a_resource_is_drawn_again_at_a_new_size()
     {
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         var image = new PixelImage(16, 16, new byte[16 * 16 * 4]);
         var sharp = new PixelImage(32, 32, new byte[32 * 32 * 4]);
         var resource = new IconResource(@"C:\Apps\sync.exe", 1, "");
@@ -227,7 +236,8 @@ public sealed class SystemTrayTests
     {
         const string program = @"C:\Apps\sync.exe";
         _backend.Programs[App] = program;
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         _backend.Send(Add());
         Assert.True(tray.Items[0].Overflow);
 
@@ -241,7 +251,8 @@ public sealed class SystemTrayTests
     public void A_tray_waits_for_the_instance_that_has_the_notification_area_and_takes_over_when_it_exits()
     {
         _backend.Taken = true;
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         Assert.False(_backend.IsOpen);
         _loop.Advance(TimeSpan.FromSeconds(1));
         Assert.False(_backend.IsOpen);
@@ -256,7 +267,8 @@ public sealed class SystemTrayTests
     [Fact]
     public void An_active_tray_has_no_half_second_poll()
     {
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         Assert.True(_backend.IsOpen);
         Assert.Equal(TimeSpan.FromSeconds(30), _loop.NextDue - _loop.Now);
     }
@@ -264,7 +276,8 @@ public sealed class SystemTrayTests
     [Fact]
     public void An_icon_whose_window_is_gone_leaves_at_the_next_check()
     {
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         _backend.Send(Add());
         _backend.Windows.Remove(App);
 
@@ -277,7 +290,8 @@ public sealed class SystemTrayTests
     [Fact]
     public void Explorer_coming_to_the_front_raises_the_tray_without_waiting_for_a_timer()
     {
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         _backend.Calls.Clear();
 
         _backend.SignalExplorerInFront();
@@ -288,7 +302,8 @@ public sealed class SystemTrayTests
     [Fact]
     public void A_restarted_explorer_is_answered_once()
     {
-        using var tray = Tray();
+        var tray = Tray();
+        using var stopTray = tray.Stopping();
         Assert.Equal(1, Broadcasts);
 
         _backend.SignalTaskbarCreated();
@@ -311,7 +326,7 @@ public sealed class SystemTrayTests
     [Fact]
     public void An_app_bar_message_lowers_each_open_tray_behind_Explorers_taskbar_and_raises_it_again()
     {
-        using (Tray())
+        using (Tray().Stopping())
         {
             _backend.Calls.Clear();
 
@@ -335,7 +350,7 @@ public sealed class SystemTrayTests
         tray.Items[0].Ready += () => ready++;
         _backend.Calls.Clear();
 
-        ((IDisposable)tray).Dispose();
+        tray.Stop();
         _loop.Advance(TimeSpan.FromSeconds(30));
 
         Assert.Single(tray.Items);

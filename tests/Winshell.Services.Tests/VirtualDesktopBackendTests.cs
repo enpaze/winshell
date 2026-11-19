@@ -34,7 +34,8 @@ public sealed class VirtualDesktopBackendTests
         if (foreground.Length > 0)
             Assert.True(Guid.TryParse(foreground, out _));
 
-        using var service = new VirtualDesktopsService(new ManualEventLoop(), new Log(), VirtualDesktopBackend.Shared);
+        var service = new VirtualDesktopsService(new ManualEventLoop(), new Log(), VirtualDesktopBackend.Shared);
+        using var stopService = service.Stopping();
         Assert.True(service.Supported);
         Assert.Equal(desktops.Count, service.Desktops.Count);
         Assert.All(service.Desktops, row => Assert.False(string.IsNullOrWhiteSpace(row.Name)));

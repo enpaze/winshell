@@ -70,7 +70,7 @@ public sealed class PowerDevice : ObservableObject
     }
 }
 
-public sealed class PowerService : ObservableObject, IDisposable
+public sealed class PowerService : ObservableObject, IShellService
 {
     private readonly IPowerBackend _backend;
     private readonly StateReader<PowerSnapshot> _reader;
@@ -99,14 +99,14 @@ public sealed class PowerService : ObservableObject, IDisposable
             (d, i) => d.Update(i));
     }
 
-    void IDisposable.Dispose()
+    void IShellService.Stop()
     {
         _backend.Changed -= _reader.Request;
         _reader.Stop(_backend.Dispose);
     }
 }
 
-public sealed class PowerModeService : ObservableObject, IDisposable
+public sealed class PowerModeService : ObservableObject, IShellService
 {
     private readonly IPowerModeBackend _backend;
     private readonly StateReader<PowerModeSnapshot> _reader;
@@ -158,7 +158,7 @@ public sealed class PowerModeService : ObservableObject, IDisposable
         Set(ref _ready, true, nameof(Ready));
     }
 
-    void IDisposable.Dispose()
+    void IShellService.Stop()
     {
         _backend.Changed -= _reader.Request;
         _reader.Stop(_backend.Dispose);

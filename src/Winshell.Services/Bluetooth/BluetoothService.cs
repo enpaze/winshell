@@ -2,7 +2,7 @@ using Windows.Devices.Radios;
 
 namespace Winshell.Bluetooth;
 
-public sealed class BluetoothService : ObservableObject, IDisposable
+public sealed class BluetoothService : ObservableObject, IShellService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(30);
 
@@ -306,7 +306,7 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         return true;
     }
 
-    void IDisposable.Dispose()
+    void IShellService.Stop()
     {
         lock (_gate)
         {

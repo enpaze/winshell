@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Winshell.Privacy;
 
-public sealed class PrivacyService : INotifyPropertyChanged, IDisposable
+public sealed class PrivacyService : INotifyPropertyChanged, IShellService
 {
     private static readonly IReadOnlyList<PrivacyApp> None = [];
 
@@ -43,7 +43,7 @@ public sealed class PrivacyService : INotifyPropertyChanged, IDisposable
         remove => _listeners.Remove(value);
     }
 
-    void IDisposable.Dispose()
+    void IShellService.Stop()
     {
         if (_listeners.Disposed)
             return;

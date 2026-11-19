@@ -40,14 +40,15 @@ public sealed partial class Shell
 
     private WindowListService? _windows;
     private WinlandService? _winland;
-    private IDisposable? _winlandToWindowList;
+    private IShellService? _winlandToWindowList;
 
-    private IDisposable?[] ServicesInStopOrder =>
-    [
-        _winland, _winlandToWindowList, _windows, _virtualDesktops, _apps, _audio, _bluetooth, _brightness, _cpu,
-        _explorerTaskbar, _media, _networking, _notifications, _power, _powerMode, _privacy, _systemTray, _hotkeys,
-        _keyboardLayouts, _wallpaper
-    ];
+    private IEnumerable<IDisposable?> ServicesInStopOrder =>
+        ((IShellService?[])
+        [
+            _winland, _winlandToWindowList, _windows, _virtualDesktops, _apps, _audio, _bluetooth, _brightness, _cpu,
+            _explorerTaskbar, _media, _networking, _notifications, _power, _powerMode, _privacy, _systemTray,
+            _hotkeys, _keyboardLayouts, _wallpaper
+        ]).Select(service => service is null ? null : new DisposeAction(service.Stop));
 
     public AppsService Apps => _apps ??= new AppsService(Loop, Log);
 
@@ -108,7 +109,15 @@ public sealed partial class Shell
     {
         var winland = _winland = new WinlandService(Loop, Log);
         winland.Attach(windows);
-        _winlandToWindowList = new DisposeAction(() => winland.Attach(null));
+        _winlandToWindowList = new Unlink(winland);
         return winland;
+    }
+
+    private sealed class Unlink(WinlandService winland) : IShellService
+    {
+        public void Stop()
+        {
+            winland.Attach(null);
+        }
     }
 }

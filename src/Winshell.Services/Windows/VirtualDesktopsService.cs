@@ -1,6 +1,6 @@
 namespace Winshell.Windows;
 
-public sealed class VirtualDesktopsService : ObservableObject, IDisposable
+public sealed class VirtualDesktopsService : ObservableObject, IShellService
 {
     internal static readonly TimeSpan RereadInterval = TimeSpan.FromSeconds(1);
 
@@ -182,7 +182,7 @@ public sealed class VirtualDesktopsService : ObservableObject, IDisposable
         return false;
     }
 
-    void IDisposable.Dispose()
+    void IShellService.Stop()
     {
         _disposed = true;
         _reread?.Dispose();

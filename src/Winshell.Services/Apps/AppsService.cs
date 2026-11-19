@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 
 namespace Winshell.Apps;
 
-public sealed class AppsService : ObservableObject, IDisposable
+public sealed class AppsService : ObservableObject, IShellService
 {
     private static readonly TimeSpan Debounce = TimeSpan.FromSeconds(1);
 
@@ -140,7 +140,7 @@ public sealed class AppsService : ObservableObject, IDisposable
         return usage;
     }
 
-    void IDisposable.Dispose()
+    void IShellService.Stop()
     {
         if (_disposed)
             return;

@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Winshell.Keyboard;
 
-public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
+public sealed class KeyboardLayoutService : INotifyPropertyChanged, IShellService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromMilliseconds(500);
 
@@ -59,7 +59,7 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
         return _backend.Use(next.Id);
     }
 
-    void IDisposable.Dispose()
+    void IShellService.Stop()
     {
         _listeners.Dispose();
     }

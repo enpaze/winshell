@@ -22,7 +22,7 @@ internal readonly record struct WindowIdentity(
     string PackageAppId,
     bool PackageKnown);
 
-public sealed class WindowListService : ObservableObject, IDisposable
+public sealed class WindowListService : ObservableObject, IShellService
 {
     private readonly IEventLoop _loop;
     private readonly Log _log;
@@ -215,7 +215,7 @@ public sealed class WindowListService : ObservableObject, IDisposable
             window.NotifyDesktop();
     }
 
-    void IDisposable.Dispose()
+    void IShellService.Stop()
     {
         _disposed = true;
         _winEvents.Dispose();

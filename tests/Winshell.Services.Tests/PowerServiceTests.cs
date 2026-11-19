@@ -36,7 +36,8 @@ public sealed class PowerServiceTests
     {
         var loop = new ManualEventLoop();
         var source = new FakePowerBackend(Snapshot(Battery("a")));
-        using var power = new PowerService(loop, Log.Default, source);
+        var power = new PowerService(loop, Log.Default, source);
+        using var stopPower = power.Stopping();
         loop.Process();
         var changes = Watch(power.DisplayDevice);
 
@@ -53,7 +54,8 @@ public sealed class PowerServiceTests
     {
         var loop = new ManualEventLoop();
         var source = new FakePowerBackend(Snapshot(Battery("a"), Battery("b")));
-        using var power = new PowerService(loop, Log.Default, source);
+        var power = new PowerService(loop, Log.Default, source);
+        using var stopPower = power.Stopping();
         loop.Process();
         var kept = power.Devices[1];
 
@@ -73,7 +75,7 @@ public sealed class PowerServiceTests
         var power = new PowerService(loop, Log.Default, source);
 
         source.Push(Snapshot(Battery("a")));
-        ((IDisposable)power).Dispose();
+        power.Stop();
         loop.Process();
 
         Assert.Empty(power.Devices);
@@ -94,7 +96,8 @@ public sealed class PowerServiceTests
         var loop = new ManualEventLoop();
         var dead = Battery("a") with { HealthPercentage = 0, HealthSupported = true };
         var source = new FakePowerBackend(Snapshot(dead));
-        using var power = new PowerService(loop, Log.Default, source);
+        var power = new PowerService(loop, Log.Default, source);
+        using var stopPower = power.Stopping();
         loop.Process();
 
         Assert.Equal(0, power.DisplayDevice.HealthPercentage);
@@ -106,11 +109,12 @@ public sealed class PowerServiceTests
     {
         var loop = new ManualEventLoop();
         var asked = 0;
-        using var mode = new PowerModeService(loop, Log.Default, new FakePowerModeBackend(_ =>
+        var mode = new PowerModeService(loop, Log.Default, new FakePowerModeBackend(_ =>
         {
             asked++;
             return 0;
         }));
+        using var stopMode = mode.Stopping();
 
         Assert.Equal(PowerModeLevel.Unknown, mode.Mode);
         Assert.Equal(EffectivePowerMode.Unknown, mode.Effective);
@@ -130,7 +134,8 @@ public sealed class PowerServiceTests
     {
         var lines = new List<string>();
         var log = new Log { Sink = (_, _, message) => lines.Add(message) };
-        using var mode = new PowerModeService(new ManualEventLoop(), log, new FakePowerModeBackend(_ => 5));
+        var mode = new PowerModeService(new ManualEventLoop(), log, new FakePowerModeBackend(_ => 5));
+        using var stopMode = mode.Stopping();
 
         mode.Mode = PowerModeLevel.BestPerformance;
 
@@ -143,11 +148,12 @@ public sealed class PowerServiceTests
         var lines = new List<string>();
         var log = new Log { Sink = (_, _, message) => lines.Add(message) };
         var asked = 0;
-        using var mode = new PowerModeService(new ManualEventLoop(), log, new FakePowerModeBackend(_ =>
+        var mode = new PowerModeService(new ManualEventLoop(), log, new FakePowerModeBackend(_ =>
         {
             asked++;
             return 0;
         }));
+        using var stopMode = mode.Stopping();
 
         mode.Mode = (PowerModeLevel)9;
 
@@ -165,7 +171,8 @@ public sealed class PowerServiceTests
             written.TrySetResult(value);
             return null;
         });
-        using var brightness = new BrightnessService(loop, Log.Default, new ObservableCollection<ScreenInfo>(), source);
+        var brightness = new BrightnessService(loop, Log.Default, new ObservableCollection<ScreenInfo>(), source);
+        using var stopBrightness = brightness.Stopping();
         loop.Process();
         var monitor = brightness.Monitors[0];
 

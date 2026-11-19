@@ -135,7 +135,7 @@ public sealed class NetworkingServiceTests
 
         backend.Publish(Snapshot(Wifi()));
         Assert.Empty(service.Devices);
-        ((IDisposable)service).Dispose();
+        service.Stop();
         loop.Process();
 
         Assert.Empty(service.Devices);
@@ -459,7 +459,7 @@ public sealed class NetworkingServiceTests
         await session.Service.SetWifiEnabledAsync(false);
         Assert.Equal(1, radio.Sets);
 
-        ((IDisposable)session.Service).Dispose();
+        session.Service.Stop();
         gate.SetResult(RadioAccessStatus.Allowed);
         await first;
         session.Loop.Process();
@@ -728,7 +728,7 @@ public sealed class NetworkingServiceTests
 
         public void Dispose()
         {
-            ((IDisposable)Service).Dispose();
+            Service.Stop();
         }
     }
 

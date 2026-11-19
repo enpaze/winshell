@@ -133,7 +133,8 @@ public sealed class MediaServiceTests
     {
         var sessions = new FakeSessions(id => Native(new RecordingLink(), id));
         var first = sessions.Add("a.exe");
-        using var media = new MediaService(new ManualEventLoop(), _log, sessions);
+        var media = new MediaService(new ManualEventLoop(), _log, sessions);
+        using var stopMedia = media.Stopping();
         var second = sessions.Add("b.exe");
         var kept = media.Sessions[1];
 
@@ -149,7 +150,8 @@ public sealed class MediaServiceTests
     {
         var sessions = new FakeSessions(id => Native(new RecordingLink(), id));
         var native = sessions.Add("a.exe");
-        using var media = new MediaService(new ManualEventLoop(), _log, sessions);
+        var media = new MediaService(new ManualEventLoop(), _log, sessions);
+        using var stopMedia = media.Stopping();
         var changes = Watch(media.Sessions[0]);
 
         sessions.Remove(native);
@@ -166,7 +168,7 @@ public sealed class MediaServiceTests
         var media = new MediaService(new ManualEventLoop(), _log, sessions);
         var changes = Watch(media.Sessions[0]);
 
-        ((IDisposable)media).Dispose();
+        media.Stop();
         sessions.Add("b.exe");
         Controls(native, true);
 
