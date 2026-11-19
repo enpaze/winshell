@@ -18,7 +18,7 @@ public partial class PanelWindow : ShellWindow
     }
 
     internal PanelWindow(Shell shell)
-        : base(shell)
+        : base(shell, visible: true)
     {
     }
 

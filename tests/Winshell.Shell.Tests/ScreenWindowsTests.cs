@@ -47,7 +47,7 @@ public sealed class ScreenWindowsTests
             screens.Add(first);
             try
             {
-                using var windows = new ScreenWindows("windows" + Guid.NewGuid().ToString("N"), Record(made));
+                using var windows = shell.Add(new ScreenWindows("windows" + Guid.NewGuid().ToString("N"), Record(made)));
                 var firstWindow = Assert.Single(made, window => window.Screen == first);
 
                 screens.Add(second);
@@ -79,6 +79,31 @@ public sealed class ScreenWindowsTests
     }
 
     [Fact]
+    public async Task Screen_windows_make_nothing_until_added_and_then_start_each_window_they_make()
+    {
+        var (before, starts) = await ShellFixture.On(shell =>
+        {
+            var screen = Screen("TST", "Added", "1");
+            var made = new List<Window>();
+            shell.Platform.Screens.Add(screen);
+            try
+            {
+                using var windows = new ScreenWindows("windows" + Guid.NewGuid().ToString("N"), Record(made));
+                var madeBefore = made.Count;
+                shell.Add(windows);
+                return (madeBefore, Assert.Single(made, window => window.Screen == screen).Starts);
+            }
+            finally
+            {
+                shell.Platform.Screens.Remove(screen);
+            }
+        });
+
+        Assert.Equal(0, before);
+        Assert.Equal(1, starts);
+    }
+
+    [Fact]
     public async Task A_screen_gets_its_row_by_manufacturer_model_and_serial_and_a_changed_row_replaces_only_its_window()
     {
         await ShellFixture.On(async shell =>
@@ -95,7 +120,7 @@ public sealed class ScreenWindowsTests
                 shell.Platform.Screens.Add(screen);
             try
             {
-                using var windows = new ScreenWindows(name, Record(made));
+                using var windows = shell.Add(new ScreenWindows(name, Record(made)));
                 var wideWindow = Assert.Single(made, window => window.Screen == wide);
                 var otherWideWindow = Assert.Single(made, window => window.Screen == otherWide);
                 var tallWindow = Assert.Single(made, window => window.Screen == tall);
@@ -167,13 +192,20 @@ public sealed class ScreenWindowsTests
 
     private sealed partial class Section(string name) : Preferences(name);
 
-    private sealed class Window(ScreenInfo screen, IReadOnlyDictionary<string, object?>? row) : IDisposable
+    private sealed class Window(ScreenInfo screen, IReadOnlyDictionary<string, object?>? row) : IShellPart
     {
         public ScreenInfo Screen { get; } = screen;
 
         public IReadOnlyDictionary<string, object?>? Row { get; } = row;
 
         public bool Disposed { get; private set; }
+
+        public int Starts { get; private set; }
+
+        public void Start()
+        {
+            Starts++;
+        }
 
         public void Dispose()
         {

@@ -13,7 +13,7 @@ A `PopupWindow` is a frameless window over the others, such as a launcher, a men
 
 ## How to get to it (user POV)
 
-- In a shell, make `new PopupWindow<T> { Width = ..., Height = ... }` for a component, or `new PopupWindow { Content = ... }`, then call `Toggle()` or set `Visible = true` when the user opens it.
+- In a shell, add `shell.Add(new PopupWindow<T> { Width = ..., Height = ... })` for a component, or `shell.Add(new PopupWindow { Content = ... })`. It stays hidden until you call `Toggle()` or set `Visible = true` when the user opens it.
 - In a widget, give it `StylePopup(content)` so it takes the area's style.
 - In the `features` shell, choose the `Popup` button, whose automation id is `features.popup`.
 

@@ -19,16 +19,16 @@ A bar shows along the top of every screen, with the time in the middle and the b
 
 ### The shell
 
-`Program.cs` starts the shell and says what it shows. The function passed to `Shell.Run` runs once the shell is up, and makes one [bar](#a-bar-on-every-screen):
+`Program.cs` starts the shell and says what it shows. The function passed to `Shell.Run` runs once the shell is up, and adds one [bar](#a-bar-on-every-screen):
 
 ```csharp
 Shell.Run(shell =>
 {
-    _ = new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] };
+    shell.Add(new Bar { Edge = Edges.Top, Center = ["clock"], End = ["battery"] });
 });
 ```
 
-The bar keeps itself on screen, so nothing needs to hold it. `Edges.Bottom` puts it at the bottom, and the bar's `Start` is a third list, at the left. With no [style](#style) set, it takes Windows' colors and font, in light or dark.
+`shell.Add` starts the bar and makes the shell its owner, so nothing needs to hold it, as [Parts](#parts) describes. `Edges.Bottom` puts it at the bottom, and the bar's `Start` is a third list, at the left. With no [style](#style) set, it takes Windows' colors and font, in light or dark.
 
 ### A clock
 
@@ -171,7 +171,7 @@ A project that references the `Winshell` package and has `ImplicitUsings` on, as
 `Shell.Run` runs until the shell quits. Call it from top-level statements, as the starter's `Program.cs` does. The function you pass runs once the shell is up, with that shell, which `Shell.Current` also returns:
 
 ```csharp
-Shell.Run(shell => _ = new Bar { Center = ["clock"] });
+Shell.Run(shell => shell.Add(new Bar { Center = ["clock"] }));
 ```
 
 WinUI needs a single-threaded apartment (STA) thread. When the thread that calls `Shell.Run` is not one, as a top-level program's is not, the shell runs on a new STA thread with the caller's culture, and `Shell.Run` waits for it.
@@ -190,20 +190,33 @@ Properties in the project file name the shell and where it keeps its files. The 
 - **`ShellName`** names the data, state and cache folders. Without it, as in the starter, a shell project in the config folder is named after its folder, and any other after its path.
 - **`ShellDataDir`, `ShellStateDir` and `ShellCacheDir`** replace those folders. A relative path is in the project folder, so `data` is `<project>\data`, and a rebuild of `bin\shell` leaves it there. A program a reload built in `bin\shell.next` uses that same folder. A program in neither keeps a relative path next to itself. `%NAME%` expands when the shell starts, and `$BASE` is the folder above `by-shell`, such as `%LOCALAPPDATA%\winshell\data`. MSBuild reads `%` and two hexadecimal digits as one escaped character, so write `%25DEVROOT%` for `%DEVROOT%`.
 
+## Parts
+
+A bar, a launcher, a `ScreenWindows` and a window are parts of the shell. `shell.Add(part)` starts a part, makes the shell its owner and returns it:
+
+- **Nothing shows before it is added.** Making a part only sets it up. Set its properties, then add it.
+- **The shell disposes what it owns.** When the shell quits or reloads, it disposes every part still added, the last added first.
+- **`Dispose` removes it.** A bar, a launcher, a `ScreenWindows` or a window disposed before then stops, and the shell no longer holds it.
+- **Adding twice** does nothing more. Adding a part the shell already holds returns it as it is.
+- **After the shell quits**, `Add` throws `ObjectDisposedException`.
+
+`Add` takes any disposable object, so the shell can own one of yours too. The shell disposes it once, when it quits or reloads. If you dispose it before then, the shell's call is a second one, which the .NET `Dispose` contract allows, so make your `Dispose` safe to call twice.
+
 ## A window
 
 Windows stay Winshell's. The content is any `UIElement`. Sizes are logical pixels.
 
 ```csharp
-        _ = new PanelWindow
+        shell.Add(new PanelWindow
         {
             Anchors = Edges.Left | Edges.Right | Edges.Bottom,
             Height = 48,
             ReservedSize = 48,
-            Content = new TextBlock { Text = "Winshell" },
-            Visible = true
-        };
+            Content = new TextBlock { Text = "Winshell" }
+        });
 ```
+
+A panel and a floating window show when they are added. A popup window stays hidden until `Visible` is true. `Visible = false` adds a panel or a floating window hidden. `Visible` says whether an added window shows, and setting it before the window is added only chooses how it starts.
 
 - **[PanelWindow](reference/winshell.md#panelwindow)** sits on the edges of a screen. `Anchors` chooses the edges. `ReservedSize` reserves that edge, so maximized windows stop short of it. A `ReservedSize` of 0 reserves nothing. `AboveWindows` set false puts it behind other windows.
 - **[PopupWindow](reference/winshell.md#popupwindow)** is a frameless window over the others, placed as [Place a popup window](#place-a-popup-window) describes. `GrabFocus` gives it the keyboard. `Dismissed` fires when it closes.
@@ -221,15 +234,15 @@ On any window:
 `PanelWindow<T>`, `PopupWindow<T>` and `FloatingWindow<T>` show the component `T`. The window makes one `T` and puts it on a [surface](#a-surface-of-your-own). Hiding the window keeps the component, and disposing the window unmounts it. The Winshell package carries Reactor, so a shell adds no Reactor reference.
 
 ```csharp
-        var calendar = new PopupWindow<Calendar> { Position = PopupPosition.Top, Width = 320, Height = 240 };
+        var calendar = shell.Add(new PopupWindow<Calendar> { Position = PopupPosition.Top, Width = 320, Height = 240 });
         var hotkey = shell.Hotkey("Win+Alt+C", calendar.Toggle);
 ```
 
 A component with props, a `Component<TProps>`, goes in a `PanelWindow<T, TProps>`, `PopupWindow<T, TProps>` or `FloatingWindow<T, TProps>`, which is given the props. Two windows of one component can show different things:
 
 ```csharp
-        var today = new PopupWindow<Note, string>("Stand-up at 10") { Position = PopupPosition.Top };
-        var later = new PopupWindow<Note, string>("Pay the rent");
+        var today = shell.Add(new PopupWindow<Note, string>("Stand-up at 10") { Position = PopupPosition.Top });
+        var later = shell.Add(new PopupWindow<Note, string>("Pay the rent"));
 ```
 
 The component renders again when a service object it observes with `UseObservable` changes. `UseObservableTree` follows a whole service, as [Keep a component current](#keep-a-component-current) describes.
@@ -249,7 +262,7 @@ With no active app window, `Center` and `Top` use the primary screen. A `Screen`
 A [ScreenWindows](reference/winshell.md#screenwindows) keeps one window on each screen for a component. It is given the component's name and a function that makes the window for a screen:
 
 ```csharp
-        var dock = new ScreenWindows("dock", (screen, row) => new PanelWindow
+        var dock = shell.Add(new ScreenWindows("dock", (screen, row) => new PanelWindow
         {
             Screen = screen,
             Anchors = row?.GetValueOrDefault("edge") is "top"
@@ -257,15 +270,14 @@ A [ScreenWindows](reference/winshell.md#screenwindows) keeps one window on each 
                 : Edges.Left | Edges.Right | Edges.Bottom,
             Height = 48,
             ReservedSize = 48,
-            Content = new TextBlock { Text = screen.Name },
-            Visible = true
-        });
+            Content = new TextBlock { Text = screen.Name }
+        }));
 ```
 
-- It makes a window for each screen when it is made, makes one for a screen that is connected, and disposes the window of a screen that is removed. The other screens' windows stay as they are, and so do their widgets.
+- It makes a window for each screen when it is added, makes one for a screen that is connected, and disposes the window of a screen that is removed. The other screens' windows stay as they are, and so do their widgets.
 - A screen whose resolution or scale changes keeps its window, made with the screen as it was then: `shell.Screens` has it as it is now.
 - `Dispose` removes every window.
-- The function can return anything disposable that holds the window, such as the window itself. A [component window](#show-a-component) unmounts its component when it is disposed.
+- The function can return anything disposable that holds the window, such as the window itself. `ScreenWindows` starts what it returns, as `shell.Add` would, and owns it, so the function does not add it. A [component window](#show-a-component) unmounts its component when it is disposed.
 - A function that throws is logged under the component's name, and that screen has no window until the screens or the rows change.
 
 A screen that differs from the rest has a row in the component's section of the [preferences file](#preferences), and the function is given that row, or null:
@@ -291,29 +303,29 @@ It is a shortcut: a configuration can still make any window on any screen itself
 A [Bar](reference/winshell.md#bar) is a panel along one edge of every screen, with three [widget areas](#widgets): start, center and end. Each list names widgets by their [names](#widgets). A plain string is a placement with no settings:
 
 ```csharp
-        var bar = new Bar
+        var bar = shell.Add(new Bar
         {
             Edge = Edges.Top,
             Start = ["workspaces"],
             Center = ["clock"],
             End = ["tray", new("message", new Dictionary<string, object> { ["text"] = "Hello" })]
-        };
+        });
 ```
 
-- **When it shows.** It shows on the next turn of the loop, once its properties are set, on every screen, and follows screens as they are connected and removed, as [ScreenWindows](#one-panel-per-screen) does. `Dispose` removes it.
+- **When it shows.** It shows on the next turn of the loop after it is added, on every screen, and follows screens as they are connected and removed, as [ScreenWindows](#one-panel-per-screen) does. `Dispose` removes it.
 - **Its edge.** A bar reserves its edge, so maximized windows stop short of it, and `Reserve = false` lays it over them instead. It leaves Explorer's taskbar alone: `shell.ExplorerTaskbar.Hidden = true` hides that.
 - **Its thickness.** A bar is as thick as the [style's](#style) `ShellSlotSize`: the height of a top or bottom bar, and the width of a left or right one, whose areas run from top to bottom. `Thickness` sets another size.
 - **Its padding.** The style's `ShellPadding` keeps space between the areas and each end of the bar: at its left and right, or at the top and bottom of a side bar. `Padding` sets another space.
 - **Its style.** A bar's own `Style` wins over the shell's, as an area's does.
 
-`Bar` uses only the public API a configuration has, and a test holds it to that, so [its source](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/Compositions/Bar.cs) is a start for a dock, a sidebar or a bar of your own.
+`Bar` uses the public API a configuration has, except that it starts when it is added and leaves the shell when it is disposed, as only Winshell's own parts do. A test holds it to that, so [its source](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/Compositions/Bar.cs) is a start for a dock, a sidebar or a bar of your own.
 
 ### Several bars
 
 A shell can have several bars. Each has a `Name`, `"bar"` unless given, which names its section of the [preferences file](#preferences):
 
 ```csharp
-        var side = new Bar { Name = "side", Edge = Edges.Left, Reserve = false, Start = ["clock"] };
+        var side = shell.Add(new Bar { Name = "side", Edge = Edges.Left, Reserve = false, Start = ["clock"] });
 ```
 
 ### Let the user change a bar
@@ -353,7 +365,7 @@ public sealed class Dock : Component
 ```
 
 ```csharp
-        var dock = new PanelWindow<Dock> { Anchors = Edges.Bottom, Height = 56, Visible = true };
+        var dock = shell.Add(new PanelWindow<Dock> { Anchors = Edges.Bottom, Height = 56 });
 ```
 
 `Surface(content, padding, style)` paints part of a component in a style of its own. `Surface` and `WidgetArea` come from `Winshell.Elements`, one of [the package's usings](#the-packages-usings). The props are immutable: rendering the component again with a new record is how the tree changes, and disposing the window unmounts it. What a surface holds stays loaded when the style changes. Its own style wins over the shell's, as an area's does. The area inside the tree is an element, not a second host.
@@ -363,7 +375,7 @@ public sealed class Dock : Component
 A [Launcher](reference/winshell.md#launcher) is a search box that a hotkey opens over the other windows. Typing searches the apps Start lists, ranked as [`shell.Apps.Search`](reference/winshell-apps.md) ranks them, and the commands you give it, together. Up and Down choose a result, and Enter runs it.
 
 ```csharp
-        var launcher = new Launcher
+        var launcher = shell.Add(new Launcher
         {
             Hotkey = "Alt+Space",
             Commands =
@@ -371,7 +383,7 @@ A [Launcher](reference/winshell.md#launcher) is a search box that a hotkey opens
                 new("Lock", () => shell.Session.Lock()),
                 new("Reload shell", () => shell.Reload())
             ]
-        };
+        });
 ```
 
 - **When it opens.** Its [hotkey](reference/winshell-input.md) opens it and closes it again. It opens centered near the top of the screen with the active window, or the primary screen. `Show`, `Hide` and `Toggle` do the same from code, such as from a button in a bar. `Dispose` removes it and frees the hotkey.
@@ -385,7 +397,7 @@ The launcher's section of the [preferences file](#preferences), `[launcher]` unl
 hotkey = "Ctrl+Shift+Space"
 ```
 
-`Launcher` uses only the public API a configuration has, as `Bar` does, so [its source](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/Compositions/Launcher.cs) is a start for a launcher of your own.
+`Launcher` uses the public API a configuration has, as `Bar` does, so [its source](https://github.com/enpaze/winshell/blob/main/src/Winshell.Shell/Compositions/Launcher.cs) is a start for a launcher of your own.
 
 ## Widgets
 
@@ -459,7 +471,7 @@ public sealed class EndArea : Component
 ```
 
 ```csharp
-        var panel = new PanelWindow<EndArea> { Height = 48, Visible = true };
+        var panel = shell.Add(new PanelWindow<EndArea> { Height = 48 });
 ```
 
 - **Replacing widgets.** Render the area again with a new list, unless the [preferences file](#preferences) has a list for it. A widget whose name is no longer in that place is disposed and made again. A widget that stays is rendered again with the new props, and a new orientation does the same.
@@ -594,14 +606,14 @@ public sealed class Message : Widget
     {
         popup.Current?.Dispose();
         var body = new TextBlock { Text = line, Margin = new Thickness(12) };
-        popup.Current = new PopupWindow { Content = StylePopup(body), Visible = true };
+        popup.Current = Shell.Add(new PopupWindow { Content = StylePopup(body), Visible = true });
     }
 }
 ```
 
 `text` is the placement's setting, and `Hello` when the placement has none. The line is that string followed by a middle dot. A value that is not a string throws [UnsupportedWidgetException](reference/winshell.md#unsupportedwidgetexception) with `text must be a string.`, and the widget throws one itself in a vertical area. The area shows the widget's name and that reason, and the other placements keep running.
 
-[StylePopup](reference/winshell.md#widget) wraps content for a [PopupWindow](reference/winshell.md#popupwindow). Assign the result to the popup's `Content`. The wrapper loads the area's style and follows its changes. The effect disposes the popup when the component goes, and a press disposes the previous one first.
+[StylePopup](reference/winshell.md#widget) wraps content for a [PopupWindow](reference/winshell.md#popupwindow). Assign the result to the popup's `Content`. The wrapper loads the area's style and follows its changes. `Shell.Add` starts the popup, and `Visible = true` shows it. The effect disposes the popup when the component goes, which removes it from the shell, and a press disposes the previous one first.
 
 `UseScreen()` is null until the area is in a window, and the widget renders again when the window arrives and when it moves to another screen. The tooltip names that screen, and says `primary screen` until there is one.
 

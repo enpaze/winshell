@@ -14,7 +14,7 @@ A `FloatingWindow` is a normal window with a title bar, which the user can move,
 
 ## How to get to it (user POV)
 
-- In the function a shell passes to `Shell.Run`, write `new FloatingWindow<T> { Title = "...", Width = 460, Height = 760, Visible = true }` for a component `T`, or `new FloatingWindow { ..., Content = ... }` for any WinUI element.
+- In the function a shell passes to `Shell.Run`, write `shell.Add(new FloatingWindow<T> { Title = "...", Width = 460, Height = 760 })` for a component `T`, or `shell.Add(new FloatingWindow { ..., Content = ... })` for any WinUI element. A floating window shows when it is added.
 - Start the `features` shell. Its window is the one titled `Winshell features`.
 
 ## Driving it with winshell inspect

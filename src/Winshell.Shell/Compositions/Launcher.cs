@@ -12,7 +12,7 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
-public sealed partial class Launcher : ObservableObject, IDisposable
+public sealed partial class Launcher : ObservableObject, IShellPart
 {
     private const double Width = 640;
     private const double Height = 420;
@@ -25,11 +25,6 @@ public sealed partial class Launcher : ObservableObject, IDisposable
     private bool _visible;
     private int _opened;
     private bool _disposed;
-
-    public Launcher()
-    {
-        _shell.Loop.Post(Start);
-    }
 
     public string Name
     {
@@ -47,7 +42,7 @@ public sealed partial class Launcher : ObservableObject, IDisposable
 
     public void Show()
     {
-        if (_disposed || _visible)
+        if (_disposed || _visible || _preferences is null)
             return;
         var window = _window ??= MakeWindow();
         _opened++;
@@ -73,9 +68,10 @@ public sealed partial class Launcher : ObservableObject, IDisposable
             Show();
     }
 
-    private void Start()
+    void IShellPart.Start()
     {
-        if (_disposed)
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_preferences is not null)
             return;
         _preferences = new LauncherPreferences(this);
         _hotkey = _shell.Hotkey(_preferences.Hotkey, Toggle);
@@ -93,7 +89,7 @@ public sealed partial class Launcher : ObservableObject, IDisposable
             VerticalContentAlignment = VerticalAlignment.Stretch,
             IsTabStop = false
         };
-        var window = new PopupWindow
+        var window = _shell.Add(new PopupWindow
         {
             Position = PopupPosition.Top,
             Width = Width,
@@ -101,7 +97,7 @@ public sealed partial class Launcher : ObservableObject, IDisposable
             GrabFocus = true,
             Corners = WindowCorners.Round,
             Content = _host
-        };
+        });
         window.Dismissed += Hide;
         return window;
     }
@@ -124,6 +120,7 @@ public sealed partial class Launcher : ObservableObject, IDisposable
         if (_disposed)
             return;
         _disposed = true;
+        _shell.Remove(this);
         _hotkey?.Dispose();
         _preferences?.Dispose();
         _host?.Dispose();

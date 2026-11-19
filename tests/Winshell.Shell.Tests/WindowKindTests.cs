@@ -12,6 +12,52 @@ namespace Winshell.ShellTests;
 [Trait("Category", "Window")]
 public sealed class WindowKindTests
 {
+    [Theory]
+    [InlineData("panel", true)]
+    [InlineData("floating", true)]
+    [InlineData("popup", false)]
+    public async Task A_window_shows_nothing_until_it_is_added_and_a_panel_or_floating_window_then_shows(string kind,
+        bool shown)
+    {
+        var (visibleBefore, hostBefore, visibleAfter, shownAfter) = await ShellFixture.On(shell =>
+        {
+            using ShellWindow window = kind switch
+            {
+                "panel" => new PanelWindow { Anchors = Edges.Top | Edges.Left, Width = 200, Height = 48, Content = new Grid() },
+                "popup" => new PopupWindow { Width = 200, Height = 120, Content = new Grid() },
+                _ => new FloatingWindow { Title = "Winshell test", Width = 300, Height = 200, Content = new Grid() }
+            };
+            var visible = window.Visible;
+            var host = window.Host is not null;
+            shell.Add(window);
+            return (visible, host, window.Visible, window.Host?.Place.IsVisible ?? false);
+        });
+
+        Assert.Equal(shown, visibleBefore);
+        Assert.False(hostBefore);
+        Assert.Equal(shown, visibleAfter);
+        Assert.Equal(shown, shownAfter);
+    }
+
+    [Fact]
+    public async Task A_window_whose_add_failed_leaves_no_window_behind_and_shows_when_it_is_added_again()
+    {
+        var (hostAfterFailure, shownAfterRetry) = await ShellFixture.On(shell =>
+        {
+            var taken = new Grid();
+            new Grid().Children.Add(taken);
+            using var panel = new PanelWindow { Anchors = Edges.Top | Edges.Left, Width = 200, Height = 48, Content = taken };
+            Assert.ThrowsAny<Exception>(() => shell.Add(panel));
+            var host = panel.Host is not null;
+            panel.Content = new Grid();
+            shell.Add(panel);
+            return (host, panel.Host?.Place.IsVisible ?? false);
+        });
+
+        Assert.False(hostAfterFailure);
+        Assert.True(shownAfterRetry);
+    }
+
     [Fact]
     public async Task A_popup_sits_where_it_was_asked()
     {
@@ -19,7 +65,7 @@ public sealed class WindowKindTests
         {
             var screen = shell.Screens[0].Geometry;
             var content = new Grid();
-            using var popup = new PopupWindow();
+            using var popup = shell.Add(new PopupWindow());
             popup.Position = PopupPosition.At(new Point(screen.X + 60, screen.Y + 60));
             popup.Width = 200;
             popup.Height = 120;
@@ -39,7 +85,7 @@ public sealed class WindowKindTests
         var dismissed = await ShellFixture.On(async shell =>
         {
             var screen = shell.Screens[0].Geometry;
-            using var popup = new PopupWindow();
+            using var popup = shell.Add(new PopupWindow());
             popup.Position = PopupPosition.At(new Point(screen.X + 60, screen.Y + 60));
             popup.Width = 200;
             popup.Height = 120;
@@ -64,7 +110,7 @@ public sealed class WindowKindTests
         var heard = await ShellFixture.On(async shell =>
         {
             var screen = shell.Screens[0].Geometry;
-            using var popup = new PopupWindow();
+            using var popup = shell.Add(new PopupWindow());
             popup.Position = PopupPosition.At(new Point(screen.X + 60, screen.Y + 60));
             popup.Width = 200;
             popup.Height = 120;
@@ -99,7 +145,7 @@ public sealed class WindowKindTests
             };
             var opened = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             flyout.Opened += (_, _) => opened.TrySetResult();
-            using var popup = new PopupWindow();
+            using var popup = shell.Add(new PopupWindow());
             popup.Position = PopupPosition.At(new Point(screen.X + 60, screen.Y + 60));
             popup.Width = 200;
             popup.Height = 48;
@@ -176,13 +222,13 @@ public sealed class WindowKindTests
     {
         return ShellFixture.On(async shell =>
         {
-            using var window = create(shell);
+            using var window = shell.Add(create(shell));
             window.Visible = true;
             using var app = new FloatingWindow();
             app.Width = 300;
             app.Height = 200;
             app.Content = new Grid();
-            app.Visible = true;
+            shell.Add(app);
             await Task.Yield();
             var front = app.Host!.Handle;
             app.Focus();
@@ -197,7 +243,7 @@ public sealed class WindowKindTests
     [Fact]
     public async Task A_floating_window_has_the_size_and_title_it_was_given()
     {
-        var read = await ShellFixture.On(async _ =>
+        var read = await ShellFixture.On(async shell =>
         {
             var content = new Grid();
             using var window = new FloatingWindow();
@@ -205,7 +251,7 @@ public sealed class WindowKindTests
             window.Width = 500;
             window.Height = 300;
             window.Content = content;
-            window.Visible = true;
+            shell.Add(window);
             await ShellFixture.LaidOut(content);
             return (window.ActualWidth, window.ActualHeight, Win32Title(window.Host!.Handle));
         });
@@ -233,7 +279,7 @@ public sealed class WindowKindTests
             panel.Width = 200;
             panel.Height = 48;
             panel.Content = button;
-            panel.Visible = true;
+            shell.Add(panel);
             await ShellFixture.LaidOut(button);
             flyout.ShowAt(button);
             await opened.Task;

@@ -14,7 +14,7 @@ public partial class PopupWindow : ShellWindow
     }
 
     internal PopupWindow(Shell shell)
-        : base(shell)
+        : base(shell, visible: false)
     {
         _shell = shell;
     }

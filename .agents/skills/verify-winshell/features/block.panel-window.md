@@ -16,8 +16,8 @@ A `PanelWindow` is a frameless window that sits on the edges of a screen, such a
 
 ## How to get to it (user POV)
 
-- In the function a shell passes to `Shell.Run`, write `new PanelWindow<T> { Anchors = Edges.Left | Edges.Right | Edges.Bottom, Height = 48, ReservedSize = 48, Visible = true }` for a component `T`, or `new PanelWindow { ..., Content = ... }` for any WinUI element.
-- Make one per screen with `new ScreenWindows("name", (screen, row) => new PanelWindow { Screen = screen, ... })`.
+- In the function a shell passes to `Shell.Run`, write `shell.Add(new PanelWindow<T> { Anchors = Edges.Left | Edges.Right | Edges.Bottom, Height = 48, ReservedSize = 48 })` for a component `T`, or `shell.Add(new PanelWindow { ..., Content = ... })` for any WinUI element. A panel shows when it is added.
+- Make one per screen with `shell.Add(new ScreenWindows("name", (screen, row) => new PanelWindow { Screen = screen, ... }))`.
 - Every `Bar` is a `PanelWindow` on each screen.
 - Start the `features` shell. Its panel is at the top left of the primary screen, behind other windows.
 

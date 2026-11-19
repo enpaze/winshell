@@ -17,7 +17,7 @@ public sealed class WidgetAreaTests
     [InlineData(true)]
     public async Task Popup_content_follows_its_area_until_the_widget_is_removed(bool disposeArea)
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             var name = Guid.NewGuid().ToString();
             PopupCapture.Context = null;
@@ -28,7 +28,7 @@ public sealed class WidgetAreaTests
                 Defaults = [new(name)]
             });
             var host = area.Host;
-            using var window = new PanelWindow { Width = 180, Height = 90, Content = host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 180, Height = 90, Content = host });
             await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
             var input = PopupCapture.Context!;
             var content = new StackPanel { Children = { new TextBlock { Text = "popup" } } };
@@ -36,22 +36,22 @@ public sealed class WidgetAreaTests
             text.Resources["widget-owned"] = "keep";
             var root = input!.StylePopup(content);
             var second = input.StylePopup(new TextBlock { Text = "second popup" });
-            using var popup = new PopupWindow
+            using var popup = shell.Add(new PopupWindow
             {
                 Position = PopupPosition.At(new Point(200, 100)),
                 Width = 200,
                 Height = 90,
                 Content = root,
                 Visible = true
-            };
-            using var another = new PopupWindow
+            });
+            using var another = shell.Add(new PopupWindow
             {
                 Position = PopupPosition.At(new Point(410, 100)),
                 Width = 200,
                 Height = 90,
                 Content = second,
                 Visible = true
-            };
+            });
             await ShellFixture.LaidOut(text).WaitAsync(TestContext.Current.CancellationToken);
 
             Assert.Equal(36d, root.Resources["ShellSlotSize"]);
@@ -90,7 +90,7 @@ public sealed class WidgetAreaTests
     [Trait("Category", "Window")]
     public async Task A_popup_takes_the_area_style_before_the_area_is_in_a_host_and_keeps_it_once_shown()
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             var name = Guid.NewGuid().ToString();
             PopupCapture.Context = null;
@@ -107,15 +107,15 @@ public sealed class WidgetAreaTests
             Assert.Equal(36d, root.Resources["ShellSlotSize"]);
 
             var host = area.Host;
-            using var window = new PanelWindow { Width = 180, Height = 90, Content = host, Visible = true };
-            using var popup = new PopupWindow
+            using var window = shell.Add(new PanelWindow { Width = 180, Height = 90, Content = host });
+            using var popup = shell.Add(new PopupWindow
             {
                 Position = PopupPosition.At(new Point(200, 100)),
                 Width = 200,
                 Height = 90,
                 Content = root,
                 Visible = true
-            };
+            });
             await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
             Assert.Equal(36d, root.Resources["ShellSlotSize"]);
             return true;
@@ -141,7 +141,7 @@ public sealed class WidgetAreaTests
             area.Set(area.Props with { Orientation = orientation });
             area.Set(area.Props with { Defaults = [new(name, first), new(name, second)] });
             var host = area.Host;
-            using var window = new PanelWindow { Width = 180, Height = 90, Content = host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 180, Height = 90, Content = host });
             await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
             var views = OrderedWidget.Views;
             var inputs = OrderedWidget.Inputs;
@@ -179,7 +179,7 @@ public sealed class WidgetAreaTests
             if (failure != "unknown")
                 Shell.Current.WidgetRegistry.Add<BadWidget>(bad);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [new(good), new(bad), new(good)] });
-            using var window = new PanelWindow { Width = 280, Height = 60, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 280, Height = 60, Content = area.Host });
             string[] text = [];
             await Wait.UntilAsync(() =>
             {
@@ -222,13 +222,12 @@ public sealed class WidgetAreaTests
             {
                 using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = name, Defaults = [new(widget)] });
                 using var other = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = name + "other", Defaults = [new(widget)] });
-                using var window = new PanelWindow
+                using var window = shell.Add(new PanelWindow
                 {
                     Width = 240,
                     Height = 80,
-                    Content = new StackPanel { Children = { area.Host, other.Host } },
-                    Visible = true
-                };
+                    Content = new StackPanel { Children = { area.Host, other.Host } }
+                });
                 await Wait.UntilAsync(() => TrackedWidget.Mounts.Count >= 3, "the placements to mount");
                 var created = TrackedWidget.Mounts;
                 var placed = created.Where(item => item.Context.Settings.ContainsKey("text")).ToArray();
@@ -295,7 +294,7 @@ public sealed class WidgetAreaTests
             try
             {
                 using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = name, Defaults = [new(widget)] });
-                using var window = new PanelWindow { Width = 160, Height = 40, Content = area.Host, Visible = true };
+                using var window = shell.Add(new PanelWindow { Width = 160, Height = 40, Content = area.Host });
                 await Wait.UntilAsync(() => TextIn(area.Host).SequenceEqual(["default"]), "the author's default");
 
                 area.Set(area.Props with { Name = name + "side" });
@@ -406,7 +405,7 @@ public sealed class WidgetAreaTests
             try
             {
                 using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Name = name });
-                using var window = new PanelWindow { Width = 160, Height = 40, Content = area.Host, Visible = true };
+                using var window = shell.Add(new PanelWindow { Width = 160, Height = 40, Content = area.Host });
                 await Wait.UntilAsync(() => TrackedWidget.Mounts.Count == 1, "the placement to mount");
                 var views = TrackedWidget.Mounts;
                 Assert.Single(views);
@@ -434,14 +433,14 @@ public sealed class WidgetAreaTests
     [Trait("Category", "Window")]
     public async Task Widgets_survive_reparenting_and_are_disposed_on_rebuild_and_explicit_disposal()
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             var name = Guid.NewGuid().ToString();
             MountedWidget.Mounted = 0;
             Shell.Current.WidgetRegistry.Add<MountedWidget>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [new(name), new(name)] });
             var host = area.Host;
-            using var window = new PanelWindow { Width = 180, Height = 90, Content = host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 180, Height = 90, Content = host });
             await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
             await Wait.UntilAsync(() => MountedWidget.Mounted == 2, "both placements to mount");
             var unloaded = new TaskCompletionSource();
@@ -476,7 +475,7 @@ public sealed class WidgetAreaTests
             });
             var marked = TestStyles.Marked();
             var other = TestStyles.Other();
-            using var window = new PanelWindow { Width = 220, Height = 80, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 220, Height = 80, Content = area.Host });
             await Wait.UntilAsync(() => controls.Buttons.Count == 1 && controls.Lines.Count == 1, "the controls to render");
             var (button, _) = Assert.Single(controls.Buttons);
             var text = Assert.Single(controls.Lines);
@@ -530,7 +529,7 @@ public sealed class WidgetAreaTests
     [Fact]
     public async Task A_contrast_theme_paints_with_its_own_colors_for_a_custom_style_and_the_default_one()
     {
-        await ShellFixture.On(_ =>
+        await ShellFixture.On(shell =>
         {
             var other = TestStyles.Other();
             foreach (var style in new[] { other, new ShellStyle() })
@@ -548,7 +547,7 @@ public sealed class WidgetAreaTests
     [Fact]
     public async Task A_style_that_sets_only_the_font_size_takes_windows_system_colors_in_a_contrast_theme()
     {
-        await ShellFixture.On(_ =>
+        await ShellFixture.On(shell =>
         {
             var style = Shell.LoadStyle(new ShellStyle { FontSize = 12 });
             Assert.Equal(12.0, style["ShellFontSize"]);
@@ -570,7 +569,7 @@ public sealed class WidgetAreaTests
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [new(controls.Name)] });
             var host = area.Host;
             host.RequestedTheme = ElementTheme.Light;
-            using var window = new PanelWindow { Width = 240, Height = 60, Content = host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 240, Height = 60, Content = host });
             await Wait.UntilAsync(() => controls.Button is not null && controls.Text is not null && controls.Plain is not null,
                 "the alert controls to render");
             var (button, text, plain) = (controls.Button!, controls.Text!, controls.Plain!);
@@ -645,7 +644,7 @@ public sealed class WidgetAreaTests
     [Trait("Category", "Window")]
     public async Task A_style_that_sets_only_the_font_size_shows_windows_text_colors_in_light_and_dark()
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             var controls = new PlainControls();
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
@@ -654,7 +653,7 @@ public sealed class WidgetAreaTests
                 Defaults = [new(controls.Button), new(controls.Text)]
             });
             var host = area.Host;
-            using var window = new PanelWindow { Width = 200, Height = 60, Content = host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 200, Height = 60, Content = host });
             await Wait.UntilAsync(() => controls.Buttons.Count == 1 && controls.Lines.Count == 1, "the controls to render");
             var (button, _) = Assert.Single(controls.Buttons);
             var text = Assert.Single(controls.Lines);
@@ -677,7 +676,7 @@ public sealed class WidgetAreaTests
     [Trait("Category", "Window")]
     public async Task A_custom_style_keeps_its_colors_font_and_slot_in_light_and_dark()
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             var controls = new PlainControls();
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
@@ -686,7 +685,7 @@ public sealed class WidgetAreaTests
                 Defaults = [new(controls.Button), new(controls.Text)]
             });
             var host = area.Host;
-            using var window = new PanelWindow { Width = 220, Height = 80, Content = host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 220, Height = 80, Content = host });
             await Wait.UntilAsync(() => controls.Buttons.Count == 1 && controls.Lines.Count == 1, "the controls to render");
             var (button, _) = Assert.Single(controls.Buttons);
             var text = Assert.Single(controls.Lines);
@@ -727,7 +726,7 @@ public sealed class WidgetAreaTests
     [Trait("Category", "Window")]
     public async Task With_the_default_style_plain_controls_follow_the_windows_theme()
     {
-        await ShellFixture.On(async _ =>
+        await ShellFixture.On(async shell =>
         {
             var controls = new PlainControls();
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps
@@ -736,7 +735,7 @@ public sealed class WidgetAreaTests
             });
             var host = area.Host;
             host.RequestedTheme = ElementTheme.Light;
-            using var window = new PanelWindow { Width = 200, Height = 60, Content = host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 200, Height = 60, Content = host });
             await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
 
             var (glyphButton, glyph) = Assert.Single(controls.Buttons);
@@ -776,13 +775,12 @@ public sealed class WidgetAreaTests
                 Style = TestStyles.Marked(),
                 Defaults = [new(controls.Text)]
             });
-            using var window = new PanelWindow
+            using var window = shell.Add(new PanelWindow
             {
                 Width = 400,
                 Height = 60,
-                Content = new StackPanel { Orientation = Orientation.Horizontal, Children = { follows.Host, own.Host } },
-                Visible = true
-            };
+                Content = new StackPanel { Orientation = Orientation.Horizontal, Children = { follows.Host, own.Host } }
+            });
             await Wait.UntilAsync(
                 () => controls.Buttons.Count == 1 && controls.Lines.Count == 2 && PopupCapture.Context is not null,
                 "the placements to render");
@@ -790,14 +788,14 @@ public sealed class WidgetAreaTests
             var text = controls.Lines[0];
             var ownText = controls.Lines[1];
             var popupText = new TextBlock { Text = "popup" };
-            using var popup = new PopupWindow
+            using var popup = shell.Add(new PopupWindow
             {
                 Position = PopupPosition.At(new Point(200, 100)),
                 Width = 200,
                 Height = 90,
                 Content = PopupCapture.Context!.StylePopup(popupText),
                 Visible = true
-            };
+            });
             try
             {
                 await ShellFixture.LaidOut(popupText).WaitAsync(TestContext.Current.CancellationToken);
@@ -842,7 +840,7 @@ public sealed class WidgetAreaTests
             Shell.Current.WidgetRegistry.Add<TipWidget>(widget);
             var other = TestStyles.Other();
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Style = other, Defaults = [new(widget)] });
-            using var window = new PanelWindow { Width = 100, Height = 40, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 100, Height = 40, Content = area.Host });
             await ShellFixture.LaidOut(area.Host).WaitAsync(TestContext.Current.CancellationToken);
 
             TaskCompletionSource? toggled = null;
@@ -902,7 +900,7 @@ public sealed class WidgetAreaTests
             AlertWidget.Alert = null;
             Shell.Current.WidgetRegistry.Add<AlertWidget>(name);
             using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Style = TestStyles.Other(), Defaults = [new(name)] });
-            using var window = new PanelWindow { Width = 120, Height = 40, Content = area.Host, Visible = true };
+            using var window = shell.Add(new PanelWindow { Width = 120, Height = 40, Content = area.Host });
             await Wait.UntilAsync(() => AlertWidget.Alert is not null, "the alert text to render");
             var alert = AlertWidget.Alert!;
             await ShellFixture.LaidOut(alert).WaitAsync(TestContext.Current.CancellationToken);

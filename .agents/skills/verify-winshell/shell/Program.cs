@@ -20,35 +20,36 @@ Shell.Run(shell =>
     idle.Timeout = 600;
     idle.Enabled = true;
     var jumpList = shell.JumpLists.ForApp("Microsoft.Windows.Explorer");
-    var launcher = new Launcher { Hotkey = "Ctrl+Alt+Shift+F14" };
+    var launcher = shell.Add(new Launcher { Hotkey = "Ctrl+Alt+Shift+F14" });
     var launched = new Launched(shell, launcher);
 
     FloatingWindow<FeatureWindow, FeatureWindowProps> floating = null!;
     PanelWindow<PanelRow, WindowRowProps> panel = null!;
     PopupWindow<PopupRow, WindowRowProps> popup = null!;
-    popup = new(new WindowRowProps("block.popup-window", () => popup)) { Width = 240, Height = 32 };
-    panel = new(new WindowRowProps("block.panel-window", () => panel))
+    popup = shell.Add(new PopupWindow<PopupRow, WindowRowProps>(new WindowRowProps("block.popup-window", () => popup))
+    {
+        Width = 240,
+        Height = 32
+    });
+    panel = shell.Add(new PanelWindow<PanelRow, WindowRowProps>(new WindowRowProps("block.panel-window", () => panel))
     {
         Anchors = Edges.Top | Edges.Left,
         Width = 240,
         Height = 32,
         ReservedSize = 0,
         AboveWindows = false
-    };
-    floating = new(new FeatureWindowProps(
+    });
+    floating = shell.Add(new FloatingWindow<FeatureWindow, FeatureWindowProps>(new FeatureWindowProps(
         [Rows.Launcher(launched), .. Rows.Services(shell, hotkey, idle, jumpList)],
         new WindowRowProps("block.floating-window", () => floating), OpenPopup, launcher.Show))
     {
         Title = "Winshell features",
         Width = 460,
         Height = 760
-    };
+    });
     void OpenPopup()
     {
         popup.Position = PopupPosition.At(floating.Origin);
         popup.Visible = true;
     }
-
-    panel.Visible = true;
-    floating.Visible = true;
 });

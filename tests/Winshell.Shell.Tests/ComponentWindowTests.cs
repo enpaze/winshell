@@ -13,7 +13,7 @@ public sealed class ComponentWindowTests
     [Fact]
     public async Task A_panel_shows_the_controls_a_component_rendered()
     {
-        var text = await ShellFixture.On(async _ =>
+        var text = await ShellFixture.On(async shell =>
         {
             var host = new ReactorHostControl(new Greeting());
             using var panel = Panel(host);
@@ -28,7 +28,7 @@ public sealed class ComponentWindowTests
     [Fact]
     public async Task A_component_renders_again_when_the_service_object_it_observes_changes()
     {
-        var text = await ShellFixture.On(async _ =>
+        var text = await ShellFixture.On(async shell =>
         {
             var level = new Level();
             var host = new ReactorHostControl(new Gauge(level));
@@ -47,7 +47,7 @@ public sealed class ComponentWindowTests
     [Fact]
     public async Task A_component_renders_again_when_an_item_in_a_service_list_changes()
     {
-        var text = await ShellFixture.On(async _ =>
+        var text = await ShellFixture.On(async shell =>
         {
             var service = new Listed();
             var host = new ReactorHostControl(new ListedLabel(service));
@@ -96,7 +96,7 @@ public sealed class ComponentWindowTests
     [InlineData("floating")]
     public async Task Disposing_a_component_window_unmounts_its_component(string kind)
     {
-        var (shown, hidden, disposed) = await ShellFixture.On(async _ =>
+        var (shown, hidden, disposed) = await ShellFixture.On(async shell =>
         {
             Tracked.Mounted = 0;
             var window = Shown<Tracked>(kind);
@@ -120,7 +120,7 @@ public sealed class ComponentWindowTests
     [InlineData("floating")]
     public async Task Two_windows_of_one_component_show_the_props_each_was_given(string kind)
     {
-        var texts = await ShellFixture.On(async _ =>
+        var texts = await ShellFixture.On(async shell =>
         {
             using var first = Shown(kind, "first");
             using var second = Shown(kind, "second");
@@ -137,9 +137,15 @@ public sealed class ComponentWindowTests
     [Fact]
     public async Task Toggle_shows_a_hidden_window_and_hides_a_shown_one()
     {
-        var states = await ShellFixture.On(_ =>
+        var states = await ShellFixture.On(shell =>
         {
-            using var panel = new PanelWindow<Greeting> { Anchors = Edges.Top | Edges.Left, Width = 220, Height = 90 };
+            using var panel = shell.Add(new PanelWindow<Greeting>
+            {
+                Anchors = Edges.Top | Edges.Left,
+                Width = 220,
+                Height = 90,
+                Visible = false
+            });
             panel.Toggle();
             var opened = (panel.Visible, panel.Host!.Place.IsVisible);
             panel.Toggle();
@@ -155,9 +161,9 @@ public sealed class ComponentWindowTests
     {
         return kind switch
         {
-            "panel" => new PanelWindow<T> { Anchors = Edges.Top | Edges.Left, Width = 220, Height = 90, Visible = true },
-            "popup" => new PopupWindow<T> { Width = 220, Height = 90, Visible = true },
-            _ => new FloatingWindow<T> { Title = "Winshell test", Width = 320, Height = 200, Visible = true }
+            "panel" => Shell.Current.Add(new PanelWindow<T> { Anchors = Edges.Top | Edges.Left, Width = 220, Height = 90 }),
+            "popup" => Shell.Current.Add(new PopupWindow<T> { Width = 220, Height = 90, Visible = true }),
+            _ => Shell.Current.Add(new FloatingWindow<T> { Title = "Winshell test", Width = 320, Height = 200 })
         };
     }
 
@@ -165,22 +171,21 @@ public sealed class ComponentWindowTests
     {
         return kind switch
         {
-            "panel" => new PanelWindow<Label, string>(text) { Anchors = Edges.Top | Edges.Left, Width = 220, Height = 90, Visible = true },
-            "popup" => new PopupWindow<Label, string>(text) { Width = 220, Height = 90, Visible = true },
-            _ => new FloatingWindow<Label, string>(text) { Title = "Winshell test", Width = 320, Height = 200, Visible = true }
+            "panel" => Shell.Current.Add(new PanelWindow<Label, string>(text) { Anchors = Edges.Top | Edges.Left, Width = 220, Height = 90 }),
+            "popup" => Shell.Current.Add(new PopupWindow<Label, string>(text) { Width = 220, Height = 90, Visible = true }),
+            _ => Shell.Current.Add(new FloatingWindow<Label, string>(text) { Title = "Winshell test", Width = 320, Height = 200 })
         };
     }
 
     private static PanelWindow Panel(FrameworkElement content)
     {
-        return new PanelWindow
+        return Shell.Current.Add(new PanelWindow
         {
             Anchors = Edges.Top | Edges.Left,
             Width = 220,
             Height = 90,
-            Content = content,
-            Visible = true
-        };
+            Content = content
+        });
     }
 
     private static string ShownText(DependencyObject root)

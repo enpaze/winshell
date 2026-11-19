@@ -24,7 +24,7 @@ public sealed class PopupWindowTests
                 _ => (PopupPosition.At(new Point(area.X + 40, area.Y + 60)), new Point(area.X + 40, area.Y + 60))
             };
             var content = new Grid();
-            using var popup = new PopupWindow
+            using var popup = shell.Add(new PopupWindow
             {
                 Screen = screen,
                 Position = position,
@@ -32,7 +32,7 @@ public sealed class PopupWindowTests
                 Height = 100,
                 Content = content,
                 Visible = true
-            };
+            });
             await ShellFixture.LaidOut(content);
             return (popup.Origin, expected);
         });

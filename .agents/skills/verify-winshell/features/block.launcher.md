@@ -13,7 +13,7 @@ A `Launcher` is a search box that a hotkey opens over the other windows. Typing 
 
 ## How to get to it (user POV)
 
-- In a configuration, make `new Launcher { Hotkey = "Alt+Space", Commands = [new("Lock", () => shell.Session.Lock())] }`.
+- In a shell, add `shell.Add(new Launcher { Hotkey = "Alt+Space", Commands = [new("Lock", () => shell.Session.Lock())] })`. It claims its hotkey when it is added.
 - Press its hotkey, or call `Show` or `Toggle`, such as from a button in a bar.
 - Set `hotkey` under `[launcher]` in the preferences file to choose another hotkey.
 - In the `features` shell, choose the `Launcher` button, whose automation id is `features.launcher`.

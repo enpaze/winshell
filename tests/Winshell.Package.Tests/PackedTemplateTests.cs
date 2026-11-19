@@ -183,7 +183,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
         File.WriteAllText(Path.Combine(shellDir, "Program.cs"), """
             Shell.Run(shell =>
             {
-                _ = new PanelWindow<Placements> { Width = 250, Height = 80, Visible = true };
+                shell.Add(new PanelWindow<Placements> { Width = 250, Height = 80 });
             });
 
             public sealed class Placements : Component

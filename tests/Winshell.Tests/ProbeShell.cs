@@ -17,6 +17,8 @@ internal static class ProbeShell
 
     private const string ProbeProperties = "<ShellName>probe</ShellName>";
 
+    private const string PartsEndingVariable = "PROBE_PARTS_ENDING";
+
     private static readonly object Gate = new();
 
     private static string? _program;
@@ -209,6 +211,8 @@ internal static class ProbeShell
 
     internal const string PreferencesMarker = "probe-preferences";
 
+    internal const string PartsMarker = "probe-parts";
+
     private const string Source =
         $$"""
           using System.Diagnostics;
@@ -273,16 +277,15 @@ internal static class ProbeShell
               // A test that puts {{WindowMarker}} there gets a panel whose button opens a popup.
               if (config is not null && File.Exists(Path.Combine(config, "{{WindowMarker}}")))
               {
-                  var popup = new PopupWindow { Content = new ProbePopup { Children = { new TextBlock { Text = "Opened" } } } };
+                  var popup = shell.Add(new PopupWindow { Content = new ProbePopup { Children = { new TextBlock { Text = "Opened" } } } });
                   var open = new Button { Name = "Open", Content = "Open" };
-                  var panel = new PanelWindow
+                  var panel = shell.Add(new PanelWindow
                   {
                       Anchors = Edges.Top | Edges.Left,
                       Width = 160,
                       Height = 60,
-                      Content = new ProbePage { Children = { open } },
-                      Visible = true,
-                  };
+                      Content = new ProbePage { Children = { open } }
+                  });
                   open.Click += (_, _) =>
                   {
                       popup.Position = PopupPosition.At(new Point(panel.Origin.X, panel.Origin.Y + panel.ActualHeight));
@@ -290,6 +293,30 @@ internal static class ProbeShell
                       popup.Height = 60;
                       popup.Visible = true;
                   };
+              }
+              var marker = config is null ? null : Path.Combine(config, "{{PartsMarker}}");
+              var ending = Environment.GetEnvironmentVariable("{{PartsEndingVariable}}") ??
+                           (marker is not null && File.Exists(marker) ? File.ReadAllText(marker).Trim() : null);
+              if (config is not null && ending is not null)
+              {
+                  var report = Path.Combine(config, $"parts-{ending}.txt");
+                  var first = shell.Add(new ProbePart("first", report));
+                  shell.Add(new ProbePart("second", report));
+                  shell.Add(first);
+                  shell.Add(new ProbePart("disposed", report)).Dispose();
+                  shell.Loop.Post(() =>
+                  {
+                      ProbePart.Write(report, ending);
+                      if (ending != "reload")
+                      {
+                          shell.Quit();
+                          return;
+                      }
+
+                      Environment.SetEnvironmentVariable("{{PartsEndingVariable}}", "quit");
+                      ProbePart.Write(report, $"reloaded {shell.Reload()}");
+                  });
+                  return;
               }
               // A test that puts {{HideTaskbarMarker}} there gets a shell that hides Explorer's taskbar once.
               if (config is not null && File.Exists(Path.Combine(config, "{{HideTaskbarMarker}}")))
@@ -321,6 +348,29 @@ internal static class ProbeShell
           public sealed class ProbePopup : StackPanel;
 
           sealed class EarlySection() : Preferences("early");
+
+          sealed class ProbePart(string name, string report) : IDisposable
+          {
+              public static void Write(string report, string line)
+              {
+                  File.AppendAllText(report, $"{Environment.ProcessId} {line}\n");
+              }
+
+              public void Dispose()
+              {
+                  var added = "added";
+                  try
+                  {
+                      Shell.Current.Add(this);
+                  }
+                  catch (ObjectDisposedException)
+                  {
+                      added = "refused";
+                  }
+
+                  Write(report, $"dispose {name} {added}");
+              }
+          }
 
           sealed class LateSection() : Preferences("late");
           """;

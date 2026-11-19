@@ -27,11 +27,11 @@ public sealed class PanelWindowTests
     [Fact]
     public async Task A_panel_lays_out_its_content_at_the_size_it_was_given()
     {
-        var size = await ShellFixture.On(async _ =>
+        var size = await ShellFixture.On(async shell =>
         {
             var content = new Grid();
             using var panel = Panel(content);
-            panel.Visible = true;
+            shell.Add(panel);
             await ShellFixture.LaidOut(content);
             return (content.ActualWidth, content.ActualHeight, panel.ActualWidth, panel.ActualHeight);
         });
@@ -42,10 +42,10 @@ public sealed class PanelWindowTests
     [Fact]
     public async Task A_panel_keeps_the_styles_that_stop_it_taking_activation()
     {
-        var styles = await ShellFixture.On(_ =>
+        var styles = await ShellFixture.On(shell =>
         {
             using var panel = Panel(new Grid());
-            panel.Visible = true;
+            shell.Add(panel);
             return (uint)PInvoke.GetWindowLongPtr((HWND)panel.Host!.Handle, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
         });
 
@@ -59,11 +59,11 @@ public sealed class PanelWindowTests
     [Fact]
     public async Task A_panel_draws_its_content()
     {
-        var pixels = await ShellFixture.On(async _ =>
+        var pixels = await ShellFixture.On(async shell =>
         {
             var content = new Grid { Background = new SolidColorBrush(Colors.Red) };
             using var panel = Panel(content);
-            panel.Visible = true;
+            shell.Add(panel);
             await ShellFixture.LaidOut(content);
             var bitmap = new RenderTargetBitmap();
             await bitmap.RenderAsync(content);
@@ -78,10 +78,10 @@ public sealed class PanelWindowTests
     [Fact]
     public async Task A_disposed_panel_destroys_its_native_window()
     {
-        var alive = await ShellFixture.On(_ =>
+        var alive = await ShellFixture.On(shell =>
         {
             var panel = Panel(new Grid());
-            panel.Visible = true;
+            shell.Add(panel);
             var handle = panel.Host!.Handle;
             panel.Dispose();
             return PInvoke.IsWindow((HWND)handle);

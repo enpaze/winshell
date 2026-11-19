@@ -9,6 +9,30 @@ public sealed class LauncherTests
     private const int F23 = 0x86;
 
     [Fact]
+    public async Task A_launcher_claims_its_hotkey_only_once_it_is_added()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            using var launcher = new Launcher
+            {
+                Name = "launcher" + Guid.NewGuid().ToString("N"),
+                Hotkey = "Ctrl+Alt+Shift+F22"
+            };
+            var turn = new TaskCompletionSource();
+            shell.Loop.Post(turn.SetResult);
+            await turn.Task;
+            Assert.True(KeyInput.Unclaimed(CtrlAltShift, F22));
+
+            shell.Add(launcher);
+            await Wait.UntilAsync(() => !KeyInput.Unclaimed(CtrlAltShift, F22), "the added launcher to claim its hotkey");
+
+            launcher.Dispose();
+            Assert.True(KeyInput.Unclaimed(CtrlAltShift, F22));
+            return true;
+        });
+    }
+
+    [Fact]
     public async Task A_changed_hotkey_in_the_preferences_file_frees_the_old_chord_and_claims_the_new_one()
     {
         await ShellFixture.On(async shell =>
@@ -19,7 +43,7 @@ public sealed class LauncherTests
             File.WriteAllText(path, $"[{name}]\nhotkey = \"Ctrl+Alt+Shift+F22\"\n");
             try
             {
-                using var launcher = new Launcher { Name = name };
+                using var launcher = shell.Add(new Launcher { Name = name });
 
                 await Wait.UntilAsync(() => !KeyInput.Unclaimed(CtrlAltShift, F22),
                     "the launcher to claim the hotkey from the file");

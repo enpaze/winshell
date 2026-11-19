@@ -8,7 +8,7 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
-public sealed partial class Bar : IDisposable
+public sealed partial class Bar : IShellPart
 {
     private static readonly Dictionary<string, Edges> EdgeNames = new()
     {
@@ -22,14 +22,9 @@ public sealed partial class Bar : IDisposable
     private readonly List<Shown> _open = [];
     private BarPreferences? _preferences;
     private ScreenWindows? _windows;
+    private bool _started;
     private bool _remakePosted;
     private bool _disposed;
-
-    public Bar()
-    {
-        _shell.StyleChanged += FollowShellStyle;
-        PostRemake();
-    }
 
     public string Name
     {
@@ -60,6 +55,16 @@ public sealed partial class Bar : IDisposable
     public double? Padding { get; init; }
 
     public ShellStyle? Style { get; init; }
+
+    void IShellPart.Start()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_started)
+            return;
+        _started = true;
+        _shell.StyleChanged += FollowShellStyle;
+        PostRemake();
+    }
 
     private void FollowShellStyle()
     {
@@ -93,7 +98,7 @@ public sealed partial class Bar : IDisposable
             }
 
             _windows?.Dispose();
-            var windows = new ScreenWindows(Name, Show);
+            var windows = _shell.Add(new ScreenWindows(Name, Show));
             if (_disposed)
                 windows.Dispose();
             else
@@ -152,7 +157,7 @@ public sealed partial class Bar : IDisposable
             };
             var shown = new Shown(host, window, vertical, _open);
             shown.Resize(thickness, Reserve);
-            window.Visible = true;
+            _shell.Add(window);
             _open.Add(shown);
             return shown;
         }
@@ -197,6 +202,7 @@ public sealed partial class Bar : IDisposable
         if (_disposed)
             return;
         _disposed = true;
+        _shell.Remove(this);
         _shell.StyleChanged -= FollowShellStyle;
         _windows?.Dispose();
         _preferences?.Dispose();

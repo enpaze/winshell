@@ -16,6 +16,7 @@
     <InternalsVisibleTo Include="Winshell" />
     <InternalsVisibleTo Include="Winshell.Shell.Tests" />
     <InternalsVisibleTo Include="Winshell.Tests" />
+    <InternalsVisibleTo Include="Winshell.Compositions" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Winshell.Services\Winshell.Services.csproj" />
