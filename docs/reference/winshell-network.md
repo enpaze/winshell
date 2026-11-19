@@ -130,7 +130,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `WifiHardwareEnabled` | bool, read-only |
 | `WifiState` | [WifiRadioState](#wifiradiostate), read-only |
 | `OperationFailed` | Action of string |
-| `Dispose()` | void |
 | `Refresh()` | void |
 | `RequestAccess()` | void |
 

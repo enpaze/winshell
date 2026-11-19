@@ -19,8 +19,8 @@ public sealed class CaptureSession : ObservableObject, IDisposable
     private string _error = "";
     private bool _disposed;
 
-    public CaptureSession(IEventLoop loop, Log log)
-        : this(loop, () => new CaptureBackend(log))
+    public CaptureSession(Log log)
+        : this(EventLoop.Current, () => new CaptureBackend(log))
     {
     }
 

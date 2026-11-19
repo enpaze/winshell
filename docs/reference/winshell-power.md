@@ -32,7 +32,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | --- | --- |
 | `Monitors` | ObservableList of [BrightnessMonitor](#brightnessmonitor), read-only |
 | `Ready` | bool, read-only |
-| `Dispose()` | void |
 
 ## EffectivePowerMode
 
@@ -129,7 +128,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Effective` | [EffectivePowerMode](#effectivepowermode), read-only |
 | `Mode` | [PowerModeLevel](#powermodelevel) |
 | `Ready` | bool, read-only |
-| `Dispose()` | void |
 
 ## PowerService
 
@@ -140,4 +138,3 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Devices` | ObservableList of [PowerDevice](#powerdevice), read-only |
 | `DisplayDevice` | [PowerDevice](#powerdevice), read-only |
 | `OnBattery` | bool, read-only |
-| `Dispose()` | void |

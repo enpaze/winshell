@@ -18,7 +18,8 @@ public sealed class VirtualDesktopsServiceTests
         var second = Guid.NewGuid();
         var source = FakeDesktops.Holding(second, first);
         source.Items.Add(new DesktopRecord(second, "Work"));
-        using var desktops = Start(source);
+        var desktops = Start(source);
+        using var stopDesktops = desktops.Stopping();
 
         Assert.True(desktops.Supported);
         Assert.Equal("", desktops.UnsupportedReason);
@@ -34,7 +35,8 @@ public sealed class VirtualDesktopsServiceTests
     {
         var first = Guid.NewGuid();
         var source = FakeDesktops.Holding(first, first);
-        using var desktops = Start(source);
+        var desktops = Start(source);
+        using var stopDesktops = desktops.Stopping();
 
         desktops.Remove(desktops.Current);
         Assert.DoesNotContain(source.Calls, call => call.StartsWith("remove:", StringComparison.Ordinal));
@@ -62,7 +64,8 @@ public sealed class VirtualDesktopsServiceTests
         var first = Guid.NewGuid();
         var second = Guid.NewGuid();
         var source = FakeDesktops.Holding(first, first, second);
-        using var desktops = Start(source);
+        var desktops = Start(source);
+        using var stopDesktops = desktops.Stopping();
         var kept = desktops.Desktops[1];
 
         source.Items.RemoveAt(0);
@@ -81,7 +84,8 @@ public sealed class VirtualDesktopsServiceTests
         var first = Guid.NewGuid();
         var second = Guid.NewGuid();
         var source = FakeDesktops.Holding(first, first);
-        using var desktops = Start(source);
+        var desktops = Start(source);
+        using var stopDesktops = desktops.Stopping();
         var reads = source.Calls.Count;
 
         _loop.Advance(VirtualDesktopsService.RereadInterval);
@@ -103,7 +107,8 @@ public sealed class VirtualDesktopsServiceTests
         var first = Guid.NewGuid();
         var second = Guid.NewGuid();
         var source = FakeDesktops.Holding(first, first, second);
-        using var desktops = Start(source);
+        var desktops = Start(source);
+        using var stopDesktops = desktops.Stopping();
         var reads = source.Calls.Count;
 
         source.Current = second;
@@ -130,7 +135,8 @@ public sealed class VirtualDesktopsServiceTests
     {
         var source = FakeDesktops.Holding(Guid.NewGuid());
         source.Contract = DesktopContract.ForBuild(22631);
-        using var desktops = Start(source);
+        var desktops = Start(source);
+        using var stopDesktops = desktops.Stopping();
 
         Assert.False(desktops.Supported);
         Assert.Contains("22631", desktops.UnsupportedReason, StringComparison.Ordinal);
@@ -150,7 +156,8 @@ public sealed class VirtualDesktopsServiceTests
         var id = Guid.NewGuid();
         var source = FakeDesktops.Holding(id, id);
         source.FailRead = true;
-        using var desktops = Start(source);
+        var desktops = Start(source);
+        using var stopDesktops = desktops.Stopping();
 
         Assert.False(desktops.Supported);
         Assert.StartsWith("failed:", desktops.UnsupportedReason, StringComparison.Ordinal);
@@ -170,7 +177,8 @@ public sealed class VirtualDesktopsServiceTests
     {
         var id = Guid.NewGuid();
         var source = FakeDesktops.Holding(id, id);
-        using var desktops = Start(source);
+        var desktops = Start(source);
+        using var stopDesktops = desktops.Stopping();
 
         source.FailRead = true;
         desktops.SwitchTo(desktops.Current);
@@ -187,7 +195,7 @@ public sealed class VirtualDesktopsServiceTests
         var desktops = Start(source);
         var reads = source.Calls.Count;
 
-        desktops.Dispose();
+        desktops.Stop();
         source.Items.Clear();
         source.Switch();
         _loop.Advance(VirtualDesktopsService.RereadInterval);

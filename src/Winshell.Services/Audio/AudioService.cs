@@ -1,6 +1,6 @@
 namespace Winshell.Audio;
 
-public sealed class AudioService : ObservableObject, IDisposable
+public sealed class AudioService : ObservableObject, IShellService
 {
     private readonly IAudioBackend _backend;
     private readonly Log _log;
@@ -75,7 +75,7 @@ public sealed class AudioService : ObservableObject, IDisposable
         return devices.FirstOrDefault(d => d.Node == node);
     }
 
-    public void Dispose()
+    void IShellService.Stop()
     {
         _backend.NodeAdded -= OnNodeChanged;
         _backend.NodeRemoved -= OnNodeChanged;

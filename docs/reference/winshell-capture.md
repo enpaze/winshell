@@ -10,7 +10,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 
 | Member | Type |
 | --- | --- |
-| `CaptureSession([IEventLoop](winshell.md#ieventloop) loop, [Log](winshell.md#log) log)` | constructor |
+| `CaptureSession([Log](winshell.md#log) log)` | constructor |
 | `Error` | string, read-only |
 | `Frame` | [PixelImage](winshell.md#pixelimage)?, read-only |
 | `FrameInterval` | int |

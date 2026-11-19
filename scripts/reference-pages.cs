@@ -14,7 +14,7 @@ internal static class ReferencePages
 
     public static SortedDictionary<string, string> Generate(string folder)
     {
-        Assembly[] assemblies = [typeof(Shell).Assembly, typeof(ShellIpc).Assembly, typeof(IEventLoop).Assembly];
+        Assembly[] assemblies = [typeof(Shell).Assembly, typeof(ShellIpc).Assembly, typeof(Log).Assembly];
         var included = Included(assemblies);
         var pages = new SortedDictionary<string, string>(StringComparer.Ordinal);
         foreach (var group in included.GroupBy(type => type.Namespace!))

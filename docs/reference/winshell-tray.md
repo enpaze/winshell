@@ -21,7 +21,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | Member | Type |
 | --- | --- |
 | `Items` | ObservableList of [SystemTrayItem](#systemtrayitem), read-only |
-| `Dispose()` | void |
 
 ## SystemTrayItem
 

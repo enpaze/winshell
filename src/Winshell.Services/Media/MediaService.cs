@@ -2,7 +2,7 @@ using Windows.Media.Control;
 
 namespace Winshell.Media;
 
-public sealed class MediaService : ObservableObject, IDisposable
+public sealed class MediaService : ObservableObject, IShellService
 {
     private readonly IMediaBackend _sessions;
     private readonly IEventLoop _loop;
@@ -29,7 +29,7 @@ public sealed class MediaService : ObservableObject, IDisposable
             static (_, _) => { }, s => s.Detach());
     }
 
-    public void Dispose()
+    void IShellService.Stop()
     {
         _sessions.SessionAdded -= Refresh;
         _sessions.SessionRemoved -= Refresh;

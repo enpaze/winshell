@@ -106,7 +106,8 @@ public sealed class CaptureSessionTests
         var windows = new FakeWindowBackend();
         windows.Show(10);
         windows.Show(20);
-        using var list = new WindowListService(loop, Log.Default, backend: windows);
+        var list = new WindowListService(loop, Log.Default, backend: windows);
+        using var stopList = list.Stopping();
         var first = list.Windows.Single(window => window.Hwnd == 10);
         var second = list.Windows.Single(window => window.Hwnd == 20);
         var backends = new List<FakeCapture>();
@@ -151,7 +152,8 @@ public sealed class CaptureSessionTests
         var windows = new FakeWindowBackend();
         windows.Show(10);
         windows.Show(20);
-        using var list = new WindowListService(loop, Log.Default, backend: windows);
+        var list = new WindowListService(loop, Log.Default, backend: windows);
+        using var stopList = list.Stopping();
         var first = list.Windows.Single(window => window.Hwnd == 10);
         var second = list.Windows.Single(window => window.Hwnd == 20);
         using var session = new CaptureSession(loop, () => new FakeCapture());

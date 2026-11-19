@@ -74,7 +74,7 @@ public sealed partial class Bar : IShellPart
         if (_remakePosted || _disposed)
             return;
         _remakePosted = true;
-        _shell.Loop.Post(() =>
+        _shell.Post(() =>
         {
             _remakePosted = false;
             if (_disposed)

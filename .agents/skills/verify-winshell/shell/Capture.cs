@@ -12,7 +12,7 @@ public sealed class Capture : Component
         var shell = Shell.Current;
         var windows = UseObservableTree(shell.WindowList);
         var own = windows.Windows.FirstOrDefault(Own);
-        var session = UseMemo(() => new CaptureSession(shell.Loop, shell.Log));
+        var session = UseMemo(() => new CaptureSession(shell.Log));
         UseObservable(session);
         UseEffect(() => session.Dispose, session);
         UseEffect(() =>

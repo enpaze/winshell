@@ -207,8 +207,7 @@ public sealed class PackedTemplateTests(PackedTemplates templates) : IClassFixtu
             public sealed class Placements : Component
             {
                 public override Element Render() =>
-                    Component<WidgetArea, WidgetAreaProps>(new WidgetAreaProps(Defaults:
-                        [new("library-clock", new Dictionary<string, object> { ["value"] = "one" })]));
+                    WidgetArea(defaults: [new("library-clock", new Dictionary<string, object> { ["value"] = "one" })]);
             }
             """);
 

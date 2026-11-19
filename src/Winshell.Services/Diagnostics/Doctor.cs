@@ -7,7 +7,7 @@ using Winshell.Session;
 
 namespace Winshell.Diagnostics;
 
-public sealed record DoctorCheck(
+internal sealed record DoctorCheck(
     string Id,
     string Title,
     CheckStatus Status,
@@ -18,7 +18,7 @@ internal sealed record DoctorInstance(string Id, int Pid, string Program, string
 
 internal sealed record DoctorContext(ShellLocations Locations, string? Path, string? Config);
 
-public static class Doctor
+internal static class Doctor
 {
     internal const string BugReports = "https://github.com/enpaze/winshell/issues/new/choose";
 

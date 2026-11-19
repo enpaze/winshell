@@ -18,7 +18,7 @@ public sealed class HotkeyTests : IDisposable
 
     public void Dispose()
     {
-        _registrar.Dispose();
+        _registrar.Stop();
     }
 
     private Hotkey Create()

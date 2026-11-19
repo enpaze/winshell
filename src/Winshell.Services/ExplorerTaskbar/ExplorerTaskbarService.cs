@@ -1,6 +1,6 @@
 namespace Winshell.ExplorerTaskbar;
 
-public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
+public sealed class ExplorerTaskbarService : ObservableObject, IShellService
 {
     private readonly Lock _gate = new();
     private readonly IEventLoop _loop;
@@ -56,7 +56,7 @@ public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
         ExplorerTaskbarLease.HandOff(ShellLocations.Current);
     }
 
-    public void Dispose()
+    void IShellService.Stop()
     {
         Restore();
         lock (_gate)

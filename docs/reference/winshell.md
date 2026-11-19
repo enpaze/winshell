@@ -96,14 +96,6 @@ Has the members of [FloatingWindow](#floatingwindow).
 | --- | --- |
 | `FloatingWindow<T, TProps>(TProps? props)` | constructor |
 
-## IEventLoop
-
-| Member | Type |
-| --- | --- |
-| `Time` | TimeProvider, read-only |
-| `Post(Action action)` | void |
-| `Schedule(TimeSpan delay, Action action)` | IDisposable |
-
 ## IpcException
 
 An exception.
@@ -147,7 +139,6 @@ Has the members of [ObservableObject](#observableobject).
 
 | Member | Type |
 | --- | --- |
-| `Default` | [Log](#log), static |
 | `Debug(string category, string message)` | void |
 | `Error(string category, string message)` | void |
 | `Info(string category, string message)` | void |
@@ -250,9 +241,6 @@ Has the members of [PanelWindow](#panelwindow).
 | `Placement(string Widget, IReadOnlyDictionary of string, object? Settings = null)` | constructor |
 | `Settings` | IReadOnlyDictionary of string, object?, init |
 | `Widget` | string, init |
-| `Check(object value)` | string, static |
-| `Format(ImmutableArray of [Placement](#placement) placements)` | IReadOnlyList of object, static |
-| `Parse(object items)` | ImmutableArray of [Placement](#placement), static |
 
 ## PopupPosition
 
@@ -309,19 +297,18 @@ Has the members of [ObservableObject](#observableobject).
 
 | Member | Type |
 | --- | --- |
-| `ScreenInfo(string Id, string Name, string Model, string Manufacturer, string SerialNumber, Rect Geometry, Rect WorkArea, double DevicePixelRatio, double PhysicalWidthMm, double PhysicalHeightMm, int RefreshRate, bool IsPrimary)` | constructor |
-| `DevicePixelRatio` | double, init |
-| `Geometry` | Rect, init |
-| `Id` | string, init |
-| `IsPrimary` | bool, init |
-| `Manufacturer` | string, init |
-| `Model` | string, init |
-| `Name` | string, init |
-| `PhysicalHeightMm` | double, init |
-| `PhysicalWidthMm` | double, init |
-| `RefreshRate` | int, init |
-| `SerialNumber` | string, init |
-| `WorkArea` | Rect, init |
+| `DevicePixelRatio` | double, read-only |
+| `Geometry` | Rect, read-only |
+| `Id` | string, read-only |
+| `IsPrimary` | bool, read-only |
+| `Manufacturer` | string, read-only |
+| `Model` | string, read-only |
+| `Name` | string, read-only |
+| `PhysicalHeightMm` | double, read-only |
+| `PhysicalWidthMm` | double, read-only |
+| `RefreshRate` | int, read-only |
+| `SerialNumber` | string, read-only |
+| `WorkArea` | Rect, read-only |
 
 ## ScreenWindows
 
@@ -348,7 +335,6 @@ Has the members of [ObservableObject](#observableobject).
 | `JumpLists` | [JumpListService](winshell-apps.md#jumplistservice), read-only |
 | `KeyboardLayouts` | [KeyboardLayoutService](winshell-keyboard.md#keyboardlayoutservice), read-only |
 | `Log` | [Log](#log), read-only |
-| `Loop` | [IEventLoop](#ieventloop), read-only |
 | `Media` | [MediaService](winshell-media.md#mediaservice), read-only |
 | `Networking` | [NetworkingService](winshell-network.md#networkingservice), read-only |
 | `Notifications` | [NotificationListener](winshell-notifications.md#notificationlistener), read-only |
@@ -371,7 +357,6 @@ Has the members of [ObservableObject](#observableobject).
 | `Winland` | [WinlandService](winshell-winland.md#winlandservice), read-only |
 | `StyleChanged` | Action |
 | `Add<T>(T part)` | T |
-| `Dispose()` | void |
 | `Hotkey(string sequence, Action? pressed = null)` | [Hotkey](winshell-input.md#hotkey) |
 | `NewIdleMonitor()` | [IdleMonitor](winshell-power.md#idlemonitor) |
 | `Open(string target)` | void |
@@ -449,24 +434,6 @@ Has the members of [ObservableObject](#observableobject).
 | `StartSystemResize([Edges](#edges) edges)` | void |
 | `Toggle()` | void |
 
-## Surface
-
-A WinUI Component. The members here are the ones Winshell adds.
-
-| Member | Type |
-| --- | --- |
-| `Surface()` | constructor |
-| `Render()` | Element |
-
-## SurfaceProps
-
-| Member | Type |
-| --- | --- |
-| `SurfaceProps(Element? Content = null, Thickness Padding = default, [ShellStyle](#shellstyle)? Style = null)` | constructor |
-| `Content` | Element?, init |
-| `Padding` | Thickness, init |
-| `Style` | [ShellStyle](#shellstyle)?, init |
-
 ## TomlCommentAttribute
 
 An attribute.
@@ -499,25 +466,6 @@ A WinUI Component. The members here are the ones Winshell adds.
 | `StylePopup(UIElement content)` | FrameworkElement, protected |
 | `UseNow(TimeSpan every)` | DateTime, protected |
 | `UseScreen()` | [ScreenInfo](#screeninfo)?, protected |
-
-## WidgetArea
-
-A WinUI Component. The members here are the ones Winshell adds.
-
-| Member | Type |
-| --- | --- |
-| `WidgetArea()` | constructor |
-| `Render()` | Element |
-
-## WidgetAreaProps
-
-| Member | Type |
-| --- | --- |
-| `WidgetAreaProps(string Name = "", ImmutableArray of [Placement](#placement)? Defaults = null, Orientation Orientation = Orientation.Horizontal, [ShellStyle](#shellstyle)? Style = null)` | constructor |
-| `Defaults` | ImmutableArray of [Placement](#placement)?, init |
-| `Name` | string, init |
-| `Orientation` | Orientation, init |
-| `Style` | [ShellStyle](#shellstyle)?, init |
 
 ## WidgetContext
 

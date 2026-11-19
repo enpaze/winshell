@@ -8,13 +8,13 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell;
 
-public sealed record WidgetAreaProps(
+internal sealed record WidgetAreaProps(
     string Name = "",
     ImmutableArray<Placement>? Defaults = null,
     Orientation Orientation = Orientation.Horizontal,
     ShellStyle? Style = null);
 
-public sealed partial class WidgetArea : Component<WidgetAreaProps>
+internal sealed partial class WidgetArea : Component<WidgetAreaProps>
 {
     private static readonly IReadOnlyDictionary<string, object> EmptySettings = new Dictionary<string, object>();
 

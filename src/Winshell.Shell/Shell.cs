@@ -10,7 +10,7 @@ using Winshell.ExplorerTaskbar;
 
 namespace Winshell;
 
-public sealed partial class Shell : IDisposable
+public sealed partial class Shell
 {
     private static Shell? _current;
 
@@ -52,7 +52,9 @@ public sealed partial class Shell : IDisposable
     public static Shell Current =>
         _current ?? throw new InvalidOperationException("The shell has not started. Call Shell.Run first.");
 
-    public IEventLoop Loop { get; }
+    internal IEventLoop Loop { get; }
+
+    internal void Post(Action action) => Loop.Post(action);
 
     public Log Log { get; }
 
@@ -168,6 +170,7 @@ public sealed partial class Shell : IDisposable
                     var loop = new DispatcherLoop(queue, session.Log);
                     loop.Failed += e => instance.Reported(instance.Crashes.WriteOnce("event loop", e, "Winshell",
                         "Something in Winshell failed. It is still running."));
+                    EventLoop.Current = loop;
                     shell = new Shell(loop, session, widgets);
                     _current = shell;
                     if (Environment.GetEnvironmentVariable(DevProjectVariable) is { Length: > 0 })
@@ -300,7 +303,7 @@ public sealed partial class Shell : IDisposable
         PanelPlacer.ReleaseAll();
     }
 
-    public void Dispose()
+    internal void Dispose()
     {
         if (_disposed)
             return;

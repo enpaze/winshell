@@ -19,6 +19,5 @@ The keyboard layouts Windows has installed. Reach it from `Shell.Current.Keyboar
 | `Current` | [KeyboardLayout](#keyboardlayout)?, read-only |
 | `Layouts` | IReadOnlyList of [KeyboardLayout](#keyboardlayout), read-only |
 | `PropertyChanged` | PropertyChangedEventHandler |
-| `Dispose()` | void |
 | `Next()` | bool |
 | `Use([KeyboardLayout](#keyboardlayout) layout)` | bool |

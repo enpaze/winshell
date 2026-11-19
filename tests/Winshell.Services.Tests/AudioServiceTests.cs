@@ -34,7 +34,8 @@ public sealed class AudioServiceTests
         var speaker = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice, "Speakers"));
         _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackSession, "App", device: speaker));
 
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
 
         var device = Assert.Single(audio.PlaybackDevices);
         Assert.Equal("Speakers", device.Name);
@@ -49,7 +50,8 @@ public sealed class AudioServiceTests
     {
         var speaker = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice));
         var app = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackSession, device: speaker));
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
         var kept = audio.PlaybackDevices[0];
 
         _graph.Remove(app);
@@ -66,7 +68,8 @@ public sealed class AudioServiceTests
         var microphone = _graph.Add(new FakeGraphNode(AudioNodeType.RecordingDevice, "Microphone"));
         _graph.Add(new FakeGraphNode(AudioNodeType.RecordingSession, "App", channels, microphone));
         _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice, "Speakers"));
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
 
         var recording = Assert.Single(audio.RecordingDevices);
         Assert.Equal("Microphone", recording.Name);
@@ -82,7 +85,8 @@ public sealed class AudioServiceTests
     public void A_device_says_what_form_it_has()
     {
         _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice, formFactor: AudioFormFactor.Headphones));
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
 
         Assert.Equal(AudioFormFactor.Headphones, audio.PlaybackDevices[0].FormFactor);
     }
@@ -115,7 +119,8 @@ public sealed class AudioServiceTests
     {
         var speaker = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice));
         var app = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackSession, "App", device: speaker));
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
         var session = audio.PlaybackDevices[0].Sessions[0];
         var changes = Watch(session);
 
@@ -131,7 +136,8 @@ public sealed class AudioServiceTests
         var speaker = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice));
         var microphone = _graph.Add(new FakeGraphNode(AudioNodeType.RecordingDevice));
         _graph.SetDefaults(speaker, null);
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
         Assert.Same(audio.PlaybackDevices[0], audio.DefaultPlaybackDevice);
         Assert.Null(audio.DefaultRecordingDevice);
         var changes = Watch(audio);
@@ -149,7 +155,8 @@ public sealed class AudioServiceTests
     {
         var speaker = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice, "Endpoint"));
         speaker.Rename("Speakers");
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
 
         audio.DefaultPlaybackDevice = audio.PlaybackDevices[0];
 
@@ -161,7 +168,8 @@ public sealed class AudioServiceTests
     [Fact]
     public void Setting_no_default_changes_nothing()
     {
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
 
         audio.DefaultPlaybackDevice = null;
 
@@ -174,7 +182,8 @@ public sealed class AudioServiceTests
     {
         var speaker = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice));
         speaker.SetAudio([0.25f, 0.5f], false);
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
         var volume = audio.PlaybackDevices[0];
         Assert.Equal(0.375, volume.Volume, 5);
 
@@ -188,7 +197,8 @@ public sealed class AudioServiceTests
     public void Setting_the_volume_of_a_silent_node_sets_every_channel()
     {
         _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice));
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
 
         audio.PlaybackDevices[0].Volume = 0.5;
 
@@ -199,7 +209,8 @@ public sealed class AudioServiceTests
     public void A_negative_channel_volume_is_zero()
     {
         _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice));
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
 
         audio.PlaybackDevices[0].Volumes = [-1, 0.5];
 
@@ -211,7 +222,8 @@ public sealed class AudioServiceTests
     {
         var speaker = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice));
         speaker.SetAudio([0.25f, 0.5f], false);
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
         var levels = audio.PlaybackDevices[0];
 
         levels.Volumes = null!;
@@ -225,7 +237,8 @@ public sealed class AudioServiceTests
     public void A_channel_list_of_another_length_sets_every_channel_to_its_first()
     {
         _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice));
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
 
         audio.PlaybackDevices[0].Volumes = [0.25, 0.5, 1];
 
@@ -237,7 +250,8 @@ public sealed class AudioServiceTests
     {
         var speaker = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice));
         speaker.SetAudio([0.25f, 0.75f], false);
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
         var volume = audio.PlaybackDevices[0];
         var changes = Watch(volume);
 
@@ -262,7 +276,8 @@ public sealed class AudioServiceTests
     public void A_volume_Windows_refuses_is_logged()
     {
         var speaker = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice, "Speakers"));
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
         speaker.FailWrites = true;
 
         audio.PlaybackDevices[0].Muted = true;
@@ -276,7 +291,8 @@ public sealed class AudioServiceTests
     {
         var speaker = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice));
         var app = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackSession, device: speaker));
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
         var session = audio.PlaybackDevices[0].Sessions[0];
         Assert.False(session.Active);
         var changes = Watch(session);
@@ -296,7 +312,7 @@ public sealed class AudioServiceTests
         var deviceChanges = Watch(audio.PlaybackDevices[0]);
         var sessionChanges = Watch(audio.PlaybackDevices[0].Sessions[0]);
 
-        audio.Dispose();
+        audio.Stop();
         _graph.Add(new FakeGraphNode(AudioNodeType.RecordingDevice));
         speaker.SetAudio([1, 1], true);
         app.SetActive(true);
@@ -319,7 +335,7 @@ public sealed class AudioServiceTests
     public void A_peak_monitor_reads_at_once_and_about_30_times_a_second()
     {
         var (audio, _, meter) = Metered(0.25f, 0.5f);
-        using var _ = audio;
+        using var _ = audio.Stopping();
         using var monitor = new AudioPeakMonitor(_loop);
         monitor.Audio = audio.RecordingDevices[0];
 
@@ -339,7 +355,7 @@ public sealed class AudioServiceTests
     public void A_peak_monitor_names_channels_itself_when_the_meter_has_another_count()
     {
         var (audio, _, _) = Metered(0.25f);
-        using var _ = audio;
+        using var _ = audio.Stopping();
         using var monitor = new AudioPeakMonitor(_loop);
         monitor.Audio = audio.RecordingDevices[0];
 
@@ -350,7 +366,7 @@ public sealed class AudioServiceTests
     public void A_disabled_peak_monitor_clears_and_stops_reading()
     {
         var (audio, node, meter) = Metered(0.25f, 0.5f);
-        using var _ = audio;
+        using var _ = audio.Stopping();
         using var monitor = new AudioPeakMonitor(_loop);
         monitor.Audio = audio.RecordingDevices[0];
         Assert.Equal(1, node.Running);
@@ -373,7 +389,8 @@ public sealed class AudioServiceTests
     public void A_peak_monitor_on_a_node_with_no_meter_stays_at_zero()
     {
         _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice));
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
         using var monitor = new AudioPeakMonitor(_loop);
         monitor.Audio = audio.PlaybackDevices[0];
 
@@ -385,7 +402,7 @@ public sealed class AudioServiceTests
     public void A_peak_monitor_clears_when_its_node_is_removed()
     {
         var (audio, node, _) = Metered(0.25f, 0.5f);
-        using var _ = audio;
+        using var _ = audio.Stopping();
         using var monitor = new AudioPeakMonitor(_loop);
         monitor.Audio = audio.RecordingDevices[0];
 
@@ -401,7 +418,7 @@ public sealed class AudioServiceTests
     public void A_peak_monitor_keeps_reading_when_the_device_fails_a_read()
     {
         var (audio, _, meter) = Metered(0.25f, 0.5f);
-        using var _ = audio;
+        using var _ = audio.Stopping();
         using var monitor = new AudioPeakMonitor(_loop);
         monitor.Audio = audio.RecordingDevices[0];
 
@@ -418,7 +435,7 @@ public sealed class AudioServiceTests
     public void A_handler_that_turns_the_monitor_off_stops_the_next_read()
     {
         var (audio, _, meter) = Metered(0.25f, 0.5f);
-        using var _ = audio;
+        using var _ = audio.Stopping();
         using var monitor = new AudioPeakMonitor(_loop);
         monitor.Audio = audio.RecordingDevices[0];
         monitor.PropertyChanged += (_, _) => monitor.Enabled = false;
@@ -434,7 +451,7 @@ public sealed class AudioServiceTests
     public void A_disposed_peak_monitor_lets_go_of_the_device()
     {
         var (audio, node, _) = Metered(0.25f, 0.5f);
-        using var _ = audio;
+        using var _ = audio.Stopping();
         var monitor = new AudioPeakMonitor(_loop) { Audio = audio.RecordingDevices[0] };
 
         monitor.Dispose();
@@ -448,7 +465,7 @@ public sealed class AudioServiceTests
     public void A_device_that_leaves_stops_metering_once()
     {
         var (audio, node, meter) = Metered(0.25f, 0.5f);
-        using var _ = audio;
+        using var _ = audio.Stopping();
         using var monitor = new AudioPeakMonitor(_loop);
         var device = audio.RecordingDevices[0];
         monitor.Audio = device;
@@ -474,7 +491,8 @@ public sealed class AudioServiceTests
         var meter = new FakeMeter(0.25f, 0.5f);
         var speaker = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice));
         var app = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackSession, device: speaker) { FakeMeter = meter });
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
         using var monitor = new AudioPeakMonitor(_loop);
         monitor.Audio = audio.PlaybackDevices[0].Sessions[0];
         Assert.Equal(0.5, monitor.Peak);
@@ -493,7 +511,8 @@ public sealed class AudioServiceTests
         var meter = new FakeMeter(0.25f, 0.5f);
         var speaker = _graph.Add(new FakeGraphNode(AudioNodeType.PlaybackDevice, "Speakers") { FakeMeter = meter });
         _graph.SetDefaults(speaker, null);
-        using var audio = Service();
+        var audio = Service();
+        using var stopAudio = audio.Stopping();
         using var monitor = new AudioPeakMonitor(_loop);
         var device = audio.DefaultPlaybackDevice;
         Assert.NotNull(device);

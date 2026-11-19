@@ -1,6 +1,6 @@
 namespace Winshell.Wallpaper;
 
-public sealed class WallpaperService : ObservableObject, IDisposable
+public sealed class WallpaperService : ObservableObject, IShellService
 {
     private readonly IWallpaperBackend _backend;
     private readonly SettleTimer _settle;
@@ -71,7 +71,7 @@ public sealed class WallpaperService : ObservableObject, IDisposable
         return true;
     }
 
-    public void Dispose()
+    void IShellService.Stop()
     {
         if (_disposed)
             return;

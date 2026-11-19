@@ -5,7 +5,7 @@ using static Winshell.Winland.WinlandProtocol;
 
 namespace Winshell.Winland;
 
-public sealed class WinlandService : ObservableObject, IDisposable
+public sealed class WinlandService : ObservableObject, IShellService
 {
     private readonly IEventLoop _loop;
     private readonly Log _log;
@@ -586,7 +586,7 @@ public sealed class WinlandService : ObservableObject, IDisposable
         Set(ref _activeWindow, window, nameof(ActiveWindow));
     }
 
-    public void Dispose()
+    void IShellService.Stop()
     {
         if (_disposed)
             return;

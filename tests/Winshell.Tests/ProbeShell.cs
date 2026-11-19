@@ -216,6 +216,7 @@ internal static class ProbeShell
     private const string Source =
         $$"""
           using System.Diagnostics;
+          using Microsoft.UI.Dispatching;
           using Microsoft.UI.Xaml.Controls;
           using Windows.Foundation;
 
@@ -223,7 +224,8 @@ internal static class ProbeShell
           {
               shell.Ipc.Handle("probe", "note", (string text) => { });
               shell.Ipc.Property("probe", "name", () => "probe");
-              shell.Ipc.Handle("self", "restart", () => shell.Loop.Post(() => shell.Restart()));
+              var dispatcher = DispatcherQueue.GetForCurrentThread();
+              shell.Ipc.Handle("self", "restart", () => { dispatcher.TryEnqueue(() => shell.Restart()); });
               shell.Ipc.Property("paths", "data", () => shell.Paths.Data);
               shell.Ipc.Property("paths", "state", () => shell.Paths.State);
               shell.Ipc.Property("paths", "cache", () => shell.Paths.Cache);
@@ -242,8 +244,9 @@ internal static class ProbeShell
               if (config is not null && File.Exists(Path.Combine(config, "{{PreferencesMarker}}")))
               {
                   new EarlySection();
-                  shell.Loop.Post(() => new LateSection());
-                  shell.Loop.Post(() =>
+                  var queue = DispatcherQueue.GetForCurrentThread();
+                  queue.TryEnqueue(() => new LateSection());
+                  queue.TryEnqueue(() =>
                   {
                       var path = Path.Combine(shell.Paths.Shells, "preferences", shell.ShellId + ".toml");
                       var report = Path.Combine(config, "preferences-report.txt");
@@ -251,6 +254,10 @@ internal static class ProbeShell
                       // beside it, then moved to a name that does not exist yet, which no reader can hold open.
                       // Antivirus can lock a file just written, so a refused move is tried again shortly.
                       var written = report + ".tmp";
+                      var retry = queue.CreateTimer();
+                      retry.Interval = TimeSpan.FromMilliseconds(25);
+                      retry.IsRepeating = false;
+                      retry.Tick += (_, _) => Publish();
                       void Publish()
                       {
                           try
@@ -259,7 +266,7 @@ internal static class ProbeShell
                           }
                           catch (Exception e) when (e is IOException or UnauthorizedAccessException)
                           {
-                              shell.Loop.Schedule(TimeSpan.FromMilliseconds(25), Publish);
+                              retry.Start();
                           }
                       }
 
@@ -272,7 +279,7 @@ internal static class ProbeShell
                       if (File.Exists(path))
                           Report();
                       else
-                          shell.Loop.Post(Report);
+                          queue.TryEnqueue(Report);
                   });
               }
               // A test that puts {{WindowMarker}} there gets a panel whose button opens a popup.
@@ -306,7 +313,7 @@ internal static class ProbeShell
                   shell.Add(new ProbePart("second", report));
                   shell.Add(first);
                   shell.Add(new ProbePart("disposed", report)).Dispose();
-                  shell.Loop.Post(() =>
+                  DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
                   {
                       ProbePart.Write(report, ending);
                       if (ending != "restart")

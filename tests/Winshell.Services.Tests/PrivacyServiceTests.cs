@@ -27,7 +27,8 @@ public sealed class PrivacyServiceTests
             "C:#Apps#Maps.exe", 5, 5, "Maps"));
         backend.Consent.Add(new ConsentRecord(PrivacyCapability.Location, false, "brave.exe", 8, 0, ""));
         backend.Consent.Add(new ConsentRecord(PrivacyCapability.Location, false, "Shell.exe", 9, 0, ""));
-        using var privacy = new PrivacyService(loop, new Log(), backend);
+        var privacy = new PrivacyService(loop, new Log(), backend);
+        using var stopPrivacy = privacy.Stopping();
         privacy.PropertyChanged += Ignore;
 
         var camera = Assert.Single(privacy.Camera);
@@ -64,7 +65,8 @@ public sealed class PrivacyServiceTests
         var backend = new FakePrivacyBackend { ProgramPath = ShellPath, PackageFamilyName = ShellFamily };
         backend.Captures.Add(new MicrophoneCapture("Meter", ShellPath, "", true));
         backend.Captures.Add(new MicrophoneCapture("Meet", @"C:\Apps\Meet.exe", "", false));
-        using var privacy = new PrivacyService(loop, new Log(), backend);
+        var privacy = new PrivacyService(loop, new Log(), backend);
+        using var stopPrivacy = privacy.Stopping();
         privacy.PropertyChanged += Ignore;
 
         Assert.Equal(2, privacy.Microphone.Count);
@@ -100,7 +102,8 @@ public sealed class PrivacyServiceTests
     {
         var loop = new ManualEventLoop();
         var backend = new FakePrivacyBackend();
-        using var privacy = new PrivacyService(loop, new Log(), backend);
+        var privacy = new PrivacyService(loop, new Log(), backend);
+        using var stopPrivacy = privacy.Stopping();
         PropertyChangedEventHandler second = Ignore;
 
         Assert.Empty(privacy.Microphone);
@@ -139,7 +142,8 @@ public sealed class PrivacyServiceTests
         var loop = new ManualEventLoop();
         var backend = new FakePrivacyBackend();
         backend.Captures.Add(new MicrophoneCapture("Meet", @"C:\Apps\Meet.exe", "", false));
-        using var privacy = new PrivacyService(loop, new Log(), backend);
+        var privacy = new PrivacyService(loop, new Log(), backend);
+        using var stopPrivacy = privacy.Stopping();
         List<string?> heard = [];
         privacy.PropertyChanged += (_, e) => heard.Add(e.PropertyName);
         Assert.Equal([nameof(PrivacyService.Microphone), nameof(PrivacyService.MicrophoneInUse)], heard);
@@ -177,7 +181,7 @@ public sealed class PrivacyServiceTests
         privacy.PropertyChanged += Ignore;
         Assert.Equal(1, backend.Starts);
 
-        privacy.Dispose();
+        privacy.Stop();
         privacy.PropertyChanged += Ignore;
         backend.Raise();
         loop.Advance(Settle);

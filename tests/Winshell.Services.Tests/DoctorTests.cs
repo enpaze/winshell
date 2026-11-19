@@ -28,18 +28,18 @@ public sealed class DoctorTests : IDisposable
     }
 
     [Theory]
-    [InlineData(26300, 9711, "26H2", false, CheckStatus.Pass, "Windows 11 26H2, build 26300.9711")]
-    [InlineData(22621, 0, "22H2", false, CheckStatus.Pass, "Windows 11 22H2, build 22621.0")]
-    [InlineData(22000, 2538, "21H2", false, CheckStatus.Warn, "Windows 11 21H2, build 22000.2538")]
-    [InlineData(19045, 5011, "22H2", false, CheckStatus.Fail, "Windows 10 22H2, build 19045.5011")]
-    [InlineData(26100, 1, null, true, CheckStatus.Pass, "Windows Server, build 26100.1")]
+    [InlineData(26300, 9711, "26H2", false, nameof(CheckStatus.Pass), "Windows 11 26H2, build 26300.9711")]
+    [InlineData(22621, 0, "22H2", false, nameof(CheckStatus.Pass), "Windows 11 22H2, build 22621.0")]
+    [InlineData(22000, 2538, "21H2", false, nameof(CheckStatus.Warn), "Windows 11 21H2, build 22000.2538")]
+    [InlineData(19045, 5011, "22H2", false, nameof(CheckStatus.Fail), "Windows 10 22H2, build 19045.5011")]
+    [InlineData(26100, 1, null, true, nameof(CheckStatus.Pass), "Windows Server, build 26100.1")]
     public void Windows_needs_11_and_22H2_for_its_materials(int build, int revision, string? version, bool server,
-        CheckStatus status, string message)
+        string status, string message)
     {
         var check = Doctor.Windows(build, revision, version, server);
-        Assert.Equal(status, check.Status);
+        Assert.Equal(Enum.Parse<CheckStatus>(status), check.Status);
         Assert.Equal(message, check.Message);
-        Assert.Equal(status == CheckStatus.Pass, check.Fix is null);
+        Assert.Equal(status == nameof(CheckStatus.Pass), check.Fix is null);
     }
 
     [Fact]
@@ -380,13 +380,13 @@ public sealed class DoctorTests : IDisposable
     }
 
     [Theory]
-    [InlineData("Allowed", CheckStatus.Pass)]
-    [InlineData("Denied", CheckStatus.Warn)]
-    [InlineData("Unspecified", CheckStatus.Warn)]
-    [InlineData("Unavailable", CheckStatus.Warn)]
-    public void Notification_access_is_read_without_asking(string access, CheckStatus status)
+    [InlineData("Allowed", nameof(CheckStatus.Pass))]
+    [InlineData("Denied", nameof(CheckStatus.Warn))]
+    [InlineData("Unspecified", nameof(CheckStatus.Warn))]
+    [InlineData("Unavailable", nameof(CheckStatus.Warn))]
+    public void Notification_access_is_read_without_asking(string access, string status)
     {
-        Assert.Equal(status, Doctor.Notifications(access).Status);
+        Assert.Equal(Enum.Parse<CheckStatus>(status), Doctor.Notifications(access).Status);
     }
 
     [Fact]

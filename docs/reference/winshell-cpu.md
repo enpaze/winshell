@@ -10,4 +10,3 @@ How busy the processors are. Reach it from `Shell.Current.Cpu`.
 | --- | --- |
 | `Usage` | double, read-only |
 | `PropertyChanged` | PropertyChangedEventHandler |
-| `Dispose()` | void |

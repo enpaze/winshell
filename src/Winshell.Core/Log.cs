@@ -15,7 +15,7 @@ public enum LogLevel
 
 public sealed class Log
 {
-    public static readonly Log Default = new();
+    internal static readonly Log Default = new();
 
     private readonly Lock _lock = new();
     private Action<LogLevel, string>? _file;
