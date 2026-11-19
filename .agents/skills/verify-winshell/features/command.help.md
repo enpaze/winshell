@@ -35,4 +35,4 @@ Preconditions:
 - `winshell` with only the options of `run`, such as `winshell -d`, starts a shell instead of printing help. So do `winshellw` and a start with no console window.
 - The subcommands of `ipc` and `inspect` have no usage of their own. `winshell help inspect` lists every `inspect` command.
 - The summary names the shells folder, `%APPDATA%\winshell` or `WINSHELL_SHELLS_DIR`, so its text differs from session to session.
-- `-V` prints the version with any command but `help`.
+- `--version` prints the version with any command but `help`.

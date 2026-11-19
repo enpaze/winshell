@@ -15,7 +15,7 @@ winshell new starter
 winshell run -s starter
 ```
 
-A bar shows along the top of every screen, with the time in the middle and the battery's charge at the end. It reserves that edge, so maximized windows stop short of it. `winshell kill` closes it. The project is in `%APPDATA%\winshell\starter`, and the C# below is its own text.
+A bar shows along the top of every screen, with the time in the middle and the battery's charge at the end. It reserves that edge, so maximized windows stop short of it. `winshell stop` closes it. The project is in `%APPDATA%\winshell\starter`, and the C# below is its own text.
 
 ### The shell
 
@@ -79,10 +79,10 @@ The files have no `using` line for Winshell or Reactor. The package adds them, a
 
 ### Change it
 
-Close the bar with `winshell kill`, and run the starter under `winshell dev` instead. It applies each edit to the running bar as you save it, until you press Ctrl+C:
+Close the bar with `winshell stop`, and run the starter under `winshell dev` instead. It applies each edit to the running bar as you save it, until you press Ctrl+C:
 
 ```powershell
-winshell kill
+winshell stop
 winshell dev -s starter
 ```
 
@@ -101,7 +101,7 @@ Change `{time:t}` in `Clock.cs` to `{time:T}` and save it, and the clock shows t
 When Winshell runs a shell:
 
 - **Building.** Winshell builds to `bin\shell` in the project folder when a source is newer, then starts that program. `--no-build` runs the program the last build left, and does not build. A failed build does not start the last good build.
-- **A `winshell` and a shell of different releases refuse each other**, except `kill`. The message names both releases.
+- **A `winshell` and a shell of different releases refuse each other**, except `stop`. The message names both releases.
 
 ### From a clone
 
@@ -126,7 +126,7 @@ winshell run --path .
 
 ## Where a shell lives
 
-A shell is a .NET project. Winshell looks for a `.csproj` in this order. With none, `winshell run` starts nothing and says nothing.
+A shell is a .NET project. Winshell looks for a `.csproj` in this order. With none, `winshell run` starts nothing: in a console it says so and points to `winshell new`, and the Start tile and the sign-in entry say nothing.
 
 | What you run | The project it builds and runs |
 | --- | --- |
@@ -815,4 +815,4 @@ What each kind of edit does:
 - **Code that doesn't compile** shows in a notice on screen, and the last version that did keeps running. The notice goes when the next save compiles. Before the first successful build there is no shell to show it, so the error is in the console.
 - **A TOML file with an error** shows in the same notice, and what came from it before stays in use. Without `winshell dev` it goes to the log.
 
-Desktop apps you open from the shell stay open when `winshell dev` builds and starts the shell again, and when `winshell dev` ends, as they do after `winshell kill`.
+Desktop apps you open from the shell stay open when `winshell dev` builds and starts the shell again, and when `winshell dev` ends, as they do after `winshell stop`.

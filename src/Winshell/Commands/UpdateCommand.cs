@@ -104,7 +104,7 @@ internal static class UpdateCommand
     {
         foreach (var info in ShellLocations.Current.Instances.Running())
         {
-            if (!await KillCommand.StopAsync(info, false))
+            if (!await StopCommand.StopAsync(info, false))
                 return false;
         }
 

@@ -38,7 +38,7 @@ internal static class ShellExit
                 using var deadline = new CancellationTokenSource(patience.Ask);
                 try
                 {
-                    answer = await InstanceCall.AskAsync(info, IpcRequest.ForKill(), deadline.Token);
+                    answer = await InstanceCall.AskAsync(info, IpcRequest.ForStop(), deadline.Token);
                 }
                 catch (OperationCanceledException)
                 {

@@ -37,7 +37,7 @@ Preconditions:
 
 ## Gotchas
 
-- The bar reserves the top edge of every screen while the shell runs, so the user's maximized windows shrink. `winshell kill` gives the edge back.
+- The bar reserves the top edge of every screen while the shell runs, so the user's maximized windows shrink. `winshell stop` gives the edge back.
 - The step reads only the first bar window in the tree. A second screen's bar, the reserved edge and the clock's place in the center are not checked; take a screenshot with `winshell inspect --pid {pid} screenshot <file> Surface` to see them. In `inspect` commands, a `[window]` is the window's content type or number, not its kind.
 - A bar shows on the next turn of the shell's loop, not at once, so a tree read right after start can miss it. The element step retries for 10 seconds.
 - `{time:t}` follows the Windows regional format. A format that starts with an AM or PM designator, such as `오후 2:05`, does not match the pattern.

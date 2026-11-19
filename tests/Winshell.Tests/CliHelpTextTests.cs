@@ -6,7 +6,7 @@ public class CliHelpTextTests
     [InlineData("summary", "")]
     [InlineData("run", "run")]
     [InlineData("list", "list")]
-    [InlineData("kill", "kill")]
+    [InlineData("stop", "stop")]
     [InlineData("reload", "reload")]
     [InlineData("dev", "dev")]
     [InlineData("log", "log")]

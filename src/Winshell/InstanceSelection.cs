@@ -9,13 +9,13 @@ internal static class InstanceSelection
 {
     internal const string NoneRunning = "No running instances. Start one with winshell run.";
 
-    private const string NoneToKill = "No running instances.";
+    private const string NoneToStop = "No running instances.";
 
     internal readonly record struct Question(string None, bool StoppedFallback)
     {
         internal static Question Running => new(NoneRunning, false);
 
-        internal static Question Kill => new(NoneToKill, false);
+        internal static Question Stop => new(NoneToStop, false);
 
         internal static Question Log => new(NoneRunning, true);
     }

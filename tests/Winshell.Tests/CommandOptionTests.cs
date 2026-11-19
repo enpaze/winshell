@@ -7,8 +7,8 @@ public class CommandOptionTests
     [Theory]
     [InlineData("list --force", "winshell list does not take \"--force\".")]
     [InlineData("list -s work", "winshell list does not take \"-s\".")]
-    [InlineData("kill -j", "winshell kill does not take \"-j\".")]
-    [InlineData("-d kill", "winshell kill does not take \"-d\".")]
+    [InlineData("stop -j", "winshell stop does not take \"-j\".")]
+    [InlineData("-d stop", "winshell stop does not take \"-d\".")]
     [InlineData("reload --no-build", "winshell reload does not take \"--no-build\".")]
     [InlineData("inspect --force tree", "winshell inspect does not take \"--force\".")]
     [InlineData("inspect screenshot out.png --fps 30", "winshell inspect screenshot does not take \"--fps\".")]
@@ -36,21 +36,23 @@ public class CommandOptionTests
     [InlineData("run -p missing --debug 1", "Unknown option \"--debug\".")]
     [InlineData("list -a", "Unknown option \"-a\".")]
     [InlineData("list --all", "Unknown option \"--all\".")]
+    [InlineData("-V", "Unknown option \"-V\".")]
+    [InlineData("list -V", "Unknown option \"-V\".")]
     [InlineData("reload --pid 0 --hard", "Unknown option \"--hard\".")]
     [InlineData("list extra", "Unexpected argument \"extra\".")]
-    [InlineData("kill --pid 0 extra", "Unexpected argument \"extra\".")]
+    [InlineData("stop --pid 0 extra", "Unexpected argument \"extra\".")]
     [InlineData("run -p missing extra", "Unexpected argument \"extra\".")]
     [InlineData("doctor extra", "Unexpected argument \"extra\".")]
     [InlineData("log one two", "Unexpected argument \"two\".")]
-    [InlineData("kill --pid abc", "--pid needs a whole number.")]
-    [InlineData("kill --pid 1.5", "--pid needs a whole number.")]
-    [InlineData("kill --pid 999999999999", "--pid needs a whole number.")]
-    [InlineData("kill --pid -1", "--pid needs a whole number.")]
-    [InlineData("kill --pid ''", "--pid needs a whole number.")]
+    [InlineData("stop --pid abc", "--pid needs a whole number.")]
+    [InlineData("stop --pid 1.5", "--pid needs a whole number.")]
+    [InlineData("stop --pid 999999999999", "--pid needs a whole number.")]
+    [InlineData("stop --pid -1", "--pid needs a whole number.")]
+    [InlineData("stop --pid ''", "--pid needs a whole number.")]
     [InlineData("log --tail ten", "--tail needs a whole number.")]
     [InlineData("log --tail -5", "--tail needs a whole number.")]
     [InlineData("log -t ten", "-t needs a whole number.")]
-    [InlineData("kill --pid", "--pid needs a value.")]
+    [InlineData("stop --pid", "--pid needs a value.")]
     [InlineData("log --tail", "--tail needs a value.")]
     [InlineData("inspect record out.mp4 --for", "--for needs a value.")]
     [InlineData("inspect record out.mp4 --for 0", "--for needs a time, such as 5s or 500ms.")]
@@ -74,9 +76,9 @@ public class CommandOptionTests
     [InlineData("run -n", "no-duplicate", "")]
     [InlineData("run --no-build", "no-build", "")]
     [InlineData("list -j", "json", "")]
-    [InlineData("kill --force", "force", "")]
-    [InlineData("kill -i ab", "id", "ab")]
-    [InlineData("kill --pid 4", "pid", "4")]
+    [InlineData("stop --force", "force", "")]
+    [InlineData("stop -i ab", "id", "ab")]
+    [InlineData("stop --pid 4", "pid", "4")]
     [InlineData("reload -s work", "shell", "work")]
     [InlineData("log -t 2", "tail", "2")]
     [InlineData("log -f", "follow", "")]
@@ -96,9 +98,9 @@ public class CommandOptionTests
     [Fact]
     public void An_option_before_the_command_is_that_command_s()
     {
-        var parsed = CliParser.Parse(["--pid", "4", "kill"]);
+        var parsed = CliParser.Parse(["--pid", "4", "stop"]);
 
-        Assert.Equal("kill", parsed.Command);
+        Assert.Equal("stop", parsed.Command);
         Assert.Equal("4", Field(parsed, "pid"));
     }
 

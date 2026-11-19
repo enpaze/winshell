@@ -6,7 +6,7 @@ internal static class CliFlags
 {
     public static readonly CommandOption Help = CommandOption.Flag(new CommandWord("--help", "-h", "/?"));
 
-    public static readonly CommandOption Version = CommandOption.Flag(new CommandWord("--version", "-V"));
+    public static readonly CommandOption Version = CommandOption.Flag(new CommandWord("--version"));
 
     public static readonly CommandOption Verbose = CommandOption.Flag(CommandWords.Verbose);
 

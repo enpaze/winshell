@@ -123,7 +123,7 @@ public sealed partial class InstanceIsolationTests : IDisposable, IClassFixture<
             {
                 try
                 {
-                    Winshell(local, "kill", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
+                    Winshell(local, "stop", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
                 }
                 catch (XunitException)
                 {

@@ -30,7 +30,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(ProbeShell.Program)))!;
 
     [Fact]
-    public void List_log_ipc_and_kill_reach_the_program()
+    public void List_log_ipc_and_stop_reach_the_program()
     {
         var run = Supervise();
         using var process = Process.GetProcessById(NextShell(0));
@@ -52,10 +52,10 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         call.AssertExitCode(1);
         Assert.Equal("Target not found: nothing.", call.Error.Trim());
 
-        var killed = Cli("kill", "--pid", pid);
-        killed.AssertExitCode(0);
-        killed.AssertNoError();
-        Assert.StartsWith("Killed ", killed.Output, StringComparison.Ordinal);
+        var stop = Cli("stop", "--pid", pid);
+        stop.AssertExitCode(0);
+        stop.AssertNoError();
+        Assert.StartsWith("Stopped ", stop.Output, StringComparison.Ordinal);
         Assert.True(process.HasExited);
         ChildProcess.Exited("The probe", process, _printed).AssertExitCode(0);
         Assert.Empty(Listed());
@@ -119,7 +119,7 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
     }
 
     [Fact]
-    public void A_forced_kill_of_a_hung_shell_ends_supervision()
+    public void A_forced_stop_of_a_hung_shell_ends_supervision()
     {
         File.WriteAllText(Path.Combine(_dir, "config", ProbeShell.HangMarker), "");
         var run = Supervise();
@@ -129,9 +129,9 @@ public sealed partial class SupervisionTests : IDisposable, IClassFixture<ProbeB
         using var program = Process.GetProcessById(int.Parse(File.ReadAllText(pidFile), CultureInfo.InvariantCulture));
         try
         {
-            var killed = Cli("kill", "--force", "--pid", shell.ToString(CultureInfo.InvariantCulture));
+            var stopped = Cli("stop", "--force", "--pid", shell.ToString(CultureInfo.InvariantCulture));
 
-            killed.AssertExitCode(0);
+            stopped.AssertExitCode(0);
             Wait.Until(() => run.HasExited, "winshell run to end with its shell");
             ChildProcess.Exited("winshell run", run, _printed).AssertExitCode(-1);
             Assert.Empty(Listed());
