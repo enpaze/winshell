@@ -412,25 +412,16 @@ internal sealed partial class ShellProject
 
     public string? ShellName(RunProcess run, out string? error)
     {
-        var result = Path.Combine(Path.GetTempPath(), $"winshell-shell-name-{Guid.NewGuid():N}.txt");
-        try
+        var evaluated = run("dotnet", ["msbuild", ProjectFile, "-getProperty:ShellName", "-nologo"], Folder);
+        if (evaluated.ExitCode != 0)
         {
-            var evaluated = run("dotnet",
-                ["msbuild", ProjectFile, "-getProperty:ShellName", $"-getResultOutputFile:{result}", "-nologo"], Folder);
-            if (evaluated.ExitCode != 0 || !File.Exists(result))
-            {
-                error = Errors(evaluated.Output, Folder);
-                return null;
-            }
+            error = Errors(evaluated.Output, Folder);
+            return null;
+        }
 
-            error = null;
-            var name = File.ReadAllText(result).Trim();
-            return name.Length > 0 ? name : null;
-        }
-        finally
-        {
-            File.Delete(result);
-        }
+        error = null;
+        var name = evaluated.Output.Split('\n')[^1].Trim();
+        return name.Length > 0 ? name : null;
     }
 
     private string AssemblyName()
