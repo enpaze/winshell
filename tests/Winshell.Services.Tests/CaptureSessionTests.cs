@@ -145,6 +145,31 @@ public sealed class CaptureSessionTests
     }
 
     [Fact]
+    public void A_window_picked_while_the_old_one_closes_stays_the_target()
+    {
+        var loop = new ManualEventLoop();
+        var windows = new FakeWindowBackend();
+        windows.Show(10);
+        windows.Show(20);
+        using var list = new WindowListService(loop, Log.Default, backend: windows);
+        var first = list.Windows.Single(window => window.Hwnd == 10);
+        var second = list.Windows.Single(window => window.Hwnd == 20);
+        using var session = new CaptureSession(loop, () => new FakeCapture());
+        first.Closed += () => session.Target = second;
+        session.Target = first;
+
+        windows.Destroy(10);
+        loop.Process();
+
+        Assert.Same(second, session.Target!.Source);
+
+        windows.Destroy(20);
+        loop.Process();
+
+        Assert.Null(session.Target);
+    }
+
+    [Fact]
     public void A_source_that_closes_stops_on_the_loop()
     {
         var loop = new ManualEventLoop();

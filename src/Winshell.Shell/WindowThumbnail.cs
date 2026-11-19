@@ -101,7 +101,7 @@ public sealed partial class WindowThumbnail : FrameworkElement
             window.Closed -= OnClosed;
     }
 
-    private void OnClosed(object? sender, EventArgs e)
+    private void OnClosed()
     {
         Window = null;
     }

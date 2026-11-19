@@ -23,7 +23,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Parent` | [AppWindow](#appwindow)?, read-only |
 | `Screens` | IReadOnlyList of [ScreenInfo](winshell.md#screeninfo), read-only |
 | `Title` | string, read-only |
-| `Closed` | EventHandler |
+| `Closed` | Action |
 | `Activate()` | void |
 | `Close()` | void |
 | `MoveTo([ScreenInfo](winshell.md#screeninfo)? screen)` | void |

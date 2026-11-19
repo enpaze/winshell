@@ -25,7 +25,7 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
         _log = log;
         _registrar = registrar;
         if (pressed is not null)
-            Pressed += (_, _) => pressed();
+            Pressed += pressed;
         Sequence = sequence;
     }
 
@@ -57,16 +57,16 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
 
     public string Error => Read(_error);
 
-    public event EventHandler? Pressed;
+    public event Action? Pressed;
 
-    public event EventHandler? Released;
+    public event Action? Released;
 
     void IHotkeyListener.OnPressed()
     {
         if (_disposed)
             return;
         if (Set(ref _pressed, true, nameof(IsPressed)))
-            Pressed?.Invoke(this, EventArgs.Empty);
+            Pressed?.Invoke();
         StartPoll();
     }
 
@@ -74,7 +74,7 @@ public sealed class Hotkey : ObservableObject, IHotkeyListener, IDisposable
     {
         StopPoll();
         if (Set(ref _pressed, false, nameof(IsPressed)))
-            Released?.Invoke(this, EventArgs.Empty);
+            Released?.Invoke();
     }
 
     private void Apply()
