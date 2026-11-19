@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Winshell.Notifications;
 
-public sealed class NotificationListener : ObservableObject, IShellService
+public sealed class NotificationsService : ObservableObject, IShellService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(10);
 
@@ -27,7 +27,7 @@ public sealed class NotificationListener : ObservableObject, IShellService
     private bool _requesting;
     private bool _disposed;
 
-    internal NotificationListener(IEventLoop loop, Log log, INotificationBackend? backend = null)
+    internal NotificationsService(IEventLoop loop, Log log, INotificationBackend? backend = null)
     {
         _loop = loop;
         _log = log;
@@ -313,14 +313,14 @@ public sealed class NotificationListener : ObservableObject, IShellService
 
 public sealed class Notification : ObservableObject
 {
-    private readonly NotificationListener _listener;
+    private readonly NotificationsService _listener;
     private readonly NotificationAppIcons _icons;
     private IncomingToast _toast;
     private string _appIcon = "";
     private string? _loadedKey;
     private int _iconRequest;
 
-    internal Notification(NotificationListener listener, NotificationAppIcons icons, IncomingToast toast)
+    internal Notification(NotificationsService listener, NotificationAppIcons icons, IncomingToast toast)
     {
         _listener = listener;
         _icons = icons;
@@ -401,11 +401,11 @@ public sealed class Notification : ObservableObject
 
 public sealed class NotificationGroup : ObservableObject
 {
-    private readonly NotificationListener _listener;
+    private readonly NotificationsService _listener;
     private string _appId = "";
     private string _appName = "";
 
-    internal NotificationGroup(NotificationListener listener, string key)
+    internal NotificationGroup(NotificationsService listener, string key)
     {
         _listener = listener;
         Key = key;

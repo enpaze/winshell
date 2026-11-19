@@ -13,7 +13,7 @@ public sealed class TrayWidget : Widget
     {
         var screenId = UseScreen()?.Id;
         var screens = UseObservable(Shell.Screens);
-        var items = UseObservable(Shell.SystemTray.Items);
+        var items = UseObservable(Shell.Tray.Items);
         var clip = UseRef<FrameworkElement?>(null);
         var hiddenPanel = UseRef<FrameworkElement?>(null);
         var open = UseRef(false);

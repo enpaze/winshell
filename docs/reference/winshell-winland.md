@@ -69,7 +69,7 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Monitor` | [WinlandMonitor](#winlandmonitor)?, read-only |
 | `Title` | string, read-only |
 | `Urgent` | bool, read-only |
-| `Window` | [AppWindow](winshell-windows.md#appwindow)?, read-only |
+| `Window` | [AppWindow](winshell-appwindows.md#appwindow)?, read-only |
 | `Workspace` | [WinlandWorkspace](#winlandworkspace)?, read-only |
 
 ## WinlandWorkspace

@@ -1,6 +1,6 @@
 using Winshell.Native;
 
-namespace Winshell.Windows;
+namespace Winshell.AppWindows;
 
 internal sealed class FullscreenApps : IDisposable
 {

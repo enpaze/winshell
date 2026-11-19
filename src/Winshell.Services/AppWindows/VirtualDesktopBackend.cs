@@ -3,7 +3,7 @@ using System.Security;
 using Microsoft.Win32;
 using Winshell.Native;
 
-namespace Winshell.Windows;
+namespace Winshell.AppWindows;
 
 internal interface IVirtualDesktopBackend
 {

@@ -99,6 +99,7 @@ A step is one of two objects. Each takes `within`, the seconds to retry it until
 - [winshell run](./command.run.md) builds a project and starts and supervises its shell.
 - [winshell use](./command.use.md) chooses the shell `winshell run` starts, and switches to it.
 - [winshell update](./command.update.md) installs the newest build of the saved channel.
+- [App windows](./service.app-windows.md) lists the open app windows and the active one.
 - [Apps](./service.apps.md) lists the apps Start lists, and searches and launches them.
 - [Audio](./service.audio.md) reads and sets the playback and recording devices, sessions and volume.
 - [Bluetooth](./service.bluetooth.md) reads the adapter and its devices, and pairs and connects them.
@@ -109,7 +110,7 @@ A step is one of two objects. Each takes `within`, the seconds to retry it until
 - [Jump lists](./service.jump-lists.md) reads an app's recent and frequent destinations.
 - [Keyboard layouts](./service.keyboard-layouts.md) reads and switches the input languages.
 - [Media](./service.media.md) reads and controls the media sessions Windows shares.
-- [Networking](./service.networking.md) reads connectivity, adapters and Wi-Fi, and connects to networks.
+- [Network](./service.network.md) reads connectivity, adapters and Wi-Fi, and connects to networks.
 - [Idle monitor (NewIdleMonitor)](./service.new-idle-monitor.md) reports when the user is idle.
 - [Notifications](./service.notifications.md) reads and dismisses notifications, and sends toasts.
 - [Power](./service.power.md) reads the battery and the power source.
@@ -118,10 +119,9 @@ A step is one of two objects. Each takes `within`, the seconds to retry it until
 - [Recent documents](./service.recent-documents.md) searches recent documents.
 - [Session](./service.session.md) locks, sleeps, signs out and shuts down.
 - [Startup](./service.startup.md) reads and sets whether the shell runs at sign-in.
-- [System tray](./service.system-tray.md) lists the tray icons apps add and passes clicks to them.
+- [Tray](./service.tray.md) lists the tray icons apps add and passes clicks to them.
 - [Virtual desktops](./service.virtual-desktops.md) lists and switches the virtual desktops.
 - [Wallpaper](./service.wallpaper.md) reads and sets the wallpaper.
-- [Window list](./service.window-list.md) lists the open windows and the active one.
 - [Winland](./service.winland.md) reads Winland's monitors, workspaces and windows.
 - [omarchy-style audio widget](./widget.omarchy-style-audio.md) shows the playback device and its volume, and opens Sound settings.
 - [omarchy-style battery widget](./widget.omarchy-style-battery.md) shows the charge and its state, and opens Power & battery settings.

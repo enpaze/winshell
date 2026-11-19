@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using Winshell.Native;
 
-namespace Winshell.Windows;
+namespace Winshell.AppWindows;
 
 internal static class WindowDesktop
 {

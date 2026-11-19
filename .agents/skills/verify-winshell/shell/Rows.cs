@@ -66,8 +66,8 @@ internal static class Rows
             new("service.keyboard-layouts", shell.KeyboardLayouts, () =>
                 $"current: {shell.KeyboardLayouts.Current?.Label ?? "none"}; layouts: {shell.KeyboardLayouts.Layouts.Count}"),
             new("service.media", shell.Media, () => $"sessions: {shell.Media.Sessions.Count}"),
-            new("service.networking", shell.Networking, () =>
-                $"ready: {shell.Networking.Ready}; connectivity: {shell.Networking.Connectivity}; devices: {shell.Networking.Devices.Count}"),
+            new("service.network", shell.Network, () =>
+                $"ready: {shell.Network.Ready}; connectivity: {shell.Network.Connectivity}; devices: {shell.Network.Devices.Count}"),
             new("service.hotkey", hotkey, () =>
                 $"sequence: {hotkey.Sequence}; active: {hotkey.Active}; taken: {hotkey.Taken}"),
             new("service.new-idle-monitor", idle, () =>
@@ -85,13 +85,13 @@ internal static class Rows
                 $"sleep: {shell.Session.SleepAvailable}; hibernate: {shell.Session.HibernateAvailable}"),
             new("service.startup", shell.Startup, () =>
                 $"available: {shell.Startup.Available}; run at sign-in: {shell.Startup.RunAtSignIn}"),
-            new("service.system-tray", shell.SystemTray, () => $"icons: {shell.SystemTray.Items.Count}"),
+            new("service.tray", shell.Tray, () => $"icons: {shell.Tray.Items.Count}"),
             new("service.virtual-desktops", shell.VirtualDesktops, () =>
                 $"supported: {shell.VirtualDesktops.Supported}; desktops: {shell.VirtualDesktops.Desktops.Count}"),
             new("service.wallpaper", shell.Wallpaper, () =>
                 $"fit: {shell.Wallpaper.Fit}; screens: {shell.Wallpaper.Screens.Count}"),
-            new("service.window-list", shell.WindowList, () =>
-                $"windows: {shell.WindowList.Windows.Count}; active: {(shell.WindowList.ActiveWindow is null ? "none" : "yes")}"),
+            new("service.app-windows", shell.AppWindows, () =>
+                $"windows: {shell.AppWindows.Windows.Count}; active: {(shell.AppWindows.ActiveWindow is null ? "none" : "yes")}"),
             new("service.winland", shell.Winland, () =>
                 $"running: {shell.Winland.ProcessId > 0}; workspaces: {shell.Winland.Workspaces.Count}")
         ];

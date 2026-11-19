@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using Windows.Foundation;
 using Winshell.Capture;
 using Winshell.Native;
-using Winshell.Windows;
+using Winshell.AppWindows;
 
 namespace Winshell.Services.Tests;
 
@@ -106,7 +106,7 @@ public sealed class CaptureSessionTests
         var windows = new FakeWindowBackend();
         windows.Show(10);
         windows.Show(20);
-        var list = new WindowListService(loop, Log.Default, backend: windows);
+        var list = new AppWindowsService(loop, Log.Default, backend: windows);
         using var stopList = list.Stopping();
         var first = list.Windows.Single(window => window.Hwnd == 10);
         var second = list.Windows.Single(window => window.Hwnd == 20);
@@ -152,7 +152,7 @@ public sealed class CaptureSessionTests
         var windows = new FakeWindowBackend();
         windows.Show(10);
         windows.Show(20);
-        var list = new WindowListService(loop, Log.Default, backend: windows);
+        var list = new AppWindowsService(loop, Log.Default, backend: windows);
         using var stopList = list.Stopping();
         var first = list.Windows.Single(window => window.Hwnd == 10);
         var second = list.Windows.Single(window => window.Hwnd == 20);

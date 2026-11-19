@@ -3,22 +3,22 @@ using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
 
-public sealed class SystemTrayTests
+public sealed class TrayServiceTests
 {
     private const nint App = 0x100;
     private readonly ManualEventLoop _loop = new();
     private readonly FakeTrayBackend _backend = new() { Cursor = (5, 6) };
 
-    public SystemTrayTests()
+    public TrayServiceTests()
     {
         _backend.Windows[App] = 42;
     }
 
     private int Broadcasts => _backend.Calls.Count(call => call == "broadcast");
 
-    private SystemTray Tray()
+    private TrayService Tray()
     {
-        var tray = new SystemTray(_loop, Log.Default, _backend);
+        var tray = new TrayService(_loop, Log.Default, _backend);
         _loop.Process();
         return tray;
     }

@@ -50,7 +50,7 @@ public partial class PopupWindow : ShellWindow
 
     private protected override void ApplyPlace()
     {
-        _shownOn = ShownOn(!Host!.Place.IsVisible, _shownOn, _shell.WindowList.ActiveWindow?.Screens);
+        _shownOn = ShownOn(!Host!.Place.IsVisible, _shownOn, _shell.AppWindows.ActiveWindow?.Screens);
         _placer!.Set(new PopupPlace(Screen?.Id, _shownOn, _position, Width, Height));
     }
 

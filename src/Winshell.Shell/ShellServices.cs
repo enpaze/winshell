@@ -13,7 +13,7 @@ using Winshell.Privacy;
 using Winshell.Session;
 using Winshell.Tray;
 using Winshell.Wallpaper;
-using Winshell.Windows;
+using Winshell.AppWindows;
 using Winshell.Winland;
 
 namespace Winshell;
@@ -29,24 +29,24 @@ public sealed partial class Shell
     private HotkeyRegistrar? _hotkeys;
     private KeyboardLayoutService? _keyboardLayouts;
     private MediaService? _media;
-    private NetworkingService? _networking;
-    private NotificationListener? _notifications;
+    private NetworkService? _network;
+    private NotificationsService? _notifications;
     private PowerService? _power;
     private PowerModeService? _powerMode;
     private PrivacyService? _privacy;
-    private SystemTray? _systemTray;
+    private TrayService? _tray;
     private VirtualDesktopsService? _virtualDesktops;
     private WallpaperService? _wallpaper;
 
-    private WindowListService? _windows;
+    private AppWindowsService? _appWindows;
     private WinlandService? _winland;
-    private IShellService? _winlandToWindowList;
+    private IShellService? _winlandToAppWindows;
 
     private IEnumerable<IDisposable?> ServicesInStopOrder =>
         ((IShellService?[])
         [
-            _winland, _winlandToWindowList, _windows, _virtualDesktops, _apps, _audio, _bluetooth, _brightness, _cpu,
-            _explorerTaskbar, _media, _networking, _notifications, _power, _powerMode, _privacy, _systemTray,
+            _winland, _winlandToAppWindows, _appWindows, _virtualDesktops, _apps, _audio, _bluetooth, _brightness, _cpu,
+            _explorerTaskbar, _media, _network, _notifications, _power, _powerMode, _privacy, _tray,
             _hotkeys, _keyboardLayouts, _wallpaper
         ]).Select(service => service is null ? null : new DisposeAction(service.Stop));
 
@@ -68,9 +68,9 @@ public sealed partial class Shell
 
     public MediaService Media => _media ??= new MediaService(Loop, Log);
 
-    public NetworkingService Networking => _networking ??= new NetworkingService(Loop, Log);
+    public NetworkService Network => _network ??= new NetworkService(Loop, Log);
 
-    public NotificationListener Notifications => _notifications ??= new NotificationListener(Loop, Log);
+    public NotificationsService Notifications => _notifications ??= new NotificationsService(Loop, Log);
 
     public PowerService Power => _power ??= new PowerService(Loop, Log);
 
@@ -85,15 +85,15 @@ public sealed partial class Shell
 
     public StartupService Startup => field ??= StartupService.ForThisProcess(Log);
 
-    public SystemTray SystemTray => _systemTray ??= new SystemTray(Loop, Log);
+    public TrayService Tray => _tray ??= new TrayService(Loop, Log);
 
     public VirtualDesktopsService VirtualDesktops => _virtualDesktops ??= new VirtualDesktopsService(Loop, Log);
 
     public WallpaperService Wallpaper => _wallpaper ??= new WallpaperService(Loop, Log);
 
-    public WindowListService WindowList => _windows ??= new WindowListService(Loop, Log, VirtualDesktops);
+    public AppWindowsService AppWindows => _appWindows ??= new AppWindowsService(Loop, Log, VirtualDesktops);
 
-    public WinlandService Winland => _winland ?? Linked(WindowList);
+    public WinlandService Winland => _winland ?? Linked(AppWindows);
 
     public Hotkey Hotkey(string sequence, Action? pressed = null)
     {
@@ -105,11 +105,11 @@ public sealed partial class Shell
         return new IdleMonitor(Loop, Log, () => KeepAwake.AnyActive);
     }
 
-    private WinlandService Linked(WindowListService windows)
+    private WinlandService Linked(AppWindowsService windows)
     {
         var winland = _winland = new WinlandService(Loop, Log);
         winland.Attach(windows);
-        _winlandToWindowList = new Unlink(winland);
+        _winlandToAppWindows = new Unlink(winland);
         return winland;
     }
 

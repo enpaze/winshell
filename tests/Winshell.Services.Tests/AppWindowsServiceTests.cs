@@ -1,18 +1,18 @@
 using System.ComponentModel;
-using Winshell.Windows;
+using Winshell.AppWindows;
 
 namespace Winshell.Services.Tests;
 
-public sealed class WindowListServiceTests
+public sealed class AppWindowsServiceTests
 {
     private const string Terminal = "Microsoft.WindowsTerminal_8wekyb3d8bbwe!App";
 
     private readonly ManualEventLoop _loop = new();
     private readonly FakeWindowBackend _windows = new();
 
-    private WindowListService Start(VirtualDesktopsService? desktops = null)
+    private AppWindowsService Start(VirtualDesktopsService? desktops = null)
     {
-        return new WindowListService(_loop, Log.Default, desktops, _windows);
+        return new AppWindowsService(_loop, Log.Default, desktops, _windows);
     }
 
     private static List<string> Watch(INotifyPropertyChanged source)

@@ -95,7 +95,7 @@ A shell sees no notifications until you allow access: it asks with `shell.Notifi
 
 ## Wi-Fi networks or Bluetooth devices are missing
 
-- **Wi-Fi:** scanning needs Windows' Wi-Fi access, which also needs location services on (Windows Settings > Privacy & security > Location). A shell asks for it with `Networking.RequestAccess()`. Without access, the adapters and connection still show, and the networks in range don't. See [networking](reference/winshell-network.md).
+- **Wi-Fi:** scanning needs Windows' Wi-Fi access, which also needs location services on (Windows Settings > Privacy & security > Location). A shell asks for it with `Network.RequestAccess()`. Without access, the adapters and connection still show, and the networks in range don't. See [Winshell.Network](reference/winshell-network.md).
 - **Bluetooth:** nearby devices show only while the shell is discovering, and the radio has to be on. A shell can set `BluetoothAdapter.Enabled`. See [Bluetooth](reference/winshell-bluetooth.md).
 
 ## Media controls show nothing
@@ -106,7 +106,7 @@ If something is playing and the media controls stay empty, look for `media: Wind
 
 - Only one instance in the Windows session hosts the tray icons. A second instance logs that it is waiting, and takes over within half a second when the first one exits.
 - Some apps add their icon only when they start, and never again when a new taskbar asks. NVIDIA Settings is one. Its icon stays on Explorer's taskbar and shows in Winshell once the app starts again while Winshell runs.
-- The volume, network and battery icons are Explorer's own, not tray icons. Winshell shows its own from `shell.Audio`, `shell.Networking` and `shell.Power`.
+- The volume, network and battery icons are Explorer's own, not tray icons. Winshell shows its own from `shell.Audio`, `shell.Network` and `shell.Power`.
 - An icon Windows Settings hides is in the overflow behind the chevron. Choose which icons show in Windows Settings > Personalization > Taskbar > Other system tray icons.
 
 See [the notification area](reference/winshell-tray.md).

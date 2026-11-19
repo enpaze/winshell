@@ -1,6 +1,6 @@
 # Winshell
 
-The shell's program uses these types. `Shell.Run(shell => { ... })` starts one, from top-level statements. Windows are `PanelWindow`, `PopupWindow` and `FloatingWindow`. A `PanelWindow` sits on one `Edge`, placed along it by `Align`; with `CoversScreen` it covers its screen inside its `Margins`. Their content is any WinUI element. Services hang off `Shell.Current`: [apps](winshell-apps.md), [audio](winshell-audio.md), [Bluetooth](winshell-bluetooth.md), [capture](winshell-capture.md), the [Explorer taskbar](winshell-explorertaskbar.md), [media](winshell-media.md), [network](winshell-network.md), [notifications](winshell-notifications.md), [power](winshell-power.md), [session](winshell-session.md), the [tray](winshell-tray.md), [windows](winshell-windows.md) and [Winland](winshell-winland.md). `Shell.Ipc` is what `winshell ipc` calls. The user's choices are in [Preferences](#preferences).
+The shell's program uses these types. `Shell.Run(shell => { ... })` starts one, from top-level statements. Windows are `PanelWindow`, `PopupWindow` and `FloatingWindow`. A `PanelWindow` sits on one `Edge`, placed along it by `Align`; with `CoversScreen` it covers its screen inside its `Margins`. Their content is any WinUI element. Services hang off `Shell.Current`: [apps](winshell-apps.md), [audio](winshell-audio.md), [Bluetooth](winshell-bluetooth.md), [capture](winshell-capture.md), the [Explorer taskbar](winshell-explorertaskbar.md), [media](winshell-media.md), [network](winshell-network.md), [notifications](winshell-notifications.md), [power](winshell-power.md), [session](winshell-session.md), the [tray](winshell-tray.md), [windows](winshell-appwindows.md) and [Winland](winshell-winland.md). `Shell.Ipc` is what `winshell ipc` calls. The user's choices are in [Preferences](#preferences).
 
 <!-- generated below: dotnet run scripts/generate-reference.cs -->
 
@@ -322,6 +322,7 @@ Has the members of [ObservableObject](#observableobject).
 | Member | Type |
 | --- | --- |
 | `AccentColor` | Color? |
+| `AppWindows` | [AppWindowsService](winshell-appwindows.md#appwindowsservice), read-only |
 | `Appearance` | [Appearance](#appearance) |
 | `Apps` | [AppsService](winshell-apps.md#appsservice), read-only |
 | `Audio` | [AudioService](winshell-audio.md#audioservice), read-only |
@@ -336,8 +337,8 @@ Has the members of [ObservableObject](#observableobject).
 | `KeyboardLayouts` | [KeyboardLayoutService](winshell-keyboard.md#keyboardlayoutservice), read-only |
 | `Log` | [Log](#log), read-only |
 | `Media` | [MediaService](winshell-media.md#mediaservice), read-only |
-| `Networking` | [NetworkingService](winshell-network.md#networkingservice), read-only |
-| `Notifications` | [NotificationListener](winshell-notifications.md#notificationlistener), read-only |
+| `Network` | [NetworkService](winshell-network.md#networkservice), read-only |
+| `Notifications` | [NotificationsService](winshell-notifications.md#notificationsservice), read-only |
 | `Paths` | [ShellPaths](#shellpaths), read-only |
 | `Power` | [PowerService](winshell-power.md#powerservice), read-only |
 | `PowerMode` | [PowerModeService](winshell-power.md#powermodeservice), read-only |
@@ -349,11 +350,10 @@ Has the members of [ObservableObject](#observableobject).
 | `Startup` | [StartupService](winshell-session.md#startupservice), read-only |
 | `Style` | [ShellStyle](#shellstyle) |
 | `SystemAccent` | Color, read-only |
-| `SystemTray` | [SystemTray](winshell-tray.md#systemtray), read-only |
+| `Tray` | [TrayService](winshell-tray.md#trayservice), read-only |
 | `Version` | string, static, read-only |
-| `VirtualDesktops` | [VirtualDesktopsService](winshell-windows.md#virtualdesktopsservice), read-only |
+| `VirtualDesktops` | [VirtualDesktopsService](winshell-appwindows.md#virtualdesktopsservice), read-only |
 | `Wallpaper` | [WallpaperService](winshell-wallpaper.md#wallpaperservice), read-only |
-| `WindowList` | [WindowListService](winshell-windows.md#windowlistservice), read-only |
 | `Winland` | [WinlandService](winshell-winland.md#winlandservice), read-only |
 | `StyleChanged` | Action |
 | `Add<T>(T part)` | T |
@@ -513,6 +513,6 @@ A WinUI FrameworkElement. The members here are the ones Winshell adds.
 | --- | --- |
 | `WindowThumbnail()` | constructor |
 | `Peek` | bool |
-| `Window` | [AppWindow](winshell-windows.md#appwindow)? |
+| `Window` | [AppWindow](winshell-appwindows.md#appwindow)? |
 | `PeekProperty` | DependencyProperty, static |
 | `WindowProperty` | DependencyProperty, static |

@@ -35,4 +35,4 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Window` | IntPtr, init |
 | `ForScreen([ScreenInfo](winshell.md#screeninfo) screen)` | [CaptureTarget](#capturetarget), static |
 | `ForWindow(IntPtr window)` | [CaptureTarget](#capturetarget), static |
-| `ForWindow([AppWindow](winshell-windows.md#appwindow) window)` | [CaptureTarget](#capturetarget), static |
+| `ForWindow([AppWindow](winshell-appwindows.md#appwindow) window)` | [CaptureTarget](#capturetarget), static |

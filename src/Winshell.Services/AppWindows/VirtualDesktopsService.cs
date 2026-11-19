@@ -1,4 +1,4 @@
-namespace Winshell.Windows;
+namespace Winshell.AppWindows;
 
 public sealed class VirtualDesktopsService : ObservableObject, IShellService
 {

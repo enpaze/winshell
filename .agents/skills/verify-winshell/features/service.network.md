@@ -1,6 +1,6 @@
-# Networking
+# Network
 
-`shell.Networking` reads connectivity, the network adapters, the Wi-Fi networks in range and the connection profiles, and connects to Wi-Fi networks. A shell uses it for a network indicator or a Wi-Fi picker. The feature shell's row `service.networking` shows `ready: <True|False>; connectivity: <level>; devices: N`, where the level is a `NetworkConnectivity` value: `Unknown`, `None`, `CaptivePortal`, `LocalAccess` or `InternetAccess`.
+`shell.Network` reads connectivity, the network adapters, the Wi-Fi networks in range and the connection profiles, and connects to Wi-Fi networks. A shell uses it for a network indicator or a Wi-Fi picker. The feature shell's row `service.network` shows `ready: <True|False>; connectivity: <level>; devices: N`, where the level is a `NetworkConnectivity` value: `Unknown`, `None`, `CaptivePortal`, `LocalAccess` or `InternetAccess`.
 
 ## Sub-features
 
@@ -15,7 +15,7 @@
 
 ## How to get to it (user POV)
 
-- A shell reads `shell.Networking`, or `Shell.Networking` in a widget.
+- A shell reads `shell.Network`, or `Shell.Network` in a widget.
 - In the omarchy-style shell, the `network` widget names the connection and shows its type and signal, and choosing it opens `ms-settings:network-status`.
 
 ## Driving it with winshell inspect
@@ -25,11 +25,11 @@ Preconditions:
 - Shell: `features`.
 - The feature shell's `Winshell features` window is open.
 
-- **Read the connectivity.** Read the `service.networking` row in the feature shell. Run `winshell inspect --pid {pid} tree`. One element has the automation id `service.networking`, and its `text` matches `^ready: (True|False); connectivity: [A-Za-z]+; devices: [0-9]+$`. The driver retries for 20 seconds.
+- **Read the connectivity.** Read the `service.network` row in the feature shell. Run `winshell inspect --pid {pid} tree`. One element has the automation id `service.network`, and its `text` matches `^ready: (True|False); connectivity: [A-Za-z]+; devices: [0-9]+$`. The driver retries for 20 seconds.
 
 ```json
 [
-  {"element": "service.networking", "has": {"text": "^ready: (True|False); connectivity: [A-Za-z]+; devices: [0-9]+$"}, "within": 20}
+  {"element": "service.network", "has": {"text": "^ready: (True|False); connectivity: [A-Za-z]+; devices: [0-9]+$"}, "within": 20}
 ]
 ```
 

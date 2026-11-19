@@ -1,4 +1,4 @@
-using Winshell.Windows;
+using Winshell.AppWindows;
 
 namespace FeatureMap;
 
@@ -18,10 +18,10 @@ internal sealed class Launched : ObservableObject
         launcher.PropertyChanged += (_, _) =>
         {
             if (launcher.Visible)
-                _before = [.. shell.WindowList.Windows];
+                _before = [.. shell.AppWindows.Windows];
             Changed(nameof(Text));
         };
-        shell.WindowList.Windows.CollectionChanged += (_, _) => Look();
+        shell.AppWindows.Windows.CollectionChanged += (_, _) => Look();
     }
 
     public string Text => $"launcher: hotkey {_launcher.Hotkey}; visible: {_launcher.Visible}; opened {Read(_opened)}";
@@ -30,7 +30,7 @@ internal sealed class Launched : ObservableObject
     {
         if (_before is null || _shell.Apps.Find(App) is not { } app)
             return;
-        foreach (var window in _shell.WindowList.Windows.ToList())
+        foreach (var window in _shell.AppWindows.Windows.ToList())
         {
             if (_before.Contains(window) || !Shows(window, app.AppId, app.Target))
                 continue;
