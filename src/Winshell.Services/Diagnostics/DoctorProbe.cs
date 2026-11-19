@@ -62,10 +62,10 @@ internal static class DoctorProbe
 
     public static string? PreferencesProblem(ShellLocations locations, ShellProject project)
     {
-        if (string.IsNullOrEmpty(locations.ConfigRoot))
+        if (string.IsNullOrEmpty(locations.ShellsRoot))
             return null;
-        var id = ShellIdentity.Resolve(project.Program, locations, null, null, null, null).ShellId;
-        return UserFileProblem(Path.Combine(locations.ConfigRoot, "preferences", id + ".toml"));
+        var id = ShellIdentity.Resolve(project.Program, locations, new ShellProperties()).ShellId;
+        return UserFileProblem(Path.Combine(locations.ShellsRoot, "preferences", id + ".toml"));
     }
 
     private static string? UserFileProblem(string path)

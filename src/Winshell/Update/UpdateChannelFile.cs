@@ -8,9 +8,9 @@ internal static class UpdateChannelFile
 
     internal const string Invalid = "The saved update channel is not stable or dev.";
 
-    internal static UpdateChannel Read(string configRoot)
+    internal static UpdateChannel Read(string shellsRoot)
     {
-        var path = Path.Combine(configRoot, FileName);
+        var path = Path.Combine(shellsRoot, FileName);
         if (!File.Exists(path))
             return UpdateChannel.Stable;
 
@@ -34,10 +34,10 @@ internal static class UpdateChannelFile
         return channel;
     }
 
-    internal static void Write(string configRoot, UpdateChannel channel)
+    internal static void Write(string shellsRoot, UpdateChannel channel)
     {
-        Directory.CreateDirectory(configRoot);
-        var path = Path.Combine(configRoot, FileName);
+        Directory.CreateDirectory(shellsRoot);
+        var path = Path.Combine(shellsRoot, FileName);
         var temp = path + ".tmp";
         File.WriteAllText(temp, "channel = \"" + UpdateChannels.Name(channel) + "\"\n", new UTF8Encoding(false));
         File.Move(temp, path, overwrite: true);

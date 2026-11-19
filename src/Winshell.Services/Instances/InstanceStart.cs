@@ -7,10 +7,7 @@ namespace Winshell;
 internal sealed record InstanceLaunch(
     string Program,
     IReadOnlyList<string> Arguments,
-    string? ShellId,
-    string? DataDir,
-    string? StateDir,
-    string? CacheDir,
+    ShellProperties Properties,
     Log Log,
     Action<ShellInstance>? Prepare = null);
 
@@ -55,8 +52,7 @@ internal static class InstanceStart
             Instances.WaitForExit(previous);
 
         var locations = ShellLocations.Current;
-        var identity = ShellIdentity.Resolve(launch.Program, locations, launch.ShellId, launch.DataDir,
-            launch.StateDir, launch.CacheDir);
+        var identity = ShellIdentity.Resolve(launch.Program, locations, launch.Properties);
         using var duplicate = arguments.NoDuplicate
             ? HeldMutex.TryClaim(HeldMutex.NoDuplicateName(locations, identity.ShellId))
             : default;
@@ -73,7 +69,7 @@ internal static class InstanceStart
             $"Winshell {ProductVersion.Current.Text} on Windows {Environment.OSVersion.Version}, program \"{launch.Program}\"");
         launch.Log.Info("shell", $"Shell ID: \"{identity.ShellId}\"");
         identity.CarryOver(launch.Log);
-        launch.Log.Info("shell", $"Saving logs to \"{instance.LogPath}\"");
+        launch.Log.Info("shell", $"Saving logs to \"{instance.Logs}\"");
         if (instance.OpenPipe() is { } pipeError)
         {
             instance.Abandon();

@@ -83,7 +83,7 @@ public sealed class ShellInstanceTests
 
         instance.Publish();
 
-        using var reader = new StreamReader(new FileStream(instance.LogPath, FileMode.Open, FileAccess.Read,
+        using var reader = new StreamReader(new FileStream(instance.Logs, FileMode.Open, FileAccess.Read,
             FileShare.ReadWrite | FileShare.Delete));
         Assert.Contains("Shell ID: \"mine\"", reader.ReadToEnd(), StringComparison.Ordinal);
         instance.Close();
@@ -125,7 +125,7 @@ public sealed class ShellInstanceTests
         log.Error("network",
             "fetch https://example.com/feed?apikey=SENTINEL-QUERY failed\n    continued: token=SENTINEL-NEXT-LINE");
         string text;
-        using (var stream = new FileStream(instance.LogPath, FileMode.Open, FileAccess.Read,
+        using (var stream = new FileStream(instance.Logs, FileMode.Open, FileAccess.Read,
                    FileShare.ReadWrite | FileShare.Delete))
         using (var reader = new StreamReader(stream))
         {

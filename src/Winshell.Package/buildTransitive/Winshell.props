@@ -18,6 +18,13 @@
     <Using Include="$(RootNamespace)" Condition="'$(RootNamespace)' != ''" />
   </ItemGroup>
 
+  <ItemGroup>
+    <AssemblyMetadata Include="ShellName" Value="$(ShellName)" Condition="'$(ShellName)' != ''" />
+    <AssemblyMetadata Include="ShellDataDir" Value="$(ShellDataDir)" Condition="'$(ShellDataDir)' != ''" />
+    <AssemblyMetadata Include="ShellStateDir" Value="$(ShellStateDir)" Condition="'$(ShellStateDir)' != ''" />
+    <AssemblyMetadata Include="ShellCacheDir" Value="$(ShellCacheDir)" Condition="'$(ShellCacheDir)' != ''" />
+  </ItemGroup>
+
   <Target Name="WinshellDeclareRootNamespace"
           BeforeTargets="BeforeCompile;CoreCompile"
           DependsOnTargets="PrepareForBuild"

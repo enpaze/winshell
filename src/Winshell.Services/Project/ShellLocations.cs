@@ -1,6 +1,6 @@
 namespace Winshell;
 
-internal sealed record ShellLocations(string ConfigRoot, string LocalRoot)
+internal sealed record ShellLocations(string ShellsRoot, string LocalRoot)
 {
     public const string ConfigVariable = "WINSHELL_CONFIG_DIR";
 

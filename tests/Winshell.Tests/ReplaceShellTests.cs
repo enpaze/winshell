@@ -5,7 +5,7 @@ using System.Text;
 namespace Winshell.Tests;
 
 [Collection(ExplorerTaskbarCollection.Name)]
-public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
+public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>, IClassFixture<OtherProbeBuild>
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<Process> _started = [];
@@ -17,7 +17,7 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
         var local = Folder("local");
         var first = Start(Folder("a"), local);
         var printed = new StringBuilder();
-        var second = Launch(Folder("b"), local, "other", printed);
+        var second = LaunchOther(Folder("b"), local, printed);
 
         Wait.Until(() => second.HasExited || Running(local).Any(info => info.Pid == second.Id),
             "the replacement to publish or to fail");
@@ -39,7 +39,7 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
         var first = Start(config, local);
         Wait.Until(() => File.Exists(Path.Combine(config, "child.pid")), "the shell's program to start");
         var printed = new StringBuilder();
-        var second = Launch(Folder("next"), local, "other", printed);
+        var second = LaunchOther(Folder("next"), local, printed);
 
         Wait.Until(() => second.HasExited, "the second start to give up");
         second.WaitForExit();
@@ -68,7 +68,7 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
             "the first shell to hide the taskbar");
 
         var printed = new StringBuilder();
-        var second = Launch(secondConfig, local, "other", printed);
+        var second = LaunchOther(secondConfig, local, printed);
         var flashed = false;
         var started = TimeProvider.System.GetTimestamp();
         var ready = false;
@@ -111,9 +111,9 @@ public sealed class ReplaceShellTests : IDisposable, IClassFixture<ProbeBuild>
         return process;
     }
 
-    private Process Launch(string config, string local, string shellId, StringBuilder printed)
+    private Process LaunchOther(string config, string local, StringBuilder printed)
     {
-        var process = ProbeShell.Launch(config, local, [], shellId, printed);
+        var process = ProbeShell.Launch(config, local, [], printed, ProbeShell.Other);
         _started.Add(process);
         return process;
     }

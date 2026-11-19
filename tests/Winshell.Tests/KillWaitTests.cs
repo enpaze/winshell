@@ -14,7 +14,7 @@ public sealed partial class KillWaitTests : IDisposable, IClassFixture<ProbeBuil
         var config = Path.Combine(_dir, "config");
         Directory.CreateDirectory(config);
         File.WriteAllText(Path.Combine(config, ProbeShell.HangMarker), "");
-        var process = ProbeShell.Start(config, Path.Combine(_dir, "local"), "hung");
+        var process = ProbeShell.Start(config, Path.Combine(_dir, "local"));
         _started.Add(process);
         var pidFile = Path.Combine(config, "child.pid");
         Wait.Until(() => File.Exists(pidFile), "the shell's program to start");

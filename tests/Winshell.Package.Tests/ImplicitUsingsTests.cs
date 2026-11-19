@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Winshell.Package.Tests;
 
 public sealed class ImplicitUsingsTests
@@ -55,27 +53,7 @@ public sealed class ImplicitUsingsTests
 
     private static List<string> Usings(string properties)
     {
-        using var folder = new TempFolder();
-        File.Copy(Path.Combine(Repo.Root, "global.json"), Path.Combine(folder.Path, "global.json"));
-        var props = Path.Combine(Repo.Root, "src", "Winshell.Package", "buildTransitive", "Winshell.props");
-        var project = Path.Combine(folder.Path, "Consumer.csproj");
-        File.WriteAllText(project, $"""
-            <Project Sdk="Microsoft.NET.Sdk">
-              <Import Project="{props}" />
-              <PropertyGroup>
-                <TargetFramework>net11.0-windows10.0.22621.0</TargetFramework>
-                {properties}
-              </PropertyGroup>
-            </Project>
-            """);
-        var result = Path.Combine(folder.Path, "usings.json");
-
-        var evaluated = ShellProject.Run(
-            "dotnet", ["msbuild", project, "-getItem:Using", $"-getResultOutputFile:{result}", "-nologo"], folder.Path);
-
-        Assert.True(evaluated.ExitCode == 0, evaluated.Output);
-        using var json = JsonDocument.Parse(File.ReadAllText(result));
-        return json.RootElement.GetProperty("Items").GetProperty("Using").EnumerateArray()
+        return PackageProps.Items(properties, "Using")
             .Select(item => (item.TryGetProperty("Static", out var isStatic) && isStatic.GetString() == "true"
                 ? "static "
                 : "") + item.GetProperty("Identity").GetString())

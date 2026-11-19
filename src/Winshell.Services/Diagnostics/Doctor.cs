@@ -14,7 +14,7 @@ public sealed record DoctorCheck(
     string Message,
     string? Fix = null);
 
-internal sealed record DoctorInstance(string Id, int Pid, string Program, string LogPath);
+internal sealed record DoctorInstance(string Id, int Pid, string Program, string Logs);
 
 internal sealed record DoctorContext(ShellLocations Locations, string? Path, string? Config);
 
@@ -26,7 +26,7 @@ public static class Doctor
 
     internal static IReadOnlyList<DoctorCheck> Run(DoctorContext context)
     {
-        return Report(context, ChooseUser(context.Locations.ConfigRoot, context.Path, context.Config));
+        return Report(context, ChooseUser(context.Locations.ShellsRoot, context.Path, context.Config));
     }
 
     private readonly record struct Chosen(
@@ -35,14 +35,14 @@ public static class Doctor
         string Folder,
         string? SignInProject);
 
-    private static Chosen ChooseUser(string configRoot, string? path, string? config)
+    private static Chosen ChooseUser(string shellsRoot, string? path, string? config)
     {
-        var project = ShellProject.Find(path, config, configRoot, out var problem);
-        var folder = project?.Folder ?? AskedFolder(configRoot, path, config);
+        var project = ShellProject.Find(path, config, shellsRoot, out var problem);
+        var folder = project?.Folder ?? AskedFolder(shellsRoot, path, config);
         return new Chosen(project, problem, folder, project?.ProjectFile);
     }
 
-    private static Chosen ChooseProcess(string configRoot, string program)
+    private static Chosen ChooseProcess(string shellsRoot, string program)
     {
         try
         {
@@ -53,17 +53,17 @@ public static class Doctor
         {
         }
 
-        var project = ShellProject.Find(null, null, configRoot, out var problem);
-        return new Chosen(project, problem, configRoot, null);
+        var project = ShellProject.Find(null, null, shellsRoot, out var problem);
+        return new Chosen(project, problem, shellsRoot, null);
     }
 
-    private static string AskedFolder(string configRoot, string? path, string? config)
+    private static string AskedFolder(string shellsRoot, string? path, string? config)
     {
         if (path is not null)
             return Path.GetFullPath(path);
         if (config is not null)
-            return Path.Combine(configRoot, config);
-        return configRoot;
+            return Path.Combine(shellsRoot, config);
+        return shellsRoot;
     }
 
     private static IReadOnlyList<DoctorCheck> Report(DoctorContext context, Chosen chosen)
@@ -102,8 +102,8 @@ public static class Doctor
             Guard("signIn", "Sign-in", () =>
             {
                 var project = chosen.SignInProject;
-                return DoctorSignIn.Check(SignInProcess.Read(process, context.Locations.ConfigRoot, File.Exists,
-                    SignInEntry.Resolve, project), context.Locations.ConfigRoot, project);
+                return DoctorSignIn.Check(SignInProcess.Read(process, context.Locations.ShellsRoot, File.Exists,
+                    SignInEntry.Resolve, project), context.Locations.ShellsRoot, project);
             }),
             Guard("notifications", "Notifications", () => Notifications(NotificationListenerAccess.Read().ToString())),
             Guard("instances", "Running", () => Instances(instances)),
@@ -192,7 +192,7 @@ public static class Doctor
     public static IReadOnlyList<DoctorCheck> ForThisProcess(string configRoot)
     {
         return Report(
-            new DoctorContext(ShellLocations.Current with { ConfigRoot = configRoot }, null, null),
+            new DoctorContext(ShellLocations.Current with { ShellsRoot = configRoot }, null, null),
             ChooseProcess(configRoot, Environment.ProcessPath ?? ""));
     }
 
@@ -255,7 +255,7 @@ public static class Doctor
             return new DoctorCheck("instances", "Running", CheckStatus.Pass, "No Winshell is running");
         var list = string.Join("; ",
             instances.Select(i => string.Create(CultureInfo.InvariantCulture,
-                $"{i.Id} (process {i.Pid}) runs {i.Program}, log {i.LogPath}")));
+                $"{i.Id} (process {i.Pid}) runs {i.Program}, log {i.Logs}")));
         return new DoctorCheck("instances", "Running", CheckStatus.Pass, list);
     }
 

@@ -312,25 +312,20 @@ Has the members of [ObservableObject](#observableobject).
 | `Audio` | [AudioService](winshell-audio.md#audioservice), read-only |
 | `Bluetooth` | [BluetoothService](winshell-bluetooth.md#bluetoothservice), read-only |
 | `Brightness` | [BrightnessService](winshell-power.md#brightnessservice), read-only |
-| `CacheDir` | string, read-only |
 | `ColorScheme` | [ColorScheme](#colorscheme) |
-| `ConfigDir` | string, read-only |
-| `ConfigRoot` | string, read-only |
 | `Cpu` | [CpuService](winshell-cpu.md#cpuservice), read-only |
 | `Current` | [Shell](#shell), static, read-only |
-| `DataDir` | string, read-only |
 | `ExplorerTaskbar` | [ExplorerTaskbarService](winshell-explorertaskbar.md#explorertaskbarservice), read-only |
 | `Ipc` | [ShellIpc](#shellipc), read-only |
 | `IsDark` | bool, read-only |
 | `JumpLists` | [JumpListService](winshell-apps.md#jumplistservice), read-only |
 | `KeyboardLayouts` | [KeyboardLayoutService](winshell-keyboard.md#keyboardlayoutservice), read-only |
 | `Log` | [Log](#log), read-only |
-| `LogPath` | string, read-only |
 | `Loop` | [IEventLoop](#ieventloop), read-only |
 | `Media` | [MediaService](winshell-media.md#mediaservice), read-only |
 | `Networking` | [NetworkingService](winshell-network.md#networkingservice), read-only |
 | `Notifications` | [NotificationListener](winshell-notifications.md#notificationlistener), read-only |
-| `Options` | [ShellOptions](#shelloptions), read-only |
+| `Paths` | [ShellPaths](#shellpaths), read-only |
 | `Power` | [PowerService](winshell-power.md#powerservice), read-only |
 | `PowerMode` | [PowerModeService](winshell-power.md#powermodeservice), read-only |
 | `Privacy` | [PrivacyService](winshell-privacy.md#privacyservice), read-only |
@@ -339,7 +334,6 @@ Has the members of [ObservableObject](#observableobject).
 | `Session` | [SessionService](winshell-session.md#sessionservice), read-only |
 | `ShellId` | string, read-only |
 | `Startup` | [StartupService](winshell-session.md#startupservice), read-only |
-| `StateDir` | string, read-only |
 | `Style` | [ShellStyle](#shellstyle) |
 | `SystemAccent` | string, read-only |
 | `SystemTray` | [SystemTray](winshell-tray.md#systemtray), read-only |
@@ -349,17 +343,13 @@ Has the members of [ObservableObject](#observableobject).
 | `WindowList` | [WindowListService](winshell-windows.md#windowlistservice), read-only |
 | `Winland` | [WinlandService](winshell-winland.md#winlandservice), read-only |
 | `StyleChanged` | Action |
-| `CachePath(string path)` | string |
-| `ConfigPath(string path)` | string |
-| `DataPath(string path)` | string |
 | `Dispose()` | void |
 | `Hotkey(string sequence, Action? pressed = null)` | [Hotkey](winshell-input.md#hotkey) |
 | `NewIdleMonitor()` | [IdleMonitor](winshell-power.md#idlemonitor) |
 | `Open(string target)` | void |
 | `Quit()` | void |
 | `Reload()` | bool |
-| `Run(Action of [Shell](#shell) start, [ShellOptions](#shelloptions)? options = null)` | void, static |
-| `StatePath(string path)` | string |
+| `Run(Action of [Shell](#shell) start)` | void, static |
 
 ## ShellImage
 
@@ -375,15 +365,16 @@ Has the members of [ObservableObject](#observableobject).
 | `Property<T>(string target, string property, Func of T read)` | IDisposable |
 | `Signal(string target, string signal)` | [IpcSignal](#ipcsignal) |
 
-## ShellOptions
+## ShellPaths
 
 | Member | Type |
 | --- | --- |
-| `ShellOptions()` | constructor |
-| `CacheDir` | string?, init |
-| `DataDir` | string?, init |
-| `ShellId` | string?, init |
-| `StateDir` | string?, init |
+| `Cache` | string, read-only |
+| `Data` | string, read-only |
+| `Logs` | string, read-only |
+| `Program` | string, read-only |
+| `Shells` | string, read-only |
+| `State` | string, read-only |
 
 ## ShellStyle
 

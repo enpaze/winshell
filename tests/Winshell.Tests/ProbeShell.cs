@@ -7,39 +7,70 @@ namespace Winshell.Tests;
 
 internal static class ProbeShell
 {
-    private const string ShellIdVariable = "PROBE_SHELL_ID";
+    internal const string OtherShellName = "other";
+
+    internal const string OtherDataDir = "data";
+
+    internal const string OtherStateDir = "other-state";
+
+    internal const string OtherCacheDir = "other-cache";
+
+    private const string ProbeProperties = "<ShellName>probe</ShellName>";
 
     private static readonly object Gate = new();
 
     private static string? _program;
 
-    internal static string Program
+    private static string? _other;
+
+    private static string? _copy;
+
+    internal static string Program => Built(ref _program, Path.Combine(TempFolder.Root, "probe-shell-" + Checkout),
+        ProbeProperties);
+
+    internal static string Other => Built(ref _other, OtherFolder, $"""
+        <ShellName>{OtherShellName}</ShellName>
+        <ShellDataDir>{OtherDataDir}</ShellDataDir>
+        <ShellStateDir>$BASE\{OtherStateDir}</ShellStateDir>
+        <ShellCacheDir>%WINSHELL_LOCAL_DIR%\{OtherCacheDir}</ShellCacheDir>
+        """);
+
+    internal static string Copy
     {
         get
         {
-            Ensure();
-            return _program!;
+            var program = Program;
+            if (Volatile.Read(ref _copy) is { } copied && File.Exists(copied))
+                return copied;
+            lock (Gate)
+            {
+                if (_copy is null || !File.Exists(_copy))
+                    Volatile.Write(ref _copy, CopyLocked(program, Path.Combine(TempFolder.Root, "probe-copy-" + Checkout)));
+                return _copy;
+            }
         }
     }
 
-    internal static Process Start(string config, string local, string? shellId = null, string? program = null)
+    internal static string OtherFolder => Path.Combine(TempFolder.Root, "probe-other-" + Checkout);
+
+    private static string Checkout => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Repo.Root)))[..12];
+
+    internal static Process Start(string config, string local, string? program = null)
     {
-        var process = Launch(config, local, [], shellId, program: program);
+        var process = Launch(config, local, [], program: program);
         Wait.Until(() => new Instances(Path.Combine(local, "run")).Running().Any(info => info.Pid == process.Id),
             $"probe {process.Id} to publish its instance");
         return process;
     }
 
-    internal static Process Launch(string config, string local, string[] args, string? shellId = null,
-        StringBuilder? printed = null, string? program = null)
+    internal static Process Launch(string config, string local, string[] args, StringBuilder? printed = null,
+        string? program = null)
     {
         var info = new ProcessStartInfo(program ?? Program);
         foreach (var arg in args)
             info.ArgumentList.Add(arg);
         foreach (var (name, value) in IsolatedFolders.Of(config, local))
             info.Environment[name] = value;
-        if (shellId is not null)
-            info.Environment[ShellIdVariable] = shellId;
         return ChildProcess.Start(info, printed);
     }
 
@@ -53,16 +84,15 @@ internal static class ProbeShell
         return ChildProcess.Run(info, TimeSpan.FromSeconds(20));
     }
 
-    internal static void Ensure()
+    private static string Built(ref string? program, string folder, string shellProperties)
     {
-        if (Volatile.Read(ref _program) is { } built && File.Exists(built))
-            return;
+        if (Volatile.Read(ref program) is { } built && File.Exists(built))
+            return built;
         lock (Gate)
         {
-            if (_program is not null && File.Exists(_program))
-                return;
-            var checkout = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Repo.Root)))[..12];
-            Volatile.Write(ref _program, Build(Path.Combine(TempFolder.Root, "probe-shell-" + checkout)));
+            if (program is null || !File.Exists(program))
+                Volatile.Write(ref program, BuildLocked(folder, shellProperties));
+            return program;
         }
     }
 
@@ -70,18 +100,19 @@ internal static class ProbeShell
     {
         lock (Gate)
         {
-            return BuildLocked(folder);
+            return BuildLocked(folder, ProbeProperties);
         }
     }
 
-    private static string BuildLocked(string folder)
+    private static string BuildLocked(string folder, string shellProperties)
     {
         var root = Repo.Root;
         Directory.CreateDirectory(folder);
         Directory.SetLastWriteTimeUtc(folder, DateTime.UtcNow);
         WriteIfDifferent(Path.Combine(folder, "global.json"), File.ReadAllText(Path.Combine(root, "global.json")));
         var project = Path.Combine(folder, "Probe.csproj");
-        WriteIfDifferent(project, Project(Path.Combine(root, "src", "Winshell.Shell", "Winshell.Shell.csproj")));
+        WriteIfDifferent(project,
+            Project(Path.Combine(root, "src", "Winshell.Shell", "Winshell.Shell.csproj"), shellProperties));
         WriteIfDifferent(Path.Combine(folder, "Program.cs"), Source);
         var program = Path.Combine(folder, "bin", "shell", "Probe.exe");
         var info = new ProcessStartInfo("dotnet") { WorkingDirectory = folder };
@@ -98,6 +129,19 @@ internal static class ProbeShell
         return program;
     }
 
+    private static string CopyLocked(string program, string folder)
+    {
+        var source = Path.GetDirectoryName(program)!;
+        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        {
+            var target = Path.Combine(folder, Path.GetRelativePath(source, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(file, target, true);
+        }
+
+        return Path.Combine(folder, Path.GetFileName(program));
+    }
+
     private static void WriteIfDifferent(string path, string text)
     {
         if (File.Exists(path) && File.ReadAllText(path) == text)
@@ -106,7 +150,7 @@ internal static class ProbeShell
     }
 
 
-    private static string Project(string shellProject)
+    private static string Project(string shellProject, string shellProperties)
     {
         var props = Path.Combine(Repo.Root, "src", "Winshell.Package", "buildTransitive", "Winshell.props");
         var configuration = typeof(ProbeShell).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
@@ -122,6 +166,7 @@ internal static class ProbeShell
                     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
                     <AssemblyName>Probe</AssemblyName>
                     <DisableWinExeOutputInference>true</DisableWinExeOutputInference>
+                    {shellProperties}
                   </PropertyGroup>
                   <!-- The SDK adds transitive references too. Give all of them the tested configuration and keep
                        this probe's -o path out of their builds, including when reload builds the probe in Release. -->
@@ -158,6 +203,12 @@ internal static class ProbeShell
           {
               shell.Ipc.Handle("probe", "note", (string text) => { });
               shell.Ipc.Property("probe", "name", () => "probe");
+              shell.Ipc.Property("paths", "data", () => shell.Paths.Data);
+              shell.Ipc.Property("paths", "state", () => shell.Paths.State);
+              shell.Ipc.Property("paths", "cache", () => shell.Paths.Cache);
+              shell.Ipc.Property("paths", "logs", () => shell.Paths.Logs);
+              shell.Ipc.Property("paths", "program", () => shell.Paths.Program);
+              shell.Ipc.Property("paths", "shells", () => shell.Paths.Shells);
               var config = Environment.GetEnvironmentVariable("WINSHELL_CONFIG_DIR");
               // A test that puts {{CrashMarker}} there gets a shell that crashes as it starts, once.
               if (config is not null && File.Exists(Path.Combine(config, "{{CrashMarker}}")))
@@ -173,7 +224,7 @@ internal static class ProbeShell
                   shell.Loop.Post(() => new LateSection());
                   shell.Loop.Post(() =>
                   {
-                      var path = Path.Combine(shell.ConfigRoot, "preferences", shell.ShellId + ".toml");
+                      var path = Path.Combine(shell.Paths.Shells, "preferences", shell.ShellId + ".toml");
                       var report = Path.Combine(config, "preferences-report.txt");
                       // The test reads the report from another process, so it appears once and whole: written
                       // beside it, then moved to a name that does not exist yet, which no reader can hold open.
@@ -238,7 +289,7 @@ internal static class ProbeShell
               File.WriteAllText(Path.Combine(config, "child.pid.tmp"), child.Id.ToString());
               File.Move(Path.Combine(config, "child.pid.tmp"), Path.Combine(config, "child.pid"));
               AppDomain.CurrentDomain.ProcessExit += (_, _) => Thread.Sleep(Timeout.Infinite);
-          }, new ShellOptions { ShellId = Environment.GetEnvironmentVariable("{{ShellIdVariable}}") ?? "probe" });
+          });
 
           // What the turn after start can already see in the preferences file.
           static string PreferencesReport(string path)

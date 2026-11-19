@@ -7,7 +7,7 @@ public sealed partial class NewCommandTests : IDisposable
 {
     private readonly TempFolder _root = new();
 
-    private string ConfigRoot => Path.Combine(_root.Path, "config");
+    private string ShellsRoot => Path.Combine(_root.Path, "config");
 
     private string Packages => Path.Combine(_root.Path, "packages");
 
@@ -37,7 +37,7 @@ public sealed partial class NewCommandTests : IDisposable
     {
         var result = New("omarchy-style");
 
-        var folder = Path.Combine(ConfigRoot, "omarchy-style");
+        var folder = Path.Combine(ShellsRoot, "omarchy-style");
         Assert.Equal(0, result.Code);
         Assert.Equal(
             $"Created {folder}{Environment.NewLine}" +
@@ -62,7 +62,7 @@ public sealed partial class NewCommandTests : IDisposable
 
         New("omarchy-style");
 
-        var folder = Path.Combine(ConfigRoot, "omarchy-style");
+        var folder = Path.Combine(ShellsRoot, "omarchy-style");
         var files = Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories)
             .Select(file => Path.GetRelativePath(source, file))
             .Where(file => !file.StartsWith(@"bin\", StringComparison.Ordinal) &&
@@ -79,7 +79,7 @@ public sealed partial class NewCommandTests : IDisposable
     {
         New("omarchy-style");
 
-        var readme = File.ReadAllText(Path.Combine(ConfigRoot, "omarchy-style", "README.md"));
+        var readme = File.ReadAllText(Path.Combine(ShellsRoot, "omarchy-style", "README.md"));
         Assert.DoesNotContain("## Run it", readme, StringComparison.Ordinal);
         Assert.DoesNotContain("## Use it as your own configuration", readme, StringComparison.Ordinal);
         Assert.DoesNotContain("winshell run --path examples/omarchy-style", readme, StringComparison.Ordinal);
@@ -101,7 +101,7 @@ public sealed partial class NewCommandTests : IDisposable
         var package =
             Assert.Single(XDocument.Load(Path.Combine(target, "MyShell.csproj")).Descendants("PackageReference"));
         Assert.Equal(Version, (string?)package.Attribute("Version"));
-        Assert.False(Directory.Exists(ConfigRoot));
+        Assert.False(Directory.Exists(ShellsRoot));
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public sealed partial class NewCommandTests : IDisposable
         var result = New("omarchy-style");
 
         Assert.DoesNotContain("not beside winshell.exe", result.Output, StringComparison.Ordinal);
-        var config = XDocument.Load(Path.Combine(ConfigRoot, "omarchy-style", "nuget.config")).Root!;
+        var config = XDocument.Load(Path.Combine(ShellsRoot, "omarchy-style", "nuget.config")).Root!;
         var source = Assert.Single(config.Element("packageSources")!.Elements());
         Assert.Equal("add", source.Name.LocalName);
         Assert.Equal(Packages, (string?)source.Attribute("value"));
@@ -128,7 +128,7 @@ public sealed partial class NewCommandTests : IDisposable
 
         New("omarchy-style");
 
-        Assert.False(File.Exists(Path.Combine(ConfigRoot, "omarchy-style", "nuget.config")));
+        Assert.False(File.Exists(Path.Combine(ShellsRoot, "omarchy-style", "nuget.config")));
     }
 
     [Fact]
@@ -139,13 +139,13 @@ public sealed partial class NewCommandTests : IDisposable
         Assert.Equal(
             new NewCommand.Result(2, "", "No starter or example is named \"nope\". Run winshell new to list them."),
             result);
-        Assert.False(Directory.Exists(ConfigRoot));
+        Assert.False(Directory.Exists(ShellsRoot));
     }
 
     [Fact]
     public void A_folder_that_is_not_empty_exits_2_and_is_left_as_it_was()
     {
-        var folder = Path.Combine(ConfigRoot, "starter");
+        var folder = Path.Combine(ShellsRoot, "starter");
         Directory.CreateDirectory(folder);
         File.WriteAllText(Path.Combine(folder, "mine.txt"), "mine");
 
@@ -161,7 +161,7 @@ public sealed partial class NewCommandTests : IDisposable
     [Fact]
     public void An_empty_folder_is_used()
     {
-        var folder = Path.Combine(ConfigRoot, "starter");
+        var folder = Path.Combine(ShellsRoot, "starter");
         Directory.CreateDirectory(folder);
 
         Assert.Equal(0, New("starter").Code);
@@ -175,6 +175,6 @@ public sealed partial class NewCommandTests : IDisposable
 
     private NewCommand.Result New(params string[] words)
     {
-        return NewCommand.Make(CliParser.Parse(["new", .. words]), ConfigRoot, Packages);
+        return NewCommand.Make(CliParser.Parse(["new", .. words]), ShellsRoot, Packages);
     }
 }

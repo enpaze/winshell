@@ -41,7 +41,7 @@ public sealed class PreferencesTests
 
     internal static string PathOf(Shell shell)
     {
-        return Path.Combine(shell.ConfigRoot, "preferences", shell.ShellId + ".toml");
+        return Path.Combine(shell.Paths.Shells, "preferences", shell.ShellId + ".toml");
     }
 
     private static List<string> Changes(INotifyPropertyChanged preferences)

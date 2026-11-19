@@ -19,7 +19,7 @@ public class ShellLocationTests
         var local = Environment.GetEnvironmentVariable("WINSHELL_LOCAL_DIR")!;
 
         Assert.Equal(local, ShellLocations.Current.LocalRoot);
-        Assert.NotEqual(local, ShellLocations.Current.ConfigRoot);
+        Assert.NotEqual(local, ShellLocations.Current.ShellsRoot);
     }
 
     [Fact]

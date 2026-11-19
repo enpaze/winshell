@@ -23,15 +23,15 @@ internal sealed class ShellInstance
         _shellId = shellId;
         _program = program;
         Log = log;
-        LogPath = Path.Combine(_dir, InstanceLog.FileName);
+        Logs = Path.Combine(_dir, InstanceLog.FileName);
         Pipe = $"winshell-{id}";
-        _file = new InstanceLog(LogPath);
-        Crashes = new CrashReports(locations.CrashRoot, log, shellId, program, LogPath);
+        _file = new InstanceLog(Logs);
+        Crashes = new CrashReports(locations.CrashRoot, log, shellId, program, Logs);
     }
 
     public string Id { get; }
 
-    public string LogPath { get; }
+    public string Logs { get; }
 
     private Log Log { get; }
 
@@ -103,7 +103,7 @@ internal sealed class ShellInstance
             _program,
             TimeProvider.System.GetLocalNow().LocalDateTime,
             Pipe,
-            LogPath,
+            Logs,
             process.StartTime.ToUniversalTime().Ticks,
             ProcessName: process.ProcessName));
     }

@@ -26,7 +26,7 @@ internal static class CliParser
             ? entry.Usage
             : Overview();
         return text.Replace("{version}", Shell.Version, StringComparison.Ordinal)
-            .Replace("{config-root}", ShellLocations.Current.ConfigRoot, StringComparison.Ordinal)
+            .Replace("{config-root}", ShellLocations.Current.ShellsRoot, StringComparison.Ordinal)
             .Replace("{config-override}", ShellLocations.ConfigVariable, StringComparison.Ordinal)
             .Replace("\r\n", "\n", StringComparison.Ordinal)
             .TrimEnd();

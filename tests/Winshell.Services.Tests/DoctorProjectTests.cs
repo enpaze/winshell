@@ -90,9 +90,9 @@ public sealed class DoctorProjectTests : IDisposable
         Assert.Equal("A file in Mine is newer than the program.", stale[2].Message);
     }
 
-    private static IReadOnlyList<DoctorCheck> Checks(string configRoot)
+    private static IReadOnlyList<DoctorCheck> Checks(string shellsRoot)
     {
-        var project = ShellProject.Find(null, null, configRoot, out var problem);
+        var project = ShellProject.Find(null, null, shellsRoot, out var problem);
         return DoctorProject.Checks(project, problem);
     }
 

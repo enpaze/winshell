@@ -26,7 +26,7 @@ internal static class ShellFixture
             TempFolder.NewPath());
         Environment.SetEnvironmentVariable("WINSHELL_CONFIG_DIR",
             TempFolder.NewPath());
-        var thread = new Thread(() => Shell.Run(Ready.SetResult, new ShellOptions { ShellId = "winshell-tests" }))
+        var thread = new Thread(() => Shell.Run(Ready.SetResult))
         {
             IsBackground = true,
             Name = "WinUI"
@@ -160,7 +160,7 @@ internal static class ShellFixture
 
     public static string ReadLog(Shell shell)
     {
-        using var stream = SharedFile.OpenToRead(shell.LogPath);
+        using var stream = SharedFile.OpenToRead(shell.Paths.Logs);
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
     }

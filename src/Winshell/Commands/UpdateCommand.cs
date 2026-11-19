@@ -38,7 +38,7 @@ internal static class UpdateCommand
         return RunAsync(
             ReleaseSources.Create(Environment.GetEnvironmentVariable("WINSHELL_RELEASE_BASE")),
             InstallRoot,
-            ShellLocations.Current.ConfigRoot,
+            ShellLocations.Current.ShellsRoot,
             Environment.ProcessPath ?? "",
             Shell.Version,
             parsed.Text(Channel),
@@ -50,7 +50,7 @@ internal static class UpdateCommand
     internal static async Task<int> RunAsync(
         IReleaseFeed feed,
         string installRoot,
-        string configRoot,
+        string shellsRoot,
         string executablePath,
         string informationalVersion,
         string? requestedChannel,
@@ -59,7 +59,7 @@ internal static class UpdateCommand
         Func<Task<bool>>? stopShells = null)
     {
         var channel = requestedChannel is null
-            ? UpdateChannelFile.Read(configRoot)
+            ? UpdateChannelFile.Read(shellsRoot)
             : UpdateChannels.TryParse(requestedChannel, out var chosen)
                 ? chosen
                 : throw new ArgumentException("winshell update --channel needs stable or dev.");
@@ -77,11 +77,11 @@ internal static class UpdateCommand
                         + " does not match SHA256SUMS.txt. The release may still be uploading. Try again in a minute.");
                     return 1;
                 case UpdateResult.Current:
-                    Remember(configRoot, channel, requestedChannel);
+                    Remember(shellsRoot, channel, requestedChannel);
                     output.WriteLine("Winshell is up to date.");
                     return 0;
                 case UpdateResult.Updated updated:
-                    Remember(configRoot, channel, requestedChannel);
+                    Remember(shellsRoot, channel, requestedChannel);
                     output.WriteLine("Winshell is updated to " + updated.Version + ".");
                     return 0;
                 default:
@@ -94,10 +94,10 @@ internal static class UpdateCommand
         }
     }
 
-    private static void Remember(string configRoot, UpdateChannel channel, string? requestedChannel)
+    private static void Remember(string shellsRoot, UpdateChannel channel, string? requestedChannel)
     {
         if (requestedChannel is not null)
-            UpdateChannelFile.Write(configRoot, channel);
+            UpdateChannelFile.Write(shellsRoot, channel);
     }
 
     private static async Task<bool> StopShells()

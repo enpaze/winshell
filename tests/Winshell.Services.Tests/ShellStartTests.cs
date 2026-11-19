@@ -64,12 +64,12 @@ public sealed class ShellStartTests
     [Fact]
     public void A_given_shell_id_names_the_folders()
     {
-        var identity = ShellIdentity.Resolve(@"C:\shells\mine\mine.exe", Locations, "mine-id", null, null, null);
+        var identity = ShellIdentity.Resolve(@"C:\shells\mine\mine.exe", Locations, new ShellProperties("mine-id"));
 
         Assert.Equal("mine-id", identity.ShellId);
-        Assert.Equal(@"C:\local\data\by-shell\mine-id", identity.DataDir);
-        Assert.Equal(@"C:\local\state\by-shell\mine-id", identity.StateDir);
-        Assert.Equal(@"C:\local\cache\by-shell\mine-id", identity.CacheDir);
+        Assert.Equal(@"C:\local\data\by-shell\mine-id", identity.Data);
+        Assert.Equal(@"C:\local\state\by-shell\mine-id", identity.State);
+        Assert.Equal(@"C:\local\cache\by-shell\mine-id", identity.Cache);
     }
 
     [Theory]
@@ -97,31 +97,31 @@ public sealed class ShellStartTests
     {
         using var temp = new TempFolder();
         var locations = new ShellLocations(Path.Combine(temp.Path, "config"), Path.Combine(temp.Path, "local"));
-        var program = Path.Combine(locations.ConfigRoot, "bar", "bin", "shell", "Bar.exe");
-        var earlier = ShellIdentity.Resolve(program, locations with { ConfigRoot = "" }, null, null, null, null);
-        Directory.CreateDirectory(earlier.DataDir);
-        File.WriteAllText(Path.Combine(earlier.DataDir, "kept.txt"), "data");
-        Directory.CreateDirectory(earlier.StateDir);
+        var program = Path.Combine(locations.ShellsRoot, "bar", "bin", "shell", "Bar.exe");
+        var earlier = ShellIdentity.Resolve(program, locations with { ShellsRoot = "" }, new ShellProperties());
+        Directory.CreateDirectory(earlier.Data);
+        File.WriteAllText(Path.Combine(earlier.Data, "kept.txt"), "data");
+        Directory.CreateDirectory(earlier.State);
         var messages = new List<string>();
         var log = new Log { Sink = (_, category, message) => messages.Add($"{category}: {message}") };
 
-        var identity = ShellIdentity.Resolve(program, locations, null, null, null, null);
+        var identity = ShellIdentity.Resolve(program, locations, new ShellProperties());
         identity.CarryOver(log);
 
-        Assert.Equal("data", File.ReadAllText(Path.Combine(identity.DataDir, "kept.txt")));
-        Assert.True(Directory.Exists(identity.StateDir));
-        Assert.False(Directory.Exists(identity.CacheDir));
-        Assert.False(Directory.Exists(earlier.DataDir));
+        Assert.Equal("data", File.ReadAllText(Path.Combine(identity.Data, "kept.txt")));
+        Assert.True(Directory.Exists(identity.State));
+        Assert.False(Directory.Exists(identity.Cache));
+        Assert.False(Directory.Exists(earlier.Data));
         Assert.Equal(
         [
-            $"shell: Moved \"{earlier.DataDir}\" to \"{identity.DataDir}\"",
-            $"shell: Moved \"{earlier.StateDir}\" to \"{identity.StateDir}\""
+            $"shell: Moved \"{earlier.Data}\" to \"{identity.Data}\"",
+            $"shell: Moved \"{earlier.State}\" to \"{identity.State}\""
         ], messages);
 
-        Directory.CreateDirectory(earlier.DataDir);
+        Directory.CreateDirectory(earlier.Data);
         identity.CarryOver(log);
 
-        Assert.True(Directory.Exists(earlier.DataDir));
+        Assert.True(Directory.Exists(earlier.Data));
         Assert.Equal(2, messages.Count);
     }
 
@@ -130,51 +130,62 @@ public sealed class ShellStartTests
     {
         using var temp = new TempFolder();
         var locations = new ShellLocations(Path.Combine(temp.Path, "config"), Path.Combine(temp.Path, "local"));
-        var program = Path.Combine(locations.ConfigRoot, "bar", "bin", "shell", "Bar.exe");
-        var earlier = ShellIdentity.Resolve(program, locations with { ConfigRoot = "" }, null, null, null, null);
-        Directory.CreateDirectory(earlier.DataDir);
-        Directory.CreateDirectory(earlier.StateDir);
+        var program = Path.Combine(locations.ShellsRoot, "bar", "bin", "shell", "Bar.exe");
+        var earlier = ShellIdentity.Resolve(program, locations with { ShellsRoot = "" }, new ShellProperties());
+        Directory.CreateDirectory(earlier.Data);
+        Directory.CreateDirectory(earlier.State);
         var given = Path.Combine(temp.Path, "state");
 
-        ShellIdentity.Resolve(program, locations, "bar", null, null, null).CarryOver(new Log());
-        Assert.True(Directory.Exists(earlier.DataDir));
+        ShellIdentity.Resolve(program, locations, new ShellProperties("bar")).CarryOver(new Log());
+        Assert.True(Directory.Exists(earlier.Data));
 
-        ShellIdentity.Resolve(program, locations, null, null, given, null).CarryOver(new Log());
-        Assert.True(Directory.Exists(earlier.StateDir));
+        ShellIdentity.Resolve(program, locations, new ShellProperties(ShellStateDir: given)).CarryOver(new Log());
+        Assert.True(Directory.Exists(earlier.State));
         Assert.False(Directory.Exists(given));
     }
 
     [Fact]
     public void A_given_folder_is_next_to_the_program_and_can_name_the_base()
     {
-        var identity = ShellIdentity.Resolve(@"C:\shells\mine.exe", Locations with { ConfigRoot = "" }, "id", "data",
-            @"$BASE\other", @"D:\cache");
+        var identity = ShellIdentity.Resolve(@"C:\shells\mine.exe", Locations with { ShellsRoot = "" },
+            new ShellProperties("id", "data", @"$BASE\other", @"D:\cache"));
 
-        Assert.Equal(@"C:\shells\data", identity.DataDir);
-        Assert.Equal(@"C:\local\state\other", identity.StateDir);
-        Assert.Equal(@"D:\cache", identity.CacheDir);
+        Assert.Equal(@"C:\shells\data", identity.Data);
+        Assert.Equal(@"C:\local\state\other", identity.State);
+        Assert.Equal(@"D:\cache", identity.Cache);
     }
 
     [Fact]
     public void A_relative_folder_is_in_the_project_or_next_to_a_program_outside_its_build()
     {
-        var built = ShellIdentity.Resolve(@"C:\shells\mine\bin\shell\Mine.exe", Locations, "id", "data", "state",
-            "cache");
+        var given = new ShellProperties("id", "data", "state", "cache");
+        var built = ShellIdentity.Resolve(@"C:\shells\mine\bin\shell\Mine.exe", Locations, given);
 
-        Assert.Equal(@"C:\shells\mine\data", built.DataDir);
-        Assert.Equal(@"C:\shells\mine\state", built.StateDir);
-        Assert.Equal(@"C:\shells\mine\cache", built.CacheDir);
+        Assert.Equal(@"C:\shells\mine\data", built.Data);
+        Assert.Equal(@"C:\shells\mine\state", built.State);
+        Assert.Equal(@"C:\shells\mine\cache", built.Cache);
 
-        var reloaded = ShellIdentity.Resolve(@"C:\shells\mine\bin\shell.next\Mine.exe", Locations, "id", "data",
-            "state", "cache");
+        var reloaded = ShellIdentity.Resolve(@"C:\shells\mine\bin\shell.next\Mine.exe", Locations, given);
 
-        Assert.Equal(@"C:\shells\mine\data", reloaded.DataDir);
-        Assert.Equal(@"C:\shells\mine\state", reloaded.StateDir);
-        Assert.Equal(@"C:\shells\mine\cache", reloaded.CacheDir);
+        Assert.Equal(@"C:\shells\mine\data", reloaded.Data);
+        Assert.Equal(@"C:\shells\mine\state", reloaded.State);
+        Assert.Equal(@"C:\shells\mine\cache", reloaded.Cache);
 
-        var loose = ShellIdentity.Resolve(@"C:\shells\mine\bin\Debug\Mine.exe", Locations, "id", "data", null, null);
+        var loose = ShellIdentity.Resolve(@"C:\shells\mine\bin\Debug\Mine.exe", Locations, given);
 
-        Assert.Equal(@"C:\shells\mine\bin\Debug\data", loose.DataDir);
+        Assert.Equal(@"C:\shells\mine\bin\Debug\data", loose.Data);
+    }
+
+    [Fact]
+    public void A_given_folder_expands_environment_variables()
+    {
+        var identity = ShellIdentity.Resolve(@"C:\shells\mine\bin\shell\Mine.exe", Locations,
+            new ShellProperties("id", @"%SystemRoot%\data", @"%SystemRoot%", "%WINSHELL_UNSET_VARIABLE%"));
+
+        var windows = Environment.GetEnvironmentVariable("SystemRoot")!;
+        Assert.Equal(Path.Combine(windows, "data"), identity.Data);
+        Assert.Equal(windows, identity.State);
+        Assert.Equal(@"C:\shells\mine\%WINSHELL_UNSET_VARIABLE%", identity.Cache);
     }
 
     [Fact]
@@ -185,6 +196,6 @@ public sealed class ShellStartTests
 
     private static string IdOf(string program)
     {
-        return ShellIdentity.Resolve(program, Locations, null, null, null, null).ShellId;
+        return ShellIdentity.Resolve(program, Locations, new ShellProperties()).ShellId;
     }
 }
