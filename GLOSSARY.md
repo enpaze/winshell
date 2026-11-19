@@ -57,7 +57,7 @@ A public part of a shell set on primitives, such as the windows on each screen, 
 _Avoid_: layer, helper
 
 **Composition**:
-A public arrangement of building blocks for one common desktop, such as a bar. It uses the public API a shell author has, and Shell's own internals only to start as a part.
+A public arrangement of building blocks for one common desktop, such as a bar. It may use Shell's internals, but only the public API of Core, Native and Services.
 _Avoid_: layer, layout, theme
 
 **Part**:
