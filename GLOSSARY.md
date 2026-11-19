@@ -71,7 +71,7 @@ A native window the shell places on the desktop, such as a panel or a popup wind
 _Avoid_: form, view
 
 **Panel**:
-A window anchored to an edge of a screen. It can reserve that edge.
+A window on one edge of a screen. It can reserve its thickness along that edge.
 _Avoid_: taskbar, dock, layer surface
 
 **Bar**:

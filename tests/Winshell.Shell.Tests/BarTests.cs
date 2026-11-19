@@ -27,7 +27,7 @@ public sealed class BarTests
                 using var bar = shell.Add(new Bar { Name = "bar" + Guid.NewGuid().ToString("N"), Reserve = false, Center = [widget] });
                 await NextTurn(shell);
                 var firstBar = Assert.Single(BarsOn(shell, first));
-                Assert.Equal(Edges.Left | Edges.Right | Edges.Top, firstBar.Anchors);
+                Assert.Equal((Edge.Top, PanelAlign.Stretch), (firstBar.Edge, firstBar.Align));
                 Assert.Equal(32, firstBar.Height);
                 Assert.All(await AreasOf(firstBar), area => Assert.Equal(Orientation.Horizontal, area.Orientation));
                 await UntilShown(() => TextsOn(made, firstBar).SequenceEqual([""]), "the center widget to render", firstBar);
@@ -101,32 +101,32 @@ public sealed class BarTests
                 });
                 await NextTurn(shell);
                 var wideBar = Assert.Single(BarsOn(shell, wide));
-                Assert.Equal(Edges.Left | Edges.Right | Edges.Top, wideBar.Anchors);
-                Assert.Equal(0, wideBar.ReservedSize);
+                Assert.Equal((Edge.Top, PanelAlign.Stretch), (wideBar.Edge, wideBar.Align));
+                Assert.False(wideBar.Reserve);
                 await UntilShown(() => TextsOn(made, wideBar).SequenceEqual(["from the file"]),
                     "the file's text to render", wideBar);
                 var tallBar = Assert.Single(BarsOn(shell, tall));
-                Assert.Equal(Edges.Left | Edges.Top | Edges.Bottom, tallBar.Anchors);
+                Assert.Equal((Edge.Left, PanelAlign.Stretch), (tallBar.Edge, tallBar.Align));
                 Assert.Equal(32, tallBar.Width);
                 Assert.All(await AreasOf(tallBar), area => Assert.Equal(Orientation.Vertical, area.Orientation));
 
                 await Save(shell, path, Section(name, widget, "top", "right", "from the file"));
                 tallBar = await Replaced(shell, tall, tallBar);
-                Assert.Equal(Edges.Right | Edges.Top | Edges.Bottom, tallBar.Anchors);
+                Assert.Equal((Edge.Right, PanelAlign.Stretch), (tallBar.Edge, tallBar.Align));
                 Assert.Same(wideBar, Assert.Single(BarsOn(shell, wide)));
 
                 await Save(shell, path, Section(name, widget, "top", "middle", "from the file"));
                 tallBar = await Replaced(shell, tall, tallBar);
-                Assert.Equal(Edges.Left | Edges.Right | Edges.Top, tallBar.Anchors);
+                Assert.Equal((Edge.Top, PanelAlign.Stretch), (tallBar.Edge, tallBar.Align));
                 Assert.Contains("edge in its [[" + name + ".screen]] row must be", ShellFixture.ReadLog(shell),
                     StringComparison.Ordinal);
 
                 await Save(shell, path, Section(name, widget, "bottom", "right", "saved"));
                 wideBar = await Replaced(shell, wide, wideBar);
                 tallBar = await Replaced(shell, tall, tallBar);
-                Assert.Equal(Edges.Left | Edges.Right | Edges.Bottom, wideBar.Anchors);
+                Assert.Equal((Edge.Bottom, PanelAlign.Stretch), (wideBar.Edge, wideBar.Align));
                 Assert.All(await AreasOf(wideBar), area => Assert.Equal(Orientation.Horizontal, area.Orientation));
-                Assert.Equal(Edges.Right | Edges.Top | Edges.Bottom, tallBar.Anchors);
+                Assert.Equal((Edge.Right, PanelAlign.Stretch), (tallBar.Edge, tallBar.Align));
                 await UntilShown(
                     () => TextsOn(made, wideBar).SequenceEqual(["saved"]) && TextsOn(made, tallBar).SequenceEqual(["saved"]),
                     "the saved text to render", wideBar, tallBar);
@@ -206,11 +206,11 @@ public sealed class BarTests
             try
             {
                 using var topBar = shell.Add(new Bar { Name = top, Reserve = false });
-                using var bottomBar = shell.Add(new Bar { Name = bottom, Edge = Edges.Bottom, Reserve = false });
+                using var bottomBar = shell.Add(new Bar { Name = bottom, Edge = Edge.Bottom, Reserve = false });
                 await NextTurn(shell);
                 var bars = BarsOn(shell, screen);
-                var topWindow = Assert.Single(bars, window => window.Anchors.HasFlag(Edges.Top));
-                var bottomWindow = Assert.Single(bars, window => window.Anchors.HasFlag(Edges.Bottom));
+                var topWindow = Assert.Single(bars, window => window.Edge == Edge.Top);
+                var bottomWindow = Assert.Single(bars, window => window.Edge == Edge.Bottom);
                 await UntilShown(
                     () => TextsOn(made, topWindow).SequenceEqual(["top bar"]) &&
                           TextsOn(made, bottomWindow).SequenceEqual(["bottom bar"]),
@@ -218,10 +218,10 @@ public sealed class BarTests
 
                 await Save(shell, path, Lists(top, widget, "top bar, saved") + Lists(bottom, widget, "bottom bar"));
                 await Until(shell, screen, () => !BarsOn(shell, screen).Contains(topWindow), "the top bar to be replaced");
-                topWindow = Assert.Single(BarsOn(shell, screen), window => window.Anchors.HasFlag(Edges.Top));
+                topWindow = Assert.Single(BarsOn(shell, screen), window => window.Edge == Edge.Top);
                 await UntilShown(() => TextsOn(made, topWindow).SequenceEqual(["top bar, saved"]),
                     "the saved text to render", topWindow);
-                Assert.Same(bottomWindow, Assert.Single(BarsOn(shell, screen), window => window.Anchors.HasFlag(Edges.Bottom)));
+                Assert.Same(bottomWindow, Assert.Single(BarsOn(shell, screen), window => window.Edge == Edge.Bottom));
             }
             finally
             {
@@ -249,7 +249,7 @@ public sealed class BarTests
                 using var bar = shell.Add(new Bar
                 {
                     Name = name,
-                    Edge = Edges.Left,
+                    Edge = Edge.Left,
                     Reserve = false,
                     End = [widget, new Placement(widget, new Dictionary<string, object> { ["text"] = "Hi" })]
                 });
@@ -293,31 +293,31 @@ public sealed class BarTests
                 using var own = shell.Add(new Bar
                 {
                     Name = "own" + Guid.NewGuid().ToString("N"),
-                    Edge = Edges.Bottom,
+                    Edge = Edge.Bottom,
                     Reserve = false,
                     Style = other
                 });
                 using var thin = shell.Add(new Bar
                 {
                     Name = "thin" + Guid.NewGuid().ToString("N"),
-                    Edge = Edges.Left,
+                    Edge = Edge.Left,
                     Reserve = false,
                     Thickness = 20
                 });
                 await NextTurn(shell);
                 var bars = BarsOn(shell, screen);
-                var followsBar = Assert.Single(bars, window => window.Anchors == (Edges.Left | Edges.Right | Edges.Top));
+                var followsBar = Assert.Single(bars, window => window is { Edge: Edge.Top, Align: PanelAlign.Stretch });
                 Assert.Equal(32, followsBar.Height);
-                var ownBar = Assert.Single(bars, window => window.Anchors.HasFlag(Edges.Bottom) && window.Anchors.HasFlag(Edges.Right));
+                var ownBar = Assert.Single(bars, window => window is { Edge: Edge.Bottom, Align: PanelAlign.Stretch });
                 Assert.Equal(40, ownBar.Height);
                 await ShellFixture.LaidOut(Assert.IsType<ReactorHostControl>(ownBar.Content)).WaitAsync(TestContext.Current.CancellationToken);
                 Assert.Equal(global::Windows.UI.Color.FromArgb(0xff, 0x1a, 0x1b, 0x26), BackgroundOf(ownBar.Content!));
-                Assert.Equal(20, Assert.Single(bars, window => !window.Anchors.HasFlag(Edges.Right)).Width);
+                Assert.Equal(20, Assert.Single(bars, window => window.Edge == Edge.Left).Width);
 
                 shell.Style = other;
                 await NextTurn(shell);
                 Assert.Same(followsBar, Assert.Single(BarsOn(shell, screen),
-                    window => window.Anchors == (Edges.Left | Edges.Right | Edges.Top)));
+                    window => window is { Edge: Edge.Top, Align: PanelAlign.Stretch }));
                 Assert.Equal(40, followsBar.Height);
                 Assert.Contains(ownBar, BarsOn(shell, screen));
             }
@@ -327,6 +327,43 @@ public sealed class BarTests
                 shell.Platform.Screens.Remove(screen);
             }
 
+            return true;
+        });
+    }
+
+    [Fact]
+    public async Task A_reserving_bar_takes_its_thickness_from_the_work_area_on_its_edge()
+    {
+        await ShellFixture.On(async shell =>
+        {
+            var before = shell.Screens.ToDictionary(screen => screen.Id, screen => screen.WorkArea);
+            var bar = shell.Add(new Bar
+            {
+                Name = "reserving" + Guid.NewGuid().ToString("N"),
+                Edge = Edge.Left,
+                Reserve = true,
+                Thickness = 40
+            });
+            try
+            {
+                await Wait.UntilAsync(() => shell.Screens.All(screen => screen.WorkArea.Left > before[screen.Id].Left),
+                    "every screen's work area to give the bar its strip");
+                Assert.All(shell.Screens, screen =>
+                {
+                    var was = before[screen.Id];
+                    Assert.Equal(was.Left + 40, screen.WorkArea.Left, 1.0);
+                    Assert.Equal(was.Right, screen.WorkArea.Right, 1.0);
+                    Assert.Equal(was.Top, screen.WorkArea.Top, 1.0);
+                    Assert.Equal(was.Bottom, screen.WorkArea.Bottom, 1.0);
+                });
+            }
+            finally
+            {
+                bar.Dispose();
+            }
+
+            await Wait.UntilAsync(() => shell.Screens.All(screen => screen.WorkArea == before[screen.Id]),
+                "the work area to come back when the bar goes");
             return true;
         });
     }
@@ -438,7 +475,7 @@ public sealed class BarTests
                 using var side = shell.Add(new Bar
                 {
                     Name = "side" + Guid.NewGuid().ToString("N"),
-                    Edge = Edges.Left,
+                    Edge = Edge.Left,
                     Reserve = false,
                     Start = [widget],
                     End = [widget]
@@ -446,7 +483,7 @@ public sealed class BarTests
                 using var bottom = shell.Add(new Bar
                 {
                     Name = "bottom" + Guid.NewGuid().ToString("N"),
-                    Edge = Edges.Bottom,
+                    Edge = Edge.Bottom,
                     Reserve = false,
                     Style = TestStyles.Other(),
                     Start = [widget],
@@ -456,20 +493,20 @@ public sealed class BarTests
                 var bars = BarsOn(shell, screen);
 
                 var (start, end) =
-                    await Ends(Assert.Single(bars, window => window.Anchors == (Edges.Top | Edges.Left | Edges.Right)));
+                    await Ends(Assert.Single(bars, window => window is { Edge: Edge.Top, Align: PanelAlign.Stretch }));
                 Assert.Equal(12, start.X, 0.5);
                 Assert.Equal(12, end.X, 0.5);
                 Assert.Equal(0, start.Y, 0.5);
                 Assert.Equal(0, end.Y, 0.5);
 
-                (start, end) = await Ends(Assert.Single(bars, window => !window.Anchors.HasFlag(Edges.Right)));
+                (start, end) = await Ends(Assert.Single(bars, window => window.Edge == Edge.Left));
                 Assert.Equal(4, start.Y, 0.5);
                 Assert.Equal(4, end.Y, 0.5);
                 Assert.Equal(0, start.X, 0.5);
                 Assert.Equal(0, end.X, 0.5);
 
                 (start, end) =
-                    await Ends(Assert.Single(bars, window => window.Anchors == (Edges.Bottom | Edges.Left | Edges.Right)));
+                    await Ends(Assert.Single(bars, window => window is { Edge: Edge.Bottom, Align: PanelAlign.Stretch }));
                 Assert.Equal(0, start.X, 0.5);
                 Assert.Equal(0, end.X, 0.5);
             }
@@ -539,7 +576,7 @@ public sealed class BarTests
         Walk(host);
         var areas = stacks.Where(stack => !InsideAnother(stack, stacks)).ToList();
         Assert.Equal(3, areas.Count);
-        var vertical = bar.Anchors.HasFlag(Edges.Top) && bar.Anchors.HasFlag(Edges.Bottom);
+        var vertical = bar.Edge is Edge.Left or Edge.Right;
         areas.Sort((left, right) =>
         {
             var leftAt = left.TransformToVisual(host).TransformPoint(default);

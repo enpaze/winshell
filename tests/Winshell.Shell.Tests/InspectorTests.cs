@@ -34,7 +34,8 @@ public sealed partial class InspectorTests : IDisposable
     {
         return Shell.Current.Add(new PanelWindow
         {
-            Anchors = Edges.Top | Edges.Left,
+            Edge = Edge.Top,
+            Align = PanelAlign.Start,
             Width = 220,
             Height = 90,
             Content = content

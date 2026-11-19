@@ -12,7 +12,8 @@ public sealed class PanelPlacerTests
         var classes = await ShellFixture.On(shell =>
         {
             using var panel = new PanelWindow();
-            panel.Anchors = Edges.Top | Edges.Left;
+            panel.Edge = Edge.Top;
+            panel.Align = PanelAlign.Start;
             panel.Width = 320;
             panel.Height = 60;
             panel.Content = new Grid();

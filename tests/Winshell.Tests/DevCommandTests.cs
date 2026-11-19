@@ -52,7 +52,7 @@ public sealed partial class DevCommandTests : IDisposable
         File.WriteAllText(Path.Combine(Project, "Program.cs"), """
                                                                Shell.Run(shell =>
                                                                {
-                                                                   shell.Add(new PanelWindow { Anchors = Edges.Top | Edges.Left, Width = 200, Height = 32, Content = new Dev.PanelView() });
+                                                                   shell.Add(new PanelWindow { Edge = Edge.Top, Align = PanelAlign.Start, Width = 200, Height = 32, Content = new Dev.PanelView() });
                                                                    shell.Ipc.Handle("probe", "value", Marker.Value);
                                                                    shell.Ipc.Handle("probe", "reuse", () => Environment.GetEnvironmentVariable("MSBUILDDISABLENODEREUSE") ?? "");
                                                                    shell.Ipc.Handle("probe", "launch", (string name) =>

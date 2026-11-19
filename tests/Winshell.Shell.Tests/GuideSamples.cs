@@ -18,9 +18,10 @@ public static class GuideSamples
     {
         shell.Add(new PanelWindow
         {
-            Anchors = Edges.Left | Edges.Right | Edges.Bottom,
+            Edge = Edge.Bottom,
+            Align = PanelAlign.Stretch,
             Height = 48,
-            ReservedSize = 48,
+            Reserve = true,
             Content = new TextBlock { Text = "Winshell" }
         });
     }
@@ -30,11 +31,10 @@ public static class GuideSamples
         var dock = shell.Add(new ScreenWindows("dock", (screen, row) => new PanelWindow
         {
             Screen = screen,
-            Anchors = row?.GetValueOrDefault("edge") is "top"
-                ? Edges.Left | Edges.Right | Edges.Top
-                : Edges.Left | Edges.Right | Edges.Bottom,
+            Edge = row?.GetValueOrDefault("edge") is "top" ? Edge.Top : Edge.Bottom,
+            Align = PanelAlign.Stretch,
             Height = 48,
-            ReservedSize = 48,
+            Reserve = true,
             Content = new TextBlock { Text = screen.Name }
         }));
         return dock;
@@ -71,12 +71,12 @@ public static class GuideSamples
     {
         var bar = shell.Add(new Bar
         {
-            Edge = Edges.Top,
+            Edge = Edge.Top,
             Start = ["workspaces"],
             Center = ["clock"],
             End = ["tray", new("message", new Dictionary<string, object> { ["text"] = "Hello" })]
         });
-        var side = shell.Add(new Bar { Name = "side", Edge = Edges.Left, Reserve = false, Start = ["clock"] });
+        var side = shell.Add(new Bar { Name = "side", Edge = Edge.Left, Reserve = false, Start = ["clock"] });
         return (bar, side);
     }
 
@@ -96,7 +96,7 @@ public static class GuideSamples
 
     public static PanelWindow ASurface(Shell shell)
     {
-        var dock = shell.Add(new PanelWindow<Dock> { Anchors = Edges.Bottom, Height = 56 });
+        var dock = shell.Add(new PanelWindow<Dock> { Edge = Edge.Bottom, Width = 400, Height = 56 });
         return dock;
     }
 

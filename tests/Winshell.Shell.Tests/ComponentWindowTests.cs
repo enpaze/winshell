@@ -141,7 +141,8 @@ public sealed class ComponentWindowTests
         {
             using var panel = shell.Add(new PanelWindow<Greeting>
             {
-                Anchors = Edges.Top | Edges.Left,
+                Edge = Edge.Top,
+                Align = PanelAlign.Start,
                 Width = 220,
                 Height = 90,
                 Visible = false
@@ -161,7 +162,7 @@ public sealed class ComponentWindowTests
     {
         return kind switch
         {
-            "panel" => Shell.Current.Add(new PanelWindow<T> { Anchors = Edges.Top | Edges.Left, Width = 220, Height = 90 }),
+            "panel" => Shell.Current.Add(new PanelWindow<T> { Edge = Edge.Top, Align = PanelAlign.Start, Width = 220, Height = 90 }),
             "popup" => Shell.Current.Add(new PopupWindow<T> { Width = 220, Height = 90, Visible = true }),
             _ => Shell.Current.Add(new FloatingWindow<T> { Title = "Winshell test", Width = 320, Height = 200 })
         };
@@ -171,7 +172,7 @@ public sealed class ComponentWindowTests
     {
         return kind switch
         {
-            "panel" => Shell.Current.Add(new PanelWindow<Label, string>(text) { Anchors = Edges.Top | Edges.Left, Width = 220, Height = 90 }),
+            "panel" => Shell.Current.Add(new PanelWindow<Label, string>(text) { Edge = Edge.Top, Align = PanelAlign.Start, Width = 220, Height = 90 }),
             "popup" => Shell.Current.Add(new PopupWindow<Label, string>(text) { Width = 220, Height = 90, Visible = true }),
             _ => Shell.Current.Add(new FloatingWindow<Label, string>(text) { Title = "Winshell test", Width = 320, Height = 200 })
         };
@@ -181,7 +182,8 @@ public sealed class ComponentWindowTests
     {
         return Shell.Current.Add(new PanelWindow
         {
-            Anchors = Edges.Top | Edges.Left,
+            Edge = Edge.Top,
+            Align = PanelAlign.Start,
             Width = 220,
             Height = 90,
             Content = content

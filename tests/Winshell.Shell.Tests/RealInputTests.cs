@@ -35,7 +35,8 @@ public sealed class RealInputTests
     {
         return Shell.Current.Add(new PanelWindow
         {
-            Anchors = Edges.Bottom | Edges.Right,
+            Edge = Edge.Bottom,
+            Align = PanelAlign.End,
             Margins = new Thickness(0, 0, 200, 200),
             Width = 260,
             Height = 100,
