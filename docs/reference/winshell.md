@@ -147,7 +147,6 @@ Has the members of [ObservableObject](#observableobject).
 
 | Member | Type |
 | --- | --- |
-| `Default` | [Log](#log), static |
 | `Debug(string category, string message)` | void |
 | `Error(string category, string message)` | void |
 | `Info(string category, string message)` | void |
@@ -250,9 +249,6 @@ Has the members of [PanelWindow](#panelwindow).
 | `Placement(string Widget, IReadOnlyDictionary of string, object? Settings = null)` | constructor |
 | `Settings` | IReadOnlyDictionary of string, object?, init |
 | `Widget` | string, init |
-| `Check(object value)` | string, static |
-| `Format(ImmutableArray of [Placement](#placement) placements)` | IReadOnlyList of object, static |
-| `Parse(object items)` | ImmutableArray of [Placement](#placement), static |
 
 ## PopupPosition
 
@@ -309,19 +305,18 @@ Has the members of [ObservableObject](#observableobject).
 
 | Member | Type |
 | --- | --- |
-| `ScreenInfo(string Id, string Name, string Model, string Manufacturer, string SerialNumber, Rect Geometry, Rect WorkArea, double DevicePixelRatio, double PhysicalWidthMm, double PhysicalHeightMm, int RefreshRate, bool IsPrimary)` | constructor |
-| `DevicePixelRatio` | double, init |
-| `Geometry` | Rect, init |
-| `Id` | string, init |
-| `IsPrimary` | bool, init |
-| `Manufacturer` | string, init |
-| `Model` | string, init |
-| `Name` | string, init |
-| `PhysicalHeightMm` | double, init |
-| `PhysicalWidthMm` | double, init |
-| `RefreshRate` | int, init |
-| `SerialNumber` | string, init |
-| `WorkArea` | Rect, init |
+| `DevicePixelRatio` | double, read-only |
+| `Geometry` | Rect, read-only |
+| `Id` | string, read-only |
+| `IsPrimary` | bool, read-only |
+| `Manufacturer` | string, read-only |
+| `Model` | string, read-only |
+| `Name` | string, read-only |
+| `PhysicalHeightMm` | double, read-only |
+| `PhysicalWidthMm` | double, read-only |
+| `RefreshRate` | int, read-only |
+| `SerialNumber` | string, read-only |
+| `WorkArea` | Rect, read-only |
 
 ## ScreenWindows
 

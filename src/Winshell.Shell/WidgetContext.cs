@@ -10,9 +10,9 @@ public sealed record Placement(string Widget, IReadOnlyDictionary<string, object
 
     public static implicit operator Placement(string widget) => new(widget);
 
-    public static string Check(object value) => Items(value)?.All(Names) == true ? "" : NotPlacements;
+    internal static string Check(object value) => Items(value)?.All(Names) == true ? "" : NotPlacements;
 
-    public static ImmutableArray<Placement> Parse(object items)
+    internal static ImmutableArray<Placement> Parse(object items)
     {
         ArgumentNullException.ThrowIfNull(items);
         if (Items(items) is not { } list || !list.All(Names))
@@ -20,7 +20,7 @@ public sealed record Placement(string Widget, IReadOnlyDictionary<string, object
         return [.. list.Select(Read)];
     }
 
-    public static IReadOnlyList<object> Format(ImmutableArray<Placement> placements) =>
+    internal static IReadOnlyList<object> Format(ImmutableArray<Placement> placements) =>
         placements.Select(Write).ToArray();
 
     private static Placement Read(object? item) => new(NameOf(item)!,
