@@ -2,6 +2,7 @@ using System.Reflection;
 
 namespace Winshell.Architecture.Tests;
 
+[TestClass]
 public class PublicSurfaceTests
 {
     private const BindingFlags Public = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static;
@@ -12,7 +13,7 @@ public class PublicSurfaceTests
         Assembly.Load("Winshell.Shell")
     ];
 
-    [Fact]
+    [TestMethod]
     public void No_public_type_is_in_Winshell_Diagnostics()
     {
         var exposed = Library.SelectMany(assembly => assembly.GetExportedTypes())
@@ -20,51 +21,51 @@ public class PublicSurfaceTests
             .Select(type => type.FullName)
             .ToList();
 
-        Assert.True(exposed.Count == 0,
+        Assert.IsTrue(exposed.Count == 0,
             $"Make these internal: winshell doctor owns its checks. {string.Join(", ", exposed)}");
     }
 
-    [Theory]
-    [InlineData("Winshell.IEventLoop")]
-    [InlineData("Winshell.IShellPart")]
-    [InlineData("Winshell.Surface")]
-    [InlineData("Winshell.SurfaceProps")]
-    [InlineData("Winshell.WidgetArea")]
-    [InlineData("Winshell.WidgetAreaProps")]
+    [TestMethod]
+    [DataRow("Winshell.IEventLoop")]
+    [DataRow("Winshell.IShellPart")]
+    [DataRow("Winshell.Surface")]
+    [DataRow("Winshell.SurfaceProps")]
+    [DataRow("Winshell.WidgetArea")]
+    [DataRow("Winshell.WidgetAreaProps")]
     public void An_internal_type_stays_internal(string name)
     {
         var type = Library.Select(assembly => assembly.GetType(name)).OfType<Type>().Single();
 
-        Assert.False(type.IsVisible, $"{name} is public. Make it internal; an author reaches it through Elements or Shell.");
+        Assert.IsFalse(type.IsVisible, $"{name} is public. Make it internal; an author reaches it through Elements or Shell.");
     }
 
-    [Theory]
-    [InlineData("Winshell.Shell", "Dispose")]
-    [InlineData("Winshell.Shell", "Loop")]
-    [InlineData("Winshell.Shell", "Options")]
-    [InlineData("Winshell.Shell", "Remove")]
-    [InlineData("Winshell.Log", "Default")]
-    [InlineData("Winshell.Placement", "Check")]
-    [InlineData("Winshell.Placement", "Parse")]
-    [InlineData("Winshell.Placement", "Format")]
+    [TestMethod]
+    [DataRow("Winshell.Shell", "Dispose")]
+    [DataRow("Winshell.Shell", "Loop")]
+    [DataRow("Winshell.Shell", "Options")]
+    [DataRow("Winshell.Shell", "Remove")]
+    [DataRow("Winshell.Log", "Default")]
+    [DataRow("Winshell.Placement", "Check")]
+    [DataRow("Winshell.Placement", "Parse")]
+    [DataRow("Winshell.Placement", "Format")]
     public void An_internal_member_stays_internal(string typeName, string member)
     {
         var type = Library.Select(assembly => assembly.GetType(typeName)).OfType<Type>().Single();
 
-        Assert.True(type.IsVisible, $"{typeName} is not public.");
-        Assert.True(type.GetMember(member, Public).Length == 0, $"{typeName}.{member} is public. Make it internal.");
+        Assert.IsTrue(type.IsVisible, $"{typeName} is not public.");
+        Assert.IsTrue(type.GetMember(member, Public).Length == 0, $"{typeName}.{member} is public. Make it internal.");
     }
 
-    [Fact]
+    [TestMethod]
     public void Only_Windows_makes_a_ScreenInfo()
     {
         var screen = Assembly.Load("Winshell.Services").GetType("Winshell.ScreenInfo", true)!;
 
-        Assert.Empty(screen.GetConstructors(Public));
-        Assert.DoesNotContain(screen.GetProperties(Public), property => property.SetMethod is { IsPublic: true });
+        Assert.IsEmpty(screen.GetConstructors(Public));
+        Assert.DoesNotContain(property => property.SetMethod is { IsPublic: true }, screen.GetProperties(Public));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_service_the_shell_shares_cannot_be_disposed()
     {
         var shell = Assembly.Load("Winshell.Shell").GetType("Winshell.Shell", true)!;
@@ -72,19 +73,19 @@ public class PublicSurfaceTests
             .Select(property => property.PropertyType)
             .Where(type => Library.Contains(type.Assembly))
             .ToList();
-        Assert.Contains(services, type => type.FullName == "Winshell.Audio.AudioService");
+        Assert.Contains(type => type.FullName == "Winshell.Audio.AudioService", services);
 
         var disposable = services.Where(typeof(IDisposable).IsAssignableFrom).Select(type => type.Name).ToList();
 
-        Assert.True(disposable.Count == 0,
+        Assert.IsTrue(disposable.Count == 0,
             $"The shell owns its services. Implement the internal IShellService instead of IDisposable on {string.Join(", ", disposable)}.");
     }
 
-    [Fact]
+    [TestMethod]
     public void A_shell_cannot_be_disposed()
     {
         var shell = Assembly.Load("Winshell.Shell").GetType("Winshell.Shell", true)!;
 
-        Assert.False(typeof(IDisposable).IsAssignableFrom(shell), "Shell is IDisposable. shell.Quit() stops the shell.");
+        Assert.IsFalse(typeof(IDisposable).IsAssignableFrom(shell), "Shell is IDisposable. shell.Quit() stops the shell.");
     }
 }

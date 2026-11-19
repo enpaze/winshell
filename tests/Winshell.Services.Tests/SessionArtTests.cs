@@ -6,9 +6,10 @@ using Winshell.Media;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class SessionArtTests
 {
-    [Fact]
+    [TestMethod]
     public async Task A_failed_read_keeps_the_art_shown_and_is_logged_once_until_art_arrives_again()
     {
         var loop = new ManualEventLoop();
@@ -25,17 +26,17 @@ public sealed class SessionArtTests
             art.Load(new Unreadable());
             loop.Process();
 
-            Assert.Equal(shown, art.Url);
-            Assert.Equal(1, changes);
-            Assert.Equal(["the app is gone"], missed);
-            Assert.False(art.Loading);
+            Assert.AreEqual(shown, art.Url);
+            Assert.AreEqual(1, changes);
+            Assert.AreSequenceEqual(["the app is gone"], missed);
+            Assert.IsFalse(art.Loading);
 
             art.Load(await ThumbnailAsync());
             await Wait.UntilAsync(() => art.Url != shown, "the next art", loop.Process);
             art.Load(new Unreadable());
             loop.Process();
 
-            Assert.Equal(2, missed.Count);
+            Assert.AreEqual(2, missed.Count);
         }
         finally
         {
@@ -43,7 +44,7 @@ public sealed class SessionArtTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void A_read_that_fails_in_a_way_nobody_expected_still_ends_the_load()
     {
         var loop = new ManualEventLoop();
@@ -54,7 +55,7 @@ public sealed class SessionArtTests
             art.Load(new Unreadable(new ObjectDisposedException("session")));
             Wait.Until(() => !art.Loading && missed.Count > 0, "the failed read", loop.Process);
 
-            Assert.Single(missed);
+            Assert.ContainsSingle(missed);
         }
         finally
         {

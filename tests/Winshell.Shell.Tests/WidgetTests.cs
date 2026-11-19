@@ -4,10 +4,11 @@ using Microsoft.UI.Xaml.Media;
 
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed class WidgetTests
 {
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_widget_reads_its_placement_without_props()
     {
         await ShellFixture.On(async shell =>
@@ -27,16 +28,16 @@ public sealed class WidgetTests
             await Wait.UntilAsync(() => PlacementWidget.Seen?.Window == window, "the widget to render in its window");
 
             var seen = PlacementWidget.Seen!;
-            Assert.Same(shell, seen.Shell);
-            Assert.Equal("placed", seen.Settings["text"]);
-            Assert.Equal(Orientation.Vertical, seen.Orientation);
-            Assert.Same(style, seen.Style);
+            Assert.AreSame(shell, seen.Shell);
+            Assert.AreEqual("placed", seen.Settings["text"]);
+            Assert.AreEqual(Orientation.Vertical, seen.Orientation);
+            Assert.AreSame(style, seen.Style);
             return true;
         });
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_setting_is_the_placement_value_or_the_fallback_and_a_wrong_type_names_the_key_and_type()
     {
         await ShellFixture.On(async shell =>
@@ -59,16 +60,16 @@ public sealed class WidgetTests
                 return text.Length == 2;
             }, "both placements to render");
 
-            Assert.Equal("3|fallback|True|none", text[0]);
-            Assert.Equal($"{name}: text must be a string.", text[1]);
+            Assert.AreEqual("3|fallback|True|none", text[0]);
+            Assert.AreEqual($"{name}: text must be a string.", text[1]);
             Assert.Contains("UnsupportedWidgetException: text must be a string.", ShellFixture.ReadLog(shell),
                 StringComparison.Ordinal);
             return true;
         });
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task A_true_or_false_setting_reads_a_number_as_true_unless_it_is_zero_and_refuses_a_string()
     {
         await ShellFixture.On(async shell =>
@@ -88,15 +89,15 @@ public sealed class WidgetTests
                 return text.Length == values.Length;
             }, "every placement to render");
 
-            Assert.Equal(["True", "False", "True", "False", "True", $"{name}: on must be true or false."], text);
+            Assert.AreSequenceEqual(["True", "False", "True", "False", "True", $"{name}: on must be true or false."], text);
             Assert.Contains("UnsupportedWidgetException: on must be true or false.", ShellFixture.ReadLog(shell),
                 StringComparison.Ordinal);
             return true;
         });
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task UseNow_renders_each_widget_again_after_the_interval_it_asks_for()
     {
         await ShellFixture.On(async shell =>
@@ -123,13 +124,13 @@ public sealed class WidgetTests
         static void AssertEvery(List<DateTime> times, TimeSpan every)
         {
             var mean = (times[^1] - times[0]) / (times.Count - 1);
-            Assert.True(mean >= every * 0.9 && mean <= every * 3,
+            Assert.IsTrue(mean >= every * 0.9 && mean <= every * 3,
                 $"A clock asked to tick every {every.TotalMilliseconds} ms rendered every {mean.TotalMilliseconds} ms.");
         }
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task UseNow_stops_its_timer_when_the_widget_leaves_its_area()
     {
         await ShellFixture.On(async shell =>
@@ -157,13 +158,13 @@ public sealed class WidgetTests
             await Wait.UntilAsync(() => Renders("stays") >= since + 2, "the other clock to tick twice more");
             Assert.DoesNotContain(gone, loop.Waiting());
             Assert.Contains(stays, loop.Waiting());
-            Assert.Equal(last, Renders("gone"));
+            Assert.AreEqual(last, Renders("gone"));
             return true;
         });
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task UseScreen_is_null_until_the_window_arrives_and_renders_again_when_its_screen_changes()
     {
         await ShellFixture.On(async shell =>
@@ -177,15 +178,15 @@ public sealed class WidgetTests
             {
                 using var area = new Mounted<WidgetArea, WidgetAreaProps>(new WidgetAreaProps { Defaults = [name] });
                 await Wait.UntilAsync(() => ScreenNameWidget.Seen.Count > 0, "the widget to render before its window");
-                Assert.Equal((false, (ScreenInfo?)null), ScreenNameWidget.Seen[0]);
+                Assert.AreEqual((false, (ScreenInfo?)null), ScreenNameWidget.Seen[0]);
 
                 using var window = shell.Add(new PanelWindow { Width = 220, Height = 60, Content = area.Host });
                 await Wait.UntilAsync(() => ScreenNameWidget.Seen.Any(seen => seen.Windowed), "the widget to render once the window arrives");
-                Assert.Null(ScreenNameWidget.Seen.First(seen => seen.Windowed).Screen);
+                Assert.IsNull(ScreenNameWidget.Seen.First(seen => seen.Windowed).Screen);
 
                 window.Screen = screen;
                 await Wait.UntilAsync(() => Texts(area.Host).Contains(screen.Name), "the widget to render the window's new screen");
-                Assert.Same(screen, ScreenNameWidget.Seen[^1].Screen);
+                Assert.AreSame(screen, ScreenNameWidget.Seen[^1].Screen);
             }
             finally
             {
@@ -196,8 +197,8 @@ public sealed class WidgetTests
         });
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task The_guide_s_message_widget_says_hello_when_its_placement_has_no_text()
     {
         await ShellFixture.On(async shell =>
@@ -214,13 +215,13 @@ public sealed class WidgetTests
                 return text.Length == 2;
             }, "both messages to render");
 
-            Assert.Equal(["Hello ·", "Hi ·"], text);
+            Assert.AreSequenceEqual(["Hello ·", "Hi ·"], text);
             return true;
         });
     }
 
-    [Fact]
-    [Trait("Category", "Window")]
+    [TestMethod]
+    [TestCategory("Window")]
     public async Task The_example_clock_refuses_a_timezone_that_is_not_a_string()
     {
         await ShellFixture.On(async shell =>

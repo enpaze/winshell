@@ -3,17 +3,18 @@ using WIN32_ERROR = Windows.Win32.Foundation.WIN32_ERROR;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public class WindowAppIdTests
 {
     private const string Terminal = "Microsoft.WindowsTerminal_8wekyb3d8bbwe!App";
 
-    [Fact]
+    [TestMethod]
     public void A_package_id_is_read_only_when_the_process_has_one_that_fits()
     {
-        Assert.Equal(Terminal, Read(Terminal));
-        Assert.Equal("", TextBuffer.ReadTerminated(AppUserModelIds.MaxCharacters, _ =>
+        Assert.AreEqual(Terminal, Read(Terminal));
+        Assert.AreEqual("", TextBuffer.ReadTerminated(AppUserModelIds.MaxCharacters, _ =>
             new TextBuffer.Terminated(WIN32_ERROR.APPMODEL_ERROR_NO_APPLICATION, 0)));
-        Assert.Equal("", TextBuffer.ReadTerminated(AppUserModelIds.MaxCharacters, _ =>
+        Assert.AreEqual("", TextBuffer.ReadTerminated(AppUserModelIds.MaxCharacters, _ =>
             new TextBuffer.Terminated(
                 WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER,
                 (uint)AppUserModelIds.MaxCharacters + 1)));

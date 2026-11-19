@@ -1,13 +1,14 @@
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed class AppearanceTests
 {
-    [Fact]
+    [TestMethod]
     public void The_appearance_overrides_Windows_mode()
     {
-        Assert.True(ShellPlatform.DarkFor(Appearance.Dark, false));
-        Assert.False(ShellPlatform.DarkFor(Appearance.Light, true));
-        Assert.True(ShellPlatform.DarkFor(Appearance.System, true));
-        Assert.False(ShellPlatform.DarkFor(Appearance.System, false));
+        Assert.IsTrue(ShellPlatform.DarkFor(Appearance.Dark, false));
+        Assert.IsFalse(ShellPlatform.DarkFor(Appearance.Light, true));
+        Assert.IsTrue(ShellPlatform.DarkFor(Appearance.System, true));
+        Assert.IsFalse(ShellPlatform.DarkFor(Appearance.System, false));
     }
 }

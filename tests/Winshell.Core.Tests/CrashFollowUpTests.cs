@@ -3,6 +3,7 @@ using System.Text;
 
 namespace Winshell.Core.Tests;
 
+[TestClass]
 public sealed class CrashFollowUpTests : IDisposable
 {
     private readonly string _dir =
@@ -18,7 +19,7 @@ public sealed class CrashFollowUpTests : IDisposable
         Directory.Delete(_dir, true);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_fatal_report_is_shown_once_and_a_later_one_is_shown_again()
     {
         var folder = Path.Combine(_dir, "crashes");
@@ -53,12 +54,12 @@ public sealed class CrashFollowUpTests : IDisposable
 
         var pending = CrashReports.Find(folder, state);
 
-        Assert.Equal(fatal, pending?.Path);
-        Assert.Equal("System.InvalidOperationException: boom", pending?.ExceptionLine);
+        Assert.AreEqual(fatal, pending?.Path);
+        Assert.AreEqual("System.InvalidOperationException: boom", pending?.ExceptionLine);
         Assert.Contains("clean = ", File.ReadAllText(state), StringComparison.Ordinal);
 
         CrashReports.MarkShown(state, fatal);
-        Assert.Null(CrashReports.Find(folder, state));
+        Assert.IsNull(CrashReports.Find(folder, state));
 
         var again = Report(folder, now.AddMinutes(10), "again");
         File.WriteAllText(again, """
@@ -68,11 +69,11 @@ public sealed class CrashFollowUpTests : IDisposable
                                  System.Exception: again
                                  """);
 
-        Assert.Equal(again, CrashReports.Find(folder, state)?.Path);
-        Assert.Equal("System.Exception: again", CrashReports.Find(folder, state)?.ExceptionLine);
+        Assert.AreEqual(again, CrashReports.Find(folder, state)?.Path);
+        Assert.AreEqual("System.Exception: again", CrashReports.Find(folder, state)?.ExceptionLine);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_report_older_than_the_clean_exit_is_not_shown()
     {
         var folder = Path.Combine(_dir, "old");
@@ -89,11 +90,11 @@ public sealed class CrashFollowUpTests : IDisposable
         var state = Path.Combine(_dir, "old-state.toml");
         CrashReports.MarkClean(state, new DateTimeOffset(written.AddMinutes(1), TimeSpan.Zero));
 
-        Assert.Null(CrashReports.Find(folder, state));
-        Assert.Null(CrashReports.Find(Path.Combine(_dir, "missing"), state));
+        Assert.IsNull(CrashReports.Find(folder, state));
+        Assert.IsNull(CrashReports.Find(Path.Combine(_dir, "missing"), state));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_follow_up_mark_survives_a_race_with_another_writer()
     {
         var state = Path.Combine(_dir, "race.toml");
@@ -110,7 +111,7 @@ public sealed class CrashFollowUpTests : IDisposable
             {
                 try
                 {
-                    gate.SignalAndWait();
+                    gate.SignalAndWait(CurrentTest.Cancellation);
                     CrashReports.MarkClean(state, clean);
                 }
                 catch (Exception e)
@@ -122,7 +123,7 @@ public sealed class CrashFollowUpTests : IDisposable
             {
                 try
                 {
-                    gate.SignalAndWait();
+                    gate.SignalAndWait(CurrentTest.Cancellation);
                     CrashReports.MarkShown(state, shown);
                 }
                 catch (Exception e)
@@ -134,8 +135,8 @@ public sealed class CrashFollowUpTests : IDisposable
             shownWriter.Start();
             cleanWriter.Join();
             shownWriter.Join();
-            Assert.Null(failed[0]);
-            Assert.Null(failed[1]);
+            Assert.IsNull(failed[0]);
+            Assert.IsNull(failed[1]);
 
             var text = File.ReadAllText(state);
             Assert.Contains("clean = \"2026-01-02T03:04:05.0000000+00:00\"", text, StringComparison.Ordinal);
@@ -143,17 +144,17 @@ public sealed class CrashFollowUpTests : IDisposable
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void The_state_file_is_written_without_a_byte_order_mark()
     {
         var state = Path.Combine(_dir, "mark.toml");
         CrashReports.MarkClean(state, DateTimeOffset.UnixEpoch);
 
         var text = File.ReadAllText(state);
-        Assert.Equal(Encoding.UTF8.GetByteCount(text), File.ReadAllBytes(state).Length);
+        Assert.AreEqual(Encoding.UTF8.GetByteCount(text), File.ReadAllBytes(state).Length);
     }
 
-    [Fact]
+    [TestMethod]
     public void Marking_a_clean_exit_keeps_the_rest_of_the_state_file()
     {
         var state = Path.Combine(_dir, "kept.toml");

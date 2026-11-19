@@ -9,10 +9,11 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class BarTests
 {
-    [Fact]
+    [TestMethod]
     public async Task A_bar_shows_on_each_screen_and_follows_a_screen_that_comes_or_goes()
     {
         await ShellFixture.On(async shell =>
@@ -26,20 +27,21 @@ public sealed class BarTests
             {
                 using var bar = shell.Add(new Bar { Name = "bar" + Guid.NewGuid().ToString("N"), Reserve = false, Center = [widget] });
                 await NextTurn(shell);
-                var firstBar = Assert.Single(BarsOn(shell, first));
-                Assert.Equal((Edge.Top, PanelAlign.Stretch), (firstBar.Edge, firstBar.Align));
-                Assert.Equal(32, firstBar.Height);
-                Assert.All(await AreasOf(firstBar), area => Assert.Equal(Orientation.Horizontal, area.Orientation));
+                var firstBar = Assert.ContainsSingle(BarsOn(shell, first));
+                Assert.AreEqual((Edge.Top, PanelAlign.Stretch), (firstBar.Edge, firstBar.Align));
+                Assert.AreEqual(32, firstBar.Height);
+                foreach (var area in await AreasOf(firstBar))
+                    Assert.AreEqual(Orientation.Horizontal, area.Orientation);
                 await UntilShown(() => TextsOn(made, firstBar).SequenceEqual([""]), "the center widget to render", firstBar);
 
                 screens.Add(second);
-                Assert.Single(BarsOn(shell, second));
+                Assert.ContainsSingle(BarsOn(shell, second));
                 screens.Remove(second);
-                Assert.Empty(BarsOn(shell, second));
-                Assert.Same(firstBar, Assert.Single(BarsOn(shell, first)));
+                Assert.IsEmpty(BarsOn(shell, second));
+                Assert.AreSame(firstBar, Assert.ContainsSingle(BarsOn(shell, first)));
 
                 bar.Dispose();
-                Assert.Empty(BarsOn(shell, first));
+                Assert.IsEmpty(BarsOn(shell, first));
             }
             finally
             {
@@ -51,7 +53,7 @@ public sealed class BarTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_bar_shows_nothing_until_it_is_added()
     {
         await ShellFixture.On(async shell =>
@@ -62,11 +64,11 @@ public sealed class BarTests
             {
                 using var bar = new Bar { Name = "bar" + Guid.NewGuid().ToString("N"), Reserve = false };
                 await NextTurn(shell);
-                Assert.Empty(BarsOn(shell, screen));
+                Assert.IsEmpty(BarsOn(shell, screen));
 
                 shell.Add(bar);
                 await NextTurn(shell);
-                Assert.Single(BarsOn(shell, screen));
+                Assert.ContainsSingle(BarsOn(shell, screen));
             }
             finally
             {
@@ -77,7 +79,7 @@ public sealed class BarTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Changing_the_edge_a_list_or_a_screen_row_changes_that_bar_live_and_a_side_bar_runs_its_areas_down()
     {
         await ShellFixture.On(async shell =>
@@ -100,33 +102,35 @@ public sealed class BarTests
                     Start = [new(widget, new Dictionary<string, object> { ["text"] = "from the code" })]
                 });
                 await NextTurn(shell);
-                var wideBar = Assert.Single(BarsOn(shell, wide));
-                Assert.Equal((Edge.Top, PanelAlign.Stretch), (wideBar.Edge, wideBar.Align));
-                Assert.False(wideBar.Reserve);
+                var wideBar = Assert.ContainsSingle(BarsOn(shell, wide));
+                Assert.AreEqual((Edge.Top, PanelAlign.Stretch), (wideBar.Edge, wideBar.Align));
+                Assert.IsFalse(wideBar.Reserve);
                 await UntilShown(() => TextsOn(made, wideBar).SequenceEqual(["from the file"]),
                     "the file's text to render", wideBar);
-                var tallBar = Assert.Single(BarsOn(shell, tall));
-                Assert.Equal((Edge.Left, PanelAlign.Stretch), (tallBar.Edge, tallBar.Align));
-                Assert.Equal(32, tallBar.Width);
-                Assert.All(await AreasOf(tallBar), area => Assert.Equal(Orientation.Vertical, area.Orientation));
+                var tallBar = Assert.ContainsSingle(BarsOn(shell, tall));
+                Assert.AreEqual((Edge.Left, PanelAlign.Stretch), (tallBar.Edge, tallBar.Align));
+                Assert.AreEqual(32, tallBar.Width);
+                foreach (var area in await AreasOf(tallBar))
+                    Assert.AreEqual(Orientation.Vertical, area.Orientation);
 
                 await Save(shell, path, Section(name, widget, "top", "right", "from the file"));
                 tallBar = await Replaced(shell, tall, tallBar);
-                Assert.Equal((Edge.Right, PanelAlign.Stretch), (tallBar.Edge, tallBar.Align));
-                Assert.Same(wideBar, Assert.Single(BarsOn(shell, wide)));
+                Assert.AreEqual((Edge.Right, PanelAlign.Stretch), (tallBar.Edge, tallBar.Align));
+                Assert.AreSame(wideBar, Assert.ContainsSingle(BarsOn(shell, wide)));
 
                 await Save(shell, path, Section(name, widget, "top", "middle", "from the file"));
                 tallBar = await Replaced(shell, tall, tallBar);
-                Assert.Equal((Edge.Top, PanelAlign.Stretch), (tallBar.Edge, tallBar.Align));
+                Assert.AreEqual((Edge.Top, PanelAlign.Stretch), (tallBar.Edge, tallBar.Align));
                 Assert.Contains("edge in its [[" + name + ".screen]] row must be", ShellFixture.ReadLog(shell),
                     StringComparison.Ordinal);
 
                 await Save(shell, path, Section(name, widget, "bottom", "right", "saved"));
                 wideBar = await Replaced(shell, wide, wideBar);
                 tallBar = await Replaced(shell, tall, tallBar);
-                Assert.Equal((Edge.Bottom, PanelAlign.Stretch), (wideBar.Edge, wideBar.Align));
-                Assert.All(await AreasOf(wideBar), area => Assert.Equal(Orientation.Horizontal, area.Orientation));
-                Assert.Equal((Edge.Right, PanelAlign.Stretch), (tallBar.Edge, tallBar.Align));
+                Assert.AreEqual((Edge.Bottom, PanelAlign.Stretch), (wideBar.Edge, wideBar.Align));
+                foreach (var area in await AreasOf(wideBar))
+                    Assert.AreEqual(Orientation.Horizontal, area.Orientation);
+                Assert.AreEqual((Edge.Right, PanelAlign.Stretch), (tallBar.Edge, tallBar.Align));
                 await UntilShown(
                     () => TextsOn(made, wideBar).SequenceEqual(["saved"]) && TextsOn(made, tallBar).SequenceEqual(["saved"]),
                     "the saved text to render", wideBar, tallBar);
@@ -142,7 +146,7 @@ public sealed class BarTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_bar_section_and_its_screen_row_take_bare_widget_names_mixed_with_tables()
     {
         await ShellFixture.On(async shell =>
@@ -171,8 +175,8 @@ public sealed class BarTests
                 var logLength = ShellFixture.ReadLog(shell).Length;
                 using var bar = shell.Add(new Bar { Name = name, Reserve = false });
                 await NextTurn(shell);
-                var wideBar = Assert.Single(BarsOn(shell, wide));
-                var tallBar = Assert.Single(BarsOn(shell, tall));
+                var wideBar = Assert.ContainsSingle(BarsOn(shell, wide));
+                var tallBar = Assert.ContainsSingle(BarsOn(shell, tall));
                 await UntilShown(
                     () => TextsOn(made, wideBar).Order().SequenceEqual(["", "section"]) &&
                           TextsOn(made, tallBar).Order().SequenceEqual(["", "", "row", "section"]),
@@ -190,7 +194,7 @@ public sealed class BarTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Two_bars_with_different_names_keep_separate_sections()
     {
         await ShellFixture.On(async shell =>
@@ -209,8 +213,8 @@ public sealed class BarTests
                 using var bottomBar = shell.Add(new Bar { Name = bottom, Edge = Edge.Bottom, Reserve = false });
                 await NextTurn(shell);
                 var bars = BarsOn(shell, screen);
-                var topWindow = Assert.Single(bars, window => window.Edge == Edge.Top);
-                var bottomWindow = Assert.Single(bars, window => window.Edge == Edge.Bottom);
+                var topWindow = Assert.ContainsSingle(window => window.Edge == Edge.Top, bars);
+                var bottomWindow = Assert.ContainsSingle(window => window.Edge == Edge.Bottom, bars);
                 await UntilShown(
                     () => TextsOn(made, topWindow).SequenceEqual(["top bar"]) &&
                           TextsOn(made, bottomWindow).SequenceEqual(["bottom bar"]),
@@ -218,10 +222,10 @@ public sealed class BarTests
 
                 await Save(shell, path, Lists(top, widget, "top bar, saved") + Lists(bottom, widget, "bottom bar"));
                 await Until(shell, screen, () => !BarsOn(shell, screen).Contains(topWindow), "the top bar to be replaced");
-                topWindow = Assert.Single(BarsOn(shell, screen), window => window.Edge == Edge.Top);
+                topWindow = Assert.ContainsSingle(window => window.Edge == Edge.Top, BarsOn(shell, screen));
                 await UntilShown(() => TextsOn(made, topWindow).SequenceEqual(["top bar, saved"]),
                     "the saved text to render", topWindow);
-                Assert.Same(bottomWindow, Assert.Single(BarsOn(shell, screen), window => window.Edge == Edge.Bottom));
+                Assert.AreSame(bottomWindow, Assert.ContainsSingle(window => window.Edge == Edge.Bottom, BarsOn(shell, screen)));
             }
             finally
             {
@@ -233,7 +237,7 @@ public sealed class BarTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_missing_file_is_written_with_the_bar_own_values_commented_out()
     {
         await ShellFixture.On(async shell =>
@@ -260,14 +264,14 @@ public sealed class BarTests
                 var text = File.ReadAllText(path);
                 Assert.Contains($"[{name}]", text, StringComparison.Ordinal);
                 Assert.Contains("# edge = \"left\"", text, StringComparison.Ordinal);
-                var end = Assert.Single(text.Split('\n'), line => line.StartsWith("# end = ", StringComparison.Ordinal));
-                Assert.Equal($"# end = [\"{widget}\", {{ widget = \"{widget}\", text = \"Hi\" }}]", end);
-                Assert.True(TomlDocument.TryParse(path, end[2..], out var document, out var error), error);
+                var end = Assert.ContainsSingle(line => line.StartsWith("# end = ", StringComparison.Ordinal), text.Split('\n'));
+                Assert.AreEqual($"# end = [\"{widget}\", {{ widget = \"{widget}\", text = \"Hi\" }}]", end);
+                Assert.IsTrue(TomlDocument.TryParse(path, end[2..], out var document, out var error), error);
                 var placements = Placement.Parse(document.Values["end"]!);
-                Assert.Equal([widget, widget], placements.Select(placement => placement.Widget));
-                Assert.Empty(placements[0].Settings!);
-                Assert.Equal(["text"], placements[1].Settings!.Keys);
-                Assert.Equal("Hi", placements[1].Settings!["text"]);
+                Assert.AreSequenceEqual([widget, widget], placements.Select(placement => placement.Widget));
+                Assert.IsEmpty(placements[0].Settings!);
+                Assert.AreSequenceEqual(["text"], placements[1].Settings!.Keys);
+                Assert.AreEqual("Hi", placements[1].Settings!["text"]);
             }
             finally
             {
@@ -279,7 +283,7 @@ public sealed class BarTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_bar_is_as_thick_as_its_style_slot_size_unless_Thickness_says_otherwise()
     {
         await ShellFixture.On(async shell =>
@@ -306,19 +310,19 @@ public sealed class BarTests
                 });
                 await NextTurn(shell);
                 var bars = BarsOn(shell, screen);
-                var followsBar = Assert.Single(bars, window => window is { Edge: Edge.Top, Align: PanelAlign.Stretch });
-                Assert.Equal(32, followsBar.Height);
-                var ownBar = Assert.Single(bars, window => window is { Edge: Edge.Bottom, Align: PanelAlign.Stretch });
-                Assert.Equal(40, ownBar.Height);
-                await ShellFixture.LaidOut(Assert.IsType<ReactorHostControl>(ownBar.Content)).WaitAsync(TestContext.Current.CancellationToken);
-                Assert.Equal(global::Windows.UI.Color.FromArgb(0xff, 0x1a, 0x1b, 0x26), BackgroundOf(ownBar.Content!));
-                Assert.Equal(20, Assert.Single(bars, window => window.Edge == Edge.Left).Width);
+                var followsBar = Assert.ContainsSingle(window => window is { Edge: Edge.Top, Align: PanelAlign.Stretch }, bars);
+                Assert.AreEqual(32, followsBar.Height);
+                var ownBar = Assert.ContainsSingle(window => window is { Edge: Edge.Bottom, Align: PanelAlign.Stretch }, bars);
+                Assert.AreEqual(40, ownBar.Height);
+                await ShellFixture.LaidOut(Assert.IsExactInstanceOfType<ReactorHostControl>(ownBar.Content)).WaitAsync(CurrentTest.Cancellation);
+                Assert.AreEqual(global::Windows.UI.Color.FromArgb(0xff, 0x1a, 0x1b, 0x26), BackgroundOf(ownBar.Content!));
+                Assert.AreEqual(20, Assert.ContainsSingle(window => window.Edge == Edge.Left, bars).Width);
 
                 shell.Style = other;
                 await NextTurn(shell);
-                Assert.Same(followsBar, Assert.Single(BarsOn(shell, screen),
-                    window => window is { Edge: Edge.Top, Align: PanelAlign.Stretch }));
-                Assert.Equal(40, followsBar.Height);
+                Assert.AreSame(followsBar, Assert.ContainsSingle(
+                    window => window is { Edge: Edge.Top, Align: PanelAlign.Stretch }, BarsOn(shell, screen)));
+                Assert.AreEqual(40, followsBar.Height);
                 Assert.Contains(ownBar, BarsOn(shell, screen));
             }
             finally
@@ -331,7 +335,7 @@ public sealed class BarTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_reserving_bar_takes_its_thickness_from_the_work_area_on_its_edge()
     {
         await ShellFixture.On(async shell =>
@@ -348,14 +352,14 @@ public sealed class BarTests
             {
                 await Wait.UntilAsync(() => shell.Screens.All(screen => screen.WorkArea.Left > before[screen.Id].Left),
                     "every screen's work area to give the bar its strip");
-                Assert.All(shell.Screens, screen =>
+                foreach (var screen in shell.Screens)
                 {
                     var was = before[screen.Id];
-                    Assert.Equal(was.Left + 40, screen.WorkArea.Left, 1.0);
-                    Assert.Equal(was.Right, screen.WorkArea.Right, 1.0);
-                    Assert.Equal(was.Top, screen.WorkArea.Top, 1.0);
-                    Assert.Equal(was.Bottom, screen.WorkArea.Bottom, 1.0);
-                });
+                    Assert.AreEqual(was.Left + 40, screen.WorkArea.Left, 1.0);
+                    Assert.AreEqual(was.Right, screen.WorkArea.Right, 1.0);
+                    Assert.AreEqual(was.Top, screen.WorkArea.Top, 1.0);
+                    Assert.AreEqual(was.Bottom, screen.WorkArea.Bottom, 1.0);
+                }
             }
             finally
             {
@@ -368,7 +372,7 @@ public sealed class BarTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_color_change_keeps_the_bar_window_and_the_widget_state()
     {
         await ShellFixture.On(async shell =>
@@ -391,24 +395,24 @@ public sealed class BarTests
                     Center = [widget]
                 });
                 await NextTurn(shell);
-                var window = Assert.Single(BarsOn(shell, screen));
-                Assert.Equal(32, window.Height);
+                var window = Assert.ContainsSingle(BarsOn(shell, screen));
+                Assert.AreEqual(32, window.Height);
                 await UntilShown(() => TextsOn(made, window).SequenceEqual(["0"]), "the widget to render", window);
                 var state = CountingWidget.Live;
-                Assert.NotNull(state);
+                Assert.IsNotNull(state);
                 state.Value = 1;
 
                 shell.Style = paint;
                 await NextTurn(shell);
-                Assert.Same(window, Assert.Single(BarsOn(shell, screen)));
-                Assert.Same(state, CountingWidget.Live);
+                Assert.AreSame(window, Assert.ContainsSingle(BarsOn(shell, screen)));
+                Assert.AreSame(state, CountingWidget.Live);
                 await UntilShown(() =>
-                    ReferenceEquals(Assert.Single(BarsOn(shell, screen)), window) &&
+                    ReferenceEquals(Assert.ContainsSingle(BarsOn(shell, screen)), window) &&
                     ReferenceEquals(CountingWidget.Live, state) &&
                     BackgroundOf(window.Content!) == paint.Background,
                     "the bar to take the new color and keep the widget", window);
-                Assert.Equal(1, state.Value);
-                Assert.Equal(32, window.Height);
+                Assert.AreEqual(1, state.Value);
+                Assert.AreEqual(32, window.Height);
             }
             finally
             {
@@ -421,7 +425,7 @@ public sealed class BarTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_bar_shows_the_style_background_in_its_window_theme_and_follows_a_switch_while_it_runs()
     {
         await ShellFixture.On(async shell =>
@@ -434,15 +438,15 @@ public sealed class BarTests
                 shell.Appearance = Appearance.Light;
                 using var bar = shell.Add(new Bar { Name = "bar" + Guid.NewGuid().ToString("N"), Reserve = false });
                 await NextTurn(shell);
-                var window = Assert.Single(BarsOn(shell, screen));
-                var root = Assert.IsAssignableFrom<FrameworkElement>(window.Content);
-                await ShellFixture.LaidOut(root).WaitAsync(TestContext.Current.CancellationToken);
-                Assert.Equal(WidgetAreaTests.WindowsColor("Light", "SolidBackgroundFillColorBase"), BackgroundOf(root));
+                var window = Assert.ContainsSingle(BarsOn(shell, screen));
+                var root = Assert.IsInstanceOfType<FrameworkElement>(window.Content);
+                await ShellFixture.LaidOut(root).WaitAsync(CurrentTest.Cancellation);
+                Assert.AreEqual(WidgetAreaTests.WindowsColor("Light", "SolidBackgroundFillColorBase"), BackgroundOf(root));
 
                 shell.Appearance = Appearance.Dark;
                 var dark = WidgetAreaTests.WindowsColor("Default", "SolidBackgroundFillColorBase");
                 await UntilShown(() => BackgroundOf(root) == dark, "the bar to turn dark", window);
-                Assert.Same(window, Assert.Single(BarsOn(shell, screen)));
+                Assert.AreSame(window, Assert.ContainsSingle(BarsOn(shell, screen)));
             }
             finally
             {
@@ -454,7 +458,7 @@ public sealed class BarTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_bar_keeps_its_padding_at_its_two_ends_and_takes_its_style_padding_without_one()
     {
         await ShellFixture.On(async shell =>
@@ -493,22 +497,22 @@ public sealed class BarTests
                 var bars = BarsOn(shell, screen);
 
                 var (start, end) =
-                    await Ends(Assert.Single(bars, window => window is { Edge: Edge.Top, Align: PanelAlign.Stretch }));
-                Assert.Equal(12, start.X, 0.5);
-                Assert.Equal(12, end.X, 0.5);
-                Assert.Equal(0, start.Y, 0.5);
-                Assert.Equal(0, end.Y, 0.5);
+                    await Ends(Assert.ContainsSingle(window => window is { Edge: Edge.Top, Align: PanelAlign.Stretch }, bars));
+                Assert.AreEqual(12, start.X, 0.5);
+                Assert.AreEqual(12, end.X, 0.5);
+                Assert.AreEqual(0, start.Y, 0.5);
+                Assert.AreEqual(0, end.Y, 0.5);
 
-                (start, end) = await Ends(Assert.Single(bars, window => window.Edge == Edge.Left));
-                Assert.Equal(4, start.Y, 0.5);
-                Assert.Equal(4, end.Y, 0.5);
-                Assert.Equal(0, start.X, 0.5);
-                Assert.Equal(0, end.X, 0.5);
+                (start, end) = await Ends(Assert.ContainsSingle(window => window.Edge == Edge.Left, bars));
+                Assert.AreEqual(4, start.Y, 0.5);
+                Assert.AreEqual(4, end.Y, 0.5);
+                Assert.AreEqual(0, start.X, 0.5);
+                Assert.AreEqual(0, end.X, 0.5);
 
                 (start, end) =
-                    await Ends(Assert.Single(bars, window => window is { Edge: Edge.Bottom, Align: PanelAlign.Stretch }));
-                Assert.Equal(0, start.X, 0.5);
-                Assert.Equal(0, end.X, 0.5);
+                    await Ends(Assert.ContainsSingle(window => window is { Edge: Edge.Bottom, Align: PanelAlign.Stretch }, bars));
+                Assert.AreEqual(0, start.X, 0.5);
+                Assert.AreEqual(0, end.X, 0.5);
             }
             finally
             {
@@ -537,7 +541,7 @@ public sealed class BarTests
     {
         await Until(shell, screen, () => BarsOn(shell, screen) is [var only] && only != old,
             "the bar of " + screen.Model + " to be replaced");
-        return Assert.Single(BarsOn(shell, screen));
+        return Assert.ContainsSingle(BarsOn(shell, screen));
     }
 
     private static Task UntilShown(Func<bool> done, string what, params PanelWindow[] bars)
@@ -547,7 +551,7 @@ public sealed class BarTests
             foreach (var bar in bars)
             {
                 if (bar.Content is FrameworkElement root)
-                    await ShellFixture.LaidOut(root).WaitAsync(TestContext.Current.CancellationToken);
+                    await ShellFixture.LaidOut(root).WaitAsync(CurrentTest.Cancellation);
             }
 
             return done();
@@ -558,7 +562,7 @@ public sealed class BarTests
     {
         return Wait.UntilAsync(() =>
         {
-            Assert.True(shell.Screens.Contains(screen), "The platform read the screens again and dropped the made-up ones.");
+            Assert.IsTrue(shell.Screens.Contains(screen), "The platform read the screens again and dropped the made-up ones.");
             return done();
         }, what);
     }
@@ -570,12 +574,12 @@ public sealed class BarTests
 
     private static async Task<List<StackPanel>> AreasOf(PanelWindow bar)
     {
-        var host = Assert.IsType<ReactorHostControl>(bar.Content);
-        await ShellFixture.LaidOut(host).WaitAsync(TestContext.Current.CancellationToken);
+        var host = Assert.IsExactInstanceOfType<ReactorHostControl>(bar.Content);
+        await ShellFixture.LaidOut(host).WaitAsync(CurrentTest.Cancellation);
         var stacks = new List<StackPanel>();
         Walk(host);
         var areas = stacks.Where(stack => !InsideAnother(stack, stacks)).ToList();
-        Assert.Equal(3, areas.Count);
+        Assert.AreEqual(3, areas.Count);
         var vertical = bar.Edge is Edge.Left or Edge.Right;
         areas.Sort((left, right) =>
         {
@@ -606,7 +610,7 @@ public sealed class BarTests
 
     private static async Task<(Point Start, Point End)> Ends(PanelWindow bar)
     {
-        var host = Assert.IsType<ReactorHostControl>(bar.Content);
+        var host = Assert.IsExactInstanceOfType<ReactorHostControl>(bar.Content);
         var areas = await AreasOf(bar);
         var start = areas[0].TransformToVisual(host).TransformPoint(default);
         var last = areas[2].TransformToVisual(host).TransformPoint(new Point(areas[2].ActualWidth, areas[2].ActualHeight));

@@ -1,8 +1,9 @@
 namespace Winshell.Package.Tests;
 
+[TestClass]
 public sealed class ShellPropertiesTests
 {
-    [Fact]
+    [TestMethod]
     public void The_shell_properties_reach_the_program_as_written()
     {
         var metadata = Metadata("""
@@ -12,7 +13,7 @@ public sealed class ShellPropertiesTests
             <ShellCacheDir>D:\cache</ShellCacheDir>
             """);
 
-        Assert.Equal(new Dictionary<string, string>
+        Assert.AreEquivalent(new Dictionary<string, string>
         {
             ["ShellName"] = "my-shell",
             ["ShellDataDir"] = "data",
@@ -21,7 +22,7 @@ public sealed class ShellPropertiesTests
         }, metadata);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_environment_variable_stays_for_the_shell_to_expand_and_an_escaped_percent_is_one_percent()
     {
         var metadata = Metadata("""
@@ -29,14 +30,14 @@ public sealed class ShellPropertiesTests
             <ShellCacheDir>%25DEVROOT%\cache</ShellCacheDir>
             """);
 
-        Assert.Equal(@"%LOCALAPPDATA%\mine", metadata["ShellDataDir"]);
-        Assert.Equal(@"%DEVROOT%\cache", metadata["ShellCacheDir"]);
+        Assert.AreEqual(@"%LOCALAPPDATA%\mine", metadata["ShellDataDir"]);
+        Assert.AreEqual(@"%DEVROOT%\cache", metadata["ShellCacheDir"]);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_project_that_sets_none_carries_none()
     {
-        Assert.DoesNotContain(Metadata("").Keys, key => key.StartsWith("Shell", StringComparison.Ordinal));
+        Assert.DoesNotContain(key => key.StartsWith("Shell", StringComparison.Ordinal), Metadata("").Keys);
     }
 
     private static Dictionary<string, string> Metadata(string properties)

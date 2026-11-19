@@ -6,24 +6,25 @@ using Windows.UI.ViewManagement;
 
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed class AccentShadeTests
 {
     private static readonly Color Red = Color.FromArgb(255, 0xD1, 0x34, 0x38);
 
-    [Fact]
+    [TestMethod]
     public void Shades_keep_the_accent_and_move_lightness_toward_white_and_black()
     {
         var shades = AccentShades.From(Color.FromArgb(255, 0x00, 0x78, 0xD4));
-        Assert.Equal(0x00, shades.Accent.R);
-        Assert.Equal(0x78, shades.Accent.G);
-        Assert.Equal(0xD4, shades.Accent.B);
-        Assert.True(Lightness(shades.Light1) > Lightness(shades.Accent));
-        Assert.True(Lightness(shades.Light3) > Lightness(shades.Light1));
-        Assert.True(Lightness(shades.Dark1) < Lightness(shades.Accent));
-        Assert.True(Lightness(shades.Dark3) < Lightness(shades.Dark1));
+        Assert.AreEqual(0x00, shades.Accent.R);
+        Assert.AreEqual(0x78, shades.Accent.G);
+        Assert.AreEqual(0xD4, shades.Accent.B);
+        Assert.IsTrue(Lightness(shades.Light1) > Lightness(shades.Accent));
+        Assert.IsTrue(Lightness(shades.Light3) > Lightness(shades.Light1));
+        Assert.IsTrue(Lightness(shades.Dark1) < Lightness(shades.Accent));
+        Assert.IsTrue(Lightness(shades.Dark3) < Lightness(shades.Dark1));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_picked_accent_repaints_the_brush_a_control_already_holds_and_following_Windows_gives_it_back()
     {
         var (windows, picked, followed) = await ShellFixture.On(shell =>
@@ -40,19 +41,19 @@ public sealed class AccentShadeTests
 
         var shades = AccentShades.From(Red);
         Assert.Contains(picked, new[] { shades.Light2, shades.Dark1 });
-        Assert.Equal(windows, followed);
+        Assert.AreEqual(windows, followed);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_shell_follows_the_Windows_accent_until_it_picks_one()
     {
         var (picked, system) = await ShellFixture.On(shell => (shell.AccentColor, shell.SystemAccent));
 
-        Assert.Null(picked);
-        Assert.Equal(new UISettings().GetColorValue(UIColorType.Accent), system);
+        Assert.IsNull(picked);
+        Assert.AreEqual(new UISettings().GetColorValue(UIColorType.Accent), system);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Light_and_dark_controls_follow_the_Windows_accent_after_a_picked_one_is_cleared()
     {
         var blue = AccentShades.From(Color.FromArgb(255, 0x00, 0x63, 0xB1));
@@ -82,10 +83,10 @@ public sealed class AccentShadeTests
             }
         });
 
-        Assert.Equal((red.Light2, red.Dark1), picked);
-        Assert.Equal((blue.Light2, blue.Dark1), cleared);
-        Assert.Equal((green.Light2, green.Dark1), changed);
-        Assert.Equal(green.Accent, system);
+        Assert.AreEqual((red.Light2, red.Dark1), picked);
+        Assert.AreEqual((blue.Light2, blue.Dark1), cleared);
+        Assert.AreEqual((green.Light2, green.Dark1), changed);
+        Assert.AreEqual(green.Accent, system);
     }
 
     private static (Color Dark, Color Light) Fills()

@@ -2,49 +2,50 @@ using Winshell.Input;
 
 namespace Winshell.Services.Tests;
 
-[Collection(KeyboardHookCollection.Name)]
+[TestClass]
+[DoNotParallelize]
 public sealed class HotkeyBookTests
 {
-    [Fact]
+    [TestMethod]
     public void Parser_uses_windows_names_and_canonical_order()
     {
         var chord = Parse("shift+alt+ctrl+win+k").Chords[0];
-        Assert.Equal("Win+Ctrl+Alt+Shift+K", chord.Text);
-        Assert.Equal('K', chord.VirtualKey);
-        Assert.Equal(0x000F, (int)chord.Modifiers);
-        Assert.False(chord.IsWinOnly);
+        Assert.AreEqual("Win+Ctrl+Alt+Shift+K", chord.Text);
+        Assert.AreEqual('K', chord.VirtualKey);
+        Assert.AreEqual(0x000F, (int)chord.Modifiers);
+        Assert.IsFalse(chord.IsWinOnly);
 
-        Assert.Equal("Alt+F4", Parse("alt+f4").Text);
-        Assert.Equal(0x73, Parse("alt+f4").Chords[0].VirtualKey);
-        Assert.Equal("Ctrl+K, C", Parse("Ctrl+K, C").Text);
-        Assert.Equal("Ctrl+Comma, C", Parse("ctrl+comma, c").Text);
-        Assert.Equal(0xBC, Parse("Comma").Chords[0].VirtualKey);
-        Assert.Equal(0x87, Parse("F24").Chords[0].VirtualKey);
-        Assert.Equal(0x2E, Parse("Delete").Chords[0].VirtualKey);
-        Assert.Equal(0xAF, Parse("Volume Up").Chords[0].VirtualKey);
+        Assert.AreEqual("Alt+F4", Parse("alt+f4").Text);
+        Assert.AreEqual(0x73, Parse("alt+f4").Chords[0].VirtualKey);
+        Assert.AreEqual("Ctrl+K, C", Parse("Ctrl+K, C").Text);
+        Assert.AreEqual("Ctrl+Comma, C", Parse("ctrl+comma, c").Text);
+        Assert.AreEqual(0xBC, Parse("Comma").Chords[0].VirtualKey);
+        Assert.AreEqual(0x87, Parse("F24").Chords[0].VirtualKey);
+        Assert.AreEqual(0x2E, Parse("Delete").Chords[0].VirtualKey);
+        Assert.AreEqual(0xAF, Parse("Volume Up").Chords[0].VirtualKey);
 
         var winE = Parse("Win+E").Chords[0];
-        Assert.False(winE.IsWinOnly);
-        Assert.Equal('E', winE.VirtualKey);
-        Assert.Equal(0x0008, (int)winE.Modifiers);
+        Assert.IsFalse(winE.IsWinOnly);
+        Assert.AreEqual('E', winE.VirtualKey);
+        Assert.AreEqual(0x0008, (int)winE.Modifiers);
 
         var either = Parse("Win").Chords[0];
-        Assert.True(either.IsWinOnly);
-        Assert.Equal(WinKeySide.Either, either.Side);
-        Assert.Equal("Win", either.Text);
+        Assert.IsTrue(either.IsWinOnly);
+        Assert.AreEqual(WinKeySide.Either, either.Side);
+        Assert.AreEqual("Win", either.Text);
         var left = Parse("Left Win").Chords[0];
-        Assert.True(left.IsWinOnly);
-        Assert.Equal(WinKeySide.Left, left.Side);
-        Assert.Equal("Left Win", left.Text);
+        Assert.IsTrue(left.IsWinOnly);
+        Assert.AreEqual(WinKeySide.Left, left.Side);
+        Assert.AreEqual("Left Win", left.Text);
 
-        Assert.False(HotkeySequence.TryParse("   ", out var idle, out var idleError));
-        Assert.Null(idle);
-        Assert.Null(idleError);
-        Assert.False(HotkeySequence.TryParse(null, out _, out idleError));
-        Assert.Null(idleError);
+        Assert.IsFalse(HotkeySequence.TryParse("   ", out var idle, out var idleError));
+        Assert.IsNull(idle);
+        Assert.IsNull(idleError);
+        Assert.IsFalse(HotkeySequence.TryParse(null, out _, out idleError));
+        Assert.IsNull(idleError);
     }
 
-    [Fact]
+    [TestMethod]
     public void Parser_rejects_linux_names_sided_modifiers_and_bad_shapes()
     {
         AssertRejected("Super+K", "Super", "Win");
@@ -58,7 +59,7 @@ public sealed class HotkeyBookTests
         AssertRejected("Ctrl+Ctrl+K", "repeated");
     }
 
-    [Fact]
+    [TestMethod]
     public void Two_listeners_share_a_chord_until_the_last_one_releases_it()
     {
         var book = new HotkeyBook();
@@ -68,16 +69,16 @@ public sealed class HotkeyBookTests
         book.Add(first, Parse("Ctrl+K"));
         book.Add(second, Parse("Ctrl+K"));
         var fired = book.Trigger(key, 0);
-        Assert.Equal(2, fired.Pressed.Count);
+        Assert.AreEqual(2, fired.Pressed.Count);
         Assert.Contains(first, fired.Pressed);
         Assert.Contains(second, fired.Pressed);
         book.Remove(first);
-        Assert.True(book.HasOs(key));
+        Assert.IsTrue(book.HasOs(key));
         book.Remove(second);
-        Assert.False(book.HasOs(key));
+        Assert.IsFalse(book.HasOs(key));
     }
 
-    [Fact]
+    [TestMethod]
     public void Windows_key_tap_fires_that_side_and_either_but_not_the_other_side()
     {
         var book = new HotkeyBook();
@@ -89,17 +90,17 @@ public sealed class HotkeyBookTests
         book.Add(either, Parse("Win"));
 
         var down = book.Hook(VirtualKeys.LeftWin, false, HotkeyModifiers.None, 0);
-        Assert.Empty(down.Pressed);
-        Assert.False(down.Swallow);
+        Assert.IsEmpty(down.Pressed);
+        Assert.IsFalse(down.Swallow);
 
         var up = book.Hook(VirtualKeys.LeftWin, true, HotkeyModifiers.Win, 0);
         Assert.Contains(left, up.Pressed);
         Assert.Contains(either, up.Pressed);
         Assert.DoesNotContain(right, up.Pressed);
-        Assert.True(up.Swallow);
+        Assert.IsTrue(up.Swallow);
     }
 
-    [Fact]
+    [TestMethod]
     public void Windows_key_used_as_a_modifier_does_not_fire_and_repeats_do_not_reset_that()
     {
         var book = new HotkeyBook();
@@ -109,11 +110,11 @@ public sealed class HotkeyBookTests
         book.Hook('E', false, HotkeyModifiers.Win, 0);
         book.Hook(VirtualKeys.LeftWin, false, HotkeyModifiers.Win, 0);
         var up = book.Hook(VirtualKeys.LeftWin, true, HotkeyModifiers.Win, 0);
-        Assert.Empty(up.Pressed);
-        Assert.False(up.Swallow);
+        Assert.IsEmpty(up.Pressed);
+        Assert.IsFalse(up.Swallow);
     }
 
-    [Fact]
+    [TestMethod]
     public void Sequence_swallows_a_match_and_a_mismatch_or_modifier_does_not_steal_the_key()
     {
         var book = new HotkeyBook();
@@ -121,37 +122,37 @@ public sealed class HotkeyBookTests
         book.Add(listener, Parse("Ctrl+K, C"));
         book.Trigger(Parse("Ctrl+K").Chords[0].OsKey, 0);
         var shift = book.Hook(0x10, false, HotkeyModifiers.Shift, 0);
-        Assert.False(shift.Swallow);
-        Assert.True(book.NeedsHook);
+        Assert.IsFalse(shift.Swallow);
+        Assert.IsTrue(book.NeedsHook);
 
         var miss = book.Hook('D', false, HotkeyModifiers.None, 0);
-        Assert.False(miss.Swallow);
-        Assert.Empty(miss.Pressed);
-        Assert.False(book.NeedsHook);
+        Assert.IsFalse(miss.Swallow);
+        Assert.IsEmpty(miss.Pressed);
+        Assert.IsFalse(book.NeedsHook);
 
         book.Trigger(Parse("Ctrl+K").Chords[0].OsKey, 0);
         var hit = book.Hook('C', false, HotkeyModifiers.None, 0);
-        Assert.True(hit.Swallow);
+        Assert.IsTrue(hit.Swallow);
         Assert.Contains(listener, hit.Pressed);
-        Assert.False(book.NeedsHook);
+        Assert.IsFalse(book.NeedsHook);
     }
 
-    [Fact]
+    [TestMethod]
     public void Extending_a_sequence_keeps_a_new_token_and_the_old_disarm_does_nothing()
     {
         var book = new HotkeyBook();
         var listener = new Probe();
         book.Add(listener, Parse("A, B, C"));
         var started = book.Trigger(Parse("A").Chords[0].OsKey, 0);
-        var token = Assert.Single(started.Armed).Token;
+        var token = Assert.ContainsSingle(started.Armed).Token;
         book.Hook('B', false, HotkeyModifiers.None, 0);
         book.Disarm(listener, token);
-        Assert.True(book.NeedsHook);
+        Assert.IsTrue(book.NeedsHook);
         var done = book.Hook('C', false, HotkeyModifiers.None, 0);
         Assert.Contains(listener, done.Pressed);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_sequence_expires_when_the_deadline_is_reached()
     {
         var book = new HotkeyBook();
@@ -159,12 +160,12 @@ public sealed class HotkeyBookTests
         book.Add(listener, Parse("A, B"));
         book.Trigger(Parse("A").Chords[0].OsKey, 0);
         var late = book.Hook('B', false, HotkeyModifiers.None, 1000);
-        Assert.Empty(late.Pressed);
-        Assert.False(late.Swallow);
-        Assert.False(book.NeedsHook);
+        Assert.IsEmpty(late.Pressed);
+        Assert.IsFalse(late.Swallow);
+        Assert.IsFalse(book.NeedsHook);
     }
 
-    [Fact]
+    [TestMethod]
     public void Windows_tap_finishes_a_waiting_sequence_and_still_starts_one()
     {
         var book = new HotkeyBook();
@@ -176,12 +177,12 @@ public sealed class HotkeyBookTests
         book.Hook(VirtualKeys.LeftWin, false, HotkeyModifiers.None, 0);
         var up = book.Hook(VirtualKeys.LeftWin, true, HotkeyModifiers.Win, 0);
         Assert.Contains(finisher, up.Pressed);
-        Assert.Contains(up.Armed, notice => notice.Listener == starter);
-        Assert.True(up.Swallow);
-        Assert.True(book.NeedsHook);
+        Assert.Contains(notice => notice.Listener == starter, up.Armed);
+        Assert.IsTrue(up.Swallow);
+        Assert.IsTrue(book.NeedsHook);
     }
 
-    [Fact]
+    [TestMethod]
     public void Ctrl_Alt_Delete_is_not_registered()
     {
         var loop = new ManualEventLoop();
@@ -190,15 +191,15 @@ public sealed class HotkeyBookTests
         using var hotkey = new Hotkey(loop, Log.Default, registrar);
         hotkey.Sequence = "Ctrl+Alt+Delete";
 
-        Assert.False(hotkey.Active);
+        Assert.IsFalse(hotkey.Active);
         Assert.Contains("Ctrl+Alt+Delete", hotkey.Error, StringComparison.Ordinal);
         if (hotkey.Error.Contains("already in use", StringComparison.Ordinal))
-            Assert.True(hotkey.Taken);
+            Assert.IsTrue(hotkey.Taken);
         else
-            Assert.False(hotkey.Taken);
+            Assert.IsFalse(hotkey.Taken);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_second_windows_key_hotkey_waits_until_the_hook_is_free()
     {
         var firstLoop = new ManualEventLoop();
@@ -212,11 +213,11 @@ public sealed class HotkeyBookTests
         try
         {
             first.Sequence = "Win";
-            Assert.True(first.Active);
+            Assert.IsTrue(first.Active);
 
             second.Sequence = "Win";
-            Assert.False(second.Active);
-            Assert.False(second.Taken);
+            Assert.IsFalse(second.Active);
+            Assert.IsFalse(second.Taken);
             Assert.Contains("keyboard hook", second.Error, StringComparison.Ordinal);
         }
         finally
@@ -226,21 +227,21 @@ public sealed class HotkeyBookTests
 
         second.Enabled = false;
         second.Enabled = true;
-        Assert.True(second.Active);
-        Assert.Equal("", second.Error);
+        Assert.IsTrue(second.Active);
+        Assert.AreEqual("", second.Error);
     }
 
     private static void AssertRejected(string text, params string[] parts)
     {
-        Assert.False(HotkeySequence.TryParse(text, out _, out var error));
-        Assert.NotNull(error);
+        Assert.IsFalse(HotkeySequence.TryParse(text, out _, out var error));
+        Assert.IsNotNull(error);
         foreach (var part in parts)
             Assert.Contains(part, error, StringComparison.Ordinal);
     }
 
     private static HotkeySequence Parse(string text)
     {
-        Assert.True(HotkeySequence.TryParse(text, out var sequence, out var error), error);
+        Assert.IsTrue(HotkeySequence.TryParse(text, out var sequence, out var error), error);
         return sequence!;
     }
 

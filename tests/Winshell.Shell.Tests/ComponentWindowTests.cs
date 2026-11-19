@@ -7,10 +7,11 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class ComponentWindowTests
 {
-    [Fact]
+    [TestMethod]
     public async Task A_panel_shows_the_controls_a_component_rendered()
     {
         var text = await ShellFixture.On(async shell =>
@@ -22,10 +23,10 @@ public sealed class ComponentWindowTests
             return ShownText(host);
         });
 
-        Assert.Equal("Hello", text);
+        Assert.AreEqual("Hello", text);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_component_renders_again_when_the_service_object_it_observes_changes()
     {
         var text = await ShellFixture.On(async shell =>
@@ -41,10 +42,10 @@ public sealed class ComponentWindowTests
             return ShownText(host);
         });
 
-        Assert.Equal("full", text);
+        Assert.AreEqual("full", text);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_component_renders_again_when_an_item_in_a_service_list_changes()
     {
         var text = await ShellFixture.On(async shell =>
@@ -60,13 +61,13 @@ public sealed class ComponentWindowTests
             return ShownText(host);
         });
 
-        Assert.Equal("after", text);
+        Assert.AreEqual("after", text);
     }
 
-    [Theory]
-    [InlineData("panel")]
-    [InlineData("popup")]
-    [InlineData("floating")]
+    [TestMethod]
+    [DataRow("panel")]
+    [DataRow("popup")]
+    [DataRow("floating")]
     public async Task A_component_window_shows_its_component_on_a_surface(string kind)
     {
         var (text, styled, background) = await ShellFixture.On(async shell =>
@@ -86,14 +87,14 @@ public sealed class ComponentWindowTests
             }
         });
 
-        Assert.Equal("Hello", text);
-        Assert.Equal(styled, background);
+        Assert.AreEqual("Hello", text);
+        Assert.AreEqual(styled, background);
     }
 
-    [Theory]
-    [InlineData("panel")]
-    [InlineData("popup")]
-    [InlineData("floating")]
+    [TestMethod]
+    [DataRow("panel")]
+    [DataRow("popup")]
+    [DataRow("floating")]
     public async Task Disposing_a_component_window_unmounts_its_component(string kind)
     {
         var (shown, hidden, disposed) = await ShellFixture.On(async shell =>
@@ -109,15 +110,15 @@ public sealed class ComponentWindowTests
             return (whileShown, whileHidden, Tracked.Mounted);
         });
 
-        Assert.Equal(1, shown);
-        Assert.Equal(1, hidden);
-        Assert.Equal(0, disposed);
+        Assert.AreEqual(1, shown);
+        Assert.AreEqual(1, hidden);
+        Assert.AreEqual(0, disposed);
     }
 
-    [Theory]
-    [InlineData("panel")]
-    [InlineData("popup")]
-    [InlineData("floating")]
+    [TestMethod]
+    [DataRow("panel")]
+    [DataRow("popup")]
+    [DataRow("floating")]
     public async Task Two_windows_of_one_component_show_the_props_each_was_given(string kind)
     {
         var texts = await ShellFixture.On(async shell =>
@@ -131,10 +132,10 @@ public sealed class ComponentWindowTests
             return (ShownText(firstHost), ShownText(secondHost));
         });
 
-        Assert.Equal(("first", "second"), texts);
+        Assert.AreEqual(("first", "second"), texts);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Toggle_shows_a_hidden_window_and_hides_a_shown_one()
     {
         var states = await ShellFixture.On(shell =>
@@ -154,8 +155,8 @@ public sealed class ComponentWindowTests
             return (opened, closed);
         });
 
-        Assert.Equal((true, true), states.opened);
-        Assert.Equal((false, false), states.closed);
+        Assert.AreEqual((true, true), states.opened);
+        Assert.AreEqual((false, false), states.closed);
     }
 
     private static ShellWindow Shown<T>(string kind) where T : Component, new()
@@ -194,7 +195,7 @@ public sealed class ComponentWindowTests
     {
         var blocks = new List<TextBlock>();
         Collect(root, blocks);
-        return Assert.Single(blocks).Text;
+        return Assert.ContainsSingle(blocks).Text;
 
         static void Collect(DependencyObject node, List<TextBlock> blocks)
         {

@@ -3,6 +3,7 @@ using static Winshell.Diagnostics.Doctor;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class DoctorUserConfigTests : IDisposable
 {
     private readonly string _dir =
@@ -18,10 +19,10 @@ public sealed class DoctorUserConfigTests : IDisposable
         Directory.Delete(_dir, true);
     }
 
-    [Theory]
-    [InlineData(26300, 1, "26H2", false, nameof(CheckStatus.Pass))]
-    [InlineData(22000, 1, "21H2", false, nameof(CheckStatus.Warn))]
-    [InlineData(19045, 1, "22H2", false, nameof(CheckStatus.Fail))]
+    [TestMethod]
+    [DataRow(26300, 1, "26H2", false, nameof(CheckStatus.Pass))]
+    [DataRow(22000, 1, "21H2", false, nameof(CheckStatus.Warn))]
+    [DataRow(19045, 1, "22H2", false, nameof(CheckStatus.Fail))]
     public void Windows_mentions_transparency_and_a_contrast_theme_without_changing_the_result(int build, int revision,
         string? version, bool server, string status)
     {
@@ -30,10 +31,10 @@ public sealed class DoctorUserConfigTests : IDisposable
         var transparency = Doctor.Windows(build, revision, version, server, true);
         var contrast = Doctor.Windows(build, revision, version, server, contrastTheme: true);
 
-        Assert.Equal(Enum.Parse<CheckStatus>(status), plain.Status);
-        Assert.Equal(plain.Status, both.Status);
-        Assert.Equal(plain.Fix, both.Fix);
-        Assert.Equal(plain.Message, Doctor.Windows(build, revision, version, server, false, false).Message);
+        Assert.AreEqual(Enum.Parse<CheckStatus>(status), plain.Status);
+        Assert.AreEqual(plain.Status, both.Status);
+        Assert.AreEqual(plain.Fix, both.Fix);
+        Assert.AreEqual(plain.Message, Doctor.Windows(build, revision, version, server, false, false).Message);
         Assert.StartsWith(plain.Message + ". ", both.Message, StringComparison.Ordinal);
         Assert.Contains("Transparency effects are off, so Mica and Acrylic look flat.", both.Message,
             StringComparison.Ordinal);
@@ -44,7 +45,7 @@ public sealed class DoctorUserConfigTests : IDisposable
         Assert.DoesNotContain("Transparency effects", contrast.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_broken_preferences_file_warns_and_a_project_failure_stays_a_failure()
     {
         var config = Path.Combine(_dir, "config");
@@ -55,21 +56,21 @@ public sealed class DoctorUserConfigTests : IDisposable
 
         var warned = Run(Context(config, local)).Single(c => c.Id == "project");
 
-        Assert.Equal(CheckStatus.Warn, warned.Status);
+        Assert.AreEqual(CheckStatus.Warn, warned.Status);
         Assert.Contains("Mine.csproj", warned.Message, StringComparison.Ordinal);
         Assert.Contains(Printed(preferences) + "[2:", warned.Message, StringComparison.Ordinal);
-        Assert.Contains("until the file parses", warned.Fix, StringComparison.Ordinal);
+        Assert.Contains("until the file parses", warned.Fix!, StringComparison.Ordinal);
 
         var missing = Path.Combine(_dir, "missing");
         var failed = Run(Context(config, local, missing)).Single(c => c.Id == "project");
 
-        Assert.Equal(CheckStatus.Fail, failed.Status);
+        Assert.AreEqual(CheckStatus.Fail, failed.Status);
         Assert.StartsWith("No .csproj at ", failed.Message, StringComparison.Ordinal);
         Assert.EndsWith(@"\missing.", failed.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("root.toml", failed.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void With_no_project_a_broken_preferences_file_is_not_mentioned()
     {
         var config = Path.Combine(_dir, "config");
@@ -79,12 +80,12 @@ public sealed class DoctorUserConfigTests : IDisposable
         var check = Run(Context(config, Path.Combine(_dir, "local")))
             .Single(c => c.Id == "project");
 
-        Assert.Equal(CheckStatus.Warn, check.Status);
-        Assert.Equal("No shell project, so winshell run starts nothing.", check.Message);
-        Assert.Equal("Run winshell new to make one.", check.Fix);
+        Assert.AreEqual(CheckStatus.Warn, check.Status);
+        Assert.AreEqual("No shell project, so winshell run starts nothing.", check.Message);
+        Assert.AreEqual("Run winshell new to make one.", check.Fix);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_missing_or_readable_preferences_file_is_no_problem()
     {
         var config = Path.Combine(_dir, "config");
@@ -95,13 +96,13 @@ public sealed class DoctorUserConfigTests : IDisposable
 
         var preferences = DoctorProbe.PreferencesFile(locations, project, ShellProject.Run, out var unread);
 
-        Assert.Null(unread);
-        Assert.Null(DoctorProbe.PreferencesProblem(preferences));
+        Assert.IsNull(unread);
+        Assert.IsNull(DoctorProbe.PreferencesProblem(preferences));
         Preferences(config, "root", "# keep\ncolorScheme = \"dark\"\n\n[bar]\nedge = \"left\"\n");
-        Assert.Null(DoctorProbe.PreferencesProblem(preferences));
+        Assert.IsNull(DoctorProbe.PreferencesProblem(preferences));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_shell_in_a_folder_of_the_shells_folder_is_checked_in_the_file_named_after_that_folder()
     {
         var config = Path.Combine(_dir, "config");
@@ -120,14 +121,14 @@ public sealed class DoctorUserConfigTests : IDisposable
         var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
             .Single(c => c.Id == "project");
 
-        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.AreEqual(CheckStatus.Warn, check.Status);
         Assert.Contains(Printed(preferences) + "[", check.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(Printed(other), check.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(Printed(old), check.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(Printed(decoy), check.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_shell_name_in_the_project_file_names_the_preferences_file_checked()
     {
         var config = Path.Combine(_dir, "config");
@@ -142,12 +143,12 @@ public sealed class DoctorUserConfigTests : IDisposable
         var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
             .Single(c => c.Id == "project");
 
-        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.AreEqual(CheckStatus.Warn, check.Status);
         Assert.Contains(Printed(preferences) + "[", check.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(Printed(folderNamed), check.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_last_shell_name_the_project_assigns_names_the_preferences_file_checked()
     {
         var config = Path.Combine(_dir, "config");
@@ -162,12 +163,12 @@ public sealed class DoctorUserConfigTests : IDisposable
         var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
             .Single(c => c.Id == "project");
 
-        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.AreEqual(CheckStatus.Warn, check.Status);
         Assert.Contains(Printed(preferences) + "[", check.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(Printed(first), check.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_shell_name_built_from_msbuild_properties_is_evaluated()
     {
         var config = Path.Combine(_dir, "config");
@@ -182,12 +183,12 @@ public sealed class DoctorUserConfigTests : IDisposable
         var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
             .Single(c => c.Id == "project");
 
-        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.AreEqual(CheckStatus.Warn, check.Status);
         Assert.Contains(Printed(preferences) + "[", check.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(Printed(folderNamed), check.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_shell_name_of_the_release_build_names_the_preferences_file_checked()
     {
         var config = Path.Combine(_dir, "config");
@@ -202,12 +203,12 @@ public sealed class DoctorUserConfigTests : IDisposable
         var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
             .Single(c => c.Id == "project");
 
-        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.AreEqual(CheckStatus.Warn, check.Status);
         Assert.Contains(Printed(preferences) + "[", check.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(Printed(debug), check.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_project_msbuild_cannot_read_is_checked_under_the_folder_name_and_says_so()
     {
         var config = Path.Combine(_dir, "config");
@@ -220,15 +221,15 @@ public sealed class DoctorUserConfigTests : IDisposable
         var check = Run(Context(config, Path.Combine(_dir, "local"), projectFile))
             .Single(c => c.Id == "project");
 
-        Assert.Equal(CheckStatus.Warn, check.Status);
+        Assert.AreEqual(CheckStatus.Warn, check.Status);
         Assert.Contains(
             $"The shell name could not be read from Work.csproj, so doctor assumed \"work\" and checked {Printed(preferences)}: ",
             check.Message, StringComparison.Ordinal);
         Assert.Contains("MSB4025", check.Message, StringComparison.Ordinal);
-        Assert.Contains("dotnet msbuild", check.Fix, StringComparison.Ordinal);
+        Assert.Contains("dotnet msbuild", check.Fix!, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_preferences_file_that_cannot_be_read_is_named_with_why()
     {
         var config = Path.Combine(_dir, "config");
@@ -255,8 +256,8 @@ public sealed class DoctorUserConfigTests : IDisposable
     private static ShellProject Project(string folder)
     {
         var project = ShellProject.Find(folder, null, folder, out var error);
-        Assert.NotNull(project);
-        Assert.Null(error);
+        Assert.IsNotNull(project);
+        Assert.IsNull(error);
         return project;
     }
 

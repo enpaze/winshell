@@ -1,5 +1,6 @@
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class InstanceLogTests : IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
@@ -9,7 +10,7 @@ public sealed class InstanceLogTests : IDisposable
         Directory.CreateDirectory(_dir);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_warning_lands_immediately_and_a_full_file_rolls()
     {
         var path = Path.Combine(_dir, "log.txt");
@@ -26,60 +27,60 @@ public sealed class InstanceLogTests : IDisposable
         for (var i = 0; i < 30; i++)
             log.Write(LogLevel.Warn, "pad-" + i + "-xxxxxxxxxxxxxxxx");
 
-        Assert.True(File.Exists(previous));
-        Assert.True(new FileInfo(path).Length < 100 + 80);
+        Assert.IsTrue(File.Exists(previous));
+        Assert.IsTrue(new FileInfo(path).Length < 100 + 80);
         var kept = Read(path) + Read(previous);
         Assert.Contains("pad-29-", kept, StringComparison.Ordinal);
         Assert.DoesNotContain("pad-0-", kept, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_follower_reads_on_after_the_log_rolls()
     {
         var path = Path.Combine(_dir, "log.txt");
-        var cancel = TestContext.Current.CancellationToken;
+        var cancel = CurrentTest.Cancellation;
         using var log = new InstanceLog(path, 20, new FakeTimeProvider());
         log.Write(LogLevel.Warn, "first-line");
         await using var stream = SharedFile.OpenToRead(path);
         using var reader = new StreamReader(stream);
-        Assert.Equal("first-line", await reader.ReadLineAsync(cancel));
+        Assert.AreEqual("first-line", await reader.ReadLineAsync(cancel));
         await using var lines = InstanceLog.Follow(reader, cancel: cancel).GetAsyncEnumerator(cancel);
 
         log.Write(LogLevel.Warn, "second-line");
         log.Write(LogLevel.Warn, "third");
 
-        Assert.Equal("first-line\nsecond-line\n", Read(Path.Combine(_dir, "log.1.txt")));
-        Assert.True(await lines.MoveNextAsync());
-        Assert.Equal("second-line", lines.Current);
-        Assert.True(await lines.MoveNextAsync());
-        Assert.Equal("third", lines.Current);
+        Assert.AreEqual("first-line\nsecond-line\n", Read(Path.Combine(_dir, "log.1.txt")));
+        Assert.IsTrue(await lines.MoveNextAsync());
+        Assert.AreEqual("second-line", lines.Current);
+        Assert.IsTrue(await lines.MoveNextAsync());
+        Assert.AreEqual("third", lines.Current);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_follower_waits_on_the_clock_for_the_next_line()
     {
         var path = Path.Combine(_dir, "log.txt");
         var clock = new Clock();
-        var cancel = TestContext.Current.CancellationToken;
+        var cancel = CurrentTest.Cancellation;
         using var log = new InstanceLog(path, time: clock);
         log.Write(LogLevel.Warn, "first");
         await using var stream = SharedFile.OpenToRead(path);
         using var reader = new StreamReader(stream);
-        Assert.Equal("first", await reader.ReadLineAsync(cancel));
+        Assert.AreEqual("first", await reader.ReadLineAsync(cancel));
         await using var lines = InstanceLog.Follow(reader, clock, cancel).GetAsyncEnumerator(cancel);
 
         var next = lines.MoveNextAsync();
         await clock.Waiting();
         log.Write(LogLevel.Warn, "second");
         clock.Advance(TimeSpan.FromMilliseconds(200) - TimeSpan.FromTicks(1));
-        Assert.False(next.IsCompleted);
+        Assert.IsFalse(next.IsCompleted);
 
         clock.Advance(TimeSpan.FromTicks(1));
-        Assert.True(await next);
-        Assert.Equal("second", lines.Current);
+        Assert.IsTrue(await next);
+        Assert.AreEqual("second", lines.Current);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_ordinary_line_lands_a_moment_after_it_is_written()
     {
         var path = Path.Combine(_dir, "log.txt");
@@ -95,7 +96,7 @@ public sealed class InstanceLogTests : IDisposable
         Assert.Contains("second", Read(path), StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_timed_flush_that_cannot_reopen_the_file_does_not_end_the_process_and_logging_resumes()
     {
         var path = Path.Combine(_dir, "log.txt");
@@ -150,7 +151,7 @@ public sealed class InstanceLogTests : IDisposable
 
         public Task Waiting()
         {
-            return _waits.WaitAsync(TestContext.Current.CancellationToken);
+            return _waits.WaitAsync(CurrentTest.Cancellation);
         }
     }
 }

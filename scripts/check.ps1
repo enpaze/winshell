@@ -6,8 +6,6 @@ param(
     [Parameter(ParameterSetName = 'Tests')]
     [ValidateSet('Tests', 'Docs', 'Package')]
     [string] $Tier = 'Tests',
-    [Parameter(ParameterSetName = 'Tests')]
-    [int] $Seed = 0,
     [Parameter(Mandatory, ParameterSetName = 'Lint')]
     [switch] $Lint
 )
@@ -66,7 +64,7 @@ try {
         dotnet build scripts/render-logo.cs --nologo
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }
-    $exit = Invoke-TestRun -Tier $Tier -Seed $Seed
+    $exit = Invoke-TestRun -Tier $Tier
     if ($exit -ne 0) { exit $exit }
     if ($full) {
         $result = & {

@@ -4,6 +4,7 @@ using Winshell.Winland;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class WinlandServiceTests
 {
     private const string Monitors = """
@@ -59,48 +60,48 @@ public sealed class WinlandServiceTests
         return new WindowRead(title, false, false, false, "M1", "", "", program);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_connection_fills_the_lists_in_order()
     {
         var service = Connected();
         using var stopService = service.Stopping();
 
-        Assert.Equal([0, 1], service.Monitors.Select(m => m.Id));
-        Assert.Equal(["special:special", "notes", "1", "3", "3"], service.Workspaces.Select(w => w.Name));
-        Assert.Equal(["10", "20"], service.Windows.Select(t => t.Address));
-        Assert.Equal(0x10, service.Windows[0].Handle);
-        Assert.Equal(-99, service.Workspaces.Single(w => w.Name == "special:special").Id);
-        Assert.Equal(-1, service.Workspaces.Single(w => w.Name == "notes").Id);
+        Assert.AreSequenceEqual([0, 1], service.Monitors.Select(m => m.Id));
+        Assert.AreSequenceEqual(["special:special", "notes", "1", "3", "3"], service.Workspaces.Select(w => w.Name));
+        Assert.AreSequenceEqual(["10", "20"], service.Windows.Select(t => t.Address));
+        Assert.AreEqual(0x10, service.Windows[0].Handle);
+        Assert.AreEqual(-99, service.Workspaces.Single(w => w.Name == "special:special").Id);
+        Assert.AreEqual(-1, service.Workspaces.Single(w => w.Name == "notes").Id);
 
         var main = service.FocusedMonitor!;
-        Assert.Equal(@"\\.\DISPLAY1", main.Name);
-        Assert.Equal("Main", main.Description);
-        Assert.Equal(2560, main.Width);
-        Assert.True(main.Focused);
-        Assert.Equal("1", main.ActiveWorkspace!.Name);
-        Assert.Equal("Main", main.LastIpcObject!.Value.GetProperty("description").GetString());
+        Assert.AreEqual(@"\\.\DISPLAY1", main.Name);
+        Assert.AreEqual("Main", main.Description);
+        Assert.AreEqual(2560, main.Width);
+        Assert.IsTrue(main.Focused);
+        Assert.AreEqual("1", main.ActiveWorkspace!.Name);
+        Assert.AreEqual("Main", main.LastIpcObject!.Value.GetProperty("description").GetString());
 
         var left = service.Monitors[1];
-        Assert.Equal((-1920, 0, 1.5), (left.X, left.Y, left.Scale));
-        Assert.False(left.Focused);
+        Assert.AreEqual((-1920, 0, 1.5), (left.X, left.Y, left.Scale));
+        Assert.IsFalse(left.Focused);
 
         var focused = service.FocusedWorkspace!;
-        Assert.Same(main.ActiveWorkspace, focused);
-        Assert.True(focused.Focused);
-        Assert.True(focused.Active);
-        Assert.True(focused.HasFullscreen);
-        Assert.Equal("1", focused.Name);
-        Assert.Null(typeof(WinlandWorkspace).GetProperty("Address"));
+        Assert.AreSame(main.ActiveWorkspace, focused);
+        Assert.IsTrue(focused.Focused);
+        Assert.IsTrue(focused.Active);
+        Assert.IsTrue(focused.HasFullscreen);
+        Assert.AreEqual("1", focused.Name);
+        Assert.IsNull(typeof(WinlandWorkspace).GetProperty("Address"));
 
-        Assert.Same(service.Windows[0], service.ActiveWindow);
-        Assert.True(service.ActiveWindow!.Activated);
-        Assert.Equal("Editor", service.ActiveWindow.Title);
-        Assert.Same(focused, service.ActiveWindow.Workspace);
-        Assert.Same(main, service.ActiveWindow.Monitor);
-        Assert.Same(service.ActiveWindow, Assert.Single(focused.Windows));
+        Assert.AreSame(service.Windows[0], service.ActiveWindow);
+        Assert.IsTrue(service.ActiveWindow!.Activated);
+        Assert.AreEqual("Editor", service.ActiveWindow.Title);
+        Assert.AreSame(focused, service.ActiveWindow.Workspace);
+        Assert.AreSame(main, service.ActiveWindow.Monitor);
+        Assert.AreSame(service.ActiveWindow, Assert.ContainsSingle(focused.Windows));
     }
 
-    [Fact]
+    [TestMethod]
     public void Two_workspaces_with_one_number_stay_apart_by_monitor()
     {
         var service = Connected();
@@ -108,15 +109,15 @@ public sealed class WinlandServiceTests
 
         var threes = service.Workspaces.Where(w => w.Name == "3").ToArray();
 
-        Assert.Equal(2, threes.Length);
-        Assert.Equal([@"\\.\DISPLAY1", @"\\.\DISPLAY2"], threes.Select(w => w.Monitor!.Name));
-        Assert.False(threes[0].Active);
-        Assert.True(threes[1].Active);
-        Assert.Equal("20", Assert.Single(threes[1].Windows).Address);
-        Assert.Empty(threes[0].Windows);
+        Assert.AreEqual(2, threes.Length);
+        Assert.AreSequenceEqual([@"\\.\DISPLAY1", @"\\.\DISPLAY2"], threes.Select(w => w.Monitor!.Name));
+        Assert.IsFalse(threes[0].Active);
+        Assert.IsTrue(threes[1].Active);
+        Assert.AreEqual("20", Assert.ContainsSingle(threes[1].Windows).Address);
+        Assert.IsEmpty(threes[0].Windows);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_window_is_the_app_window_with_its_handle()
     {
         var windows = new FakeWindowBackend();
@@ -127,26 +128,26 @@ public sealed class WinlandServiceTests
         using var stopService = service.Stopping();
         var editor = service.Windows.Single(window => window.Address == "10");
         var browser = service.Windows.Single(window => window.Address == "20");
-        Assert.Null(editor.Window);
+        Assert.IsNull(editor.Window);
 
         var changes = Watch(editor);
         service.Attach(list);
 
-        Assert.Same(list.Windows.Single(window => window.Hwnd == 0x10), editor.Window);
-        Assert.Equal([nameof(WinlandWindow.Window)], changes);
-        Assert.Null(browser.Window);
+        Assert.AreSame(list.Windows.Single(window => window.Hwnd == 0x10), editor.Window);
+        Assert.AreSequenceEqual([nameof(WinlandWindow.Window)], changes);
+        Assert.IsNull(browser.Window);
 
         windows.Show(0x20);
         _loop.Process();
-        Assert.Same(list.Windows.Single(window => window.Hwnd == 0x20), browser.Window);
+        Assert.AreSame(list.Windows.Single(window => window.Hwnd == 0x20), browser.Window);
 
         windows.Destroy(0x10);
         _loop.Process();
-        Assert.Null(editor.Window);
+        Assert.IsNull(editor.Window);
         Assert.Contains(nameof(WinlandWindow.Window), changes);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_window_list_attached_before_winland_reports_clients_still_resolves_them()
     {
         var windows = new FakeWindowBackend();
@@ -164,13 +165,13 @@ public sealed class WinlandServiceTests
         service.Attach(list);
         _loop.Process();
 
-        Assert.Same(list.Windows.Single(window => window.Hwnd == 0x10),
+        Assert.AreSame(list.Windows.Single(window => window.Hwnd == 0x10),
             service.Windows.Single(window => window.Address == "10").Window);
-        Assert.Same(list.Windows.Single(window => window.Hwnd == 0x20),
+        Assert.AreSame(list.Windows.Single(window => window.Hwnd == 0x20),
             service.Windows.Single(window => window.Address == "20").Window);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_workspace_shows_each_app_icon_once_in_window_order()
     {
         var windows = new FakeWindowBackend();
@@ -189,22 +190,22 @@ public sealed class WinlandServiceTests
         Raise(@"openwindow>>40,1,\\.\DISPLAY1,Editor,Second editor");
         Raise(@"openwindow>>50,1,\\.\DISPLAY1,Editor,Third editor");
 
-        Assert.Equal(4, main.Windows.Count);
-        Assert.Equal([@"C:\editor.exe", @"C:\browser.exe"], main.AppIcons);
+        Assert.AreEqual(4, main.Windows.Count);
+        Assert.AreSequenceEqual([@"C:\editor.exe", @"C:\browser.exe"], main.AppIcons);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_workspace_without_windows_shows_no_app_icons()
     {
         var service = Connected();
         using var stopService = service.Stopping();
         var three = service.Workspaces.First(w => w.Name == "3" && w.Monitor!.Name == @"\\.\DISPLAY1");
 
-        Assert.Empty(three.Windows);
-        Assert.Empty(three.AppIcons);
+        Assert.IsEmpty(three.Windows);
+        Assert.IsEmpty(three.AppIcons);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_winland_window_with_no_app_window_shows_no_icon()
     {
         var windows = new FakeWindowBackend();
@@ -215,16 +216,16 @@ public sealed class WinlandServiceTests
         using var stopService = service.Stopping();
         var main = service.FocusedWorkspace!;
         var left = service.Monitors[1].ActiveWorkspace!;
-        Assert.Empty(main.AppIcons);
+        Assert.IsEmpty(main.AppIcons);
 
         service.Attach(list);
 
-        Assert.Equal([@"C:\editor.exe"], main.AppIcons);
-        Assert.Single(left.Windows);
-        Assert.Empty(left.AppIcons);
+        Assert.AreSequenceEqual([@"C:\editor.exe"], main.AppIcons);
+        Assert.ContainsSingle(left.Windows);
+        Assert.IsEmpty(left.AppIcons);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_app_icon_follows_its_window_open_move_and_close()
     {
         var windows = new FakeWindowBackend();
@@ -239,18 +240,18 @@ public sealed class WinlandServiceTests
         var three = service.Workspaces.First(w => w.Name == "3" && w.Monitor!.Name == @"\\.\DISPLAY1");
 
         Raise(@"openwindow>>30,1,\\.\DISPLAY1,Browser,Browser");
-        Assert.Equal([@"C:\editor.exe", @"C:\browser.exe"], main.AppIcons);
+        Assert.AreSequenceEqual([@"C:\editor.exe", @"C:\browser.exe"], main.AppIcons);
 
         Raise(@"movewindowv2>>30,3,3,\\.\DISPLAY1");
-        Assert.Equal([@"C:\editor.exe"], main.AppIcons);
-        Assert.Equal([@"C:\browser.exe"], three.AppIcons);
+        Assert.AreSequenceEqual([@"C:\editor.exe"], main.AppIcons);
+        Assert.AreSequenceEqual([@"C:\browser.exe"], three.AppIcons);
 
         Raise("closewindow>>30");
-        Assert.Empty(three.AppIcons);
-        Assert.Equal([@"C:\editor.exe"], main.AppIcons);
+        Assert.IsEmpty(three.AppIcons);
+        Assert.AreSequenceEqual([@"C:\editor.exe"], main.AppIcons);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_event_updates_the_same_objects_then_is_raised()
     {
         var service = Connected();
@@ -262,22 +263,22 @@ public sealed class WinlandServiceTests
 
         Raise("windowtitlev2>>10,New, title");
 
-        Assert.Equal("New, title", window.Title);
-        Assert.Equal([nameof(WinlandWindow.Title)], changes);
-        Assert.Equal(("windowtitlev2", "New, title"), Assert.Single(seen));
-        Assert.Same(window, service.Windows[0]);
+        Assert.AreEqual("New, title", window.Title);
+        Assert.AreSequenceEqual([nameof(WinlandWindow.Title)], changes);
+        Assert.AreEqual(("windowtitlev2", "New, title"), Assert.ContainsSingle(seen));
+        Assert.AreSame(window, service.Windows[0]);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_event_splits_into_its_arguments()
     {
         var parsed = new WinlandEvent("openwindow", "10,1,a,b,c").Parse(3);
 
-        Assert.Equal(["10", "1", "a,b,c"], parsed);
-        Assert.Equal(["x", "", ""], new WinlandEvent("e", "x").Parse(3));
+        Assert.AreSequenceEqual(["10", "1", "a,b,c"], parsed);
+        Assert.AreSequenceEqual(["x", "", ""], new WinlandEvent("e", "x").Parse(3));
     }
 
-    [Fact]
+    [TestMethod]
     public void Showing_a_workspace_moves_active_and_focus()
     {
         var service = Connected();
@@ -288,15 +289,15 @@ public sealed class WinlandServiceTests
 
         Raise(@"workspacev2>>3,3,\\.\DISPLAY1");
 
-        Assert.Same(three, service.FocusedWorkspace);
-        Assert.Same(three, main.ActiveWorkspace);
-        Assert.True(three.Active);
-        Assert.True(three.Focused);
-        Assert.False(old.Active);
-        Assert.False(old.Focused);
+        Assert.AreSame(three, service.FocusedWorkspace);
+        Assert.AreSame(three, main.ActiveWorkspace);
+        Assert.IsTrue(three.Active);
+        Assert.IsTrue(three.Focused);
+        Assert.IsFalse(old.Active);
+        Assert.IsFalse(old.Focused);
     }
 
-    [Fact]
+    [TestMethod]
     public void Focus_moves_between_monitors()
     {
         var service = Connected();
@@ -305,13 +306,13 @@ public sealed class WinlandServiceTests
 
         Raise(@"focusedmon>>\\.\DISPLAY2,3");
 
-        Assert.Same(left, service.FocusedMonitor);
-        Assert.True(left.Focused);
-        Assert.False(service.Monitors[0].Focused);
-        Assert.Same(left.ActiveWorkspace, service.FocusedWorkspace);
+        Assert.AreSame(left, service.FocusedMonitor);
+        Assert.IsTrue(left.Focused);
+        Assert.IsFalse(service.Monitors[0].Focused);
+        Assert.AreSame(left.ActiveWorkspace, service.FocusedWorkspace);
     }
 
-    [Fact]
+    [TestMethod]
     public void Windows_open_move_and_close()
     {
         var service = Connected();
@@ -321,25 +322,25 @@ public sealed class WinlandServiceTests
 
         Raise(@"openwindow>>30,1,\\.\DISPLAY1,App,Title, with comma");
         var window = service.Windows.Single(t => t.Address == "30");
-        Assert.Equal("Title, with comma", window.Title);
+        Assert.AreEqual("Title, with comma", window.Title);
         Assert.Contains(window, main.Windows);
 
         Raise(@"movewindowv2>>30,3,3,\\.\DISPLAY1");
-        Assert.Same(three, window.Workspace);
+        Assert.AreSame(three, window.Workspace);
         Assert.Contains(window, three.Windows);
         Assert.DoesNotContain(window, main.Windows);
 
         Raise("activewindowv2>>30");
-        Assert.Same(window, service.ActiveWindow);
-        Assert.False(service.Windows[0].Activated);
+        Assert.AreSame(window, service.ActiveWindow);
+        Assert.IsFalse(service.Windows[0].Activated);
 
         Raise("closewindow>>30");
         Assert.DoesNotContain(window, service.Windows);
-        Assert.Empty(three.Windows);
-        Assert.Null(service.ActiveWindow);
+        Assert.IsEmpty(three.Windows);
+        Assert.IsNull(service.ActiveWindow);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_window_arriving_reaches_its_workspace_and_the_workspace_list()
     {
         var service = Connected();
@@ -356,7 +357,7 @@ public sealed class WinlandServiceTests
         Assert.Contains("Item[]", listChanges);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_urgent_window_marks_its_workspace_until_it_is_focused()
     {
         var service = Connected();
@@ -365,15 +366,15 @@ public sealed class WinlandServiceTests
         var workspace = other.Workspace!;
 
         Raise("urgent>>20");
-        Assert.True(other.Urgent);
-        Assert.True(workspace.Urgent);
+        Assert.IsTrue(other.Urgent);
+        Assert.IsTrue(workspace.Urgent);
 
         Raise(@"focusedmon>>\\.\DISPLAY2,3");
-        Assert.False(other.Urgent);
-        Assert.False(workspace.Urgent);
+        Assert.IsFalse(other.Urgent);
+        Assert.IsFalse(workspace.Urgent);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_workspace_comes_and_goes()
     {
         var service = Connected();
@@ -381,13 +382,13 @@ public sealed class WinlandServiceTests
 
         Raise(@"createworkspacev2>>7,7,\\.\DISPLAY1");
         var seven = service.Workspaces.Single(w => w.Name == "7");
-        Assert.Equal(7, seven.Id);
+        Assert.AreEqual(7, seven.Id);
 
         Raise(@"destroyworkspacev2>>7,7,\\.\DISPLAY1");
         Assert.DoesNotContain(seven, service.Workspaces);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_monitor_that_goes_leaves_its_workspaces_with_none()
     {
         var service = Connected();
@@ -398,10 +399,10 @@ public sealed class WinlandServiceTests
         Raise(@"monitorremoved>>\\.\DISPLAY2");
 
         Assert.DoesNotContain(left, service.Monitors);
-        Assert.Null(three.Monitor);
+        Assert.IsNull(three.Monitor);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_lost_connection_empties_everything_and_a_late_reply_is_dropped()
     {
         var service = Connected();
@@ -413,40 +414,40 @@ public sealed class WinlandServiceTests
         _backend.RaiseConnection(false);
         _loop.Process();
 
-        Assert.Empty(service.Monitors);
-        Assert.Empty(service.Workspaces);
-        Assert.Empty(service.Windows);
-        Assert.Null(service.FocusedMonitor);
-        Assert.Null(service.FocusedWorkspace);
-        Assert.Null(service.ActiveWindow);
+        Assert.IsEmpty(service.Monitors);
+        Assert.IsEmpty(service.Workspaces);
+        Assert.IsEmpty(service.Windows);
+        Assert.IsNull(service.FocusedMonitor);
+        Assert.IsNull(service.FocusedWorkspace);
+        Assert.IsNull(service.ActiveWindow);
 
         _backend.Pending = null;
         late.SetResult(Clients);
         _loop.Process();
-        Assert.Empty(service.Windows);
+        Assert.IsEmpty(service.Windows);
 
         _backend.Connected = true;
         _backend.RaiseConnection(true);
         _loop.Process();
-        Assert.Equal(2, service.Monitors.Count);
+        Assert.AreEqual(2, service.Monitors.Count);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_query_with_no_answer_is_asked_again_while_the_stream_is_up()
     {
         _backend.Connected = true;
         var service = new WinlandService(_loop, Log.Default, _backend);
         using var stopService = service.Stopping();
         _loop.Process();
-        Assert.Empty(service.Monitors);
+        Assert.IsEmpty(service.Monitors);
 
         _backend.Replies["j/monitors"] = Monitors;
         _loop.Advance(TimeSpan.FromSeconds(1));
 
-        Assert.Equal(2, service.Monitors.Count);
+        Assert.AreEqual(2, service.Monitors.Count);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_query_an_event_asks_for_with_no_answer_is_asked_again()
     {
         var service = Connected();
@@ -455,15 +456,15 @@ public sealed class WinlandServiceTests
         _backend.Replies.Remove("j/workspaces");
 
         Raise("fullscreen>>0");
-        Assert.False(one.HasFullscreen);
+        Assert.IsFalse(one.HasFullscreen);
 
         _backend.Replies["j/workspaces"] = Workspaces;
         _loop.Advance(TimeSpan.FromSeconds(1));
 
-        Assert.True(one.HasFullscreen);
+        Assert.IsTrue(one.HasFullscreen);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_reload_during_a_read_an_event_asked_for_still_reads_the_whole_state()
     {
         var service = Connected();
@@ -481,10 +482,10 @@ public sealed class WinlandServiceTests
         late.SetResult(Workspaces);
         _loop.Process();
 
-        Assert.Contains(service.Workspaces, w => w.Name == "9");
+        Assert.Contains(w => w.Name == "9", service.Workspaces);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_query_with_no_answer_is_not_asked_again_while_Winland_is_down()
     {
         var service = new WinlandService(_loop, Log.Default, _backend);
@@ -493,10 +494,10 @@ public sealed class WinlandServiceTests
         service.RefreshWindows();
         _loop.Advance(TimeSpan.FromSeconds(30));
 
-        Assert.Equal(["j/clients"], _backend.Sent);
+        Assert.AreSequenceEqual(["j/clients"], _backend.Sent);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_screen_finds_its_monitor_and_before_the_first_list_one_is_added()
     {
         var screen = new ScreenInfo(@"\\.\DISPLAY1", "DISPLAY1", "", "", "", default, default, 1, 0, 0, 60, true);
@@ -504,17 +505,17 @@ public sealed class WinlandServiceTests
         using (early.Stopping())
         {
             var added = early.MonitorFor(screen);
-            Assert.Equal(@"\\.\DISPLAY1", added!.Name);
-            Assert.Null(early.MonitorFor(null));
+            Assert.AreEqual(@"\\.\DISPLAY1", added!.Name);
+            Assert.IsNull(early.MonitorFor(null));
         }
 
         var service = Connected();
         using var stopService = service.Stopping();
-        Assert.Same(service.Monitors[0], service.MonitorFor(screen));
-        Assert.Null(service.MonitorFor(screen with { Id = "other", Name = "other" }));
+        Assert.AreSame(service.Monitors[0], service.MonitorFor(screen));
+        Assert.IsNull(service.MonitorFor(screen with { Id = "other", Name = "other" }));
     }
 
-    [Fact]
+    [TestMethod]
     public void Removing_a_monitor_raises_the_list_and_the_screen_loses_it()
     {
         var service = Connected();
@@ -525,11 +526,11 @@ public sealed class WinlandServiceTests
 
         Raise(@"monitorremoved>>\\.\DISPLAY2");
 
-        Assert.True(removed);
-        Assert.Null(service.MonitorFor(screen));
+        Assert.IsTrue(removed);
+        Assert.IsNull(service.MonitorFor(screen));
     }
 
-    [Fact]
+    [TestMethod]
     public void Dispatch_sends_the_request_and_a_refusal_is_logged()
     {
         var lines = new List<string>();
@@ -544,13 +545,13 @@ public sealed class WinlandServiceTests
         service.Dispatch("nothing");
         _loop.Process();
 
-        Assert.Equal(["dispatch workspace 3", "dispatch bad", "dispatch nothing"], _backend.Sent);
-        Assert.Equal(2, lines.Count);
+        Assert.AreSequenceEqual(["dispatch workspace 3", "dispatch bad", "dispatch nothing"], _backend.Sent);
+        Assert.AreEqual(2, lines.Count);
         Assert.Contains("unknown request", lines[0], StringComparison.Ordinal);
         Assert.Contains("not running", lines[1], StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Activating_a_workspace_on_another_monitor_focuses_that_monitor_first()
     {
         var service = Connected();
@@ -561,7 +562,7 @@ public sealed class WinlandServiceTests
         service.Workspaces.First(w => w.Name == "3" && w.Monitor!.Id == 0).Activate();
         service.Workspaces.First(w => w.Name == "special:special").Activate();
 
-        Assert.Equal(
+        Assert.AreSequenceEqual(
         [
             "[[BATCH]]dispatch focusmonitor 1;dispatch workspace 3",
             "dispatch workspace 3",
@@ -569,11 +570,11 @@ public sealed class WinlandServiceTests
         ], _backend.Sent);
     }
 
-    [Theory]
-    [InlineData(0, 3, "dispatch workspace 3")]
-    [InlineData(0, 5, "dispatch workspace 5")]
-    [InlineData(1, 3, "[[BATCH]]dispatch focusmonitor 1;dispatch workspace 3")]
-    [InlineData(1, 5, "[[BATCH]]dispatch focusmonitor 1;dispatch workspace 5")]
+    [TestMethod]
+    [DataRow(0, 3, "dispatch workspace 3")]
+    [DataRow(0, 5, "dispatch workspace 5")]
+    [DataRow(1, 3, "[[BATCH]]dispatch focusmonitor 1;dispatch workspace 3")]
+    [DataRow(1, 5, "[[BATCH]]dispatch focusmonitor 1;dispatch workspace 5")]
     public void A_monitor_shows_an_existing_or_missing_workspace_in_one_request(int monitorId, int number,
         string request)
     {
@@ -583,10 +584,10 @@ public sealed class WinlandServiceTests
 
         service.Monitors.Single(m => m.Id == monitorId).ActivateWorkspace(number);
 
-        Assert.Equal([request], _backend.Sent);
+        Assert.AreSequenceEqual([request], _backend.Sent);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_monitor_can_show_a_workspace_before_its_id_is_reported()
     {
         var service = new WinlandService(_loop, Log.Default, _backend);
@@ -595,33 +596,33 @@ public sealed class WinlandServiceTests
 
         service.MonitorFor(screen)!.ActivateWorkspace(5);
 
-        Assert.Equal([@"[[BATCH]]dispatch focusmonitor \\.\DISPLAY2;dispatch workspace 5"], _backend.Sent);
+        Assert.AreSequenceEqual([@"[[BATCH]]dispatch focusmonitor \\.\DISPLAY2;dispatch workspace 5"], _backend.Sent);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
+    [TestMethod]
+    [DataRow(0)]
+    [DataRow(-1)]
     public void A_monitor_rejects_a_nonpositive_workspace_number(int number)
     {
         var service = Connected();
         using var stopService = service.Stopping();
         _backend.Sent.Clear();
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => service.Monitors[0].ActivateWorkspace(number));
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => service.Monitors[0].ActivateWorkspace(number));
 
-        Assert.Empty(_backend.Sent);
+        Assert.IsEmpty(_backend.Sent);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_pipe_path_is_what_Winland_says()
     {
         var service = new WinlandService(_loop, Log.Default, _backend);
         using var stopService = service.Stopping();
 
-        Assert.Equal(@"\\.\pipe\winland-test", service.PipePath);
+        Assert.AreEqual(@"\\.\pipe\winland-test", service.PipePath);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_process_on_the_pipe_is_announced_as_Winland_comes_and_goes()
     {
         var service = new WinlandService(_loop, Log.Default, _backend);
@@ -631,49 +632,49 @@ public sealed class WinlandServiceTests
         _backend.ProcessId = 4321;
         _backend.RaiseConnection(true);
         _loop.Process();
-        Assert.Equal(4321, service.ProcessId);
+        Assert.AreEqual(4321, service.ProcessId);
         Assert.Contains(nameof(WinlandService.ProcessId), changes);
 
         changes.Clear();
         _backend.ProcessId = 0;
         _backend.RaiseConnection(false);
         _loop.Process();
-        Assert.Equal(0, service.ProcessId);
+        Assert.AreEqual(0, service.ProcessId);
         Assert.Contains(nameof(WinlandService.ProcessId), changes);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_files_Winland_reports_are_read_as_it_connects_and_on_reload_and_dropped_as_it_goes()
     {
         _backend.Replies["j/files"] = """{"config":"D:\\work.conf","log":null}""";
         var service = Connected();
         using var stopService = service.Stopping();
-        Assert.Equal(@"D:\work.conf", service.ConfigPath);
-        Assert.Null(service.LogPath);
+        Assert.AreEqual(@"D:\work.conf", service.ConfigPath);
+        Assert.IsNull(service.LogPath);
 
         _backend.Replies["j/files"] = """{"config":"D:\\work.conf","log":"D:\\state\\winland.log"}""";
         Raise("configreloaded>>");
-        Assert.Equal(@"D:\state\winland.log", service.LogPath);
+        Assert.AreEqual(@"D:\state\winland.log", service.LogPath);
 
         _backend.RaiseConnection(false);
         _loop.Process();
-        Assert.Null(service.ConfigPath);
-        Assert.Null(service.LogPath);
+        Assert.IsNull(service.ConfigPath);
+        Assert.IsNull(service.LogPath);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_Winland_that_does_not_answer_files_reports_none()
     {
         _backend.Replies["j/files"] = "error: unknown request";
         var service = Connected();
         using var stopService = service.Stopping();
 
-        Assert.Null(service.ConfigPath);
-        Assert.Null(service.LogPath);
-        Assert.Single(_backend.Sent, "j/files");
+        Assert.IsNull(service.ConfigPath);
+        Assert.IsNull(service.LogPath);
+        Assert.ContainsSingle(sent => sent == "j/files", _backend.Sent);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_disposed_service_stops_following_the_stream()
     {
         var service = Connected();
@@ -683,8 +684,8 @@ public sealed class WinlandServiceTests
         service.Stop();
         _loop.Process();
 
-        Assert.Equal(title, service.Windows[0].Title);
-        Assert.Equal(0, _backend.Listeners);
+        Assert.AreEqual(title, service.Windows[0].Title);
+        Assert.AreEqual(0, _backend.Listeners);
     }
 
     private sealed class FakeBackend : IWinlandBackend

@@ -1,17 +1,18 @@
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed partial class ServiceTeardownTests
 {
-    [Fact]
+    [TestMethod]
     public void A_service_that_throws_on_dispose_lets_the_rest_stop_then_its_exception_is_thrown()
     {
         var stopped = new List<string>();
 
-        var thrown = Assert.Throws<InvalidOperationException>(() =>
+        var thrown = Assert.ThrowsExactly<InvalidOperationException>(() =>
             Shell.DisposeEach([new Stops("first", stopped), new Throws(), null, new Stops("last", stopped)]));
 
-        Assert.Equal("Device gone", thrown.Message);
-        Assert.Equal(["first", "last"], stopped);
+        Assert.AreEqual("Device gone", thrown.Message);
+        Assert.AreSequenceEqual(["first", "last"], stopped);
     }
 
     private sealed partial class Stops(string name, List<string> stopped) : IDisposable

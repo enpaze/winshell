@@ -4,9 +4,10 @@ using Winshell.Commands;
 
 namespace Winshell.Tests;
 
+[TestClass]
 public class CliRunCommandTests
 {
-    [Fact]
+    [TestMethod]
     public void No_arguments_print_help_and_do_not_start_a_shell()
     {
         var result = WinshellCli.RunWithEmptyConfig([]);
@@ -16,21 +17,21 @@ public class CliRunCommandTests
         Assert.Contains("winshell run", result.Output, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Run_with_a_missing_path_fails_before_a_shell_starts()
     {
         var missing = TempFolder.NewPath();
         var result = WinshellCli.RunWithEmptyConfig(["run", "-p", missing]);
 
         result.AssertExitCode(1);
-        Assert.Equal("", result.Output);
+        Assert.AreEqual("", result.Output);
         Assert.Contains("No .csproj", result.Error, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("run")]
-    [InlineData("--no-build --no-duplicate")]
-    [InlineData("--no-duplicate")]
+    [TestMethod]
+    [DataRow("run")]
+    [DataRow("--no-build --no-duplicate")]
+    [DataRow("--no-duplicate")]
     public void Run_with_no_shell_from_a_console_says_how_to_make_one_exits_1_and_starts_nothing(string args)
     {
         var root = TempFolder.NewPath();
@@ -44,7 +45,7 @@ public class CliRunCommandTests
             var result = WinshellCli.Run(args.Split(' '), IsolatedFolders.Of(config, local));
 #pragma warning restore CsWinRT1030
 
-            Assert.Equal(
+            Assert.AreEqual(
                 (1, "", $"No shell project in {config}, so nothing started. Run winshell new to make one." +
                         Environment.NewLine),
                 (result.Code, result.Output, result.Error));
@@ -56,10 +57,10 @@ public class CliRunCommandTests
         }
     }
 
-    [Theory]
-    [InlineData("run")]
-    [InlineData("--no-build --no-duplicate")]
-    [InlineData("--no-duplicate")]
+    [TestMethod]
+    [DataRow("run")]
+    [DataRow("--no-build --no-duplicate")]
+    [DataRow("--no-duplicate")]
     public void Run_with_no_shell_and_no_console_window_exits_0_says_nothing_and_starts_nothing(string args)
     {
         var root = TempFolder.NewPath();
@@ -87,11 +88,11 @@ public class CliRunCommandTests
                 info.StandardOutputHandle = written;
                 info.StandardErrorHandle = none;
                 using var process = Process.Start(info)!;
-                Assert.True(process.WaitForExit(TimeSpan.FromSeconds(60)), "winshell did not exit.");
-                Assert.Equal(0, process.ExitCode);
+                Assert.IsTrue(process.WaitForExit(TimeSpan.FromSeconds(60)), "winshell did not exit.");
+                Assert.AreEqual(0, process.ExitCode);
             }
 
-            Assert.Equal("", File.ReadAllText(output));
+            Assert.AreEqual("", File.ReadAllText(output));
             AssertNothingRuns(config, local);
         }
         finally
@@ -100,7 +101,7 @@ public class CliRunCommandTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void The_sign_in_entry_with_no_shell_exits_0_and_starts_nothing()
     {
         var root = TempFolder.NewPath();
@@ -126,9 +127,9 @@ public class CliRunCommandTests
             foreach (var arg in new[] { "--headless", "cmd.exe", "/d", "/c", signIn })
                 info.ArgumentList.Add(arg);
             using (var process = Process.Start(info)!)
-                Assert.True(process.WaitForExit(TimeSpan.FromSeconds(60)), "conhost did not exit.");
+                Assert.IsTrue(process.WaitForExit(TimeSpan.FromSeconds(60)), "conhost did not exit.");
 
-            Assert.Equal("0", File.ReadAllText(exit).Trim());
+            Assert.AreEqual("0", File.ReadAllText(exit).Trim());
             AssertNothingRuns(config, local);
         }
         finally
@@ -137,24 +138,24 @@ public class CliRunCommandTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void Run_with_no_shell_that_nobody_reads_exits_0_and_writes_nothing()
     {
         using var error = new StringWriter();
 
         var exit = RunCommand.NoProject(@"C:\shells", true, error);
 
-        Assert.Equal((0, ""), (exit, error.ToString()));
+        Assert.AreEqual((0, ""), (exit, error.ToString()));
     }
 
-    [Fact]
+    [TestMethod]
     public void Run_with_no_shell_that_someone_reads_says_how_to_make_one_and_exits_1()
     {
         using var error = new StringWriter();
 
         var exit = RunCommand.NoProject(@"C:\shells", false, error);
 
-        Assert.Equal(
+        Assert.AreEqual(
             (1, @"No shell project in C:\shells, so nothing started. Run winshell new to make one." + Environment.NewLine),
             (exit, error.ToString()));
     }
@@ -163,10 +164,10 @@ public class CliRunCommandTests
     {
         var listed = WinshellCli.Run(["list", "--json"], IsolatedFolders.Of(config, local));
         listed.AssertExitCode(0);
-        Assert.Equal("[]", listed.Output.Trim());
+        Assert.AreEqual("[]", listed.Output.Trim());
     }
 
-    [Fact]
+    [TestMethod]
     public void No_duplicate_exits_quietly_before_building_when_the_project_already_runs()
     {
         var root = TempFolder.NewPath();
@@ -196,7 +197,7 @@ public class CliRunCommandTests
             var result = WinshellCli.Run(["run", "-n", "-p", project], ("WINSHELL_LOCAL_DIR", root));
 
             result.AssertExitCode(0);
-            Assert.Equal("", result.Output);
+            Assert.AreEqual("", result.Output);
             result.AssertNoError();
         }
         finally

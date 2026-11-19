@@ -1,5 +1,6 @@
 namespace Winshell.Tests;
 
+[TestClass]
 public sealed partial class ConfigPathTests : IDisposable
 {
     private readonly string _root =
@@ -10,7 +11,7 @@ public sealed partial class ConfigPathTests : IDisposable
         Directory.CreateDirectory(_root);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_cli_uses_winshell_config_dir()
     {
         var config = Path.Combine(_root, "configs");

@@ -1,5 +1,6 @@
 namespace Winshell.Core.Tests;
 
+[TestClass]
 public sealed class FileWatchTests
 {
     private static string? Read(string path, string? before)
@@ -14,9 +15,9 @@ public sealed class FileWatchTests
         }
     }
 
-    [Theory]
-    [InlineData("later")]
-    [InlineData("later/nested/config")]
+    [TestMethod]
+    [DataRow("later")]
+    [DataRow("later/nested/config")]
     public void A_file_made_in_a_new_folder_is_reported(string folder)
     {
         using var dir = new TempFolder();
@@ -34,10 +35,10 @@ public sealed class FileWatchTests
         File.WriteAllText(path, "by hand");
 
         Wait.Until(() => read == "by hand", "the file in the new folder", loop.Process);
-        Assert.Equal([Environment.CurrentManagedThreadId], threads);
+        Assert.AreSequenceEqual([Environment.CurrentManagedThreadId], threads);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_file_in_a_folder_deleted_and_made_again_is_reported()
     {
         using var dir = new TempFolder();
@@ -57,7 +58,7 @@ public sealed class FileWatchTests
         Wait.Until(() => read == "second", "the file in the folder made again", loop.Process);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_file_named_like_a_missing_folder_does_not_rewatch()
     {
         using var dir = new TempFolder();
@@ -66,7 +67,7 @@ public sealed class FileWatchTests
         var reads = 0;
         using var watch = new FileWatch(Path.Combine(dir.Path, "config", "settings.toml"), loop, () => reads++);
 
-        Assert.False(loop.RunDue());
-        Assert.Equal(0, reads);
+        Assert.IsFalse(loop.RunDue());
+        Assert.AreEqual(0, reads);
     }
 }

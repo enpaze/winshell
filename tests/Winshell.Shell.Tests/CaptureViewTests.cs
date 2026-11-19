@@ -8,10 +8,11 @@ using Winshell.Capture;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed partial class CaptureViewTests
 {
-    [Fact]
+    [TestMethod]
     public async Task A_capture_view_shows_the_frame_and_lets_go_when_it_leaves()
     {
         var kept = await ShellFixture.On(async shell =>
@@ -40,16 +41,16 @@ public sealed partial class CaptureViewTests
 
             var red = Solid(255, 0, 0);
             backend.Next = red;
-            Assert.True(session.Start());
+            Assert.IsTrue(session.Start());
             loop.Advance(TimeSpan.FromMilliseconds(16));
             var shown = Pixels(Shown(view));
-            Assert.Equal(red.Bgra.ToArray(), shown);
+            Assert.AreSequenceEqual(red.Bgra.ToArray(), shown);
 
             session.Stop();
-            Assert.Null(ImageOf(view).Source);
+            Assert.IsNull(ImageOf(view).Source);
 
             backend.Next = red;
-            Assert.True(session.Start());
+            Assert.IsTrue(session.Start());
             loop.Advance(TimeSpan.FromMilliseconds(16));
             var bitmap = Shown(view);
             var before = Pixels(bitmap);
@@ -57,21 +58,21 @@ public sealed partial class CaptureViewTests
             var unloaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             view.Unloaded += (_, _) => unloaded.TrySetResult();
             popup.Content = new Grid();
-            await unloaded.Task.WaitAsync(TestContext.Current.CancellationToken);
+            await unloaded.Task.WaitAsync(CurrentTest.Cancellation);
 
             var blue = Solid(0, 0, 255);
             backend.Next = blue;
             loop.Advance(TimeSpan.FromMilliseconds(16));
-            Assert.Equal(before, Pixels(bitmap));
-            Assert.Null(ImageOf(view).Source);
-            Assert.Equal(blue, session.Frame);
+            Assert.AreSequenceEqual(before, Pixels(bitmap));
+            Assert.IsNull(ImageOf(view).Source);
+            Assert.AreEqual(blue, session.Frame);
             return true;
         });
 
-        Assert.True(kept);
+        Assert.IsTrue(kept);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_capture_view_still_shows_a_frame_after_a_collection()
     {
         var shown = await ShellFixture.On(async shell =>
@@ -103,20 +104,20 @@ public sealed partial class CaptureViewTests
             GC.Collect();
 
             var found = ReferenceEquals(ShellWindow.Of(view), popup);
-            Assert.Null(ShellWindow.Of(new Grid()));
+            Assert.IsNull(ShellWindow.Of(new Grid()));
             var red = Solid(255, 0, 0);
             backend.Next = red;
-            Assert.True(session.Start());
+            Assert.IsTrue(session.Start());
             loop.Advance(TimeSpan.FromMilliseconds(16));
             var pixels = Pixels(Shown(view));
             return (found, same: pixels.AsSpan().SequenceEqual(red.Bgra));
         });
 
-        Assert.True(shown.found);
-        Assert.True(shown.same);
+        Assert.IsTrue(shown.found);
+        Assert.IsTrue(shown.same);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_capture_view_shows_a_straight_frame_in_premultiplied_colors()
     {
         var shown = await ShellFixture.On(async shell =>
@@ -146,12 +147,12 @@ public sealed partial class CaptureViewTests
             backend.Next = new PixelImage(2, 2,
                 [32, 64, 128, 128, 10, 20, 30, 255, 100, 150, 200, 0, 128, 64, 32, 64],
                 false);
-            Assert.True(session.Start());
+            Assert.IsTrue(session.Start());
             loop.Advance(TimeSpan.FromMilliseconds(16));
             return Pixels(Shown(view));
         });
 
-        Assert.Equal(new byte[] { 16, 32, 64, 128, 10, 20, 30, 255, 0, 0, 0, 0, 32, 16, 8, 64 }, shown);
+        Assert.AreSequenceEqual(new byte[] { 16, 32, 64, 128, 10, 20, 30, 255, 0, 0, 0, 0, 32, 16, 8, 64 }, shown);
     }
 
     private static PixelImage Solid(byte red, byte green, byte blue)
@@ -164,19 +165,19 @@ public sealed partial class CaptureViewTests
 
     private static Image ImageOf(CaptureView view)
     {
-        return Assert.IsType<Image>(VisualTreeHelper.GetChild(view, 0));
+        return Assert.IsExactInstanceOfType<Image>(VisualTreeHelper.GetChild(view, 0));
     }
 
     private static WriteableBitmap Shown(CaptureView view)
     {
-        return Assert.IsType<WriteableBitmap>(ImageOf(view).Source);
+        return Assert.IsExactInstanceOfType<WriteableBitmap>(ImageOf(view).Source);
     }
 
     private static byte[] Pixels(WriteableBitmap bitmap)
     {
         var bytes = new byte[bitmap.PixelWidth * bitmap.PixelHeight * 4];
         using var stream = bitmap.PixelBuffer.AsStream();
-        Assert.Equal(bytes.Length, (int)stream.Length);
+        Assert.AreEqual(bytes.Length, (int)stream.Length);
         stream.ReadExactly(bytes);
         return bytes;
     }

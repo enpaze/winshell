@@ -1,11 +1,12 @@
 namespace Winshell.ShellTests;
 
-[Collection(nameof(ShellPathsTests))]
+[TestClass]
+[DoNotParallelize]
 public sealed class ShellPathsTests
 {
     private sealed class Section(string name) : Preferences(name);
 
-    [Fact]
+    [TestMethod]
     public async Task Changing_the_config_folder_after_start_moves_neither_the_shells_folder_nor_the_preferences_file()
     {
         await ShellFixture.On(async shell =>
@@ -17,14 +18,14 @@ public sealed class ShellPathsTests
             Environment.SetEnvironmentVariable(ShellLocations.ShellsVariable, moved);
             try
             {
-                Assert.Equal(moved, ShellLocations.Current.ShellsRoot);
-                Assert.Equal(shells, shell.Paths.Shells);
+                Assert.AreEqual(moved, ShellLocations.Current.ShellsRoot);
+                Assert.AreEqual(shells, shell.Paths.Shells);
 
                 using var section = new Section(name);
                 await Wait.UntilAsync(
                     () => File.Exists(path) && File.ReadAllText(path).Contains($"[{name}]", StringComparison.Ordinal),
                     "the new section in the preferences file under the folder the shell started with");
-                Assert.False(Directory.Exists(moved));
+                Assert.IsFalse(Directory.Exists(moved));
             }
             finally
             {
@@ -38,5 +39,3 @@ public sealed class ShellPathsTests
     }
 }
 
-[CollectionDefinition(nameof(ShellPathsTests), DisableParallelization = true)]
-public sealed class ShellPathsCollection;

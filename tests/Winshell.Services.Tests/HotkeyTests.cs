@@ -2,6 +2,7 @@ using Winshell.Input;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class HotkeyTests : IDisposable
 {
     private readonly ManualEventLoop _loop = new();
@@ -26,17 +27,17 @@ public sealed class HotkeyTests : IDisposable
         return new Hotkey(_loop, _log, _registrar);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_sequence_it_is_made_with_is_claimed_at_once()
     {
         using var hotkey = new Hotkey(_loop, _log, _registrar, "Ctrl+Shift+K");
 
-        Assert.Equal("Ctrl+Shift+K", hotkey.Sequence);
-        Assert.Equal(Key("Ctrl+Shift+K"), Assert.Single(_backend.Registered));
-        Assert.True(hotkey.Active);
+        Assert.AreEqual("Ctrl+Shift+K", hotkey.Sequence);
+        Assert.AreEqual(Key("Ctrl+Shift+K"), Assert.ContainsSingle(_backend.Registered));
+        Assert.IsTrue(hotkey.Active);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_pressed_action_runs_on_each_press()
     {
         var presses = 0;
@@ -46,10 +47,10 @@ public sealed class HotkeyTests : IDisposable
         _loop.Advance(TimeSpan.FromMilliseconds(20));
         _backend.Press(Key("Ctrl+K"));
 
-        Assert.Equal(2, presses);
+        Assert.AreEqual(2, presses);
     }
 
-    [Fact]
+    [TestMethod]
     public void Disposing_frees_the_chord_and_stops_the_pressed_action()
     {
         var presses = 0;
@@ -58,53 +59,53 @@ public sealed class HotkeyTests : IDisposable
         hotkey.Dispose();
         _backend.Press(Key("Ctrl+K"));
 
-        Assert.Empty(_backend.Registered);
-        Assert.Equal(0, presses);
+        Assert.IsEmpty(_backend.Registered);
+        Assert.AreEqual(0, presses);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_sequence_claims_at_once_and_a_new_one_replaces_it()
     {
         using var hotkey = Create();
 
         hotkey.Sequence = "ctrl+shift+k";
-        Assert.Equal(Key("Ctrl+Shift+K"), Assert.Single(_backend.Registered));
-        Assert.True(hotkey.Active);
+        Assert.AreEqual(Key("Ctrl+Shift+K"), Assert.ContainsSingle(_backend.Registered));
+        Assert.IsTrue(hotkey.Active);
 
         hotkey.Sequence = "alt+f4";
-        Assert.Equal(Key("Alt+F4"), Assert.Single(_backend.Registered));
+        Assert.AreEqual(Key("Alt+F4"), Assert.ContainsSingle(_backend.Registered));
     }
 
-    [Fact]
+    [TestMethod]
     public void Turning_it_off_gives_the_keys_back_and_on_claims_them_again()
     {
         using var hotkey = Create();
         hotkey.Sequence = "Ctrl+K";
 
         hotkey.Enabled = false;
-        Assert.Empty(_backend.Registered);
-        Assert.False(hotkey.Active);
+        Assert.IsEmpty(_backend.Registered);
+        Assert.IsFalse(hotkey.Active);
 
         hotkey.Enabled = true;
-        Assert.Equal(Key("Ctrl+K"), Assert.Single(_backend.Registered));
+        Assert.AreEqual(Key("Ctrl+K"), Assert.ContainsSingle(_backend.Registered));
     }
 
-    [Fact]
+    [TestMethod]
     public void An_empty_sequence_is_idle()
     {
         using var hotkey = Create();
-        Assert.False(hotkey.Active);
-        Assert.Empty(_backend.Registered);
+        Assert.IsFalse(hotkey.Active);
+        Assert.IsEmpty(_backend.Registered);
         hotkey.Sequence = "Ctrl+K";
 
         hotkey.Sequence = "   ";
 
-        Assert.Empty(_backend.Registered);
-        Assert.False(hotkey.Active);
-        Assert.Equal("", hotkey.Error);
+        Assert.IsEmpty(_backend.Registered);
+        Assert.IsFalse(hotkey.Active);
+        Assert.AreEqual("", hotkey.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_sequence_that_cannot_be_read_says_why_even_while_off()
     {
         using var hotkey = Create();
@@ -113,11 +114,11 @@ public sealed class HotkeyTests : IDisposable
         hotkey.Sequence = "Super+K";
 
         Assert.Contains("Win", hotkey.Error, StringComparison.Ordinal);
-        Assert.Empty(_backend.Registered);
-        Assert.Contains(_warnings, warning => warning.StartsWith("hotkey: ", StringComparison.Ordinal));
+        Assert.IsEmpty(_backend.Registered);
+        Assert.Contains(warning => warning.StartsWith("hotkey: ", StringComparison.Ordinal), _warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_chord_someone_else_owns_is_reported_and_not_active()
     {
         _backend.Taken = "Alt+F4";
@@ -125,13 +126,13 @@ public sealed class HotkeyTests : IDisposable
 
         hotkey.Sequence = "alt+f4";
 
-        Assert.True(hotkey.Taken);
-        Assert.False(hotkey.Active);
+        Assert.IsTrue(hotkey.Taken);
+        Assert.IsFalse(hotkey.Active);
         Assert.Contains("already in use", hotkey.Error, StringComparison.Ordinal);
-        Assert.Empty(_backend.Registered);
+        Assert.IsEmpty(_backend.Registered);
     }
 
-    [Fact]
+    [TestMethod]
     public void Two_hotkeys_share_a_chord_and_the_last_release_gives_it_back()
     {
         var first = Create();
@@ -144,71 +145,71 @@ public sealed class HotkeyTests : IDisposable
             second.Pressed += () => presses.Add("second");
             first.Sequence = "Ctrl+K";
             second.Sequence = "Ctrl+K";
-            Assert.Equal(key, Assert.Single(_backend.Registered));
-            Assert.False(_backend.HookInstalled);
+            Assert.AreEqual(key, Assert.ContainsSingle(_backend.Registered));
+            Assert.IsFalse(_backend.HookInstalled);
 
             _backend.Press(key);
-            Assert.Equal(["first", "second"], presses);
+            Assert.AreSequenceEqual(["first", "second"], presses);
             _loop.Advance(TimeSpan.FromMilliseconds(20));
 
             second.Enabled = false;
-            Assert.Equal(key, Assert.Single(_backend.Registered));
+            Assert.AreEqual(key, Assert.ContainsSingle(_backend.Registered));
             presses.Clear();
             _backend.Press(key);
-            Assert.Equal(["first"], presses);
+            Assert.AreSequenceEqual(["first"], presses);
         }
         finally
         {
             first.Dispose();
         }
 
-        Assert.Empty(_backend.Registered);
+        Assert.IsEmpty(_backend.Registered);
         presses.Clear();
         _backend.Press(key);
-        Assert.Empty(presses);
+        Assert.IsEmpty(presses);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_hook_is_installed_only_while_a_claim_needs_it()
     {
         using var hotkey = Create();
         hotkey.Sequence = "Ctrl+K";
-        Assert.True(hotkey.Active);
-        Assert.False(_backend.HookInstalled);
+        Assert.IsTrue(hotkey.Active);
+        Assert.IsFalse(_backend.HookInstalled);
 
         hotkey.Sequence = "Left Win";
-        Assert.True(hotkey.Active);
-        Assert.True(_backend.HookInstalled);
-        Assert.Empty(_backend.Registered);
+        Assert.IsTrue(hotkey.Active);
+        Assert.IsTrue(_backend.HookInstalled);
+        Assert.IsEmpty(_backend.Registered);
 
         hotkey.Enabled = false;
-        Assert.False(_backend.HookInstalled);
+        Assert.IsFalse(_backend.HookInstalled);
 
         hotkey.Enabled = true;
-        Assert.True(_backend.HookInstalled);
+        Assert.IsTrue(_backend.HookInstalled);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_sequence_holds_the_hook_until_the_next_chord_arrives()
     {
         using var hotkey = Create();
         var presses = 0;
         hotkey.Pressed += () => presses++;
         hotkey.Sequence = "Ctrl+K, C";
-        Assert.False(_backend.HookInstalled);
+        Assert.IsFalse(_backend.HookInstalled);
 
         _backend.Press(Key("Ctrl+K"));
-        Assert.True(_backend.HookInstalled);
-        Assert.Equal(0, presses);
+        Assert.IsTrue(_backend.HookInstalled);
+        Assert.AreEqual(0, presses);
 
-        Assert.True(_backend.Key('C', false));
+        Assert.IsTrue(_backend.Key('C', false));
         _loop.Process();
-        Assert.Equal(1, presses);
-        Assert.Equal(0, _backend.Masks);
-        Assert.False(_backend.HookInstalled);
+        Assert.AreEqual(1, presses);
+        Assert.AreEqual(0, _backend.Masks);
+        Assert.IsFalse(_backend.HookInstalled);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_later_chord_matches_the_modifiers_held_on_either_side()
     {
         using var hotkey = Create();
@@ -218,13 +219,13 @@ public sealed class HotkeyTests : IDisposable
         _backend.Press(Key("Ctrl+K"));
         _backend.Held.UnionWith([0xA3, 0xA0]);
 
-        Assert.True(_backend.Key('C', false));
+        Assert.IsTrue(_backend.Key('C', false));
         _loop.Process();
 
-        Assert.Equal(1, presses);
+        Assert.AreEqual(1, presses);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_handled_windows_tap_is_masked_and_its_key_up_passed_on()
     {
         using var hotkey = Create();
@@ -232,16 +233,16 @@ public sealed class HotkeyTests : IDisposable
         hotkey.Pressed += () => presses++;
         hotkey.Sequence = "Win";
 
-        Assert.False(_backend.Key(0x5B, false));
+        Assert.IsFalse(_backend.Key(0x5B, false));
         _backend.Held.Add(0x5B);
-        Assert.False(_backend.Key(0x5B, true));
+        Assert.IsFalse(_backend.Key(0x5B, true));
         _loop.Process();
 
-        Assert.Equal(1, presses);
-        Assert.Equal(1, _backend.Masks);
+        Assert.AreEqual(1, presses);
+        Assert.AreEqual(1, _backend.Masks);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_windows_key_used_as_a_modifier_is_not_masked()
     {
         using var hotkey = Create();
@@ -249,13 +250,13 @@ public sealed class HotkeyTests : IDisposable
         _backend.Key(0x5B, false);
         _backend.Held.Add(0x5B);
 
-        Assert.False(_backend.Key('E', false));
-        Assert.False(_backend.Key(0x5B, true));
+        Assert.IsFalse(_backend.Key('E', false));
+        Assert.IsFalse(_backend.Key(0x5B, true));
 
-        Assert.Equal(0, _backend.Masks);
+        Assert.AreEqual(0, _backend.Masks);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_lost_hook_is_installed_again_while_a_claim_needs_it()
     {
         using var hotkey = Create();
@@ -263,10 +264,10 @@ public sealed class HotkeyTests : IDisposable
 
         _backend.LoseHook();
 
-        Assert.True(_backend.HookInstalled);
+        Assert.IsTrue(_backend.HookInstalled);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_sequence_drops_the_hook_when_its_deadline_passes()
     {
         using var hotkey = Create();
@@ -274,17 +275,17 @@ public sealed class HotkeyTests : IDisposable
         hotkey.Pressed += () => presses++;
         hotkey.Sequence = "A, B";
         _backend.Press(Key("A"));
-        Assert.True(_backend.HookInstalled);
+        Assert.IsTrue(_backend.HookInstalled);
 
         _loop.Advance(TimeSpan.FromSeconds(1));
 
-        Assert.False(_backend.HookInstalled);
-        Assert.False(_backend.Key('B', false));
+        Assert.IsFalse(_backend.HookInstalled);
+        Assert.IsFalse(_backend.Key('B', false));
         _loop.Process();
-        Assert.Equal(0, presses);
+        Assert.AreEqual(0, presses);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_windows_key_hotkey_fails_when_the_hook_cannot_be_installed()
     {
         _backend.HookFails = true;
@@ -292,18 +293,18 @@ public sealed class HotkeyTests : IDisposable
 
         hotkey.Sequence = "Win";
 
-        Assert.False(hotkey.Active);
-        Assert.False(hotkey.Taken);
+        Assert.IsFalse(hotkey.Active);
+        Assert.IsFalse(hotkey.Taken);
         Assert.Contains("keyboard hook", hotkey.Error, StringComparison.Ordinal);
-        Assert.False(_backend.HookInstalled);
+        Assert.IsFalse(_backend.HookInstalled);
 
         hotkey.Sequence = "Ctrl+K";
-        Assert.True(hotkey.Active);
-        Assert.Equal("", hotkey.Error);
-        Assert.False(_backend.HookInstalled);
+        Assert.IsTrue(hotkey.Active);
+        Assert.AreEqual("", hotkey.Error);
+        Assert.IsFalse(_backend.HookInstalled);
     }
 
-    [Fact]
+    [TestMethod]
     public void Press_and_release_raise_their_events_once_each()
     {
         using var hotkey = Create();
@@ -318,10 +319,10 @@ public sealed class HotkeyTests : IDisposable
         listener.OnReleased();
         listener.OnReleased();
 
-        Assert.Equal(["pressed True", "released False"], events);
+        Assert.AreSequenceEqual(["pressed True", "released False"], events);
     }
 
-    [Fact]
+    [TestMethod]
     public void Without_a_key_up_from_Windows_the_release_follows_the_keys()
     {
         using var hotkey = Create();
@@ -332,17 +333,17 @@ public sealed class HotkeyTests : IDisposable
 
         ((IHotkeyListener)hotkey).OnPressed();
         _loop.Advance(TimeSpan.FromMilliseconds(100));
-        Assert.True(hotkey.IsPressed);
+        Assert.IsTrue(hotkey.IsPressed);
 
         _backend.Held.Remove('K');
         _loop.Advance(TimeSpan.FromMilliseconds(20));
 
-        Assert.False(hotkey.IsPressed);
-        Assert.Equal(1, released);
-        Assert.Null(_loop.NextDue);
+        Assert.IsFalse(hotkey.IsPressed);
+        Assert.AreEqual(1, released);
+        Assert.IsNull(_loop.NextDue);
     }
 
-    [Fact]
+    [TestMethod]
     public void Changing_the_sequence_while_pressed_releases_first()
     {
         using var hotkey = Create();
@@ -353,11 +354,11 @@ public sealed class HotkeyTests : IDisposable
 
         hotkey.Sequence = "Ctrl+L";
 
-        Assert.False(hotkey.IsPressed);
-        Assert.Equal(1, released);
+        Assert.IsFalse(hotkey.IsPressed);
+        Assert.AreEqual(1, released);
     }
 
-    [Fact]
+    [TestMethod]
     public void Disposing_releases_the_keys_without_a_released_event()
     {
         var hotkey = Create();
@@ -369,14 +370,14 @@ public sealed class HotkeyTests : IDisposable
         hotkey.Dispose();
         hotkey.Sequence = "Ctrl+L";
 
-        Assert.Empty(_backend.Registered);
-        Assert.Equal(0, released);
-        Assert.Null(_loop.NextDue);
+        Assert.IsEmpty(_backend.Registered);
+        Assert.AreEqual(0, released);
+        Assert.IsNull(_loop.NextDue);
     }
 
     private static OsChord Key(string text)
     {
-        Assert.True(HotkeySequence.TryParse(text, out var sequence, out var error), error);
+        Assert.IsTrue(HotkeySequence.TryParse(text, out var sequence, out var error), error);
         return sequence!.Chords[0].OsKey;
     }
 

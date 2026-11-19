@@ -3,12 +3,13 @@ using System.Globalization;
 
 namespace Winshell.Tests;
 
-public sealed partial class NoticeDismissIpcTests : IDisposable, IClassFixture<ProbeBuild>
+[TestClass]
+public sealed partial class NoticeDismissIpcTests : ProbeBuild, IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
     private Process? _started;
 
-    [Fact]
+    [TestMethod]
     public void Notice_dismiss_reaches_a_running_shell_and_takes_no_arguments()
     {
         var config = Path.Combine(_dir, "config");
@@ -18,19 +19,19 @@ public sealed partial class NoticeDismissIpcTests : IDisposable, IClassFixture<P
         var pid = process.Id.ToString(CultureInfo.InvariantCulture);
         var dismissed = Run("ipc", "--pid", pid, "call", "notice", "dismiss");
         dismissed.AssertNoError();
-        Assert.Equal("", dismissed.Output.Trim());
+        Assert.AreEqual("", dismissed.Output.Trim());
         dismissed.AssertExitCode(0);
-        Assert.False(process.HasExited);
+        Assert.IsFalse(process.HasExited);
 
         var extra = Run("ipc", "--pid", pid, "call", "notice", "dismiss", "now");
         extra.AssertExitCode(1);
         Assert.Contains("Function notice.dismiss takes 0 arguments, 1 given.", extra.Error, StringComparison.Ordinal);
-        Assert.False(process.HasExited);
+        Assert.IsFalse(process.HasExited);
 
         var other = Run("ipc", "--pid", pid, "call", "notice", "open");
         other.AssertExitCode(1);
         Assert.Contains("Target not found: notice.", other.Error, StringComparison.Ordinal);
-        Assert.False(process.HasExited);
+        Assert.IsFalse(process.HasExited);
     }
 
     private ChildProcess Run(params string[] args)

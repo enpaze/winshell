@@ -5,6 +5,7 @@ using Winshell.Notifications;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class NotificationTests
 {
     private static readonly DateTimeOffset Noon = new(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
@@ -37,7 +38,7 @@ public sealed class NotificationTests
         return listener;
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Notifications_are_newest_first_and_grouped_by_app()
     {
         var listener = await ListenerAsync(new FakeBackend());
@@ -46,12 +47,12 @@ public sealed class NotificationTests
         listener.Apply(Snapshot(Toast(1, minutes: 1), Toast(2, minutes: 3), Toast(3, "Chat", minutes: 2),
             Toast(4, "")));
 
-        Assert.Equal([2u, 3u, 1u, 4u], listener.Notifications.Select(n => n.Id));
-        Assert.Equal(["Mail", "Chat", ""], listener.Groups.Select(g => g.AppId));
-        Assert.Equal([2u, 1u], listener.Groups[0].Notifications.Select(n => n.Id));
+        Assert.AreSequenceEqual([2u, 3u, 1u, 4u], listener.Notifications.Select(n => n.Id));
+        Assert.AreSequenceEqual(["Mail", "Chat", ""], listener.Groups.Select(g => g.AppId));
+        Assert.AreSequenceEqual([2u, 1u], listener.Groups[0].Notifications.Select(n => n.Id));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_notification_that_stays_is_the_same_object_and_only_what_differs_changes()
     {
         var listener = await ListenerAsync(new FakeBackend());
@@ -63,14 +64,14 @@ public sealed class NotificationTests
 
         listener.Apply(Snapshot(Toast(1, title: "Updated")));
 
-        Assert.Same(kept, Assert.Single(listener.Notifications));
-        Assert.Same(group, Assert.Single(listener.Groups));
-        Assert.Same(kept, Assert.Single(group.Notifications));
-        Assert.Equal([nameof(Notification.Title)], changes);
-        Assert.Equal("Updated", kept.Title);
+        Assert.AreSame(kept, Assert.ContainsSingle(listener.Notifications));
+        Assert.AreSame(group, Assert.ContainsSingle(listener.Groups));
+        Assert.AreSame(kept, Assert.ContainsSingle(group.Notifications));
+        Assert.AreSequenceEqual([nameof(Notification.Title)], changes);
+        Assert.AreEqual("Updated", kept.Title);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Added_fires_after_the_collections_hold_a_new_notification_and_once_for_each()
     {
         var listener = await ListenerAsync(new FakeBackend());
@@ -81,24 +82,24 @@ public sealed class NotificationTests
         listener.Apply(Snapshot(Toast(1)));
         listener.Apply(Snapshot(Toast(1), Toast(2, "Chat")));
 
-        Assert.Equal([(1u, 1, 1), (2u, 2, 2)], seen);
+        Assert.AreSequenceEqual([(1u, 1, 1), (2u, 2, 2)], seen);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Do_not_disturb_follows_the_notification_mode()
     {
         var backend = new FakeBackend { Current = Snapshot() with { Mode = NotificationMode.Unknown } };
         var listener = await ListenerAsync(backend);
         using var stopListener = listener.Stopping();
-        Assert.Equal(NotificationState.Unknown, listener.DoNotDisturbState);
+        Assert.AreEqual(NotificationState.Unknown, listener.DoNotDisturbState);
         listener.Apply(Snapshot());
-        Assert.Equal(NotificationState.Off, listener.DoNotDisturbState);
+        Assert.AreEqual(NotificationState.Off, listener.DoNotDisturbState);
         var changes = Watch(listener);
 
         listener.Apply(Snapshot() with { Mode = NotificationMode.AlarmsOnly, Focus = NotificationState.On });
-        Assert.Equal(NotificationState.On, listener.DoNotDisturbState);
-        Assert.Equal(NotificationState.On, listener.FocusState);
-        Assert.Equal(
+        Assert.AreEqual(NotificationState.On, listener.DoNotDisturbState);
+        Assert.AreEqual(NotificationState.On, listener.FocusState);
+        Assert.AreSequenceEqual(
         [
             nameof(NotificationsService.FocusState), nameof(NotificationsService.NotificationMode),
             nameof(NotificationsService.DoNotDisturbState)
@@ -106,10 +107,10 @@ public sealed class NotificationTests
         changes.Clear();
 
         listener.Apply(Snapshot() with { Mode = NotificationMode.PriorityOnly, Focus = NotificationState.On });
-        Assert.Equal([nameof(NotificationsService.NotificationMode)], changes);
+        Assert.AreSequenceEqual([nameof(NotificationsService.NotificationMode)], changes);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Losing_access_empties_the_lists_and_says_why()
     {
         var listener = await ListenerAsync(new FakeBackend());
@@ -118,12 +119,12 @@ public sealed class NotificationTests
 
         listener.Apply(Snapshot() with { AccessStatus = NotificationAccessStatus.Denied });
 
-        Assert.Empty(listener.Notifications);
-        Assert.Empty(listener.Groups);
+        Assert.IsEmpty(listener.Notifications);
+        Assert.IsEmpty(listener.Groups);
         Assert.Contains("denied", listener.Error, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Dismissing_removes_the_notification_and_a_gone_one_cannot_be_dismissed()
     {
         var backend = new FakeBackend();
@@ -132,17 +133,17 @@ public sealed class NotificationTests
         listener.Apply(Snapshot(Toast(1)));
         var notification = listener.Notifications[0];
 
-        Assert.True(notification.Dismiss());
+        Assert.IsTrue(notification.Dismiss());
 
-        Assert.Equal([1u], backend.Dismissed);
-        Assert.Empty(listener.Notifications);
-        Assert.Empty(listener.Groups);
-        Assert.Equal("Hello", notification.Title);
-        Assert.False(notification.Dismiss());
-        Assert.Equal([1u], backend.Dismissed);
+        Assert.AreSequenceEqual([1u], backend.Dismissed);
+        Assert.IsEmpty(listener.Notifications);
+        Assert.IsEmpty(listener.Groups);
+        Assert.AreEqual("Hello", notification.Title);
+        Assert.IsFalse(notification.Dismiss());
+        Assert.AreSequenceEqual([1u], backend.Dismissed);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_failed_dismissal_stays_reports_why_and_clear_all_goes_on()
     {
         var backend = new FakeBackend { Refuse = 1 };
@@ -152,14 +153,14 @@ public sealed class NotificationTests
         var failures = new List<string>();
         listener.OperationFailed += failures.Add;
 
-        Assert.False(listener.ClearAll());
+        Assert.IsFalse(listener.ClearAll());
 
-        Assert.Equal(1u, Assert.Single(listener.Notifications).Id);
-        Assert.Equal("Refused", listener.Error);
-        Assert.Equal(["Refused"], failures);
+        Assert.AreEqual(1u, Assert.ContainsSingle(listener.Notifications).Id);
+        Assert.AreEqual("Refused", listener.Error);
+        Assert.AreSequenceEqual(["Refused"], failures);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_group_dismisses_only_its_own_app()
     {
         var backend = new FakeBackend();
@@ -168,13 +169,13 @@ public sealed class NotificationTests
         listener.Apply(Snapshot(Toast(1), Toast(2), Toast(3, "Chat")));
         var group = listener.Groups.Single(g => g.AppId == "Mail");
 
-        Assert.True(group.Dismiss());
+        Assert.IsTrue(group.Dismiss());
 
-        Assert.Equal(3u, Assert.Single(listener.Notifications).Id);
-        Assert.Equal("Chat", Assert.Single(listener.Groups).AppId);
+        Assert.AreEqual(3u, Assert.ContainsSingle(listener.Notifications).Id);
+        Assert.AreEqual("Chat", Assert.ContainsSingle(listener.Groups).AppId);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_read_from_before_a_dismissal_does_not_bring_it_back()
     {
         var backend = new FakeBackend();
@@ -186,15 +187,15 @@ public sealed class NotificationTests
             new TaskCompletionSource<NotificationSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var read = listener.RefreshAsync();
-        Assert.True(listener.Notifications[0].Dismiss());
+        Assert.IsTrue(listener.Notifications[0].Dismiss());
         backend.Next.SetResult(Snapshot(Toast(1)));
         await read;
         loop.Process();
 
-        Assert.Empty(listener.Notifications);
+        Assert.IsEmpty(listener.Notifications);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_read_after_access_is_requested_waits_and_a_refused_request_is_reported()
     {
         var backend = new FakeBackend { AccessError = new UnauthorizedAccessException("No") };
@@ -205,15 +206,15 @@ public sealed class NotificationTests
         listener.OperationFailed += failures.Add;
 
         await listener.RequestAccessAsync();
-        Assert.Equal(NotificationAccessStatus.Requesting, listener.AccessStatus);
+        Assert.AreEqual(NotificationAccessStatus.Requesting, listener.AccessStatus);
         loop.Process();
 
-        Assert.Equal(NotificationAccessStatus.Unavailable, listener.AccessStatus);
-        Assert.Equal("No", listener.Error);
-        Assert.Equal(["No"], failures);
+        Assert.AreEqual(NotificationAccessStatus.Unavailable, listener.AccessStatus);
+        Assert.AreEqual("No", listener.Error);
+        Assert.AreSequenceEqual(["No"], failures);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_request_that_fails_in_a_way_nobody_expected_does_not_stop_later_reads()
     {
         var backend = new FakeBackend { AccessError = new FormatException("Odd") };
@@ -227,10 +228,10 @@ public sealed class NotificationTests
         await listener.RefreshAsync();
         loop.Process();
 
-        Assert.Equal(1u, Assert.Single(listener.Notifications).Id);
+        Assert.AreEqual(1u, Assert.ContainsSingle(listener.Notifications).Id);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_disposed_listener_ignores_a_read_that_comes_late()
     {
         var backend = new FakeBackend();
@@ -242,19 +243,19 @@ public sealed class NotificationTests
         listener.Stop();
         loop.Process();
 
-        Assert.Empty(listener.Notifications);
-        Assert.False(listener.ClearAll());
+        Assert.IsEmpty(listener.Notifications);
+        Assert.IsFalse(listener.ClearAll());
     }
 
-    [Fact]
+    [TestMethod]
     public void A_notification_has_no_way_to_invoke_it()
     {
         const BindingFlags PublicInstance = BindingFlags.Instance | BindingFlags.Public;
-        Assert.Null(typeof(Notification).GetProperty("CanInvoke", PublicInstance));
-        Assert.Null(typeof(Notification).GetMethod("Invoke", PublicInstance, Type.EmptyTypes));
+        Assert.IsNull(typeof(Notification).GetProperty("CanInvoke", PublicInstance));
+        Assert.IsNull(typeof(Notification).GetMethod("Invoke", PublicInstance, Type.EmptyTypes));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_toast_is_read_on_its_own_thread()
     {
         var seen = new TaskCompletionSource<(bool Pool, int Id)>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -267,14 +268,14 @@ public sealed class NotificationTests
         var caller = Environment.CurrentManagedThreadId;
         using (new NotificationsService(new ManualEventLoop(), Log.Default, backend).Stopping())
         {
-            var (pool, id) = await seen.Task.WaitAsync(TestContext.Current.CancellationToken);
+            var (pool, id) = await seen.Task.WaitAsync(CurrentTest.Cancellation);
 
-            Assert.False(pool);
-            Assert.NotEqual(caller, id);
+            Assert.IsFalse(pool);
+            Assert.AreNotEqual(caller, id);
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task The_poll_reads_again_what_Windows_does_not_announce()
     {
         var backend = new FakeBackend();
@@ -288,7 +289,7 @@ public sealed class NotificationTests
         await Wait.UntilAsync(() => listener.DoNotDisturbState == NotificationState.On, "the poll", loop.Process);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_logo_arrives_after_the_notification_and_goes_with_it()
     {
         var logo = new FakeLogo([.. Png(2, 2), .. Guid.NewGuid().ToByteArray()]);
@@ -299,19 +300,19 @@ public sealed class NotificationTests
 
         listener.Apply(Snapshot(Toast(1, appId, logo: logo)));
         var notification = listener.Notifications[0];
-        Assert.Equal("", notification.AppIcon);
+        Assert.AreEqual("", notification.AppIcon);
         await Wait.UntilAsync(() => notification.AppIcon.Length > 0, "the logo", loop.Process);
 
         var path = new Uri(notification.AppIcon).LocalPath;
-        Assert.True(File.Exists(path));
+        Assert.IsTrue(File.Exists(path));
         Assert.EndsWith(".png", path, StringComparison.Ordinal);
 
-        Assert.True(notification.Dismiss());
-        Assert.Equal("", notification.AppIcon);
+        Assert.IsTrue(notification.Dismiss());
+        Assert.AreEqual("", notification.AppIcon);
         await Wait.UntilAsync(() => !File.Exists(path), "the logo file to go");
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_logo_that_finishes_after_dismissal_leaves_no_file()
     {
         using var gate = new ManualResetEventSlim();
@@ -325,21 +326,21 @@ public sealed class NotificationTests
         loop.Woken += () => Interlocked.Increment(ref posted);
         listener.Apply(Snapshot(Toast(1, appId, logo: logo)));
         var notification = listener.Notifications[0];
-        await logo.Opened.WaitAsync(TestContext.Current.CancellationToken);
+        await logo.Opened.WaitAsync(CurrentTest.Cancellation);
 
-        Assert.True(notification.Dismiss());
+        Assert.IsTrue(notification.Dismiss());
         gate.Set();
         await Wait.UntilAsync(() => Volatile.Read(ref posted) > 0, "the read to end");
         loop.Process();
 
-        Assert.Equal("", notification.AppIcon);
-        var url = TempImageStore.Shared.Claim(new MemoryStream(png), TestContext.Current.CancellationToken);
-        Assert.NotNull(url);
+        Assert.AreEqual("", notification.AppIcon);
+        var url = TempImageStore.Shared.Claim(new MemoryStream(png), CurrentTest.Cancellation);
+        Assert.IsNotNull(url);
         TempImageStore.Shared.Release(url);
         await Wait.UntilAsync(() => !File.Exists(new Uri(url).LocalPath), "the logo file to go");
     }
 
-    [Fact]
+    [TestMethod]
     public void A_toast_is_built_from_its_properties()
     {
         var backend = new FakeBackend();
@@ -355,21 +356,21 @@ public sealed class NotificationTests
         };
         toast.Actions.Add(new ToastAction { Text = "Open", ActivationUri = "winshell://action" });
 
-        Assert.True(toast.Send());
+        Assert.IsTrue(toast.Send());
 
-        var (appId, xml, tag, group) = Assert.Single(backend.Shown);
-        Assert.Equal(("Winshell", "t", "g"), (appId, tag, group));
+        var (appId, xml, tag, group) = Assert.ContainsSingle(backend.Shown);
+        Assert.AreEqual(("Winshell", "t", "g"), (appId, tag, group));
         Assert.Contains("Hi &lt;there&gt;", xml, StringComparison.Ordinal);
         Assert.Contains("launch=\"winshell://open\"", xml, StringComparison.Ordinal);
         Assert.Contains("arguments=\"winshell://action\"", xml, StringComparison.Ordinal);
         Assert.Contains("silent=\"true\"", xml, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("", "Title", "", "", "")]
-    [InlineData("Winshell", " ", "", "", "")]
-    [InlineData("Winshell", "Title", "not a uri", "", "")]
-    [InlineData("Winshell", "Title", "", "", "group without a tag")]
+    [TestMethod]
+    [DataRow("", "Title", "", "", "")]
+    [DataRow("Winshell", " ", "", "", "")]
+    [DataRow("Winshell", "Title", "not a uri", "", "")]
+    [DataRow("Winshell", "Title", "", "", "group without a tag")]
     public void A_toast_that_fails_validation_is_not_sent_and_says_why(string appId, string title, string uri,
         string tag, string group)
     {
@@ -380,37 +381,37 @@ public sealed class NotificationTests
         var failures = new List<string>();
         toast.Failed += failures.Add;
 
-        Assert.False(toast.Send());
+        Assert.IsFalse(toast.Send());
         loop.Process();
 
-        Assert.Empty(backend.Shown);
-        Assert.Equal(toast.Error, Assert.Single(failures));
-        Assert.NotEmpty(toast.Error);
+        Assert.IsEmpty(backend.Shown);
+        Assert.AreEqual(toast.Error, Assert.ContainsSingle(failures));
+        Assert.IsNotEmpty(toast.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_late_rejection_from_Windows_arrives_on_the_loop()
     {
         var loop = new ManualEventLoop();
         var backend = new FakeBackend();
         var toast = new ToastMessage(loop, backend) { AppId = "Winshell", Title = "Hi" };
-        Assert.True(toast.Send());
+        Assert.IsTrue(toast.Send());
 
         backend.Reject!("Rejected");
-        Assert.Empty(toast.Error);
+        Assert.IsEmpty(toast.Error);
         loop.Process();
 
-        Assert.Equal("Rejected", toast.Error);
+        Assert.AreEqual("Rejected", toast.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_toast_has_at_most_five_actions()
     {
         var toast = new ToastMessage(new ManualEventLoop(), new FakeBackend()) { AppId = "Winshell", Title = "Hi" };
         for (var i = 0; i < 6; i++)
             toast.Actions.Add(new ToastAction { Text = "Open", ActivationUri = "winshell://open" });
 
-        Assert.False(toast.Send());
+        Assert.IsFalse(toast.Send());
     }
 
     private static byte[] Png(int width, int height)

@@ -4,9 +4,10 @@ using System.Text.Json;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public class IpcBoundsTests
 {
-    [Fact]
+    [TestMethod]
     public async Task An_unfinished_line_stops_at_the_limit_and_shutdown_cancels_the_read()
     {
         var name = PipeName();
@@ -29,39 +30,39 @@ public class IpcBoundsTests
                 catch (IOException)
                 {
                 }
-            }, TestContext.Current.CancellationToken);
+            }, CurrentTest.Cancellation);
             using var reader = new StreamReader(client, Encoding.UTF8, false, 256, true);
-            var line = await reader.ReadLineAsync(TestContext.Current.CancellationToken).AsTask()
-                .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-            Assert.NotNull(line);
+            var line = await reader.ReadLineAsync(CurrentTest.Cancellation).AsTask()
+                .WaitAsync(TimeSpan.FromSeconds(10), CurrentTest.Cancellation);
+            Assert.IsNotNull(line);
             var response = JsonSerializer.Deserialize(line, IpcJson.Default.IpcResponse);
-            Assert.NotNull(response);
-            Assert.False(response.Ok);
-            Assert.Equal("Request is too long.", response.Error);
-            await writing.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            Assert.IsNotNull(response);
+            Assert.IsFalse(response.Ok);
+            Assert.AreEqual("Request is too long.", response.Error);
+            await writing.WaitAsync(TimeSpan.FromSeconds(5), CurrentTest.Cancellation);
 
             await using var parked = await Connect(name);
             var held = new byte[IpcServer.MaxRequestBytes - 1];
             var prefix = "{\"op\":\"stop\""u8;
             prefix.CopyTo(held);
             Array.Fill(held, (byte)' ', prefix.Length, held.Length - prefix.Length);
-            await parked.WriteAsync(held, TestContext.Current.CancellationToken);
+            await parked.WriteAsync(held, CurrentTest.Cancellation);
             server.Dispose();
             shutDown = true;
 
-            var n = await parked.ReadAsync(new byte[1], TestContext.Current.CancellationToken).AsTask()
-                .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-            Assert.Equal(0, n);
+            var n = await parked.ReadAsync(new byte[1], CurrentTest.Cancellation).AsTask()
+                .WaitAsync(TimeSpan.FromSeconds(5), CurrentTest.Cancellation);
+            Assert.AreEqual(0, n);
             try
             {
-                await parked.WriteAsync("}\n"u8.ToArray(), TestContext.Current.CancellationToken);
+                await parked.WriteAsync("}\n"u8.ToArray(), CurrentTest.Cancellation);
             }
             catch (IOException)
             {
             }
 
             loop.RunDue();
-            Assert.Equal(0, control.Quits);
+            Assert.AreEqual(0, control.Quits);
         }
         finally
         {
@@ -70,7 +71,7 @@ public class IpcBoundsTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_listener_that_leaves_without_a_signal_frees_its_place()
     {
         using var probe = new Probe();
@@ -86,7 +87,7 @@ public class IpcBoundsTests
                 try
                 {
                     await using var next = await Connect(probe.Pipe);
-                    await next.WriteAsync(ListenRequest, TestContext.Current.CancellationToken);
+                    await next.WriteAsync(ListenRequest, CurrentTest.Cancellation);
                     var line = ReadLine(next);
                     await probe.WaitUntil(() =>
                     {
@@ -107,7 +108,7 @@ public class IpcBoundsTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_connection_past_the_cap_is_closed()
     {
         using var probe = new Probe();
@@ -117,9 +118,9 @@ public class IpcBoundsTests
             await Fill(probe, held, IpcServer.MaxClients);
 
             await using var extra = await Connect(probe.Pipe);
-            var n = await extra.ReadAsync(new byte[1], TestContext.Current.CancellationToken).AsTask()
-                .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-            Assert.Equal(0, n);
+            var n = await extra.ReadAsync(new byte[1], CurrentTest.Cancellation).AsTask()
+                .WaitAsync(TimeSpan.FromSeconds(5), CurrentTest.Cancellation);
+            Assert.AreEqual(0, n);
         }
         finally
         {
@@ -128,7 +129,7 @@ public class IpcBoundsTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Clients_that_send_nothing_give_their_slots_back()
     {
         var name = PipeName();
@@ -151,8 +152,8 @@ public class IpcBoundsTests
                 });
             var answer = await answered.Task;
             var response = JsonSerializer.Deserialize(answer, IpcJson.Default.IpcResponse);
-            Assert.NotNull(response);
-            Assert.True(response.Ok);
+            Assert.IsNotNull(response);
+            Assert.IsTrue(response.Ok);
         }
         finally
         {
@@ -161,7 +162,7 @@ public class IpcBoundsTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_listener_that_falls_behind_keeps_only_the_signal_buffer()
     {
         using var probe = new Probe();
@@ -171,26 +172,27 @@ public class IpcBoundsTests
         var value = new string('a', 128 * 1024);
         probe.Ping.Emit(value);
         var first = new byte[1];
-        Assert.Equal(1,
-            await client.ReadAsync(first, TestContext.Current.CancellationToken).AsTask()
-                .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+        Assert.AreEqual(1,
+            await client.ReadAsync(first, CurrentTest.Cancellation).AsTask()
+                .WaitAsync(TimeSpan.FromSeconds(10), CurrentTest.Cancellation));
         for (var i = 0; i < IpcServer.MaxQueuedSignals + 20; i++)
             probe.Ping.Emit("queued");
 
         var lines = await ReadLines(client, 1 + IpcServer.MaxQueuedSignals, first[0]);
-        Assert.Equal(1 + IpcServer.MaxQueuedSignals, lines.Count);
+        Assert.AreEqual(1 + IpcServer.MaxQueuedSignals, lines.Count);
         var values = lines.Select(line =>
         {
             var response = JsonSerializer.Deserialize(line, IpcJson.Default.IpcResponse);
-            Assert.NotNull(response);
-            Assert.True(response.Ok);
+            Assert.IsNotNull(response);
+            Assert.IsTrue(response.Ok);
             return response.Value;
         }).ToList();
-        Assert.Equal(value, values[0]);
-        Assert.All(values.Skip(1), queued => Assert.Equal("queued", queued));
-        await Assert.ThrowsAsync<TimeoutException>(async () =>
-            await client.ReadAsync(new byte[1], TestContext.Current.CancellationToken).AsTask()
-                .WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken));
+        Assert.AreEqual(value, values[0]);
+        foreach (var queued in values.Skip(1))
+            Assert.AreEqual("queued", queued);
+        await Assert.ThrowsExactlyAsync<TimeoutException>(async () =>
+            await client.ReadAsync(new byte[1], CurrentTest.Cancellation).AsTask()
+                .WaitAsync(TimeSpan.FromSeconds(2), CurrentTest.Cancellation));
     }
 
     private static readonly byte[] ListenRequest =
@@ -198,7 +200,7 @@ public class IpcBoundsTests
 
     private static async Task Subscribe(Probe probe, Stream client)
     {
-        await client.WriteAsync(ListenRequest, TestContext.Current.CancellationToken);
+        await client.WriteAsync(ListenRequest, CurrentTest.Cancellation);
         var line = ReadLine(client);
         await probe.WaitUntil(() =>
         {
@@ -209,7 +211,7 @@ public class IpcBoundsTests
         var value = await line;
         while (value != "done")
         {
-            Assert.NotNull(value);
+            Assert.IsNotNull(value);
             value = await ReadLine(client);
         }
     }
@@ -230,8 +232,8 @@ public class IpcBoundsTests
         var one = new byte[1];
         while (true)
         {
-            var n = await stream.ReadAsync(one, TestContext.Current.CancellationToken).AsTask()
-                .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            var n = await stream.ReadAsync(one, CurrentTest.Cancellation).AsTask()
+                .WaitAsync(TimeSpan.FromSeconds(10), CurrentTest.Cancellation);
             if (n == 0)
                 return null;
             if (one[0] != (byte)'\n')
@@ -241,8 +243,8 @@ public class IpcBoundsTests
             }
 
             var response = JsonSerializer.Deserialize(line.ToArray(), IpcJson.Default.IpcResponse);
-            Assert.NotNull(response);
-            Assert.True(response.Ok);
+            Assert.IsNotNull(response);
+            Assert.IsTrue(response.Ok);
             return response.Value;
         }
     }
@@ -266,7 +268,7 @@ public class IpcBoundsTests
             await using var client = await Connect(name);
             await client.WriteAsync("{\"op\":\"show\"}\n"u8.ToArray());
             using var reader = new StreamReader(client, Encoding.UTF8, false, leaveOpen: true);
-            if (await reader.ReadLineAsync(TestContext.Current.CancellationToken) is { } line)
+            if (await reader.ReadLineAsync(CurrentTest.Cancellation) is { } line)
                 answered.TrySetResult(line);
         }
         catch (Exception e) when (e is IOException or TimeoutException or OperationCanceledException)
@@ -303,7 +305,7 @@ public class IpcBoundsTests
             int n;
             try
             {
-                n = await stream.ReadAsync(buf, TestContext.Current.CancellationToken);
+                n = await stream.ReadAsync(buf, CurrentTest.Cancellation);
             }
             catch (OperationCanceledException)
             {
@@ -311,7 +313,7 @@ public class IpcBoundsTests
                 throw;
             }
 
-            Assert.NotEqual(0, n);
+            Assert.AreNotEqual(0, n);
             for (var i = 0; i < n; i++)
                 if (buf[i] == (byte)'\n')
                 {

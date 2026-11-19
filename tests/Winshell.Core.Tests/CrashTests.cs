@@ -2,6 +2,7 @@ using System.Globalization;
 
 namespace Winshell.Core.Tests;
 
+[TestClass]
 public sealed class CrashTests : IDisposable
 {
     private readonly string _folder =
@@ -25,7 +26,7 @@ public sealed class CrashTests : IDisposable
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void A_report_says_where_what_and_the_end_of_the_log()
     {
         Directory.CreateDirectory(_folder);
@@ -38,9 +39,9 @@ public sealed class CrashTests : IDisposable
 
         var report = crashes.Write("PanelWindow in Taskbar.xaml", Thrown("the paint failed"));
 
-        Assert.NotNull(report);
-        Assert.Same(report, raised);
-        Assert.False(report.Fatal);
+        Assert.IsNotNull(report);
+        Assert.AreSame(report, raised);
+        Assert.IsFalse(report.Fatal);
         Assert.StartsWith(Path.Combine(_folder, "crashes"), report.Path, StringComparison.Ordinal);
         Assert.EndsWith("-panelwindow-in-taskbar-xaml.txt", report.Path, StringComparison.Ordinal);
         var text = File.ReadAllText(report.Path);
@@ -60,7 +61,7 @@ public sealed class CrashTests : IDisposable
         Assert.DoesNotContain("line 60" + Environment.NewLine, text, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_same_failure_from_the_same_place_is_reported_once()
     {
         var crashes = new CrashReports(_folder);
@@ -70,13 +71,13 @@ public sealed class CrashTests : IDisposable
             return Thrown("again");
         }
 
-        Assert.NotNull(crashes.WriteOnce("event loop", Same()));
-        Assert.Null(crashes.WriteOnce("event loop", Same()));
-        Assert.NotNull(crashes.WriteOnce("background task", Same()));
-        Assert.Equal(2, Directory.GetFiles(_folder).Length);
+        Assert.IsNotNull(crashes.WriteOnce("event loop", Same()));
+        Assert.IsNull(crashes.WriteOnce("event loop", Same()));
+        Assert.IsNotNull(crashes.WriteOnce("background task", Same()));
+        Assert.AreEqual(2, Directory.GetFiles(_folder).Length);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_report_is_read_back_by_the_time_in_its_name()
     {
         Directory.CreateDirectory(_folder);
@@ -105,14 +106,14 @@ public sealed class CrashTests : IDisposable
 
         var list = CrashReports.List(_folder);
 
-        Assert.Null(list.FolderError);
-        Assert.Equal(newerPath, list.Reports[0].Path);
-        Assert.False(list.Reports[0].Closed);
-        Assert.Equal("System.Exception: new", list.Reports[0].ExceptionLine);
-        Assert.Equal(olderPath, list.Reports[1].Path);
-        Assert.True(list.Reports[1].Closed);
-        Assert.Equal("System.Exception: old", list.Reports[1].ExceptionLine);
-        Assert.Equal(new DateTimeOffset(older, TimeSpan.Zero), list.Reports[1].Written);
+        Assert.IsNull(list.FolderError);
+        Assert.AreEqual(newerPath, list.Reports[0].Path);
+        Assert.IsFalse(list.Reports[0].Closed);
+        Assert.AreEqual("System.Exception: new", list.Reports[0].ExceptionLine);
+        Assert.AreEqual(olderPath, list.Reports[1].Path);
+        Assert.IsTrue(list.Reports[1].Closed);
+        Assert.AreEqual("System.Exception: old", list.Reports[1].ExceptionLine);
+        Assert.AreEqual(new DateTimeOffset(older, TimeSpan.Zero), list.Reports[1].Written);
     }
 
     private static string Name(DateTime utc, string slug)

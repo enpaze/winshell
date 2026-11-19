@@ -4,8 +4,9 @@ using System.Text.Json;
 
 namespace Winshell.Tests;
 
-[Trait("Category", "Window")]
-public sealed partial class InspectCommandTests : IDisposable, IClassFixture<ProbeBuild>
+[TestClass]
+[TestCategory("Window")]
+public sealed partial class InspectCommandTests : ProbeBuild, IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly Process _shell;
@@ -59,31 +60,31 @@ public sealed partial class InspectCommandTests : IDisposable, IClassFixture<Pro
             window.GetProperty("content").GetProperty("type").GetString() == type);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_tree_is_json_and_names_the_panel_and_its_button()
     {
         var result = Run("tree");
 
         result.AssertNoError();
         result.AssertExitCode(0);
-        Assert.Equal(1, Count(result.Output, "ProbePage"));
+        Assert.AreEqual(1, Count(result.Output, "ProbePage"));
         Assert.Contains("\"name\": \"Open\"", result.Output, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_click_opens_the_popup_and_the_tree_shows_it()
     {
-        Assert.Equal(0, Count(Run("tree").Output, "ProbePopup"));
+        Assert.AreEqual(0, Count(Run("tree").Output, "ProbePopup"));
 
         var result = Run("click", "Open", "ProbePage");
 
         result.AssertNoError();
         result.AssertExitCode(0);
-        Assert.Equal("Clicked Open", result.Output.Trim());
+        Assert.AreEqual("Clicked Open", result.Output.Trim());
         Wait.Until(() => Count(Run("tree").Output, "ProbePopup") == 1, "the popup to open");
     }
 
-    [Fact]
+    [TestMethod]
     public void A_screenshot_writes_a_png_of_the_window()
     {
         var file = Path.Combine(_dir, "panel.png");
@@ -93,10 +94,10 @@ public sealed partial class InspectCommandTests : IDisposable, IClassFixture<Pro
         result.AssertNoError();
         result.AssertExitCode(0);
         Assert.Contains(file, result.Output, StringComparison.Ordinal);
-        Assert.Equal([0x89, 0x50, 0x4E, 0x47], File.ReadAllBytes(file)[..4]);
+        Assert.AreSequenceEqual<byte>([0x89, 0x50, 0x4E, 0x47], File.ReadAllBytes(file)[..4]);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_recording_writes_a_finished_mp4_and_each_kept_frame_with_a_contact_sheet()
     {
         var video = Path.Combine(_dir, "panel.mp4");
@@ -107,14 +108,14 @@ public sealed partial class InspectCommandTests : IDisposable, IClassFixture<Pro
         result.AssertNoError();
         result.AssertExitCode(0);
         var bytes = File.ReadAllBytes(video);
-        Assert.Equal("ftyp"u8.ToArray(), bytes[4..8]);
-        Assert.True(bytes.AsSpan().IndexOf("moov"u8) > 0);
+        Assert.AreSequenceEqual("ftyp"u8.ToArray(), bytes[4..8]);
+        Assert.IsTrue(bytes.AsSpan().IndexOf("moov"u8) > 0);
         var pngs = Directory.GetFiles(frames, "*.png").Select(Path.GetFileName).ToList();
         Assert.Contains("contact-sheet.png", pngs);
-        Assert.Contains(pngs, name => name!.Length == "000000.png".Length && name[..6].All(char.IsAsciiDigit));
+        Assert.Contains(name => name!.Length == "000000.png".Length && name[..6].All(char.IsAsciiDigit), pngs);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_element_that_is_not_there_exits_1_and_says_so()
     {
         var result = Run("click", "NoSuchThing");

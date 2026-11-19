@@ -5,6 +5,7 @@ using Winshell.Winland;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class WinlandArrivalTests
 {
     private static readonly TimeSpan Second = TimeSpan.FromSeconds(1);
@@ -18,7 +19,7 @@ public sealed class WinlandArrivalTests
                                       [{"id":1,"name":"1","monitor":"\\\\.\\DISPLAY1","monitorID":0,"hasfullscreen":false}]
                                       """;
 
-    [Fact]
+    [TestMethod]
     public void Workspaces_show_within_a_second_of_winland_starting_and_clear_when_it_stops()
     {
         var name = PipeName();
@@ -27,25 +28,25 @@ public sealed class WinlandArrivalTests
         using var stopService = service.Stopping();
         Wait.ForNothingToHappen(TimeSpan.FromMilliseconds(750));
         loop.Process();
-        Assert.Equal(0, service.ProcessId);
-        Assert.Empty(service.Workspaces);
+        Assert.AreEqual(0, service.ProcessId);
+        Assert.IsEmpty(service.Workspaces);
 
         var opened = TimeProvider.System.GetTimestamp();
         using (var peer = Peer.Start(name))
         {
             Wait.Until(Shown, "workspaces to show", Second, loop.Process);
             var shownAfter = TimeProvider.System.GetElapsedTime(opened);
-            TestContext.Current.TestOutputHelper?.WriteLine($"shown after {shownAfter.TotalMilliseconds:0} ms");
-            Assert.True(shownAfter < Second, $"workspaces showed after {shownAfter.TotalMilliseconds:0} ms");
-            Assert.Contains(service.Monitors, monitor => monitor.Name == @"\\.\DISPLAY1");
-            Assert.True(service.ProcessId > 0);
+            CurrentTest.Context?.WriteLine($"shown after {shownAfter.TotalMilliseconds:0} ms");
+            Assert.IsTrue(shownAfter < Second, $"workspaces showed after {shownAfter.TotalMilliseconds:0} ms");
+            Assert.Contains(monitor => monitor.Name == @"\\.\DISPLAY1", service.Monitors);
+            Assert.IsTrue(service.ProcessId > 0);
 
             peer.Stop();
             var closed = TimeProvider.System.GetTimestamp();
             Wait.Until(Cleared, "workspaces to clear", Second, loop.Process);
             var clearedAfter = TimeProvider.System.GetElapsedTime(closed);
-            TestContext.Current.TestOutputHelper?.WriteLine($"cleared after {clearedAfter.TotalMilliseconds:0} ms");
-            Assert.True(clearedAfter < Second, $"workspaces cleared after {clearedAfter.TotalMilliseconds:0} ms");
+            CurrentTest.Context?.WriteLine($"cleared after {clearedAfter.TotalMilliseconds:0} ms");
+            Assert.IsTrue(clearedAfter < Second, $"workspaces cleared after {clearedAfter.TotalMilliseconds:0} ms");
         }
 
         return;
@@ -61,7 +62,7 @@ public sealed class WinlandArrivalTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void Workspaces_show_within_a_second_when_winland_is_already_running()
     {
         var name = PipeName();
@@ -72,9 +73,9 @@ public sealed class WinlandArrivalTests
         using var stopService = service.Stopping();
         Wait.Until(() => service.Workspaces.Count > 0, "workspaces to show", Second, loop.Process);
         var shownAfter = TimeProvider.System.GetElapsedTime(opened);
-        TestContext.Current.TestOutputHelper?.WriteLine($"shown after {shownAfter.TotalMilliseconds:0} ms");
-        Assert.True(shownAfter < Second, $"workspaces showed after {shownAfter.TotalMilliseconds:0} ms");
-        Assert.Contains(service.Monitors, monitor => monitor.Name == @"\\.\DISPLAY1");
+        CurrentTest.Context?.WriteLine($"shown after {shownAfter.TotalMilliseconds:0} ms");
+        Assert.IsTrue(shownAfter < Second, $"workspaces showed after {shownAfter.TotalMilliseconds:0} ms");
+        Assert.Contains(monitor => monitor.Name == @"\\.\DISPLAY1", service.Monitors);
     }
 
     private static string PipeName()

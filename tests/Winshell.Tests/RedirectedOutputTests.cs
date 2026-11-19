@@ -2,11 +2,12 @@ using System.Diagnostics;
 
 namespace Winshell.Tests;
 
+[TestClass]
 public sealed partial class RedirectedOutputTests : IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
 
-    [Fact]
+    [TestMethod]
     public void Text_outside_the_console_code_page_survives_stdout_and_stderr()
     {
         Directory.CreateDirectory(_dir);
@@ -20,7 +21,7 @@ public sealed partial class RedirectedOutputTests : IDisposable
         Assert.Contains("Björk 東京", doctor.Output, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Redirected_output_has_no_byte_order_mark()
     {
         var info = WinshellCli.StartInfo(["--version"]);
@@ -29,7 +30,7 @@ public sealed partial class RedirectedOutputTests : IDisposable
         process.StandardOutput.BaseStream.CopyTo(bytes);
         process.WaitForExit();
 
-        Assert.Equal((byte)'w', bytes.ToArray()[0]);
+        Assert.AreEqual((byte)'w', bytes.ToArray()[0]);
     }
 
     public void Dispose()

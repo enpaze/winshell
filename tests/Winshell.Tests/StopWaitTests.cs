@@ -3,12 +3,13 @@ using System.Globalization;
 
 namespace Winshell.Tests;
 
-public sealed partial class StopWaitTests : IDisposable, IClassFixture<ProbeBuild>
+[TestClass]
+public sealed partial class StopWaitTests : ProbeBuild, IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<Process> _started = [];
 
-    [Fact]
+    [TestMethod]
     public void Force_ends_the_shell_and_leaves_the_programs_it_started()
     {
         var config = Path.Combine(_dir, "config");
@@ -24,8 +25,8 @@ public sealed partial class StopWaitTests : IDisposable, IClassFixture<ProbeBuil
             var result = Run("stop", "--force", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
 
             result.AssertExitCode(0);
-            Assert.True(process.HasExited);
-            Assert.False(child.HasExited);
+            Assert.IsTrue(process.HasExited);
+            Assert.IsFalse(child.HasExited);
         }
         finally
         {

@@ -5,9 +5,10 @@ using Winshell.Generators;
 
 namespace Winshell.Architecture.Tests;
 
+[TestClass]
 public class PreferenceGeneratorTests
 {
-    [Fact]
+    [TestMethod]
     public void A_preference_in_a_nested_generic_class_with_a_private_setter_compiles()
     {
         var (generator, compiler) = Compile("""
@@ -23,11 +24,11 @@ public class PreferenceGeneratorTests
             }
             """);
 
-        Assert.Empty(generator);
-        Assert.Empty(compiler);
+        Assert.IsEmpty(generator);
+        Assert.IsEmpty(compiler);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_preference_in_the_global_namespace_with_nullable_off_compiles()
     {
         var (generator, compiler) = Compile("""
@@ -39,11 +40,11 @@ public class PreferenceGeneratorTests
             }
             """);
 
-        Assert.Empty(generator);
-        Assert.Empty(compiler);
+        Assert.IsEmpty(generator);
+        Assert.IsEmpty(compiler);
     }
 
-    [Fact]
+    [TestMethod]
     public void Preferences_of_classes_whose_names_differ_only_in_punctuation_arity_or_case_compile_in_one_project()
     {
         var (generator, compiler) = Compile("""
@@ -74,11 +75,11 @@ public class PreferenceGeneratorTests
             }
             """);
 
-        Assert.Empty(generator);
-        Assert.Empty(compiler);
+        Assert.IsEmpty(generator);
+        Assert.IsEmpty(compiler);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_preference_whose_names_are_keywords_compiles()
     {
         var (generator, compiler) = Compile("""
@@ -94,11 +95,11 @@ public class PreferenceGeneratorTests
             }
             """);
 
-        Assert.Empty(generator);
-        Assert.Empty(compiler);
+        Assert.IsEmpty(generator);
+        Assert.IsEmpty(compiler);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_preference_whose_names_are_contextual_keywords_compiles()
     {
         var (generator, compiler) = Compile("""
@@ -114,13 +115,13 @@ public class PreferenceGeneratorTests
             }
             """);
 
-        Assert.Empty(generator);
-        Assert.Empty(compiler);
+        Assert.IsEmpty(generator);
+        Assert.IsEmpty(compiler);
     }
 
-    [Theory]
-    [InlineData("public bool Clock24 { get; set; }")]
-    [InlineData("public static partial bool Clock24 { get; set; }")]
+    [TestMethod]
+    [DataRow("public bool Clock24 { get; set; }")]
+    [DataRow("public static partial bool Clock24 { get; set; }")]
     public void A_preference_that_is_not_an_instance_partial_property_is_an_error_that_shows_the_partial_form(
         string declaration)
     {
@@ -133,14 +134,14 @@ public class PreferenceGeneratorTests
             """;
         var (generator, _) = Compile(source);
 
-        var error = Assert.Single(generator);
-        Assert.Equal(("WINSHELL001", DiagnosticSeverity.Error), (error.Id, error.Severity));
-        Assert.Equal("Clock24", Named(source, error));
+        var error = Assert.ContainsSingle(generator);
+        Assert.AreEqual(("WINSHELL001", DiagnosticSeverity.Error), (error.Id, error.Severity));
+        Assert.AreEqual("Clock24", Named(source, error));
         Assert.Contains("'public partial bool Clock24 { get; set; }'", error.GetMessage(CultureInfo.InvariantCulture),
             StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_preference_with_accessors_of_its_own_is_an_error()
     {
         var (generator, _) = Compile("""
@@ -153,10 +154,10 @@ public class PreferenceGeneratorTests
             }
             """);
 
-        Assert.Equal("WINSHELL001", Assert.Single(generator).Id);
+        Assert.AreEqual("WINSHELL001", Assert.ContainsSingle(generator).Id);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_preference_outside_a_Preferences_class_is_an_error_that_names_the_class()
     {
         var source = """
@@ -168,23 +169,23 @@ public class PreferenceGeneratorTests
             """;
         var (generator, _) = Compile(source);
 
-        var error = Assert.Single(generator);
-        Assert.Equal(("WINSHELL002", DiagnosticSeverity.Error), (error.Id, error.Severity));
-        Assert.Equal("Clock24", Named(source, error));
-        Assert.Equal("Clock24 is a preference, so Choices must derive from Winshell.Preferences",
+        var error = Assert.ContainsSingle(generator);
+        Assert.AreEqual(("WINSHELL002", DiagnosticSeverity.Error), (error.Id, error.Severity));
+        Assert.AreEqual("Clock24", Named(source, error));
+        Assert.AreEqual("Clock24 is a preference, so Choices must derive from Winshell.Preferences",
             error.GetMessage(CultureInfo.InvariantCulture));
     }
 
     private static string Named(string source, Diagnostic diagnostic)
     {
-        Assert.Equal("Choices.cs", diagnostic.Location.GetLineSpan().Path);
+        Assert.AreEqual("Choices.cs", diagnostic.Location.GetLineSpan().Path);
         return source.Substring(diagnostic.Location.SourceSpan.Start, diagnostic.Location.SourceSpan.Length);
     }
 
     private static (List<Diagnostic> Generator, List<Diagnostic> Compiler) Compile(string source)
     {
         var options = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
-        var cancel = TestContext.Current.CancellationToken;
+        var cancel = CurrentTest.Cancellation;
         var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator)
             .Select(path => MetadataReference.CreateFromFile(path));
         var compilation = CSharpCompilation.Create("Author",

@@ -3,13 +3,14 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Winshell.Architecture.Tests;
 
+[TestClass]
 public class NativeVisibilityTests
 {
-    [Fact]
+    [TestMethod]
     public void Win32_cs_declares_no_native_method()
     {
         var path = Path.Combine(Repo.Root, "src", "Winshell.Native", "Win32.cs");
-        var cancel = TestContext.Current.CancellationToken;
+        var cancel = CurrentTest.Cancellation;
         var imports = CSharpSyntaxTree.ParseText(File.ReadAllText(path), null, "", null, cancel).GetRoot(cancel)
             .DescendantNodes()
             .OfType<AttributeSyntax>()
@@ -18,7 +19,7 @@ public class NativeVisibilityTests
                 or "GeneratedComClass")
             .ToList();
 
-        Assert.Empty(imports);
+        Assert.IsEmpty(imports);
     }
 
     private static string Bare(string name)

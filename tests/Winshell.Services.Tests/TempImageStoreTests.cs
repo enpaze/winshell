@@ -3,13 +3,14 @@ using System.Globalization;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class TempImageStoreTests
 {
     private static readonly DateTimeOffset Now = new(2026, 11, 7, 12, 0, 0, TimeSpan.Zero);
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
     public void Cleanup_leaves_files_reached_through_a_directory_link_alone(bool linkedRoot)
     {
         var directory = TempFolder.NewPath();
@@ -24,11 +25,11 @@ public sealed class TempImageStoreTests
         try
         {
             ChildProcess.Run("cmd.exe", "/c", "mklink", "/J", link, elsewhere).AssertExitCode(0);
-            Assert.NotNull(new DirectoryInfo(link).LinkTarget);
+            Assert.IsNotNull(new DirectoryInfo(link).LinkTarget);
 
             Store(linkedRoot ? link : cache).CleanOld();
 
-            Assert.True(File.Exists(outside), "Cleanup followed a junction and removed a file outside the cache.");
+            Assert.IsTrue(File.Exists(outside), "Cleanup followed a junction and removed a file outside the cache.");
         }
         finally
         {
@@ -38,7 +39,7 @@ public sealed class TempImageStoreTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void Cleanup_removes_pictures_older_than_a_day_by_the_store_clock()
     {
         using var directory = new TempFolder();
@@ -53,11 +54,11 @@ public sealed class TempImageStoreTests
 
         Store(directory.Path).CleanOld();
 
-        Assert.False(File.Exists(old));
-        Assert.True(File.Exists(recent));
+        Assert.IsFalse(File.Exists(old));
+        Assert.IsTrue(File.Exists(recent));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_file_cleanup_cannot_delete_is_reported_and_the_rest_are_still_deleted()
     {
         using var directory = new TempFolder();
@@ -77,99 +78,99 @@ public sealed class TempImageStoreTests
             failure = Store(directory.Path).CleanOld();
         }
 
-        Assert.False(File.Exists(free));
+        Assert.IsFalse(File.Exists(free));
         Assert.StartsWith("Cannot clean old pictures", failure, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_same_picture_is_one_file_in_this_process_folder_until_its_last_release()
     {
         using var directory = new TempFolder();
         var store = Store(directory.Path);
         var png = Png(2, 2);
         var url = Claim(store, png);
-        Assert.NotNull(url);
+        Assert.IsNotNull(url);
         var path = new Uri(url).LocalPath;
-        Assert.Equal(Environment.ProcessId.ToString(CultureInfo.InvariantCulture),
+        Assert.AreEqual(Environment.ProcessId.ToString(CultureInfo.InvariantCulture),
             Path.GetFileName(Path.GetDirectoryName(path)));
         Assert.EndsWith(".png", path, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(url, Claim(store, png));
+        Assert.AreEqual(url, Claim(store, png));
 
         store.Release(url);
-        Assert.True(File.Exists(path));
+        Assert.IsTrue(File.Exists(path));
         store.Release(url);
-        Assert.False(File.Exists(path));
+        Assert.IsFalse(File.Exists(path));
     }
 
-    [Fact]
+    [TestMethod]
     public void No_picture_is_no_url()
     {
         using var directory = new TempFolder();
-        Assert.Equal("", Claim(Store(directory.Path), []));
+        Assert.AreEqual("", Claim(Store(directory.Path), []));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_picture_at_the_pixel_cap_is_stored_and_one_pixel_over_is_not()
     {
         using var directory = new TempFolder();
         var store = Store(directory.Path);
         var kept = Claim(store, Png(4096, 4096));
-        Assert.NotNull(kept);
+        Assert.IsNotNull(kept);
         Assert.EndsWith(".png", new Uri(kept).LocalPath, StringComparison.OrdinalIgnoreCase);
-        Assert.True(File.Exists(new Uri(kept).LocalPath));
+        Assert.IsTrue(File.Exists(new Uri(kept).LocalPath));
 
-        Assert.Null(Claim(store, Png(4097, 4096)));
+        Assert.IsNull(Claim(store, Png(4097, 4096)));
         store.Release(kept);
-        Assert.False(File.Exists(new Uri(kept).LocalPath));
+        Assert.IsFalse(File.Exists(new Uri(kept).LocalPath));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_file_still_open_at_the_last_release_is_reused()
     {
         using var directory = new TempFolder();
         var store = Store(directory.Path);
         var png = Png(2, 2);
         var url = Claim(store, png);
-        Assert.NotNull(url);
+        Assert.IsNotNull(url);
         var path = new Uri(url).LocalPath;
         using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
         {
             store.Release(url);
-            Assert.Equal(url, Claim(store, png));
-            Assert.Equal(png, File.ReadAllBytes(path));
+            Assert.AreEqual(url, Claim(store, png));
+            Assert.AreSequenceEqual(png, File.ReadAllBytes(path));
         }
 
         store.Release(url);
-        Assert.False(File.Exists(path));
+        Assert.IsFalse(File.Exists(path));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_picture_with_no_pixels_is_not_stored()
     {
         using var directory = new TempFolder();
-        Assert.Null(Claim(Store(directory.Path), Png(0, 2)));
-        Assert.Empty(Directory.EnumerateFiles(directory.Path, "*", SearchOption.AllDirectories));
+        Assert.IsNull(Claim(Store(directory.Path), Png(0, 2)));
+        Assert.IsEmpty(Directory.EnumerateFiles(directory.Path, "*", SearchOption.AllDirectories));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_picture_over_the_byte_cap_is_not_stored()
     {
         var art = new byte[TempImageStore.MaxBytes + 1];
         Png(2, 2).CopyTo(art, 0);
         using var directory = new TempFolder();
 
-        Assert.Null(Claim(Store(directory.Path), art));
-        Assert.Empty(Directory.EnumerateFiles(directory.Path, "*", SearchOption.AllDirectories));
+        Assert.IsNull(Claim(Store(directory.Path), art));
+        Assert.IsEmpty(Directory.EnumerateFiles(directory.Path, "*", SearchOption.AllDirectories));
     }
 
-    [Fact]
+    [TestMethod]
     public void Svg_is_not_stored()
     {
         var svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100000\" height=\"100000\"/>"u8.ToArray();
         using var directory = new TempFolder();
 
-        Assert.Null(Claim(Store(directory.Path), svg));
-        Assert.Empty(Directory.EnumerateFiles(directory.Path, "*", SearchOption.AllDirectories));
+        Assert.IsNull(Claim(Store(directory.Path), svg));
+        Assert.IsEmpty(Directory.EnumerateFiles(directory.Path, "*", SearchOption.AllDirectories));
     }
 
     private static TempImageStore Store(string root)
@@ -179,7 +180,7 @@ public sealed class TempImageStoreTests
 
     private static string? Claim(TempImageStore store, byte[] data)
     {
-        return store.Claim(new MemoryStream(data), TestContext.Current.CancellationToken);
+        return store.Claim(new MemoryStream(data), CurrentTest.Cancellation);
     }
 
     private static byte[] Png(int width, int height)

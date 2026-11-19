@@ -2,12 +2,13 @@ using System.Diagnostics;
 
 namespace Winshell.Tests;
 
-public sealed class PreferencesStartTests : IDisposable, IClassFixture<ProbeBuild>
+[TestClass]
+public sealed class PreferencesStartTests : ProbeBuild, IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
     private Process? _started;
 
-    [Fact]
+    [TestMethod]
     public void The_file_written_when_start_returns_includes_a_section_posted_during_start()
     {
         var config = Path.Combine(_dir, "config");
@@ -19,7 +20,7 @@ public sealed class PreferencesStartTests : IDisposable, IClassFixture<ProbeBuil
         string? said = null;
         Wait.Until(() => (said = Read(report)) is not null,
             "the probe to report the preferences file written when start returns");
-        Assert.Equal("both", said);
+        Assert.AreEqual("both", said);
     }
 
     private static string? Read(string path)

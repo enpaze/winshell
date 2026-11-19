@@ -5,8 +5,8 @@ function Get-TestRun {
     param([ValidateSet('Tests', 'Docs', 'Package')][string] $Tier = 'Tests', [ValidateRange(0, 4)][int] $Shard = 0)
     $run = switch ($Tier) {
         'Docs' { @{ Project = 'tests\Winshell.Shell.Tests'; Filter = 'FullyQualifiedName~Winshell.ShellTests.DocsTests' } }
-        'Package' { @{ Project = 'tests\Winshell.Package.Tests'; Filter = 'Category=Package' } }
-        default { @{ Project = 'winshell.slnx'; Filter = 'Category!=Package' } }
+        'Package' { @{ Project = 'tests\Winshell.Package.Tests'; Filter = 'TestCategory=Package' } }
+        default { @{ Project = 'winshell.slnx'; Filter = 'TestCategory!=Package' } }
     }
     $run.Projects = @($run.Project)
     $run.CompileTemplateExamplesReferenceAndLogo = $false
@@ -30,7 +30,7 @@ function Get-TestRun {
         }
         else {
             $run.Projects = $projects
-            $run.Filter += '&Category!=Window'
+            $run.Filter += '&TestCategory!=Window'
         }
     }
     $run
@@ -76,23 +76,18 @@ function Invoke-DotnetTest {
     param(
         [Parameter(Mandatory)][string] $Project,
         [Parameter(Mandatory)][string] $Filter,
-        [Parameter(Mandatory)][string] $ResultsDirectory,
-        [int] $Seed = 1
+        [Parameter(Mandatory)][string] $ResultsDirectory
     )
-    dotnet test (Join-Path $script:Root $Project) --no-build --nologo --filter $Filter --logger trx --results-directory $ResultsDirectory --blame-hang-timeout 3m --blame-hang-dump-type none -- "xUnit.Seed=$Seed" xUnit.MaxParallelThreads=2x | Out-Host
+    dotnet test --project (Join-Path $script:Root $Project) --no-build --filter $Filter --report-trx --results-directory $ResultsDirectory | Out-Host
     $LASTEXITCODE
 }
 
 function Invoke-TestRun {
     param(
         [ValidateSet('Tests', 'Docs', 'Package')][string] $Tier = 'Tests',
-        [int] $Seed = 0,
         [ValidateRange(0, 4)][int] $Shard = 0,
         [string] $ResultsDirectory
     )
-    if ($Seed -eq 0) { $Seed = Get-Random -Minimum 1 -Maximum ([int]::MaxValue) }
-    $replay = if ($Shard -gt 0) { "end a dotnet test command with -- xUnit.Seed=$Seed" } else { "pwsh scripts/check.ps1 -Tier $Tier -Seed $Seed" }
-    Write-Host "Test order seed: $Seed. To run this order again: $replay"
     $parent = if ($ResultsDirectory) { $ResultsDirectory } else { [IO.Path]::GetTempPath() }
     $results = Join-Path $parent ('winshell-test-results-' + [guid]::NewGuid().ToString('N'))
     try {
@@ -103,11 +98,11 @@ function Invoke-TestRun {
         $windows = @()
         foreach ($project in $run.Projects) {
             $watcher = if ($watch) { [WinshellWindowWatch]::new($PID) }
-            $code = Invoke-DotnetTest -Project $project -Filter $run.Filter -ResultsDirectory $results -Seed $Seed
+            $code = Invoke-DotnetTest -Project $project -Filter $run.Filter -ResultsDirectory $results
             if ($code -ne 0) { $exit = $code }
             if ($watcher) {
                 $name = [IO.Path]::GetFileNameWithoutExtension($project)
-                $windows += @($watcher.Stop() | ForEach-Object { "$name showed a window: $_. Give the test that shows it the category Window: [Trait(`"Category`", `"Window`")]." })
+                $windows += @($watcher.Stop() | ForEach-Object { "$name showed a window: $_. Give the test that shows it the category Window: [TestCategory(`"Window`")]." })
             }
         }
         $outcome = try { Read-TestResult -Directory $results -ProjectCount $run.Projects.Count } catch { if ($exit -eq 0) { throw } }

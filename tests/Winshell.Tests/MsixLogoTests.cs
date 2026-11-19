@@ -4,16 +4,17 @@ using System.Xml.Linq;
 
 namespace Winshell.Tests;
 
+[TestClass]
 public class MsixLogoTests
 {
     private static readonly int[] Scales = [125, 150, 200];
 
-    [Fact]
+    [TestMethod]
     public void The_package_logos_include_scale_and_unplated_sizes()
     {
         var assets = Path.Combine(Repo.Root, "packaging", "msix", "Assets");
         var files = Directory.GetFiles(assets, "*.png").Select(Path.GetFileName).Order(StringComparer.Ordinal).ToArray();
-        Assert.NotEmpty(files);
+        Assert.IsNotEmpty(files);
         foreach (var name in files)
             AssertSize(assets, name!, Side(assets, name!));
 
@@ -25,7 +26,7 @@ public class MsixLogoTests
                 Assert.Contains($"{bare}.scale-{scale}.png", files);
         }
 
-        Assert.Contains(files, name => name!.Contains(".targetsize-", StringComparison.Ordinal));
+        Assert.Contains(name => name!.Contains(".targetsize-", StringComparison.Ordinal), files);
     }
 
     private static int Side(string assets, string name)
@@ -72,9 +73,9 @@ public class MsixLogoTests
     private static void AssertSize(string directory, string name, int size)
     {
         var bytes = File.ReadAllBytes(Path.Combine(directory, name));
-        Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }, bytes[..8]);
-        Assert.Equal(size, Dimension(bytes, 16));
-        Assert.Equal(size, Dimension(bytes, 20));
+        Assert.AreSequenceEqual(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }, bytes[..8]);
+        Assert.AreEqual(size, Dimension(bytes, 16));
+        Assert.AreEqual(size, Dimension(bytes, 20));
     }
 
     private static int Width(string path) => Dimension(File.ReadAllBytes(path), 16);

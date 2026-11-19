@@ -3,34 +3,35 @@ using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class ProgramDescriptionTests
 {
-    [Fact]
+    [TestMethod]
     public void The_program_description_is_the_file_description()
     {
         var path = typeof(AppsService).Assembly.Location;
-        Assert.Equal("Winshell.Services", AppsService.ProgramDescription(path));
+        Assert.AreEqual("Winshell.Services", AppsService.ProgramDescription(path));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_missing_or_unreadable_program_has_no_description()
     {
         using var folder = new TempFolder();
-        Assert.Null(AppsService.ProgramDescription(Path.Combine(folder.Path, "gone.exe")));
-        Assert.Null(AppsService.ProgramDescription(""));
+        Assert.IsNull(AppsService.ProgramDescription(Path.Combine(folder.Path, "gone.exe")));
+        Assert.IsNull(AppsService.ProgramDescription(""));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_program_file_with_no_description_has_none()
     {
         using var folder = new TempFolder();
         var path = Path.Combine(folder.Path, "Player.exe");
         File.WriteAllText(path, "not a program");
 
-        Assert.Null(AppsService.ProgramDescription(path));
+        Assert.IsNull(AppsService.ProgramDescription(path));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_tray_icon_shows_that_same_description()
     {
         var path = typeof(AppsService).Assembly.Location;
@@ -51,6 +52,6 @@ public sealed class ProgramDescriptionTests
             Tip = "Services"
         });
 
-        Assert.Equal("Winshell.Services", Assert.Single(tray.Items).AppName);
+        Assert.AreEqual("Winshell.Services", Assert.ContainsSingle(tray.Items).AppName);
     }
 }

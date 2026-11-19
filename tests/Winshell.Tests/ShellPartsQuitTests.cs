@@ -4,7 +4,8 @@ using System.Text;
 
 namespace Winshell.Tests;
 
-public sealed class ShellPartsQuitTests : IDisposable, IClassFixture<ProbeBuild>
+[TestClass]
+public sealed class ShellPartsQuitTests : ProbeBuild, IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly string _config;
@@ -19,25 +20,25 @@ public sealed class ShellPartsQuitTests : IDisposable, IClassFixture<ProbeBuild>
         Directory.CreateDirectory(_config);
     }
 
-    [Fact]
+    [TestMethod]
     public void Quitting_disposes_each_added_part_once_last_first_and_after_the_authors_own_dispose()
     {
         var probe = Launch("quit");
 
-        Assert.True(probe.WaitForExit(TimeSpan.FromSeconds(60)), "The probe did not quit.");
+        Assert.IsTrue(probe.WaitForExit(TimeSpan.FromSeconds(60)), "The probe did not quit.");
         ChildProcess.Exited("The probe", probe, _printed).AssertExitCode(0);
-        Assert.Equal(Disposed(probe.Id, "quit"), File.ReadAllLines(Path.Combine(_config, "parts-quit.txt")));
-        Assert.Empty(CrashReports());
+        Assert.AreSequenceEqual(Disposed(probe.Id, "quit"), File.ReadAllLines(Path.Combine(_config, "parts-quit.txt")));
+        Assert.IsEmpty(CrashReports());
     }
 
-    [Fact]
+    [TestMethod]
     public void A_restart_disposes_the_added_parts_in_the_process_that_hands_over()
     {
         var probe = Launch("restart");
 
-        Assert.True(probe.WaitForExit(TimeSpan.FromSeconds(60)), "The probe did not restart.");
+        Assert.IsTrue(probe.WaitForExit(TimeSpan.FromSeconds(60)), "The probe did not restart.");
         ChildProcess.Exited("The probe", probe, _printed).AssertExitCode(0);
-        Assert.Equal([.. Disposed(probe.Id, "restart"), $"{probe.Id} restarted True"],
+        Assert.AreSequenceEqual([.. Disposed(probe.Id, "restart"), $"{probe.Id} restarted True"],
             File.ReadAllLines(Path.Combine(_config, "parts-restart.txt")));
 
         var next = Path.Combine(_config, "parts-quit.txt");
@@ -45,10 +46,10 @@ public sealed class ShellPartsQuitTests : IDisposable, IClassFixture<ProbeBuild>
         Wait.Until(() => (started = Lines(next)) is [var line, ..] && line.EndsWith(" added", StringComparison.Ordinal),
             "the next probe to start", TimeSpan.FromSeconds(60));
         var nextId = int.Parse(started[0].Split(' ')[0], CultureInfo.InvariantCulture);
-        Assert.NotEqual(probe.Id, nextId);
+        Assert.AreNotEqual(probe.Id, nextId);
         WaitForExit(nextId);
-        Assert.Equal(Disposed(nextId, "quit"), File.ReadAllLines(next));
-        Assert.Empty(CrashReports());
+        Assert.AreSequenceEqual(Disposed(nextId, "quit"), File.ReadAllLines(next));
+        Assert.IsEmpty(CrashReports());
     }
 
     private Process Launch(string ending)
@@ -98,7 +99,7 @@ public sealed class ShellPartsQuitTests : IDisposable, IClassFixture<ProbeBuild>
         }
 
         _started.Add(next);
-        Assert.True(next.WaitForExit(TimeSpan.FromSeconds(60)), "The next probe did not quit.");
+        Assert.IsTrue(next.WaitForExit(TimeSpan.FromSeconds(60)), "The next probe did not quit.");
     }
 
     public void Dispose()

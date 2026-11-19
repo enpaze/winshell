@@ -1,21 +1,20 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
-using Xunit.Sdk;
 
 namespace Winshell.Tests;
 
-public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<ReloadCommandTests.OwnProbe>
+[TestClass]
+public sealed partial class ReloadCommandTests : IDisposable
 {
     private const int BuildTimeout = 600_000;
 
     private readonly string _dir = TempFolder.NewPath();
     private readonly string _local;
     private readonly string _config;
-    private readonly OwnProbe _probe;
     private readonly List<Process> _started = [];
 
-    public sealed partial class OwnProbe : IDisposable
+    private sealed partial class OwnProbe : IDisposable
     {
         private readonly string _dir = TempFolder.NewPath();
 
@@ -41,20 +40,33 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         }
     }
 
-    public ReloadCommandTests(OwnProbe probe)
+    private static OwnProbe _probe = null!;
+
+    [ClassInitialize]
+    public static void Build(TestContext context)
     {
-        _probe = probe;
+        _probe = new OwnProbe();
+    }
+
+    [ClassCleanup]
+    public static void Remove()
+    {
+        _probe.Dispose();
+    }
+
+    public ReloadCommandTests()
+    {
         _local = Path.Combine(_dir, "local");
         _config = Path.Combine(_dir, "config");
         Directory.CreateDirectory(_local);
         Directory.CreateDirectory(_config);
     }
 
-    [Fact(Timeout = BuildTimeout)]
-    [Trait("Category", "Window")]
+    [TestMethod, Timeout(BuildTimeout)]
+    [TestCategory("Window")]
     public void A_build_that_fails_leaves_the_instance_running()
     {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
         var source = Path.Combine(_probe.Folder, "Program.cs");
         var original = File.ReadAllText(source);
         var process = StartProbe();
@@ -64,12 +76,12 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
             var result = Run("reload", "--pid", process.Id.ToString(CultureInfo.InvariantCulture));
 
             result.AssertExitCode(1);
-            Assert.Equal("", result.Output);
+            Assert.AreEqual("", result.Output);
             Assert.Contains("error ", result.Error, StringComparison.Ordinal);
             Assert.DoesNotContain("did not reload", result.Error, StringComparison.Ordinal);
             Assert.DoesNotContain("could not show the notice", result.Error, StringComparison.Ordinal);
-            Assert.False(process.HasExited);
-            Assert.Contains(Listed(), row => row.GetProperty("pid").GetInt32() == process.Id);
+            Assert.IsFalse(process.HasExited);
+            Assert.Contains(row => row.GetProperty("pid").GetInt32() == process.Id, Listed());
         }
         finally
         {
@@ -77,10 +89,10 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         }
     }
 
-    [Fact(Timeout = BuildTimeout)]
+    [TestMethod, Timeout(BuildTimeout)]
     public void A_second_reload_runs_the_second_edit()
     {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
         var project = Path.Combine(_probe.Folder, "Probe.csproj");
         var original = File.ReadAllText(project);
         var process = StartProbe();
@@ -89,7 +101,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
             var first = ReloadTo(process, original, "first");
             var second = ReloadTo(first, original, "second");
 
-            Assert.NotEqual(first.Id, second.Id);
+            Assert.AreNotEqual(first.Id, second.Id);
         }
         finally
         {
@@ -97,10 +109,10 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         }
     }
 
-    [Fact(Timeout = BuildTimeout)]
+    [TestMethod, Timeout(BuildTimeout)]
     public void A_shell_that_restarts_itself_hands_over_to_its_own_program_without_a_build()
     {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
         var project = Path.Combine(_probe.Folder, "Probe.csproj");
         var original = File.ReadAllText(project);
         var output = Path.GetDirectoryName(_probe.Program)!;
@@ -118,10 +130,10 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
             _started.Add(Process.GetProcessById(next));
             Wait.Until(() => process.HasExited, "the old process to exit");
             var instance = new Instances(Path.Combine(_local, "run")).Running().Single(info => info.Pid == next);
-            Assert.Equal(_probe.Program, instance.Program, StringComparer.OrdinalIgnoreCase);
-            Assert.Equal(runningName, instance.ShellName);
-            Assert.Equal(built, Directory.GetFiles(output, "*", SearchOption.AllDirectories).ToDictionary(file => file, File.GetLastWriteTimeUtc));
-            Assert.False(ExitIntentEvents.IsSupervised(next));
+            Assert.AreEqual(_probe.Program, instance.Program, StringComparer.OrdinalIgnoreCase);
+            Assert.AreEqual(runningName, instance.ShellName);
+            Assert.AreEquivalent(built, Directory.GetFiles(output, "*", SearchOption.AllDirectories).ToDictionary(file => file, File.GetLastWriteTimeUtc));
+            Assert.IsFalse(ExitIntentEvents.IsSupervised(next));
         }
         finally
         {
@@ -129,10 +141,10 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         }
     }
 
-    [Fact(Timeout = BuildTimeout)]
+    [TestMethod, Timeout(BuildTimeout)]
     public void A_reload_under_winshell_run_stays_supervised()
     {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
         var project = Path.Combine(_probe.Folder, "Probe.csproj");
         var original = File.ReadAllText(project);
         var run = Supervise();
@@ -151,7 +163,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
             }
 
             NextPid(second, "reloaded");
-            Assert.False(run.HasExited);
+            Assert.IsFalse(run.HasExited);
         }
         finally
         {
@@ -159,10 +171,10 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         }
     }
 
-    [Fact(Timeout = BuildTimeout)]
+    [TestMethod, Timeout(BuildTimeout)]
     public void A_reload_under_winshell_run_ends_a_shell_that_hangs_on_its_way_out()
     {
-        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        CurrentTest.Cancellation.ThrowIfCancellationRequested();
         var hang = Path.Combine(_config, ProbeShell.HangMarker);
         File.WriteAllText(hang, "");
         var run = Supervise();
@@ -176,9 +188,9 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         {
             Reload(shell);
 
-            Assert.True(hung.HasExited);
+            Assert.IsTrue(hung.HasExited);
             NextPid(shell, null);
-            Assert.False(run.HasExited);
+            Assert.IsFalse(run.HasExited);
         }
         finally
         {
@@ -187,7 +199,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void A_reload_under_winshell_run_without_its_project_is_refused()
     {
         var run = Supervise();
@@ -200,11 +212,11 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
 
             var id = Listed().Single(row => row.GetProperty("pid").GetInt32() == shell).GetProperty("id").GetString();
             result.AssertExitCode(1);
-            Assert.Equal("", result.Output);
-            Assert.Equal(
+            Assert.AreEqual("", result.Output);
+            Assert.AreEqual(
                 $"Could not find the project that builds instance {id}, so it was not reloaded.{Environment.NewLine}",
                 result.Error);
-            Assert.False(run.HasExited);
+            Assert.IsFalse(run.HasExited);
         }
         finally
         {
@@ -242,7 +254,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
     {
         var named = project.Replace("<ShellName>probe</ShellName>", $"<ShellName>{shellName}</ShellName>",
             StringComparison.Ordinal);
-        Assert.NotEqual(project, named);
+        Assert.AreNotEqual(project, named);
         return named;
     }
 
@@ -303,7 +315,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
         {
             rows = Listed();
         }
-        catch (XunitException)
+        catch (UnitTestAssertException)
         {
         }
 
@@ -313,7 +325,7 @@ public sealed partial class ReloadCommandTests : IDisposable, IClassFixture<Relo
                 Run("stop", "--force", "--pid",
                     row.GetProperty("pid").GetInt32().ToString(CultureInfo.InvariantCulture));
             }
-            catch (XunitException)
+            catch (UnitTestAssertException)
             {
             }
 

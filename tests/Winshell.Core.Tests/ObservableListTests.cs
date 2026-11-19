@@ -2,9 +2,10 @@ using System.ComponentModel;
 
 namespace Winshell.Core.Tests;
 
+[TestClass]
 public sealed class ObservableListTests
 {
-    [Fact]
+    [TestMethod]
     public void An_items_property_change_raises_the_list()
     {
         var item = new Reading { Level = 1 };
@@ -14,10 +15,10 @@ public sealed class ObservableListTests
 
         item.Level = 2;
 
-        Assert.Equal(["Item[]"], names);
+        Assert.AreSequenceEqual(["Item[]"], names);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_removed_replaced_or_cleared_item_no_longer_raises_the_list()
     {
         var item = new Reading();
@@ -25,30 +26,30 @@ public sealed class ObservableListTests
         list.Add(item);
         list.Remove(item);
 
-        Assert.Empty(RaisedBy(list, () => item.Level = 1));
+        Assert.IsEmpty(RaisedBy(list, () => item.Level = 1));
 
         var replacement = new Reading();
         list.Add(item);
         list[0] = replacement;
-        Assert.Empty(RaisedBy(list, () => item.Level = 2));
-        Assert.Equal(["Item[]"], RaisedBy(list, () => replacement.Level = 3));
+        Assert.IsEmpty(RaisedBy(list, () => item.Level = 2));
+        Assert.AreSequenceEqual(["Item[]"], RaisedBy(list, () => replacement.Level = 3));
 
         list.Clear();
-        Assert.Empty(RaisedBy(list, () => replacement.Level = 4));
+        Assert.IsEmpty(RaisedBy(list, () => replacement.Level = 4));
 
         var initial = new Reading();
         var constructed = new ObservableList<Reading>([initial]);
         constructed.Clear();
-        Assert.Empty(RaisedBy(constructed, () => initial.Level = 5));
+        Assert.IsEmpty(RaisedBy(constructed, () => initial.Level = 5));
 
         var twice = new Reading();
         var copies = new ObservableList<Reading>();
         copies.Add(twice);
         copies.Add(twice);
         copies.Remove(twice);
-        Assert.Equal(["Item[]"], RaisedBy(copies, () => twice.Level = 6));
+        Assert.AreSequenceEqual(["Item[]"], RaisedBy(copies, () => twice.Level = 6));
         copies.Remove(twice);
-        Assert.Empty(RaisedBy(copies, () => twice.Level = 7));
+        Assert.IsEmpty(RaisedBy(copies, () => twice.Level = 7));
     }
 
     private static List<string?> RaisedBy(ObservableList<Reading> list, Action change)

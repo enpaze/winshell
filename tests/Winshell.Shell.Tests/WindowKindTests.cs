@@ -9,13 +9,14 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class WindowKindTests
 {
-    [Theory]
-    [InlineData("panel", true)]
-    [InlineData("floating", true)]
-    [InlineData("popup", false)]
+    [TestMethod]
+    [DataRow("panel", true)]
+    [DataRow("floating", true)]
+    [DataRow("popup", false)]
     public async Task A_window_shows_nothing_until_it_is_added_and_a_panel_or_floating_window_then_shows(string kind,
         bool shown)
     {
@@ -33,13 +34,13 @@ public sealed class WindowKindTests
             return (visible, host, window.Visible, window.Host?.Place.IsVisible ?? false);
         });
 
-        Assert.Equal(shown, visibleBefore);
-        Assert.False(hostBefore);
-        Assert.Equal(shown, visibleAfter);
-        Assert.Equal(shown, shownAfter);
+        Assert.AreEqual(shown, visibleBefore);
+        Assert.IsFalse(hostBefore);
+        Assert.AreEqual(shown, visibleAfter);
+        Assert.AreEqual(shown, shownAfter);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_window_whose_add_failed_leaves_no_window_behind_and_shows_when_it_is_added_again()
     {
         var (hostAfterFailure, shownAfterRetry) = await ShellFixture.On(shell =>
@@ -47,18 +48,18 @@ public sealed class WindowKindTests
             var taken = new Grid();
             new Grid().Children.Add(taken);
             using var panel = new PanelWindow { Edge = Edge.Top, Align = PanelAlign.Start, Width = 200, Height = 48, Content = taken };
-            Assert.ThrowsAny<Exception>(() => shell.Add(panel));
+            Assert.Throws<Exception>(() => shell.Add(panel));
             var host = panel.Host is not null;
             panel.Content = new Grid();
             shell.Add(panel);
             return (host, panel.Host?.Place.IsVisible ?? false);
         });
 
-        Assert.False(hostAfterFailure);
-        Assert.True(shownAfterRetry);
+        Assert.IsFalse(hostAfterFailure);
+        Assert.IsTrue(shownAfterRetry);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_popup_sits_where_it_was_asked()
     {
         var rect = await ShellFixture.On(async shell =>
@@ -76,10 +77,10 @@ public sealed class WindowKindTests
             return (r.Width, r.Height, popup.Scale);
         });
 
-        Assert.Equal(((int)(200 * rect.Scale), (int)(120 * rect.Scale)), (rect.Width, rect.Height));
+        Assert.AreEqual(((int)(200 * rect.Scale), (int)(120 * rect.Scale)), (rect.Width, rect.Height));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_popup_that_grabs_focus_is_dismissed_by_a_click_outside_it()
     {
         var dismissed = await ShellFixture.On(async shell =>
@@ -101,10 +102,10 @@ public sealed class WindowKindTests
             return (heard, popup.Visible);
         });
 
-        Assert.Equal((1, false), dismissed);
+        Assert.AreEqual((1, false), dismissed);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_click_inside_a_popup_that_grabs_focus_leaves_it_open()
     {
         var heard = await ShellFixture.On(async shell =>
@@ -127,10 +128,10 @@ public sealed class WindowKindTests
             return count;
         });
 
-        Assert.Equal(0, heard);
+        Assert.AreEqual(0, heard);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_click_on_a_flyout_that_extends_past_a_grabbing_popup_leaves_the_popup_open()
     {
         var after = await ShellFixture.On(async shell =>
@@ -170,26 +171,26 @@ public sealed class WindowKindTests
             return result;
         });
 
-        Assert.Equal((0, true, true), after);
+        Assert.AreEqual((0, true, true), after);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Focus_on_a_popup_that_does_not_grab_focus_leaves_the_app_in_front_active()
     {
         var (app, _, foreground) = await FocusInFrontOfApp(shell => Popup(shell, false));
 
-        Assert.Equal(app, foreground);
+        Assert.AreEqual(app, foreground);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Focus_on_a_popup_that_grabs_focus_takes_the_foreground()
     {
         var (_, popup, foreground) = await FocusInFrontOfApp(shell => Popup(shell, true));
 
-        Assert.Equal(popup, foreground);
+        Assert.AreEqual(popup, foreground);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Focus_on_a_panel_that_is_not_focusable_leaves_the_app_in_front_active()
     {
         var (app, _, foreground) = await FocusInFrontOfApp(_ => new PanelWindow
@@ -203,7 +204,7 @@ public sealed class WindowKindTests
             Content = new Grid()
         });
 
-        Assert.Equal(app, foreground);
+        Assert.AreEqual(app, foreground);
     }
 
     private static PopupWindow Popup(Shell shell, bool grabFocus)
@@ -241,7 +242,7 @@ public sealed class WindowKindTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_floating_window_has_the_size_and_title_it_was_given()
     {
         var read = await ShellFixture.On(async shell =>
@@ -257,10 +258,10 @@ public sealed class WindowKindTests
             return (window.ActualWidth, window.ActualHeight, Win32Title(window.Host!.Handle));
         });
 
-        Assert.Equal((500d, 300d, "Notes"), read);
+        Assert.AreEqual((500d, 300d, "Notes"), read);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_flyout_on_a_panel_that_never_activates_closes_on_a_click_outside_it()
     {
         var after = await ShellFixture.On(async shell =>
@@ -293,7 +294,7 @@ public sealed class WindowKindTests
             return (open, flyout.IsOpen);
         });
 
-        Assert.Equal((1, false), after);
+        Assert.AreEqual((1, false), after);
     }
 
     private static string Win32Title(nint hwnd)

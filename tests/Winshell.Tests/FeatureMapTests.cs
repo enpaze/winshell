@@ -8,6 +8,7 @@ using ReactorComponent = Microsoft.UI.Reactor.Core.Component;
 
 namespace Winshell.Tests;
 
+[TestClass]
 public sealed partial class FeatureMapTests
 {
     private const string RelativeMap = ".agents/skills/verify-winshell/features";
@@ -24,49 +25,49 @@ public sealed partial class FeatureMapTests
         [typeof(FloatingWindow<,>)] = typeof(FloatingWindow)
     };
 
-    [Fact]
+    [TestMethod]
     public void Every_command_has_a_feature_file()
     {
         AssertMatches("command", Commands());
     }
 
-    [Fact]
+    [TestMethod]
     public void Every_service_has_a_feature_file()
     {
         AssertMatches("service", Services());
     }
 
-    [Fact]
+    [TestMethod]
     public void Every_widget_has_a_feature_file()
     {
         AssertMatches("widget", WidgetNames());
     }
 
-    [Fact]
+    [TestMethod]
     public void Every_block_has_a_feature_file()
     {
         AssertMatches("block", Blocks());
     }
 
-    [Fact]
+    [TestMethod]
     public void Every_feature_file_is_of_a_kind_the_inventory_has()
     {
         var kinds = new[] { "command", "service", "widget", "block" };
         var strays = FeatureIds().Where(id => !kinds.Contains(id.Split('.')[0])).ToList();
-        Assert.True(strays.Count == 0,
+        Assert.IsTrue(strays.Count == 0,
             string.Join('\n', strays.Select(id =>
                 $"{id}.md in {RelativeMap} is not a command, service, widget or block. Rename it <kind>.<slug>.md, or remove it.")));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_block_is_a_public_window_control_component_composition_or_element_of_the_shell_library()
     {
-        Assert.Equal(
+        Assert.AreSequenceEqual(
             ["Bar", "CaptureView", "FloatingWindow", "Launcher", "PanelWindow", "PopupWindow", "Surface", "WidgetArea", "WindowThumbnail"],
             Blocks());
     }
 
-    [Fact]
+    [TestMethod]
     public void Every_component_window_is_a_component_sub_feature_of_its_windows_feature_file()
     {
         var problems = new List<string>();
@@ -81,7 +82,7 @@ public sealed partial class FeatureMapTests
                     $"{file} does not name {shown} in its `component` sub-feature. Add it to the line that starts with - `component`.");
         }
 
-        Assert.True(problems.Count == 0, string.Join('\n', problems));
+        Assert.IsTrue(problems.Count == 0, string.Join('\n', problems));
     }
 
     private static void AssertMatches(string kind, IReadOnlyCollection<string> inventory)
@@ -95,7 +96,7 @@ public sealed partial class FeatureMapTests
         foreach (var id in mapped.Where(id => !expected.ContainsKey(id)))
             problems.Add(
                 $"{RelativeMap}/{id}.md maps a {kind} that winshell does not have. Remove the file and its index line, or rename it to the {kind}'s <kind>.<slug>.md.");
-        Assert.True(problems.Count == 0, string.Join('\n', problems));
+        Assert.IsTrue(problems.Count == 0, string.Join('\n', problems));
     }
 
     private static List<string> FeatureIds()

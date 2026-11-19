@@ -1,8 +1,9 @@
 namespace Winshell.Tests;
 
+[TestClass]
 public class IpcShowJsonTests
 {
-    [Fact]
+    [TestMethod]
     public void Ipc_show_json_prints_each_target_indented_with_camel_case_names()
     {
         var payload = IpcShowPayload.Write(
@@ -49,6 +50,6 @@ public class IpcShowJsonTests
                          }
                        ]
                        """.ReplaceLineEndings("\r\n");
-        Assert.Equal(expected, CliJson.IpcShow(payload));
+        Assert.AreEqual(expected, CliJson.IpcShow(payload));
     }
 }

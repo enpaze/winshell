@@ -5,13 +5,14 @@ using Winshell.Native;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public class ComApartmentTests
 {
-    [Fact]
+    [TestMethod]
     public void A_com_object_is_usable_on_the_thread_that_restores_it()
     {
         var type = Type.GetTypeFromProgID("Scripting.Dictionary");
-        Assert.NotNull(type);
+        Assert.IsNotNull(type);
         var source = Activator.CreateInstance(type)!;
         try
         {
@@ -28,8 +29,8 @@ public class ComApartmentTests
             });
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
-            Assert.True(thread.Join(TimeSpan.FromSeconds(5)));
-            Assert.Equal("v", value);
+            Assert.IsTrue(thread.Join(TimeSpan.FromSeconds(5)));
+            Assert.AreEqual("v", value);
             if (restored is not null)
                 Marshal.ReleaseComObject(restored);
         }

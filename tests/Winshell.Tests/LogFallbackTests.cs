@@ -2,6 +2,7 @@ using System.Text.Json;
 
 namespace Winshell.Tests;
 
+[TestClass]
 public sealed partial class LogFallbackTests : IDisposable
 {
     private const string StoppedId = "abc123stopped";
@@ -14,38 +15,38 @@ public sealed partial class LogFallbackTests : IDisposable
         Write(StoppedId, Path.Combine(_root, "MyShell.exe"), int.MaxValue - 1, DateTime.Now);
     }
 
-    [Theory]
-    [InlineData("--pid", "1234", "No instance with process id 1234.")]
-    [InlineData("-i", "deadbeef", "No instance with id deadbeef.")]
+    [TestMethod]
+    [DataRow("--pid", "1234", "No instance with process id 1234.")]
+    [DataRow("-i", "deadbeef", "No instance with id deadbeef.")]
     public void A_selector_that_matches_nothing_does_not_take_the_stopped_instance(string option, string value,
         string message)
     {
         var choice = Ask("log", option, value);
 
-        Assert.Null(choice.Info);
-        Assert.Equal(1, choice.Code);
-        Assert.Equal(message, choice.Error);
+        Assert.IsNull(choice.Info);
+        Assert.AreEqual(1, choice.Code);
+        Assert.AreEqual(message, choice.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_selector_names_a_stopped_instance()
     {
         var choice = Ask("log", "-i", StoppedId[..6]);
 
-        Assert.Equal(StoppedId, choice.Info!.Id);
-        Assert.Equal($"Showing the log of stopped instance {StoppedId}.", choice.Notice);
+        Assert.AreEqual(StoppedId, choice.Info!.Id);
+        Assert.AreEqual($"Showing the log of stopped instance {StoppedId}.", choice.Notice);
     }
 
-    [Fact]
+    [TestMethod]
     public void With_no_selector_the_stopped_instance_is_named()
     {
         var choice = Ask("log");
 
-        Assert.Equal(StoppedId, choice.Info!.Id);
-        Assert.Equal($"Showing the log of stopped instance {StoppedId}.", choice.Notice);
+        Assert.AreEqual(StoppedId, choice.Info!.Id);
+        Assert.AreEqual($"Showing the log of stopped instance {StoppedId}.", choice.Notice);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_project_selector_finds_a_stopped_instance_beside_the_build_folder()
     {
         var project = Path.Combine(_root, "MyProject");
@@ -56,8 +57,8 @@ public sealed partial class LogFallbackTests : IDisposable
 
         var choice = Ask("log", "-p", project);
 
-        Assert.Equal("besideabc", choice.Info!.Id);
-        Assert.Equal("Showing the log of stopped instance besideabc.", choice.Notice);
+        Assert.AreEqual("besideabc", choice.Info!.Id);
+        Assert.AreEqual("Showing the log of stopped instance besideabc.", choice.Notice);
     }
 
     public void Dispose()

@@ -4,7 +4,8 @@ using System.Text.Json;
 
 namespace Winshell.Tests;
 
-public sealed class ShellPathsTests : IDisposable, IClassFixture<ProbeBuild>, IClassFixture<OtherProbeBuild>
+[TestClass]
+public sealed class ShellPathsTests : ProbeBuild, IDisposable
 {
     private readonly string _dir = TempFolder.NewPath();
     private readonly List<Process> _started = [];
@@ -13,17 +14,17 @@ public sealed class ShellPathsTests : IDisposable, IClassFixture<ProbeBuild>, IC
 
     private string Local => Path.Combine(_dir, "local");
 
-    [Fact]
+    [TestMethod]
     public void Without_folder_properties_the_folders_are_under_the_local_folder_by_shell_name()
     {
         var process = Start(ProbeShell.Program);
 
-        Assert.Equal(Path.Combine(Local, "data", "by-shell", "probe"), Get(process, "data"));
-        Assert.Equal(Path.Combine(Local, "state", "by-shell", "probe"), Get(process, "state"));
-        Assert.Equal(Path.Combine(Local, "cache", "by-shell", "probe"), Get(process, "cache"));
+        Assert.AreEqual(Path.Combine(Local, "data", "by-shell", "probe"), Get(process, "data"));
+        Assert.AreEqual(Path.Combine(Local, "state", "by-shell", "probe"), Get(process, "state"));
+        Assert.AreEqual(Path.Combine(Local, "cache", "by-shell", "probe"), Get(process, "cache"));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_folder_property_is_in_the_project_folder_or_expands_a_variable_or_the_base()
     {
         var process = Start(ProbeShell.Other);
@@ -32,25 +33,26 @@ public sealed class ShellPathsTests : IDisposable, IClassFixture<ProbeBuild>, IC
         var state = Get(process, "state");
         var cache = Get(process, "cache");
 
-        Assert.Equal(Path.Combine(ProbeShell.OtherFolder, ProbeShell.OtherDataDir), data);
-        Assert.Equal(Path.Combine(Local, "state", ProbeShell.OtherStateDir), state);
-        Assert.Equal(Path.Combine(Local, ProbeShell.OtherCacheDir), cache);
-        Assert.All([data, state, cache], folder => Assert.True(Directory.Exists(folder), folder));
+        Assert.AreEqual(Path.Combine(ProbeShell.OtherFolder, ProbeShell.OtherDataDir), data);
+        Assert.AreEqual(Path.Combine(Local, "state", ProbeShell.OtherStateDir), state);
+        Assert.AreEqual(Path.Combine(Local, ProbeShell.OtherCacheDir), cache);
+        foreach (var folder in new[] { data, state, cache })
+            Assert.IsTrue(Directory.Exists(folder), folder);
     }
 
-    [Fact]
+    [TestMethod]
     public void Winshell_finds_the_log_and_the_shells_folder_where_the_paths_say()
     {
         var process = Start(ProbeShell.Other);
         var pid = process.Id.ToString(CultureInfo.InvariantCulture);
         var logs = Get(process, "logs");
 
-        Assert.Equal(Path.GetDirectoryName(ProbeShell.Other), Get(process, "program"));
-        Assert.Equal(Config, Get(process, "shells"));
+        Assert.AreEqual(Path.GetDirectoryName(ProbeShell.Other), Get(process, "program"));
+        Assert.AreEqual(Config, Get(process, "shells"));
         using (var listed = JsonDocument.Parse(Run("list", "--json").Output))
         {
             var row = listed.RootElement.EnumerateArray().Single(i => i.GetProperty("pid").GetInt32() == process.Id);
-            Assert.Equal(logs, row.GetProperty("log").GetString());
+            Assert.AreEqual(logs, row.GetProperty("log").GetString());
         }
 
         var log = Run("log", "--pid", pid);
@@ -62,7 +64,7 @@ public sealed class ShellPathsTests : IDisposable, IClassFixture<ProbeBuild>, IC
             .Single(c => c.GetProperty("id").GetString() == "instances");
         var shown = logs.Replace(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "%LOCALAPPDATA%", StringComparison.OrdinalIgnoreCase);
-        Assert.Contains($"log {shown}", instances.GetProperty("message").GetString(), StringComparison.Ordinal);
+        Assert.Contains($"log {shown}", instances.GetProperty("message").GetString()!, StringComparison.Ordinal);
     }
 
     private Process Start(string program)

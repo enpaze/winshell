@@ -2,10 +2,11 @@ using Winshell.Capture;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class ShellLoopTests
 {
-    [Fact]
+    [TestMethod]
     public async Task A_capture_session_made_in_a_running_shell_raises_its_frames_on_the_shell_loop()
     {
         var (shellThread, frameThread) = await ShellFixture.On(async shell =>
@@ -15,11 +16,11 @@ public sealed class ShellLoopTests
             var frame = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             session.FrameReady += () => frame.TrySetResult(Environment.CurrentManagedThreadId);
 
-            Assert.True(session.Start(), session.Error);
-            var raisedOn = await frame.Task.WaitAsync(TimeSpan.FromSeconds(20), TestContext.Current.CancellationToken);
+            Assert.IsTrue(session.Start(), session.Error);
+            var raisedOn = await frame.Task.WaitAsync(TimeSpan.FromSeconds(20), CurrentTest.Cancellation);
             return (Environment.CurrentManagedThreadId, raisedOn);
         });
 
-        Assert.Equal(shellThread, frameThread);
+        Assert.AreEqual(shellThread, frameThread);
     }
 }

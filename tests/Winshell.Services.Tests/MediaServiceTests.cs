@@ -5,6 +5,7 @@ using Winshell.Media;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class MediaServiceTests
 {
     private const GlobalSystemMediaTransportControlsSessionPlaybackStatus Playing =
@@ -128,7 +129,7 @@ public sealed class MediaServiceTests
         return changes;
     }
 
-    [Fact]
+    [TestMethod]
     public void The_sessions_follow_Windows_and_one_that_stays_is_the_same_object()
     {
         var sessions = new FakeSessions(id => Native(new RecordingLink(), id));
@@ -140,12 +141,12 @@ public sealed class MediaServiceTests
 
         sessions.Remove(first);
 
-        Assert.Same(kept, Assert.Single(media.Sessions));
-        Assert.Equal("b.exe", kept.AppId);
-        Assert.Same(second, kept.Native);
+        Assert.AreSame(kept, Assert.ContainsSingle(media.Sessions));
+        Assert.AreEqual("b.exe", kept.AppId);
+        Assert.AreSame(second, kept.Native);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_session_that_left_stops_reporting()
     {
         var sessions = new FakeSessions(id => Native(new RecordingLink(), id));
@@ -157,10 +158,10 @@ public sealed class MediaServiceTests
         sessions.Remove(native);
         Controls(native, true);
 
-        Assert.Empty(changes);
+        Assert.IsEmpty(changes);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_disposed_service_stops_following_Windows()
     {
         var sessions = new FakeSessions(id => Native(new RecordingLink(), id));
@@ -172,12 +173,12 @@ public sealed class MediaServiceTests
         sessions.Add("b.exe");
         Controls(native, true);
 
-        Assert.Single(media.Sessions);
-        Assert.Empty(changes);
-        Assert.True(sessions.Disposed);
+        Assert.ContainsSingle(media.Sessions);
+        Assert.IsEmpty(changes);
+        Assert.IsTrue(sessions.Disposed);
     }
 
-    [Fact]
+    [TestMethod]
     public void Can_control_is_false_with_no_command_true_with_one_and_false_when_it_goes_away()
     {
         var session = Session();
@@ -188,48 +189,48 @@ public sealed class MediaServiceTests
             return changes.Count(c => c == nameof(MediaSession.CanControl));
         }
 
-        Assert.False(session.CanControl);
+        Assert.IsFalse(session.CanControl);
 
         Controls(_native, canPause: true);
-        Assert.True(session.CanControl);
-        Assert.Equal(1, Count());
+        Assert.IsTrue(session.CanControl);
+        Assert.AreEqual(1, Count());
 
         Controls(_native, canPause: true, canGoNext: true);
         Controls(_native, canGoNext: true);
-        Assert.True(session.CanControl);
-        Assert.Equal(1, Count());
+        Assert.IsTrue(session.CanControl);
+        Assert.AreEqual(1, Count());
 
         Controls(_native);
-        Assert.False(session.CanControl);
-        Assert.Equal(2, Count());
+        Assert.IsFalse(session.CanControl);
+        Assert.AreEqual(2, Count());
 
         Controls(_native, canSeek: true);
-        Assert.True(session.CanControl);
-        Assert.Equal(3, Count());
+        Assert.IsTrue(session.CanControl);
+        Assert.AreEqual(3, Count());
     }
 
-    [Fact]
+    [TestMethod]
     public void Can_control_reports_the_loss_of_a_command_the_session_started_with()
     {
         Controls(_native, true);
         var session = Session();
         var changes = Watch(session);
-        Assert.True(session.CanControl);
+        Assert.IsTrue(session.CanControl);
 
         Controls(_native);
 
-        Assert.False(session.CanControl);
+        Assert.IsFalse(session.CanControl);
         Assert.Contains(nameof(MediaSession.CanControl), changes);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_property_read_from_others_is_raised_when_they_change()
     {
         var changes = Watch(Session());
 
         void Raised(params string[] names)
         {
-            Assert.Superset(names.ToHashSet(), changes.ToHashSet());
+            Assert.ContainsAll(names, changes);
             changes.Clear();
         }
 
@@ -244,7 +245,7 @@ public sealed class MediaServiceTests
         Raised(nameof(MediaSession.LengthSupported), nameof(MediaSession.Metadata));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_new_track_is_told_before_and_after_its_properties_change()
     {
         var session = Session();
@@ -258,43 +259,43 @@ public sealed class MediaServiceTests
         };
 
         Track("Song");
-        Assert.Equal(["before", "title", "after"], heard);
-        Assert.Equal((uint)1, session.UniqueId);
+        Assert.AreSequenceEqual(["before", "title", "after"], heard);
+        Assert.AreEqual((uint)1, session.UniqueId);
 
         heard.Clear();
         Track("Song", number: 2);
-        Assert.Empty(heard);
-        Assert.Equal((uint)1, session.UniqueId);
+        Assert.IsEmpty(heard);
+        Assert.AreEqual((uint)1, session.UniqueId);
     }
 
-    [Fact]
+    [TestMethod]
     public void Metadata_has_what_the_app_gives()
     {
         var session = Session();
 
         Track("Song", "Artist", "Album", "Band");
-        Assert.Equal(["album", "albumArtist", "artist", "title"], session.Metadata.Keys.Order(StringComparer.Ordinal));
+        Assert.AreSequenceEqual<string>(["album", "albumArtist", "artist", "title"], session.Metadata.Keys.Order(StringComparer.Ordinal));
 
         Track("Song", "Artist", "Album", "Band", 3, ["Rock"]);
         Timeline(5, 125);
 
-        Assert.Equal("Band", session.Metadata["albumArtist"]);
-        Assert.Equal(125d, session.Metadata["duration"]);
-        Assert.Equal(3, session.Metadata["trackNumber"]);
-        Assert.Equal(["Rock"], (IReadOnlyList<string>)session.Metadata["genres"]!);
-        Assert.Equal("Song", session.TrackTitle);
-        Assert.Equal("Artist", session.TrackArtist);
-        Assert.Equal("Album", session.TrackAlbum);
-        Assert.Equal("Band", session.TrackAlbumArtist);
+        Assert.AreEqual("Band", session.Metadata["albumArtist"]);
+        Assert.AreEqual(125d, session.Metadata["duration"]);
+        Assert.AreEqual(3, session.Metadata["trackNumber"]);
+        Assert.AreSequenceEqual(["Rock"], (IReadOnlyList<string>)session.Metadata["genres"]!);
+        Assert.AreEqual("Song", session.TrackTitle);
+        Assert.AreEqual("Artist", session.TrackArtist);
+        Assert.AreEqual("Album", session.TrackAlbum);
+        Assert.AreEqual("Band", session.TrackAlbumArtist);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_playback_commands_reach_the_app_when_it_accepts_them()
     {
         var session = Session();
         _native.ApplyPlayback(new SmtcPlayback(Paused)
         { CanPlay = true, CanPause = true, CanStop = true, CanGoNext = true, CanGoPrevious = true });
-        Assert.True(session.CanTogglePlaying);
+        Assert.IsTrue(session.CanTogglePlaying);
 
         session.Play();
         session.Next();
@@ -306,11 +307,11 @@ public sealed class MediaServiceTests
         session.Stop();
         session.PlaybackState = MediaPlaybackState.Stopped;
 
-        Assert.Equal(["play", "next", "previous", "play", "pause", "pause", "stop", "stop"], _link.Sent);
-        Assert.Empty(_warnings);
+        Assert.AreSequenceEqual(["play", "next", "previous", "play", "pause", "pause", "stop", "stop"], _link.Sent);
+        Assert.IsEmpty(_warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void Asking_for_the_state_it_is_in_sends_nothing()
     {
         var session = Session();
@@ -318,11 +319,11 @@ public sealed class MediaServiceTests
 
         session.Play();
 
-        Assert.Empty(_link.Sent);
-        Assert.Empty(_warnings);
+        Assert.IsEmpty(_link.Sent);
+        Assert.IsEmpty(_warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_control_the_app_does_not_allow_does_nothing_and_warns()
     {
         var session = Session();
@@ -344,13 +345,13 @@ public sealed class MediaServiceTests
         for (var i = 0; i < refused.Length; i++)
         {
             refused[i]();
-            Assert.Equal(i + 1, _warnings.Count);
+            Assert.AreEqual(i + 1, _warnings.Count);
         }
 
-        Assert.Empty(_link.Sent);
+        Assert.IsEmpty(_link.Sent);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_unknown_playback_or_loop_state_is_refused()
     {
         var session = Session();
@@ -359,12 +360,13 @@ public sealed class MediaServiceTests
         session.PlaybackState = (MediaPlaybackState)7;
         session.LoopState = (MediaLoopState)7;
 
-        Assert.Empty(_link.Sent);
-        Assert.Equal(2, _warnings.Count);
-        Assert.All(_warnings, w => Assert.Contains("unknown value 7", w, StringComparison.Ordinal));
+        Assert.IsEmpty(_link.Sent);
+        Assert.AreEqual(2, _warnings.Count);
+        foreach (var w in _warnings)
+            Assert.Contains("unknown value 7", w, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_moment_between_tracks_keeps_the_state_it_had()
     {
         var session = Session();
@@ -373,61 +375,61 @@ public sealed class MediaServiceTests
 
         _native.ApplyPlayback(new SmtcPlayback(Changing));
 
-        Assert.Equal(MediaPlaybackState.Playing, session.PlaybackState);
-        Assert.True(session.IsPlaying);
-        Assert.Empty(changes);
+        Assert.AreEqual(MediaPlaybackState.Playing, session.PlaybackState);
+        Assert.IsTrue(session.IsPlaying);
+        Assert.IsEmpty(changes);
     }
 
-    [Fact]
+    [TestMethod]
     public void Shuffle_and_repeat_show_only_while_the_app_lets_Windows_change_them()
     {
         var session = Session();
         _native.ApplyPlayback(new SmtcPlayback(Playing) { Shuffle = true, LoopState = MediaLoopState.List });
-        Assert.False(session.Shuffle);
-        Assert.Equal(MediaLoopState.None, session.LoopState);
+        Assert.IsFalse(session.Shuffle);
+        Assert.AreEqual(MediaLoopState.None, session.LoopState);
 
         _native.ApplyPlayback(new SmtcPlayback(Playing)
         { Shuffle = true, LoopState = MediaLoopState.List, ShuffleSupported = true, LoopSupported = true });
-        Assert.True(session.Shuffle);
-        Assert.Equal(MediaLoopState.List, session.LoopState);
+        Assert.IsTrue(session.Shuffle);
+        Assert.AreEqual(MediaLoopState.List, session.LoopState);
 
         session.Shuffle = false;
         session.LoopState = MediaLoopState.List;
         session.LoopState = MediaLoopState.Track;
 
-        Assert.Equal(["set shuffle", "set loopState"], _link.Sent);
+        Assert.AreSequenceEqual(["set shuffle", "set loopState"], _link.Sent);
     }
 
-    [Theory]
-    [InlineData(2, true)]
-    [InlineData(0.25, true)]
-    [InlineData(4, true)]
-    [InlineData(0.2, false)]
-    [InlineData(4.5, false)]
+    [TestMethod]
+    [DataRow(2, true)]
+    [DataRow(0.25, true)]
+    [DataRow(4, true)]
+    [DataRow(0.2, false)]
+    [DataRow(4.5, false)]
     public void A_rate_is_asked_for_between_the_limits(double rate, bool asked)
     {
         var session = Session();
         _native.ApplyPlayback(new SmtcPlayback(Playing) { RateSupported = true });
-        Assert.Equal(0.25, session.MinRate);
-        Assert.Equal(4, session.MaxRate);
+        Assert.AreEqual(0.25, session.MinRate);
+        Assert.AreEqual(4, session.MaxRate);
 
         session.Rate = rate;
 
-        Assert.Equal(asked ? 1 : 0, _link.Sent.Count);
-        Assert.Equal(asked ? 0 : 1, _warnings.Count);
+        Assert.AreEqual(asked ? 1 : 0, _link.Sent.Count);
+        Assert.AreEqual(asked ? 0 : 1, _warnings.Count);
     }
 
-    [Fact]
+    [TestMethod]
     public void With_no_speed_control_the_rate_stays_at_one()
     {
         var session = Session();
 
-        Assert.Equal(1, session.Rate);
-        Assert.Equal(1, session.MinRate);
-        Assert.Equal(1, session.MaxRate);
+        Assert.AreEqual(1, session.Rate);
+        Assert.AreEqual(1, session.MinRate);
+        Assert.AreEqual(1, session.MaxRate);
     }
 
-    [Fact]
+    [TestMethod]
     public void Position_moves_while_playing_and_holds_while_paused()
     {
         var native = Native(new RecordingLink());
@@ -435,110 +437,110 @@ public sealed class MediaServiceTests
         var now = _loop.Time.GetUtcNow();
         native.ApplyTimeline(TimeSpan.Zero, TimeSpan.FromSeconds(200), TimeSpan.FromSeconds(10), now, now);
         var session = new MediaSession(native, _loop, _log);
-        Assert.Equal(10, session.Position);
+        Assert.AreEqual(10, session.Position);
 
         _loop.Advance(TimeSpan.FromSeconds(5));
-        Assert.Equal(15, session.Position);
+        Assert.AreEqual(15, session.Position);
 
         native.ApplyPlayback(new SmtcPlayback(Paused));
         _loop.Advance(TimeSpan.FromSeconds(5));
-        Assert.Equal(15, session.Position);
+        Assert.AreEqual(15, session.Position);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_stopped_or_silent_session_is_at_position_zero()
     {
         var session = Session();
-        Assert.Equal(0, session.Position);
-        Assert.False(session.PositionSupported);
+        Assert.AreEqual(0, session.Position);
+        Assert.IsFalse(session.PositionSupported);
 
         _native.ApplyPlayback(new SmtcPlayback(Stopped));
         Timeline(5, 125);
 
-        Assert.True(session.PositionSupported);
-        Assert.Equal(0, session.Position);
+        Assert.IsTrue(session.PositionSupported);
+        Assert.AreEqual(0, session.Position);
     }
 
-    [Fact]
+    [TestMethod]
     public void Seeking_shows_the_new_position_at_once_and_stays_on_the_track()
     {
         var session = Session();
         _native.ApplyPlayback(new SmtcPlayback(Paused) { CanSeek = true });
         Timeline(5, 125);
-        Assert.Equal(5, session.Position);
-        Assert.Equal(125, session.Length);
+        Assert.AreEqual(5, session.Position);
+        Assert.AreEqual(125, session.Length);
         var changes = Watch(session);
 
         session.Seek(10);
-        Assert.Equal(15, session.Position);
-        Assert.Equal([nameof(MediaSession.Position)], changes);
+        Assert.AreEqual(15, session.Position);
+        Assert.AreSequenceEqual([nameof(MediaSession.Position)], changes);
 
         session.Seek(-100);
-        Assert.Equal(0, session.Position);
+        Assert.AreEqual(0, session.Position);
 
         session.Position = 500;
-        Assert.Equal(125, session.Position);
+        Assert.AreEqual(125, session.Position);
 
-        Assert.Equal(["set position", "set position", "set position"], _link.Sent);
+        Assert.AreSequenceEqual(["set position", "set position", "set position"], _link.Sent);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_length_that_matches_the_position_already_shown_is_not_a_length_change()
     {
         var session = Session();
         _native.ApplyPlayback(new SmtcPlayback(Paused));
         Timeline(10, 0);
-        Assert.False(session.LengthSupported);
-        Assert.Equal(10, session.Length);
+        Assert.IsFalse(session.LengthSupported);
+        Assert.AreEqual(10, session.Length);
         var changes = Watch(session);
 
         Timeline(10, 10);
 
-        Assert.True(session.LengthSupported);
-        Assert.Equal(10, session.Length);
+        Assert.IsTrue(session.LengthSupported);
+        Assert.AreEqual(10, session.Length);
         Assert.Contains(nameof(MediaSession.LengthSupported), changes);
         Assert.DoesNotContain(nameof(MediaSession.Length), changes);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_real_length_replaces_the_length_the_clock_already_published()
     {
         var session = Session();
         _native.ApplyPlayback(new SmtcPlayback(Playing));
         var now = _loop.Time.GetUtcNow();
         _native.ApplyTimeline(TimeSpan.Zero, TimeSpan.Zero, TimeSpan.FromSeconds(10), now, now);
-        Assert.False(session.LengthSupported);
-        Assert.Equal(10, session.Length);
+        Assert.IsFalse(session.LengthSupported);
+        Assert.AreEqual(10, session.Length);
 
         _loop.Advance(TimeSpan.FromSeconds(10));
         session.RefreshPosition();
-        Assert.Equal(20, session.Length);
+        Assert.AreEqual(20, session.Length);
         var changes = Watch(session);
 
         now = _loop.Time.GetUtcNow();
         _native.ApplyTimeline(TimeSpan.Zero, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10), now, now);
 
-        Assert.True(session.LengthSupported);
-        Assert.Equal(10, session.Length);
+        Assert.IsTrue(session.LengthSupported);
+        Assert.AreEqual(10, session.Length);
         Assert.Contains(nameof(MediaSession.Length), changes);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_track_with_no_length_reports_its_position_as_the_length()
     {
         var session = Session();
         _native.ApplyPlayback(new SmtcPlayback(Paused));
         Timeline(5, 0);
-        Assert.False(session.LengthSupported);
-        Assert.Equal(5, session.Length);
+        Assert.IsFalse(session.LengthSupported);
+        Assert.AreEqual(5, session.Length);
         var changes = Watch(session);
 
         session.RefreshPosition();
 
-        Assert.Equal([nameof(MediaSession.Position), nameof(MediaSession.Length)], changes);
+        Assert.AreSequenceEqual([nameof(MediaSession.Position), nameof(MediaSession.Length)], changes);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_poll_that_repeats_the_last_report_is_not_a_seek()
     {
         var session = Session();
@@ -548,18 +550,18 @@ public sealed class MediaServiceTests
 
         Timeline(5, 125);
 
-        Assert.Empty(changes);
+        Assert.IsEmpty(changes);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_session_of_a_store_app_or_a_program_can_be_switched_to_and_another_cannot()
     {
-        Assert.True(new MediaSession(Native(new RecordingLink(), "Publisher.App_abc!App"), _loop, _log).CanSwitchTo);
-        Assert.True(new MediaSession(Native(new RecordingLink(), "Spotify.exe"), _loop, _log).CanSwitchTo);
-        Assert.False(Session().CanSwitchTo);
+        Assert.IsTrue(new MediaSession(Native(new RecordingLink(), "Publisher.App_abc!App"), _loop, _log).CanSwitchTo);
+        Assert.IsTrue(new MediaSession(Native(new RecordingLink(), "Spotify.exe"), _loop, _log).CanSwitchTo);
+        Assert.IsFalse(Session().CanSwitchTo);
     }
 
-    [Fact]
+    [TestMethod]
     public void Switching_to_a_program_with_no_window_warns()
     {
         var session = new MediaSession(Native(new RecordingLink(), "no-such-program.exe"), _loop, _log);

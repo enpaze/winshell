@@ -4,30 +4,31 @@ using Winshell.Power;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public class BrightnessRefreshTests
 {
-    [Fact]
+    [TestMethod]
     public void A_failed_read_keeps_the_last_reading_of_a_monitor()
     {
         var last = new BrightnessInfo(@"\.\DISPLAY2", "Desk", BrightnessConnection.External, 0, 100, 40);
 
         var kept = BrightnessBackend.External(@"\.\DISPLAY2", "Desk", null, [last]);
 
-        Assert.Equal(last, kept);
+        Assert.AreEqual(last, kept);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_failed_read_of_a_monitor_never_read_gives_nothing_and_a_good_read_replaces_the_old_one()
     {
         var last = new BrightnessInfo(@"\.\DISPLAY2", "Desk", BrightnessConnection.External, 0, 100, 40);
 
-        Assert.Null(BrightnessBackend.External(@"\.\DISPLAY3", "Other", null, [last]));
-        Assert.Equal(
+        Assert.IsNull(BrightnessBackend.External(@"\.\DISPLAY3", "Other", null, [last]));
+        Assert.AreEqual(
             new BrightnessInfo(@"\.\DISPLAY2", "Desk", BrightnessConnection.External, 0, 100, 70),
             BrightnessBackend.External(@"\.\DISPLAY2", "Desk", (0, 70, 100), [last]));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_moved_work_area_reads_nothing_and_a_mode_change_or_a_new_monitor_reads_again()
     {
         var loop = new ManualEventLoop();
@@ -41,31 +42,31 @@ public class BrightnessRefreshTests
         var brightness = new BrightnessService(loop, Log.Default, screens, source);
         using var stopBrightness = brightness.Stopping();
         loop.Process();
-        Assert.Equal(1, source.Reads);
+        Assert.AreEqual(1, source.Reads);
 
         screens[0] = screen with { WorkArea = new Rect(0, 40, 1920, 1040) };
         loop.Process();
-        Assert.Equal(1, source.Reads);
+        Assert.AreEqual(1, source.Reads);
 
         screens[0] = screens[0] with { RefreshRate = 144 };
         loop.Process();
-        Assert.Equal(2, source.Reads);
+        Assert.AreEqual(2, source.Reads);
 
         screens.Add(new ScreenInfo(@"\.\DISPLAY2", "DISPLAY2", "", "", "", default, default, 1, 0, 0, 60, false));
         loop.Process();
-        Assert.Equal(3, source.Reads);
+        Assert.AreEqual(3, source.Reads);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_new_screen_field_has_to_say_whether_it_re_reads_brightness()
     {
-        Assert.Equal(
+        Assert.AreSequenceEqual<string>(
             ["DevicePixelRatio", "Geometry", "Id", "IsPrimary", "Manufacturer", "Model", "Name",
                 "PhysicalHeightMm", "PhysicalWidthMm", "RefreshRate", "SerialNumber", "WorkArea"],
             typeof(ScreenInfo).GetProperties().Select(property => property.Name).OrderBy(name => name, StringComparer.Ordinal));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_burst_of_writes_asks_for_one_read_after_the_queue_empties()
     {
         var drained = 0;
@@ -77,7 +78,7 @@ public class BrightnessRefreshTests
             {
                 Interlocked.Increment(ref writes);
                 started.Release();
-                release.Wait(TimeSpan.FromSeconds(10));
+                release.Wait(TimeSpan.FromSeconds(10), CurrentTest.Cancellation);
                 return null;
             },
             Log.Default,
@@ -86,7 +87,7 @@ public class BrightnessRefreshTests
         writer.Request("DISPLAY1", 10, _ => { });
         try
         {
-            started.Wait(TestContext.Current.CancellationToken);
+            started.Wait(CurrentTest.Cancellation);
         }
         catch (OperationCanceledException)
         {
@@ -94,12 +95,12 @@ public class BrightnessRefreshTests
         }
         for (var value = 11; value <= 30; value++)
             writer.Request("DISPLAY1", value, _ => { });
-        Assert.Equal(0, Volatile.Read(ref drained));
+        Assert.AreEqual(0, Volatile.Read(ref drained));
 
         release.Set();
         Wait.Until(() => Volatile.Read(ref drained) == 1, "The queue did not empty.");
 
-        Assert.Equal(2, Volatile.Read(ref writes));
-        Assert.Equal(1, Volatile.Read(ref drained));
+        Assert.AreEqual(2, Volatile.Read(ref writes));
+        Assert.AreEqual(1, Volatile.Read(ref drained));
     }
 }

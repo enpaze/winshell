@@ -1,21 +1,22 @@
 namespace Winshell.Tests;
 
+[TestClass]
 public class CliHelpTextTests
 {
-    [Theory]
-    [InlineData("summary", "")]
-    [InlineData("run", "run")]
-    [InlineData("list", "list")]
-    [InlineData("stop", "stop")]
-    [InlineData("reload", "reload")]
-    [InlineData("dev", "dev")]
-    [InlineData("log", "log")]
-    [InlineData("ipc", "ipc")]
-    [InlineData("inspect", "inspect")]
-    [InlineData("doctor", "doctor")]
-    [InlineData("new", "new")]
-    [InlineData("use", "use")]
-    [InlineData("update", "update")]
+    [TestMethod]
+    [DataRow("summary", "")]
+    [DataRow("run", "run")]
+    [DataRow("list", "list")]
+    [DataRow("stop", "stop")]
+    [DataRow("reload", "reload")]
+    [DataRow("dev", "dev")]
+    [DataRow("log", "log")]
+    [DataRow("ipc", "ipc")]
+    [DataRow("inspect", "inspect")]
+    [DataRow("doctor", "doctor")]
+    [DataRow("new", "new")]
+    [DataRow("use", "use")]
+    [DataRow("update", "update")]
     public void Help_matches_the_recorded_text(string file, string command)
     {
         var golden = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "HelpText", file + ".txt"))
@@ -28,6 +29,6 @@ public class CliHelpTextTests
             .Replace(Shell.Version, "{version}", StringComparison.Ordinal)
             .TrimEnd();
 
-        Assert.Equal(golden, actual);
+        Assert.AreEqual(golden, actual);
     }
 }

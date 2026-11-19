@@ -3,11 +3,12 @@ using System.Diagnostics;
 
 namespace Winshell.Tests;
 
+[TestClass]
 public class DevStartTests
 {
     private const string NeedsSdk = "Building a shell needs the .NET SDK, from https://dot.net/download.";
 
-    [Fact]
+    [TestMethod]
     public void A_dotnet_that_cannot_run_names_that_failure()
     {
         var (path, project) = Folders();
@@ -17,11 +18,11 @@ public class DevStartTests
         var result = Run(project, path);
 
         result.AssertExitCode(1);
-        Assert.Equal("", result.Output);
-        Assert.Equal(FailureReason(Path.Combine(path, "dotnet.exe"), project) + Environment.NewLine, result.Error);
+        Assert.AreEqual("", result.Output);
+        Assert.AreEqual(FailureReason(Path.Combine(path, "dotnet.exe"), project) + Environment.NewLine, result.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_missing_dotnet_still_asks_for_the_sdk()
     {
         var (path, project) = Folders();
@@ -30,8 +31,8 @@ public class DevStartTests
         var result = Run(project, path);
 
         result.AssertExitCode(1);
-        Assert.Equal("", result.Output);
-        Assert.Equal(NeedsSdk + Environment.NewLine, result.Error);
+        Assert.AreEqual("", result.Output);
+        Assert.AreEqual(NeedsSdk + Environment.NewLine, result.Error);
     }
 
     private static (string Path, string Project) Folders()

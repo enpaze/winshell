@@ -5,7 +5,8 @@ using Winshell.Native;
 
 namespace Winshell.Services.Tests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class FocusTakeoverTests
 {
     private const int GrantsThatMeanNoLock = 3;
@@ -19,7 +20,7 @@ public sealed class FocusTakeoverTests
         Granted
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Taking_focus_reaches_the_window_only_after_a_key_tap()
     {
         var previous = PInvoke.GetForegroundWindow();
@@ -41,7 +42,7 @@ public sealed class FocusTakeoverTests
         try
         {
             window = await PumpedWindow.Open();
-            Assert.NotEqual(0, window.Handle);
+            Assert.AreNotEqual(0, window.Handle);
             var grants = 0;
             await Wait.UntilAsync(() =>
             {
@@ -225,7 +226,7 @@ public sealed class FocusTakeoverTests
         };
         holder.OutputDataReceived += (_, e) => Append(errors, e.Data);
         holder.ErrorDataReceived += (_, e) => Append(errors, e.Data);
-        Assert.True(holder.Start());
+        Assert.IsTrue(holder.Start());
         holder.BeginOutputReadLine();
         holder.BeginErrorReadLine();
         return holder;
@@ -466,7 +467,7 @@ public sealed class FocusTakeoverTests
         {
             var window = new PumpedWindow();
             window._thread.Start();
-            window.Handle = await window._created.Task.WaitAsync(TestContext.Current.CancellationToken);
+            window.Handle = await window._created.Task.WaitAsync(CurrentTest.Cancellation);
             return window;
         }
 
@@ -474,7 +475,7 @@ public sealed class FocusTakeoverTests
         {
             if (_threadId != 0)
                 PInvoke.PostThreadMessage(_threadId, PInvoke.WM_QUIT, 0, 0);
-            await Task.Run(() => _thread.Join()).WaitAsync(TestContext.Current.CancellationToken);
+            await Task.Run(() => _thread.Join()).WaitAsync(CurrentTest.Cancellation);
         }
 
         private void Run()

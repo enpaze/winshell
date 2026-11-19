@@ -4,9 +4,10 @@ using Winshell.Audio;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public class SessionExitTests
 {
-    [Fact]
+    [TestMethod]
     public void Stopping_the_watch_drops_the_exit_callback()
     {
         using var process = Process.Start(new ProcessStartInfo
@@ -16,7 +17,7 @@ public class SessionExitTests
             CreateNoWindow = true,
             UseShellExecute = false
         });
-        Assert.NotNull(process);
+        Assert.IsNotNull(process);
         var ran = new StrongBox<int>(0);
         EventHandler handler = (_, _) => Interlocked.Increment(ref ran.Value);
         process.EnableRaisingEvents = true;
@@ -31,8 +32,8 @@ public class SessionExitTests
         {
         }
 
-        Assert.True(process.WaitForExit(8000));
+        Assert.IsTrue(process.WaitForExit(8000));
         Wait.ForNothingToHappen(TimeSpan.FromMilliseconds(200));
-        Assert.Equal(0, Volatile.Read(ref ran.Value));
+        Assert.AreEqual(0, Volatile.Read(ref ran.Value));
     }
 }

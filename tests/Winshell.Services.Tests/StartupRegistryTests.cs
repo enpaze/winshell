@@ -8,6 +8,7 @@ using StartupTaskState = Windows.ApplicationModel.StartupTaskState;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class StartupRegistryTests : IDisposable
 {
     private readonly TempFolder _configRoot = new();
@@ -41,7 +42,7 @@ public sealed class StartupRegistryTests : IDisposable
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void The_entry_is_a_string_under_Run_and_the_Startup_apps_bytes_say_whether_it_is_off()
     {
         var run = _testKey + @"\Run";
@@ -49,74 +50,74 @@ public sealed class StartupRegistryTests : IDisposable
         var registry =
             new WindowsStartupRegistry("\"C:\\winshell.exe\" --no-duplicate", _configRoot.Path, run, approved);
 
-        Assert.False(registry.Read().HasEntry);
-        Assert.True(registry.Register());
+        Assert.IsFalse(registry.Read().HasEntry);
+        Assert.IsTrue(registry.Register());
         using (var key = Registry.CurrentUser.OpenSubKey(run)!)
         {
-            Assert.Equal("\"C:\\winshell.exe\" --no-duplicate", key.GetValue(SignInEntry.Name));
+            Assert.AreEqual("\"C:\\winshell.exe\" --no-duplicate", key.GetValue(SignInEntry.Name));
         }
 
-        Assert.True(registry.Read().HasEntry);
-        Assert.False(registry.Read().OffInWindows);
+        Assert.IsTrue(registry.Read().HasEntry);
+        Assert.IsFalse(registry.Read().OffInWindows);
 
         using (var key = Registry.CurrentUser.CreateSubKey(approved))
         {
             key.SetValue(SignInEntry.Name, new byte[] { 3, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8 }, RegistryValueKind.Binary);
         }
 
-        Assert.True(registry.Read().OffInWindows);
+        Assert.IsTrue(registry.Read().OffInWindows);
         using (var key = Registry.CurrentUser.CreateSubKey(approved))
         {
             key.SetValue(SignInEntry.Name, new byte[] { 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, RegistryValueKind.Binary);
         }
 
-        Assert.False(registry.Read().OffInWindows);
+        Assert.IsFalse(registry.Read().OffInWindows);
 
-        Assert.True(registry.Unregister());
-        Assert.False(registry.Read().HasEntry);
-        Assert.True(registry.Unregister());
+        Assert.IsTrue(registry.Unregister());
+        Assert.IsFalse(registry.Read().HasEntry);
+        Assert.IsTrue(registry.Unregister());
     }
 
-    [Fact]
+    [TestMethod]
     public void An_entry_another_winshell_wrote_points_elsewhere_until_this_one_registers()
     {
         var run = _testKey + @"\Run";
         var registry = new WindowsStartupRegistry("\"C:\\new\\winshell.exe\" --no-duplicate", _configRoot.Path, run,
             _testKey + @"\StartupApproved");
-        Assert.False(registry.Read().PointsElsewhere);
+        Assert.IsFalse(registry.Read().PointsElsewhere);
         using (var key = Registry.CurrentUser.CreateSubKey(run))
         {
             key.SetValue(SignInEntry.Name, "\"C:\\old\\winshell.exe\" --no-duplicate", RegistryValueKind.String);
         }
 
-        Assert.True(registry.Read().HasEntry);
-        Assert.True(registry.Read().PointsElsewhere);
-        Assert.True(registry.Register());
-        Assert.False(registry.Read().PointsElsewhere);
+        Assert.IsTrue(registry.Read().HasEntry);
+        Assert.IsTrue(registry.Read().PointsElsewhere);
+        Assert.IsTrue(registry.Register());
+        Assert.IsFalse(registry.Read().PointsElsewhere);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_command_runs_this_winshell_without_a_console_window_and_never_twice()
     {
         var conhost = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "conhost.exe");
         var relative = Path.Combine("configs", "work");
 
-        Assert.Equal(
+        Assert.AreEqual(
             $"{conhost} --headless \"C:\\Program Files\\Winshell\\winshell.exe\" -s work --no-build --no-duplicate",
             CommandLine.ForSignIn(@"C:\Program Files\Winshell\winshell.exe", ["-d", "-s", "work"]));
-        Assert.Equal(
+        Assert.AreEqual(
             $"{conhost} --headless C:\\winshell.exe --no-build -n -p {CommandLine.Quote(Path.GetFullPath(relative))}",
             CommandLine.ForSignIn(@"C:\winshell.exe", ["-n", "-p", relative]));
     }
 
-    [Fact]
+    [TestMethod]
     public void The_windowed_copy_is_the_same_sign_in_entry_as_the_console_exe_beside_it()
     {
         var conhost = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "conhost.exe");
         const string folder = @"C:\Program Files\Winshell";
         var console = CommandLine.ForSignIn(folder + @"\winshell.exe", ["--no-duplicate"]);
-        Assert.Equal(console, CommandLine.ForSignIn(folder + @"\winshellw.exe", ["--no-duplicate"]));
-        Assert.Equal($@"{conhost} --headless ""{folder}\winshell.exe"" --no-build --no-duplicate", console);
+        Assert.AreEqual(console, CommandLine.ForSignIn(folder + @"\winshellw.exe", ["--no-duplicate"]));
+        Assert.AreEqual($@"{conhost} --headless ""{folder}\winshell.exe"" --no-build --no-duplicate", console);
 
         var run = _testKey + @"\Run";
         var registry = new WindowsStartupRegistry(console, _configRoot.Path, run, _testKey + @"\StartupApproved");
@@ -127,8 +128,8 @@ public sealed class StartupRegistryTests : IDisposable
                 RegistryValueKind.String);
         }
 
-        Assert.True(registry.Read().HasEntry);
-        Assert.False(registry.Read().PointsElsewhere);
+        Assert.IsTrue(registry.Read().HasEntry);
+        Assert.IsFalse(registry.Read().PointsElsewhere);
 
         using (var key = Registry.CurrentUser.CreateSubKey(run))
         {
@@ -136,10 +137,10 @@ public sealed class StartupRegistryTests : IDisposable
                 RegistryValueKind.String);
         }
 
-        Assert.True(registry.Read().PointsElsewhere);
+        Assert.IsTrue(registry.Read().PointsElsewhere);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_sign_in_reader_reads_back_what_the_writer_wrote_and_the_programs_words_stay_last()
     {
         const string windowed = @"C:\Program Files\Winshell\winshellw.exe";
@@ -148,14 +149,14 @@ public sealed class StartupRegistryTests : IDisposable
         var byPath = CommandLine.ReadSignIn(CommandLine.ForSignIn(windowed, ["-d", "run", "-p", relative, "--", "-s", "x"]));
         var byName = CommandLine.ReadSignIn(CommandLine.ForSignIn(windowed, ["run", "--shell", "-d"]));
 
-        Assert.Equal(new SignInEntry.SignInLaunch(@"C:\Program Files\Winshell\winshell.exe",
+        Assert.AreEqual(new SignInEntry.SignInLaunch(@"C:\Program Files\Winshell\winshell.exe",
             Path.GetFullPath(relative), null), byPath);
-        Assert.Equal(new SignInEntry.SignInLaunch(@"C:\Program Files\Winshell\winshell.exe", null, "-d"), byName);
+        Assert.AreEqual(new SignInEntry.SignInLaunch(@"C:\Program Files\Winshell\winshell.exe", null, "-d"), byName);
         Assert.EndsWith("--no-build --no-duplicate -- -s x",
             CommandLine.ForSignIn(windowed, ["run", "-p", relative, "--", "-s", "x"]));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task The_installer_writes_the_command_this_install_writes_for_itself()
     {
         const string winshell = @"C:\Program Files\Winshell\winshell.exe";
@@ -165,7 +166,7 @@ public sealed class StartupRegistryTests : IDisposable
         var conhost = Path.Combine(Environment.SystemDirectory, "conhost.exe");
         var written = CommandLine.ForSignIn(winshell, []);
         Assert.StartsWith(conhost, installer, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(written[conhost.Length..], installer[conhost.Length..]);
+        Assert.AreEqual(written[conhost.Length..], installer[conhost.Length..]);
     }
 
     private static async Task<string> InstallerSignInCommand(string exe)
@@ -191,24 +192,24 @@ public sealed class StartupRegistryTests : IDisposable
             start.ArgumentList.Add(argument);
         start.ArgumentList.Add(Convert.ToBase64String(Encoding.Unicode.GetBytes(program)));
         using var process = Process.Start(start)!;
-        var output = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
-        var error = process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
-        await process.WaitForExitAsync(TestContext.Current.CancellationToken);
-        Assert.True(process.ExitCode == 0, await error);
+        var output = process.StandardOutput.ReadToEndAsync(CurrentTest.Cancellation);
+        var error = process.StandardError.ReadToEndAsync(CurrentTest.Cancellation);
+        await process.WaitForExitAsync(CurrentTest.Cancellation);
+        Assert.IsTrue(process.ExitCode == 0, await error);
         return await output;
     }
 
-    [Theory]
-    [InlineData("plain", "plain")]
-    [InlineData("", "\"\"")]
-    [InlineData(@"C:\My Shell\", "\"C:\\My Shell\\\\\"")]
-    [InlineData("say \"hi\"", "\"say \\\"hi\\\"\"")]
+    [TestMethod]
+    [DataRow("plain", "plain")]
+    [DataRow("", "\"\"")]
+    [DataRow(@"C:\My Shell\", "\"C:\\My Shell\\\\\"")]
+    [DataRow("say \"hi\"", "\"say \\\"hi\\\"\"")]
     public void Arguments_are_quoted_the_way_Windows_splits_a_command_line(string arg, string quoted)
     {
-        Assert.Equal(quoted, CommandLine.Quote(arg));
+        Assert.AreEqual(quoted, CommandLine.Quote(arg));
     }
 
-    [Fact]
+    [TestMethod]
     public void The_install_sign_in_entry_for_this_shell_is_on_and_the_doctor_agrees()
     {
         const string winshell = @"C:\Program Files\Winshell\winshell.exe";
@@ -220,11 +221,11 @@ public sealed class StartupRegistryTests : IDisposable
         var command = $"{conhost} --headless \"{winshell}\" run -p {written} --no-build --no-duplicate";
         var program = written + @"\bin\shell\work.exe";
 
-        Assert.Equal(command, CommandLine.ForSignIn(winshell, ["run", "-p", written]));
-        Assert.Equal(command, SignInEntry.Command(program, winshell));
-        Assert.Equal(command, SignInEntry.Command(written + @"\bin\shell.next\work.exe", windowed));
-        Assert.Null(SignInEntry.Command(program, null));
-        Assert.Null(SignInEntry.Command(program, @"C:\Program Files\dotnet\dotnet.exe"));
+        Assert.AreEqual(command, CommandLine.ForSignIn(winshell, ["run", "-p", written]));
+        Assert.AreEqual(command, SignInEntry.Command(program, winshell));
+        Assert.AreEqual(command, SignInEntry.Command(written + @"\bin\shell.next\work.exe", windowed));
+        Assert.IsNull(SignInEntry.Command(program, null));
+        Assert.IsNull(SignInEntry.Command(program, @"C:\Program Files\dotnet\dotnet.exe"));
 
         var root = _configRoot.Path;
         var project = Configuration(root, "work");
@@ -247,26 +248,26 @@ public sealed class StartupRegistryTests : IDisposable
         }
 
         var startup = new StartupService(_log, registry);
-        Assert.True(startup.RunAtSignIn);
-        Assert.False(startup.RegisteredElsewhere);
-        Assert.Equal(CheckStatus.Pass,
+        Assert.IsTrue(startup.RunAtSignIn);
+        Assert.IsFalse(startup.RegisteredElsewhere);
+        Assert.AreEqual(CheckStatus.Pass,
             SignIn(install, false, winshell, root, Exists, projectFile: workFile).Status);
 
         startup.RunAtSignIn = false;
         using (var key = Registry.CurrentUser.OpenSubKey(run))
         {
-            Assert.Null(key?.GetValue(SignInEntry.Name));
+            Assert.IsNull(key?.GetValue(SignInEntry.Name));
         }
 
-        Assert.False(startup.RunAtSignIn);
+        Assert.IsFalse(startup.RunAtSignIn);
 
         startup.RunAtSignIn = true;
         using (var key = Registry.CurrentUser.OpenSubKey(run))
         {
-            Assert.Equal(supervised, key?.GetValue(SignInEntry.Name));
+            Assert.AreEqual(supervised, key?.GetValue(SignInEntry.Name));
         }
 
-        Assert.Equal(CheckStatus.Pass,
+        Assert.AreEqual(CheckStatus.Pass,
             SignIn(supervised, false, winshell, root, Exists, projectFile: workFile).Status);
 
         var playCommand = CommandLine.ForSignIn(winshell, ["run", "-p", play]);
@@ -276,12 +277,12 @@ public sealed class StartupRegistryTests : IDisposable
         }
 
         startup.Refresh();
-        Assert.False(startup.RunAtSignIn);
-        Assert.True(startup.RegisteredElsewhere);
+        Assert.IsFalse(startup.RunAtSignIn);
+        Assert.IsTrue(startup.RegisteredElsewhere);
         var otherConfiguration =
             SignIn(playCommand, false, winshell, root, Exists, projectFile: workFile);
-        Assert.Equal(CheckStatus.Warn, otherConfiguration.Status);
-        Assert.Equal("The sign-in entry does not start this shell.", otherConfiguration.Message);
+        Assert.AreEqual(CheckStatus.Warn, otherConfiguration.Status);
+        Assert.AreEqual("The sign-in entry does not start this shell.", otherConfiguration.Message);
 
         var playRegistry = new WindowsStartupRegistry(
             CommandLine.ForSignIn(winshell, ["run", "-p", play]), root, run, approved);
@@ -291,8 +292,8 @@ public sealed class StartupRegistryTests : IDisposable
         }
 
         var playStartup = new StartupService(_log, playRegistry);
-        Assert.False(playStartup.RunAtSignIn);
-        Assert.Equal(CheckStatus.Warn,
+        Assert.IsFalse(playStartup.RunAtSignIn);
+        Assert.AreEqual(CheckStatus.Warn,
             SignIn(install, false, winshell, root, Exists, projectFile: playFile).Status);
 
         var otherInstall =
@@ -303,10 +304,10 @@ public sealed class StartupRegistryTests : IDisposable
         }
 
         startup.Refresh();
-        Assert.False(startup.RunAtSignIn);
-        Assert.True(startup.RegisteredElsewhere);
+        Assert.IsFalse(startup.RunAtSignIn);
+        Assert.IsTrue(startup.RegisteredElsewhere);
         var other = SignIn(otherInstall, false, winshell, root, Exists, projectFile: workFile);
-        Assert.Equal(CheckStatus.Warn, other.Status);
+        Assert.AreEqual(CheckStatus.Warn, other.Status);
         Assert.Contains("another winshell.exe", other.Message, StringComparison.Ordinal);
 
         var byName = CommandLine.ForSignIn(winshell, ["run", "-s", "work"]);
@@ -318,8 +319,8 @@ public sealed class StartupRegistryTests : IDisposable
         }
 
         var namedStartup = new StartupService(_log, named);
-        Assert.True(namedStartup.RunAtSignIn);
-        Assert.Equal(CheckStatus.Pass,
+        Assert.IsTrue(namedStartup.RunAtSignIn);
+        Assert.AreEqual(CheckStatus.Pass,
             SignIn(byName, false, winshell, root, Exists, projectFile: workFile).Status);
 
         using (var key = Registry.CurrentUser.CreateSubKey(run))
@@ -329,13 +330,13 @@ public sealed class StartupRegistryTests : IDisposable
         }
 
         namedStartup.Refresh();
-        Assert.False(namedStartup.RunAtSignIn);
-        Assert.Equal(CheckStatus.Warn,
+        Assert.IsFalse(namedStartup.RunAtSignIn);
+        Assert.AreEqual(CheckStatus.Warn,
             SignIn(CommandLine.ForSignIn(winshell, ["run", "-s", "play"]), false, winshell, root, Exists,
                 projectFile: workFile).Status);
     }
 
-    [Fact]
+    [TestMethod]
     public void Adding_a_shell_stops_the_install_entry_counting_as_this_one()
     {
         const string winshell = @"C:\Program Files\Winshell\winshell.exe";
@@ -350,15 +351,15 @@ public sealed class StartupRegistryTests : IDisposable
         }
 
         var startup = new StartupService(_log, registry);
-        Assert.True(startup.RunAtSignIn);
+        Assert.IsTrue(startup.RunAtSignIn);
 
         Configuration(_configRoot.Path, "play");
         startup.Refresh();
-        Assert.False(startup.RunAtSignIn);
-        Assert.True(startup.RegisteredElsewhere);
+        Assert.IsFalse(startup.RunAtSignIn);
+        Assert.IsTrue(startup.RegisteredElsewhere);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_project_that_shares_its_folder_signs_in_by_its_project_file()
     {
         const string winshell = @"C:\Program Files\Winshell\winshell.exe";
@@ -379,19 +380,19 @@ public sealed class StartupRegistryTests : IDisposable
         playing.RunAtSignIn = true;
         var working = Startup("work.exe");
 
-        Assert.Equal(folder, CommandLine.ReadSignIn(alone).Path);
+        Assert.AreEqual(folder, CommandLine.ReadSignIn(alone).Path);
         using (var key = Registry.CurrentUser.OpenSubKey(run)!)
         {
             var launch = CommandLine.ReadSignIn((string)key.GetValue(SignInEntry.Name)!);
-            Assert.Equal(play, ShellProject.Find(launch.Path, null, _configRoot.Path, out _)?.ProjectFile);
+            Assert.AreEqual(play, ShellProject.Find(launch.Path, null, _configRoot.Path, out _)?.ProjectFile);
         }
 
-        Assert.True(playing.RunAtSignIn);
-        Assert.False(working.RunAtSignIn);
-        Assert.True(working.RegisteredElsewhere);
+        Assert.IsTrue(playing.RunAtSignIn);
+        Assert.IsFalse(working.RunAtSignIn);
+        Assert.IsTrue(working.RegisteredElsewhere);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_sign_in_entry_whose_program_is_not_a_path_is_not_this_one()
     {
         const string winshell = @"C:\Program Files\Winshell\winshell.exe";
@@ -406,116 +407,116 @@ public sealed class StartupRegistryTests : IDisposable
         }
 
         var startup = new StartupService(_log, registry);
-        Assert.False(startup.RunAtSignIn);
-        Assert.True(startup.RegisteredElsewhere);
+        Assert.IsFalse(startup.RunAtSignIn);
+        Assert.IsTrue(startup.RegisteredElsewhere);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_startup_task_turns_on_and_off_without_a_path()
     {
         var task = new FakeStartupTask();
         var startup = new StartupService(_log, new StartupTaskRegistry(task));
 
-        Assert.False(startup.RunAtSignIn);
-        Assert.False(startup.RegisteredElsewhere);
+        Assert.IsFalse(startup.RunAtSignIn);
+        Assert.IsFalse(startup.RegisteredElsewhere);
 
         startup.RunAtSignIn = true;
-        Assert.True(startup.RunAtSignIn);
-        Assert.Equal(StartupTaskState.Enabled, task.State);
-        Assert.Equal(1, task.Enables);
-        Assert.Empty(_warnings);
+        Assert.IsTrue(startup.RunAtSignIn);
+        Assert.AreEqual(StartupTaskState.Enabled, task.State);
+        Assert.AreEqual(1, task.Enables);
+        Assert.IsEmpty(_warnings);
 
         startup.RunAtSignIn = false;
-        Assert.False(startup.RunAtSignIn);
-        Assert.Equal(StartupTaskState.Disabled, task.State);
-        Assert.Equal(1, task.Disables);
+        Assert.IsFalse(startup.RunAtSignIn);
+        Assert.AreEqual(StartupTaskState.Disabled, task.State);
+        Assert.AreEqual(1, task.Disables);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_startup_task_Windows_turned_off_stays_off_until_Windows_turns_it_on()
     {
         var task = new FakeStartupTask { State = StartupTaskState.DisabledByUser };
         var registry = new StartupTaskRegistry(task);
         var startup = new StartupService(_log, registry);
 
-        Assert.True(startup.RunAtSignIn);
-        Assert.True(startup.TurnedOffInWindows);
-        Assert.False(startup.RegisteredElsewhere);
+        Assert.IsTrue(startup.RunAtSignIn);
+        Assert.IsTrue(startup.TurnedOffInWindows);
+        Assert.IsFalse(startup.RegisteredElsewhere);
 
-        Assert.False(registry.Register());
-        Assert.False(registry.Unregister());
-        Assert.Equal(0, task.Enables);
-        Assert.Equal(0, task.Disables);
-        Assert.Equal(StartupTaskState.DisabledByUser, task.State);
+        Assert.IsFalse(registry.Register());
+        Assert.IsFalse(registry.Unregister());
+        Assert.AreEqual(0, task.Enables);
+        Assert.AreEqual(0, task.Disables);
+        Assert.AreEqual(StartupTaskState.DisabledByUser, task.State);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_startup_task_Windows_policy_owns_is_left_alone()
     {
         var forced = new FakeStartupTask { State = StartupTaskState.EnabledByPolicy };
         var on = new StartupTaskRegistry(forced);
-        Assert.True(on.Read().HasEntry);
-        Assert.False(on.Read().OffInWindows);
-        Assert.False(on.Unregister());
-        Assert.Equal(0, forced.Disables);
+        Assert.IsTrue(on.Read().HasEntry);
+        Assert.IsFalse(on.Read().OffInWindows);
+        Assert.IsFalse(on.Unregister());
+        Assert.AreEqual(0, forced.Disables);
 
         var blocked = new FakeStartupTask { State = StartupTaskState.DisabledByPolicy };
         var off = new StartupTaskRegistry(blocked);
-        Assert.True(off.Read().HasEntry);
-        Assert.True(off.Read().OffInWindows);
-        Assert.False(off.Register());
-        Assert.Equal(0, blocked.Enables);
+        Assert.IsTrue(off.Read().HasEntry);
+        Assert.IsTrue(off.Read().OffInWindows);
+        Assert.IsFalse(off.Register());
+        Assert.AreEqual(0, blocked.Enables);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_startup_task_that_stays_disabled_warns_and_stays_off()
     {
         var task = new FakeStartupTask { EnableResult = StartupTaskState.Disabled };
         var startup = new StartupService(_log, new StartupTaskRegistry(task)) { RunAtSignIn = true };
 
-        Assert.False(startup.RunAtSignIn);
-        Assert.Equal(StartupTaskState.Disabled, task.State);
-        Assert.Equal(["startup: Windows did not let Winshell register to run at sign-in."], _warnings);
+        Assert.IsFalse(startup.RunAtSignIn);
+        Assert.AreEqual(StartupTaskState.Disabled, task.State);
+        Assert.AreSequenceEqual(["startup: Windows did not let Winshell register to run at sign-in."], _warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_bug_in_the_startup_task_is_logged_and_not_reported_as_Windows_refusing()
     {
         var task = new FakeStartupTask { ReadError = new InvalidOperationException("startup task bug") };
         var registry = new StartupTaskRegistry(task, _log);
 
-        var error = Assert.Throws<InvalidOperationException>(() => registry.Read());
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => registry.Read());
 
-        Assert.Equal("startup task bug", error.Message);
-        Assert.Contains(_warnings, warning => warning.Contains("startup task bug", StringComparison.Ordinal));
-        Assert.DoesNotContain(_warnings, warning => warning.Contains("did not let", StringComparison.Ordinal));
+        Assert.AreEqual("startup task bug", error.Message);
+        Assert.Contains(warning => warning.Contains("startup task bug", StringComparison.Ordinal), _warnings);
+        Assert.DoesNotContain(warning => warning.Contains("did not let", StringComparison.Ordinal), _warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void Windows_refusing_the_startup_task_is_not_a_bug()
     {
         var task = new FakeStartupTask { ReadError = new UnauthorizedAccessException("access") };
         var registry = new StartupTaskRegistry(task, _log);
 
-        Assert.False(registry.Read().HasEntry);
-        Assert.Empty(_warnings);
+        Assert.IsFalse(registry.Read().HasEntry);
+        Assert.IsEmpty(_warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void Windows_refusing_one_sign_in_read_leaves_the_other()
     {
         var run = _testKey + @"\Run";
         var command = "\"C:\\winshell.exe\" --no-duplicate";
         var refused = new string('a', 256);
         var registered = new WindowsStartupRegistry(command, _configRoot.Path, run, refused);
-        Assert.True(registered.Register());
+        Assert.IsTrue(registered.Register());
 
         var answer = registered.Read();
 
-        Assert.True(answer.HasEntry);
-        Assert.False(answer.OffInWindows);
-        Assert.False(answer.PointsElsewhere);
-        Assert.Empty(_warnings);
+        Assert.IsTrue(answer.HasEntry);
+        Assert.IsFalse(answer.OffInWindows);
+        Assert.IsFalse(answer.PointsElsewhere);
+        Assert.IsEmpty(_warnings);
 
         var approved = _testKey + @"\StartupApproved";
         using (var key = Registry.CurrentUser.CreateSubKey(approved))
@@ -525,22 +526,23 @@ public sealed class StartupRegistryTests : IDisposable
         }
 
         var unread = new WindowsStartupRegistry(command, _configRoot.Path, refused, approved).Read();
-        Assert.False(unread.HasEntry);
-        Assert.True(unread.OffInWindows);
-        Assert.Empty(_warnings);
+        Assert.IsFalse(unread.HasEntry);
+        Assert.IsTrue(unread.OffInWindows);
+        Assert.IsEmpty(_warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_sign_in_path_that_cannot_be_read_is_not_this_install_and_the_exception_is_logged()
     {
-        Assert.False(SignInEntry.SameInstall(@"C:\Program Files\Winshell\winshell.exe",
+        Assert.IsFalse(SignInEntry.SameInstall(@"C:\Program Files\Winshell\winshell.exe",
             @"C:\Old\winshell.exe", _ => throw new IOException("unreadable link"), _log));
-        Assert.Null(SignInEntry.ProjectOf(
+        Assert.IsNull(SignInEntry.ProjectOf(
             new SignInEntry.SignInLaunch(@"C:\winshell.exe", "", null), _configRoot.Path, _log));
 
-        Assert.Equal(2, _warnings.Count);
-        Assert.All(_warnings, warning => Assert.StartsWith("startup:", warning, StringComparison.Ordinal));
-        Assert.Contains(_warnings, warning => warning.Contains("unreadable link", StringComparison.Ordinal));
+        Assert.AreEqual(2, _warnings.Count);
+        foreach (var warning in _warnings)
+            Assert.StartsWith("startup:", warning, StringComparison.Ordinal);
+        Assert.Contains(warning => warning.Contains("unreadable link", StringComparison.Ordinal), _warnings);
     }
 
     private static string Configuration(string folder, string name)

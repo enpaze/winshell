@@ -2,6 +2,7 @@ using Winshell.Network;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class NetworkConnectionsTests
 {
     private static readonly Guid AdapterId = Guid.Parse("0b0f2811-87b5-48d6-9d7a-7a26ae12ff33");
@@ -22,20 +23,20 @@ public sealed class NetworkConnectionsTests
         return new NetworkInfo(ssid, ConnectionState.Disconnected, false, strength, WifiSecurityType.Wpa2Psk);
     }
 
-    [Theory]
-    [InlineData(NetworkConnectivity.InternetAccess)]
-    [InlineData(NetworkConnectivity.LocalAccess)]
-    [InlineData(NetworkConnectivity.CaptivePortal)]
+    [TestMethod]
+    [DataRow(NetworkConnectivity.InternetAccess)]
+    [DataRow(NetworkConnectivity.LocalAccess)]
+    [DataRow(NetworkConnectivity.CaptivePortal)]
     public void Profiles_leave_out_a_saved_profile_that_is_not_connected(NetworkConnectivity connectivity)
     {
         var connections = new NetworkConnections([Saved, Connected(connectivity)]);
 
-        Assert.Equal(["Home"], connections.Profiles.Select(p => p.Name));
+        Assert.AreSequenceEqual(["Home"], connections.Profiles.Select(p => p.Name));
     }
 
-    [Theory]
-    [InlineData(true, .6)]
-    [InlineData(false, .8)]
+    [TestMethod]
+    [DataRow(true, .6)]
+    [DataRow(false, .8)]
     public void A_wifi_adapter_is_on_the_network_of_its_connected_profile(bool inScan,
         double expectedSignal)
     {
@@ -44,7 +45,7 @@ public sealed class NetworkConnectionsTests
 
         var networks = connections.WifiNetworks(AdapterId, ConnectionState.Connected, scan, []);
 
-        var network = Assert.Single(networks, n => n.State == ConnectionState.Connected);
-        Assert.Equal(("Home SSID", expectedSignal), (network.Name, network.SignalStrength));
+        var network = Assert.ContainsSingle(n => n.State == ConnectionState.Connected, networks);
+        Assert.AreEqual(("Home SSID", expectedSignal), (network.Name, network.SignalStrength));
     }
 }

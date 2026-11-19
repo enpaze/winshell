@@ -2,28 +2,29 @@ using Winshell.Notifications;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class NotificationWatchTests
 {
-    [Fact]
+    [TestMethod]
     public async Task A_toast_change_refreshes_without_waiting_for_the_poll_and_dispose_stops_the_watch()
     {
         var backend = new WatchingBackend();
         var listener = new NotificationsService(new ManualEventLoop(), Log.Default, backend);
         try
         {
-            await backend.FirstRead.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            await backend.FirstRead.Task.WaitAsync(TimeSpan.FromSeconds(5), CurrentTest.Cancellation);
 
-            Assert.NotNull(backend.Changed);
+            Assert.IsNotNull(backend.Changed);
             backend.Changed();
-            await backend.SecondRead.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            await backend.SecondRead.Task.WaitAsync(TimeSpan.FromSeconds(5), CurrentTest.Cancellation);
         }
         finally
         {
             listener.Stop();
         }
 
-        await backend.Unwatched.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        Assert.Null(backend.Changed);
+        await backend.Unwatched.Task.WaitAsync(TimeSpan.FromSeconds(5), CurrentTest.Cancellation);
+        Assert.IsNull(backend.Changed);
     }
 
     private sealed class WatchingBackend : INotificationBackend

@@ -4,10 +4,11 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class FloatingWindowFullscreenTests
 {
-    [Fact]
+    [TestMethod]
     public async Task Fullscreen_covers_the_monitor_and_then_puts_the_frame_back()
     {
         await ShellFixture.On(shell =>
@@ -22,15 +23,15 @@ public sealed class FloatingWindowFullscreenTests
 
                 window.Fullscreen = true;
 
-                Assert.True(window.Fullscreen);
-                Assert.False(window.Maximized);
+                Assert.IsTrue(window.Fullscreen);
+                Assert.IsFalse(window.Maximized);
                 AssertCoversMonitor(hwnd);
 
                 window.Fullscreen = false;
 
-                Assert.False(window.Fullscreen);
-                Assert.Equal(before, Outer(hwnd));
-                Assert.Equal(style, Style(hwnd) & ~(uint)WINDOW_STYLE.WS_VISIBLE);
+                Assert.IsFalse(window.Fullscreen);
+                Assert.AreEqual(before, Outer(hwnd));
+                Assert.AreEqual(style, Style(hwnd) & ~(uint)WINDOW_STYLE.WS_VISIBLE);
                 AssertFramed(hwnd);
             }
             finally
@@ -42,7 +43,7 @@ public sealed class FloatingWindowFullscreenTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_dpi_message_while_fullscreen_keeps_the_monitor_and_scales_the_old_place()
     {
         await ShellFixture.On(shell =>
@@ -54,7 +55,7 @@ public sealed class FloatingWindowFullscreenTests
                 var hwnd = window.Host!.Handle;
                 var before = Outer(hwnd);
                 var dpi = PInvoke.GetDpiForWindow((HWND)hwnd);
-                Assert.NotEqual(0u, dpi);
+                Assert.AreNotEqual(0u, dpi);
                 var nextDpi = dpi == 96 ? 192u : 96u;
                 window.Fullscreen = true;
                 AssertCoversMonitor(hwnd);
@@ -72,20 +73,20 @@ public sealed class FloatingWindowFullscreenTests
                     Marshal.FreeHGlobal(memory);
                 }
 
-                Assert.True(window.Fullscreen);
+                Assert.IsTrue(window.Fullscreen);
                 AssertCoversMonitor(hwnd);
-                Assert.NotEqual(suggested, Outer(hwnd));
+                Assert.AreNotEqual(suggested, Outer(hwnd));
 
                 window.Fullscreen = false;
 
-                Assert.False(window.Fullscreen);
+                Assert.IsFalse(window.Fullscreen);
                 AssertFramed(hwnd);
                 var after = Outer(hwnd);
                 var scale = nextDpi / (double)dpi;
-                Assert.InRange(after.Width, (int)Math.Round(before.Width * scale) - 2,
-                    (int)Math.Round(before.Width * scale) + 2);
-                Assert.InRange(after.Height, (int)Math.Round(before.Height * scale) - 2,
-                    (int)Math.Round(before.Height * scale) + 2);
+                Assert.IsInRange((int)Math.Round(before.Width * scale) - 2, (int)Math.Round(before.Width * scale) + 2,
+                    after.Width);
+                Assert.IsInRange((int)Math.Round(before.Height * scale) - 2, (int)Math.Round(before.Height * scale) + 2,
+                    after.Height);
             }
             finally
             {
@@ -96,7 +97,7 @@ public sealed class FloatingWindowFullscreenTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Fullscreen_remembers_a_maximized_window()
     {
         await ShellFixture.On(shell =>
@@ -105,29 +106,29 @@ public sealed class FloatingWindowFullscreenTests
             shell.Add(window);
             var hwnd = window.Host!.Handle;
             window.Maximized = true;
-            Assert.True(PInvoke.IsZoomed((HWND)hwnd));
-            Assert.True(window.Maximized);
+            Assert.IsTrue(PInvoke.IsZoomed((HWND)hwnd));
+            Assert.IsTrue(window.Maximized);
             var restored = Restored(hwnd);
 
             window.Fullscreen = true;
 
-            Assert.True(window.Fullscreen);
-            Assert.False(window.Maximized);
-            Assert.False(PInvoke.IsZoomed((HWND)hwnd));
+            Assert.IsTrue(window.Fullscreen);
+            Assert.IsFalse(window.Maximized);
+            Assert.IsFalse(PInvoke.IsZoomed((HWND)hwnd));
             AssertCoversMonitor(hwnd);
 
             window.Fullscreen = false;
 
-            Assert.False(window.Fullscreen);
-            Assert.True(window.Maximized);
-            Assert.True(PInvoke.IsZoomed((HWND)hwnd));
+            Assert.IsFalse(window.Fullscreen);
+            Assert.IsTrue(window.Maximized);
+            Assert.IsTrue(PInvoke.IsZoomed((HWND)hwnd));
             AssertFramed(hwnd);
-            Assert.Equal(restored, Restored(hwnd));
+            Assert.AreEqual(restored, Restored(hwnd));
             return true;
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Minimizing_a_fullscreen_window_keeps_fullscreen_and_maximized_leaves_it()
     {
         await ShellFixture.On(shell =>
@@ -139,30 +140,30 @@ public sealed class FloatingWindowFullscreenTests
 
             window.Fullscreen = true;
             window.Minimized = true;
-            Assert.True(window.Fullscreen);
-            Assert.True(window.Minimized);
-            Assert.True(PInvoke.IsIconic((HWND)hwnd));
+            Assert.IsTrue(window.Fullscreen);
+            Assert.IsTrue(window.Minimized);
+            Assert.IsTrue(PInvoke.IsIconic((HWND)hwnd));
 
             window.Minimized = false;
-            Assert.True(window.Fullscreen);
-            Assert.False(window.Minimized);
-            Assert.False(PInvoke.IsIconic((HWND)hwnd));
+            Assert.IsTrue(window.Fullscreen);
+            Assert.IsFalse(window.Minimized);
+            Assert.IsFalse(PInvoke.IsIconic((HWND)hwnd));
             AssertCoversMonitor(hwnd);
 
             window.Maximized = true;
-            Assert.False(window.Fullscreen);
-            Assert.True(window.Maximized);
-            Assert.True(PInvoke.IsZoomed((HWND)hwnd));
+            Assert.IsFalse(window.Fullscreen);
+            Assert.IsTrue(window.Maximized);
+            Assert.IsTrue(PInvoke.IsZoomed((HWND)hwnd));
             AssertFramed(hwnd);
 
             window.Maximized = false;
-            Assert.False(window.Fullscreen);
-            Assert.Equal(before, Outer(hwnd));
+            Assert.IsFalse(window.Fullscreen);
+            Assert.AreEqual(before, Outer(hwnd));
             return true;
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Fullscreen_from_a_minimized_window_shows_it_and_then_minimizes_it_again()
     {
         await ShellFixture.On(shell =>
@@ -171,26 +172,26 @@ public sealed class FloatingWindowFullscreenTests
             shell.Add(window);
             var hwnd = window.Host!.Handle;
             window.Minimized = true;
-            Assert.True(PInvoke.IsIconic((HWND)hwnd));
+            Assert.IsTrue(PInvoke.IsIconic((HWND)hwnd));
 
             window.Fullscreen = true;
 
-            Assert.True(window.Fullscreen);
-            Assert.False(window.Minimized);
-            Assert.False(PInvoke.IsIconic((HWND)hwnd));
+            Assert.IsTrue(window.Fullscreen);
+            Assert.IsFalse(window.Minimized);
+            Assert.IsFalse(PInvoke.IsIconic((HWND)hwnd));
             AssertCoversMonitor(hwnd);
 
             window.Fullscreen = false;
 
-            Assert.False(window.Fullscreen);
-            Assert.True(window.Minimized);
-            Assert.True(PInvoke.IsIconic((HWND)hwnd));
+            Assert.IsFalse(window.Fullscreen);
+            Assert.IsTrue(window.Minimized);
+            Assert.IsTrue(PInvoke.IsIconic((HWND)hwnd));
             AssertFramed(hwnd);
             return true;
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_owner_stays_under_the_window_and_can_be_changed()
     {
         await ShellFixture.On(async shell =>
@@ -215,40 +216,40 @@ public sealed class FloatingWindowFullscreenTests
             var childHwnd = child.Host!.Handle;
             var otherHwnd = other.Host!.Handle;
 
-            Assert.Equal(ownerHwnd, PInvoke.GetWindowLongPtr((HWND)childHwnd, WINDOW_LONG_PTR_INDEX.GWLP_HWNDPARENT));
-            Assert.Equal(ownerHwnd, (nint)PInvoke.GetWindow((HWND)childHwnd, GET_WINDOW_CMD.GW_OWNER));
-            Assert.Equal(ownerHwnd, PInvoke.GetWindowLongPtr((HWND)early.Host!.Handle, WINDOW_LONG_PTR_INDEX.GWLP_HWNDPARENT));
-            Assert.Equal(0u, Style(childHwnd) & (uint)WINDOW_STYLE.WS_CHILD);
+            Assert.AreEqual(ownerHwnd, PInvoke.GetWindowLongPtr((HWND)childHwnd, WINDOW_LONG_PTR_INDEX.GWLP_HWNDPARENT));
+            Assert.AreEqual(ownerHwnd, (nint)PInvoke.GetWindow((HWND)childHwnd, GET_WINDOW_CMD.GW_OWNER));
+            Assert.AreEqual(ownerHwnd, PInvoke.GetWindowLongPtr((HWND)early.Host!.Handle, WINDOW_LONG_PTR_INDEX.GWLP_HWNDPARENT));
+            Assert.AreEqual(0u, Style(childHwnd) & (uint)WINDOW_STYLE.WS_CHILD);
             AssertAbove(childHwnd, ownerHwnd);
 
             owner.Owner = child;
-            Assert.Null(owner.Owner);
+            Assert.IsNull(owner.Owner);
             child.Owner = child;
-            Assert.Same(owner, child.Owner);
+            Assert.AreSame(owner, child.Owner);
 
             child.Owner = other;
-            Assert.Same(other, child.Owner);
-            Assert.Equal(otherHwnd, PInvoke.GetWindowLongPtr((HWND)childHwnd, WINDOW_LONG_PTR_INDEX.GWLP_HWNDPARENT));
+            Assert.AreSame(other, child.Owner);
+            Assert.AreEqual(otherHwnd, PInvoke.GetWindowLongPtr((HWND)childHwnd, WINDOW_LONG_PTR_INDEX.GWLP_HWNDPARENT));
             AssertAbove(childHwnd, otherHwnd);
 
             child.Owner = null;
-            Assert.Null(child.Owner);
-            Assert.Equal(0, PInvoke.GetWindowLongPtr((HWND)childHwnd, WINDOW_LONG_PTR_INDEX.GWLP_HWNDPARENT));
+            Assert.IsNull(child.Owner);
+            Assert.AreEqual(0, PInvoke.GetWindowLongPtr((HWND)childHwnd, WINDOW_LONG_PTR_INDEX.GWLP_HWNDPARENT));
 
             child.Owner = owner;
             owner.Minimized = true;
-            Assert.True(PInvoke.IsIconic((HWND)ownerHwnd));
+            Assert.IsTrue(PInvoke.IsIconic((HWND)ownerHwnd));
             await Wait.UntilAsync(() => !PInvoke.IsWindowVisible((HWND)childHwnd), "the owned window to hide with its owner");
-            Assert.False(child.Minimized);
+            Assert.IsFalse(child.Minimized);
             owner.Minimized = false;
-            Assert.False(PInvoke.IsIconic((HWND)ownerHwnd));
+            Assert.IsFalse(PInvoke.IsIconic((HWND)ownerHwnd));
             await Wait.UntilAsync(() => PInvoke.IsWindowVisible((HWND)childHwnd), "the owned window to show with its owner");
-            Assert.False(child.Minimized);
+            Assert.IsFalse(child.Minimized);
             return true;
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Closing_the_owner_closes_the_owned_window_without_leaving_its_handle()
     {
         await ShellFixture.On(async shell =>
@@ -271,20 +272,20 @@ public sealed class FloatingWindowFullscreenTests
 
             owner.Dispose();
 
-            Assert.False(PInvoke.IsWindow((HWND)hwnd));
-            Assert.Equal(0, host.Handle);
-            Assert.Null(child.Owner);
-            Assert.True(PInvoke.IsWindow((HWND)otherHwnd));
+            Assert.IsFalse(PInvoke.IsWindow((HWND)hwnd));
+            Assert.AreEqual(0, host.Handle);
+            Assert.IsNull(child.Owner);
+            Assert.IsTrue(PInvoke.IsWindow((HWND)otherHwnd));
 
             await Wait.UntilAsync(() => closed, "the owned window to say it closed");
-            Assert.False(child.Visible);
-            Assert.Null(child.Host);
+            Assert.IsFalse(child.Visible);
+            Assert.IsNull(child.Host);
 
             child.Visible = true;
             var again = child.Host!.Handle;
-            Assert.NotEqual(hwnd, again);
-            Assert.True(PInvoke.IsWindow((HWND)again));
-            Assert.Equal(0, PInvoke.GetWindowLongPtr((HWND)again, WINDOW_LONG_PTR_INDEX.GWLP_HWNDPARENT));
+            Assert.AreNotEqual(hwnd, again);
+            Assert.IsTrue(PInvoke.IsWindow((HWND)again));
+            Assert.AreEqual(0, PInvoke.GetWindowLongPtr((HWND)again, WINDOW_LONG_PTR_INDEX.GWLP_HWNDPARENT));
             return true;
         });
     }
@@ -293,7 +294,7 @@ public sealed class FloatingWindowFullscreenTests
     private static RECT Restored(nint hwnd)
     {
         var place = new WINDOWPLACEMENT { length = (uint)Marshal.SizeOf<WINDOWPLACEMENT>() };
-        Assert.True(PInvoke.GetWindowPlacement((HWND)hwnd, ref place));
+        Assert.IsTrue(PInvoke.GetWindowPlacement((HWND)hwnd, ref place));
         return place.rcNormalPosition;
     }
 
@@ -314,17 +315,17 @@ public sealed class FloatingWindowFullscreenTests
     private static void AssertCoversMonitor(nint hwnd)
     {
         var monitor = Screens.Of(hwnd);
-        Assert.NotNull(monitor);
+        Assert.IsNotNull(monitor);
         var bounds = monitor.Bounds;
         var rect = Outer(hwnd);
-        Assert.InRange(rect.left, bounds.left - 1, bounds.left + 1);
-        Assert.InRange(rect.top, bounds.top - 1, bounds.top + 1);
-        Assert.InRange(rect.right, bounds.right - 1, bounds.right + 1);
-        Assert.InRange(rect.bottom, bounds.bottom - 1, bounds.bottom + 1);
-        Assert.Equal(0u, Style(hwnd) & (uint)(WINDOW_STYLE.WS_CAPTION | WINDOW_STYLE.WS_THICKFRAME));
+        Assert.IsInRange(bounds.left - 1, bounds.left + 1, rect.left);
+        Assert.IsInRange(bounds.top - 1, bounds.top + 1, rect.top);
+        Assert.IsInRange(bounds.right - 1, bounds.right + 1, rect.right);
+        Assert.IsInRange(bounds.bottom - 1, bounds.bottom + 1, rect.bottom);
+        Assert.AreEqual(0u, Style(hwnd) & (uint)(WINDOW_STYLE.WS_CAPTION | WINDOW_STYLE.WS_THICKFRAME));
         if ((monitor.Work.left, monitor.Work.top, monitor.Work.right, monitor.Work.bottom) !=
             (monitor.Bounds.left, monitor.Bounds.top, monitor.Bounds.right, monitor.Bounds.bottom))
-            Assert.True(
+            Assert.IsTrue(
                 rect.left < monitor.Work.left || rect.top < monitor.Work.top
                                               || rect.right > monitor.Work.right || rect.bottom > monitor.Work.bottom);
     }
@@ -332,8 +333,8 @@ public sealed class FloatingWindowFullscreenTests
     private static void AssertFramed(nint hwnd)
     {
         var style = Style(hwnd);
-        Assert.NotEqual(0u, style & (uint)WINDOW_STYLE.WS_CAPTION);
-        Assert.NotEqual(0u, style & (uint)WINDOW_STYLE.WS_THICKFRAME);
+        Assert.AreNotEqual(0u, style & (uint)WINDOW_STYLE.WS_CAPTION);
+        Assert.AreNotEqual(0u, style & (uint)WINDOW_STYLE.WS_THICKFRAME);
     }
 
     private static uint Style(nint hwnd)
@@ -343,7 +344,7 @@ public sealed class FloatingWindowFullscreenTests
 
     private static RECT Outer(nint hwnd)
     {
-        Assert.True(PInvoke.GetWindowRect((HWND)hwnd, out var rect));
+        Assert.IsTrue(PInvoke.GetWindowRect((HWND)hwnd, out var rect));
         return rect;
     }
 }

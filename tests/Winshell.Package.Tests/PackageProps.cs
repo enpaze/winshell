@@ -26,7 +26,7 @@ internal static class PackageProps
 
         var evaluated = ShellProject.Run("dotnet", arguments, folder.Path);
 
-        Assert.True(evaluated.ExitCode == 0, evaluated.Output);
+        Assert.IsTrue(evaluated.ExitCode == 0, evaluated.Output);
         using var json = JsonDocument.Parse(File.ReadAllText(result));
         return json.RootElement.GetProperty("Items").GetProperty(item).EnumerateArray().Select(e => e.Clone()).ToList();
     }

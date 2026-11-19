@@ -1,18 +1,19 @@
 namespace Winshell.Tests;
 
+[TestClass]
 public class CliHelpTests
 {
-    [Theory]
-    [InlineData("list", "--help", "list")]
-    [InlineData("stop", "--help", "stop")]
-    [InlineData("stop", "-h", "stop")]
-    [InlineData("stop", "/?", "stop")]
-    [InlineData("log", "--help", "log")]
-    [InlineData("ipc", "--help", "ipc")]
-    [InlineData("doctor", "--help", "doctor")]
-    [InlineData("help", "--help", "Usage")]
-    [InlineData("--help", null, "Usage")]
-    [InlineData("/?", null, "Usage")]
+    [TestMethod]
+    [DataRow("list", "--help", "list")]
+    [DataRow("stop", "--help", "stop")]
+    [DataRow("stop", "-h", "stop")]
+    [DataRow("stop", "/?", "stop")]
+    [DataRow("log", "--help", "log")]
+    [DataRow("ipc", "--help", "ipc")]
+    [DataRow("doctor", "--help", "doctor")]
+    [DataRow("help", "--help", "Usage")]
+    [DataRow("--help", null, "Usage")]
+    [DataRow("/?", null, "Usage")]
     public void Help_exits_0_and_does_not_run_the_command(string command, string? help, string expected)
     {
         var args = help is null ? new[] { command } : new[] { command, help };

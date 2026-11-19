@@ -699,7 +699,7 @@
 * **runtime:** an alias drops its forwarder when its owner is destroyed ([ffe89d6](https://github.com/dante-sparras/winshell/commit/ffe89d6ed4cbb39ac6ebc21a8d8cacd943c58e94))
 * **runtime:** an empty signal name or a wide enum value no longer throws ([#507](https://github.com/dante-sparras/winshell/issues/507)) ([44ea9fe](https://github.com/dante-sparras/winshell/commit/44ea9fec0f8bc087f267879c687d68eaf566a836))
 * **runtime:** an object created with no parent dies on reload ([2daa7e3](https://github.com/dante-sparras/winshell/commit/2daa7e39434af8825ca9cc14202bc31bd31cd955))
-* **runtime:** an xunit assertion in a callback fails the test ([#334](https://github.com/dante-sparras/winshell/issues/334)) ([41df8a6](https://github.com/dante-sparras/winshell/commit/41df8a6ff0a92520d408a1a8e429960c66eb1f23))
+* **runtime:** a test assertion in a callback fails the test ([#334](https://github.com/dante-sparras/winshell/issues/334)) ([41df8a6](https://github.com/dante-sparras/winshell/commit/41df8a6ff0a92520d408a1a8e429960c66eb1f23))
 * **runtime:** arrow and color scheme values match qt ([#382](https://github.com/dante-sparras/winshell/issues/382)) ([73c9da2](https://github.com/dante-sparras/winshell/commit/73c9da28f063682ff79a4f7216ca5857443a0c37))
 * **runtime:** bindings do not run while an object is destroyed ([1d84660](https://github.com/dante-sparras/winshell/commit/1d84660cf95cc52f409a61f137a9787113fbb4eb))
 * **runtime:** connect rejects a value that is not a function ([#327](https://github.com/dante-sparras/winshell/issues/327)) ([e99c610](https://github.com/dante-sparras/winshell/commit/e99c610b5618a9e446ddbdbbf5a3616b31ccb03d))

@@ -2,13 +2,14 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed class LauncherTests
 {
     private const uint CtrlAltShift = 0x7;
     private const int F22 = 0x85;
     private const int F23 = 0x86;
 
-    [Fact]
+    [TestMethod]
     public async Task A_launcher_claims_its_hotkey_only_once_it_is_added()
     {
         await ShellFixture.On(async shell =>
@@ -21,18 +22,18 @@ public sealed class LauncherTests
             var turn = new TaskCompletionSource();
             shell.Loop.Post(turn.SetResult);
             await turn.Task;
-            Assert.True(KeyInput.Unclaimed(CtrlAltShift, F22));
+            Assert.IsTrue(KeyInput.Unclaimed(CtrlAltShift, F22));
 
             shell.Add(launcher);
             await Wait.UntilAsync(() => !KeyInput.Unclaimed(CtrlAltShift, F22), "the added launcher to claim its hotkey");
 
             launcher.Dispose();
-            Assert.True(KeyInput.Unclaimed(CtrlAltShift, F22));
+            Assert.IsTrue(KeyInput.Unclaimed(CtrlAltShift, F22));
             return true;
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_changed_hotkey_in_the_preferences_file_frees_the_old_chord_and_claims_the_new_one()
     {
         await ShellFixture.On(async shell =>
@@ -47,19 +48,19 @@ public sealed class LauncherTests
 
                 await Wait.UntilAsync(() => !KeyInput.Unclaimed(CtrlAltShift, F22),
                     "the launcher to claim the hotkey from the file");
-                Assert.True(KeyInput.Unclaimed(CtrlAltShift, F23));
+                Assert.IsTrue(KeyInput.Unclaimed(CtrlAltShift, F23));
 
                 File.WriteAllText(path, $"[{name}]\nhotkey = \"Ctrl+Alt+Shift+F23\"\n");
                 await Wait.UntilAsync(() => !KeyInput.Unclaimed(CtrlAltShift, F23),
                     "the launcher to claim the changed hotkey");
-                Assert.True(KeyInput.Unclaimed(CtrlAltShift, F22));
+                Assert.IsTrue(KeyInput.Unclaimed(CtrlAltShift, F22));
             }
             finally
             {
                 File.Delete(path);
             }
 
-            Assert.True(KeyInput.Unclaimed(CtrlAltShift, F23));
+            Assert.IsTrue(KeyInput.Unclaimed(CtrlAltShift, F23));
             return true;
         });
     }

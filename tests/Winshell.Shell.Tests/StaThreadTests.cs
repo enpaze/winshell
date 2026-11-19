@@ -3,40 +3,52 @@ using System.Runtime.CompilerServices;
 
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed class StaThreadTests
 {
-    [Fact]
+    [TestMethod]
     public void From_an_MTA_thread_the_body_runs_to_its_end_on_another_thread_in_an_STA()
     {
         var (caller, ran) = On(ApartmentState.MTA, Run);
 
-        Assert.Equal(ApartmentState.STA, ran.Apartment);
-        Assert.NotEqual(caller, ran.Thread);
-        Assert.True(ran.Finished);
+        Assert.AreEqual(ApartmentState.STA, ran.Apartment);
+        Assert.AreNotEqual(caller, ran.Thread);
+        Assert.IsTrue(ran.Finished);
     }
 
-    [Fact]
+    [TestMethod]
     public void From_an_STA_thread_the_body_runs_on_the_calling_thread()
     {
         var (caller, ran) = On(ApartmentState.STA, Run);
 
-        Assert.Equal(ApartmentState.STA, ran.Apartment);
-        Assert.Equal(caller, ran.Thread);
-        Assert.True(ran.Finished);
+        Assert.AreEqual(ApartmentState.STA, ran.Apartment);
+        Assert.AreEqual(caller, ran.Thread);
+        Assert.IsTrue(ran.Finished);
     }
 
-    [Fact]
+    [TestMethod]
     public void From_an_MTA_thread_a_failure_is_rethrown_with_its_original_stack()
     {
         var thrown = new InvalidOperationException("The shell failed.");
 
-        var caught = On(ApartmentState.MTA, () => Record.Exception(() => StaThread.Run(() => Fail(thrown))));
+        var caught = On(ApartmentState.MTA, () =>
+        {
+            try
+            {
+                StaThread.Run(() => Fail(thrown));
+                return null;
+            }
+            catch (Exception exception)
+            {
+                return exception;
+            }
+        });
 
-        Assert.Same(thrown, caught);
-        Assert.Contains(nameof(Fail), thrown.StackTrace, StringComparison.Ordinal);
+        Assert.AreSame(thrown, caught);
+        Assert.Contains(nameof(Fail), thrown.StackTrace!, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void From_an_MTA_thread_the_body_keeps_the_callers_culture_and_UI_culture()
     {
         var culture = CultureInfo.GetCultureInfo("fr-FR");
@@ -52,9 +64,9 @@ public sealed class StaThreadTests
             return (Caller: Environment.CurrentManagedThreadId, Seen: seen);
         });
 
-        Assert.NotEqual(ran.Caller, ran.Seen.Thread);
-        Assert.Equal(culture, ran.Seen.Culture);
-        Assert.Equal(uiCulture, ran.Seen.UICulture);
+        Assert.AreNotEqual(ran.Caller, ran.Seen.Thread);
+        Assert.AreEqual(culture, ran.Seen.Culture);
+        Assert.AreEqual(uiCulture, ran.Seen.UICulture);
     }
 
     private static (int Caller, Ran Ran) Run()

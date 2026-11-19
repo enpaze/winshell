@@ -2,39 +2,40 @@ using Windows.Graphics.Imaging;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class PixelImageTests
 {
     private static async Task<byte[]> DecodeAsync(byte[] png)
     {
         using var stream = new MemoryStream(png).AsRandomAccessStream();
         var decoder = await BitmapDecoder.CreateAsync(BitmapDecoder.PngDecoderId, stream);
-        Assert.Equal(2u, decoder.PixelWidth);
-        Assert.Equal(1u, decoder.PixelHeight);
+        Assert.AreEqual(2u, decoder.PixelWidth);
+        Assert.AreEqual(1u, decoder.PixelHeight);
         var pixels = await decoder.GetPixelDataAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Straight,
             new BitmapTransform(),
             ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.DoNotColorManage);
         return pixels.DetachPixelData();
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_png_keeps_the_size_and_the_pixels()
     {
         byte[] pixels = [10, 20, 30, 255, 40, 50, 60, 128];
 
         var png = new PixelImage(2, 1, pixels).EncodePng();
 
-        Assert.Equal(pixels, await DecodeAsync(png));
+        Assert.AreSequenceEqual(pixels, await DecodeAsync(png));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_premultiplied_picture_is_saved_with_straight_alpha()
     {
         var png = new PixelImage(2, 1, [64, 32, 16, 128, 0, 0, 0, 0], true).EncodePng();
 
-        Assert.Equal(new byte[] { 128, 64, 32, 128, 0, 0, 0, 0 }, await DecodeAsync(png));
+        Assert.AreSequenceEqual(new byte[] { 128, 64, 32, 128, 0, 0, 0, 0 }, await DecodeAsync(png));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_png_can_be_made_on_a_UI_thread()
     {
         byte[] pixels = [10, 20, 30, 255, 40, 50, 60, 128];
@@ -45,21 +46,21 @@ public sealed class PixelImageTests
         thread.Start();
         thread.Join();
 
-        Assert.Equal(pixels, await DecodeAsync(png!));
+        Assert.AreSequenceEqual(pixels, await DecodeAsync(png!));
     }
 
-    [Theory]
-    [InlineData(0, 1, 0)]
-    [InlineData(1, 0, 0)]
-    [InlineData(-1, -1, 4)]
+    [TestMethod]
+    [DataRow(0, 1, 0)]
+    [DataRow(1, 0, 0)]
+    [DataRow(-1, -1, 4)]
     public void A_picture_has_a_size(int width, int height, int bytes)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PixelImage(width, height, new byte[bytes]));
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => new PixelImage(width, height, new byte[bytes]));
     }
 
-    [Fact]
+    [TestMethod]
     public void The_pixels_must_fill_the_picture()
     {
-        Assert.Throws<ArgumentException>(() => new PixelImage(2, 2, new byte[15]));
+        Assert.ThrowsExactly<ArgumentException>(() => new PixelImage(2, 2, new byte[15]));
     }
 }

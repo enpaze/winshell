@@ -4,6 +4,7 @@ using System.Security.Principal;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class ShellProjectTests : IDisposable
 {
     private readonly string _root = TempFolder.NewPath();
@@ -32,13 +33,13 @@ public sealed class ShellProjectTests : IDisposable
     private ShellProject Found(string? path = null, string? name = null)
     {
         var project = ShellProject.Find(path, name, _root, out var error);
-        Assert.Null(error);
-        return Assert.IsType<ShellProject>(project);
+        Assert.IsNull(error);
+        return Assert.IsExactInstanceOfType<ShellProject>(project);
     }
 
     private string? Refusal(string? path = null, string? name = null)
     {
-        Assert.Null(ShellProject.Find(path, name, _root, out var error));
+        Assert.IsNull(ShellProject.Find(path, name, _root, out var error));
         return error;
     }
 
@@ -57,67 +58,67 @@ public sealed class ShellProjectTests : IDisposable
 
     private static readonly DateTime Long = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-    [Fact]
+    [TestMethod]
     public void A_path_is_a_project_or_a_folder_with_one()
     {
         var file = Project("mine\\Bar.csproj");
 
-        Assert.Equal(file, Found(file).ProjectFile);
-        Assert.Equal(file, Found(Path.Combine(_root, "mine")).ProjectFile);
+        Assert.AreEqual(file, Found(file).ProjectFile);
+        Assert.AreEqual(file, Found(Path.Combine(_root, "mine")).ProjectFile);
         Assert.StartsWith("No .csproj at ", Refusal(Path.Combine(_root, "other")), StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_folder_with_two_projects_says_to_name_one()
     {
         Project("mine\\A.csproj");
         Project("mine\\B.csproj");
 
-        Assert.Contains("A.csproj, B.csproj", Refusal(Path.Combine(_root, "mine")), StringComparison.Ordinal);
+        Assert.Contains("A.csproj, B.csproj", Refusal(Path.Combine(_root, "mine"))!, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_name_is_a_folder_of_the_root()
     {
         var file = Project("work\\Work.csproj");
 
-        Assert.Equal(file, Found(name: "work").ProjectFile);
-        Assert.Equal($"No shell named \"home\" in {_root}.", Refusal(name: "home"));
+        Assert.AreEqual(file, Found(name: "work").ProjectFile);
+        Assert.AreEqual($"No shell named \"home\" in {_root}.", Refusal(name: "home"));
     }
 
-    [Fact]
+    [TestMethod]
     public void Several_projects_in_the_config_folder_are_refused_not_passed_over()
     {
         Project("A.csproj");
         Project("B.csproj");
         Project(@"default\Default.csproj");
 
-        Assert.Equal($"Several projects in {_root}; name one with -p: A.csproj, B.csproj.", Refusal());
+        Assert.AreEqual($"Several projects in {_root}; name one with -p: A.csproj, B.csproj.", Refusal());
     }
 
-    [Fact]
+    [TestMethod]
     public void The_root_comes_before_default_and_default_before_a_lone_folder()
     {
         var lone = Project("lone\\Lone.csproj");
-        Assert.Equal(lone, Found().ProjectFile);
+        Assert.AreEqual(lone, Found().ProjectFile);
 
         var fallback = Project("default\\Default.csproj");
-        Assert.Equal(fallback, Found().ProjectFile);
+        Assert.AreEqual(fallback, Found().ProjectFile);
 
         var top = Project("Top.csproj");
-        Assert.Equal(top, Found().ProjectFile);
+        Assert.AreEqual(top, Found().ProjectFile);
     }
 
-    [Fact]
+    [TestMethod]
     public void Two_folders_with_projects_say_to_pick_one()
     {
         Project("a\\A.csproj");
         Project("b\\B.csproj");
 
-        Assert.Contains("pick one with -s: a, b", Refusal(), StringComparison.Ordinal);
+        Assert.Contains("pick one with -s: a, b", Refusal()!, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_chosen_config_comes_before_the_root_default_and_the_others()
     {
         Project("a\\A.csproj");
@@ -127,26 +128,26 @@ public sealed class ShellProjectTests : IDisposable
 
         ShellProject.Record(_root, "b");
 
-        Assert.Equal(chosen, Found().ProjectFile);
+        Assert.AreEqual(chosen, Found().ProjectFile);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_chosen_config_that_is_gone_says_to_choose_one()
     {
         Project("default\\Default.csproj");
         ShellProject.Record(_root, "gone");
 
-        Assert.Equal($"The chosen shell \"gone\" is not in {_root}. Choose one with winshell use <name>.", Refusal());
+        Assert.AreEqual($"The chosen shell \"gone\" is not in {_root}. Choose one with winshell use <name>.", Refusal());
     }
 
-    [Fact]
+    [TestMethod]
     public void No_project_at_all_is_no_error_so_the_default_shell_runs()
     {
-        Assert.Null(ShellProject.Find(null, null, Path.Combine(_root, "missing"), out var error));
-        Assert.Null(error);
+        Assert.IsNull(ShellProject.Find(null, null, Path.Combine(_root, "missing"), out var error));
+        Assert.IsNull(error);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_file_that_is_not_a_project_is_refused()
     {
         File.WriteAllText(Path.Combine(_root, "notes.txt"), "hello");
@@ -154,21 +155,21 @@ public sealed class ShellProjectTests : IDisposable
         Assert.StartsWith("No .csproj at ", Refusal(Path.Combine(_root, "notes.txt")), StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_program_finds_its_project()
     {
         var file = Project("mine\\Bar.csproj");
         var project = Found(Path.Combine(_root, "mine"));
 
-        Assert.Equal(file, project.ProjectFile);
-        Assert.Equal(file, ShellProject.ForProgram(project.Program)!.ProjectFile);
-        Assert.Equal(file,
+        Assert.AreEqual(file, project.ProjectFile);
+        Assert.AreEqual(file, ShellProject.ForProgram(project.Program)!.ProjectFile);
+        Assert.AreEqual(file,
             ShellProject.ForProgram(Path.Combine(project.OutputFolder + ".next", "Bar.exe"))!.ProjectFile);
-        Assert.Null(ShellProject.ForProgram(Path.Combine(project.OutputFolder, "other.exe")));
-        Assert.Null(ShellProject.ForProgram(Path.Combine(_root, "winshell.exe")));
+        Assert.IsNull(ShellProject.ForProgram(Path.Combine(project.OutputFolder, "other.exe")));
+        Assert.IsNull(ShellProject.ForProgram(Path.Combine(_root, "winshell.exe")));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_run_instance_runs_either_built_program_and_a_shared_prefix_does_not()
     {
         var folder = Path.GetDirectoryName(Project("MyProject\\Bar.csproj"))!;
@@ -180,10 +181,10 @@ public sealed class ShellProjectTests : IDisposable
             Instance("extra", Path.Combine(folder, "bin", "shell.extra", "Bar.exe"))
         ]);
 
-        Assert.Equal(["run", "beside"], run.Select(info => info.Id));
+        Assert.AreSequenceEqual(["run", "beside"], run.Select(info => info.Id));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_dev_instance_runs_another_program_under_the_project_folder_and_a_shared_prefix_does_not()
     {
         var folder = Path.GetDirectoryName(Project("MyProject\\Bar.csproj"))!;
@@ -195,7 +196,7 @@ public sealed class ShellProjectTests : IDisposable
             Instance("other", Path.Combine(folder + "2", "bin", "Debug", "Bar.exe"))
         ]);
 
-        Assert.Equal(["dev"], dev.Select(info => info.Id));
+        Assert.AreSequenceEqual(["dev"], dev.Select(info => info.Id));
     }
 
     private static InstanceInfo Instance(string id, string program)
@@ -203,19 +204,19 @@ public sealed class ShellProjectTests : IDisposable
         return new InstanceInfo(id, 1, "shell", program, DateTime.UnixEpoch, "pipe-" + id, "log-" + id);
     }
 
-    [Theory]
-    [InlineData("<Project><PropertyGroup><AssemblyName>Mine</AssemblyName></PropertyGroup></Project>", "Mine.exe")]
-    [InlineData("<Project><PropertyGroup><AssemblyName>$(Other)</AssemblyName></PropertyGroup></Project>", "Bar.exe")]
-    [InlineData("<Project Sdk=\"Microsoft.NET.Sdk\" />", "Bar.exe")]
-    [InlineData("not xml", "Bar.exe")]
+    [TestMethod]
+    [DataRow("<Project><PropertyGroup><AssemblyName>Mine</AssemblyName></PropertyGroup></Project>", "Mine.exe")]
+    [DataRow("<Project><PropertyGroup><AssemblyName>$(Other)</AssemblyName></PropertyGroup></Project>", "Bar.exe")]
+    [DataRow("<Project Sdk=\"Microsoft.NET.Sdk\" />", "Bar.exe")]
+    [DataRow("not xml", "Bar.exe")]
     public void The_program_is_named_by_the_project(string text, string expected)
     {
         var project = Found(Project("Bar.csproj", text));
 
-        Assert.Equal(Path.Combine(_root, "bin", "shell", expected), project.Program);
+        Assert.AreEqual(Path.Combine(_root, "bin", "shell", expected), project.Program);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_build_is_needed_with_no_program_and_after_a_newer_source()
     {
         var file = Project("Bar.csproj");
@@ -223,16 +224,16 @@ public sealed class ShellProjectTests : IDisposable
         File.SetLastWriteTimeUtc(file, Long);
         File.SetLastWriteTimeUtc(source, Long);
         var project = Found(file);
-        Assert.True(project.NeedsBuild());
+        Assert.IsTrue(project.NeedsBuild());
 
         Built(project, Long.AddMinutes(1));
-        Assert.False(project.NeedsBuild());
+        Assert.IsFalse(project.NeedsBuild());
 
         File.SetLastWriteTimeUtc(source, Long.AddMinutes(2));
-        Assert.True(project.NeedsBuild());
+        Assert.IsTrue(project.NeedsBuild());
     }
 
-    [Fact]
+    [TestMethod]
     public void What_a_build_or_an_editor_writes_needs_no_build()
     {
         var file = Project("Bar.csproj");
@@ -243,27 +244,27 @@ public sealed class ShellProjectTests : IDisposable
         File.SetLastWriteTimeUtc(Project("obj\\project.assets.json"), Long.AddMinutes(2));
         File.SetLastWriteTimeUtc(Project(".vs\\state.bin"), Long.AddMinutes(2));
 
-        Assert.False(project.NeedsBuild());
+        Assert.IsFalse(project.NeedsBuild());
     }
 
-    [Fact]
+    [TestMethod]
     public void Prepare_builds_when_a_source_is_newer_and_only_then()
     {
         var file = Project("Bar.csproj");
         File.SetLastWriteTimeUtc(file, Long);
         var project = Found(file);
 
-        Assert.Null(project.Prepare(false, Builds));
-        var command = Assert.Single(_commands);
+        Assert.IsNull(project.Prepare(false, Builds));
+        var command = Assert.ContainsSingle(_commands);
         Assert.StartsWith($"dotnet build {file} -c Release -o {project.OutputFolder}", command,
             StringComparison.Ordinal);
 
         Built(project, Long.AddMinutes(1));
-        Assert.Null(project.Prepare(false, Builds));
-        Assert.Single(_commands);
+        Assert.IsNull(project.Prepare(false, Builds));
+        Assert.ContainsSingle(_commands);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_failed_build_leaves_the_running_program_where_it_was()
     {
         var file = Project("Bar.csproj");
@@ -288,14 +289,14 @@ public sealed class ShellProjectTests : IDisposable
             running.ErrorDataReceived += (_, _) => { };
             running.BeginOutputReadLine();
             running.BeginErrorReadLine();
-            Assert.False(running.HasExited);
+            Assert.IsFalse(running.HasExited);
             var reason = project.Prepare(false,
                 (_, _, _) => new CommandResult(1, "error CS1002: ; expected [Bar.csproj]"));
 
-            Assert.Contains("error CS1002", reason, StringComparison.Ordinal);
-            Assert.True(File.Exists(project.Program));
-            Assert.False(Directory.Exists(project.OutputFolder + ".previous"));
-            Assert.False(running.HasExited);
+            Assert.Contains("error CS1002", reason!, StringComparison.Ordinal);
+            Assert.IsTrue(File.Exists(project.Program));
+            Assert.IsFalse(Directory.Exists(project.OutputFolder + ".previous"));
+            Assert.IsFalse(running.HasExited);
         }
         finally
         {
@@ -307,7 +308,7 @@ public sealed class ShellProjectTests : IDisposable
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void A_folder_that_will_not_move_is_built_beside_the_running_program()
     {
         var file = Project("Bar.csproj");
@@ -319,12 +320,12 @@ public sealed class ShellProjectTests : IDisposable
         using (new FileStream(project.Program, FileMode.Open, FileAccess.Read, FileShare.Read))
         {
             var reason = project.Prepare(false, BuildsInto);
-            Assert.Null(reason);
-            Assert.Equal(Path.Combine(project.OutputFolder + ".next", "Bar.exe"), project.Program);
+            Assert.IsNull(reason);
+            Assert.AreEqual(Path.Combine(project.OutputFolder + ".next", "Bar.exe"), project.Program);
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void The_program_is_whichever_folder_was_built_last()
     {
         var file = Project("Bar.csproj");
@@ -335,13 +336,13 @@ public sealed class ShellProjectTests : IDisposable
         Directory.CreateDirectory(Path.GetDirectoryName(beside)!);
         File.WriteAllText(beside, "");
         File.SetLastWriteTimeUtc(beside, Long.AddMinutes(1));
-        Assert.Equal(beside, project.Program);
+        Assert.AreEqual(beside, project.Program);
 
         File.WriteAllText(Project("Program.cs"), "class Program {}");
         File.SetLastWriteTimeUtc(Path.Combine(project.Folder, "Program.cs"), DateTime.UtcNow.AddMinutes(-1));
-        Assert.Null(project.Prepare(false, BuildsInto));
+        Assert.IsNull(project.Prepare(false, BuildsInto));
 
-        Assert.Equal(Path.Combine(project.OutputFolder, "Bar.exe"), project.Program);
+        Assert.AreEqual(Path.Combine(project.OutputFolder, "Bar.exe"), project.Program);
     }
 
     private CommandResult BuildsInto(string file, IReadOnlyList<string> arguments, string folder)
@@ -352,32 +353,32 @@ public sealed class ShellProjectTests : IDisposable
         return new CommandResult(0, "");
     }
 
-    [Fact]
+    [TestMethod]
     public void No_build_runs_what_the_last_build_left_even_with_a_newer_source()
     {
         var file = Project("Bar.csproj");
         var project = Found(file);
         Built(project, Long);
 
-        Assert.Null(project.Prepare(true, Builds));
+        Assert.IsNull(project.Prepare(true, Builds));
 
-        Assert.Empty(_commands);
+        Assert.IsEmpty(_commands);
     }
 
-    [Fact]
+    [TestMethod]
     public void No_build_with_no_program_says_to_build_it()
     {
         var project = Found(Project("Bar.csproj"));
 
-        Assert.Equal("Bar has not been built. Run winshell run once to build it.", project.Prepare(true, Builds));
-        Assert.Empty(_commands);
+        Assert.AreEqual("Bar has not been built. Run winshell run once to build it.", project.Prepare(true, Builds));
+        Assert.IsEmpty(_commands);
     }
 
-    [Theory]
-    [InlineData("Bar.csproj", 3)]
-    [InlineData("Directory.Build.props", 3)]
-    [InlineData("Directory.Build.targets", 3)]
-    [InlineData("Bar.csproj", 4)]
+    [TestMethod]
+    [DataRow("Bar.csproj", 3)]
+    [DataRow("Directory.Build.props", 3)]
+    [DataRow("Directory.Build.targets", 3)]
+    [DataRow("Bar.csproj", 4)]
     public void A_downloaded_project_builds_like_any_other(string name, int zone)
     {
         var project = Found(Project("Bar.csproj"));
@@ -385,12 +386,12 @@ public sealed class ShellProjectTests : IDisposable
         File.AppendAllText(marked, "");
         File.WriteAllText(marked + ":Zone.Identifier", $"[ZoneTransfer]\r\nZoneId={zone}\r\n");
 
-        Assert.Null(project.Prepare(false, Builds));
+        Assert.IsNull(project.Prepare(false, Builds));
 
-        Assert.StartsWith("dotnet build ", Assert.Single(_commands), StringComparison.Ordinal);
+        Assert.StartsWith("dotnet build ", Assert.ContainsSingle(_commands), StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_failed_build_gives_the_compiler_errors_once_each_without_the_project()
     {
         var project = Found(Project("Bar.csproj"));
@@ -403,10 +404,10 @@ public sealed class ShellProjectTests : IDisposable
 
         var why = project.Prepare(false, (_, _, _) => new CommandResult(1, output));
 
-        Assert.Equal("Bar did not build.\nBar.cs(1,1): error CS1002: ; expected", why);
+        Assert.AreEqual("Bar did not build.\nBar.cs(1,1): error CS1002: ; expected", why);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_failed_build_gives_each_form_of_compiler_error()
     {
         var project = Found(Project("Bar.csproj"));
@@ -419,13 +420,13 @@ public sealed class ShellProjectTests : IDisposable
 
         var why = project.Prepare(false, (_, _, _) => new CommandResult(1, output));
 
-        Assert.Equal(
+        Assert.AreEqual(
             "Bar did not build.\nPanel.xaml(2,5): XamlCompiler error WMC0130: Invalid value.\n" +
             "Bar.targets(3,3): error : Something the build refused.\n" +
             "CSC : error CsWinRT1028: Class 'Bar' should be partial.", why);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_project_whose_folder_cannot_be_listed_is_a_reason_not_a_crash()
     {
         var project = Found(Project(Path.Combine("Locked", "Bar.csproj")));
@@ -440,8 +441,8 @@ public sealed class ShellProjectTests : IDisposable
         {
             var reason = project.Prepare(false, Builds);
 
-            Assert.Contains(project.Folder, reason, StringComparison.OrdinalIgnoreCase);
-            Assert.Empty(_commands);
+            Assert.Contains(project.Folder, reason!, StringComparison.OrdinalIgnoreCase);
+            Assert.IsEmpty(_commands);
         }
         finally
         {
@@ -450,7 +451,7 @@ public sealed class ShellProjectTests : IDisposable
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void A_failed_build_names_a_file_in_the_project_from_its_folder()
     {
         var file = Project("Bar.csproj");
@@ -460,29 +461,29 @@ public sealed class ShellProjectTests : IDisposable
 
         var why = project.Prepare(false, (_, _, _) => new CommandResult(1, output));
 
-        Assert.Equal("Bar did not build.\nBar.cs(1,1): error CS1002: ; expected", why);
+        Assert.AreEqual("Bar did not build.\nBar.cs(1,1): error CS1002: ; expected", why);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_failure_with_no_compiler_error_keeps_its_last_lines()
     {
         var project = Found(Project("Bar.csproj"));
 
         var why = project.Prepare(false, (_, _, _) => new CommandResult(1, "first\nsecond"));
 
-        Assert.Equal("Bar did not build.\nfirst\nsecond", why);
+        Assert.AreEqual("Bar did not build.\nfirst\nsecond", why);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_missing_sdk_says_where_to_get_one()
     {
         var result = ShellProject.Run(Path.Combine(_root, "no-such-dotnet.exe"), [], _root);
 
-        Assert.Equal(-1, result.ExitCode);
+        Assert.AreEqual(-1, result.ExitCode);
         Assert.Contains("dot.net/download", result.Output, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_real_build_puts_the_program_where_the_project_says()
     {
         const string text = """
@@ -499,21 +500,21 @@ public sealed class ShellProjectTests : IDisposable
 
         var why = project.Prepare(false, ShellProject.Run);
 
-        Assert.Null(why);
-        Assert.False(project.NeedsBuild());
-        Assert.Equal((0, "built"), ToTuple(ShellProject.Run(project.Program, [], project.Folder)));
+        Assert.IsNull(why);
+        Assert.IsFalse(project.NeedsBuild());
+        Assert.AreEqual((0, "built"), ToTuple(ShellProject.Run(project.Program, [], project.Folder)));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task What_a_program_prints_arrives_with_its_exit_on_a_busy_pool()
     {
         using var busy = new ManualResetEventSlim();
         var held = Enumerable.Range(0, ThreadPool.ThreadCount + Environment.ProcessorCount * 2)
-            .Select(_ => Task.Run(busy.Wait)).ToArray();
+            .Select(_ => Task.Run(busy.Wait, CurrentTest.Cancellation)).ToArray();
         try
         {
             for (var i = 0; i < 8; i++)
-                Assert.Equal((0, "built"), ToTuple(ShellProject.Run("cmd", ["/c", "echo built"], _root)));
+                Assert.AreEqual((0, "built"), ToTuple(ShellProject.Run("cmd", ["/c", "echo built"], _root)));
         }
         finally
         {
@@ -522,7 +523,7 @@ public sealed class ShellProjectTests : IDisposable
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_server_that_outlives_its_build_does_not_hold_up_the_result()
     {
         var folder = Directory.CreateDirectory(TempFolder.NewPath()).FullName;
@@ -531,7 +532,7 @@ public sealed class ShellProjectTests : IDisposable
 
         await Wait.UntilAsync(() => run.IsCompleted, "the result while the server still runs");
 
-        Assert.Equal((0, "built"), ToTuple(await run));
+        Assert.AreEqual((0, "built"), ToTuple(await run));
     }
 
     private static (int, string) ToTuple(CommandResult result)

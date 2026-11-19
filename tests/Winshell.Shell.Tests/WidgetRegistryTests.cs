@@ -2,77 +2,78 @@ using System.Reflection;
 
 namespace Winshell.ShellTests;
 
+[TestClass]
 public sealed class WidgetRegistryTests
 {
-    [Theory]
-    [InlineData("Clock", "clock")]
-    [InlineData("ClockWidget", "clock")]
-    [InlineData("NetworkSpeed", "network-speed")]
-    [InlineData("NetworkSpeedWidget", "network-speed")]
-    [InlineData("CPUUsage", "cpu-usage")]
-    [InlineData("IPAddressWidget", "ip-address")]
-    [InlineData("Clock24", "clock-24")]
-    [InlineData("Win11Bar", "win-11-bar")]
-    [InlineData("CPU", "cpu")]
-    [InlineData("Widget", "widget")]
-    [InlineData("WidgetWidget", "widget")]
-    [InlineData("WidgetArea", "widget-area")]
+    [TestMethod]
+    [DataRow("Clock", "clock")]
+    [DataRow("ClockWidget", "clock")]
+    [DataRow("NetworkSpeed", "network-speed")]
+    [DataRow("NetworkSpeedWidget", "network-speed")]
+    [DataRow("CPUUsage", "cpu-usage")]
+    [DataRow("IPAddressWidget", "ip-address")]
+    [DataRow("Clock24", "clock-24")]
+    [DataRow("Win11Bar", "win-11-bar")]
+    [DataRow("CPU", "cpu")]
+    [DataRow("Widget", "widget")]
+    [DataRow("WidgetWidget", "widget")]
+    [DataRow("WidgetArea", "widget-area")]
     public void A_widget_is_named_after_its_class_in_kebab_case_without_a_trailing_Widget(string type, string name)
     {
-        Assert.Equal(name, WidgetRegistry.NameOf(type));
+        Assert.AreEqual(name, WidgetRegistry.NameOf(type));
     }
 
-    [Fact]
+    [TestMethod]
     public void WidgetName_overrides_the_class_name()
     {
-        Assert.Equal(["hello", "network-speed"], Names(typeof(Greeting), typeof(NetworkSpeed)));
+        Assert.AreSequenceEqual(["hello", "network-speed"], Names(typeof(Greeting), typeof(NetworkSpeed)));
     }
 
-    [Fact]
+    [TestMethod]
     public void Abstract_and_generic_classes_are_not_widgets()
     {
-        Assert.Equal(["network-speed"], Names(typeof(AbstractWidget), typeof(GenericWidget<>), typeof(NetworkSpeed)));
+        Assert.AreSequenceEqual(["network-speed"], Names(typeof(AbstractWidget), typeof(GenericWidget<>), typeof(NetworkSpeed)));
     }
 
-    [Fact]
+    [TestMethod]
     public void Two_widgets_with_one_name_fail_naming_both_types()
     {
-        var error = Assert.Throws<InvalidOperationException>(() => WidgetRegistry.Of([typeof(Clock), typeof(ClockWidget)]));
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => WidgetRegistry.Of([typeof(Clock), typeof(ClockWidget)]));
 
         Assert.Contains("Two widgets are named clock", error.Message, StringComparison.Ordinal);
         Assert.Contains(typeof(Clock).FullName!, error.Message, StringComparison.Ordinal);
         Assert.Contains(typeof(ClockWidget).FullName!, error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_widget_with_no_public_parameterless_constructor_fails_naming_its_type()
     {
-        var error = Assert.Throws<InvalidOperationException>(() => WidgetRegistry.Of([typeof(NeedsText)]));
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => WidgetRegistry.Of([typeof(NeedsText)]));
 
         Assert.Contains(typeof(NeedsText).FullName!, error.Message, StringComparison.Ordinal);
         Assert.Contains("no public parameterless constructor", error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_blank_WidgetName_fails_naming_its_type()
     {
-        var error = Assert.Throws<InvalidOperationException>(() => WidgetRegistry.Of([typeof(Blank)]));
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => WidgetRegistry.Of([typeof(Blank)]));
 
         Assert.Contains(typeof(Blank).FullName!, error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_null_WidgetName_fails_naming_its_type()
     {
-        var error = Assert.Throws<InvalidOperationException>(() => WidgetRegistry.Of([typeof(Unnamed)]));
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => WidgetRegistry.Of([typeof(Unnamed)]));
 
         Assert.Contains(typeof(Unnamed).FullName!, error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void Every_author_error_is_named_in_one_error()
     {
-        var error = Assert.Throws<InvalidOperationException>(() =>
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() =>
             WidgetRegistry.Of([typeof(Clock), typeof(ClockWidget), typeof(NeedsText), typeof(Blank)]));
 
         Assert.Contains("Two widgets are named clock", error.Message, StringComparison.Ordinal);
@@ -80,16 +81,16 @@ public sealed class WidgetRegistryTests
         Assert.Contains(typeof(Blank).FullName!, error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_name_added_twice_fails()
     {
         var registry = WidgetRegistry.Of([]);
         registry.Add<Clock>("clock");
 
-        Assert.Throws<InvalidOperationException>(() => registry.Add<NetworkSpeed>("clock"));
+        Assert.ThrowsExactly<InvalidOperationException>(() => registry.Add<NetworkSpeed>("clock"));
     }
 
-    [Fact]
+    [TestMethod]
     public void Discovery_finds_the_public_widgets_of_the_program_and_skips_the_rest()
     {
         var names = WidgetRegistry.Discover(new Log()).Names.ToList();
@@ -102,7 +103,7 @@ public sealed class WidgetRegistryTests
         Assert.DoesNotContain("placement", names);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_assembly_that_cannot_be_read_loaded_bound_or_enumerated_is_skipped_with_one_warning()
     {
         using var folder = new TempFolder();
@@ -129,17 +130,17 @@ public sealed class WidgetRegistryTests
                 new FolderLoadContext(folder.Path, unloadable, otherVersion), log);
 
         Assert.Contains("message", names.Names);
-        Assert.Equal(skipped.Length, warnings.Count);
+        Assert.AreEqual(skipped.Length, warnings.Count);
         foreach (var path in skipped)
         {
-            var warning = Assert.Single(warnings, warning => warning.Contains(path, StringComparison.Ordinal));
+            var warning = Assert.ContainsSingle(warning => warning.Contains(path, StringComparison.Ordinal), warnings);
             Assert.StartsWith($"Warn widgets: Skipped {path} while looking for widgets: ", warning, StringComparison.Ordinal);
-            Assert.True(warning.Length > $"Warn widgets: Skipped {path} while looking for widgets: ".Length,
+            Assert.IsTrue(warning.Length > $"Warn widgets: Skipped {path} while looking for widgets: ".Length,
                 $"The warning gives no reason: {warning}");
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_widget_class_added_by_hot_reload_can_be_placed_and_a_clash_is_logged()
     {
         var name = "Added" + Guid.NewGuid().ToString("N");
@@ -160,7 +161,7 @@ public sealed class WidgetRegistryTests
             return LaterWidget.Mounts;
         });
 
-        Assert.Equal(1, mounts);
+        Assert.AreEqual(1, mounts);
     }
 
     private static string[] Names(params Type[] types) =>

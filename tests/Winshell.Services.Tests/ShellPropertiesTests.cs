@@ -3,22 +3,23 @@ using System.Reflection.Emit;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class ShellPropertiesTests
 {
-    [Fact]
+    [TestMethod]
     public void A_program_s_metadata_gives_its_shell_name_and_folders()
     {
         var program = Program(("ShellName", "mine"), ("ShellDataDir", "data"), ("ShellStateDir", @"$BASE\state"),
             ("ShellCacheDir", @"%TEMP%\cache"), ("Other", "kept out"));
 
-        Assert.Equal(new ShellProperties("mine", "data", @"$BASE\state", @"%TEMP%\cache"), ShellProperties.Of(program));
+        Assert.AreEqual(new ShellProperties("mine", "data", @"$BASE\state", @"%TEMP%\cache"), ShellProperties.Of(program));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_program_without_them_or_with_empty_ones_sets_none()
     {
-        Assert.Equal(new ShellProperties(), ShellProperties.Of(Program(("ShellName", ""), ("ShellDataDir", null))));
-        Assert.Equal(new ShellProperties(), ShellProperties.Of(null));
+        Assert.AreEqual(new ShellProperties(), ShellProperties.Of(Program(("ShellName", ""), ("ShellDataDir", null))));
+        Assert.AreEqual(new ShellProperties(), ShellProperties.Of(null));
     }
 
     private static AssemblyBuilder Program(params (string Key, string? Value)[] metadata)

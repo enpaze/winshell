@@ -5,9 +5,10 @@ using System.Xml.Linq;
 
 namespace Winshell.Architecture.Tests;
 
+[TestClass]
 public class PublicEventTests
 {
-    [Fact]
+    [TestMethod]
     public void Every_public_event_is_an_Action()
     {
         var shipped = XDocument
@@ -26,8 +27,8 @@ public class PublicEventTests
                 .Select(e => $"{type.FullName}.{e.Name} is {e.EventHandlerType!.Name}; make it Action or Action<T>"))
             .ToList();
 
-        Assert.Equal(["Winshell.Core", "Winshell.Native", "Winshell.Services", "Winshell.Shell"], shipped.Order());
-        Assert.Empty(offenders);
+        Assert.AreSequenceEqual(["Winshell.Core", "Winshell.Native", "Winshell.Services", "Winshell.Shell"], shipped.Order());
+        Assert.IsEmpty(offenders);
     }
 
     private static bool IsAction(Type type)

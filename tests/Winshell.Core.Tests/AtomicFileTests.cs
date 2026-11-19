@@ -2,9 +2,10 @@ using System.Diagnostics;
 
 namespace Winshell.Core.Tests;
 
+[TestClass]
 public sealed class AtomicFileTests
 {
-    [Fact]
+    [TestMethod]
     public void A_hand_save_wins_only_when_the_disk_matches_neither_side_of_the_write()
     {
         using var dir = new TempFolder();
@@ -13,37 +14,37 @@ public sealed class AtomicFileTests
         const string read = "name = \"file\"\n";
         const string hand = "name = \"by hand\"\n";
 
-        Assert.Equal(AtomicSave.Saved, AtomicFile.Save(path, incoming, false, null));
-        Assert.Equal(incoming, Text(path));
+        Assert.AreEqual(AtomicSave.Saved, AtomicFile.Save(path, incoming, false, null));
+        Assert.AreEqual(incoming, Text(path));
 
         File.WriteAllText(path, read);
-        Assert.Equal(AtomicSave.Saved, AtomicFile.Save(path, incoming, false, Text(path)));
-        Assert.Equal(incoming, Text(path));
+        Assert.AreEqual(AtomicSave.Saved, AtomicFile.Save(path, incoming, false, Text(path)));
+        Assert.AreEqual(incoming, Text(path));
 
-        Assert.Equal(AtomicSave.Saved, AtomicFile.Save(path, incoming, false, read));
-        Assert.Equal(incoming, Text(path));
+        Assert.AreEqual(AtomicSave.Saved, AtomicFile.Save(path, incoming, false, read));
+        Assert.AreEqual(incoming, Text(path));
 
         File.WriteAllText(path, hand);
-        Assert.Equal(AtomicSave.HandSaveWon, AtomicFile.Save(path, incoming, false, read));
-        Assert.Equal(hand, Text(path));
-        Assert.Empty(Directory.GetFiles(dir.Path, "settings.toml.tmp-*"));
+        Assert.AreEqual(AtomicSave.HandSaveWon, AtomicFile.Save(path, incoming, false, read));
+        Assert.AreEqual(hand, Text(path));
+        Assert.IsEmpty(Directory.GetFiles(dir.Path, "settings.toml.tmp-*"));
 
-        Assert.Equal(AtomicSave.HandSaveWon, AtomicFile.Save(path, incoming, false, null));
-        Assert.Equal(hand, Text(path));
+        Assert.AreEqual(AtomicSave.HandSaveWon, AtomicFile.Save(path, incoming, false, null));
+        Assert.AreEqual(hand, Text(path));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_save_makes_the_folders_the_file_needs()
     {
         using var dir = new TempFolder();
         var path = Path.Combine(dir.Path, "later", "nested", "settings.toml");
 
-        Assert.Equal(AtomicSave.Saved, AtomicFile.Save(path, "name = \"mine\"\n", false, null));
+        Assert.AreEqual(AtomicSave.Saved, AtomicFile.Save(path, "name = \"mine\"\n", false, null));
 
-        Assert.Equal("name = \"mine\"\n", Text(path));
+        Assert.AreEqual("name = \"mine\"\n", Text(path));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_temp_from_a_dead_process_is_removed_and_a_live_one_stays()
     {
         using var dir = new TempFolder();
@@ -61,22 +62,22 @@ public sealed class AtomicFileTests
             CreateNoWindow = true,
         })!;
         await WaitUntilExited(exited);
-        Assert.True(exited.HasExited);
+        Assert.IsTrue(exited.HasExited);
         var dead = path + ".tmp-" + exited.Id;
         var deadGuid = path + ".tmp-" + exited.Id + "-" + Guid.NewGuid().ToString("N");
         File.WriteAllText(dead, "dead");
         File.WriteAllText(deadGuid, "dead-guid");
 
-        Assert.Equal(AtomicSave.Saved, AtomicFile.Save(path, "kept\n", false, null));
+        Assert.AreEqual(AtomicSave.Saved, AtomicFile.Save(path, "kept\n", false, null));
 
-        Assert.False(File.Exists(dead));
-        Assert.False(File.Exists(deadGuid));
-        Assert.False(File.Exists(junk));
-        Assert.True(File.Exists(liveGuid));
-        Assert.True(File.Exists(other));
+        Assert.IsFalse(File.Exists(dead));
+        Assert.IsFalse(File.Exists(deadGuid));
+        Assert.IsFalse(File.Exists(junk));
+        Assert.IsTrue(File.Exists(liveGuid));
+        Assert.IsTrue(File.Exists(other));
     }
 
-    [Fact]
+    [TestMethod]
     public void Each_save_through_a_hard_link_updates_both_names()
     {
         using var dir = new TempFolder();
@@ -86,14 +87,14 @@ public sealed class AtomicFileTests
 
         foreach (var text in new[] { "one\n", "two\n" })
         {
-            Assert.True(Save(link, text));
+            Assert.IsTrue(Save(link, text));
 
             Assert.Contains(text, File.ReadAllText(real), StringComparison.Ordinal);
             Assert.Contains(text, File.ReadAllText(link), StringComparison.Ordinal);
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void Each_save_through_a_symbolic_link_updates_the_target_and_keeps_the_link()
     {
         using var dir = new TempFolder();
@@ -103,17 +104,17 @@ public sealed class AtomicFileTests
 
         foreach (var text in new[] { "one\n", "two\n" })
         {
-            Assert.True(Save(link, text));
+            Assert.IsTrue(Save(link, text));
 
             Assert.Contains(text, File.ReadAllText(real), StringComparison.Ordinal);
-            Assert.NotNull(new FileInfo(link).LinkTarget);
+            Assert.IsNotNull(new FileInfo(link).LinkTarget);
             Assert.Contains(text, File.ReadAllText(link), StringComparison.Ordinal);
         }
     }
 
     private static async Task WaitUntilExited(Process process)
     {
-        var token = TestContext.Current.CancellationToken;
+        var token = CurrentTest.Cancellation;
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
         timeout.CancelAfter(TimeSpan.FromSeconds(30));
         try

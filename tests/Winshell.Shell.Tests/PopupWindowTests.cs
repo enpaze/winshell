@@ -3,13 +3,14 @@ using Windows.Foundation;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class PopupWindowTests
 {
-    [Theory]
-    [InlineData("center")]
-    [InlineData("top")]
-    [InlineData("at")]
+    [TestMethod]
+    [DataRow("center")]
+    [DataRow("top")]
+    [DataRow("at")]
     public async Task A_popup_opens_where_its_position_says(string where)
     {
         var (origin, expected) = await ShellFixture.On(async shell =>
@@ -37,7 +38,7 @@ public sealed class PopupWindowTests
             return (popup.Origin, expected);
         });
 
-        Assert.InRange(origin.X, expected.X - 1, expected.X + 1);
-        Assert.InRange(origin.Y, expected.Y - 1, expected.Y + 1);
+        Assert.IsInRange(expected.X - 1, expected.X + 1, origin.X);
+        Assert.IsInRange(expected.Y - 1, expected.Y + 1, origin.Y);
     }
 }

@@ -7,7 +7,8 @@ using static Microsoft.UI.Reactor.Factories;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed partial class HotReloadTests
 {
     private sealed partial class Edited : Grid
@@ -79,7 +80,7 @@ public sealed partial class HotReloadTests
         });
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_edited_panel_gets_new_content_and_the_others_keep_theirs()
     {
         var (replaced, same, kept) = await ShellFixture.On(shell =>
@@ -96,12 +97,12 @@ public sealed partial class HotReloadTests
                 editedPanel.Host!.Handle == handle, ReferenceEquals(otherPanel.Content, other));
         });
 
-        Assert.True(replaced);
-        Assert.True(same, "The window stays. Only its content is new.");
-        Assert.True(kept);
+        Assert.IsTrue(replaced);
+        Assert.IsTrue(same, "The window stays. Only its content is new.");
+        Assert.IsTrue(kept);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_edit_to_a_closure_counts_as_an_edit_to_its_type()
     {
         var replaced = await ShellFixture.On(shell =>
@@ -116,10 +117,10 @@ public sealed partial class HotReloadTests
             return !ReferenceEquals(panel.Content, edited);
         });
 
-        Assert.True(replaced);
+        Assert.IsTrue(replaced);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_panel_that_shows_an_edited_control_gets_new_content()
     {
         var built = await ShellFixture.On(async shell =>
@@ -134,7 +135,7 @@ public sealed partial class HotReloadTests
             return !ReferenceEquals(panel.Content, root);
         });
 
-        Assert.True(built);
+        Assert.IsTrue(built);
     }
 
     private sealed partial class NestedRoot : Grid
@@ -149,7 +150,7 @@ public sealed partial class HotReloadTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Content_that_throws_while_it_is_typed_stays_as_it_was()
     {
         var kept = await ShellFixture.On(shell =>
@@ -169,10 +170,10 @@ public sealed partial class HotReloadTests
             return ReferenceEquals(panel.Content, content);
         });
 
-        Assert.True(kept);
+        Assert.IsTrue(kept);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Content_that_needs_arguments_stays_as_it_was()
     {
         var kept = await ShellFixture.On(shell =>
@@ -185,10 +186,10 @@ public sealed partial class HotReloadTests
             return ReferenceEquals(panel.Content, content);
         });
 
-        Assert.True(kept);
+        Assert.IsTrue(kept);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task The_content_it_replaces_is_disposed()
     {
         var disposed = await ShellFixture.On(shell =>
@@ -201,12 +202,12 @@ public sealed partial class HotReloadTests
             return content.Disposed;
         });
 
-        Assert.True(disposed);
+        Assert.IsTrue(disposed);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
     public async Task An_edited_control_on_a_surface_is_made_again_in_its_place(bool besideOthers)
     {
         var (keptSurface, keptOther, disposed, old, made) = await ShellFixture.On(async shell =>
@@ -219,7 +220,7 @@ public sealed partial class HotReloadTests
             using var surface = new Mounted<Surface, SurfaceProps>(new SurfaceProps { Content = XamlHost(() => besideOthers ? row : edited) });
             var host = surface.Host;
             using var panel = Panel(host);
-            await ShellFixture.LaidOut(edited).WaitAsync(TestContext.Current.CancellationToken);
+            await ShellFixture.LaidOut(edited).WaitAsync(CurrentTest.Cancellation);
 
             HotReload.Apply(shell, [typeof(EditedWidget)]);
 
@@ -227,14 +228,14 @@ public sealed partial class HotReloadTests
                 edited, besideOthers ? row.Children[1] : Find<EditedWidget>(host));
         });
 
-        Assert.True(keptSurface, "The window keeps the surface a composition filled.");
+        Assert.IsTrue(keptSurface, "The window keeps the surface a composition filled.");
         if (besideOthers)
-            Assert.True(keptOther, "The panel keeps the controls next to the edited one.");
-        Assert.True(disposed);
-        Assert.NotSame(old, Assert.IsType<EditedWidget>(made));
+            Assert.IsTrue(keptOther, "The panel keeps the controls next to the edited one.");
+        Assert.IsTrue(disposed);
+        Assert.AreNotSame(old, Assert.IsExactInstanceOfType<EditedWidget>(made));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_edited_widget_in_a_view_is_made_again_and_the_view_stays()
     {
         var (keptView, disposed, old, made) = await ShellFixture.On(async shell =>
@@ -247,7 +248,7 @@ public sealed partial class HotReloadTests
             using var panel = Panel(view);
             await Wait.UntilAsync(() => Search<EditedWidget>(host) is not null, "the edited widget to render");
             var widget = Find<EditedWidget>(host);
-            await ShellFixture.LaidOut(widget).WaitAsync(TestContext.Current.CancellationToken);
+            await ShellFixture.LaidOut(widget).WaitAsync(CurrentTest.Cancellation);
 
             HotReload.Apply(shell, [typeof(EditedWidget)]);
 
@@ -256,12 +257,12 @@ public sealed partial class HotReloadTests
             return (ReferenceEquals(panel.Content, view), widget.Disposed, widget, Find<EditedWidget>(host));
         });
 
-        Assert.True(keptView, "The view keeps its other state, and its area makes the widget again.");
-        Assert.True(disposed);
-        Assert.NotSame(old, Assert.IsType<EditedWidget>(made));
+        Assert.IsTrue(keptView, "The view keeps its other state, and its area makes the widget again.");
+        Assert.IsTrue(disposed);
+        Assert.AreNotSame(old, Assert.IsExactInstanceOfType<EditedWidget>(made));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task An_edited_widget_in_a_bar_is_made_again_and_the_bar_keeps_the_rest()
     {
         var (before, after) = await ShellFixture.On(async shell =>
@@ -283,17 +284,17 @@ public sealed partial class HotReloadTests
                 });
                 var shown = new TaskCompletionSource();
                 shell.Loop.Post(shown.SetResult);
-                await shown.Task.WaitAsync(TestContext.Current.CancellationToken);
+                await shown.Task.WaitAsync(CurrentTest.Cancellation);
                 var window = shell.Platform.Windows.Select(host => host.Client).OfType<PanelWindow>()
                     .Single(panel => panel.Screen == screen);
                 var content = window.Content;
                 await Wait.UntilAsync(() => Shows(window).Count == 2, "both placements to render");
                 var before = Shows(window);
-                await ShellFixture.LaidOut((FrameworkElement)before[1]).WaitAsync(TestContext.Current.CancellationToken);
+                await ShellFixture.LaidOut((FrameworkElement)before[1]).WaitAsync(CurrentTest.Cancellation);
 
                 HotReload.Apply(shell, [typeof(EditedWidget)]);
 
-                Assert.True(ReferenceEquals(window.Content, content), "The bar keeps its surface and its areas.");
+                Assert.IsTrue(ReferenceEquals(window.Content, content), "The bar keeps its surface and its areas.");
                 await Wait.UntilAsync(() => Shows(window) is [_, var edited] && !ReferenceEquals(edited, before[1]),
                     "the bar to make the edited widget again");
                 return (before, Shows(window));
@@ -304,10 +305,10 @@ public sealed partial class HotReloadTests
             }
         });
 
-        Assert.Equal(2, after.Count);
-        Assert.Same(before[0], after[0]);
-        Assert.True(Assert.IsType<EditedWidget>(before[1]).Disposed);
-        Assert.NotSame(before[1], Assert.IsType<EditedWidget>(after[1]));
+        Assert.AreEqual(2, after.Count);
+        Assert.AreSame(before[0], after[0]);
+        Assert.IsTrue(Assert.IsExactInstanceOfType<EditedWidget>(before[1]).Disposed);
+        Assert.AreNotSame(before[1], Assert.IsExactInstanceOfType<EditedWidget>(after[1]));
 
         static List<UIElement> Shows(PanelWindow bar)
         {

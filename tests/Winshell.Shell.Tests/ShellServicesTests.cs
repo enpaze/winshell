@@ -5,10 +5,11 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class ShellServicesTests
 {
-    [Fact]
+    [TestMethod]
     public async Task A_hotkey_claims_its_sequence_runs_its_action_and_gives_the_chord_back()
     {
         var (active, presses, freed) = await ShellFixture.On(shell =>
@@ -26,12 +27,12 @@ public sealed class ShellServicesTests
             return (active, presses, freed);
         });
 
-        Assert.True(active);
-        Assert.Equal(1, presses);
-        Assert.True(freed);
+        Assert.IsTrue(active);
+        Assert.AreEqual(1, presses);
+        Assert.IsTrue(freed);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Winland_resolves_windows_from_the_shells_window_list()
     {
         var resolved = await ShellFixture.On(async shell =>
@@ -39,7 +40,7 @@ public sealed class ShellServicesTests
             var winland = shell.Winland;
             var hwnd = NativeWindow.OfClass("STATIC", "winshell-listed-window",
                 (uint)WINDOW_STYLE.WS_OVERLAPPEDWINDOW, 0, 80, 80, 40, 0, PInvoke.GetModuleHandle(null));
-            Assert.NotEqual(0, hwnd);
+            Assert.AreNotEqual(0, hwnd);
             try
             {
                 PInvoke.ShowWindow((HWND)hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
@@ -53,10 +54,10 @@ public sealed class ShellServicesTests
             }
         });
 
-        Assert.True(resolved);
+        Assert.IsTrue(resolved);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task Winland_resolves_windows_without_the_shell_reading_its_window_list()
     {
         var resolved = await ShellFixture.On(async shell =>
@@ -64,7 +65,7 @@ public sealed class ShellServicesTests
             var winland = shell.Winland;
             var hwnd = NativeWindow.OfClass("STATIC", "winshell-winland-only-window",
                 (uint)WINDOW_STYLE.WS_OVERLAPPEDWINDOW, 0, 80, 80, 40, 0, PInvoke.GetModuleHandle(null));
-            Assert.NotEqual(0, hwnd);
+            Assert.AreNotEqual(0, hwnd);
             try
             {
                 PInvoke.ShowWindow((HWND)hwnd, SHOW_WINDOW_CMD.SW_SHOWNOACTIVATE);
@@ -78,6 +79,6 @@ public sealed class ShellServicesTests
             }
         });
 
-        Assert.Equal("winshell-winland-only-window", resolved);
+        Assert.AreEqual("winshell-winland-only-window", resolved);
     }
 }

@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace Winshell.Architecture.Tests;
 
+[TestClass]
 public partial class FeatureBackendTests
 {
     private const BindingFlags Declared =
@@ -15,12 +16,12 @@ public partial class FeatureBackendTests
         .Select(field => (OpCode)field.GetValue(null)!)
         .ToDictionary(code => code.Value, code => code.OperandType);
 
-    [Fact]
+    [TestMethod]
     public void Only_the_owning_feature_uses_a_backend()
     {
         var services = Assembly.Load("Winshell.Services");
         var backends = services.GetTypes().Where(type => type.IsInterface && BackendName().IsMatch(type.Name)).ToList();
-        Assert.NotEmpty(backends);
+        Assert.IsNotEmpty(backends);
         var owners = services.GetTypes()
             .SelectMany(type =>
                 backends.Where(backend => backend.IsAssignableFrom(type)).Select(backend => (type, backend.Namespace)))
@@ -35,7 +36,7 @@ public partial class FeatureBackendTests
             .Distinct()
             .ToList();
 
-        Assert.True(crossings.Count == 0, string.Join(Environment.NewLine, crossings));
+        Assert.IsTrue(crossings.Count == 0, string.Join(Environment.NewLine, crossings));
     }
 
     [GeneratedRegex("^I[A-Z].*Backend$")]

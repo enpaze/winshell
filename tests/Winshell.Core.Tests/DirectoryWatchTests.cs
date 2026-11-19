@@ -1,5 +1,6 @@
 namespace Winshell.Core.Tests;
 
+[TestClass]
 public sealed class DirectoryWatchTests : IDisposable
 {
     private readonly string _directory =
@@ -10,7 +11,7 @@ public sealed class DirectoryWatchTests : IDisposable
         Directory.CreateDirectory(_directory);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_file_and_a_folder_already_there_are_listed()
     {
         File.WriteAllText(Path.Combine(_directory, "made.txt"), "");
@@ -19,15 +20,15 @@ public sealed class DirectoryWatchTests : IDisposable
         using var files = DirectoryWatch.Start(_directory, DirectoryWatch.FileChanges, _ => { }, () => { });
         using var names = DirectoryWatch.Start(_directory, DirectoryWatch.NameChanges, _ => { }, () => { });
 
-        Assert.NotNull(files);
+        Assert.IsNotNull(files);
         Assert.Contains("made.txt", files.ExistingNames);
         Assert.DoesNotContain("made-dir", files.ExistingNames);
-        Assert.NotNull(names);
+        Assert.IsNotNull(names);
         Assert.Contains("made.txt", names.ExistingNames);
         Assert.Contains("made-dir", names.ExistingNames);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_file_made_right_after_start_is_reported()
     {
         using var seen = new ManualResetEventSlim();
@@ -36,15 +37,15 @@ public sealed class DirectoryWatchTests : IDisposable
             if (name == "made.txt")
                 seen.Set();
         }, () => { });
-        Assert.NotNull(watch);
+        Assert.IsNotNull(watch);
 
         File.WriteAllText(Path.Combine(_directory, "made.txt"), "");
 
-        Assert.True(seen.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken),
+        Assert.IsTrue(seen.Wait(TimeSpan.FromSeconds(10), CurrentTest.Cancellation),
             "The new file was not reported.");
     }
 
-    [Fact]
+    [TestMethod]
     public void A_watch_outlives_the_thread_that_started_it()
     {
         using var seen = new ManualResetEventSlim();
@@ -58,56 +59,54 @@ public sealed class DirectoryWatchTests : IDisposable
         starter.Join();
         using (watch)
         {
-            Assert.NotNull(watch);
+            Assert.IsNotNull(watch);
 
             File.WriteAllText(Path.Combine(_directory, "made.txt"), "");
 
-            Assert.True(seen.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken),
+            Assert.IsTrue(seen.Wait(TimeSpan.FromSeconds(10), CurrentTest.Cancellation),
                 "The new file was not reported.");
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void Deleting_the_folder_ends_the_watch()
     {
         using var lost = new ManualResetEventSlim();
         using var watch = DirectoryWatch.Start(_directory, DirectoryWatch.FileChanges, _ => { }, lost.Set);
-        Assert.NotNull(watch);
+        Assert.IsNotNull(watch);
 
         Directory.Delete(_directory, true);
 
-        Assert.True(lost.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken),
+        Assert.IsTrue(lost.Wait(TimeSpan.FromSeconds(10), CurrentTest.Cancellation),
             "The watch did not report that it ended.");
     }
 
-    [Fact]
+    [TestMethod]
     public void A_missing_folder_is_not_watched()
     {
-        Assert.Null(DirectoryWatch.Start(Path.Combine(_directory, "missing"), DirectoryWatch.FileChanges, _ => { },
+        Assert.IsNull(DirectoryWatch.Start(Path.Combine(_directory, "missing"), DirectoryWatch.FileChanges, _ => { },
             () => { }));
     }
 
-    [Fact]
+    [TestMethod]
     public void Disposing_ends_the_watch_without_reporting_it()
     {
         var lost = false;
         var watch = DirectoryWatch.Start(_directory, DirectoryWatch.FileChanges, _ => { }, () => lost = true);
-        Assert.NotNull(watch);
+        Assert.IsNotNull(watch);
 
         watch.Dispose();
 
-        Assert.False(lost);
+        Assert.IsFalse(lost);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_file_watch_disposed_twice_is_harmless()
     {
         var watch = new FileWatch(Path.Combine(_directory, "watched.txt"), new ManualEventLoop(), () => { });
         watch.Dispose();
 
-        var second = Record.Exception(watch.Dispose);
-
-        Assert.Null(second);
+        watch.Dispose();
     }
 
     public void Dispose()

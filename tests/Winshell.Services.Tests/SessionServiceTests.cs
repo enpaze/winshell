@@ -3,6 +3,7 @@ using Winshell.Session;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class SessionServiceTests
 {
     private readonly List<string> _warnings = [];
@@ -20,53 +21,53 @@ public sealed class SessionServiceTests
         return changes;
     }
 
-    [Fact]
+    [TestMethod]
     public void Lock_asks_Windows_once()
     {
         var windows = new FakeSessionBackend(true);
 
-        Assert.True(new SessionService(_log, windows).Lock());
+        Assert.IsTrue(new SessionService(_log, windows).Lock());
 
-        Assert.Equal(1, windows.Calls);
-        Assert.Empty(_warnings);
+        Assert.AreEqual(1, windows.Calls);
+        Assert.IsEmpty(_warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void Lock_reports_when_Windows_refuses()
     {
-        Assert.False(new SessionService(_log, new FakeSessionBackend(false)).Lock());
+        Assert.IsFalse(new SessionService(_log, new FakeSessionBackend(false)).Lock());
 
-        Assert.Equal(["session: Windows did not lock the session."], _warnings);
+        Assert.AreSequenceEqual(["session: Windows did not lock the session."], _warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void Each_action_asks_Windows_once()
     {
         var windows = new FakeSessionBackend(true);
         var session = new SessionService(_log, windows);
 
-        Assert.True(session.SignOut());
-        Assert.True(session.Restart());
-        Assert.True(session.ShutDown());
-        Assert.True(session.Sleep());
-        Assert.True(session.Hibernate());
+        Assert.IsTrue(session.SignOut());
+        Assert.IsTrue(session.Restart());
+        Assert.IsTrue(session.ShutDown());
+        Assert.IsTrue(session.Sleep());
+        Assert.IsTrue(session.Hibernate());
 
-        Assert.Equal(["sign out", "restart", "shut down", "sleep", "hibernate"], windows.Actions);
-        Assert.Empty(_warnings);
+        Assert.AreSequenceEqual(["sign out", "restart", "shut down", "sleep", "hibernate"], windows.Actions);
+        Assert.IsEmpty(_warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void Each_action_reports_when_Windows_refuses()
     {
         var session = new SessionService(_log, new FakeSessionBackend(false));
 
-        Assert.False(session.SignOut());
-        Assert.False(session.Restart());
-        Assert.False(session.ShutDown());
-        Assert.False(session.Sleep());
-        Assert.False(session.Hibernate());
+        Assert.IsFalse(session.SignOut());
+        Assert.IsFalse(session.Restart());
+        Assert.IsFalse(session.ShutDown());
+        Assert.IsFalse(session.Sleep());
+        Assert.IsFalse(session.Hibernate());
 
-        Assert.Equal([
+        Assert.AreSequenceEqual([
             "session: Windows did not sign out.",
             "session: Windows did not restart.",
             "session: Windows did not shut down.",
@@ -75,94 +76,94 @@ public sealed class SessionServiceTests
         ], _warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void Sleep_and_hibernate_availability_is_what_Windows_reports()
     {
         var asleep = new FakeSessionBackend(true) { SleepAvailable = true, HibernateAvailable = false };
         var session = new SessionService(_log, asleep);
 
-        Assert.True(session.SleepAvailable);
-        Assert.False(session.HibernateAvailable);
+        Assert.IsTrue(session.SleepAvailable);
+        Assert.IsFalse(session.HibernateAvailable);
 
         var hibernates = new FakeSessionBackend(true) { SleepAvailable = false, HibernateAvailable = true };
         session = new SessionService(_log, hibernates);
 
-        Assert.False(session.SleepAvailable);
-        Assert.True(session.HibernateAvailable);
-        Assert.Equal(0, asleep.Calls + hibernates.Calls);
-        Assert.Empty(_warnings);
+        Assert.IsFalse(session.SleepAvailable);
+        Assert.IsTrue(session.HibernateAvailable);
+        Assert.AreEqual(0, asleep.Calls + hibernates.Calls);
+        Assert.IsEmpty(_warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void Nothing_is_registered_until_the_shell_turns_it_on_and_off_removes_it()
     {
         var windows = new FakeRegistry();
         var startup = new StartupService(_log, windows);
         var changes = Watch(startup);
 
-        Assert.True(startup.Available);
-        Assert.False(startup.RunAtSignIn);
-        Assert.Equal(0, windows.Writes);
+        Assert.IsTrue(startup.Available);
+        Assert.IsFalse(startup.RunAtSignIn);
+        Assert.AreEqual(0, windows.Writes);
 
         startup.RunAtSignIn = true;
-        Assert.True(windows.Registered);
-        Assert.True(startup.RunAtSignIn);
+        Assert.IsTrue(windows.Registered);
+        Assert.IsTrue(startup.RunAtSignIn);
 
         startup.RunAtSignIn = false;
-        Assert.False(windows.Registered);
-        Assert.Equal(2, windows.Writes);
-        Assert.Equal([nameof(StartupService.RunAtSignIn), nameof(StartupService.RunAtSignIn)], changes);
-        Assert.Empty(_warnings);
+        Assert.IsFalse(windows.Registered);
+        Assert.AreEqual(2, windows.Writes);
+        Assert.AreSequenceEqual([nameof(StartupService.RunAtSignIn), nameof(StartupService.RunAtSignIn)], changes);
+        Assert.IsEmpty(_warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void The_Startup_apps_page_turning_it_off_is_reported_and_left_alone()
     {
         var windows = new FakeRegistry { Registered = true, TurnedOff = true };
         var startup = new StartupService(_log, windows);
-        Assert.True(startup.RunAtSignIn);
-        Assert.True(startup.TurnedOffInWindows);
+        Assert.IsTrue(startup.RunAtSignIn);
+        Assert.IsTrue(startup.TurnedOffInWindows);
 
         windows.TurnedOff = false;
         startup.Refresh();
 
-        Assert.False(startup.TurnedOffInWindows);
-        Assert.Equal(0, windows.Writes);
+        Assert.IsFalse(startup.TurnedOffInWindows);
+        Assert.AreEqual(0, windows.Writes);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_refused_write_keeps_the_state_Windows_has_and_warns()
     {
         var startup = new StartupService(_log, new FakeRegistry { Accepts = false }) { RunAtSignIn = true };
 
-        Assert.False(startup.RunAtSignIn);
-        Assert.Equal(["startup: Windows did not let Winshell register to run at sign-in."], _warnings);
+        Assert.IsFalse(startup.RunAtSignIn);
+        Assert.AreSequenceEqual(["startup: Windows did not let Winshell register to run at sign-in."], _warnings);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_entry_that_starts_another_winshell_is_not_this_one_running_at_sign_in()
     {
         var windows = new FakeRegistry { Registered = true, Elsewhere = true };
         var startup = new StartupService(_log, windows);
 
-        Assert.True(startup.RegisteredElsewhere);
-        Assert.False(startup.RunAtSignIn);
+        Assert.IsTrue(startup.RegisteredElsewhere);
+        Assert.IsFalse(startup.RunAtSignIn);
 
         startup.RunAtSignIn = true;
 
-        Assert.Equal(1, windows.Writes);
-        Assert.False(startup.RegisteredElsewhere);
-        Assert.True(startup.RunAtSignIn);
+        Assert.AreEqual(1, windows.Writes);
+        Assert.IsFalse(startup.RegisteredElsewhere);
+        Assert.IsTrue(startup.RunAtSignIn);
     }
 
-    [Fact]
+    [TestMethod]
     public void Without_a_registry_it_is_unavailable_and_registers_nothing()
     {
         var startup = new StartupService(_log, null) { RunAtSignIn = true };
 
-        Assert.False(startup.Available);
-        Assert.False(startup.RunAtSignIn);
-        Assert.Single(_warnings);
+        Assert.IsFalse(startup.Available);
+        Assert.IsFalse(startup.RunAtSignIn);
+        Assert.ContainsSingle(_warnings);
     }
 
     private sealed class FakeSessionBackend(bool accepts) : ISessionBackend

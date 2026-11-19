@@ -7,12 +7,13 @@ using Windows.Foundation;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class PixelImageSourceTests
 {
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
     public async Task A_pixel_image_source_shows_its_colors_without_changing_the_picture(bool premultiplied)
     {
         byte[] original = premultiplied
@@ -39,7 +40,7 @@ public sealed class PixelImageSourceTests
             popup.Height = 80;
             popup.Content = new Grid { Children = { image } };
             popup.Visible = true;
-            await loaded.Task.WaitAsync(TestContext.Current.CancellationToken);
+            await loaded.Task.WaitAsync(CurrentTest.Cancellation);
             var composing = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
             void Rendering(object? sender, object args)
@@ -50,7 +51,7 @@ public sealed class PixelImageSourceTests
             CompositionTarget.Rendering += Rendering;
             try
             {
-                await composing.Task.WaitAsync(TestContext.Current.CancellationToken);
+                await composing.Task.WaitAsync(CurrentTest.Cancellation);
             }
             finally
             {
@@ -58,13 +59,13 @@ public sealed class PixelImageSourceTests
             }
 
             var rendered = new RenderTargetBitmap();
-            await rendered.RenderAsync(image, 2, 2).AsTask(TestContext.Current.CancellationToken);
-            var buffer = await rendered.GetPixelsAsync().AsTask(TestContext.Current.CancellationToken);
+            await rendered.RenderAsync(image, 2, 2).AsTask(CurrentTest.Cancellation);
+            var buffer = await rendered.GetPixelsAsync().AsTask(CurrentTest.Cancellation);
             return (rendered.PixelWidth, rendered.PixelHeight, Pixels: buffer.ToArray());
         });
 
-        Assert.Equal((2, 2), (shown.PixelWidth, shown.PixelHeight));
-        Assert.Equal(new byte[] { 16, 32, 64, 128, 10, 20, 30, 255, 0, 0, 0, 0, 32, 16, 8, 64 }, shown.Pixels);
-        Assert.Equal(original, picture.Bgra.ToArray());
+        Assert.AreEqual((2, 2), (shown.PixelWidth, shown.PixelHeight));
+        Assert.AreSequenceEqual(new byte[] { 16, 32, 64, 128, 10, 20, 30, 255, 0, 0, 0, 0, 32, 16, 8, 64 }, shown.Pixels);
+        Assert.AreSequenceEqual(original, picture.Bgra.ToArray());
     }
 }

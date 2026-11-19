@@ -7,7 +7,8 @@ using ThreadState = System.Threading.ThreadState;
 
 namespace Winshell.Services.Tests;
 
-[Collection(InstanceRunCollection.Name)]
+[TestClass]
+[DoNotParallelize]
 public sealed class InstanceStartTests
 {
     private const string Program = @"C:\shells\mine.exe";
@@ -47,7 +48,7 @@ public sealed class InstanceStartTests
         return JsonSerializer.Deserialize(File.ReadAllText(file), InstanceJson.Default.InstanceInfo)!;
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_duplicate_exits_before_the_shell_exists()
     {
         var shellName = ShellName();
@@ -58,20 +59,20 @@ public sealed class InstanceStartTests
                 using var mutex = new Mutex(false, HeldMutex.NoDuplicateName(ShellLocations.Current, shellName));
                 mutex.WaitOne();
                 taken.Set();
-                release.Wait();
+                release.Wait(CurrentTest.Cancellation);
                 mutex.ReleaseMutex();
             })
         { IsBackground = true };
         holder.Start();
-        taken.Wait(TestContext.Current.CancellationToken);
+        taken.Wait(CurrentTest.Cancellation);
         var hosted = false;
 
         try
         {
             var result = Start(Launch(shellName, Program, ["--no-duplicate"]), _ => hosted = true);
 
-            Assert.False(hosted);
-            Assert.Equal(0, result.Code);
+            Assert.IsFalse(hosted);
+            Assert.AreEqual(0, result.Code);
         }
         finally
         {
@@ -80,7 +81,7 @@ public sealed class InstanceStartTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void A_detach_that_cannot_start_reports_why()
     {
         var program = Path.Combine(ShellLocations.Current.LocalRoot, "missing-shell.exe");
@@ -88,13 +89,13 @@ public sealed class InstanceStartTests
 
         var result = Start(Launch(ShellName(), program, ["-d"]), _ => hosted = true);
 
-        Assert.False(hosted);
-        Assert.Equal(InstanceStart.CouldNotStart, result.Code);
-        Assert.Contains(result.Error,
-            line => line.StartsWith($"Could not start \"{program}\":", StringComparison.Ordinal));
+        Assert.IsFalse(hosted);
+        Assert.AreEqual(InstanceStart.CouldNotStart, result.Code);
+        Assert.Contains(line => line.StartsWith($"Could not start \"{program}\":", StringComparison.Ordinal),
+            result.Error);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_handover_from_a_process_that_has_gone_still_starts()
     {
         using var gone = Process.Start(new ProcessStartInfo(ComSpec(), "/d /c exit")
@@ -112,11 +113,11 @@ public sealed class InstanceStartTests
             session.Serve(new EventQueue(), new FakeInstanceControl());
         });
 
-        Assert.True(hosted);
-        Assert.Equal(0, result.Code);
+        Assert.IsTrue(hosted);
+        Assert.AreEqual(0, result.Code);
     }
 
-    [Fact]
+    [TestMethod]
     public async Task A_handover_runs_only_after_the_replaced_process_exits()
     {
         using var replaced = Process.Start(new ProcessStartInfo(ComSpec(), "/d /c pause")
@@ -152,16 +153,16 @@ public sealed class InstanceStartTests
         {
             thread.Start();
             Wait.ForNothingToHappen(TimeSpan.FromMilliseconds(200));
-            Assert.False(replaced.HasExited);
-            Assert.False(started.IsSet);
+            Assert.IsFalse(replaced.HasExited);
+            Assert.IsFalse(started.IsSet);
 
             replaced.StandardInput.Close();
             await Wait.UntilAsync(() => replaced.HasExited, "the replaced process to exit");
             await Wait.UntilAsync(() => started.IsSet, "the shell to start");
             await Join(thread);
 
-            Assert.Null(error);
-            Assert.Equal(0, code);
+            Assert.IsNull(error);
+            Assert.AreEqual(0, code);
         }
         finally
         {
@@ -182,10 +183,10 @@ public sealed class InstanceStartTests
     {
         if (thread.ThreadState == ThreadState.Unstarted)
             return Task.CompletedTask;
-        return Task.Run(thread.Join).WaitAsync(TestContext.Current.CancellationToken);
+        return Task.Run(thread.Join).WaitAsync(CurrentTest.Cancellation);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_pipe_that_cannot_open_is_abandoned()
     {
         var held = new List<NamedPipeServerStream>();
@@ -200,10 +201,10 @@ public sealed class InstanceStartTests
                     held.Add(IpcServer.OpenFirst(name));
             }), _ => hosted = true);
 
-            Assert.False(hosted);
-            Assert.Equal(InstanceStart.CouldNotStart, result.Code);
+            Assert.IsFalse(hosted);
+            Assert.AreEqual(InstanceStart.CouldNotStart, result.Code);
             Assert.Contains("The control pipe is already taken.", result.Error);
-            Assert.False(Directory.Exists(ShellLocations.Current.Instances.DirOf(id!)));
+            Assert.IsFalse(Directory.Exists(ShellLocations.Current.Instances.DirOf(id!)));
         }
         finally
         {
@@ -212,7 +213,7 @@ public sealed class InstanceStartTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void A_clean_start_publishes_the_instance_and_then_closes_it()
     {
         var shellName = ShellName();
@@ -226,31 +227,31 @@ public sealed class InstanceStartTests
             published = Read(id);
         });
 
-        Assert.Equal(0, result.Code);
-        Assert.NotNull(published);
-        Assert.Equal(shellName, published.ShellName);
-        Assert.Equal(Environment.ProcessId, published.Pid);
-        Assert.Null(published.ExitedAt);
+        Assert.AreEqual(0, result.Code);
+        Assert.IsNotNull(published);
+        Assert.AreEqual(shellName, published.ShellName);
+        Assert.AreEqual(Environment.ProcessId, published.Pid);
+        Assert.IsNull(published.ExitedAt);
         var closed = Read(id!);
-        Assert.NotNull(closed.ExitedAt);
+        Assert.IsNotNull(closed.ExitedAt);
         Assert.StartsWith("winshell-", closed.Pipe, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_host_that_throws_records_the_crash_and_then_closes_the_log()
     {
         var log = new Log();
         ShellInstance? instance = null;
         var error = new InvalidOperationException("SENTINEL host");
 
-        var thrown = Assert.Throws<InvalidOperationException>(() =>
+        var thrown = Assert.ThrowsExactly<InvalidOperationException>(() =>
             Start(new InstanceLaunch(Program, [], new ShellProperties(ShellName()), log), session =>
             {
                 instance = session.Instance;
                 throw error;
             }));
 
-        Assert.Same(error, thrown);
+        Assert.AreSame(error, thrown);
         var text = File.ReadAllText(instance!.Logs);
         Assert.Contains("Winshell crashed", text, StringComparison.Ordinal);
         Assert.Contains("SENTINEL host", text, StringComparison.Ordinal);
@@ -270,7 +271,7 @@ public sealed class InstanceStartTests
         Assert.DoesNotContain("AFTER-CLOSE", File.ReadAllText(instance.Logs), StringComparison.Ordinal);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_running_shell_quits_before_the_next_one_starts()
     {
         using var other = Hold("running", out var control, out var loop, out var server, out var id);
@@ -295,11 +296,11 @@ public sealed class InstanceStartTests
 
             var result = Start(Launch(ShellName(), Program, ["--no-duplicate"]), _ => hosted = other.HasExited);
 
-            Assert.True(hosted);
-            Assert.Equal(0, result.Code);
-            Assert.True(other.HasExited);
-            Assert.Equal(1, control.Yields);
-            Assert.True(asked.WaitOne(0));
+            Assert.IsTrue(hosted);
+            Assert.AreEqual(0, result.Code);
+            Assert.IsTrue(other.HasExited);
+            Assert.AreEqual(1, control.Yields);
+            Assert.IsTrue(asked.WaitOne(0));
         }
         finally
         {
@@ -310,7 +311,7 @@ public sealed class InstanceStartTests
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void A_shell_that_does_not_quit_stays_and_the_start_says_why()
     {
         using var other = Hold("running", out var control, out var loop, out var server, out var id);
@@ -323,12 +324,12 @@ public sealed class InstanceStartTests
         {
             var result = Start(Launch(ShellName(), Program, []), _ => hosted = true);
 
-            Assert.False(hosted);
-            Assert.False(other.HasExited);
-            Assert.Equal(InstanceStart.CouldNotStart, result.Code);
-            Assert.False(asked.WaitOne(0));
-            Assert.Contains(result.Error, line => line.Contains("running", StringComparison.Ordinal) &&
-                                                   line.Contains("did not quit", StringComparison.Ordinal));
+            Assert.IsFalse(hosted);
+            Assert.IsFalse(other.HasExited);
+            Assert.AreEqual(InstanceStart.CouldNotStart, result.Code);
+            Assert.IsFalse(asked.WaitOne(0));
+            Assert.Contains(line => line.Contains("running", StringComparison.Ordinal) &&
+                                                   line.Contains("did not quit", StringComparison.Ordinal), result.Error);
         }
         finally
         {

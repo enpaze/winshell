@@ -4,7 +4,8 @@ using Winshell.Commands;
 
 namespace Winshell.Tests;
 
-public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
+[TestClass]
+public sealed class UseCommandTests : ProbeBuild, IDisposable
 {
     private static readonly DateTime Long = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
@@ -21,23 +22,23 @@ public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
         Directory.CreateDirectory(Local);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_config_with_no_build_is_built_and_a_failed_build_keeps_the_choice()
     {
         Built(Project("a"));
         Project("b");
 
-        Assert.NotNull(UseCommand.Choose("a", Config, Fails, out _));
-        Assert.Null(UseCommand.Choose("b", Config, Fails, out var error));
+        Assert.IsNotNull(UseCommand.Choose("a", Config, Fails, out _));
+        Assert.IsNull(UseCommand.Choose("b", Config, Fails, out var error));
 
-        Assert.Equal("a", ShellProject.Chosen(Config));
-        Assert.Contains("error CS1002", error, StringComparison.Ordinal);
+        Assert.AreEqual("a", ShellProject.Chosen(Config));
+        Assert.Contains("error CS1002", error!, StringComparison.Ordinal);
         Assert.EndsWith("\nNothing changed.", error, StringComparison.Ordinal);
 
-        Assert.NotNull(UseCommand.Choose("b", Config, Builds, out _));
+        Assert.IsNotNull(UseCommand.Choose("b", Config, Builds, out _));
 
-        Assert.Equal("b", ShellProject.Chosen(Config));
-        Assert.True(File.Exists(Path.Combine(Config, "b", "bin", "shell", "b.exe")));
+        Assert.AreEqual("b", ShellProject.Chosen(Config));
+        Assert.IsTrue(File.Exists(Path.Combine(Config, "b", "bin", "shell", "b.exe")));
         return;
 
         static CommandResult Builds(string file, IReadOnlyList<string> arguments, string folder)
@@ -49,7 +50,7 @@ public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
         }
     }
 
-    [Fact]
+    [TestMethod]
     public void Use_stops_the_running_shell_before_it_starts_the_chosen_one()
     {
         var other = ProbeShell.Start(Config, Local);
@@ -66,14 +67,14 @@ public sealed class UseCommandTests : IDisposable, IClassFixture<ProbeBuild>
         result.AssertExitCode(0);
         result.AssertNoError();
         var newLine = Environment.NewLine;
-        Assert.Equal($"Chose b.{newLine}Stopped {otherId}{newLine}Started b{newLine}", result.Output);
-        Assert.True(other.HasExited);
+        Assert.AreEqual($"Chose b.{newLine}Stopped {otherId}{newLine}Started b{newLine}", result.Output);
+        Assert.IsTrue(other.HasExited);
         Wait.Until(() => Running().Count == 1, "the chosen shell");
         var started = Running().Single();
-        Assert.Equal(Path.Combine(Config, "b", "bin", "shell", "Probe.exe"), started.Program, true);
+        Assert.AreEqual(Path.Combine(Config, "b", "bin", "shell", "Probe.exe"), started.Program, true);
         using var process = Process.GetProcessById(started.Pid);
-        Assert.True(other.ExitTime <= process.StartTime);
-        Assert.Equal($"* b{newLine}", Cli("use").Output);
+        Assert.IsTrue(other.ExitTime <= process.StartTime);
+        Assert.AreEqual($"* b{newLine}", Cli("use").Output);
     }
 
     private static CommandResult Fails(string file, IReadOnlyList<string> arguments, string folder)

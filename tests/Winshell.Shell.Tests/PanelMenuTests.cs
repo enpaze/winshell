@@ -7,12 +7,13 @@ using Winshell.Native;
 
 namespace Winshell.ShellTests;
 
-[Trait("Category", "Window")]
+[TestClass]
+[TestCategory("Window")]
 public sealed class PanelMenuTests
 {
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
     public async Task A_panel_press_closes_a_menu_opened_without_the_foreground_and_takes_no_activation(
         bool mouseActivation)
     {
@@ -26,15 +27,15 @@ public sealed class PanelMenuTests
                 panel.Content = new Grid();
                 using var host = new HostWindow(shell.Platform, WindowKind.Panel, panel);
                 var foreground = PInvoke.GetForegroundWindow();
-                Assert.True(menu.Shows);
+                Assert.IsTrue(menu.Shows);
 
                 if (mouseActivation)
-                    Assert.Equal((nint)PInvoke.MA_NOACTIVATE,
+                    Assert.AreEqual((nint)PInvoke.MA_NOACTIVATE,
                         (nint)PInvoke.SendMessage((HWND)host.Handle, PInvoke.WM_MOUSEACTIVATE, 0, 0));
                 else
                     host.Messages.DismissNativeMenus();
 
-                Assert.Equal(foreground, PInvoke.GetForegroundWindow());
+                Assert.AreEqual(foreground, PInvoke.GetForegroundWindow());
                 return true;
             });
 
@@ -68,7 +69,7 @@ public sealed class PanelMenuTests
         {
             try
             {
-                await _closed.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+                await _closed.Task.WaitAsync(TimeSpan.FromSeconds(30), CurrentTest.Cancellation);
             }
             catch (TimeoutException)
             {

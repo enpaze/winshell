@@ -2,19 +2,20 @@ using Winshell.Native;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public class StartupErrorTests
 {
-    [Theory]
-    [InlineData(0, (int)StreamTarget.Other, true)]
-    [InlineData(0, (int)StreamTarget.File, false)]
-    [InlineData(0, (int)StreamTarget.Pipe, false)]
-    [InlineData(1, (int)StreamTarget.Other, false)]
+    [TestMethod]
+    [DataRow(0, (int)StreamTarget.Other, true)]
+    [DataRow(0, (int)StreamTarget.File, false)]
+    [DataRow(0, (int)StreamTarget.Pipe, false)]
+    [DataRow(1, (int)StreamTarget.Other, false)]
     public void A_dialog_is_only_for_an_error_nobody_else_can_read(int window, int stderr, bool dialog)
     {
-        Assert.Equal(dialog, StartupError.Unread(window, (StreamTarget)stderr));
+        Assert.AreEqual(dialog, StartupError.Unread(window, (StreamTarget)stderr));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_path_opens_that_folder_and_a_missing_root_opens_nothing()
     {
         var root = TempFolder.NewPath();
@@ -22,10 +23,10 @@ public class StartupErrorTests
         Directory.CreateDirectory(root);
         try
         {
-            Assert.Equal(root, StartupError.FolderFor(path, Path.Combine(root, "absent")));
-            Assert.Equal(root, StartupError.FolderFor(null, root));
-            Assert.Null(StartupError.FolderFor(null, Path.Combine(root, "absent")));
-            Assert.Null(StartupError.FolderFor(Path.Combine(root, "gone", "MyShell.exe"), root));
+            Assert.AreEqual(root, StartupError.FolderFor(path, Path.Combine(root, "absent")));
+            Assert.AreEqual(root, StartupError.FolderFor(null, root));
+            Assert.IsNull(StartupError.FolderFor(null, Path.Combine(root, "absent")));
+            Assert.IsNull(StartupError.FolderFor(Path.Combine(root, "gone", "MyShell.exe"), root));
         }
         finally
         {

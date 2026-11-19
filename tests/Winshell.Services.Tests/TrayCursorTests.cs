@@ -3,9 +3,10 @@ using Winshell.Tray;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class TrayCursorTests
 {
-    [Fact]
+    [TestMethod]
     public void Moving_into_the_menu_keeps_the_pointer_where_the_user_left_it()
     {
         var loop = new ManualEventLoop();
@@ -13,14 +14,14 @@ public sealed class TrayCursorTests
         using var cursor = new TrayCursor(loop, () => pointer.Value, point => pointer.Value = point);
 
         cursor.Place((500, 500));
-        Assert.Equal((500, 500), pointer.Value);
+        Assert.AreEqual((500, 500), pointer.Value);
         pointer.Value = (520, 540);
         loop.Advance(TimeSpan.FromMilliseconds(400));
 
-        Assert.Equal((520, 540), pointer.Value);
+        Assert.AreEqual((520, 540), pointer.Value);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_keyboard_menu_restores_an_untouched_pointer()
     {
         var loop = new ManualEventLoop();
@@ -29,13 +30,13 @@ public sealed class TrayCursorTests
 
         cursor.Place((500, 500));
         loop.Advance(TimeSpan.FromMilliseconds(399));
-        Assert.Equal((500, 500), pointer);
+        Assert.AreEqual((500, 500), pointer);
         loop.Advance(TimeSpan.FromMilliseconds(1));
 
-        Assert.Equal((100, 100), pointer);
+        Assert.AreEqual((100, 100), pointer);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_mouse_click_near_the_pointer_needs_no_move_or_timer()
     {
         var loop = new ManualEventLoop();
@@ -43,10 +44,10 @@ public sealed class TrayCursorTests
 
         cursor.Place((102, 99));
 
-        Assert.Null(loop.NextDue);
+        Assert.IsNull(loop.NextDue);
     }
 
-    [Fact]
+    [TestMethod]
     public void Disposing_the_tray_cancels_a_pending_restore()
     {
         var loop = new ManualEventLoop();
@@ -57,6 +58,6 @@ public sealed class TrayCursorTests
         cursor.Dispose();
         loop.Advance(TimeSpan.FromSeconds(1));
 
-        Assert.Equal((500, 500), pointer);
+        Assert.AreEqual((500, 500), pointer);
     }
 }

@@ -3,6 +3,7 @@ using Winshell.AppWindows;
 
 namespace Winshell.Services.Tests;
 
+[TestClass]
 public sealed class AppWindowsServiceTests
 {
     private const string Terminal = "Microsoft.WindowsTerminal_8wekyb3d8bbwe!App";
@@ -22,7 +23,7 @@ public sealed class AppWindowsServiceTests
         return changes;
     }
 
-    [Fact]
+    [TestMethod]
     public void A_new_window_goes_at_the_end_and_a_window_that_stays_is_the_same_object()
     {
         _windows.Show(1);
@@ -35,20 +36,20 @@ public sealed class AppWindowsServiceTests
         _windows.Show(3);
         _loop.Process();
 
-        Assert.Equal([2, 3], list.Windows.Select(window => (int)window.Hwnd));
-        Assert.Same(kept, list.Windows[0]);
+        Assert.AreSequenceEqual([2, 3], list.Windows.Select(window => (int)window.Hwnd));
+        Assert.AreSame(kept, list.Windows[0]);
     }
 
-    [Theory]
-    [InlineData(false, true, false, false, false, false, false, false, true, false)]
-    [InlineData(true, false, false, false, false, false, false, false, true, false)]
-    [InlineData(true, true, true, false, false, false, false, false, true, false)]
-    [InlineData(true, true, false, true, false, false, false, false, true, false)]
-    [InlineData(true, true, false, false, false, true, false, false, true, false)]
-    [InlineData(true, true, false, false, false, false, true, false, true, false)]
-    [InlineData(true, true, false, false, false, false, false, true, true, false)]
-    [InlineData(true, true, false, false, false, false, false, false, false, false)]
-    [InlineData(true, true, false, false, false, false, false, false, true, true)]
+    [TestMethod]
+    [DataRow(false, true, false, false, false, false, false, false, true, false)]
+    [DataRow(true, false, false, false, false, false, false, false, true, false)]
+    [DataRow(true, true, true, false, false, false, false, false, true, false)]
+    [DataRow(true, true, false, true, false, false, false, false, true, false)]
+    [DataRow(true, true, false, false, false, true, false, false, true, false)]
+    [DataRow(true, true, false, false, false, false, true, false, true, false)]
+    [DataRow(true, true, false, false, false, false, false, true, true, false)]
+    [DataRow(true, true, false, false, false, false, false, false, false, false)]
+    [DataRow(true, true, false, false, false, false, false, false, true, true)]
     public void Windows_the_taskbar_skips_stay_out_of_the_list(
         bool exists, bool visible, bool shell, bool child, bool appWindow, bool owned, bool tool, bool noActivate,
         bool title, bool cloaked)
@@ -60,10 +61,10 @@ public sealed class AppWindowsServiceTests
         var list = Start();
         using var stopList = list.Stopping();
 
-        Assert.Equal([2], list.Windows.Select(window => (int)window.Hwnd));
+        Assert.AreSequenceEqual([2], list.Windows.Select(window => (int)window.Hwnd));
     }
 
-    [Fact]
+    [TestMethod]
     public void An_owned_window_that_asks_for_a_taskbar_button_is_listed()
     {
         _windows.Show(1, FakeWindowBackend.Window(),
@@ -72,10 +73,10 @@ public sealed class AppWindowsServiceTests
         var list = Start();
         using var stopList = list.Stopping();
 
-        Assert.Equal([1], list.Windows.Select(window => (int)window.Hwnd));
+        Assert.AreSequenceEqual([1], list.Windows.Select(window => (int)window.Hwnd));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_change_reports_only_the_properties_that_differ()
     {
         _windows.Show(1, "Before");
@@ -87,12 +88,12 @@ public sealed class AppWindowsServiceTests
         _windows.Show(1, FakeWindowBackend.Window("After") with { Maximized = true });
         _loop.Process();
 
-        Assert.Equal([nameof(AppWindow.Title), nameof(AppWindow.Maximized)], changes);
-        Assert.Equal("After", window.Title);
-        Assert.True(window.Maximized);
+        Assert.AreSequenceEqual([nameof(AppWindow.Title), nameof(AppWindow.Maximized)], changes);
+        Assert.AreEqual("After", window.Title);
+        Assert.IsTrue(window.Maximized);
     }
 
-    [Fact]
+    [TestMethod]
     public void Title_changes_before_the_loop_turns_raise_Title_once_with_the_last_value()
     {
         _windows.Show(1, "First");
@@ -106,11 +107,11 @@ public sealed class AppWindowsServiceTests
         _windows.Show(1, "Last");
         _loop.Process();
 
-        Assert.Equal([nameof(AppWindow.Title)], changes);
-        Assert.Equal("Last", window.Title);
+        Assert.AreSequenceEqual([nameof(AppWindow.Title)], changes);
+        Assert.AreEqual("Last", window.Title);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_window_opened_and_closed_before_the_loop_turns_never_appears()
     {
         var list = Start();
@@ -122,10 +123,10 @@ public sealed class AppWindowsServiceTests
         _windows.Destroy(1);
         _loop.Process();
 
-        Assert.Equal(0, listChanges);
+        Assert.AreEqual(0, listChanges);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_window_that_changes_while_another_is_read_is_listed_afterwards()
     {
         _windows.Show(1);
@@ -140,10 +141,10 @@ public sealed class AppWindowsServiceTests
         _windows.Show(1, "Changed");
         _loop.Process();
 
-        Assert.Equal([1, 2], list.Windows.Select(window => (int)window.Hwnd));
+        Assert.AreSequenceEqual([1, 2], list.Windows.Select(window => (int)window.Hwnd));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_closed_window_leaves_the_list_before_it_says_so()
     {
         _windows.Show(1);
@@ -151,7 +152,7 @@ public sealed class AppWindowsServiceTests
         var list = Start();
         using var stopList = list.Stopping();
         var window = list.Windows[0];
-        Assert.Same(window, list.ActiveWindow);
+        Assert.AreSame(window, list.ActiveWindow);
         var stillListed = true;
         window.Closed += () => stillListed = list.Windows.Contains(window);
 
@@ -159,11 +160,11 @@ public sealed class AppWindowsServiceTests
         _windows.Destroy(1);
         _loop.Process();
 
-        Assert.False(stillListed);
-        Assert.Null(list.ActiveWindow);
+        Assert.IsFalse(stillListed);
+        Assert.IsNull(list.ActiveWindow);
     }
 
-    [Fact]
+    [TestMethod]
     public void An_owned_dialog_activates_its_owner_and_its_flash_shows_on_the_owner_until_then()
     {
         _windows.Show(1);
@@ -174,24 +175,24 @@ public sealed class AppWindowsServiceTests
         using var stopList = list.Stopping();
         var owner = list.Windows[0];
         var other = list.Windows[1];
-        Assert.True(other.Activated);
+        Assert.IsTrue(other.Activated);
 
         _windows.Flash(2);
         _loop.Process();
 
-        Assert.True(owner.Attention);
-        Assert.False(owner.Activated);
+        Assert.IsTrue(owner.Attention);
+        Assert.IsFalse(owner.Activated);
 
         _windows.Focus(2);
         _loop.Process();
 
-        Assert.Same(owner, list.ActiveWindow);
-        Assert.True(owner.Activated);
-        Assert.False(owner.Attention);
-        Assert.False(other.Activated);
+        Assert.AreSame(owner, list.ActiveWindow);
+        Assert.IsTrue(owner.Activated);
+        Assert.IsFalse(owner.Attention);
+        Assert.IsFalse(other.Activated);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_window_without_an_id_uses_its_package_or_program_until_it_sets_one()
     {
         var chrome = @"C:\Program Files\Google\Chrome\Application\chrome.exe";
@@ -202,22 +203,22 @@ public sealed class AppWindowsServiceTests
         var packaged = list.Windows[0];
         var program = list.Windows[1];
 
-        Assert.Equal(Terminal, packaged.AppId);
-        Assert.Equal(@"shell:AppsFolder\" + Terminal, packaged.Icon);
-        Assert.Equal("chrome", program.AppId);
-        Assert.Equal(chrome, program.Icon);
+        Assert.AreEqual(Terminal, packaged.AppId);
+        Assert.AreEqual(@"shell:AppsFolder\" + Terminal, packaged.Icon);
+        Assert.AreEqual("chrome", program.AppId);
+        Assert.AreEqual(chrome, program.Icon);
 
         _windows.Show(1, FakeWindowBackend.Window() with { PackageAppId = "Other_8wekyb3d8bbwe!App" });
         _windows.Show(2, FakeWindowBackend.Window() with { AppUserModelId = Terminal });
         _loop.Process();
 
-        Assert.Equal(Terminal, packaged.AppId);
-        Assert.Equal(Terminal, program.AppId);
-        Assert.Equal(@"shell:AppsFolder\" + Terminal, program.Icon);
-        Assert.Equal(chrome, program.Executable);
+        Assert.AreEqual(Terminal, packaged.AppId);
+        Assert.AreEqual(Terminal, program.AppId);
+        Assert.AreEqual(@"shell:AppsFolder\" + Terminal, program.Icon);
+        Assert.AreEqual(chrome, program.Executable);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_parent_is_the_owner_when_the_owner_is_listed()
     {
         _windows.Show(2);
@@ -228,11 +229,11 @@ public sealed class AppWindowsServiceTests
         var list = Start();
         using var stopList = list.Stopping();
 
-        Assert.Same(list.Windows.Single(window => window.Hwnd == 1), list.Windows[0].Parent);
-        Assert.Null(list.Windows[1].Parent);
+        Assert.AreSame(list.Windows.Single(window => window.Hwnd == 1), list.Windows[0].Parent);
+        Assert.IsNull(list.Windows[1].Parent);
     }
 
-    [Fact]
+    [TestMethod]
     public void Setting_a_state_asks_Windows_and_the_value_follows_what_Windows_reports()
     {
         _windows.Show(1);
@@ -243,12 +244,12 @@ public sealed class AppWindowsServiceTests
         window.Maximized = true;
         window.Minimized = true;
 
-        Assert.Equal(["maximize:1:True", "minimize:1:True"], _windows.Calls);
-        Assert.False(window.Maximized);
-        Assert.False(window.Minimized);
+        Assert.AreSequenceEqual(["maximize:1:True", "minimize:1:True"], _windows.Calls);
+        Assert.IsFalse(window.Maximized);
+        Assert.IsFalse(window.Minimized);
     }
 
-    [Fact]
+    [TestMethod]
     public void Requests_go_to_that_window()
     {
         _windows.Show(7);
@@ -261,10 +262,10 @@ public sealed class AppWindowsServiceTests
         window.Close();
         window.MoveTo(screen);
 
-        Assert.Equal(["activate:7", "close:7", "move:7:M2"], _windows.Calls);
+        Assert.AreSequenceEqual(["activate:7", "close:7", "move:7:M2"], _windows.Calls);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_window_is_on_the_screen_Windows_says_is_nearest()
     {
         var screen = new ScreenInfo("M1", "", "", "", "", default, default, 1, 0, 0, 60, true);
@@ -275,17 +276,17 @@ public sealed class AppWindowsServiceTests
         using var stopList = list.Stopping();
         var changes = Watch(list.Windows[1]);
 
-        Assert.Same(screen, Assert.Single(list.Windows[0].Screens));
-        Assert.Empty(list.Windows[1].Screens);
+        Assert.AreSame(screen, Assert.ContainsSingle(list.Windows[0].Screens));
+        Assert.IsEmpty(list.Windows[1].Screens);
 
         _windows.Show(2);
         _loop.Process();
 
-        Assert.Equal([nameof(AppWindow.Screens)], changes);
-        Assert.Same(screen, Assert.Single(list.Windows[1].Screens));
+        Assert.AreSequenceEqual([nameof(AppWindow.Screens)], changes);
+        Assert.AreSame(screen, Assert.ContainsSingle(list.Windows[1].Screens));
     }
 
-    [Fact]
+    [TestMethod]
     public void A_window_finds_its_desktop_and_moving_it_reports_the_new_one()
     {
         var first = Guid.NewGuid();
@@ -298,15 +299,15 @@ public sealed class AppWindowsServiceTests
         using var stopList = list.Stopping();
         var window = list.Windows[0];
         var changes = Watch(window);
-        Assert.Same(desktops.Desktops[0], window.Desktop);
+        Assert.AreSame(desktops.Desktops[0], window.Desktop);
 
         window.MoveToDesktop(desktops.Desktops[1]);
 
-        Assert.Equal([nameof(AppWindow.DesktopId), nameof(AppWindow.Desktop)], changes);
-        Assert.Same(desktops.Desktops[1], window.Desktop);
+        Assert.AreSequenceEqual([nameof(AppWindow.DesktopId), nameof(AppWindow.Desktop)], changes);
+        Assert.AreSame(desktops.Desktops[1], window.Desktop);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_window_says_its_desktop_may_have_changed_after_each_read_of_the_list()
     {
         var only = Guid.NewGuid();
@@ -320,10 +321,10 @@ public sealed class AppWindowsServiceTests
 
         desktops.Create();
 
-        Assert.Equal([nameof(AppWindow.DesktopId), nameof(AppWindow.Desktop)], changes);
+        Assert.AreSequenceEqual([nameof(AppWindow.DesktopId), nameof(AppWindow.Desktop)], changes);
     }
 
-    [Fact]
+    [TestMethod]
     public void Without_a_desktop_list_a_window_still_has_a_desktop_id()
     {
         _windows.Show(1);
@@ -331,11 +332,11 @@ public sealed class AppWindowsServiceTests
         var list = Start();
         using var stopList = list.Stopping();
 
-        Assert.Equal("id", list.Windows[0].DesktopId);
-        Assert.Null(list.Windows[0].Desktop);
+        Assert.AreEqual("id", list.Windows[0].DesktopId);
+        Assert.IsNull(list.Windows[0].Desktop);
     }
 
-    [Fact]
+    [TestMethod]
     public void A_disposed_service_stops_following_the_windows()
     {
         var list = Start();
@@ -344,7 +345,7 @@ public sealed class AppWindowsServiceTests
         list.Stop();
         _loop.Process();
 
-        Assert.Empty(list.Windows);
-        Assert.False(_windows.HasListeners);
+        Assert.IsEmpty(list.Windows);
+        Assert.IsFalse(_windows.HasListeners);
     }
 }
