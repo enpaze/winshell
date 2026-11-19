@@ -642,7 +642,7 @@ public sealed class WinlandServiceTests
         var title = service.Windows[0].Title;
 
         _backend.Raise("windowtitlev2>>10,Late");
-        service.Dispose();
+        ((IDisposable)service).Dispose();
         _loop.Process();
 
         Assert.Equal(title, service.Windows[0].Title);

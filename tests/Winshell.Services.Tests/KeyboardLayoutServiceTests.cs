@@ -111,7 +111,7 @@ public sealed class KeyboardLayoutServiceTests
         keyboard.PropertyChanged += Ignore;
         Assert.Equal(1, backend.Reads);
 
-        keyboard.Dispose();
+        ((IDisposable)keyboard).Dispose();
         keyboard.PropertyChanged += Ignore;
         loop.Advance(Interval * 3);
         Assert.Equal(1, backend.Reads);

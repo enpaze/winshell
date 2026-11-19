@@ -145,7 +145,7 @@ public sealed class WallpaperServiceTests
         var images = backend.Images.Count;
         var fits = backend.Fits.Count;
         var colors = backend.Colors.Count;
-        wallpaper.Dispose();
+        ((IDisposable)wallpaper).Dispose();
         backend.Accepts = true;
         Assert.False(wallpaper.SetImage(@"C:\wall\c.jpg"));
         Assert.False(wallpaper.SetFit(WallpaperFit.Center));

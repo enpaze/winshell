@@ -19,7 +19,7 @@ public sealed class NotificationWatchTests
         }
         finally
         {
-            listener.Dispose();
+            ((IDisposable)listener).Dispose();
         }
 
         await backend.Unwatched.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);

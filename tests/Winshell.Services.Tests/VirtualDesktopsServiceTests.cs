@@ -187,7 +187,7 @@ public sealed class VirtualDesktopsServiceTests
         var desktops = Start(source);
         var reads = source.Calls.Count;
 
-        desktops.Dispose();
+        ((IDisposable)desktops).Dispose();
         source.Items.Clear();
         source.Switch();
         _loop.Advance(VirtualDesktopsService.RereadInterval);

@@ -78,7 +78,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `PlaybackDevices` | ObservableList of [PlaybackDevice](#playbackdevice), read-only |
 | `Ready` | bool, read-only |
 | `RecordingDevices` | ObservableList of [RecordingDevice](#recordingdevice), read-only |
-| `Dispose()` | void |
 
 ## AudioSession
 

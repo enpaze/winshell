@@ -182,7 +182,7 @@ public sealed class VirtualDesktopsService : ObservableObject, IDisposable
         return false;
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         _disposed = true;
         _reread?.Dispose();

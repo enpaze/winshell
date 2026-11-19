@@ -43,7 +43,7 @@ public sealed class PrivacyService : INotifyPropertyChanged, IDisposable
         remove => _listeners.Remove(value);
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         if (_listeners.Disposed)
             return;

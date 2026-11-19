@@ -166,7 +166,7 @@ public sealed class MediaServiceTests
         var media = new MediaService(new ManualEventLoop(), _log, sessions);
         var changes = Watch(media.Sessions[0]);
 
-        media.Dispose();
+        ((IDisposable)media).Dispose();
         sessions.Add("b.exe");
         Controls(native, true);
 

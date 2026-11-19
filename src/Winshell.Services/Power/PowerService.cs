@@ -99,7 +99,7 @@ public sealed class PowerService : ObservableObject, IDisposable
             (d, i) => d.Update(i));
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         _backend.Changed -= _reader.Request;
         _reader.Stop(_backend.Dispose);
@@ -158,7 +158,7 @@ public sealed class PowerModeService : ObservableObject, IDisposable
         Set(ref _ready, true, nameof(Ready));
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         _backend.Changed -= _reader.Request;
         _reader.Stop(_backend.Dispose);

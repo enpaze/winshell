@@ -71,7 +71,7 @@ public sealed class WallpaperService : ObservableObject, IDisposable
         return true;
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         if (_disposed)
             return;

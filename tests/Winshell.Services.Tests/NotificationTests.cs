@@ -228,7 +228,7 @@ public sealed class NotificationTests
 
         backend.Current = Snapshot(Toast(1));
         await listener.RefreshAsync();
-        listener.Dispose();
+        ((IDisposable)listener).Dispose();
         loop.Process();
 
         Assert.Empty(listener.Notifications);

@@ -215,7 +215,7 @@ public sealed class WindowListService : ObservableObject, IDisposable
             window.NotifyDesktop();
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         _disposed = true;
         _winEvents.Dispose();

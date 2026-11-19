@@ -140,7 +140,7 @@ public sealed class AppsService : ObservableObject, IDisposable
         return usage;
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         if (_disposed)
             return;

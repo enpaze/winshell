@@ -27,7 +27,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | Member | Type |
 | --- | --- |
 | `Sessions` | ObservableList of [MediaSession](#mediasession), read-only |
-| `Dispose()` | void |
 
 ## MediaSession
 

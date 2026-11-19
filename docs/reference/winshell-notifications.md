@@ -57,7 +57,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `NotificationAdded` | Action of [Notification](#notification) |
 | `OperationFailed` | Action of string |
 | `ClearAll()` | bool |
-| `Dispose()` | void |
 | `RequestAccess()` | void |
 
 ## NotificationMode

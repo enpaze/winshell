@@ -46,7 +46,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Recent` | ObservableList of [AppEntry](#appentry), read-only |
 | `ById(string id)` | [AppEntry](#appentry)? |
 | `DisplayName(string appId)` | string, static |
-| `Dispose()` | void |
 | `FallbackName(string appId)` | string, static |
 | `Find(string name)` | [AppEntry](#appentry)? |
 | `ProgramDescription(string path)` | string?, static |

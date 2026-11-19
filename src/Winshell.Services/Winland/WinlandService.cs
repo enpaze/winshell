@@ -586,7 +586,7 @@ public sealed class WinlandService : ObservableObject, IDisposable
         Set(ref _activeWindow, window, nameof(ActiveWindow));
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         if (_disposed)
             return;

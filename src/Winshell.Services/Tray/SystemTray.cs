@@ -159,7 +159,7 @@ public sealed class SystemTray : ObservableObject, IDisposable
         item.OnBalloon(title, message, kind <= (int)BalloonIcon.App ? (BalloonIcon)kind : BalloonIcon.None);
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         if (_disposed)
             return;

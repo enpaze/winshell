@@ -577,8 +577,8 @@ public sealed class BluetoothServiceTests
         loop.Process();
         Assert.Equal("Renamed", Assert.Single(service.Devices).Name);
 
-        service.Dispose();
-        service.Dispose();
+        ((IDisposable)service).Dispose();
+        ((IDisposable)service).Dispose();
         Assert.False(backend.Watching);
         Assert.True(backend.Disposed);
         backend.RaiseChanged();
@@ -688,7 +688,7 @@ public sealed class BluetoothServiceTests
         var read = service.RefreshAsync();
         await backend.Started.Task.WaitAsync(TestContext.Current.CancellationToken);
 
-        service.Dispose();
+        ((IDisposable)service).Dispose();
         Assert.False(backend.Disposed);
         backend.Finish.TrySetResult(Snapshot());
         await read.WaitAsync(TestContext.Current.CancellationToken);
@@ -730,7 +730,7 @@ public sealed class BluetoothServiceTests
 
         public void Dispose()
         {
-            Service.Dispose();
+            ((IDisposable)Service).Dispose();
         }
     }
 

@@ -24,4 +24,3 @@ Which apps are using the microphone, the camera or location right now. Reach it 
 | `Microphone` | IReadOnlyList of [PrivacyApp](#privacyapp), read-only |
 | `MicrophoneInUse` | bool, read-only |
 | `PropertyChanged` | PropertyChangedEventHandler |
-| `Dispose()` | void |

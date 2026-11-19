@@ -148,7 +148,7 @@ public sealed class NetworkingService : ObservableObject, IDisposable
             : new WiredDevice(info, _loop, _backend);
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         _disposed = true;
         _backend.Changed -= _reader.Request;

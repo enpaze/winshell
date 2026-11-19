@@ -50,7 +50,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Workspaces` | ObservableList of [WinlandWorkspace](#winlandworkspace), read-only |
 | `RawEvent` | Action of [WinlandEvent](#winlandevent) |
 | `Dispatch(string request)` | void |
-| `Dispose()` | void |
 | `MonitorFor([ScreenInfo](winshell.md#screeninfo)? screen)` | [WinlandMonitor](#winlandmonitor)? |
 | `RefreshMonitors()` | void |
 | `RefreshWindows()` | void |

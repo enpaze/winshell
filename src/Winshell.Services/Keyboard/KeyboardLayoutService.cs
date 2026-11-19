@@ -59,7 +59,7 @@ public sealed class KeyboardLayoutService : INotifyPropertyChanged, IDisposable
         return _backend.Use(next.Id);
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         _listeners.Dispose();
     }

@@ -29,7 +29,7 @@ public sealed class MediaService : ObservableObject, IDisposable
             static (_, _) => { }, s => s.Detach());
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         _sessions.SessionAdded -= Refresh;
         _sessions.SessionRemoved -= Refresh;

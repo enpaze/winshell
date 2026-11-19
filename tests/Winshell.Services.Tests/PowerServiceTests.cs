@@ -73,7 +73,7 @@ public sealed class PowerServiceTests
         var power = new PowerService(loop, Log.Default, source);
 
         source.Push(Snapshot(Battery("a")));
-        power.Dispose();
+        ((IDisposable)power).Dispose();
         loop.Process();
 
         Assert.Empty(power.Devices);

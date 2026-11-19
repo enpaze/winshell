@@ -11,4 +11,3 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | Member | Type |
 | --- | --- |
 | `Hidden` | bool |
-| `Dispose()` | void |

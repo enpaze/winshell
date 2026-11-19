@@ -296,7 +296,7 @@ public sealed class AudioServiceTests
         var deviceChanges = Watch(audio.PlaybackDevices[0]);
         var sessionChanges = Watch(audio.PlaybackDevices[0].Sessions[0]);
 
-        audio.Dispose();
+        ((IDisposable)audio).Dispose();
         _graph.Add(new FakeGraphNode(AudioNodeType.RecordingDevice));
         speaker.SetAudio([1, 1], true);
         app.SetActive(true);

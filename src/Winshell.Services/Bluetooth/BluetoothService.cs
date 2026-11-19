@@ -306,7 +306,7 @@ public sealed class BluetoothService : ObservableObject, IDisposable
         return true;
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         lock (_gate)
         {

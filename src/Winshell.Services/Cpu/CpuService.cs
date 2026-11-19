@@ -54,7 +54,7 @@ public sealed class CpuService : INotifyPropertyChanged, IDisposable
         _listeners.Raise(nameof(Usage));
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         _listeners.Dispose();
     }

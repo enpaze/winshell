@@ -285,7 +285,7 @@ public sealed class AppIndexTests
             Assert.Fail("The read did not start.");
         }
 
-        apps.Dispose();
+        ((IDisposable)apps).Dispose();
 
         Assert.False(Volatile.Read(ref ended));
         release.Set();

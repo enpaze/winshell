@@ -41,7 +41,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Background` | [WallpaperColor](#wallpapercolor), read-only |
 | `Fit` | [WallpaperFit](#wallpaperfit), read-only |
 | `Screens` | IReadOnlyList of [WallpaperScreen](#wallpaperscreen), read-only |
-| `Dispose()` | void |
 | `SetBackground([WallpaperColor](#wallpapercolor) color)` | bool |
 | `SetFit([WallpaperFit](#wallpaperfit) fit)` | bool |
 | `SetImage(string image)` | bool |

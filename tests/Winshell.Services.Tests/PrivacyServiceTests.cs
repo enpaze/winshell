@@ -177,7 +177,7 @@ public sealed class PrivacyServiceTests
         privacy.PropertyChanged += Ignore;
         Assert.Equal(1, backend.Starts);
 
-        privacy.Dispose();
+        ((IDisposable)privacy).Dispose();
         privacy.PropertyChanged += Ignore;
         backend.Raise();
         loop.Advance(Settle);

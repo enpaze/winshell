@@ -108,7 +108,7 @@ public sealed class BrightnessService : ObservableObject, IDisposable
         return old with { WorkArea = now.WorkArea } == now;
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         _screens.CollectionChanged -= OnScreensChanged;
         _backend.Changed -= _reader.Request;

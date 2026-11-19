@@ -75,7 +75,7 @@ public sealed class AudioService : ObservableObject, IDisposable
         return devices.FirstOrDefault(d => d.Node == node);
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         _backend.NodeAdded -= OnNodeChanged;
         _backend.NodeRemoved -= OnNodeChanged;

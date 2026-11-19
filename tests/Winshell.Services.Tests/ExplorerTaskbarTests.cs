@@ -66,8 +66,8 @@ public class ExplorerTaskbarTests
         taskbar.Hidden = false;
         fake.ExplorerMadeATaskbar();
         taskbar.Restore();
-        taskbar.Dispose();
-        taskbar.Dispose();
+        ((IDisposable)taskbar).Dispose();
+        ((IDisposable)taskbar).Dispose();
 
         Assert.False(taskbar.Hidden);
         Assert.Equal(0, fake.Hides);
@@ -94,8 +94,8 @@ public class ExplorerTaskbarTests
         Assert.Equal(1, fake.Restores);
 
         taskbar.Hidden = true;
-        taskbar.Dispose();
-        taskbar.Dispose();
+        ((IDisposable)taskbar).Dispose();
+        ((IDisposable)taskbar).Dispose();
         Assert.Equal(2, fake.Hides);
         Assert.Equal(2, fake.Restores);
         Assert.Equal([
@@ -151,7 +151,7 @@ public class ExplorerTaskbarTests
             _warnings);
         Assert.True(taskbar.Hidden);
         fake.FailRestore = false;
-        taskbar.Dispose();
+        ((IDisposable)taskbar).Dispose();
         Assert.Equal(2, fake.Restores);
         Assert.False(taskbar.Hidden);
     }
@@ -164,7 +164,7 @@ public class ExplorerTaskbarTests
 
         taskbar.Hidden = true;
         taskbar.Yield();
-        taskbar.Dispose();
+        ((IDisposable)taskbar).Dispose();
 
         Assert.Equal(1, fake.Hides);
         Assert.Equal(0, fake.Restores);

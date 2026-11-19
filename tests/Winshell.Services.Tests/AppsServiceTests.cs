@@ -229,7 +229,7 @@ public sealed class AppsServiceTests : IDisposable
     {
         var apps = Start([App("Alpha")]);
 
-        apps.Dispose();
+        ((IDisposable)apps).Dispose();
         Change([]);
 
         Assert.Single(apps.Apps);

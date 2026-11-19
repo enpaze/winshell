@@ -335,7 +335,7 @@ public sealed class SystemTrayTests
         tray.Items[0].Ready += () => ready++;
         _backend.Calls.Clear();
 
-        tray.Dispose();
+        ((IDisposable)tray).Dispose();
         _loop.Advance(TimeSpan.FromSeconds(30));
 
         Assert.Single(tray.Items);

@@ -56,7 +56,7 @@ public sealed class ExplorerTaskbarService : ObservableObject, IDisposable
         ExplorerTaskbarLease.HandOff(ShellLocations.Current);
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         Restore();
         lock (_gate)

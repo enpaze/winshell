@@ -322,7 +322,7 @@ public sealed class WindowListServiceTests
         var list = Start();
 
         _windows.Show(1);
-        list.Dispose();
+        ((IDisposable)list).Dispose();
         _loop.Process();
 
         Assert.Empty(list.Windows);

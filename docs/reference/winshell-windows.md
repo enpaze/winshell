@@ -51,7 +51,6 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | `Supported` | bool, read-only |
 | `UnsupportedReason` | string, read-only |
 | `Create()` | [VirtualDesktop](#virtualdesktop)? |
-| `Dispose()` | void |
 | `Remove([VirtualDesktop](#virtualdesktop)? desktop)` | void |
 | `SwitchTo([VirtualDesktop](#virtualdesktop)? desktop)` | void |
 
@@ -63,4 +62,3 @@ Has the members of [ObservableObject](winshell.md#observableobject).
 | --- | --- |
 | `ActiveWindow` | [AppWindow](#appwindow)?, read-only |
 | `Windows` | ObservableList of [AppWindow](#appwindow), read-only |
-| `Dispose()` | void |

@@ -297,7 +297,7 @@ public sealed class NotificationListener : ObservableObject, IDisposable
         });
     }
 
-    public void Dispose()
+    void IDisposable.Dispose()
     {
         if (_disposed)
             return;
