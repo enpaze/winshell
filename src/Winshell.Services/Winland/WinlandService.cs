@@ -83,7 +83,7 @@ public sealed class WinlandService : ObservableObject, IShellService
 
     public void Dispatch(string request)
     {
-        Send("dispatch " + request);
+        Send(request);
     }
 
     public void Reload()
@@ -103,7 +103,7 @@ public sealed class WinlandService : ObservableObject, IShellService
 
     public void RefreshWindows()
     {
-        Ask(_windowQuery, "j/clients", false, (json, _) =>
+        Ask(_windowQuery, WindowsRequest, false, (json, _) =>
         {
             foreach (var entry in json.EnumerateArray())
             {
@@ -130,12 +130,22 @@ public sealed class WinlandService : ObservableObject, IShellService
 
     internal void Send(string request)
     {
+        SendInOrder(request);
+    }
+
+    internal void SendInOrder(params string[] requests)
+    {
+        if (requests.Length == 0)
+            return;
+        var request = requests[0];
         Request(request, reply =>
         {
             if (reply is null)
                 _log.Warn("winland", $"Failed to send \"{request}\": Winland is not running");
-            else if (reply.Split("\n\n").Any(r => r.Trim() != "ok"))
+            else if (reply.Trim() != "ok")
                 _log.Warn("winland", $"\"{request}\" failed with error {reply.Trim()}");
+            else
+                SendInOrder(requests[1..]);
         });
     }
 
@@ -160,17 +170,22 @@ public sealed class WinlandService : ObservableObject, IShellService
         {
             if (_disposed)
                 return;
-            var (name, data) = SplitEvent(line);
+            if (ParseEvent(line) is not { } winlandEvent)
+            {
+                _log.Debug("winland", $"Skipped an event that is not JSON: {line}");
+                return;
+            }
+
             try
             {
-                OnEvent(name, data);
+                OnEvent(winlandEvent);
             }
             finally
             {
                 Recompute();
             }
 
-            RawEvent?.Invoke(new WinlandEvent(name, data));
+            RawEvent?.Invoke(winlandEvent);
         });
     }
 
@@ -180,7 +195,7 @@ public sealed class WinlandService : ObservableObject, IShellService
         RefreshWorkspaces(true);
         RefreshWindows();
         RefreshFiles();
-        Request("j/activewindow", reply =>
+        Request(ActiveWindowRequest, reply =>
         {
             if (_activeWindow is null && ParseJson(reply) is { ValueKind: JsonValueKind.Object } json)
                 SetActiveWindow(FindWindow(ParseAddress(Str(json, "address")), true));
@@ -206,7 +221,7 @@ public sealed class WinlandService : ObservableObject, IShellService
 
     private void RefreshFiles()
     {
-        Request("j/files", reply =>
+        Request(FilesRequest, reply =>
         {
             if (ParseJson(reply) is not { ValueKind: JsonValueKind.Object } json ||
                 Str(json, "config") is not { Length: > 0 } config)
@@ -265,6 +280,12 @@ public sealed class WinlandService : ObservableObject, IShellService
             if (json is not { ValueKind: JsonValueKind.Array } &&
                 RetryIfConnected(reply, () => Ask(query, command, canCreate || again == true, apply)))
                 return;
+            if (json is not { ValueKind: JsonValueKind.Array } && reply is not null && !query.Refused)
+            {
+                query.Refused = true;
+                _log.Warn("winland",
+                    $"Winland answered \"{command}\" with \"{reply.Trim()}\", so Winshell cannot read it. Update Winland, or use a Winshell made for this Winland.");
+            }
             if (again is { } create)
                 Ask(query, command, create, apply);
             if (json is { ValueKind: JsonValueKind.Array } array)
@@ -285,9 +306,9 @@ public sealed class WinlandService : ObservableObject, IShellService
         return true;
     }
 
-    private void OnEvent(string name, string data)
+    private void OnEvent(WinlandEvent winlandEvent)
     {
-        switch (ReadEvent(name, data))
+        switch (ReadEvent(winlandEvent))
         {
             case null:
                 break;
@@ -322,14 +343,17 @@ public sealed class WinlandService : ObservableObject, IShellService
                         RefreshMonitors(false);
                     break;
                 }
-            case WinlandProtocol.MonitorFocused focused:
+            case WinlandProtocol.Focused focused:
                 {
-                    var monitor = FindMonitor(focused.Monitor, true)!;
-                    var workspace = focused.Workspace is null
-                        ? null
-                        : FindWorkspace(focused.Workspace, focused.Monitor, false);
-                    SetFocusedMonitor(monitor);
-                    monitor.SetActiveWorkspace(workspace);
+                    if (focused.Monitor.Length > 0)
+                    {
+                        var monitor = FindMonitor(focused.Monitor, true)!;
+                        SetFocusedMonitor(monitor);
+                        if (focused.Workspace is { } name && !IsSpecial(name))
+                            monitor.SetActiveWorkspace(FindWorkspace(name, focused.Monitor, true, focused.WorkspaceId));
+                    }
+
+                    SetActiveWindow(FindWindow(focused.Window, true));
                     break;
                 }
             case WinlandProtocol.WorkspaceShown shown:
@@ -382,9 +406,6 @@ public sealed class WinlandService : ObservableObject, IShellService
             case WinlandProtocol.WindowTitleChanged titled:
                 FindWindow(titled.Address, true)?.SetTitle(titled.Title);
                 break;
-            case WinlandProtocol.WindowActivated activated:
-                SetActiveWindow(FindWindow(activated.Address, true));
-                break;
             case WinlandProtocol.WindowUrgent urgent:
                 FindWindow(urgent.Address, true)?.SetUrgent(true);
                 break;
@@ -393,7 +414,7 @@ public sealed class WinlandService : ObservableObject, IShellService
 
     private void RefreshMonitors(bool canCreate)
     {
-        Ask(_monitorQuery, "j/monitors", canCreate, ApplyMonitors);
+        Ask(_monitorQuery, MonitorsRequest, canCreate, ApplyMonitors);
     }
 
     private void ApplyMonitors(JsonElement json, bool canCreate)
@@ -430,7 +451,7 @@ public sealed class WinlandService : ObservableObject, IShellService
 
     private void RefreshWorkspaces(bool canCreate)
     {
-        Ask(_workspaceQuery, "j/workspaces", canCreate, ApplyWorkspaces);
+        Ask(_workspaceQuery, WorkspacesRequest, canCreate, ApplyWorkspaces);
     }
 
     private void ApplyWorkspaces(JsonElement json, bool canCreate)
@@ -453,8 +474,8 @@ public sealed class WinlandService : ObservableObject, IShellService
 
             workspace.SetId(id);
             if (monitorName.Length > 0)
-                workspace.SetMonitor(FindMonitor(monitorName, true, Int(entry, "monitorID") ?? -1));
-            workspace.SetHasFullscreen(Bool(entry, "hasfullscreen"));
+                workspace.SetMonitor(FindMonitor(monitorName, true, Int(entry, "monitorId") ?? -1));
+            workspace.SetHasFullscreen(Bool(entry, "hasFullscreen"));
             workspace.SetLastIpcObject(entry);
             seen.Add(workspace);
         }
@@ -600,5 +621,7 @@ public sealed class WinlandService : ObservableObject, IShellService
         public bool Reading { get; set; }
 
         public bool? Again { get; set; }
+
+        public bool Refused { get; set; }
     }
 }

@@ -10,7 +10,7 @@
 - `windows` `Windows` and `ActiveWindow` list Winland's windows and link each one to its `AppWindow`.
 - `app-icons` `WinlandWorkspace.AppIcons` gives the icon path of each app open on the workspace, once per app, in the order of its windows, for `ShellImage.Load`.
 - `activate` `WinlandWorkspace.Activate()` and `WinlandMonitor.ActivateWorkspace(number)` switch workspaces.
-- `dispatch` `Dispatch(request)` sends a request to Winland, `RawEvent` raises for each event, and `Reload()` reloads Winland's configuration.
+- `dispatch` `Dispatch(request)` sends a Winland action, such as `workspace 3`, `RawEvent` raises each event with its name and JSON, and `Reload()` reloads Winland's configuration.
 
 ## How to get to it (user POV)
 
@@ -38,3 +38,4 @@ Preconditions:
 - CI has no Winland, so the row shows `running: False; workspaces: 0`, and the step accepts that. On a desktop with Winland, the row shows its workspaces.
 - With Winland running, follow Live UI with Winland running in the development guide. Never call `Reload()`, `Dispatch` or a workspace switch during a run, because they change the user's real Winland.
 - Without Winland, the omarchy-style `workspaces` widget is hidden.
+- The service asks `j/get monitors`, `j/get workspaces`, `j/get windows` and follows `j/events`. A Winland from before `get` and JSON events answers `error: unknown command`, the shell log warns once per query that Winshell cannot read it, and the workspaces show no active one. `winland -j get workspaces` in a terminal shows what Winland reports.
