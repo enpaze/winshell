@@ -127,7 +127,7 @@ windowrule = ignore, exe:(winshell|winshellw|Winshell\..*Tests|Probe|Dev)\.exe
 - One live run or windowed test at a time on a machine: they share the desktop and the foreground.
 - Test projects are their own programs, not `testhost`; `Probe` and `Dev` are their shell fixtures. Without the rule `A_floating_window_has_the_size_and_title_it_was_given` fails.
 - No Winland workspace contains what the rule ignores: an ignored window opens where Windows puts it, usually on the primary monitor, and a bar opens on every screen. Keep what a test opens small and short.
-- `winland -j clients` must list no Winshell window, and the user's windows must be where they were when you finish.
+- `winland -j get windows` must list no Winshell window, and the user's windows must be where they were when you finish.
 
 ## See what you changed
 

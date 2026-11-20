@@ -15,73 +15,78 @@ internal static class WinlandProtocol
             : [overrideName.Trim()];
     }
 
-    public static (string Name, string Data) SplitEvent(string line)
+    public const string EventsRequest = "j/events";
+
+    public const string MonitorsRequest = "j/get monitors";
+
+    public const string WorkspacesRequest = "j/get workspaces";
+
+    public const string WindowsRequest = "j/get windows";
+
+    public const string ActiveWindowRequest = "j/get window";
+
+    public const string FilesRequest = "j/get files";
+
+    public static WinlandEvent? ParseEvent(string line)
     {
-        var split = line.IndexOf(">>", StringComparison.Ordinal);
-        return split < 0 ? (line, "") : (line[..split], line[(split + 2)..]);
+        return ParseJson(line) is { ValueKind: JsonValueKind.Object } json && Str(json, "event") is { Length: > 0 } name
+            ? new WinlandEvent(name, json)
+            : null;
     }
 
-    public static Event? ReadEvent(string name, string data)
+    public static Event? ReadEvent(WinlandEvent winlandEvent)
     {
-        switch (name)
+        var data = winlandEvent.Data;
+        switch (winlandEvent.Name)
         {
             case "configreloaded":
                 return new ConfigReloaded();
-            case "monitoraddedv2":
-                {
-                    var args = ParseArgs(data, 3);
-                    return new MonitorAdded(Integer(args[0]) ?? -1, args[1], args[2]);
-                }
+            case "monitoradded":
+                return new MonitorAdded(Int(data, "id") ?? -1, Str(data, "name"), Str(data, "description"));
             case "monitorremoved":
-                return new MonitorRemoved(data);
-            case "createworkspacev2":
+                return new MonitorRemoved(Str(data, "name"));
+            case "createworkspace":
                 {
-                    var (id, workspace, monitor) = Workspace(data);
-                    return new WorkspaceCreated(id, workspace, monitor);
+                    var (id, workspace) = Workspace(data);
+                    return new WorkspaceCreated(id, workspace, Str(data, "monitor"));
                 }
-            case "destroyworkspacev2":
+            case "destroyworkspace":
                 {
-                    var (id, workspace, monitor) = Workspace(data);
-                    return new WorkspaceDestroyed(id, workspace, monitor);
+                    var (id, workspace) = Workspace(data);
+                    return new WorkspaceDestroyed(id, workspace, Str(data, "monitor"));
                 }
-            case "focusedmon":
+            case "focus":
                 {
-                    var args = ParseArgs(data, 2);
-                    return new MonitorFocused(args[0], args[1] == "?" ? null : args[1]);
+                    var (id, workspace) = Workspace(data);
+                    return new Focused(Str(data, "monitor"), workspace.Length > 0 ? workspace : null, id,
+                        ParseAddress(Str(Obj(data, "window"), "address")));
                 }
-            case "workspacev2":
+            case "workspace":
                 {
-                    var (id, workspace, monitor) = Workspace(data);
-                    return new WorkspaceShown(id, workspace, monitor);
+                    var (id, workspace) = Workspace(data);
+                    return new WorkspaceShown(id, workspace, Str(data, "monitor"));
                 }
-            case "moveworkspacev2":
+            case "moveworkspace":
                 {
-                    var (id, workspace, monitor) = Workspace(data);
-                    return new WorkspaceMoved(id, workspace, monitor);
+                    var (id, workspace) = Workspace(data);
+                    return new WorkspaceMoved(id, workspace, Str(data, "monitor"));
                 }
             case "fullscreen":
-                return new FullscreenChanged(data == "1");
+                return new FullscreenChanged(Bool(data, "fullscreen"));
             case "openwindow":
-                {
-                    var args = ParseArgs(data, 5);
-                    return new WindowOpened(ParseAddress(args[0]), args[1], args[2], args[3], args[4]);
-                }
+                return new WindowOpened(ParseAddress(Str(data, "address")), Workspace(data).Name, Str(data, "monitor"),
+                    Str(data, "class"), Str(data, "title"));
             case "closewindow":
-                return new WindowClosed(ParseAddress(data));
-            case "movewindowv2":
+                return new WindowClosed(ParseAddress(Str(data, "address")));
+            case "movewindow":
                 {
-                    var args = ParseArgs(data, 4);
-                    return new WindowMoved(ParseAddress(args[0]), Integer(args[1]) ?? -1, args[2], args[3]);
+                    var (id, workspace) = Workspace(data);
+                    return new WindowMoved(ParseAddress(Str(data, "address")), id, workspace, Str(data, "monitor"));
                 }
-            case "windowtitlev2":
-                {
-                    var args = ParseArgs(data, 2);
-                    return new WindowTitleChanged(ParseAddress(args[0]), args[1]);
-                }
-            case "activewindowv2":
-                return new WindowActivated(ParseAddress(data));
+            case "windowtitle":
+                return new WindowTitleChanged(ParseAddress(Str(data, "address")), Str(data, "title"));
             case "urgent":
-                return new WindowUrgent(ParseAddress(data));
+                return new WindowUrgent(ParseAddress(Str(data, "address")));
             default:
                 return null;
         }
@@ -102,30 +107,11 @@ internal static class WinlandProtocol
         }
     }
 
-    private static (int Id, string Name, string Monitor) Workspace(string data)
+    private static (int Id, string Name) Workspace(JsonElement data)
     {
-        var args = ParseArgs(data, 3);
-        return (WorkspaceId(args[0], args[1]), args[1], args[2]);
-    }
-
-    public static string[] ParseArgs(string data, int count)
-    {
-        var args = new List<string>(Math.Max(count, 1));
-        var rest = data.AsSpan();
-        for (var i = 0; i < count - 1; i++)
-        {
-            var comma = rest.IndexOf(',');
-            if (comma < 0)
-                break;
-            args.Add(rest[..comma].ToString());
-            rest = rest[(comma + 1)..];
-        }
-
-        if (!rest.IsEmpty)
-            args.Add(rest.ToString());
-        while (args.Count < count)
-            args.Add("");
-        return [.. args];
+        var workspace = Obj(data, "workspace");
+        var name = Str(workspace, "name");
+        return (Int(workspace, "id") ?? IdFromName(name), name);
     }
 
     public static ulong ParseAddress(string text)
@@ -169,11 +155,6 @@ internal static class WinlandProtocol
     public static int IdFromName(string name)
     {
         return Integer(name) ?? (name == DefaultSpecial ? DefaultSpecialId : FirstNamedId);
-    }
-
-    public static int WorkspaceId(string id, string name)
-    {
-        return Integer(id) ?? IdFromName(name);
     }
 
     public static string Str(JsonElement obj, string name)
@@ -223,7 +204,7 @@ internal static class WinlandProtocol
 
     internal sealed record WorkspaceDestroyed(int Id, string Name, string Monitor) : Event;
 
-    internal sealed record MonitorFocused(string Monitor, string? Workspace) : Event;
+    internal sealed record Focused(string Monitor, string? Workspace, int WorkspaceId, ulong Window) : Event;
 
     internal sealed record WorkspaceShown(int Id, string Name, string Monitor) : Event;
 
@@ -238,8 +219,6 @@ internal static class WinlandProtocol
     internal sealed record WindowMoved(ulong Address, int WorkspaceId, string Workspace, string Monitor) : Event;
 
     internal sealed record WindowTitleChanged(ulong Address, string Title) : Event;
-
-    internal sealed record WindowActivated(ulong Address) : Event;
 
     internal sealed record WindowUrgent(ulong Address) : Event;
 }

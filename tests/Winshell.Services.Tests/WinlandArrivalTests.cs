@@ -16,7 +16,7 @@ public sealed class WinlandArrivalTests
                                     """;
 
     private const string Workspaces = """
-                                      [{"id":1,"name":"1","monitor":"\\\\.\\DISPLAY1","monitorID":0,"hasfullscreen":false}]
+                                      [{"id":1,"name":"1","monitor":"\\\\.\\DISPLAY1","monitorId":0,"hasFullscreen":false}]
                                       """;
 
     [TestMethod]
@@ -165,7 +165,7 @@ public sealed class WinlandArrivalTests
                 using var reader = new StreamReader(pipe, Encoding.UTF8, detectEncodingFromByteOrderMarks: false,
                     bufferSize: 256, leaveOpen: true);
                 var command = await reader.ReadLineAsync(cancel).ConfigureAwait(false);
-                hold = command == "events";
+                hold = command == "j/events";
                 if (hold)
                     await Task.Delay(Timeout.Infinite, cancel).ConfigureAwait(false);
                 else if (command is not null && Reply(command) is { } body)
@@ -185,11 +185,11 @@ public sealed class WinlandArrivalTests
         {
             return command switch
             {
-                "j/monitors" => Monitors,
-                "j/workspaces" => Workspaces,
-                "j/clients" => "[]",
-                "j/activewindow" => "{}",
-                "j/files" => """{"config":"C:\\winland.conf","log":"C:\\winland.log"}""",
+                "j/get monitors" => Monitors,
+                "j/get workspaces" => Workspaces,
+                "j/get windows" => "[]",
+                "j/get window" => "null",
+                "j/get files" => """{"config":"C:\\winland.conf","log":"C:\\winland.log"}""",
                 _ => null,
             };
         }

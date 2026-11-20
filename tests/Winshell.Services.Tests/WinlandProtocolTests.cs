@@ -15,28 +15,34 @@ public class WinlandProtocolTests
     }
 
     [TestMethod]
-    [DataRow("workspacev2>>3,3,\\\\.\\DISPLAY1", "workspacev2", "3,3,\\\\.\\DISPLAY1")]
-    [DataRow("configreloaded>>", "configreloaded", "")]
-    [DataRow("activewindow>>Chrome_WidgetWin_1,a >> b", "activewindow", "Chrome_WidgetWin_1,a >> b")]
-    [DataRow("noarrows", "noarrows", "")]
-    public void Event_lines_split_at_the_first_arrows(string line, string name, string data)
+    public void Requests_use_Winland_s_get_verbs_and_ask_for_json()
     {
-        Assert.AreEqual((name, data), WinlandProtocol.SplitEvent(line));
+        Assert.AreSequenceEqual(
+            ["j/events", "j/get monitors", "j/get workspaces", "j/get windows", "j/get window", "j/get files"],
+            [
+                WinlandProtocol.EventsRequest, WinlandProtocol.MonitorsRequest, WinlandProtocol.WorkspacesRequest,
+                WinlandProtocol.WindowsRequest, WinlandProtocol.ActiveWindowRequest, WinlandProtocol.FilesRequest,
+            ]);
     }
 
     [TestMethod]
-    public void The_last_argument_keeps_its_commas()
+    [DataRow("""{"event":"configreloaded"}""", "configreloaded")]
+    [DataRow("""{"event":"urgent","address":"0x20"}""", "urgent")]
+    public void An_event_line_is_its_name_and_json(string line, string name)
     {
-        Assert.AreSequenceEqual(["708ba", "1", "\\\\.\\DISPLAY1", "Chrome_WidgetWin_1", "a, b, c"],
-            WinlandProtocol.ParseArgs("708ba,1,\\\\.\\DISPLAY1,Chrome_WidgetWin_1,a, b, c", 5));
+        var parsed = WinlandProtocol.ParseEvent(line)!;
+        Assert.AreEqual(name, parsed.Name);
+        Assert.AreEqual(name, parsed.Data.GetProperty("event").GetString());
     }
 
     [TestMethod]
-    public void Missing_arguments_are_empty()
+    [DataRow("workspace>>3,3,\\\\.\\DISPLAY1")]
+    [DataRow("""{"address":"0x20"}""")]
+    [DataRow("""["urgent"]""")]
+    [DataRow("")]
+    public void A_line_that_is_not_a_json_event_is_none(string line)
     {
-        Assert.AreSequenceEqual(["a", "", ""], WinlandProtocol.ParseArgs("a", 3));
-        Assert.AreSequenceEqual(["", ""], WinlandProtocol.ParseArgs("", 2));
-        Assert.AreSequenceEqual(["", "", "DISPLAY1"], WinlandProtocol.ParseArgs(",,DISPLAY1", 3));
+        Assert.IsNull(WinlandProtocol.ParseEvent(line));
     }
 
     [TestMethod]
@@ -99,43 +105,54 @@ public class WinlandProtocolTests
     [TestMethod]
     public void An_event_line_is_one_typed_event()
     {
-        Assert.IsExactInstanceOfType<WinlandProtocol.ConfigReloaded>(Event("configreloaded>>"));
+        Assert.IsExactInstanceOfType<WinlandProtocol.ConfigReloaded>(Event("""{"event":"configreloaded"}"""));
 
-        var added = Assert.IsExactInstanceOfType<WinlandProtocol.MonitorAdded>(Event(@"monitoraddedv2>>1,\\.\DISPLAY1,Main, panel"));
+        var added = Assert.IsExactInstanceOfType<WinlandProtocol.MonitorAdded>(
+            Event("""{"event":"monitoradded","id":1,"name":"\\\\.\\DISPLAY1","description":"Main, panel"}"""));
         Assert.AreEqual((1, @"\\.\DISPLAY1", "Main, panel"), (added.Id, added.Name, added.Description));
-        Assert.AreEqual(@"\\.\DISPLAY2", Assert.IsExactInstanceOfType<WinlandProtocol.MonitorRemoved>(Event(@"monitorremoved>>\\.\DISPLAY2")).Name);
+        Assert.AreEqual(@"\\.\DISPLAY2", Assert.IsExactInstanceOfType<WinlandProtocol.MonitorRemoved>(
+            Event("""{"event":"monitorremoved","id":2,"name":"\\\\.\\DISPLAY2","description":""}""")).Name);
 
-        var created = Assert.IsExactInstanceOfType<WinlandProtocol.WorkspaceCreated>(Event(@"createworkspacev2>>,notes,\\.\DISPLAY1"));
+        var created = Assert.IsExactInstanceOfType<WinlandProtocol.WorkspaceCreated>(
+            Event("""{"event":"createworkspace","workspace":{"name":"notes"},"monitor":"\\\\.\\DISPLAY1"}"""));
         Assert.AreEqual((-1, "notes", @"\\.\DISPLAY1"), (created.Id, created.Name, created.Monitor));
-        var destroyed = Assert.IsExactInstanceOfType<WinlandProtocol.WorkspaceDestroyed>(Event(@"destroyworkspacev2>>7,7,\\.\DISPLAY1"));
+        var destroyed = Assert.IsExactInstanceOfType<WinlandProtocol.WorkspaceDestroyed>(
+            Event("""{"event":"destroyworkspace","workspace":{"id":7,"name":"7"},"monitor":"\\\\.\\DISPLAY1"}"""));
         Assert.AreEqual((7, "7", @"\\.\DISPLAY1"), (destroyed.Id, destroyed.Name, destroyed.Monitor));
 
-        var focused = Assert.IsExactInstanceOfType<WinlandProtocol.MonitorFocused>(Event(@"focusedmon>>\\.\DISPLAY2,3"));
-        Assert.AreEqual((@"\\.\DISPLAY2", "3"), (focused.Monitor, focused.Workspace));
-        Assert.IsNull(Assert.IsExactInstanceOfType<WinlandProtocol.MonitorFocused>(Event(@"focusedmon>>\\.\DISPLAY1,?")).Workspace);
+        var focused = Assert.IsExactInstanceOfType<WinlandProtocol.Focused>(Event(
+            """{"event":"focus","monitor":"\\\\.\\DISPLAY2","workspace":{"id":3,"name":"3"},"window":{"address":"0x7e089e","title":"Epic, Games","class":"UnrealWindow","exe":"a.exe"}}"""));
+        Assert.AreEqual((@"\\.\DISPLAY2", "3", 3, 0x7e089eUL), (focused.Monitor, focused.Workspace, focused.WorkspaceId, focused.Window));
+        var bare = Assert.IsExactInstanceOfType<WinlandProtocol.Focused>(
+            Event("""{"event":"focus","monitor":"\\\\.\\DISPLAY1","workspace":null,"window":null}"""));
+        Assert.AreEqual((@"\\.\DISPLAY1", (string?)null, 0UL), (bare.Monitor, bare.Workspace, bare.Window));
 
-        var shown = Assert.IsExactInstanceOfType<WinlandProtocol.WorkspaceShown>(Event(@"workspacev2>>3,3,\\.\DISPLAY1"));
+        var shown = Assert.IsExactInstanceOfType<WinlandProtocol.WorkspaceShown>(
+            Event("""{"event":"workspace","workspace":{"id":3,"name":"3"},"monitor":"\\\\.\\DISPLAY1"}"""));
         Assert.AreEqual((3, "3", @"\\.\DISPLAY1"), (shown.Id, shown.Name, shown.Monitor));
-        var moved = Assert.IsExactInstanceOfType<WinlandProtocol.WorkspaceMoved>(Event(@"moveworkspacev2>>,special:special,\\.\DISPLAY2"));
+        var moved = Assert.IsExactInstanceOfType<WinlandProtocol.WorkspaceMoved>(
+            Event("""{"event":"moveworkspace","workspace":{"name":"special:special"},"monitor":"\\\\.\\DISPLAY2"}"""));
         Assert.AreEqual((-99, "special:special", @"\\.\DISPLAY2"), (moved.Id, moved.Name, moved.Monitor));
 
-        Assert.IsTrue(Assert.IsExactInstanceOfType<WinlandProtocol.FullscreenChanged>(Event("fullscreen>>1")).Fullscreen);
-        Assert.IsFalse(Assert.IsExactInstanceOfType<WinlandProtocol.FullscreenChanged>(Event("fullscreen>>0")).Fullscreen);
+        Assert.IsTrue(Assert.IsExactInstanceOfType<WinlandProtocol.FullscreenChanged>(Event("""{"event":"fullscreen","fullscreen":true}""")).Fullscreen);
+        Assert.IsFalse(Assert.IsExactInstanceOfType<WinlandProtocol.FullscreenChanged>(Event("""{"event":"fullscreen","fullscreen":false}""")).Fullscreen);
 
-        var opened = Assert.IsExactInstanceOfType<WinlandProtocol.WindowOpened>(Event(@"openwindow>>30,1,\\.\DISPLAY1,App,Title, with comma"));
-        Assert.AreEqual((0x30UL, "1", @"\\.\DISPLAY1", "App", "Title, with comma"),
+        var opened = Assert.IsExactInstanceOfType<WinlandProtocol.WindowOpened>(Event(
+            """{"event":"openwindow","address":"0x30","workspace":{"id":1,"name":"1"},"monitor":"\\\\.\\DISPLAY1","class":"App, Inc","title":"Title, with comma"}"""));
+        Assert.AreEqual((0x30UL, "1", @"\\.\DISPLAY1", "App, Inc", "Title, with comma"),
             (opened.Address, opened.Workspace, opened.Monitor, opened.WindowClass, opened.Title));
-        var relocated = Assert.IsExactInstanceOfType<WinlandProtocol.WindowMoved>(Event(@"movewindowv2>>20,3,3,\\.\DISPLAY2"));
+        var relocated = Assert.IsExactInstanceOfType<WinlandProtocol.WindowMoved>(
+            Event("""{"event":"movewindow","address":"0x20","workspace":{"id":3,"name":"3"},"monitor":"\\\\.\\DISPLAY2"}"""));
         Assert.AreEqual((0x20UL, 3, "3", @"\\.\DISPLAY2"),
             (relocated.Address, relocated.WorkspaceId, relocated.Workspace, relocated.Monitor));
-        var titled = Assert.IsExactInstanceOfType<WinlandProtocol.WindowTitleChanged>(Event("windowtitlev2>>10,New, title"));
+        var titled = Assert.IsExactInstanceOfType<WinlandProtocol.WindowTitleChanged>(
+            Event("""{"event":"windowtitle","address":"0x10","title":"New, title"}"""));
         Assert.AreEqual((0x10UL, "New, title"), (titled.Address, titled.Title));
-        Assert.AreEqual(0x30UL, Assert.IsExactInstanceOfType<WinlandProtocol.WindowClosed>(Event("closewindow>>30")).Address);
-        Assert.AreEqual(0x30UL, Assert.IsExactInstanceOfType<WinlandProtocol.WindowActivated>(Event("activewindowv2>>30")).Address);
-        Assert.AreEqual(0x20UL, Assert.IsExactInstanceOfType<WinlandProtocol.WindowUrgent>(Event("urgent>>20")).Address);
+        Assert.AreEqual(0x30UL, Assert.IsExactInstanceOfType<WinlandProtocol.WindowClosed>(Event("""{"event":"closewindow","address":"0x30"}""")).Address);
+        Assert.AreEqual(0x20UL, Assert.IsExactInstanceOfType<WinlandProtocol.WindowUrgent>(Event("""{"event":"urgent","address":"0x20"}""")).Address);
 
-        Assert.IsNull(Event("activewindow>>30"));
-        Assert.IsNull(Event("noarrows"));
+        Assert.IsNull(Event("""{"event":"workspacev2","workspace":{"id":3,"name":"3"}}"""));
+        Assert.IsNull(Event("""{"event":"focusedmon","monitor":"\\\\.\\DISPLAY1"}"""));
     }
 
     [TestMethod]
@@ -151,8 +168,7 @@ public class WinlandProtocolTests
 
     private static WinlandProtocol.Event? Event(string line)
     {
-        var (name, data) = WinlandProtocol.SplitEvent(line);
-        return WinlandProtocol.ReadEvent(name, data);
+        return WinlandProtocol.ReadEvent(WinlandProtocol.ParseEvent(line)!);
     }
 
     [TestMethod]

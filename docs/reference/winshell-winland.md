@@ -8,10 +8,9 @@ Monitors, workspaces and windows from Winland, over its named pipe. Reach them f
 
 | Member | Type |
 | --- | --- |
-| `WinlandEvent(string Name, string Data)` | constructor |
-| `Data` | string, init |
+| `WinlandEvent(string Name, JsonElement Data)` | constructor |
+| `Data` | JsonElement, init |
 | `Name` | string, init |
-| `Parse(int argumentCount)` | IReadOnlyList of string |
 
 ## WinlandMonitor
 

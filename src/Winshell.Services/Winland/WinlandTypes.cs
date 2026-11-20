@@ -4,13 +4,7 @@ using Winshell.AppWindows;
 
 namespace Winshell.Winland;
 
-public sealed record WinlandEvent(string Name, string Data)
-{
-    public IReadOnlyList<string> Parse(int argumentCount)
-    {
-        return WinlandProtocol.ParseArgs(Data, argumentCount);
-    }
-}
+public sealed record WinlandEvent(string Name, JsonElement Data);
 
 public sealed class WinlandMonitor : ObservableObject
 {
@@ -60,8 +54,8 @@ public sealed class WinlandMonitor : ObservableObject
     internal void ActivateWorkspace(string name)
     {
         if (this != _service.FocusedMonitor)
-            _service.Send(
-                $"[[BATCH]]dispatch focusmonitor {(_id >= 0 ? _id.ToString(CultureInfo.InvariantCulture) : _name)};dispatch workspace {name}");
+            _service.SendInOrder(
+                $"focus-monitor {(_id >= 0 ? _id.ToString(CultureInfo.InvariantCulture) : _name)}", "workspace " + name);
         else
             _service.Dispatch("workspace " + name);
     }
